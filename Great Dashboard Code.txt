@@ -1,0 +1,1243 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useParams, useRouter } from "next/navigation";
+
+const TERM_OPTIONS = ["T1", "T2", "T3", "T4"] as const;
+
+type StudentRow = {
+  id: string;
+  first_name: string | null;
+  preferred_name: string | null;
+  is_ilp: boolean | null;
+  class_id: string | null;
+};
+
+type ClassRow = {
+  id: string;
+  year_level: number | null;
+  name: string | null;
+};
+
+type NoteRow = {
+  id: string;
+  student_id: string;
+  term: string;
+  note_text: string | null;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type InstrumentRow = {
+  id: string;
+  instrument_code: string;
+  instrument_name: string;
+  domain: string; // Reading / Maths / Writing / etc
+  score_type: string;
+};
+
+type AssessmentRow = {
+  id: string;
+  student_id: string;
+  instrument_id: string;
+  occurred_on: string;
+  year_level_at_test: number | null;
+  score_numeric: number | null;
+  stanine: number | null;
+  band: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+type LatestCard = {
+  latest: AssessmentRow;
+  previous: AssessmentRow | null;
+};
+
+type CompareRow = {
+  instrument_id: string;
+  instrument_name: string;
+  instrument_code: string;
+  domain: string;
+
+  latest_date: string;
+  prev_date: string | null;
+
+  latest_score: number | null;
+  prev_score: number | null;
+  scoreTrend: { arrow: string; delta: number | null; deltaText: string };
+
+  latest_stanine: number | null;
+  prev_stanine: number | null;
+  stanineTrend: { arrow: string; delta: number | null; deltaText: string };
+
+  latest_band: string | null;
+  prev_band: string | null;
+
+  primaryDelta: number; // for sorting: score delta if exists else stanine else 0
+  primaryMetric: "score" | "stanine" | "none";
+};
+
+export default function StudentProfilePage() {
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const studentId = params?.id;
+
+  const [loading, setLoading] = useState(true);
+  const [term, setTerm] = useState<(typeof TERM_OPTIONS)[number]>("T4");
+
+  const [student, setStudent] = useState<StudentRow | null>(null);
+  const [klass, setKlass] = useState<ClassRow | null>(null);
+
+  const [note, setNote] = useState<NoteRow | null>(null);
+  const [noteDraft, setNoteDraft] = useState<string>("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Instruments + results
+  const [instruments, setInstruments] = useState<InstrumentRow[]>([]);
+  const [assessments, setAssessments] = useState<AssessmentRow[]>([]);
+  const [loadingAssessments, setLoadingAssessments] = useState(false);
+
+  // Domain tabs + compare
+  const [domainFilter, setDomainFilter] = useState<string>("All");
+  const [compareOpen, setCompareOpen] = useState<boolean>(false);
+
+  // Entry form
+  const [instrumentId, setInstrumentId] = useState<string>("");
+  const [occurredOn, setOccurredOn] = useState<string>(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  });
+  const [rawScore, setRawScore] = useState<string>("");
+  const [stanine, setStanine] = useState<string>("");
+  const [band, setBand] = useState<string>("");
+  const [assessmentNotes, setAssessmentNotes] = useState<string>("");
+  const [savingAssessment, setSavingAssessment] = useState(false);
+
+  const [err, setErr] = useState<string>("");
+  const [ok, setOk] = useState<string>("");
+
+  const displayName = useMemo(() => {
+    if (!student) return "Student";
+    const pref = (student.preferred_name ?? "").trim();
+    const first = (student.first_name ?? "").trim();
+    return pref || first || "Student";
+  }, [student]);
+
+  const instrumentById = useMemo(() => {
+    const m = new Map<string, InstrumentRow>();
+    for (const i of instruments) m.set(i.id, i);
+    return m;
+  }, [instruments]);
+
+  const domains = useMemo(() => {
+    const set = new Set<string>();
+    for (const i of instruments) {
+      const d = (i.domain ?? "").trim();
+      if (d) set.add(d);
+    }
+    return ["All", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [instruments]);
+
+  useEffect(() => {
+    if (!domains.includes(domainFilter)) setDomainFilter("All");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domains.join("|")]);
+
+  const compareAssessmentsDesc = (a: AssessmentRow, b: AssessmentRow) => {
+    if (a.occurred_on !== b.occurred_on) return a.occurred_on < b.occurred_on ? 1 : -1;
+    return a.created_at < b.created_at ? 1 : -1;
+  };
+
+  function trendMeta(latest: number | null, previous: number | null) {
+    if (latest == null || previous == null) return { arrow: "—", delta: null as number | null, deltaText: "" as string };
+    const d = latest - previous;
+    if (d === 0) return { arrow: "—", delta: 0, deltaText: "0" };
+    return { arrow: d > 0 ? "▲" : "▼", delta: d, deltaText: d > 0 ? `+${d}` : `${d}` };
+  }
+
+  // One latest+previous per instrument
+  const latestCardsAll = useMemo<LatestCard[]>(() => {
+    const sorted = [...assessments].sort(compareAssessmentsDesc);
+    const byInstrument = new Map<string, AssessmentRow[]>();
+    for (const row of sorted) {
+      const arr = byInstrument.get(row.instrument_id) ?? [];
+      arr.push(row);
+      byInstrument.set(row.instrument_id, arr);
+    }
+
+    const cards: LatestCard[] = [];
+    for (const [, rows] of byInstrument.entries()) {
+      cards.push({ latest: rows[0], previous: rows.length > 1 ? rows[1] : null });
+    }
+
+    cards.sort((x, y) => {
+      const ia = instrumentById.get(x.latest.instrument_id);
+      const ib = instrumentById.get(y.latest.instrument_id);
+      const da = (ia?.domain ?? "").toLowerCase();
+      const db = (ib?.domain ?? "").toLowerCase();
+      if (da !== db) return da.localeCompare(db);
+      const na = (ia?.instrument_name ?? x.latest.instrument_id).toLowerCase();
+      const nb = (ib?.instrument_name ?? y.latest.instrument_id).toLowerCase();
+      return na.localeCompare(nb);
+    });
+
+    return cards;
+  }, [assessments, instrumentById]);
+
+  const latestCards = useMemo(() => {
+    if (domainFilter === "All") return latestCardsAll;
+    return latestCardsAll.filter((c) => {
+      const inst = instrumentById.get(c.latest.instrument_id);
+      return (inst?.domain ?? "").trim() === domainFilter;
+    });
+  }, [domainFilter, latestCardsAll, instrumentById]);
+
+  const filteredHistory = useMemo(() => {
+    if (domainFilter === "All") return assessments;
+    return assessments.filter((a) => (instrumentById.get(a.instrument_id)?.domain ?? "").trim() === domainFilter);
+  }, [domainFilter, assessments, instrumentById]);
+
+  // Compare rows (latest vs previous) for the current domain
+  const compareRows = useMemo<CompareRow[]>(() => {
+    const rows: CompareRow[] = latestCards.map((c) => {
+      const inst = instrumentById.get(c.latest.instrument_id);
+
+      const scoreTrend = trendMeta(c.latest.score_numeric, c.previous?.score_numeric ?? null);
+      const stanineTrend = trendMeta(c.latest.stanine, c.previous?.stanine ?? null);
+
+      const primaryMetric: CompareRow["primaryMetric"] =
+        scoreTrend.delta != null ? "score" : stanineTrend.delta != null ? "stanine" : "none";
+
+      const primaryDelta =
+        primaryMetric === "score"
+          ? (scoreTrend.delta ?? 0)
+          : primaryMetric === "stanine"
+          ? (stanineTrend.delta ?? 0)
+          : 0;
+
+      return {
+        instrument_id: c.latest.instrument_id,
+        instrument_name: inst?.instrument_name ?? c.latest.instrument_id,
+        instrument_code: inst?.instrument_code ?? "",
+        domain: inst?.domain ?? "—",
+
+        latest_date: c.latest.occurred_on,
+        prev_date: c.previous?.occurred_on ?? null,
+
+        latest_score: c.latest.score_numeric,
+        prev_score: c.previous?.score_numeric ?? null,
+        scoreTrend,
+
+        latest_stanine: c.latest.stanine,
+        prev_stanine: c.previous?.stanine ?? null,
+        stanineTrend,
+
+        latest_band: c.latest.band,
+        prev_band: c.previous?.band ?? null,
+
+        primaryDelta,
+        primaryMetric,
+      };
+    });
+
+    rows.sort((a, b) => Math.abs(b.primaryDelta) - Math.abs(a.primaryDelta));
+    return rows;
+  }, [latestCards, instrumentById]);
+
+  // ✅ D) Focus Areas summary (FM-style “assistant coach”)
+  const focusSummary = useMemo(() => {
+    // ignore instruments without a previous attempt (no change yet)
+    const rowsWithPrior = compareRows.filter((r) => r.prev_date != null);
+
+    const positives = rowsWithPrior
+      .filter((r) => r.primaryDelta > 0)
+      .sort((a, b) => b.primaryDelta - a.primaryDelta);
+
+    const negatives = rowsWithPrior
+      .filter((r) => r.primaryDelta < 0)
+      .sort((a, b) => a.primaryDelta - b.primaryDelta);
+
+    const flats = rowsWithPrior.filter((r) => r.primaryDelta === 0);
+
+    const gainsTop = positives.slice(0, 3);
+    const dropsTop = negatives.slice(0, 3);
+
+    const domainCounts = rowsWithPrior.reduce<Record<string, number>>((acc, r) => {
+      const d = (r.domain || "—").trim();
+      acc[d] = (acc[d] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const domainMostMeasured = Object.entries(domainCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+    const makeLine = (r: CompareRow) => {
+      const metric =
+        r.primaryMetric === "score" ? "Score" : r.primaryMetric === "stanine" ? "Stanine" : "Change";
+      const deltaText =
+        r.primaryMetric === "score"
+          ? r.scoreTrend.deltaText
+          : r.primaryMetric === "stanine"
+          ? r.stanineTrend.deltaText
+          : "";
+
+      const arrow =
+        r.primaryMetric === "score"
+          ? r.scoreTrend.arrow
+          : r.primaryMetric === "stanine"
+          ? r.stanineTrend.arrow
+          : "—";
+
+      return `${r.instrument_name} (${r.instrument_code || r.domain}) — ${metric} ${arrow} ${deltaText} (since ${r.prev_date})`;
+    };
+
+    const insightLines: string[] = [];
+
+    if (gainsTop.length > 0) {
+      insightLines.push("Top gains:");
+      gainsTop.forEach((r) => insightLines.push(`• ${makeLine(r)}`));
+    } else {
+      insightLines.push("Top gains: none recorded yet (need two attempts per instrument).");
+    }
+
+    if (dropsTop.length > 0) {
+      insightLines.push("Areas to watch (drops):");
+      dropsTop.forEach((r) => insightLines.push(`• ${makeLine(r)}`));
+    } else {
+      insightLines.push("Areas to watch: no drops detected.");
+    }
+
+    if (flats.length > 0) {
+      insightLines.push(`Stable/flat results: ${flats.length} instrument(s) (no change).`);
+    }
+
+    const nextActions: { title: string; bullets: string[] }[] = [];
+
+    // Action ideas are deliberately generic; later we can map to interventions/resources.
+    if (dropsTop.length > 0) {
+      nextActions.push({
+        title: "Suggested teaching moves (next 2–3 weeks)",
+        bullets: [
+          "Schedule a short re-check / mini-probe for the biggest drop to confirm it’s real (not test-day noise).",
+          "Target one micro-skill that sits under the dropped measure (small group / 10-min rotations).",
+          "Add one explicit revision routine (retrieval, worked examples, error analysis) aligned to the domain.",
+        ],
+      });
+    } else {
+      nextActions.push({
+        title: "Suggested teaching moves",
+        bullets: [
+          "Keep the current approach running — add one stretch goal on the strongest domain to extend growth.",
+          "For stable areas, increase frequency of quick checks rather than big tests (low effort, high signal).",
+        ],
+      });
+    }
+
+    return {
+      hasAny: rowsWithPrior.length > 0,
+      measuredCount: rowsWithPrior.length,
+      domainMostMeasured,
+      gainsTop,
+      dropsTop,
+      flatsCount: flats.length,
+      insightLines,
+      nextActions,
+    };
+  }, [compareRows]);
+
+  // ─────────────────────────────
+  // AUTH GUARD
+  // ─────────────────────────────
+  useEffect(() => {
+    const guard = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        setErr(error.message);
+        setLoading(false);
+        return;
+      }
+      if (!data.user) {
+        window.location.href = "/";
+        return;
+      }
+    };
+    guard();
+  }, []);
+
+  // ─────────────────────────────
+  // LOAD: Student + Class + Note
+  // ─────────────────────────────
+  useEffect(() => {
+    if (!studentId) return;
+
+    const loadCore = async () => {
+      setErr("");
+      setOk("");
+      setLoading(true);
+
+      const { data: sData, error: sErr } = await supabase
+        .from("students")
+        .select("id, first_name, preferred_name, is_ilp, class_id")
+        .eq("id", studentId)
+        .maybeSingle();
+
+      if (sErr) {
+        setErr(`Load student failed: ${sErr.message}`);
+        setStudent(null);
+        setKlass(null);
+        setLoading(false);
+        return;
+      }
+
+      const s = (sData as StudentRow) ?? null;
+      setStudent(s);
+
+      if (s?.class_id) {
+        const { data: cData, error: cErr } = await supabase
+          .from("classes")
+          .select("id, year_level, name")
+          .eq("id", s.class_id)
+          .maybeSingle();
+
+        if (cErr) {
+          console.warn("Load class failed:", cErr);
+          setKlass(null);
+        } else {
+          setKlass((cData as ClassRow) ?? null);
+        }
+      } else {
+        setKlass(null);
+      }
+
+      const { data: nData, error: nErr } = await supabase
+        .from("student_notes")
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("term", term)
+        .maybeSingle();
+
+      if (nErr) {
+        setErr(`Load note failed: ${nErr.message}`);
+        setNote(null);
+        setNoteDraft("");
+        setLoading(false);
+        return;
+      }
+
+      setNote((nData as NoteRow) ?? null);
+      setNoteDraft((nData as any)?.note_text ?? "");
+      setLoading(false);
+    };
+
+    loadCore();
+  }, [studentId, term]);
+
+  // ─────────────────────────────
+  // LOAD: Instruments
+  // ─────────────────────────────
+  useEffect(() => {
+    const loadInstruments = async () => {
+      setErr("");
+      const { data, error } = await supabase
+        .from("assessment_instruments")
+        .select("id, instrument_code, instrument_name, domain, score_type")
+        .order("instrument_name", { ascending: true });
+
+      if (error) {
+        setErr(`Load instruments failed: ${error.message}`);
+        setInstruments([]);
+        return;
+      }
+
+      const list = (data as InstrumentRow[]) ?? [];
+      setInstruments(list);
+      if (!instrumentId && list.length > 0) setInstrumentId(list[0].id);
+    };
+
+    loadInstruments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─────────────────────────────
+  // LOAD: Assessments
+  // ─────────────────────────────
+  useEffect(() => {
+    if (!studentId) return;
+
+    const loadAssessments = async () => {
+      setLoadingAssessments(true);
+      setErr("");
+      try {
+        const { data, error } = await supabase
+          .from("assessment_results")
+          .select(
+            "id, student_id, instrument_id, occurred_on, year_level_at_test, score_numeric, stanine, band, notes, created_at"
+          )
+          .eq("student_id", studentId)
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          setErr(`Load assessment_results failed: ${error.message}`);
+          setAssessments([]);
+          return;
+        }
+
+        setAssessments((data as AssessmentRow[]) ?? []);
+      } finally {
+        setLoadingAssessments(false);
+      }
+    };
+
+    loadAssessments();
+  }, [studentId]);
+
+  // ─────────────────────────────
+  // SAVE: Coach note
+  // ─────────────────────────────
+  const saveNote = async () => {
+    if (!studentId) return;
+
+    setSavingNote(true);
+    setErr("");
+    setOk("");
+
+    const { error } = await supabase.from("student_notes").upsert(
+      [{ student_id: studentId, term, note_text: noteDraft }],
+      { onConflict: "student_id,term" }
+    );
+
+    if (error) {
+      setErr(`Save note failed: ${error.message}`);
+      setSavingNote(false);
+      return;
+    }
+
+    const { data: nData, error: nErr } = await supabase
+      .from("student_notes")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("term", term)
+      .maybeSingle();
+
+    if (nErr) {
+      setErr(`Reload note failed: ${nErr.message}`);
+      setSavingNote(false);
+      return;
+    }
+
+    setNote((nData as NoteRow) ?? null);
+    setOk("Saved ✅");
+    setSavingNote(false);
+  };
+
+  // ─────────────────────────────
+  // SAVE: Assessment Result
+  // ─────────────────────────────
+  const saveAssessment = async () => {
+    if (!studentId) return;
+
+    setErr("");
+    setOk("");
+
+    if (!instrumentId) {
+      setErr("Please select an assessment instrument.");
+      return;
+    }
+    if (!occurredOn) {
+      setErr("Please choose a date (occurred_on).");
+      return;
+    }
+
+    const scoreNum =
+      rawScore.trim() === "" ? null : Number.isFinite(Number(rawScore)) ? Number(rawScore) : null;
+    const stanineNum =
+      stanine.trim() === "" ? null : Number.isFinite(Number(stanine)) ? Number(stanine) : null;
+
+    setSavingAssessment(true);
+
+    try {
+      const insertRow = {
+        student_id: studentId,
+        instrument_id: instrumentId,
+        occurred_on: occurredOn,
+        year_level_at_test: klass?.year_level ?? null,
+        score_numeric: scoreNum,
+        stanine: stanineNum,
+        band: band.trim() === "" ? null : band.trim(),
+        notes: assessmentNotes.trim() === "" ? null : assessmentNotes.trim(),
+      };
+
+      const { error } = await supabase.from("assessment_results").insert([insertRow]);
+      if (error) {
+        setErr(`Save assessment failed: ${error.message}`);
+        return;
+      }
+
+      setRawScore("");
+      setStanine("");
+      setBand("");
+      setAssessmentNotes("");
+      setOk("Assessment saved ✅");
+
+      const { data, error: reloadErr } = await supabase
+        .from("assessment_results")
+        .select(
+          "id, student_id, instrument_id, occurred_on, year_level_at_test, score_numeric, stanine, band, notes, created_at"
+        )
+        .eq("student_id", studentId)
+        .order("occurred_on", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (reloadErr) {
+        setErr(`Reload assessments failed: ${reloadErr.message}`);
+        return;
+      }
+
+      setAssessments((data as AssessmentRow[]) ?? []);
+    } finally {
+      setSavingAssessment(false);
+    }
+  };
+
+  if (loading) return <main style={{ padding: 24 }}>Loading student…</main>;
+
+  return (
+    <main style={{ padding: 24, maxWidth: 1100 }}>
+      {/* Header */}
+      <section
+        style={{
+          border: "1px solid #e6e6e6",
+          borderRadius: 16,
+          padding: 16,
+          marginBottom: 12,
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, opacity: 0.7 }}>PLAYER PROFILE • {term}</div>
+
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 6 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                border: "1px solid #e6e6e6",
+                display: "grid",
+                placeItems: "center",
+                fontWeight: 900,
+              }}
+            >
+              {displayName.slice(0, 1).toUpperCase()}
+            </div>
+
+            <div>
+              <div style={{ fontSize: 22, fontWeight: 900 }}>{displayName}</div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                Class: {klass?.name ?? student?.class_id ?? "—"} •{" "}
+                {klass?.year_level != null ? `Year ${klass.year_level}` : "Year —"} •{" "}
+                {student?.is_ilp ? "ILP" : "Standard"}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Badge label={`Term ${term}`} />
+            <Badge label={note ? "Coach Note ✓" : "No Note"} />
+            <Badge label={`Assessments: ${assessments.length}`} />
+            <Badge label={`Scorecards: ${latestCardsAll.length}`} />
+          </div>
+
+          <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+            Student ID: <code>{studentId}</code>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+            onClick={() => router.push("/admin")}
+            style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #ddd" }}
+          >
+            ← Admin
+          </button>
+
+          <label style={{ fontSize: 12 }}>
+            Term{" "}
+            <select value={term} onChange={(e) => setTerm(e.target.value as any)}>
+              {TERM_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {/* Domain Tabs + Compare toggle */}
+      <section style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {domains.map((d) => (
+          <button
+            key={d}
+            onClick={() => setDomainFilter(d)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 999,
+              border: "1px solid #ddd",
+              fontWeight: 800,
+              fontSize: 12,
+              background: domainFilter === d ? "#111" : "transparent",
+              color: domainFilter === d ? "white" : "inherit",
+              cursor: "pointer",
+            }}
+          >
+            {d}
+          </button>
+        ))}
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={() => setCompareOpen((v) => !v)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 12,
+            border: "1px solid #ddd",
+            fontWeight: 900,
+            fontSize: 12,
+            background: compareOpen ? "#111" : "transparent",
+            color: compareOpen ? "white" : "inherit",
+            cursor: "pointer",
+          }}
+          title="One-click comparison: latest vs previous for each instrument"
+        >
+          {compareOpen ? "Close Compare" : "Compare (Latest vs Previous)"}
+        </button>
+      </section>
+
+      {!!err && (
+        <div style={{ marginBottom: 14, padding: 10, border: "1px solid #f2c1c1", borderRadius: 10 }}>
+          <strong style={{ color: "crimson" }}>Error:</strong> {err}
+        </div>
+      )}
+      {!!ok && (
+        <div style={{ marginBottom: 14, padding: 10, border: "1px solid #cfe9cf", borderRadius: 10 }}>
+          <strong style={{ color: "green" }}>OK:</strong> {ok}
+        </div>
+      )}
+
+      {/* ✅ D) Focus Areas summary (always visible, even if Compare panel is closed) */}
+      <section style={{ marginBottom: 16, border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>Focus Areas — Auto Summary</div>
+            <div style={{ fontSize: 12, opacity: 0.75 }}>
+              FM-style interpretation of change (latest vs previous) for <strong>{domainFilter}</strong>.
+            </div>
+          </div>
+          <div style={{ fontSize: 12, opacity: 0.7, alignSelf: "center" }}>
+            {focusSummary.hasAny
+              ? `Comparable instruments: ${focusSummary.measuredCount}`
+              : "Need two attempts per instrument to calculate change"}
+          </div>
+        </div>
+
+        {!focusSummary.hasAny ? (
+          <div style={{ marginTop: 12, fontSize: 13, opacity: 0.8 }}>
+            Add a second attempt for at least one instrument to generate gains/drops (e.g., PAT Reading twice).
+          </div>
+        ) : (
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
+            <div style={{ border: "1px solid #f1f1f1", borderRadius: 14, padding: 12 }}>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>
+                Summary lines
+                {focusSummary.domainMostMeasured ? (
+                  <span style={{ marginLeft: 8 }}>
+                    • Most measured domain: <strong>{focusSummary.domainMostMeasured}</strong>
+                  </span>
+                ) : null}
+              </div>
+
+              <div style={{ whiteSpace: "pre-wrap", fontSize: 13, lineHeight: 1.5 }}>
+                {focusSummary.insightLines.join("\n")}
+              </div>
+            </div>
+
+            <div style={{ border: "1px solid #f1f1f1", borderRadius: 14, padding: 12 }}>
+              <div style={{ fontSize: 12, opacity: 0.7, marginBottom: 8 }}>Recommended next actions</div>
+
+              {focusSummary.nextActions.map((a) => (
+                <div key={a.title} style={{ marginBottom: 10 }}>
+                  <div style={{ fontWeight: 900, marginBottom: 6 }}>{a.title}</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontSize: 13, lineHeight: 1.5 }}>
+                    {a.bullets.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* ✅ Compare Panel */}
+      {compareOpen && (
+        <section style={{ marginBottom: 16, border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                Compare View — {domainFilter} (Latest vs Previous)
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.75 }}>
+                Sorted by biggest change. “—” means no previous attempt.
+              </div>
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.7, alignSelf: "center" }}>
+              Rows: {compareRows.length}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12, overflowX: "auto" }}>
+            {compareRows.length === 0 ? (
+              <div style={{ fontSize: 13, opacity: 0.75 }}>No scorecards available in this domain yet.</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
+                <thead>
+                  <tr style={{ textAlign: "left", fontSize: 12, opacity: 0.7 }}>
+                    <th style={{ padding: "8px 6px" }}>Instrument</th>
+                    <th style={{ padding: "8px 6px" }}>Latest date</th>
+                    <th style={{ padding: "8px 6px" }}>Prev date</th>
+                    <th style={{ padding: "8px 6px" }}>Score</th>
+                    <th style={{ padding: "8px 6px" }}>Δ Score</th>
+                    <th style={{ padding: "8px 6px" }}>Stanine</th>
+                    <th style={{ padding: "8px 6px" }}>Δ Stanine</th>
+                    <th style={{ padding: "8px 6px" }}>Band</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {compareRows.map((r) => (
+                    <tr key={r.instrument_id} style={{ borderTop: "1px solid #f0f0f0" }}>
+                      <td style={{ padding: "10px 6px" }}>
+                        <div style={{ fontWeight: 900 }}>{r.instrument_name}</div>
+                        <div style={{ fontSize: 12, opacity: 0.7 }}>
+                          {r.instrument_code ? `${r.instrument_code} • ` : ""}
+                          {r.domain}
+                        </div>
+                      </td>
+
+                      <td style={{ padding: "10px 6px", fontWeight: 700 }}>{r.latest_date}</td>
+                      <td style={{ padding: "10px 6px" }}>{r.prev_date ?? "—"}</td>
+
+                      <td style={{ padding: "10px 6px" }}>
+                        {r.latest_score ?? "—"}{" "}
+                        <span style={{ opacity: 0.6 }}>
+                          {r.prev_score != null ? `(prev ${r.prev_score})` : ""}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: "10px 6px", fontWeight: 900 }}>
+                        {r.scoreTrend.deltaText ? `${r.scoreTrend.arrow} ${r.scoreTrend.deltaText}` : "—"}
+                      </td>
+
+                      <td style={{ padding: "10px 6px" }}>
+                        {r.latest_stanine ?? "—"}{" "}
+                        <span style={{ opacity: 0.6 }}>
+                          {r.prev_stanine != null ? `(prev ${r.prev_stanine})` : ""}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: "10px 6px", fontWeight: 900 }}>
+                        {r.stanineTrend.deltaText ? `${r.stanineTrend.arrow} ${r.stanineTrend.deltaText}` : "—"}
+                      </td>
+
+                      <td style={{ padding: "10px 6px" }}>
+                        {r.latest_band ?? "—"}{" "}
+                        <span style={{ opacity: 0.6 }}>
+                          {r.prev_band ? `(prev ${r.prev_band})` : ""}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Main 2-column layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+        {/* LEFT */}
+        <div>
+          {/* Scorecards */}
+          <section style={{ border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>
+                  Latest Assessment Scorecards{" "}
+                  <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>({domainFilter})</span>
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                  One card per instrument — includes trend vs previous attempt.
+                </div>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7, alignSelf: "center" }}>
+                {loadingAssessments ? "Loading…" : "Ready"}
+              </div>
+            </div>
+
+            <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {loadingAssessments ? (
+                <div style={{ fontSize: 13, opacity: 0.75 }}>Loading scorecards…</div>
+              ) : latestCards.length === 0 ? (
+                <div style={{ fontSize: 13, opacity: 0.75 }}>
+                  No assessments in this domain yet — switch tabs or add an assessment below.
+                </div>
+              ) : (
+                latestCards.map(({ latest, previous }) => {
+                  const inst = instrumentById.get(latest.instrument_id);
+                  const scoreTrend = trendMeta(latest.score_numeric, previous?.score_numeric ?? null);
+                  const stanineTrend = trendMeta(latest.stanine, previous?.stanine ?? null);
+                  const overallArrow = scoreTrend.arrow !== "—" ? scoreTrend.arrow : stanineTrend.arrow;
+
+                  return (
+                    <div
+                      key={latest.id}
+                      style={{
+                        border: "1px solid #eee",
+                        borderRadius: 14,
+                        padding: 12,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                        <div style={{ fontWeight: 900, lineHeight: 1.2 }}>
+                          {inst?.instrument_name ?? "Instrument"}
+                        </div>
+                        <div style={{ fontSize: 12, opacity: 0.7 }}>{latest.occurred_on}</div>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>
+                          {(inst?.instrument_code ?? "") ? `${inst?.instrument_code} • ` : ""}
+                          {inst?.domain ?? "—"}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 900,
+                            padding: "4px 8px",
+                            borderRadius: 999,
+                            border: "1px solid #eee",
+                          }}
+                          title={previous?.occurred_on ? `Trend vs previous (${previous.occurred_on})` : "No previous attempt"}
+                        >
+                          {overallArrow}{" "}
+                          <span style={{ fontWeight: 700, opacity: 0.7 }}>
+                            {previous?.occurred_on ? `vs ${previous.occurred_on}` : "no prior"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                        <MiniStat
+                          label="Score"
+                          value={latest.score_numeric ?? "—"}
+                          sub={scoreTrend.deltaText ? `${scoreTrend.arrow} ${scoreTrend.deltaText}` : ""}
+                        />
+                        <MiniStat
+                          label="Stanine"
+                          value={latest.stanine ?? "—"}
+                          sub={stanineTrend.deltaText ? `${stanineTrend.arrow} ${stanineTrend.deltaText}` : ""}
+                        />
+                        <MiniStat label="Band" value={latest.band ?? "—"} />
+                      </div>
+
+                      <div style={{ fontSize: 12, opacity: 0.7 }}>
+                        Year-at-test: <strong>{latest.year_level_at_test ?? "—"}</strong>
+                      </div>
+
+                      {latest.notes ? (
+                        <div style={{ fontSize: 12, opacity: 0.75, borderTop: "1px solid #f2f2f2", paddingTop: 8 }}>
+                          {latest.notes}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+
+          {/* Entry */}
+          <section style={{ marginTop: 16, border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontWeight: 900, marginBottom: 6 }}>Add Assessment Result</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                  Select an instrument and enter raw score / stanine / band.
+                </div>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7, alignSelf: "center" }}>
+                {savingAssessment ? "Saving…" : "Ready"}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12, marginTop: 12 }}>
+              <label style={{ fontSize: 12 }}>
+                Instrument
+                <select
+                  value={instrumentId}
+                  onChange={(e) => setInstrumentId(e.target.value)}
+                  style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+                >
+                  {instruments.length === 0 ? (
+                    <option value="">No instruments loaded</option>
+                  ) : (
+                    instruments.map((i) => (
+                      <option value={i.id} key={i.id}>
+                        {i.instrument_name} ({i.instrument_code}) — {i.domain}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
+
+              <label style={{ fontSize: 12 }}>
+                Date (occurred_on)
+                <input
+                  type="date"
+                  value={occurredOn}
+                  onChange={(e) => setOccurredOn(e.target.value)}
+                  style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+                />
+              </label>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 12 }}>
+              <label style={{ fontSize: 12 }}>
+                Raw score
+                <input
+                  value={rawScore}
+                  onChange={(e) => setRawScore(e.target.value)}
+                  placeholder="e.g. 42"
+                  style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+                />
+              </label>
+
+              <label style={{ fontSize: 12 }}>
+                Stanine
+                <input
+                  value={stanine}
+                  onChange={(e) => setStanine(e.target.value)}
+                  placeholder="1–9"
+                  style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+                />
+              </label>
+
+              <label style={{ fontSize: 12 }}>
+                Band
+                <input
+                  value={band}
+                  onChange={(e) => setBand(e.target.value)}
+                  placeholder="e.g. Band 4"
+                  style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid #ddd" }}
+                />
+              </label>
+            </div>
+
+            <label style={{ fontSize: 12, display: "block", marginTop: 12 }}>
+              Notes (optional)
+              <textarea
+                value={assessmentNotes}
+                onChange={(e) => setAssessmentNotes(e.target.value)}
+                placeholder="Any teacher notes about this test..."
+                style={{
+                  width: "100%",
+                  marginTop: 6,
+                  minHeight: 80,
+                  borderRadius: 12,
+                  border: "1px solid #ddd",
+                  padding: 12,
+                  fontSize: 14,
+                }}
+              />
+            </label>
+
+            <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                onClick={saveAssessment}
+                disabled={savingAssessment || instruments.length === 0}
+                style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #ddd" }}
+              >
+                {savingAssessment ? "Saving…" : "Save assessment"}
+              </button>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                Stored in <code>assessment_results</code> • Year-at-test = {klass?.year_level ?? "—"}
+              </div>
+            </div>
+          </section>
+
+          {/* History */}
+          <section style={{ marginTop: 16, border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>
+              Assessment Results (History){" "}
+              <span style={{ marginLeft: 8, fontSize: 12, opacity: 0.7 }}>({domainFilter})</span>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              {loadingAssessments ? (
+                <div style={{ fontSize: 13, opacity: 0.75 }}>Loading assessments…</div>
+              ) : filteredHistory.length === 0 ? (
+                <div style={{ fontSize: 13, opacity: 0.75 }}>No assessment results in this domain yet.</div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", fontSize: 12, opacity: 0.7 }}>
+                      <th style={{ padding: "8px 6px" }}>Date</th>
+                      <th style={{ padding: "8px 6px" }}>Instrument</th>
+                      <th style={{ padding: "8px 6px" }}>Score</th>
+                      <th style={{ padding: "8px 6px" }}>Stanine</th>
+                      <th style={{ padding: "8px 6px" }}>Band</th>
+                      <th style={{ padding: "8px 6px" }}>Year</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredHistory.map((a) => {
+                      const inst = instrumentById.get(a.instrument_id);
+                      return (
+                        <tr key={a.id} style={{ borderTop: "1px solid #f0f0f0" }}>
+                          <td style={{ padding: "10px 6px", fontWeight: 700 }}>{a.occurred_on}</td>
+                          <td style={{ padding: "10px 6px" }}>
+                            <div style={{ fontWeight: 800 }}>{inst?.instrument_name ?? a.instrument_id}</div>
+                            <div style={{ fontSize: 12, opacity: 0.7 }}>
+                              {inst ? `${inst.instrument_code} • ${inst.domain}` : ""}
+                            </div>
+                          </td>
+                          <td style={{ padding: "10px 6px" }}>{a.score_numeric ?? "—"}</td>
+                          <td style={{ padding: "10px 6px" }}>{a.stanine ?? "—"}</td>
+                          <td style={{ padding: "10px 6px" }}>{a.band ?? "—"}</td>
+                          <td style={{ padding: "10px 6px" }}>{a.year_level_at_test ?? "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </section>
+        </div>
+
+        {/* RIGHT */}
+        <div>
+          <section style={{ border: "1px solid #e6e6e6", borderRadius: 16, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontWeight: 900 }}>Coach Notes (Term Snapshot)</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>
+                  This is your term reflection that drives the narrative.
+                </div>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {note?.updated_at ? `Updated: ${new Date(note.updated_at).toLocaleString()}` : "No note yet"}
+              </div>
+            </div>
+
+            <textarea
+              value={noteDraft}
+              onChange={(e) => setNoteDraft(e.target.value)}
+              placeholder="Write your term snapshot note here…"
+              style={{
+                width: "100%",
+                marginTop: 12,
+                minHeight: 160,
+                borderRadius: 12,
+                border: "1px solid #ddd",
+                padding: 12,
+                fontSize: 14,
+              }}
+            />
+
+            <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+              <button
+                onClick={saveNote}
+                disabled={savingNote}
+                style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #ddd" }}
+              >
+                {savingNote ? "Saving…" : "Save note"}
+              </button>
+
+              <div style={{ fontSize: 12, opacity: 0.7 }}>Tip: switch Term (T1–T4) to view snapshots.</div>
+            </div>
+          </section>
+
+          <details style={{ marginTop: 16 }}>
+            <summary>Debug</summary>
+            <pre style={{ whiteSpace: "pre-wrap" }}>
+              {JSON.stringify(
+                {
+                  domainFilter,
+                  compareOpen,
+                  domains,
+                  instruments: instruments.length,
+                  assessments: assessments.length,
+                  compareRows: compareRows.length,
+                  focusSummary: {
+                    hasAny: focusSummary.hasAny,
+                    measuredCount: focusSummary.measuredCount,
+                    flatsCount: focusSummary.flatsCount,
+                    domainMostMeasured: focusSummary.domainMostMeasured,
+                  },
+                },
+                null,
+                2
+              )}
+            </pre>
+          </details>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/* ─────────────────────────────
+   UI PARTS
+───────────────────────────── */
+function Badge({ label }: { label: string }) {
+  return (
+    <span
+      style={{
+        padding: "6px 10px",
+        borderRadius: 999,
+        border: "1px solid #e6e6e6",
+        fontSize: 12,
+        fontWeight: 700,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+function MiniStat({ label, value, sub }: { label: string; value: any; sub?: string }) {
+  return (
+    <div style={{ border: "1px solid #f1f1f1", borderRadius: 12, padding: 10 }}>
+      <div style={{ fontSize: 11, opacity: 0.7 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 900, marginTop: 2 }}>{String(value)}</div>
+      {sub ? <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>{sub}</div> : null}
+    </div>
+  );
+}

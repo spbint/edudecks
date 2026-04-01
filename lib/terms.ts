@@ -1,0 +1,17 @@
+export const TERMS = {
+  dashboard: "Class Dashboard",
+  class: "Class",
+  classes: "Classes",
+  student: "Student",
+  students: "Students",
+  classList: "Class List",
+  evidence: "Evidence",
+  supportPlans: "Support Plans",
+  interventions: "Support Plans",
+  nextSteps: "Next Steps",
+  nextActions: "Next Actions",
+  viewOptions: "View Options",
+  quickSwitch: "Quick Switch",
+  logEvidence: "+ Log evidence",
+  refresh: "Refresh",
+};

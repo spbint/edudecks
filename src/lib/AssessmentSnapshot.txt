@@ -1,0 +1,255 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import TopNav from "@/components/TopNav";
+import CohortSnapshot from "@/components/CohortSnapshot";
+import AssessmentSnapshot from "@/components/AssessmentSnapshot";
+import NoRankingGuarantee from "@/components/NoRankingGuarantee";
+
+type Scope = "class" | "year" | "keystage";
+
+const DEMO_CLASS_ID = "83421f06-b6e8-47ea-b021-2139243f29e5";
+
+export default function DashboardPage() {
+  const [email, setEmail] = useState<string>("");
+
+  // scope controls
+  const [scope, setScope] = useState<Scope>("class");
+  const [classId, setClassId] = useState<string>(DEMO_CLASS_ID);
+  const [yearLevel, setYearLevel] = useState<number>(4);
+  const [keyStage, setKeyStage] = useState<string>("KS2");
+  const [includeIlp, setIncludeIlp] = useState<boolean>(false);
+  const [onlyActive, setOnlyActive] = useState<boolean>(true);
+
+  // cohort rpc
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [payload, setPayload] = useState<any>(null);
+
+  // auth
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const e = data.user?.email ?? "";
+      setEmail(e);
+      if (!e) window.location.href = "/";
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      const e = session?.user?.email ?? "";
+      setEmail(e);
+      if (!e) window.location.href = "/";
+    });
+
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
+  // cohort dashboard RPC
+  const fetchDashboard = async () => {
+    setLoading(true);
+    setError("");
+
+    const args: any = {
+      p_scope: scope,
+      p_min_group_size: 1,
+      p_include_ilp: includeIlp,
+      p_only_active: onlyActive,
+    };
+
+    if (scope === "class") args.p_class_id = classId;
+    if (scope === "year") args.p_year_level = yearLevel;
+    if (scope === "keystage") args.p_key_stage = keyStage;
+
+    const { data, error } = await supabase.rpc(
+      "rpc_cohort_planning_dashboard",
+      args
+    );
+
+    if (error) {
+      setError(error.message);
+      setPayload(null);
+    } else {
+      setPayload(data);
+    }
+
+    setLoading(false);
+  };
+
+  // auto refresh
+  useEffect(() => {
+    if (!email) return;
+    fetchDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, scope, classId, yearLevel, keyStage, includeIlp, onlyActive]);
+
+  const nStudents = payload?.n_students_eligible ?? 0;
+
+  const avgCoverage = (() => {
+    const groups = payload?.structure ?? [];
+    if (!groups.length) return 0;
+    const sum = groups.reduce(
+      (acc: number, g: any) => acc + (Number(g.avg_pct_coverage) || 0),
+      0
+    );
+    return Math.round(sum / groups.length);
+  })();
+
+  const measuresTracked = (() => {
+    const groups = payload?.structure ?? [];
+    return groups.reduce(
+      (acc: number, g: any) => acc + (g.attributes?.length ?? 0),
+      0
+    );
+  })();
+
+  return (
+    <main style={{ maxWidth: 1280, margin: "20px auto", padding: 16 }}>
+      <TopNav
+        productName="Coachboard"
+        orgName="Demo Org"
+        userEmail={email}
+        role="ORG ADMIN"
+        onSignOut={signOut}
+      />
+
+      {/* Scope bar */}
+      <section
+        style={{
+          marginTop: 12,
+          border: "1px solid #ddd",
+          borderRadius: 12,
+          padding: 12,
+        }}
+      >
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <b>Viewing</b>
+          <select value={scope} onChange={(e) => setScope(e.target.value as Scope)}>
+            <option value="class">Class</option>
+            <option value="year">Year</option>
+            <option value="keystage">Key Stage</option>
+          </select>
+
+          {scope === "class" && (
+            <input
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              style={{ width: 360 }}
+            />
+          )}
+
+          {scope === "year" && (
+            <input
+              type="number"
+              value={yearLevel}
+              onChange={(e) => setYearLevel(Number(e.target.value))}
+              style={{ width: 120 }}
+            />
+          )}
+
+          {scope === "keystage" && (
+            <select value={keyStage} onChange={(e) => setKeyStage(e.target.value)}>
+              <option value="KS1">KS1</option>
+              <option value="KS2">KS2</option>
+              <option value="KS3">KS3</option>
+              <option value="KS4">KS4</option>
+              <option value="KS5">KS5</option>
+            </select>
+          )}
+
+          <label>
+            <input
+              type="checkbox"
+              checked={includeIlp}
+              onChange={(e) => setIncludeIlp(e.target.checked)}
+            />{" "}
+            Include ILP
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={onlyActive}
+              onChange={(e) => setOnlyActive(e.target.checked)}
+            />{" "}
+            Only active
+          </label>
+
+          <button onClick={fetchDashboard} disabled={loading}>
+            {loading ? "Loading…" : "Refresh"}
+          </button>
+        </div>
+      </section>
+
+      {/* KPI strip */}
+      <section
+        style={{
+          marginTop: 12,
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 12,
+        }}
+      >
+        <div>
+          <b>{nStudents}</b>
+          <div>Students in scope</div>
+        </div>
+        <div>
+          <b>{avgCoverage}%</b>
+          <div>Evidence coverage</div>
+        </div>
+        <div>
+          <b>{measuresTracked}</b>
+          <div>Measures tracked</div>
+        </div>
+        <div>
+          <b>{includeIlp ? "Included" : "Excluded"}</b>
+          <div>ILP</div>
+        </div>
+      </section>
+
+      {error && (
+        <div style={{ marginTop: 12, color: "red" }}>{error}</div>
+      )}
+
+      {/* MAIN CONTENT */}
+      <div
+        style={{
+          marginTop: 16,
+          display: "grid",
+          gridTemplateColumns: "2fr 1fr",
+          gap: 16,
+        }}
+      >
+        <section
+          style={{
+            border: "1px solid #ddd",
+            borderRadius: 12,
+            padding: 12,
+          }}
+        >
+          <h2>Cohort Snapshot</h2>
+          <CohortSnapshot groups={payload?.distribution_grouped ?? []} />
+
+          <div style={{ marginTop: 16 }}>
+            <AssessmentSnapshot
+              scope={scope}
+              classId={classId}
+              yearLevel={yearLevel}
+              keyStage={keyStage}
+            />
+          </div>
+        </section>
+
+        <div style={{ display: "grid", gap: 16 }}>
+          <NoRankingGuarantee />
+        </div>
+      </div>
+    </main>
+  );
+}
+

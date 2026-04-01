@@ -1,0 +1,265 @@
+@import "tailwindcss";
+
+/* --- App palette tokens (soft, teacher-friendly) --- */
+:root {
+  --bg-top: 248 250 252;
+  --bg-mid: 241 245 249;
+  --bg-bot: 255 255 255;
+
+  --text: 15 23 42;
+  --muted: 71 85 105;
+
+  --card: 255 255 255;
+  --border: 226 232 240;
+
+  --primary: 37 99 235;
+  --primary2: 29 78 216;
+
+  --danger-bg: 255 241 242;
+  --danger-bd: 254 205 211;
+  --danger-tx: 190 18 60;
+
+  /* New: subtle shadow + radius system */
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.08);
+  --radius: 16px;
+  --radius-sm: 12px;
+}
+
+/* Make text feel crisp */
+html,
+body {
+  height: 100%;
+}
+
+html {
+  /* Bigger baseline = less eye strain */
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Better smoothing (especially on Windows) */
+body {
+  color: rgb(var(--text));
+  background: linear-gradient(
+    to bottom,
+    rgb(var(--bg-top)),
+    rgb(var(--bg-mid)) 40%,
+    rgb(var(--bg-bot))
+  );
+
+  /* ✅ Polish rules integrated */
+  font-size: 16px;
+  line-height: 1.55;
+  text-rendering: geometricPrecision;
+
+  /* Clarity improvements */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Links should feel clean by default */
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: none;
+}
+
+/* Dashboard helpers (NO @apply — Turbopack-safe) */
+.dash-page {
+  min-height: 100vh;
+
+  /* ✅ Polish rules integrated */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Card = calmer, slightly roomier */
+.dash-card {
+  border: 1px solid rgb(var(--border));
+  border-radius: var(--radius);
+  background: rgb(var(--card));
+  box-shadow: var(--shadow);
+
+  /* ✅ Polish rules integrated */
+  text-rendering: geometricPrecision;
+}
+
+/* Typography helpers (optional but handy) */
+.dash-title {
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 650; /* calmer than 900 */
+  letter-spacing: -0.02em;
+}
+
+.dash-subtitle {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+  color: rgb(var(--muted));
+}
+
+/* Inputs — bigger, softer, less “heavy bold” */
+.dash-input,
+.dash-textarea {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(var(--border));
+  background: #fff;
+  padding: 11px 14px;
+  outline: none;
+
+  /* readability */
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  /* nicer feel */
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+
+  /* ✅ Polish rules integrated */
+  text-rendering: geometricPrecision;
+}
+
+.dash-input::placeholder,
+.dash-textarea::placeholder {
+  color: rgba(71, 85, 105, 0.7);
+  font-weight: 600;
+}
+
+.dash-input:focus,
+.dash-textarea:focus {
+  border-color: rgba(96, 165, 250, 1);
+  box-shadow: 0 0 0 4px rgba(191, 219, 254, 0.9);
+}
+
+/* Buttons — make them feel like “real buttons”, not boxed text */
+.dash-btn {
+  border-radius: 999px; /* pill buttons read cleaner */
+  padding: 10px 14px;
+
+  font-size: 14px;
+  font-weight: 650; /* reduce eye-fatigue */
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  cursor: pointer;
+  user-select: none;
+
+  transition: transform 120ms ease, filter 120ms ease, background 120ms ease;
+
+  /* ✅ Polish rules integrated */
+  text-rendering: geometricPrecision;
+}
+
+.dash-btn:active {
+  transform: translateY(1px);
+}
+
+/* Primary */
+.dash-btn-primary {
+  background: rgb(var(--primary));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+}
+.dash-btn-primary:hover {
+  background: rgb(var(--primary2));
+  filter: brightness(1.02);
+}
+
+/* Muted */
+.dash-btn-muted {
+  background: #eef2f7;
+  color: #334155;
+  border: 1px solid rgb(var(--border));
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+.dash-btn-muted:hover {
+  background: #e6edf6;
+}
+
+/* Destructive */
+.dash-btn-danger {
+  background: rgb(var(--danger-bg));
+  color: rgb(var(--danger-tx));
+  border: 1px solid rgb(var(--danger-bd));
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+.dash-btn-danger:hover {
+  background: rgba(254, 205, 211, 0.55);
+}
+
+/* Pills/Tags (useful in tables) */
+.dash-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  border: 1px solid rgb(var(--border));
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Tables — improve readability site-wide */
+.dash-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.dash-th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+  color: rgba(71, 85, 105, 0.9);
+  padding: 12px 16px;
+  border-bottom: 1px solid rgb(var(--border));
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.dash-td {
+  padding: 14px 16px; /* bigger row height = easier to scan */
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgb(var(--text));
+  vertical-align: middle;
+}
+
+/* Hover row = subtle */
+.dash-tr:hover .dash-td {
+  background: rgba(241, 245, 249, 0.6);
+}
+
+/* Alerts */
+.dash-alert {
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(var(--danger-bd));
+  background: rgb(var(--danger-bg));
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 650;
+  color: rgb(var(--danger-tx));
+}
+
+/* Scrollbars (subtle; helps “clean” feel on Windows) */
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.35);
+}

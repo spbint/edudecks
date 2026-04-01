@@ -1,0 +1,188 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+type Scope = "class" | "year" | "keystage";
+
+type Item = {
+  student_id: string;
+  name: string;
+  is_ilp: boolean;
+  priority_score: number;
+  signals: {
+    missing_classroom: number;
+    stale_classroom: number;
+    regression_classroom: number;
+    red_assessments: number;
+    missing_assessments: number;
+  };
+};
+
+function Pill({ text }: { text: string }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        border: "1px solid #ddd",
+        borderRadius: 999,
+        padding: "4px 8px",
+        fontSize: 12,
+        background: "#fafafa",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {text}
+    </span>
+  );
+}
+
+export default function SupportSignalsPanel({
+  scope,
+  classId,
+  yearLevel,
+  keyStage,
+}: {
+  scope: Scope;
+  classId: string;
+  yearLevel: number;
+  keyStage: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [items, setItems] = useState<Item[]>([]);
+  const [daysRecent, setDaysRecent] = useState(45);
+  const [daysAssessment, setDaysAssessment] = useState(180);
+  const [includeIlp, setIncludeIlp] = useState(true);
+
+  const fetchSignals = async () => {
+    setLoading(true);
+    setErr("");
+
+    const args: any = {
+      p_scope: scope,
+      p_days_recent: daysRecent,
+      p_days_assessment: daysAssessment,
+      p_include_ilp: includeIlp,
+    };
+    if (scope === "class") args.p_class_id = classId;
+    if (scope === "year") args.p_year_level = yearLevel;
+    if (scope === "keystage") args.p_key_stage = keyStage;
+
+    const { data, error } = await supabase.rpc("rpc_support_signals", args);
+    if (error) {
+      setErr(error.message);
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    setItems((data?.items ?? []) as Item[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchSignals();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, classId, yearLevel, keyStage, daysRecent, daysAssessment, includeIlp]);
+
+  const header = useMemo(() => {
+    if (loading) return "Loading…";
+    return `${items.length} students with support signals`;
+  }, [items.length, loading]);
+
+  return (
+    <section style={{ border: "1px solid #ddd", borderRadius: 12, padding: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontWeight: 900, fontSize: 16 }}>This week’s coaching focus</div>
+          <div style={{ opacity: 0.75, marginTop: 2 }}>
+            Sorted by <b>support signals</b> (missing data, regression, stale evidence, red stanines). We do not rank students.
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ fontSize: 12, opacity: 0.85 }}>
+            Classroom window (days)
+            <input
+              type="number"
+              value={daysRecent}
+              onChange={(e) => setDaysRecent(Number(e.target.value))}
+              style={{ marginLeft: 8, width: 80 }}
+            />
+          </label>
+
+          <label style={{ fontSize: 12, opacity: 0.85 }}>
+            Assessment window (days)
+            <input
+              type="number"
+              value={daysAssessment}
+              onChange={(e) => setDaysAssessment(Number(e.target.value))}
+              style={{ marginLeft: 8, width: 80 }}
+            />
+          </label>
+
+          <label style={{ fontSize: 12, opacity: 0.85 }}>
+            <input
+              type="checkbox"
+              checked={includeIlp}
+              onChange={(e) => setIncludeIlp(e.target.checked)}
+              style={{ marginRight: 6 }}
+            />
+            Include ILP
+          </label>
+
+          <button onClick={fetchSignals} disabled={loading}>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>{header}</div>
+
+      {err && (
+        <div style={{ marginTop: 10, border: "1px solid #f3c4c4", background: "#fff5f5", borderRadius: 10, padding: 10 }}>
+          <b>Couldn’t load signals</b>
+          <div style={{ marginTop: 6 }}>{err}</div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+        {items.map((it) => {
+          const s = it.signals;
+          const pills: string[] = [];
+
+          if (s.red_assessments > 0) pills.push(`🔴 ${s.red_assessments} red stanine sub-tests`);
+          if (s.missing_assessments > 0) pills.push(`🧪 missing recent assessment`);
+          if (s.regression_classroom > 0) pills.push(`↘ ${s.regression_classroom} classroom regressions`);
+          if (s.stale_classroom > 0) pills.push(`⏳ ${s.stale_classroom} stale evidence`);
+          if (s.missing_classroom > 0) pills.push(`📝 ${s.missing_classroom} missing measures`);
+          if (it.is_ilp) pills.push(`ILP`);
+
+          return (
+            <div
+              key={it.student_id}
+              style={{
+                border: "1px solid #eee",
+                borderRadius: 12,
+                padding: 10,
+                background: "#fff",
+              }}
+              title={`Priority score: ${it.priority_score} (support-signal weighting only)`}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ fontWeight: 900 }}>{it.name || "Unnamed student"}</div>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Score: {it.priority_score}</div>
+              </div>
+
+              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {pills.length ? pills.map((p, idx) => <Pill key={idx} text={p} />) : <Pill text="✅ No flags" />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

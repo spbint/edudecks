@@ -1,0 +1,552 @@
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+type PublicSiteShellProps = {
+  title?: string;
+  eyebrow?: string;
+  heroTitle: string;
+  heroText: string;
+  heroBadges?: string[];
+  primaryCta?: { label: string; href: string };
+  secondaryCta?: { label: string; href: string };
+  asideTitle?: string;
+  asideText?: string;
+  children: React.ReactNode;
+};
+
+const NAV_ITEMS = [
+  { href: "/", label: "Home" },
+  { href: "/get-started", label: "How It Works" },
+  { href: "/pricing", label: "Pricing" },
+  { href: "/compare", label: "Compare" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+];
+
+const C = {
+  bgApp: "#f6f8fc",
+  bgSurface: "#ffffff",
+  bgSoft: "#f8fafc",
+  borderSoft: "#e5e7eb",
+  borderMid: "#d1d5db",
+  textStrong: "#0f172a",
+  textMain: "#1f2937",
+  textMuted: "#64748b",
+  textFaint: "#94a3b8",
+
+  brandPrimary: "#4f7cf0",
+  brandPrimaryStrong: "#2563eb",
+  brandPrimarySoft: "#eff6ff",
+  brandPrimaryBorder: "#bfdbfe",
+
+  brandSecondary: "#8b7cf6",
+  brandSecondarySoft: "#f5f3ff",
+  brandSecondaryBorder: "#ddd6fe",
+
+  successBg: "#ecfdf5",
+  successBorder: "#a7f3d0",
+  successText: "#166534",
+
+  warningBg: "#fff7ed",
+  warningBorder: "#fed7aa",
+  warningText: "#9a3412",
+
+  infoBg: "#ecfeff",
+  infoBorder: "#a5f3fc",
+  infoText: "#0c4a6e",
+
+  premiumBg: "#fffaf0",
+  premiumBorder: "#fde68a",
+  premiumText: "#92400e",
+};
+
+function isActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function shellButtonStyle(primary = false): React.CSSProperties {
+  return {
+    border: `1px solid ${primary ? C.brandPrimaryStrong : C.borderMid}`,
+    background: primary ? C.brandPrimaryStrong : C.bgSurface,
+    color: primary ? "#ffffff" : C.textMain,
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontWeight: 700,
+    fontSize: 14,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    whiteSpace: "nowrap",
+    boxShadow: primary ? "0 12px 24px rgba(37,99,235,0.14)" : "none",
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  };
+}
+
+function shellNavStyle(active: boolean): React.CSSProperties {
+  return {
+    border: active
+      ? `1px solid ${C.brandPrimaryStrong}`
+      : `1px solid ${C.borderMid}`,
+    background: active ? C.brandPrimaryStrong : C.bgSurface,
+    color: active ? "#ffffff" : C.textMain,
+    borderRadius: 10,
+    padding: "9px 12px",
+    fontWeight: 700,
+    fontSize: 13,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    whiteSpace: "nowrap",
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  };
+}
+
+function shellCardStyle(): React.CSSProperties {
+  return {
+    background: C.bgSurface,
+    border: `1px solid ${C.borderSoft}`,
+    borderRadius: 18,
+    padding: 20,
+    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  };
+}
+
+function shellSoftCardStyle(): React.CSSProperties {
+  return {
+    background: C.bgSoft,
+    border: `1px solid ${C.borderSoft}`,
+    borderRadius: 14,
+    padding: 14,
+  };
+}
+
+function shellPillStyle(
+  background: string,
+  color: string,
+  borderColor?: string
+): React.CSSProperties {
+  return {
+    fontSize: 12,
+    fontWeight: 800,
+    borderRadius: 999,
+    padding: "6px 10px",
+    background,
+    color,
+    whiteSpace: "nowrap",
+    border: `1px solid ${borderColor || background}`,
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  };
+}
+
+export default function PublicSiteShell({
+  title = "EduDecks Family",
+  eyebrow = "Homeschool-first workflow",
+  heroTitle,
+  heroText,
+  heroBadges = [],
+  primaryCta = { label: "Start Free", href: "/capture" },
+  secondaryCta = { label: "See How It Works", href: "/get-started" },
+  asideTitle = "Why families feel calmer",
+  asideText = "EduDecks Family gives families one connected place to capture learning, organise evidence, plan intentionally, and build credible reports over time.",
+  children,
+}: PublicSiteShellProps) {
+  const pathname = usePathname();
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: C.bgApp,
+        color: C.textStrong,
+        fontFamily:
+          'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+      }}
+    >
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 30,
+          backdropFilter: "blur(10px)",
+          background: "rgba(255,255,255,0.9)",
+          borderBottom: `1px solid ${C.borderSoft}`,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1320,
+            margin: "0 auto",
+            padding: "16px 24px",
+            display: "grid",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Link
+              href="/"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                textDecoration: "none",
+              }}
+            >
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  background:
+                    "linear-gradient(135deg, rgba(79,124,240,0.12) 0%, rgba(139,124,246,0.12) 100%)",
+                  border: `1px solid ${C.brandPrimaryBorder}`,
+                  color: C.brandPrimaryStrong,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 900,
+                  fontSize: 16,
+                  boxShadow: "0 10px 24px rgba(15,23,42,0.05)",
+                }}
+              >
+                ED
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 900,
+                    color: C.textStrong,
+                    marginBottom: 2,
+                  }}
+                >
+                  {title}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMuted }}>{eyebrow}</div>
+              </div>
+            </Link>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/family" style={shellButtonStyle(false)}>
+                Family Hub
+              </Link>
+              <Link href={primaryCta.href} style={shellButtonStyle(true)}>
+                {primaryCta.label}
+              </Link>
+            </div>
+          </div>
+
+          <nav
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={shellNavStyle(isActive(pathname, item.href))}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main style={{ padding: "24px 24px 48px" }}>
+        <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+          <section
+            style={{
+              marginBottom: 24,
+              borderRadius: 26,
+              overflow: "hidden",
+              background:
+                "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
+              border: `1px solid ${C.brandPrimaryBorder}`,
+              boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
+            }}
+          >
+            <div
+              style={{
+                padding: "28px 24px",
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.9fr)",
+                gap: 24,
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.2,
+                    fontWeight: 800,
+                    letterSpacing: 1.1,
+                    textTransform: "uppercase",
+                    color: C.textMuted,
+                    marginBottom: 8,
+                  }}
+                >
+                  {eyebrow}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 34,
+                    lineHeight: 1.1,
+                    fontWeight: 900,
+                    color: C.textStrong,
+                    marginBottom: 12,
+                    maxWidth: 820,
+                  }}
+                >
+                  {heroTitle}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: C.textMain,
+                    maxWidth: 860,
+                    marginBottom: 18,
+                  }}
+                >
+                  {heroText}
+                </div>
+
+                {heroBadges.length > 0 ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginBottom: 18,
+                    }}
+                  >
+                    {heroBadges.map((badge, i) => {
+                      const tones = [
+                        [C.brandPrimarySoft, C.brandPrimaryStrong, C.brandPrimaryBorder],
+                        [C.brandSecondarySoft, "#6d28d9", C.brandSecondaryBorder],
+                        [C.successBg, C.successText, C.successBorder],
+                        [C.warningBg, C.warningText, C.warningBorder],
+                      ] as const;
+                      const tone = tones[i % tones.length];
+                      return (
+                        <div
+                          key={badge}
+                          style={shellPillStyle(tone[0], tone[1], tone[2])}
+                        >
+                          {badge}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <Link href={primaryCta.href} style={shellButtonStyle(true)}>
+                    {primaryCta.label}
+                  </Link>
+                  <Link href={secondaryCta.href} style={shellButtonStyle(false)}>
+                    {secondaryCta.label}
+                  </Link>
+                </div>
+              </div>
+
+              <div style={shellCardStyle()}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.2,
+                    fontWeight: 800,
+                    letterSpacing: 1.1,
+                    textTransform: "uppercase",
+                    color: C.textMuted,
+                    marginBottom: 8,
+                  }}
+                >
+                  {asideTitle}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: C.textMain,
+                    marginBottom: 14,
+                  }}
+                >
+                  {asideText}
+                </div>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {[
+                    "Works with different homeschool styles",
+                    "Nothing is submitted automatically",
+                    "Build evidence over time, not in a panic",
+                    "Stay organised without turning home into school",
+                  ].map((item, i) => (
+                    <div
+                      key={item}
+                      style={{
+                        ...shellSoftCardStyle(),
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "12px 14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 999,
+                          background:
+                            i === 0
+                              ? C.brandPrimaryStrong
+                              : i === 1
+                                ? "#6d28d9"
+                                : i === 2
+                                  ? C.successText
+                                  : C.warningText,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: C.textMain,
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        {item}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {children}
+        </div>
+      </main>
+
+      <footer
+        style={{
+          borderTop: `1px solid ${C.borderSoft}`,
+          background: "rgba(255,255,255,0.88)",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1320,
+            margin: "0 auto",
+            padding: "24px",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto",
+            gap: 16,
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 900,
+                color: C.textStrong,
+                marginBottom: 4,
+              }}
+            >
+              EduDecks Family
+            </div>
+            <div
+              style={{
+                fontSize: 13,
+                color: C.textMuted,
+                lineHeight: 1.6,
+                maxWidth: 620,
+              }}
+            >
+              A calm, evidence-led homeschool operating system for capture,
+              portfolio, planning, and reporting.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/contact" style={shellButtonStyle(false)}>
+              Contact
+            </Link>
+            <Link href="/capture" style={shellButtonStyle(true)}>
+              Start Free
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+export function publicCardStyle() {
+  return {
+    background: C.bgSurface,
+    border: `1px solid ${C.borderSoft}`,
+    borderRadius: 18,
+    padding: 20,
+    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  } as React.CSSProperties;
+}
+
+export function publicButtonStyle(primary = false) {
+  return {
+    border: `1px solid ${primary ? C.brandPrimaryStrong : C.borderMid}`,
+    background: primary ? C.brandPrimaryStrong : C.bgSurface,
+    color: primary ? "#ffffff" : C.textMain,
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontWeight: 700,
+    fontSize: 14,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    whiteSpace: "nowrap",
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  } as React.CSSProperties;
+}
+
+export function publicPill(bg: string, color: string) {
+  return {
+    fontSize: 12,
+    fontWeight: 800,
+    borderRadius: 999,
+    padding: "6px 10px",
+    background: bg,
+    color,
+    whiteSpace: "nowrap",
+    border: `1px solid ${bg}`,
+    fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  } as React.CSSProperties;
+}
