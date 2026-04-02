@@ -48,27 +48,27 @@ function studentName(s: Student | null) {
 /* Heat color scale */
 
 function heatColor(n: number) {
-  if (n >= 10) return "#16a34a"; // strong
+  if (n >= 10) return "#16a34a";
   if (n >= 6) return "#22c55e";
   if (n >= 3) return "#facc15";
   if (n >= 1) return "#f97316";
-  return "#1e293b"; // none
+  return "#1e293b";
 }
 
 /* ───────────────────────── STYLES ───────────────────────── */
 
 const S = {
-  shell: { display: "flex", minHeight: "100vh", background: "#0f172a" },
-  main: { flex: 1, padding: 28, color: "#e5e7eb", maxWidth: 1200 },
+  shell: { display: "flex", minHeight: "100vh", background: "#0f172a" } as React.CSSProperties,
+  main: { flex: 1, padding: 28, color: "#e5e7eb", maxWidth: 1200 } as React.CSSProperties,
 
-  h1: { fontSize: 28, fontWeight: 900, marginBottom: 8 },
-  sub: { color: "#94a3b8", fontWeight: 700, marginBottom: 18 },
+  h1: { fontSize: 28, fontWeight: 900, marginBottom: 8 } as React.CSSProperties,
+  sub: { color: "#94a3b8", fontWeight: 700, marginBottom: 18 } as React.CSSProperties,
 
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill,minmax(160px,1fr))",
     gap: 12,
-  },
+  } as React.CSSProperties,
 
   cell: (color: string): React.CSSProperties => ({
     background: color,
@@ -80,15 +80,21 @@ const S = {
     justifyContent: "space-between",
   }),
 
-  name: { fontWeight: 800, fontSize: 14 },
-  count: { fontSize: 22, fontWeight: 900, textAlign: "right" },
+  name: { fontWeight: 800, fontSize: 14 } as React.CSSProperties,
+
+  // ✅ FIXED HERE
+  count: {
+    fontSize: 22,
+    fontWeight: 900,
+    textAlign: "right" as const,
+  } as React.CSSProperties,
 
   legend: {
     display: "flex",
     gap: 12,
     alignItems: "center",
     marginBottom: 16,
-  },
+  } as React.CSSProperties,
 
   swatch: (color: string): React.CSSProperties => ({
     width: 18,
@@ -141,11 +147,8 @@ export default function StudentHeatmapPage() {
     if (studentId) load();
   }, [studentId]);
 
-  /* ───────────────── COUNT EVIDENCE PER ATTRIBUTE ───────────────── */
-
   const counts = useMemo(() => {
     const evidenceSet = new Set(evidence.map((e) => e.id));
-
     const map: Record<string, number> = {};
 
     links.forEach((l) => {
@@ -156,8 +159,6 @@ export default function StudentHeatmapPage() {
 
     return map;
   }, [links, evidence]);
-
-  /* ───────────────── RENDER ───────────────── */
 
   return (
     <div style={S.shell}>
@@ -174,8 +175,6 @@ export default function StudentHeatmapPage() {
           Evidence-weighted view of strengths across attributes.
         </div>
 
-        {/* LEGEND */}
-
         <div style={S.legend}>
           <div style={S.swatch("#16a34a")} /> Strong
           <div style={S.swatch("#22c55e")} /> Developing
@@ -183,8 +182,6 @@ export default function StudentHeatmapPage() {
           <div style={S.swatch("#f97316")} /> Minimal
           <div style={S.swatch("#1e293b")} /> None
         </div>
-
-        {/* HEAT GRID */}
 
         <div style={S.grid}>
           {attributes.map((a) => {
