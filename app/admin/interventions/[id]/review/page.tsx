@@ -109,6 +109,12 @@ function safe(v: any) {
   return String(v ?? "").trim();
 }
 
+function clip(text: string | null | undefined, max = 220) {
+  const s = safe(text);
+  if (!s) return "";
+  return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
 function clamp(n: number, min: number, max: number) {
   if (!Number.isFinite(n)) return min;
   return Math.max(min, Math.min(max, n));
