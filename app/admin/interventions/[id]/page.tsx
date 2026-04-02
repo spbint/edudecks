@@ -307,7 +307,7 @@ export default function InterventionReviewWizardPage() {
 
     for (const sel of tries) {
       const resp = await supabase.from("students").select(sel).eq("id", studentId).single();
-      if (!resp.error) return (resp.data ?? null) as StudentRow | null;
+      if (!resp.error) return ((resp.data ?? null) as unknown) as StudentRow | null;
       if (!isMissingColumnError(resp.error)) break;
     }
     return null;
