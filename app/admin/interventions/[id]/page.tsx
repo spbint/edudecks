@@ -143,6 +143,12 @@ function safeStr(v: any) {
   return String(v ?? "").trim();
 }
 
+function clip(text: string | null | undefined, max = 180) {
+  const s = safeStr(text);
+  if (!s) return "";
+  return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
 function normCode(v: string) {
   return String(v || "").trim().toLowerCase();
 }
@@ -865,8 +871,7 @@ export default function InterventionReviewWizardPage() {
 
                               {ev.body ? (
                                 <div style={{ marginTop: 6, color: "#6b7280", fontWeight: 800, lineHeight: 1.35 }}>
-                                  {String(ev.body).slice(0, 160)}
-                                  {String(ev.body).length > 160 ? "…" : ""}
+                                  {clip(safeStr(ev.body), 160)}
                                 </div>
                               ) : null}
                             </div>
