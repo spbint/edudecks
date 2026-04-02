@@ -54,11 +54,6 @@ function studentName(s: Student | null) {
   )}`.trim() || "Student";
 }
 
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("relation") || msg.includes("column"));
-}
-
 function attrNameFromLink(link: AttributeLink) {
   if (Array.isArray(link.attributes)) {
     return safe(link.attributes[0]?.name) || "Attribute";
@@ -72,13 +67,18 @@ function clip(v: string | null | undefined, max = 220) {
   return s.length > max ? `${s.slice(0, max)}…` : s;
 }
 
-/* ───────────────── STYLES ───────────────── */
+/* ───────────────── STYLES (FIXED) ───────────────── */
 
 const S = {
-  shell: { display: "flex", minHeight: "100vh", background: "#f8fafc" },
-  main: { flex: 1, padding: 28, maxWidth: 1200 },
+  shell: { display: "flex", minHeight: "100vh", background: "#f8fafc" } as React.CSSProperties,
+  main: { flex: 1, padding: 28, maxWidth: 1200 } as React.CSSProperties,
 
-  toolbar: { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 },
+  toolbar: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap" as const,
+    marginBottom: 16,
+  } as React.CSSProperties,
 
   btn: {
     padding: "10px 12px",
@@ -88,7 +88,7 @@ const S = {
     fontWeight: 900,
     border: "none",
     cursor: "pointer",
-  },
+  } as React.CSSProperties,
 
   btnGhost: {
     padding: "10px 12px",
@@ -97,19 +97,19 @@ const S = {
     border: "1px solid #cbd5e1",
     fontWeight: 900,
     cursor: "pointer",
-  },
+  } as React.CSSProperties,
 
   page: {
     background: "#ffffff",
     border: "1px solid #e2e8f0",
     borderRadius: 18,
     padding: 28,
-  },
+  } as React.CSSProperties,
 
-  section: { marginTop: 22 },
+  section: { marginTop: 22 } as React.CSSProperties,
 
-  sectionTitle: { fontSize: 20, fontWeight: 900 },
-  sectionText: { color: "#475569", marginBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: 900 } as React.CSSProperties,
+  sectionText: { color: "#475569", marginBottom: 12 } as React.CSSProperties,
 
   summaryBox: {
     background: "#f8fafc",
@@ -118,7 +118,7 @@ const S = {
     padding: 16,
     whiteSpace: "pre-wrap",
     lineHeight: 1.7,
-  },
+  } as React.CSSProperties,
 
   areaBlock: {
     border: "1px solid #e2e8f0",
@@ -126,7 +126,7 @@ const S = {
     padding: 16,
     background: "#f8fafc",
     marginBottom: 14,
-  },
+  } as React.CSSProperties,
 
   evidenceItem: {
     background: "#fff",
@@ -134,7 +134,7 @@ const S = {
     borderRadius: 12,
     padding: 12,
     marginTop: 10,
-  },
+  } as React.CSSProperties,
 
   chip: {
     padding: "4px 8px",
@@ -142,7 +142,7 @@ const S = {
     border: "1px solid #cbd5e1",
     fontSize: 12,
     fontWeight: 900,
-  },
+  } as React.CSSProperties,
 };
 
 /* ───────────────── PAGE ───────────────── */
@@ -215,12 +215,10 @@ export default function PortfolioPrintPage() {
             {studentName(student)} — Portfolio
           </h1>
 
-          {/* READINESS */}
           <section style={S.section}>
             <div style={S.sectionTitle}>Portfolio Readiness</div>
             <div style={S.summaryBox}>
               Status: {readiness}
-
               {"\n\n"}
               Evidence count: {evidence.length}
               {"\n"}
@@ -228,44 +226,14 @@ export default function PortfolioPrintPage() {
             </div>
           </section>
 
-          {/* SUMMARY */}
           <section style={S.section}>
             <div style={S.sectionTitle}>Summary</div>
             <div style={S.summaryBox}>
               {studentName(student)} has {evidence.length} recorded pieces of
               learning evidence across {grouped.length} learning areas.
-
-              {"\n\n"}
-              This portfolio demonstrates developing understanding and
-              application across these domains.
             </div>
           </section>
 
-          {/* LEARNING STORY */}
-          <section style={S.section}>
-            <div style={S.sectionTitle}>Learning Story</div>
-            <div style={S.summaryBox}>
-              The student is progressing across {grouped.map(([a]) => a).join(", ")}.
-
-              {"\n\n"}
-              Evidence indicates growing participation and engagement,
-              with continued opportunity to demonstrate deeper understanding
-              and independence.
-            </div>
-          </section>
-
-          {/* NEXT STEPS */}
-          <section style={S.section}>
-            <div style={S.sectionTitle}>Next Steps</div>
-            <div style={S.summaryBox}>
-              • Add more recent evidence  
-              • Expand detail in summaries  
-              • Show independent application  
-              • Strengthen coverage across all learning areas
-            </div>
-          </section>
-
-          {/* EVIDENCE */}
           <section style={S.section}>
             <div style={S.sectionTitle}>Evidence</div>
 
