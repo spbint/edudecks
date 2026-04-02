@@ -232,7 +232,9 @@ function pickReviewDate(i: InterventionRow) {
 }
 
 function percent(value: number, total: number) {
-  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 0;
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
   return Math.round((value / total) * 100);
 }
 
@@ -268,9 +270,12 @@ function studentName(
 
 function statusTone(status: string | null | undefined) {
   const s = safe(status).toLowerCase();
-  if (s === "attention")
+  if (s === "attention") {
     return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
-  if (s === "watch") return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  }
+  if (s === "watch") {
+    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  }
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
 }
 
@@ -285,43 +290,63 @@ function interventionStatusTone(status: string | null | undefined) {
 }
 
 function reviewTone(daysLate: number | null) {
-  if (daysLate == null)
-    return { bg: "#f8fafc", bd: "#e2e8f0", fg: "#64748b", label: "No date" };
-  if (daysLate > 0)
+  if (daysLate == null) {
+    return {
+      bg: "#f8fafc",
+      bd: "#e2e8f0",
+      fg: "#64748b",
+      label: "No date",
+    };
+  }
+  if (daysLate > 0) {
     return {
       bg: "#fff1f2",
       bd: "#fecaca",
       fg: "#9f1239",
       label: `${daysLate}d overdue`,
     };
-  if (daysLate >= -7)
-    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Due soon" };
+  }
+  if (daysLate >= -7) {
+    return {
+      bg: "#fffbeb",
+      bd: "#fde68a",
+      fg: "#92400e",
+      label: "Due soon",
+    };
+  }
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534", label: "On track" };
 }
 
 function heatTone(score: number) {
-  if (score >= 80)
+  if (score >= 80) {
     return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239", label: "Critical" };
-  if (score >= 55)
+  }
+  if (score >= 55) {
     return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Watch" };
-  if (score >= 30)
+  }
+  if (score >= 30) {
     return { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8", label: "Track" };
+  }
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534", label: "Stable" };
 }
 
 function forecastTone(status: "Stable" | "Watch" | "Escalating") {
-  if (status === "Stable")
+  if (status === "Stable") {
     return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
-  if (status === "Watch")
+  }
+  if (status === "Watch") {
     return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  }
   return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
 }
 
 function authorityTone(status: "Strong" | "Watch" | "Fragile") {
-  if (status === "Strong")
+  if (status === "Strong") {
     return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
-  if (status === "Watch")
+  }
+  if (status === "Watch") {
     return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  }
   return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
 }
 
@@ -339,8 +364,9 @@ function guessArea(raw: string | null | undefined) {
     x.includes("reading") ||
     x.includes("writing") ||
     x.includes("english")
-  )
+  ) {
     return "Literacy";
+  }
   if (x.includes("science")) return "Science";
   if (
     x.includes("well") ||
@@ -348,15 +374,17 @@ function guessArea(raw: string | null | undefined) {
     x.includes("social") ||
     x.includes("behaviour") ||
     x.includes("behavior")
-  )
+  ) {
     return "Wellbeing";
+  }
   if (
     x.includes("human") ||
     x.includes("history") ||
     x.includes("geography") ||
     x.includes("hass")
-  )
+  ) {
     return "Humanities";
+  }
   return "Other";
 }
 
@@ -530,9 +558,10 @@ export default function AdminClassHubPage() {
 
       if (!r.error) {
         setEvidenceEntries(
-          ((((r.data as any[]) ?? []) as EvidenceRow[]).sort(
-            (a, b) => dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))
-          ))
+          (((r.data as any[]) ?? []) as EvidenceRow[]).sort(
+            (a, b) =>
+              dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))
+          )
         );
         return;
       }
@@ -577,7 +606,9 @@ export default function AdminClassHubPage() {
       }
       throw r.error;
     }
-    setStudentOverviewRows(((r.data as any[]) ?? []) as StudentProfileOverviewRow[]);
+    setStudentOverviewRows(
+      ((r.data as any[]) ?? []) as StudentProfileOverviewRow[]
+    );
   }
 
   async function loadClassHealth() {
@@ -667,7 +698,9 @@ export default function AdminClassHubPage() {
           (a, b) =>
             dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))
         );
-      const studentInterventions = (interventionsByStudent.get(student.id) ?? []).slice();
+      const studentInterventions = (
+        interventionsByStudent.get(student.id) ?? []
+      ).slice();
 
       const activeInterventions = studentInterventions.filter(
         (i) => !isClosedStatus(i.status) && !isPausedStatus(i.status)
@@ -682,7 +715,8 @@ export default function AdminClassHubPage() {
       }).length;
 
       const lastEvidenceDays =
-        daysSince(overview?.last_evidence_at) ?? daysSince(evidenceDate(evidence[0]));
+        daysSince(overview?.last_evidence_at) ??
+        daysSince(evidenceDate(evidence[0]));
 
       const evidence30d =
         Number(overview?.evidence_count_30d ?? 0) ||
@@ -700,7 +734,8 @@ export default function AdminClassHubPage() {
 
       const missingAreas = areas.filter((area) => {
         return (
-          evidence.filter((e) => guessArea(e.learning_area) === area).length === 0
+          evidence.filter((e) => guessArea(e.learning_area) === area).length ===
+          0
         );
       });
 
@@ -759,10 +794,11 @@ export default function AdminClassHubPage() {
       else if (
         forecastRisk === "Escalating" &&
         activeInterventions.length > 0
-      )
+      ) {
         recommendedAction = "Escalate support";
-      else if (safe(overview?.attention_status) === "Attention")
+      } else if (safe(overview?.attention_status) === "Attention") {
         recommendedAction = "Conference needed";
+      }
 
       return {
         student,
@@ -796,15 +832,23 @@ export default function AdminClassHubPage() {
     const q = safe(search).toLowerCase();
     if (q) rows = rows.filter((r) => r.studentName.toLowerCase().includes(q));
 
-    if (studentFilter === "attention")
-      rows = rows.filter((r) => safe(r.overview?.attention_status) === "Attention");
-    if (studentFilter === "watch")
+    if (studentFilter === "attention") {
+      rows = rows.filter(
+        (r) => safe(r.overview?.attention_status) === "Attention"
+      );
+    }
+    if (studentFilter === "watch") {
       rows = rows.filter((r) => safe(r.overview?.attention_status) === "Watch");
-    if (studentFilter === "invisible") rows = rows.filter((r) => r.invisibleRisk);
-    if (studentFilter === "reporting")
+    }
+    if (studentFilter === "invisible") {
+      rows = rows.filter((r) => r.invisibleRisk);
+    }
+    if (studentFilter === "reporting") {
       rows = rows.filter((r) => r.reportingFragile);
-    if (studentFilter === "authority")
+    }
+    if (studentFilter === "authority") {
       rows = rows.filter((r) => r.authorityFragile);
+    }
 
     rows.sort((a, b) => b.heatScore - a.heatScore);
     return rows;
@@ -931,9 +975,7 @@ export default function AdminClassHubPage() {
     const authorityFragile = missionRows.filter((s) => s.authorityFragile).length;
     const overdue = missionRows.reduce((sum, s) => sum + s.overdueReviews, 0);
     const avgRisk = total
-      ? Math.round(
-          missionRows.reduce((sum, s) => sum + s.heatScore, 0) / total
-        )
+      ? Math.round(missionRows.reduce((sum, s) => sum + s.heatScore, 0) / total)
       : 0;
     const freshPct = percent(
       missionRows.filter((s) => s.evidence30d > 0).length,
@@ -944,8 +986,8 @@ export default function AdminClassHubPage() {
       authorityFragile >= Math.max(3, Math.ceil(total * 0.4))
         ? "Fragile"
         : authorityFragile >= Math.max(2, Math.ceil(total * 0.2))
-        ? "Watch"
-        : "Strong";
+          ? "Watch"
+          : "Strong";
 
     return {
       total,
@@ -1393,7 +1435,10 @@ export default function AdminClassHubPage() {
                                 >
                                   Open student
                                 </button>
-                                <StudentQuickOpen studentId={row.student.id} />
+                                <StudentQuickOpen
+                                  studentId={row.student.id}
+                                  label="Quick view"
+                                />
                               </div>
                             </div>
                           );
@@ -1459,8 +1504,8 @@ export default function AdminClassHubPage() {
                         {summary.reportingFragile >= 4
                           ? "Run a reporting-focused evidence push."
                           : summary.overdue > 0
-                          ? "Clear review load before it compounds."
-                          : "Maintain current operating rhythm."}
+                            ? "Clear review load before it compounds."
+                            : "Maintain current operating rhythm."}
                       </div>
                     </div>
                   </div>
@@ -1789,12 +1834,15 @@ function Metric({
 function toneCard(
   tone: "good" | "watch" | "danger" | "info"
 ): React.CSSProperties {
-  if (tone === "danger")
+  if (tone === "danger") {
     return { borderColor: "#fecaca", background: "#fff1f2" };
-  if (tone === "watch")
+  }
+  if (tone === "watch") {
     return { borderColor: "#fde68a", background: "#fffbeb" };
-  if (tone === "info")
+  }
+  if (tone === "info") {
     return { borderColor: "#bfdbfe", background: "#eff6ff" };
+  }
   return { borderColor: "#a7f3d0", background: "#ecfdf5" };
 }
 
