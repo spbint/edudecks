@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -156,14 +155,15 @@ export default function StudentQuickViewDrawer({
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
 
   useEffect(() => {
-    if (!open || !studentId) return;
+    const currentStudentId = studentId;
+    if (!open || !currentStudentId) return;
 
     async function load() {
       setBusy(true);
       setError(null);
 
       try {
-        const loadedStudent = await loadStudent(studentId);
+        const loadedStudent = await loadStudent(currentStudentId);
         setStudent(loadedStudent);
 
         if (safe(loadedStudent?.class_id)) {
@@ -174,8 +174,8 @@ export default function StudentQuickViewDrawer({
         }
 
         const [loadedEvidence, loadedInterventions] = await Promise.all([
-          loadEvidence(studentId),
-          loadInterventions(studentId),
+          loadEvidence(currentStudentId),
+          loadInterventions(currentStudentId),
         ]);
 
         setEvidence(loadedEvidence);
