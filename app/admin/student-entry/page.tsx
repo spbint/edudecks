@@ -184,6 +184,16 @@ const S = {
     cursor: "pointer",
   } as React.CSSProperties,
 
+  btnMini: {
+    padding: "8px 10px",
+    fontWeight: 900,
+    background: "#ffffff",
+    color: "#0f172a",
+    borderRadius: 10,
+    border: "1px solid #dbe2ea",
+    cursor: "pointer",
+  } as React.CSSProperties,
+
   sectionPad: { padding: 16 } as React.CSSProperties,
 
   sectionTitle: {
@@ -267,7 +277,7 @@ export default function StudentEntryPage() {
         .limit(30000);
 
       if (!r.error) {
-        setStudents((r.data ?? []) as StudentRow[]);
+        setStudents(((r.data ?? []) as unknown) as StudentRow[]);
         return;
       }
 
