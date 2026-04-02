@@ -120,14 +120,22 @@ function reviewDate(i: InterventionRow) {
 }
 
 function isClosedStatus(status: string | null | undefined) {
-  return ["closed", "done", "archived", "completed", "resolved", "cancelled"].includes(
-    safe(status).toLowerCase()
-  );
+  return [
+    "closed",
+    "done",
+    "archived",
+    "completed",
+    "resolved",
+    "cancelled",
+  ].includes(safe(status).toLowerCase());
 }
 
 function isMissingRelationOrColumn(err: any) {
   const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("relation") || msg.includes("column"));
+  return (
+    msg.includes("does not exist") &&
+    (msg.includes("relation") || msg.includes("column"))
+  );
 }
 
 function clip(text: string | null | undefined, max = 120) {
@@ -155,15 +163,17 @@ export default function StudentQuickViewDrawer({
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
 
   useEffect(() => {
-    const currentStudentId = studentId;
-    if (!open || !currentStudentId) return;
+    if (!open) return;
+    if (typeof studentId !== "string" || studentId.trim() === "") return;
+
+    const resolvedStudentId: string = studentId;
 
     async function load() {
       setBusy(true);
       setError(null);
 
       try {
-        const loadedStudent = await loadStudent(currentStudentId);
+        const loadedStudent = await loadStudent(resolvedStudentId);
         setStudent(loadedStudent);
 
         if (safe(loadedStudent?.class_id)) {
@@ -174,8 +184,8 @@ export default function StudentQuickViewDrawer({
         }
 
         const [loadedEvidence, loadedInterventions] = await Promise.all([
-          loadEvidence(currentStudentId),
-          loadInterventions(currentStudentId),
+          loadEvidence(resolvedStudentId),
+          loadInterventions(resolvedStudentId),
         ]);
 
         setEvidence(loadedEvidence);
@@ -199,7 +209,11 @@ export default function StudentQuickViewDrawer({
     ];
 
     for (const sel of tries) {
-      const r = await supabase.from("students").select(sel).eq("id", id).maybeSingle();
+      const r = await supabase
+        .from("students")
+        .select(sel)
+        .eq("id", id)
+        .maybeSingle();
       if (!r.error) return (r.data as StudentRow | null) ?? null;
       if (!isMissingRelationOrColumn(r.error)) throw r.error;
     }
@@ -216,7 +230,11 @@ export default function StudentQuickViewDrawer({
     ];
 
     for (const sel of tries) {
-      const r = await supabase.from("classes").select(sel).eq("id", id).maybeSingle();
+      const r = await supabase
+        .from("classes")
+        .select(sel)
+        .eq("id", id)
+        .maybeSingle();
       if (!r.error) return (r.data as Klass) ?? null;
       if (!isMissingRelationOrColumn(r.error)) throw r.error;
     }
@@ -290,7 +308,9 @@ export default function StudentQuickViewDrawer({
       return d != null && d <= 30;
     }).length;
 
-    const openInterventions = interventions.filter((i) => !isClosedStatus(i.status)).length;
+    const openInterventions = interventions.filter(
+      (i) => !isClosedStatus(i.status)
+    ).length;
 
     const overdueReviews = interventions.filter((i) => {
       if (isClosedStatus(i.status)) return false;
@@ -318,10 +338,14 @@ export default function StudentQuickViewDrawer({
             <div style={S.metaText}>
               {klass
                 ? `${safe(klass?.name) || "Class"}${
-                    klass?.year_level != null ? ` • ${fmtYear(klass?.year_level)}` : ""
+                    klass?.year_level != null
+                      ? ` • ${fmtYear(klass?.year_level)}`
+                      : ""
                   }`
                 : "No class assigned"}
-              {safe(klass?.teacher_name) ? ` • ${safe(klass?.teacher_name)}` : ""}
+              {safe(klass?.teacher_name)
+                ? ` • ${safe(klass?.teacher_name)}`
+                : ""}
             </div>
           </div>
 
@@ -348,9 +372,13 @@ export default function StudentQuickViewDrawer({
                 style={S.btnGhost}
                 onClick={() =>
                   router.push(
-                    `/admin/evidence-entry?studentId=${encodeURIComponent(studentId)}${
+                    `/admin/evidence-entry?studentId=${encodeURIComponent(
+                      studentId
+                    )}${
                       safe(student?.class_id)
-                        ? `&classId=${encodeURIComponent(safe(student?.class_id))}`
+                        ? `&classId=${encodeURIComponent(
+                            safe(student?.class_id)
+                          )}`
                         : ""
                     }&returnTo=${encodeURIComponent(returnTo)}`
                   )
@@ -364,9 +392,13 @@ export default function StudentQuickViewDrawer({
                 style={S.btnGhost}
                 onClick={() =>
                   router.push(
-                    `/admin/interventions-entry?studentId=${encodeURIComponent(studentId)}${
+                    `/admin/interventions-entry?studentId=${encodeURIComponent(
+                      studentId
+                    )}${
                       safe(student?.class_id)
-                        ? `&classId=${encodeURIComponent(safe(student?.class_id))}`
+                        ? `&classId=${encodeURIComponent(
+                            safe(student?.class_id)
+                          )}`
                         : ""
                     }&returnTo=${encodeURIComponent(returnTo)}`
                   )
@@ -387,7 +419,9 @@ export default function StudentQuickViewDrawer({
           <Metric
             label="Last evidence"
             value={
-              summary.lastEvidenceDays == null ? "—" : `${summary.lastEvidenceDays}d`
+              summary.lastEvidenceDays == null
+                ? "—"
+                : `${summary.lastEvidenceDays}d`
             }
             help="Days since latest evidence"
           />
@@ -415,7 +449,9 @@ export default function StudentQuickViewDrawer({
                   <div style={S.itemTitle}>
                     {safe(e.title) || safe(e.learning_area) || "Evidence entry"}
                   </div>
-                  <span style={S.chip}>{shortDate(effectiveEvidenceDate(e))}</span>
+                  <span style={S.chip}>
+                    {shortDate(effectiveEvidenceDate(e))}
+                  </span>
                 </div>
                 <div style={S.itemMeta}>
                   {safe(e.learning_area) || "General"}
@@ -454,7 +490,9 @@ export default function StudentQuickViewDrawer({
                     Review {shortDate(reviewDate(i))}
                   </div>
                   {safe(i.notes) || safe(i.note) ? (
-                    <div style={S.itemText}>{clip(i.notes || i.note, 140)}</div>
+                    <div style={S.itemText}>
+                      {clip(i.notes || i.note, 140)}
+                    </div>
                   ) : null}
                 </div>
               ))}
