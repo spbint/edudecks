@@ -8,7 +8,12 @@ import { supabase } from "@/lib/supabaseClient";
 
 /* ───────────────────────── TYPES ───────────────────────── */
 
-type TabKey = "overview" | "students" | "evidence" | "interventions" | "coverage";
+type TabKey =
+  | "overview"
+  | "students"
+  | "evidence"
+  | "interventions"
+  | "coverage";
 
 type SectionVisibility = {
   nextActions: boolean;
@@ -189,7 +194,10 @@ function daysSince(v: string | null | undefined) {
   const d = toDate(v);
   if (!d) return null;
   const now = new Date();
-  return Math.max(0, Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
+  return Math.max(
+    0,
+    Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24))
+  );
 }
 
 function daysUntil(v: string | null | undefined) {
@@ -223,6 +231,11 @@ function pickReviewDate(i: InterventionRow) {
   );
 }
 
+function percent(value: number, total: number) {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.round((value / total) * 100);
+}
+
 function getTabValue(sp: URLSearchParams): TabKey {
   const raw = (sp.get("view") || sp.get("tab") || "overview").toLowerCase();
   if (raw === "students") return "students";
@@ -242,7 +255,10 @@ function defaultVisibility(): SectionVisibility {
   };
 }
 
-function studentName(s: StudentRow | null | undefined, o?: StudentProfileOverviewRow | null) {
+function studentName(
+  s: StudentRow | null | undefined,
+  o?: StudentProfileOverviewRow | null
+) {
   if (safe(o?.student_name)) return safe(o?.student_name);
   if (!s) return "Student";
   const first = safe(s.preferred_name) || safe(s.first_name);
@@ -252,7 +268,8 @@ function studentName(s: StudentRow | null | undefined, o?: StudentProfileOvervie
 
 function statusTone(status: string | null | undefined) {
   const s = safe(status).toLowerCase();
-  if (s === "attention") return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
+  if (s === "attention")
+    return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
   if (s === "watch") return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
 }
@@ -268,28 +285,43 @@ function interventionStatusTone(status: string | null | undefined) {
 }
 
 function reviewTone(daysLate: number | null) {
-  if (daysLate == null) return { bg: "#f8fafc", bd: "#e2e8f0", fg: "#64748b", label: "No date" };
-  if (daysLate > 0) return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239", label: `${daysLate}d overdue` };
-  if (daysLate >= -7) return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Due soon" };
+  if (daysLate == null)
+    return { bg: "#f8fafc", bd: "#e2e8f0", fg: "#64748b", label: "No date" };
+  if (daysLate > 0)
+    return {
+      bg: "#fff1f2",
+      bd: "#fecaca",
+      fg: "#9f1239",
+      label: `${daysLate}d overdue`,
+    };
+  if (daysLate >= -7)
+    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Due soon" };
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534", label: "On track" };
 }
 
 function heatTone(score: number) {
-  if (score >= 80) return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239", label: "Critical" };
-  if (score >= 55) return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Watch" };
-  if (score >= 30) return { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8", label: "Track" };
+  if (score >= 80)
+    return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239", label: "Critical" };
+  if (score >= 55)
+    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e", label: "Watch" };
+  if (score >= 30)
+    return { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8", label: "Track" };
   return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534", label: "Stable" };
 }
 
 function forecastTone(status: "Stable" | "Watch" | "Escalating") {
-  if (status === "Stable") return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
-  if (status === "Watch") return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  if (status === "Stable")
+    return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
+  if (status === "Watch")
+    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
   return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
 }
 
 function authorityTone(status: "Strong" | "Watch" | "Fragile") {
-  if (status === "Strong") return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
-  if (status === "Watch") return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
+  if (status === "Strong")
+    return { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" };
+  if (status === "Watch")
+    return { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" };
   return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
 }
 
@@ -302,15 +334,36 @@ function benchmarkPosition(avgRisk: number): BenchmarkPosition {
 function guessArea(raw: string | null | undefined) {
   const x = safe(raw).toLowerCase();
   if (x.includes("math")) return "Maths";
-  if (x.includes("liter") || x.includes("reading") || x.includes("writing") || x.includes("english")) return "Literacy";
+  if (
+    x.includes("liter") ||
+    x.includes("reading") ||
+    x.includes("writing") ||
+    x.includes("english")
+  )
+    return "Literacy";
   if (x.includes("science")) return "Science";
-  if (x.includes("well") || x.includes("pastoral") || x.includes("social") || x.includes("behaviour") || x.includes("behavior")) return "Wellbeing";
-  if (x.includes("human") || x.includes("history") || x.includes("geography") || x.includes("hass")) return "Humanities";
+  if (
+    x.includes("well") ||
+    x.includes("pastoral") ||
+    x.includes("social") ||
+    x.includes("behaviour") ||
+    x.includes("behavior")
+  )
+    return "Wellbeing";
+  if (
+    x.includes("human") ||
+    x.includes("history") ||
+    x.includes("geography") ||
+    x.includes("hass")
+  )
+    return "Humanities";
   return "Other";
 }
 
 function isClosedStatus(status: string | null | undefined) {
-  return ["closed", "done", "archived", "completed", "resolved"].includes(safe(status).toLowerCase());
+  return ["closed", "done", "archived", "completed", "resolved"].includes(
+    safe(status).toLowerCase()
+  );
 }
 
 function isPausedStatus(status: string | null | undefined) {
@@ -362,9 +415,14 @@ export default function AdminClassHubPage() {
 
   const [tab, setTab] = useState<TabKey>("overview");
   const [search, setSearch] = useState("");
-  const [studentFilter, setStudentFilter] = useState<"all" | "attention" | "watch" | "invisible" | "reporting" | "authority">("all");
-  const [viewDensity, setViewDensity] = useState<"simple" | "detailed">("detailed");
-  const [visibility, setVisibility] = useState<SectionVisibility>(defaultVisibility());
+  const [studentFilter, setStudentFilter] = useState<
+    "all" | "attention" | "watch" | "invisible" | "reporting" | "authority"
+  >("all");
+  const [viewDensity, setViewDensity] = useState<"simple" | "detailed">(
+    "detailed"
+  );
+  const [visibility, setVisibility] =
+    useState<SectionVisibility>(defaultVisibility());
 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -374,7 +432,9 @@ export default function AdminClassHubPage() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [evidenceEntries, setEvidenceEntries] = useState<EvidenceRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionRow[]>([]);
-  const [studentOverviewRows, setStudentOverviewRows] = useState<StudentProfileOverviewRow[]>([]);
+  const [studentOverviewRows, setStudentOverviewRows] = useState<
+    StudentProfileOverviewRow[]
+  >([]);
   const [classHealth, setClassHealth] = useState<ClassHealthRow | null>(null);
 
   useEffect(() => {
@@ -415,7 +475,11 @@ export default function AdminClassHubPage() {
     ];
 
     for (const sel of tries) {
-      const r = await supabase.from("classes").select(sel).eq("id", classId).maybeSingle();
+      const r = await supabase
+        .from("classes")
+        .select(sel)
+        .eq("id", classId)
+        .maybeSingle();
       if (!r.error) {
         setKlass((r.data as any) ?? null);
         return;
@@ -435,7 +499,10 @@ export default function AdminClassHubPage() {
     ];
 
     for (const sel of tries) {
-      const r = await supabase.from("students").select(sel).eq("class_id", classId);
+      const r = await supabase
+        .from("students")
+        .select(sel)
+        .eq("class_id", classId);
       if (!r.error) {
         setStudents(((r.data as any[]) ?? []) as StudentRow[]);
         return;
@@ -462,7 +529,11 @@ export default function AdminClassHubPage() {
         .limit(12000);
 
       if (!r.error) {
-        setEvidenceEntries((((r.data as any[]) ?? []) as EvidenceRow[]).sort((a, b) => dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))));
+        setEvidenceEntries(
+          ((((r.data as any[]) ?? []) as EvidenceRow[]).sort(
+            (a, b) => dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))
+          ))
+        );
         return;
       }
       if (!isMissingColumnError(r.error)) throw r.error;
@@ -479,7 +550,11 @@ export default function AdminClassHubPage() {
     ];
 
     for (const sel of tries) {
-      const r = await supabase.from("interventions").select(sel).eq("class_id", classId).limit(8000);
+      const r = await supabase
+        .from("interventions")
+        .select(sel)
+        .eq("class_id", classId)
+        .limit(8000);
       if (!r.error) {
         setInterventions(((r.data as any[]) ?? []) as InterventionRow[]);
         return;
@@ -491,7 +566,10 @@ export default function AdminClassHubPage() {
   }
 
   async function loadStudentOverview() {
-    const r = await supabase.from("v_student_profile_overview_v1").select("*").eq("class_id", classId);
+    const r = await supabase
+      .from("v_student_profile_overview_v1")
+      .select("*")
+      .eq("class_id", classId);
     if (r.error) {
       if (isMissingColumnError(r.error)) {
         setStudentOverviewRows([]);
@@ -503,9 +581,16 @@ export default function AdminClassHubPage() {
   }
 
   async function loadClassHealth() {
-    const tries = ["*", "class_id,student_count,ilp_count,evidence_count_30d,students_without_recent_evidence,open_interventions_count,overdue_interventions_count,last_evidence_at"];
+    const tries = [
+      "*",
+      "class_id,student_count,ilp_count,evidence_count_30d,students_without_recent_evidence,open_interventions_count,overdue_interventions_count,last_evidence_at",
+    ];
     for (const sel of tries) {
-      const r = await supabase.from("v_class_health_v1").select(sel).eq("class_id", classId).maybeSingle();
+      const r = await supabase
+        .from("v_class_health_v1")
+        .select(sel)
+        .eq("class_id", classId)
+        .maybeSingle();
       if (!r.error) {
         setClassHealth((r.data as any) ?? null);
         return;
@@ -568,15 +653,25 @@ export default function AdminClassHubPage() {
     return map;
   }, [interventions]);
 
-  const areas = useMemo(() => ["Literacy", "Maths", "Science", "Wellbeing", "Humanities", "Other"], []);
+  const areas = useMemo(
+    () => ["Literacy", "Maths", "Science", "Wellbeing", "Humanities", "Other"],
+    []
+  );
 
   const missionRows = useMemo<StudentMissionRow[]>(() => {
     return students.map((student) => {
       const overview = overviewMap.get(student.id) ?? null;
-      const evidence = (evidenceByStudent.get(student.id) ?? []).slice().sort((a, b) => dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a)));
+      const evidence = (evidenceByStudent.get(student.id) ?? [])
+        .slice()
+        .sort(
+          (a, b) =>
+            dateSortValue(evidenceDate(b)) - dateSortValue(evidenceDate(a))
+        );
       const studentInterventions = (interventionsByStudent.get(student.id) ?? []).slice();
 
-      const activeInterventions = studentInterventions.filter((i) => !isClosedStatus(i.status) && !isPausedStatus(i.status));
+      const activeInterventions = studentInterventions.filter(
+        (i) => !isClosedStatus(i.status) && !isPausedStatus(i.status)
+      );
       const overdueReviews = activeInterventions.filter((i) => {
         const d = daysSince(pickReviewDate(i));
         return d != null && d > 0;
@@ -587,8 +682,7 @@ export default function AdminClassHubPage() {
       }).length;
 
       const lastEvidenceDays =
-        daysSince(overview?.last_evidence_at) ??
-        daysSince(evidenceDate(evidence[0]));
+        daysSince(overview?.last_evidence_at) ?? daysSince(evidenceDate(evidence[0]));
 
       const evidence30d =
         Number(overview?.evidence_count_30d ?? 0) ||
@@ -605,12 +699,17 @@ export default function AdminClassHubPage() {
       const evidenceMomentumDelta = evidence30d - evidencePrev30d;
 
       const missingAreas = areas.filter((area) => {
-        return evidence.filter((e) => guessArea(e.learning_area) === area).length === 0;
+        return (
+          evidence.filter((e) => guessArea(e.learning_area) === area).length === 0
+        );
       });
 
-      const narrativeCount = evidence.filter((e) => safe(e.summary) || safe(e.body)).length;
+      const narrativeCount = evidence.filter(
+        (e) => safe(e.summary) || safe(e.body)
+      ).length;
 
-      const invisibleRisk = evidence.length === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
+      const invisibleRisk =
+        evidence.length === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
       const reportingFragile =
         evidence30d === 0 ||
         lastEvidenceDays == null ||
@@ -624,10 +723,20 @@ export default function AdminClassHubPage() {
         invisibleRisk;
 
       let forecastRisk: StudentMissionRow["forecastRisk"] = "Stable";
-      if (evidenceMomentumDelta < 0 || dueSoonReviews >= 2 || overdueReviews > 0 || reportingFragile) {
+      if (
+        evidenceMomentumDelta < 0 ||
+        dueSoonReviews >= 2 ||
+        overdueReviews > 0 ||
+        reportingFragile
+      ) {
         forecastRisk = "Watch";
       }
-      if ((safe(overview?.attention_status) === "Attention" && evidenceMomentumDelta < 0) || overdueReviews >= 2 || invisibleRisk) {
+      if (
+        (safe(overview?.attention_status) === "Attention" &&
+          evidenceMomentumDelta < 0) ||
+        overdueReviews >= 2 ||
+        invisibleRisk
+      ) {
         forecastRisk = "Escalating";
       }
 
@@ -647,8 +756,13 @@ export default function AdminClassHubPage() {
       if (overdueReviews > 0) recommendedAction = "Review intervention";
       else if (invisibleRisk) recommendedAction = "Capture evidence";
       else if (reportingFragile) recommendedAction = "Prepare report";
-      else if (forecastRisk === "Escalating" && activeInterventions.length > 0) recommendedAction = "Escalate support";
-      else if (safe(overview?.attention_status) === "Attention") recommendedAction = "Conference needed";
+      else if (
+        forecastRisk === "Escalating" &&
+        activeInterventions.length > 0
+      )
+        recommendedAction = "Escalate support";
+      else if (safe(overview?.attention_status) === "Attention")
+        recommendedAction = "Conference needed";
 
       return {
         student,
@@ -682,11 +796,15 @@ export default function AdminClassHubPage() {
     const q = safe(search).toLowerCase();
     if (q) rows = rows.filter((r) => r.studentName.toLowerCase().includes(q));
 
-    if (studentFilter === "attention") rows = rows.filter((r) => safe(r.overview?.attention_status) === "Attention");
-    if (studentFilter === "watch") rows = rows.filter((r) => safe(r.overview?.attention_status) === "Watch");
+    if (studentFilter === "attention")
+      rows = rows.filter((r) => safe(r.overview?.attention_status) === "Attention");
+    if (studentFilter === "watch")
+      rows = rows.filter((r) => safe(r.overview?.attention_status) === "Watch");
     if (studentFilter === "invisible") rows = rows.filter((r) => r.invisibleRisk);
-    if (studentFilter === "reporting") rows = rows.filter((r) => r.reportingFragile);
-    if (studentFilter === "authority") rows = rows.filter((r) => r.authorityFragile);
+    if (studentFilter === "reporting")
+      rows = rows.filter((r) => r.reportingFragile);
+    if (studentFilter === "authority")
+      rows = rows.filter((r) => r.authorityFragile);
 
     rows.sort((a, b) => b.heatScore - a.heatScore);
     return rows;
@@ -698,20 +816,24 @@ export default function AdminClassHubPage() {
       when: isoShort(evidenceDate(e)),
       kind: "Evidence",
       title: clip(e.title || e.learning_area || "Evidence entry", 80),
-      body: clip(e.summary || e.body || e.learning_area || "Recent evidence captured.", 120),
+      body: clip(
+        e.summary || e.body || e.learning_area || "Recent evidence captured.",
+        120
+      ),
       studentId: e.student_id,
     }));
 
-    const interventionActivity: ActivityItem[] = interventions
-      .slice(0, 10)
-      .map((i) => ({
-        key: `i-${i.id}`,
-        when: isoShort(pickReviewDate(i) || i.created_at),
-        kind: "Intervention",
-        title: clip(i.title || i.strategy || "Support item", 80),
-        body: clip(i.notes || i.note || i.status || "Recent intervention activity.", 120),
-        studentId: i.student_id,
-      }));
+    const interventionActivity: ActivityItem[] = interventions.slice(0, 10).map((i) => ({
+      key: `i-${i.id}`,
+      when: isoShort(pickReviewDate(i) || i.created_at),
+      kind: "Intervention",
+      title: clip(i.title || i.strategy || "Support item", 80),
+      body: clip(
+        i.notes || i.note || i.status || "Recent intervention activity.",
+        120
+      ),
+      studentId: i.student_id,
+    }));
 
     return [...evidenceActivity, ...interventionActivity]
       .sort((a, b) => dateSortValue(b.when) - dateSortValue(a.when))
@@ -722,7 +844,9 @@ export default function AdminClassHubPage() {
     const noEvidence30 = missionRows.filter((s) => s.evidence30d === 0).length;
     const overdueReviews = missionRows.filter((s) => s.overdueReviews > 0).length;
     const invisible = missionRows.filter((s) => s.invisibleRisk).length;
-    const attention = missionRows.filter((s) => safe(s.overview?.attention_status) === "Attention").length;
+    const attention = missionRows.filter(
+      (s) => safe(s.overview?.attention_status) === "Attention"
+    ).length;
     const reportingFragile = missionRows.filter((s) => s.reportingFragile).length;
     const authorityFragile = missionRows.filter((s) => s.authorityFragile).length;
 
@@ -799,13 +923,22 @@ export default function AdminClassHubPage() {
 
   const summary = useMemo(() => {
     const total = missionRows.length;
-    const attention = missionRows.filter((s) => safe(s.overview?.attention_status) === "Attention").length;
+    const attention = missionRows.filter(
+      (s) => safe(s.overview?.attention_status) === "Attention"
+    ).length;
     const invisible = missionRows.filter((s) => s.invisibleRisk).length;
     const reportingFragile = missionRows.filter((s) => s.reportingFragile).length;
     const authorityFragile = missionRows.filter((s) => s.authorityFragile).length;
     const overdue = missionRows.reduce((sum, s) => sum + s.overdueReviews, 0);
-    const avgRisk = total ? Math.round(missionRows.reduce((sum, s) => sum + s.heatScore, 0) / total) : 0;
-    const freshPct = percent(missionRows.filter((s) => s.evidence30d > 0).length, Math.max(1, total));
+    const avgRisk = total
+      ? Math.round(
+          missionRows.reduce((sum, s) => sum + s.heatScore, 0) / total
+        )
+      : 0;
+    const freshPct = percent(
+      missionRows.filter((s) => s.evidence30d > 0).length,
+      Math.max(1, total)
+    );
     const benchmark = benchmarkPosition(avgRisk);
     const authorityStatus: "Strong" | "Watch" | "Fragile" =
       authorityFragile >= Math.max(3, Math.ceil(total * 0.4))
@@ -830,7 +963,9 @@ export default function AdminClassHubPage() {
 
   const coverageRows = useMemo<CoverageAreaRow[]>(() => {
     return areas.map((area) => {
-      const areaEntries = evidenceEntries.filter((e) => guessArea(e.learning_area) === area);
+      const areaEntries = evidenceEntries.filter(
+        (e) => guessArea(e.learning_area) === area
+      );
       const freshEntries = areaEntries.filter((e) => {
         const d = daysSince(evidenceDate(e));
         return d != null && d <= 30;
@@ -841,8 +976,14 @@ export default function AdminClassHubPage() {
       let strongStudents = 0;
 
       missionRows.forEach((s) => {
-        const count = s.evidence.filter((e) => guessArea(e.learning_area) === area).length;
-        const fresh = s.evidence.filter((e) => guessArea(e.learning_area) === area && (daysSince(evidenceDate(e)) ?? 999) <= 30).length;
+        const count = s.evidence.filter(
+          (e) => guessArea(e.learning_area) === area
+        ).length;
+        const fresh = s.evidence.filter(
+          (e) =>
+            guessArea(e.learning_area) === area &&
+            (daysSince(evidenceDate(e)) ?? 999) <= 30
+        ).length;
         if (count === 0) gapStudents += 1;
         else if (fresh === 0) watchStudents += 1;
         else strongStudents += 1;
@@ -852,7 +993,10 @@ export default function AdminClassHubPage() {
         area,
         totalEntries: areaEntries.length,
         freshEntries: freshEntries.length,
-        studentCoveragePct: percent(strongStudents + watchStudents, Math.max(1, missionRows.length)),
+        studentCoveragePct: percent(
+          strongStudents + watchStudents,
+          Math.max(1, missionRows.length)
+        ),
         gapStudents,
         watchStudents,
         strongStudents,
@@ -861,7 +1005,13 @@ export default function AdminClassHubPage() {
   }, [areas, evidenceEntries, missionRows]);
 
   const strategicPlan = useMemo(() => {
-    const rows: { title: string; owner: string; timing: string; rationale: string; tone: "good" | "watch" | "danger" | "info" }[] = [];
+    const rows: {
+      title: string;
+      owner: string;
+      timing: string;
+      rationale: string;
+      tone: "good" | "watch" | "danger" | "info";
+    }[] = [];
 
     if (summary.invisible > 0) {
       rows.push({
@@ -917,7 +1067,11 @@ export default function AdminClassHubPage() {
   }, [summary]);
 
   const classSwitchLabel = useMemo(() => {
-    return [safe(klass?.name), fmtYear(klass?.year_level), safe(klass?.room)].filter(Boolean).join(" • ") || "Class Hub";
+    return (
+      [safe(klass?.name), fmtYear(klass?.year_level), safe(klass?.room)]
+        .filter(Boolean)
+        .join(" • ") || "Class Hub"
+    );
   }, [klass]);
 
   const authorityStatusTone = authorityTone(summary.authorityStatus);
@@ -933,12 +1087,25 @@ export default function AdminClassHubPage() {
               <div style={S.subtle}>Class Mission Control</div>
               <h1 style={S.h1}>{classSwitchLabel}</h1>
               <div style={S.sub}>
-                Premium class hub for day-to-day teacher operations, learner trajectory tracking, evidence coverage, support load, and reporting / authority readiness.
+                Premium class hub for day-to-day teacher operations, learner
+                trajectory tracking, evidence coverage, support load, and reporting
+                / authority readiness.
               </div>
               <div style={{ ...S.row, marginTop: 12 }}>
-                <span style={S.chipMuted}>{safe(klass?.teacher_name) || "Teacher unassigned"}</span>
-                {safe(klass?.room) ? <span style={S.chipMuted}>Room {safe(klass?.room)}</span> : null}
-                <span style={{ ...S.chip, background: authorityStatusTone.bg, borderColor: authorityStatusTone.bd, color: authorityStatusTone.fg }}>
+                <span style={S.chipMuted}>
+                  {safe(klass?.teacher_name) || "Teacher unassigned"}
+                </span>
+                {safe(klass?.room) ? (
+                  <span style={S.chipMuted}>Room {safe(klass?.room)}</span>
+                ) : null}
+                <span
+                  style={{
+                    ...S.chip,
+                    background: authorityStatusTone.bg,
+                    borderColor: authorityStatusTone.bd,
+                    color: authorityStatusTone.fg,
+                  }}
+                >
                   Authority {summary.authorityStatus}
                 </span>
                 <span style={S.chipMuted}>Benchmark {summary.benchmark}</span>
@@ -946,10 +1113,22 @@ export default function AdminClassHubPage() {
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" style={S.btn} onClick={() => router.push("/admin/command-centre")}>
+              <button
+                type="button"
+                style={S.btn}
+                onClick={() => router.push("/admin/command-centre")}
+              >
                 Command Centre
               </button>
-              <button type="button" style={S.btn} onClick={() => router.push(`/admin/classes/${encodeURIComponent(classId)}/heatmap`)}>
+              <button
+                type="button"
+                style={S.btn}
+                onClick={() =>
+                  router.push(
+                    `/admin/classes/${encodeURIComponent(classId)}/heatmap`
+                  )
+                }
+              >
                 Class Heatmap
               </button>
               <button type="button" style={S.btn} onClick={() => loadAll()}>
@@ -964,12 +1143,18 @@ export default function AdminClassHubPage() {
                 <label style={S.controlLabel}>Switch class</label>
                 <select
                   value={classId}
-                  onChange={(e) => router.push(`/admin/classes/${encodeURIComponent(e.target.value)}`)}
+                  onChange={(e) =>
+                    router.push(
+                      `/admin/classes/${encodeURIComponent(e.target.value)}`
+                    )
+                  }
                   style={S.select}
                 >
                   {classOptions.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {[safe(c.name), fmtYear(c.year_level), safe(c.room)].filter(Boolean).join(" • ") || "Class"}
+                      {[safe(c.name), fmtYear(c.year_level), safe(c.room)]
+                        .filter(Boolean)
+                        .join(" • ") || "Class"}
                     </option>
                   ))}
                 </select>
@@ -987,7 +1172,11 @@ export default function AdminClassHubPage() {
 
               <div>
                 <label style={S.controlLabel}>Student filter</label>
-                <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value as any)} style={S.select}>
+                <select
+                  value={studentFilter}
+                  onChange={(e) => setStudentFilter(e.target.value as any)}
+                  style={S.select}
+                >
                   <option value="all">All students</option>
                   <option value="attention">Attention</option>
                   <option value="watch">Watch</option>
@@ -999,7 +1188,11 @@ export default function AdminClassHubPage() {
 
               <div>
                 <label style={S.controlLabel}>Density</label>
-                <select value={viewDensity} onChange={(e) => setViewDensity(e.target.value as any)} style={S.select}>
+                <select
+                  value={viewDensity}
+                  onChange={(e) => setViewDensity(e.target.value as any)}
+                  style={S.select}
+                >
                   <option value="simple">Simple</option>
                   <option value="detailed">Detailed</option>
                 </select>
@@ -1007,7 +1200,9 @@ export default function AdminClassHubPage() {
             </div>
 
             <div style={{ ...S.row, marginTop: 14 }}>
-              {(["overview", "students", "evidence", "interventions", "coverage"] as TabKey[]).map((t) => {
+              {(
+                ["overview", "students", "evidence", "interventions", "coverage"] as TabKey[]
+              ).map((t) => {
                 const active = tab === t;
                 return (
                   <button
@@ -1048,7 +1243,10 @@ export default function AdminClassHubPage() {
             <section style={S.mainGrid}>
               <div style={S.leftCol}>
                 {visibility.nextActions && (
-                  <Card title="Ranked Class Action Queue" help="The most important operational moves for this class right now.">
+                  <Card
+                    title="Ranked Class Action Queue"
+                    help="The most important operational moves for this class right now."
+                  >
                     <div style={S.list}>
                       {actionItems.map((item) => (
                         <div key={item.id} style={{ ...S.item, ...toneCard(item.tone) }}>
@@ -1056,7 +1254,11 @@ export default function AdminClassHubPage() {
                           <div style={S.itemText}>{item.text}</div>
                           {item.href ? (
                             <div style={{ marginTop: 8 }}>
-                              <button type="button" style={S.btnSmall} onClick={() => router.push(item.href!)}>
+                              <button
+                                type="button"
+                                style={S.btnSmall}
+                                onClick={() => router.push(item.href!)}
+                              >
                                 Open
                               </button>
                             </div>
@@ -1067,7 +1269,10 @@ export default function AdminClassHubPage() {
                   </Card>
                 )}
 
-                <Card title="Strategic Plan" help="Short operating plan for the class based on current signals.">
+                <Card
+                  title="Strategic Plan"
+                  help="Short operating plan for the class based on current signals."
+                >
                   <div style={S.list}>
                     {strategicPlan.map((row) => (
                       <div key={row.title} style={{ ...S.item, ...toneCard(row.tone) }}>
@@ -1075,62 +1280,124 @@ export default function AdminClassHubPage() {
                         <div style={S.itemText}>
                           Owner: {row.owner} • Timing: {row.timing}
                         </div>
-                        <div style={{ marginTop: 6, color: "#475569", fontWeight: 800 }}>{row.rationale}</div>
+                        <div style={{ marginTop: 6, color: "#475569", fontWeight: 800 }}>
+                          {row.rationale}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </Card>
 
                 {visibility.studentList && (
-                  <Card title="Priority Student Radar" help="Top learner priorities in this class, ordered by pressure and fragility.">
+                  <Card
+                    title="Priority Student Radar"
+                    help="Top learner priorities in this class, ordered by pressure and fragility."
+                  >
                     <div style={S.studentGrid}>
-                      {filteredStudents.slice(0, viewDensity === "simple" ? 8 : 12).map((row) => {
-                        const heat = heatTone(row.heatScore);
-                        const att = statusTone(row.overview?.attention_status);
-                        const fc = forecastTone(row.forecastRisk);
+                      {filteredStudents
+                        .slice(0, viewDensity === "simple" ? 8 : 12)
+                        .map((row) => {
+                          const heat = heatTone(row.heatScore);
+                          const att = statusTone(row.overview?.attention_status);
+                          const fc = forecastTone(row.forecastRisk);
 
-                        return (
-                          <div key={row.student.id} style={S.studentCard}>
-                            <div style={{ ...S.row, justifyContent: "space-between" }}>
-                              <div>
-                                <div style={S.studentName}>{row.studentName}</div>
-                                <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>
-                                  {row.student.is_ilp ? "ILP" : "General"} • Evidence {row.evidence30d} / 30d
+                          return (
+                            <div key={row.student.id} style={S.studentCard}>
+                              <div style={{ ...S.row, justifyContent: "space-between" }}>
+                                <div>
+                                  <div style={S.studentName}>{row.studentName}</div>
+                                  <div
+                                    style={{
+                                      marginTop: 4,
+                                      color: "#64748b",
+                                      fontSize: 12,
+                                    }}
+                                  >
+                                    {row.student.is_ilp ? "ILP" : "General"} • Evidence{" "}
+                                    {row.evidence30d} / 30d
+                                  </div>
                                 </div>
+                                <span
+                                  style={{
+                                    ...S.chip,
+                                    background: heat.bg,
+                                    borderColor: heat.bd,
+                                    color: heat.fg,
+                                  }}
+                                >
+                                  {heat.label}
+                                </span>
                               </div>
-                              <span style={{ ...S.chip, background: heat.bg, borderColor: heat.bd, color: heat.fg }}>
-                                {heat.label}
-                              </span>
-                            </div>
 
-                            <div style={{ ...S.row, marginTop: 8 }}>
-                              <span style={{ ...S.chip, background: att.bg, borderColor: att.bd, color: att.fg }}>
-                                {safe(row.overview?.attention_status) || "Ready"}
-                              </span>
-                              <span style={{ ...S.chip, background: fc.bg, borderColor: fc.bd, color: fc.fg }}>
-                                {row.forecastRisk}
-                              </span>
-                              {row.authorityFragile ? <span style={S.chipMuted}>Authority fragile</span> : null}
-                            </div>
-
-                            {viewDensity === "detailed" ? (
-                              <div style={S.studentMeta}>
-                                <div>Last evidence: {row.lastEvidenceDays == null ? "—" : `${row.lastEvidenceDays}d ago`}</div>
-                                <div>Momentum: {row.evidenceMomentumDelta >= 0 ? "+" : ""}{row.evidenceMomentumDelta}</div>
-                                <div>Interventions: {row.openInterventions} / overdue {row.overdueReviews}</div>
-                                <div>Missing areas: {row.missingAreas.length ? row.missingAreas.join(", ") : "None"}</div>
+                              <div style={{ ...S.row, marginTop: 8 }}>
+                                <span
+                                  style={{
+                                    ...S.chip,
+                                    background: att.bg,
+                                    borderColor: att.bd,
+                                    color: att.fg,
+                                  }}
+                                >
+                                  {safe(row.overview?.attention_status) || "Ready"}
+                                </span>
+                                <span
+                                  style={{
+                                    ...S.chip,
+                                    background: fc.bg,
+                                    borderColor: fc.bd,
+                                    color: fc.fg,
+                                  }}
+                                >
+                                  {row.forecastRisk}
+                                </span>
+                                {row.authorityFragile ? (
+                                  <span style={S.chipMuted}>Authority fragile</span>
+                                ) : null}
                               </div>
-                            ) : null}
 
-                            <div style={{ ...S.row, marginTop: 10 }}>
-                              <button type="button" style={S.btnSmall} onClick={() => router.push(`/admin/students/${encodeURIComponent(row.student.id)}`)}>
-                                Open student
-                              </button>
-                              <StudentQuickOpen studentId={row.student.id} />
+                              {viewDensity === "detailed" ? (
+                                <div style={S.studentMeta}>
+                                  <div>
+                                    Last evidence:{" "}
+                                    {row.lastEvidenceDays == null
+                                      ? "—"
+                                      : `${row.lastEvidenceDays}d ago`}
+                                  </div>
+                                  <div>
+                                    Momentum:{" "}
+                                    {row.evidenceMomentumDelta >= 0 ? "+" : ""}
+                                    {row.evidenceMomentumDelta}
+                                  </div>
+                                  <div>
+                                    Interventions: {row.openInterventions} / overdue{" "}
+                                    {row.overdueReviews}
+                                  </div>
+                                  <div>
+                                    Missing areas:{" "}
+                                    {row.missingAreas.length
+                                      ? row.missingAreas.join(", ")
+                                      : "None"}
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              <div style={{ ...S.row, marginTop: 10 }}>
+                                <button
+                                  type="button"
+                                  style={S.btnSmall}
+                                  onClick={() =>
+                                    router.push(
+                                      `/admin/students/${encodeURIComponent(row.student.id)}`
+                                    )
+                                  }
+                                >
+                                  Open student
+                                </button>
+                                <StudentQuickOpen studentId={row.student.id} />
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
                     </div>
                   </Card>
                 )}
@@ -1138,17 +1405,26 @@ export default function AdminClassHubPage() {
 
               <div style={S.rightCol}>
                 {visibility.interventions && (
-                  <Card title="Support Queue Snapshot" help="Current intervention and review pressure for the class.">
+                  <Card
+                    title="Support Queue Snapshot"
+                    help="Current intervention and review pressure for the class."
+                  >
                     <div style={S.stack}>
                       {missionRows
                         .filter((r) => r.openInterventions > 0 || r.overdueReviews > 0)
-                        .sort((a, b) => b.overdueReviews + b.openInterventions - (a.overdueReviews + a.openInterventions))
+                        .sort(
+                          (a, b) =>
+                            b.overdueReviews +
+                            b.openInterventions -
+                            (a.overdueReviews + a.openInterventions)
+                        )
                         .slice(0, 8)
                         .map((row) => (
                           <div key={row.student.id} style={S.sideItem}>
                             <div style={S.sideItemTitle}>{row.studentName}</div>
                             <div style={S.sideItemText}>
-                              {row.openInterventions} open • {row.overdueReviews} overdue • {row.recommendedAction}
+                              {row.openInterventions} open • {row.overdueReviews} overdue •{" "}
+                              {row.recommendedAction}
                             </div>
                           </div>
                         ))}
@@ -1156,7 +1432,10 @@ export default function AdminClassHubPage() {
                   </Card>
                 )}
 
-                <Card title="Benchmark & Authority Snapshot" help="Quick class posture for internal benchmark and documentation confidence.">
+                <Card
+                  title="Benchmark & Authority Snapshot"
+                  help="Quick class posture for internal benchmark and documentation confidence."
+                >
                   <div style={S.stack}>
                     <div style={S.sideItem}>
                       <div style={S.sideItemTitle}>Benchmark position</div>
@@ -1188,15 +1467,22 @@ export default function AdminClassHubPage() {
                 </Card>
 
                 {visibility.evidenceFeed && (
-                  <Card title="Recent Activity" help="Latest evidence and intervention activity inside this class.">
+                  <Card
+                    title="Recent Activity"
+                    help="Latest evidence and intervention activity inside this class."
+                  >
                     <div style={S.stack}>
                       {recentActivity.map((item) => (
                         <div key={item.key} style={S.sideItem}>
                           <div style={{ ...S.row, justifyContent: "space-between" }}>
                             <div style={S.sideItemTitle}>{item.title}</div>
-                            <div style={{ color: "#64748b", fontSize: 12 }}>{item.when}</div>
+                            <div style={{ color: "#64748b", fontSize: 12 }}>
+                              {item.when}
+                            </div>
                           </div>
-                          <div style={S.sideItemText}>{item.kind} • {item.body}</div>
+                          <div style={S.sideItemText}>
+                            {item.kind} • {item.body}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1208,7 +1494,10 @@ export default function AdminClassHubPage() {
         )}
 
         {tab === "students" && (
-          <Card title="Student Mission Table" help="Class-wide learner table with heat, trajectory, and recommended action.">
+          <Card
+            title="Student Mission Table"
+            help="Class-wide learner table with heat, trajectory, and recommended action."
+          >
             <div style={S.tableWrap}>
               <table style={S.table}>
                 <thead>
@@ -1231,28 +1520,62 @@ export default function AdminClassHubPage() {
                     return (
                       <tr key={row.student.id}>
                         <td style={S.td}>
-                          <button type="button" style={S.linkBtn} onClick={() => router.push(`/admin/students/${encodeURIComponent(row.student.id)}`)}>
+                          <button
+                            type="button"
+                            style={S.linkBtn}
+                            onClick={() =>
+                              router.push(
+                                `/admin/students/${encodeURIComponent(row.student.id)}`
+                              )
+                            }
+                          >
                             {row.studentName}
                           </button>
                         </td>
                         <td style={S.td}>
-                          <span style={{ ...S.chip, background: att.bg, borderColor: att.bd, color: att.fg }}>
+                          <span
+                            style={{
+                              ...S.chip,
+                              background: att.bg,
+                              borderColor: att.bd,
+                              color: att.fg,
+                            }}
+                          >
                             {safe(row.overview?.attention_status) || "Ready"}
                           </span>
                         </td>
                         <td style={S.td}>
-                          <span style={{ ...S.chip, background: heat.bg, borderColor: heat.bd, color: heat.fg }}>
+                          <span
+                            style={{
+                              ...S.chip,
+                              background: heat.bg,
+                              borderColor: heat.bd,
+                              color: heat.fg,
+                            }}
+                          >
                             {row.heatScore}
                           </span>
                         </td>
                         <td style={S.td}>
-                          <span style={{ ...S.chip, background: fc.bg, borderColor: fc.bd, color: fc.fg }}>
+                          <span
+                            style={{
+                              ...S.chip,
+                              background: fc.bg,
+                              borderColor: fc.bd,
+                              color: fc.fg,
+                            }}
+                          >
                             {row.forecastRisk}
                           </span>
                         </td>
                         <td style={S.td}>{row.evidence30d}</td>
-                        <td style={S.td}>{row.evidenceMomentumDelta >= 0 ? "+" : ""}{row.evidenceMomentumDelta}</td>
-                        <td style={S.td}>{row.openInterventions} / overdue {row.overdueReviews}</td>
+                        <td style={S.td}>
+                          {row.evidenceMomentumDelta >= 0 ? "+" : ""}
+                          {row.evidenceMomentumDelta}
+                        </td>
+                        <td style={S.td}>
+                          {row.openInterventions} / overdue {row.overdueReviews}
+                        </td>
                         <td style={S.td}>{row.recommendedAction}</td>
                       </tr>
                     );
@@ -1264,7 +1587,10 @@ export default function AdminClassHubPage() {
         )}
 
         {tab === "evidence" && (
-          <Card title="Class Evidence Feed" help="Recent class evidence with quality cues and direct follow-through.">
+          <Card
+            title="Class Evidence Feed"
+            help="Recent class evidence with quality cues and direct follow-through."
+          >
             <div style={S.list}>
               {evidenceEntries.slice(0, 24).map((e) => {
                 const sid = safe(e.student_id);
@@ -1273,17 +1599,34 @@ export default function AdminClassHubPage() {
                   <div key={e.id} style={S.feedItem}>
                     <div style={{ ...S.row, justifyContent: "space-between" }}>
                       <div>
-                        <div style={S.itemTitle}>{clip(e.title || e.learning_area || "Evidence entry", 100)}</div>
+                        <div style={S.itemTitle}>
+                          {clip(e.title || e.learning_area || "Evidence entry", 100)}
+                        </div>
                         <div style={S.itemMeta}>
-                          {row?.studentName || "Student"} • {guessArea(e.learning_area)} • {isoShort(evidenceDate(e))}
+                          {row?.studentName || "Student"} •{" "}
+                          {guessArea(e.learning_area)} • {isoShort(evidenceDate(e))}
                         </div>
                       </div>
                       <div style={{ ...S.row }}>
-                        {safe(e.summary) || safe(e.body) ? <span style={S.chipMuted}>Narrative</span> : <span style={S.chipMuted}>Thin</span>}
-                        {row?.authorityFragile ? <span style={S.chipMuted}>Authority fragile</span> : null}
+                        {safe(e.summary) || safe(e.body) ? (
+                          <span style={S.chipMuted}>Narrative</span>
+                        ) : (
+                          <span style={S.chipMuted}>Thin</span>
+                        )}
+                        {row?.authorityFragile ? (
+                          <span style={S.chipMuted}>Authority fragile</span>
+                        ) : null}
                       </div>
                     </div>
-                    <div style={S.itemText}>{clip(e.summary || e.body || e.learning_area || "Evidence captured.", 220)}</div>
+                    <div style={S.itemText}>
+                      {clip(
+                        e.summary ||
+                          e.body ||
+                          e.learning_area ||
+                          "Evidence captured.",
+                        220
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1292,32 +1635,70 @@ export default function AdminClassHubPage() {
         )}
 
         {tab === "interventions" && (
-          <Card title="Class Intervention Queue" help="Review and support load inside the class.">
+          <Card
+            title="Class Intervention Queue"
+            help="Review and support load inside the class."
+          >
             <div style={S.list}>
               {interventions
                 .slice()
-                .sort((a, b) => dateSortValue(pickReviewDate(a)) - dateSortValue(pickReviewDate(b)))
+                .sort(
+                  (a, b) =>
+                    dateSortValue(pickReviewDate(a)) -
+                    dateSortValue(pickReviewDate(b))
+                )
                 .slice(0, 24)
                 .map((i) => {
                   const reviewDays = daysUntil(pickReviewDate(i));
                   const review = reviewTone(reviewDays);
                   const tone = interventionStatusTone(i.status);
-                  const row = missionRows.find((m) => m.student.id === safe(i.student_id));
+                  const row = missionRows.find(
+                    (m) => m.student.id === safe(i.student_id)
+                  );
                   return (
                     <div key={i.id} style={S.feedItem}>
                       <div style={{ ...S.row, justifyContent: "space-between" }}>
                         <div>
-                          <div style={S.itemTitle}>{clip(i.title || i.strategy || "Support item", 100)}</div>
+                          <div style={S.itemTitle}>
+                            {clip(i.title || i.strategy || "Support item", 100)}
+                          </div>
                           <div style={S.itemMeta}>
-                            {row?.studentName || "Student"} • {safe(i.priority) || "normal"} • {safe(i.tier) || "tier ?"}
+                            {row?.studentName || "Student"} •{" "}
+                            {safe(i.priority) || "normal"} • {safe(i.tier) || "tier ?"}
                           </div>
                         </div>
                         <div style={{ ...S.row }}>
-                          <span style={{ ...S.chip, background: tone.bg, borderColor: tone.bd, color: tone.fg }}>{safe(i.status) || "open"}</span>
-                          <span style={{ ...S.chip, background: review.bg, borderColor: review.bd, color: review.fg }}>{review.label}</span>
+                          <span
+                            style={{
+                              ...S.chip,
+                              background: tone.bg,
+                              borderColor: tone.bd,
+                              color: tone.fg,
+                            }}
+                          >
+                            {safe(i.status) || "open"}
+                          </span>
+                          <span
+                            style={{
+                              ...S.chip,
+                              background: review.bg,
+                              borderColor: review.bd,
+                              color: review.fg,
+                            }}
+                          >
+                            {review.label}
+                          </span>
                         </div>
                       </div>
-                      <div style={S.itemText}>{clip(i.notes || i.note || i.strategy || "Support plan in progress.", 220)}</div>
+                      <div style={S.itemText}>
+                        {clip(
+                          i.notes ||
+                            i.note ||
+                            i.strategy ||
+                            "Support plan in progress.",
+                          220
+                        )}
+                      </div>
                     </div>
                   );
                 })}
@@ -1326,7 +1707,10 @@ export default function AdminClassHubPage() {
         )}
 
         {tab === "coverage" && (
-          <Card title="Coverage & Area Risk" help="Learning-area coverage, freshness, and student gap clustering.">
+          <Card
+            title="Coverage & Area Risk"
+            help="Learning-area coverage, freshness, and student gap clustering."
+          >
             <div style={S.tableWrap}>
               <table style={S.table}>
                 <thead>
@@ -1402,10 +1786,15 @@ function Metric({
   );
 }
 
-function toneCard(tone: "good" | "watch" | "danger" | "info"): React.CSSProperties {
-  if (tone === "danger") return { borderColor: "#fecaca", background: "#fff1f2" };
-  if (tone === "watch") return { borderColor: "#fde68a", background: "#fffbeb" };
-  if (tone === "info") return { borderColor: "#bfdbfe", background: "#eff6ff" };
+function toneCard(
+  tone: "good" | "watch" | "danger" | "info"
+): React.CSSProperties {
+  if (tone === "danger")
+    return { borderColor: "#fecaca", background: "#fff1f2" };
+  if (tone === "watch")
+    return { borderColor: "#fde68a", background: "#fffbeb" };
+  if (tone === "info")
+    return { borderColor: "#bfdbfe", background: "#eff6ff" };
   return { borderColor: "#a7f3d0", background: "#ecfdf5" };
 }
 
@@ -1427,7 +1816,8 @@ const S: Record<string, React.CSSProperties> = {
   },
 
   hero: {
-    background: "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
+    background:
+      "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
     border: "1px solid #d9e2ff",
     borderRadius: 26,
     padding: "28px 24px",
