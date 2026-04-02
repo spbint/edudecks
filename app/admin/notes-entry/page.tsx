@@ -23,6 +23,15 @@ type NoteRow = {
   created_at?: string | null;
 };
 
+/* ───────────────────────── HELPERS ───────────────────────── */
+
+function studentDisplayName(student: StudentRow | null) {
+  if (!student) return "Open student";
+  const first = String(student.preferred_name || student.first_name || "").trim();
+  const last = String(student.surname || student.family_name || "").trim();
+  return `${first}${last ? ` ${last}` : ""}`.trim() || "Open student";
+}
+
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function NotesEntryPage() {
@@ -108,7 +117,9 @@ export default function NotesEntryPage() {
               <div style={S.studentLabel}>Student</div>
 
               <div style={S.studentName}>
-                <StudentNameLink studentId={studentId} />
+                <StudentNameLink studentId={studentId}>
+                  {studentDisplayName(student)}
+                </StudentNameLink>
               </div>
             </div>
 
