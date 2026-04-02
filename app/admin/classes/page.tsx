@@ -157,7 +157,9 @@ function pickReviewDate(i: InterventionRow) {
 }
 
 function isClosedStatus(status: string | null | undefined) {
-  return ["closed", "done", "archived", "completed", "resolved"].includes(safe(status).toLowerCase());
+  return ["closed", "done", "archived", "completed", "resolved"].includes(
+    safe(status).toLowerCase()
+  );
 }
 
 function isMissingColumnError(err: any) {
@@ -168,6 +170,44 @@ function isMissingColumnError(err: any) {
 function percent(numerator: number, denominator: number) {
   if (!denominator) return 0;
   return Math.max(0, Math.min(100, Math.round((numerator / denominator) * 100)));
+}
+
+function guessArea(raw: string | null | undefined) {
+  const x = safe(raw).toLowerCase();
+
+  if (x.includes("math")) return "Maths";
+
+  if (
+    x.includes("liter") ||
+    x.includes("reading") ||
+    x.includes("writing") ||
+    x.includes("english")
+  ) {
+    return "Literacy";
+  }
+
+  if (x.includes("science")) return "Science";
+
+  if (
+    x.includes("well") ||
+    x.includes("pastoral") ||
+    x.includes("social") ||
+    x.includes("behaviour") ||
+    x.includes("behavior")
+  ) {
+    return "Wellbeing";
+  }
+
+  if (
+    x.includes("human") ||
+    x.includes("history") ||
+    x.includes("geography") ||
+    x.includes("hass")
+  ) {
+    return "Humanities";
+  }
+
+  return "Other";
 }
 
 function benchmarkPosition(avgRisk: number): "Above" | "Near" | "Below" {
@@ -188,7 +228,9 @@ function forecastTone(status: "Stable" | "Watch" | "Escalating") {
   return { bg: "#fff1f2", bd: "#fecaca", fg: "#9f1239" };
 }
 
-function toneCard(tone: "good" | "watch" | "danger" | "info"): React.CSSProperties {
+function toneCard(
+  tone: "good" | "watch" | "danger" | "info"
+): React.CSSProperties {
   if (tone === "danger") return { borderColor: "#fecaca", background: "#fff1f2" };
   if (tone === "watch") return { borderColor: "#fde68a", background: "#fffbeb" };
   if (tone === "info") return { borderColor: "#bfdbfe", background: "#eff6ff" };
@@ -210,8 +252,12 @@ export default function AdminClassesIndexPage() {
   const [classHealthRows, setClassHealthRows] = useState<ClassHealthRow[]>([]);
 
   const [search, setSearch] = useState("");
-  const [sortMode, setSortMode] = useState<"deployment" | "risk" | "name" | "freshness" | "authority">("deployment");
-  const [filterMode, setFilterMode] = useState<"all" | "watch" | "fragile" | "stable">("all");
+  const [sortMode, setSortMode] = useState<
+    "deployment" | "risk" | "name" | "freshness" | "authority"
+  >("deployment");
+  const [filterMode, setFilterMode] = useState<
+    "all" | "watch" | "fragile" | "stable"
+  >("all");
 
   async function loadClasses() {
     const tries = [
@@ -337,10 +383,18 @@ export default function AdminClassesIndexPage() {
 
   const portfolioRows = useMemo<ClassPortfolioRow[]>(() => {
     return classes.map((klass) => {
-      const classStudents = students.filter((s) => safe(s.class_id) === safe(klass.id));
-      const classEvidence = evidenceEntries.filter((e) => safe(e.class_id) === safe(klass.id));
-      const classInterventions = interventions.filter((i) => safe(i.class_id) === safe(klass.id));
-      const health = classHealthRows.find((h) => safe(h.class_id) === safe(klass.id));
+      const classStudents = students.filter(
+        (s) => safe(s.class_id) === safe(klass.id)
+      );
+      const classEvidence = evidenceEntries.filter(
+        (e) => safe(e.class_id) === safe(klass.id)
+      );
+      const classInterventions = interventions.filter(
+        (i) => safe(i.class_id) === safe(klass.id)
+      );
+      const health = classHealthRows.find(
+        (h) => safe(h.class_id) === safe(klass.id)
+      );
 
       const studentCount = classStudents.length;
       const ilpCount = classStudents.filter((s) => !!s.is_ilp).length;
@@ -352,12 +406,18 @@ export default function AdminClassesIndexPage() {
 
       const avgEvidenceAge = classEvidence.length
         ? Math.round(
-            classEvidence.reduce((sum, e) => sum + (daysSince(safe(e.occurred_on) || safe(e.created_at)) ?? 0), 0) /
-              classEvidence.length
+            classEvidence.reduce(
+              (sum, e) =>
+                sum +
+                (daysSince(safe(e.occurred_on) || safe(e.created_at)) ?? 0),
+              0
+            ) / classEvidence.length
           )
         : 999;
 
-      const activeInterventions = classInterventions.filter((i) => !isClosedStatus(i.status)).length;
+      const activeInterventions = classInterventions.filter(
+        (i) => !isClosedStatus(i.status)
+      ).length;
       const overdueReviews = classInterventions.filter((i) => {
         if (isClosedStatus(i.status)) return false;
         const d = daysSince(pickReviewDate(i));
@@ -379,7 +439,12 @@ export default function AdminClassesIndexPage() {
       );
 
       const evidenceFreshPct =
-        Math.round(Number(health?.evidence_fresh_pct ?? percent(studentFreshSet.size, Math.max(1, studentCount)))) || 0;
+        Math.round(
+          Number(
+            health?.evidence_fresh_pct ??
+              percent(studentFreshSet.size, Math.max(1, studentCount))
+          )
+        ) || 0;
 
       let attentionCount = 0;
       let invisibleCount = 0;
@@ -388,8 +453,13 @@ export default function AdminClassesIndexPage() {
       let riskAccumulator = 0;
 
       for (const s of classStudents) {
-        const se = classEvidence.filter((e) => safe(e.student_id) === safe(s.id));
-        const si = classInterventions.filter((i) => safe(i.student_id) === safe(s.id) && !isClosedStatus(i.status));
+        const se = classEvidence.filter(
+          (e) => safe(e.student_id) === safe(s.id)
+        );
+        const si = classInterventions.filter(
+          (i) =>
+            safe(i.student_id) === safe(s.id) && !isClosedStatus(i.status)
+        );
 
         const lastEvidenceDays = se.length
           ? daysSince(safe(se[0]?.occurred_on) || safe(se[0]?.created_at))
@@ -412,14 +482,31 @@ export default function AdminClassesIndexPage() {
           return d != null && d > 0;
         }).length;
 
-        const areas = ["Literacy", "Maths", "Science", "Wellbeing", "Humanities", "Other"];
-        const missingAreaCount = areas.filter((area) => se.filter((e) => guessArea(e.learning_area) === area).length === 0).length;
-        const narrativeCount = se.filter((e) => safe(e.summary) || safe(e.body)).length;
+        const areas = [
+          "Literacy",
+          "Maths",
+          "Science",
+          "Wellbeing",
+          "Humanities",
+          "Other",
+        ];
+        const missingAreaCount = areas.filter(
+          (area) =>
+            se.filter((e) => guessArea(e.learning_area) === area).length === 0
+        ).length;
+        const narrativeCount = se.filter(
+          (e) => safe(e.summary) || safe(e.body)
+        ).length;
 
-        const invisibleRisk = se.length === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
+        const invisibleRisk =
+          se.length === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
         const reportingFragile =
-          evidence30 === 0 || lastEvidenceDays == null || lastEvidenceDays > 30 || missingAreaCount >= 2;
-        const authorityFragile = reportingFragile || narrativeCount < 2 || overdue > 0 || invisibleRisk;
+          evidence30 === 0 ||
+          lastEvidenceDays == null ||
+          lastEvidenceDays > 30 ||
+          missingAreaCount >= 2;
+        const authorityFragile =
+          reportingFragile || narrativeCount < 2 || overdue > 0 || invisibleRisk;
 
         if (overdue > 0 || reportingFragile) attentionCount += 1;
         if (invisibleRisk) invisibleCount += 1;
@@ -437,7 +524,9 @@ export default function AdminClassesIndexPage() {
         riskAccumulator += Math.min(100, risk);
       }
 
-      const avgRisk = studentCount ? Math.round(riskAccumulator / studentCount) : 0;
+      const avgRisk = studentCount
+        ? Math.round(riskAccumulator / studentCount)
+        : 0;
 
       const deploymentScore =
         attentionCount * 10 +
@@ -463,14 +552,23 @@ export default function AdminClassesIndexPage() {
           : "Stable";
 
       let recommendation = "Stable class — maintain current rhythm.";
-      if (deploymentScore >= 75) recommendation = "Deploy support time here first.";
-      else if (reportingFragileCount >= 4) recommendation = "Run evidence push and reporting prep.";
-      else if (overdueReviews >= 3) recommendation = "Clear overdue reviews before pressure compounds.";
-      else if (invisibleCount >= 3) recommendation = "Restore visibility with fresh evidence capture.";
+      if (deploymentScore >= 75) {
+        recommendation = "Deploy support time here first.";
+      } else if (reportingFragileCount >= 4) {
+        recommendation = "Run evidence push and reporting prep.";
+      } else if (overdueReviews >= 3) {
+        recommendation =
+          "Clear overdue reviews before pressure compounds.";
+      } else if (invisibleCount >= 3) {
+        recommendation = "Restore visibility with fresh evidence capture.";
+      }
 
       return {
         classId: klass.id,
-        classLabel: [safe(klass.name), fmtYear(klass.year_level), safe(klass.room)].filter(Boolean).join(" • ") || "Class",
+        classLabel:
+          [safe(klass.name), fmtYear(klass.year_level), safe(klass.room)]
+            .filter(Boolean)
+            .join(" • ") || "Class",
         teacherName: safe(klass.teacher_name) || "—",
         room: safe(klass.room),
         studentCount,
@@ -505,18 +603,27 @@ export default function AdminClassesIndexPage() {
     const q = safe(search).toLowerCase();
     if (q) {
       rows = rows.filter((r) =>
-        [r.classLabel, r.teacherName, r.room].join(" ").toLowerCase().includes(q)
+        [r.classLabel, r.teacherName, r.room]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
       );
     }
 
     if (filterMode === "watch") {
-      rows = rows.filter((r) => r.forecast === "Watch" || r.forecast === "Escalating");
+      rows = rows.filter(
+        (r) => r.forecast === "Watch" || r.forecast === "Escalating"
+      );
     }
     if (filterMode === "fragile") {
-      rows = rows.filter((r) => r.authorityStatus === "Fragile" || r.reportingFragileCount >= 3);
+      rows = rows.filter(
+        (r) => r.authorityStatus === "Fragile" || r.reportingFragileCount >= 3
+      );
     }
     if (filterMode === "stable") {
-      rows = rows.filter((r) => r.forecast === "Stable" && r.authorityStatus === "Strong");
+      rows = rows.filter(
+        (r) => r.forecast === "Stable" && r.authorityStatus === "Strong"
+      );
     }
 
     if (sortMode === "name") {
@@ -527,7 +634,11 @@ export default function AdminClassesIndexPage() {
       rows.sort((a, b) => a.evidenceFreshPct - b.evidenceFreshPct);
     } else if (sortMode === "authority") {
       const rank = { Fragile: 3, Watch: 2, Strong: 1 };
-      rows.sort((a, b) => rank[b.authorityStatus] - rank[a.authorityStatus] || b.deploymentScore - a.deploymentScore);
+      rows.sort(
+        (a, b) =>
+          rank[b.authorityStatus] -
+            rank[a.authorityStatus] || b.deploymentScore - a.deploymentScore
+      );
     } else {
       rows.sort((a, b) => b.deploymentScore - a.deploymentScore);
     }
@@ -584,30 +695,76 @@ export default function AdminClassesIndexPage() {
   }, [filteredRows]);
 
   const alerts = useMemo<AlertRow[]>(() => {
-    const critical = portfolioRows.filter((r) => r.forecast === "Escalating").length;
-    const fragile = portfolioRows.filter((r) => r.authorityStatus === "Fragile").length;
+    const critical = portfolioRows.filter(
+      (r) => r.forecast === "Escalating"
+    ).length;
+    const fragile = portfolioRows.filter(
+      (r) => r.authorityStatus === "Fragile"
+    ).length;
     const invisible = portfolioRows.reduce((sum, r) => sum + r.invisibleCount, 0);
     const overdue = portfolioRows.reduce((sum, r) => sum + r.overdueReviews, 0);
 
     const items: AlertRow[] = [];
-    if (critical > 0) items.push({ id: "critical", text: `${critical} classes are escalating.`, tone: "danger" });
-    if (fragile > 0) items.push({ id: "fragile", text: `${fragile} classes have fragile authority posture.`, tone: "watch" });
-    if (invisible > 0) items.push({ id: "invisible", text: `${invisible} invisible-risk learners are spread across classes.`, tone: "watch" });
-    if (overdue > 0) items.push({ id: "overdue", text: `${overdue} overdue reviews are creating class-level pressure.`, tone: "danger" });
-    if (!items.length) items.push({ id: "clear", text: "No major class-portfolio alerts stand out right now.", tone: "good" });
+    if (critical > 0) {
+      items.push({
+        id: "critical",
+        text: `${critical} classes are escalating.`,
+        tone: "danger",
+      });
+    }
+    if (fragile > 0) {
+      items.push({
+        id: "fragile",
+        text: `${fragile} classes have fragile authority posture.`,
+        tone: "watch",
+      });
+    }
+    if (invisible > 0) {
+      items.push({
+        id: "invisible",
+        text: `${invisible} invisible-risk learners are spread across classes.`,
+        tone: "watch",
+      });
+    }
+    if (overdue > 0) {
+      items.push({
+        id: "overdue",
+        text: `${overdue} overdue reviews are creating class-level pressure.`,
+        tone: "danger",
+      });
+    }
+    if (!items.length) {
+      items.push({
+        id: "clear",
+        text: "No major class-portfolio alerts stand out right now.",
+        tone: "good",
+      });
+    }
     return items;
   }, [portfolioRows]);
 
   const summary = useMemo(() => {
     const totalClasses = portfolioRows.length;
-    const totalStudents = portfolioRows.reduce((sum, r) => sum + r.studentCount, 0);
-    const escalating = portfolioRows.filter((r) => r.forecast === "Escalating").length;
-    const fragile = portfolioRows.filter((r) => r.authorityStatus === "Fragile").length;
+    const totalStudents = portfolioRows.reduce(
+      (sum, r) => sum + r.studentCount,
+      0
+    );
+    const escalating = portfolioRows.filter(
+      (r) => r.forecast === "Escalating"
+    ).length;
+    const fragile = portfolioRows.filter(
+      (r) => r.authorityStatus === "Fragile"
+    ).length;
     const avgFreshness = totalClasses
-      ? Math.round(portfolioRows.reduce((sum, r) => sum + r.evidenceFreshPct, 0) / totalClasses)
+      ? Math.round(
+          portfolioRows.reduce((sum, r) => sum + r.evidenceFreshPct, 0) /
+            totalClasses
+        )
       : 0;
     const avgRisk = totalClasses
-      ? Math.round(portfolioRows.reduce((sum, r) => sum + r.avgRisk, 0) / totalClasses)
+      ? Math.round(
+          portfolioRows.reduce((sum, r) => sum + r.avgRisk, 0) / totalClasses
+        )
       : 0;
 
     return {
@@ -631,15 +788,24 @@ export default function AdminClassesIndexPage() {
               <div style={S.subtle}>Class Portfolio & Deployment Board</div>
               <h1 style={S.h1}>Classes</h1>
               <div style={S.sub}>
-                Premium class board for deployment decisions, benchmark comparison, authority posture, and opening the right class hub next.
+                Premium class board for deployment decisions, benchmark comparison,
+                authority posture, and opening the right class hub next.
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button type="button" style={S.btn} onClick={() => router.push("/admin/command-centre")}>
+              <button
+                type="button"
+                style={S.btn}
+                onClick={() => router.push("/admin/command-centre")}
+              >
                 Command Centre
               </button>
-              <button type="button" style={S.btn} onClick={() => router.push("/admin/leadership")}>
+              <button
+                type="button"
+                style={S.btn}
+                onClick={() => router.push("/admin/leadership")}
+              >
                 Leadership
               </button>
               <button type="button" style={S.btn} onClick={() => loadAll()}>
@@ -663,7 +829,11 @@ export default function AdminClassesIndexPage() {
 
               <div>
                 <label style={S.controlLabel}>Sort</label>
-                <select value={sortMode} onChange={(e) => setSortMode(e.target.value as any)} style={S.select}>
+                <select
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as any)}
+                  style={S.select}
+                >
                   <option value="deployment">Deployment score</option>
                   <option value="risk">Average risk</option>
                   <option value="authority">Authority</option>
@@ -674,7 +844,11 @@ export default function AdminClassesIndexPage() {
 
               <div>
                 <label style={S.controlLabel}>Filter</label>
-                <select value={filterMode} onChange={(e) => setFilterMode(e.target.value as any)} style={S.select}>
+                <select
+                  value={filterMode}
+                  onChange={(e) => setFilterMode(e.target.value as any)}
+                  style={S.select}
+                >
                   <option value="all">All classes</option>
                   <option value="watch">Watch / escalating</option>
                   <option value="fragile">Reporting / authority fragile</option>
@@ -685,12 +859,36 @@ export default function AdminClassesIndexPage() {
           </section>
 
           <div style={S.metricGrid}>
-            <Metric title="Classes" value={summary.totalClasses} help="Total class portfolios." />
-            <Metric title="Students" value={summary.totalStudents} help="Students across listed classes." />
-            <Metric title="Escalating" value={summary.escalating} help="Classes forecast to worsen." />
-            <Metric title="Authority Fragile" value={summary.fragile} help="Weak documentation posture." />
-            <Metric title="Avg Freshness" value={`${summary.avgFreshness}%`} help="Class evidence freshness average." />
-            <Metric title="Avg Risk" value={summary.avgRisk} help="Average class risk position." />
+            <Metric
+              title="Classes"
+              value={summary.totalClasses}
+              help="Total class portfolios."
+            />
+            <Metric
+              title="Students"
+              value={summary.totalStudents}
+              help="Students across listed classes."
+            />
+            <Metric
+              title="Escalating"
+              value={summary.escalating}
+              help="Classes forecast to worsen."
+            />
+            <Metric
+              title="Authority Fragile"
+              value={summary.fragile}
+              help="Weak documentation posture."
+            />
+            <Metric
+              title="Avg Freshness"
+              value={`${summary.avgFreshness}%`}
+              help="Class evidence freshness average."
+            />
+            <Metric
+              title="Avg Risk"
+              value={summary.avgRisk}
+              help="Average class risk position."
+            />
           </div>
         </section>
 
@@ -698,7 +896,10 @@ export default function AdminClassesIndexPage() {
         {err ? <div style={S.err}>{err}</div> : null}
 
         <section style={S.grid2}>
-          <Card title="Portfolio Alerts" help="School-wide class signals worth noticing.">
+          <Card
+            title="Portfolio Alerts"
+            help="School-wide class signals worth noticing."
+          >
             <div style={S.list}>
               {alerts.map((a) => (
                 <div key={a.id} style={{ ...S.item, ...toneCard(a.tone) }}>
@@ -708,7 +909,10 @@ export default function AdminClassesIndexPage() {
             </div>
           </Card>
 
-          <Card title="Deployment Queue" help="Where to open the next class hub and act first.">
+          <Card
+            title="Deployment Queue"
+            help="Where to open the next class hub and act first."
+          >
             <div style={S.list}>
               {queueRows.map((q) => (
                 <div key={q.id} style={{ ...S.item, ...toneCard(q.tone) }}>
@@ -719,7 +923,15 @@ export default function AdminClassesIndexPage() {
                   <div style={S.itemText}>{q.text}</div>
                   {q.classId ? (
                     <div style={{ marginTop: 8 }}>
-                      <button type="button" style={S.btnSmall} onClick={() => router.push(`/admin/classes/${encodeURIComponent(q.classId)}`)}>
+                      <button
+                        type="button"
+                        style={S.btnSmall}
+                        onClick={() =>
+                          router.push(
+                            `/admin/classes/${encodeURIComponent(q.classId)}`
+                          )
+                        }
+                      >
                         Open class hub
                       </button>
                     </div>
@@ -761,7 +973,11 @@ export default function AdminClassesIndexPage() {
                           <button
                             type="button"
                             style={S.linkBtn}
-                            onClick={() => router.push(`/admin/classes/${encodeURIComponent(row.classId)}`)}
+                            onClick={() =>
+                              router.push(
+                                `/admin/classes/${encodeURIComponent(row.classId)}`
+                              )
+                            }
                           >
                             Open class hub
                           </button>
@@ -770,25 +986,46 @@ export default function AdminClassesIndexPage() {
                       <td style={S.td}>{row.teacherName}</td>
                       <td style={S.td}>
                         {row.studentCount}
-                        <div style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}>ILP {row.ilpCount}</div>
+                        <div
+                          style={{ marginTop: 4, color: "#64748b", fontSize: 12 }}
+                        >
+                          ILP {row.ilpCount}
+                        </div>
                       </td>
                       <td style={S.td}>{row.evidenceFreshPct}%</td>
                       <td style={S.td}>{row.avgRisk}</td>
                       <td style={S.td}>
-                        <span style={{ ...S.chip, background: fTone.bg, borderColor: fTone.bd, color: fTone.fg }}>
+                        <span
+                          style={{
+                            ...S.chip,
+                            background: fTone.bg,
+                            borderColor: fTone.bd,
+                            color: fTone.fg,
+                          }}
+                        >
                           {row.forecast}
                         </span>
                       </td>
                       <td style={S.td}>
-                        <span style={{ ...S.chip, background: aTone.bg, borderColor: aTone.bd, color: aTone.fg }}>
+                        <span
+                          style={{
+                            ...S.chip,
+                            background: aTone.bg,
+                            borderColor: aTone.bd,
+                            color: aTone.fg,
+                          }}
+                        >
                           {row.authorityStatus}
                         </span>
                       </td>
                       <td style={S.td}>{row.benchmarkPosition}</td>
                       <td style={S.td}>
                         <div style={{ fontWeight: 900 }}>{row.recommendation}</div>
-                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
-                          Attention {row.attentionCount} • Invisible {row.invisibleCount} • Overdue {row.overdueReviews}
+                        <div
+                          style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}
+                        >
+                          Attention {row.attentionCount} • Invisible{" "}
+                          {row.invisibleCount} • Overdue {row.overdueReviews}
                         </div>
                       </td>
                     </tr>
@@ -859,7 +1096,8 @@ const S: Record<string, React.CSSProperties> = {
     padding: 24,
   },
   hero: {
-    background: "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
+    background:
+      "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
     border: "1px solid #d9e2ff",
     borderRadius: 26,
     padding: "28px 24px",
