@@ -71,8 +71,8 @@ function isOpen(status: string | null) {
 /* ───────────────── STYLES ───────────────── */
 
 const S = {
-  shell: { display: "flex", minHeight: "100vh", background: "#f6f8fc" },
-  main: { flex: 1, padding: 24, maxWidth: 1300 },
+  shell: { display: "flex", minHeight: "100vh", background: "#f6f8fc" } as React.CSSProperties,
+  main: { flex: 1, padding: 24, maxWidth: 1300 } as React.CSSProperties,
 
   hero: {
     border: "1px solid #e5e7eb",
@@ -80,32 +80,32 @@ const S = {
     padding: 20,
     marginBottom: 18,
     background: "#ffffff",
-  },
+  } as React.CSSProperties,
 
-  h1: { fontSize: 30, fontWeight: 900 },
-  sub: { color: "#64748b", marginBottom: 14 },
+  h1: { fontSize: 30, fontWeight: 900 } as React.CSSProperties,
+  sub: { color: "#64748b", marginBottom: 14 } as React.CSSProperties,
 
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3,1fr)",
     gap: 14,
-  },
+  } as React.CSSProperties,
 
   card: {
     background: "#ffffff",
     border: "1px solid #e5e7eb",
     borderRadius: 16,
     padding: 16,
-  },
+  } as React.CSSProperties,
 
-  stat: { fontSize: 28, fontWeight: 900 },
+  stat: { fontSize: 28, fontWeight: 900 } as React.CSSProperties,
 
   queueItem: {
     border: "1px solid #e5e7eb",
     borderRadius: 12,
     padding: 14,
     background: "#f8fafc",
-  },
+  } as React.CSSProperties,
 
   badge: {
     fontSize: 11,
@@ -113,7 +113,7 @@ const S = {
     padding: "4px 8px",
     borderRadius: 999,
     border: "1px solid #e5e7eb",
-  },
+  } as React.CSSProperties,
 };
 
 /* ───────────────── PAGE ───────────────── */
@@ -156,7 +156,7 @@ export default function StudentSupportPage() {
   /* ───────────────── INTELLIGENCE ───────────────── */
 
   const open = useMemo(
-    () => interventions.filter((x) => isOpen(x.status)),
+    () => interventions.filter((x) => isOpen(x.status ?? null)),
     [interventions]
   );
 
@@ -190,7 +190,6 @@ export default function StudentSupportPage() {
       <main style={S.main}>
         <StudentHubNav studentId={studentId} />
 
-        {/* HERO */}
         <section style={S.hero}>
           <h1 style={S.h1}>{nameOf(student)} — Support</h1>
           <div style={S.sub}>
@@ -214,7 +213,6 @@ export default function StudentSupportPage() {
           </div>
         </section>
 
-        {/* INTELLIGENCE CARDS */}
         <section style={S.grid}>
           <div style={S.card}>
             <div>Attention Level</div>
@@ -232,13 +230,11 @@ export default function StudentSupportPage() {
           </div>
         </section>
 
-        {/* NEXT ACTION */}
         <section style={{ ...S.card, marginTop: 16 }}>
           <strong>Next Action</strong>
           <div style={{ marginTop: 6 }}>{nextAction}</div>
         </section>
 
-        {/* QUEUE */}
         <section style={{ ...S.card, marginTop: 16 }}>
           <strong>Support Queue</strong>
 
