@@ -1,81 +1,177 @@
-// ADD THIS SECTION INSIDE YOUR EXISTING FILE (DO NOT DELETE EVERYTHING)
-// Replace your HERO + STATS section with this upgraded block
+"use client";
 
-<section style={S.hero}>
-  <div style={S.subtle}>Portfolio Share Command Centre</div>
+import React from "react";
+import Link from "next/link";
+import { useParams, useSearchParams } from "next/navigation";
+import AdminLeftNav from "@/app/components/AdminLeftNav";
+import StudentHubNav from "@/app/admin/components/StudentHubNav";
 
-  <h1 style={S.h1}>{studentDisplayName(student)}</h1>
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
 
-  <div style={S.sub}>
-    Secure sharing, access control, and visibility across parents,
-    authorities, and external stakeholders.
-  </div>
+export default function StudentSharePage() {
+  const params = useParams();
+  const searchParams = useSearchParams();
 
-  {/* SHARE HEALTH */}
-  <div style={{ ...S.grid4, marginTop: 16 }}>
-    <div style={S.statCard}>
-      <div style={S.statK}>Active Links</div>
-      <div style={S.statV}>
-        {links.filter((x) => !isExpired(x.expires_at)).length}
-      </div>
-      <div style={S.statS}>Currently accessible</div>
-    </div>
+  const studentId = safe(params?.id);
+  const returnTo = safe(searchParams?.get("returnTo"));
 
-    <div style={S.statCard}>
-      <div style={S.statK}>Expired</div>
-      <div style={S.statV}>
-        {links.filter((x) => isExpired(x.expires_at)).length}
-      </div>
-      <div style={S.statS}>Need cleanup or renewal</div>
-    </div>
+  const profileHref = returnTo
+    ? `/admin/students/${encodeURIComponent(studentId)}?returnTo=${encodeURIComponent(returnTo)}`
+    : `/admin/students/${encodeURIComponent(studentId)}`;
 
-    <div style={S.statCard}>
-      <div style={S.statK}>Protected</div>
-      <div style={S.statV}>
-        {links.filter((x) => !!safe(x.password)).length}
-      </div>
-      <div style={S.statS}>Password secured</div>
-    </div>
-
-    <div style={S.statCard}>
-      <div style={S.statK}>Risk Level</div>
-      <div style={S.statV}>
-        {links.length > 5 ? "Watch" : "Stable"}
-      </div>
-      <div style={S.statS}>
-        {links.length > 5
-          ? "High number of active links"
-          : "Sharing under control"}
-      </div>
-    </div>
-  </div>
-
-  {/* GUIDANCE */}
-  <div style={S.info}>
-    {links.length === 0
-      ? "No active share links. Safe to create your first controlled share."
-      : links.length > 5
-      ? "You have many active links. Consider reviewing or expiring older ones."
-      : "Sharing looks well controlled."}
-  </div>
-
-  <div style={{ ...S.row, marginTop: 12 }}>
-    <button
-      style={S.btn}
-      onClick={() =>
-        router.push(`/admin/students/${encodeURIComponent(studentId)}`)
-      }
+  return (
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        background: "#f8fafc",
+        color: "#0f172a",
+        fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      ← Back to profile
-    </button>
+      <AdminLeftNav />
 
-    <button
-      style={S.btn}
-      onClick={() =>
-        router.push(`/admin/students/${encodeURIComponent(studentId)}/portfolio`)
-      }
-    >
-      Portfolio
-    </button>
-  </div>
-</section>
+      <main
+        style={{
+          flex: 1,
+          padding: 24,
+        }}
+      >
+        <StudentHubNav studentId={studentId} />
+
+        <div
+          style={{
+            maxWidth: 1080,
+            margin: "0 auto",
+            display: "grid",
+            gap: 18,
+          }}
+        >
+          <section
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 24,
+              padding: 24,
+              boxShadow: "0 10px 30px rgba(15,23,42,0.05)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
+              }}
+            >
+              Student profile
+            </div>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 32,
+                lineHeight: 1.1,
+                fontWeight: 900,
+                color: "#0f172a",
+              }}
+            >
+              Share
+            </h1>
+
+            <p
+              style={{
+                margin: "12px 0 0",
+                fontSize: 15,
+                lineHeight: 1.65,
+                color: "#475569",
+                maxWidth: 760,
+              }}
+            >
+              This is a safe production placeholder for the student share page so
+              the project can complete a valid build. You can replace it later
+              with the full sharing workflow once deployment is stable.
+            </p>
+          </section>
+
+          <section
+            style={{
+              background: "#ffffff",
+              border: "1px solid #e5e7eb",
+              borderRadius: 20,
+              padding: 20,
+              boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+              display: "grid",
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: "#0f172a",
+              }}
+            >
+              Quick navigation
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href={profileHref} style={styles.primaryButton}>
+                Back to student profile
+              </Link>
+
+              <Link
+                href={`/admin/students/${encodeURIComponent(studentId)}/timeline`}
+                style={styles.secondaryButton}
+              >
+                Open timeline
+              </Link>
+
+              <Link
+                href={`/admin/students/${encodeURIComponent(studentId)}/portfolio`}
+                style={styles.secondaryButton}
+              >
+                Open portfolio
+              </Link>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  primaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textDecoration: "none",
+    background: "#2563eb",
+    color: "#ffffff",
+    border: "1px solid #2563eb",
+    borderRadius: 12,
+    padding: "10px 14px",
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  secondaryButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textDecoration: "none",
+    background: "#ffffff",
+    color: "#0f172a",
+    border: "1px solid #d1d5db",
+    borderRadius: 12,
+    padding: "10px 14px",
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+};
