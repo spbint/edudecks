@@ -11,7 +11,7 @@ import {
 } from "@/lib/studentRoutes";
 import {
   listStudentEvidenceCuration,
-  replaceStudentEvidenceCuration,
+  replaceStudentEvidenceCurationMap,
   type StudentEvidenceCurationMap,
 } from "@/lib/studentEvidenceCuration";
 
@@ -799,7 +799,10 @@ export default function StudentTimelinePage() {
 
           if (Object.keys(stored).length > 0) {
             try {
-              await replaceStudentEvidenceCuration(studentId, toDbCurationMap(stored));
+              await replaceStudentEvidenceCurationMap(
+                studentId,
+                toDbCurationMap(stored)
+              );
               setCurationMessage("Existing timeline curation was migrated into saved storage.");
             } catch (migrationError: any) {
               console.error("Failed to migrate timeline curation:", migrationError);
@@ -832,7 +835,7 @@ export default function StudentTimelinePage() {
     try {
       setCurationBusy(true);
       setCurationMessage(null);
-      await replaceStudentEvidenceCuration(studentId, toDbCurationMap(next));
+      await replaceStudentEvidenceCurationMap(studentId, toDbCurationMap(next));
       if (successMessage) {
         setCurationMessage(successMessage);
       }
@@ -2310,4 +2313,4 @@ const SS: Record<string, React.CSSProperties> = {
     fontSize: 12,
     cursor: "pointer",
   },
-};	
+};
