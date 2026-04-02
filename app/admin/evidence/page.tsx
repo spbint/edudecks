@@ -732,6 +732,9 @@ export default function EvidencePage() {
                 rows.map((row) => {
                   const area = safe(row.evidence.learning_area || row.evidence.domain) || "General";
                   const tone = attentionTone(row.overview?.attention_status);
+                  const studentId = safe(row.student?.id);
+                  const classRowId = safe(row.klass?.id);
+                  const studentClassId = safe(row.student?.class_id);
 
                   return (
                     <div key={row.evidence.id} style={S.item}>
@@ -741,13 +744,13 @@ export default function EvidencePage() {
                       </div>
 
                       <div style={{ ...S.row, marginTop: 8 }}>
-                        {row.student ? (
+                        {row.student && studentId ? (
                           <StudentQuickOpen
-                            studentId={row.student.id}
+                            studentId={studentId}
                             label={studentDisplayName(row.student)}
                             ilp={!!row.student.is_ilp}
                             returnTo={returnTo}
-                            fullHref={`/admin/students/${encodeURIComponent(row.student.id)}`}
+                            fullHref={`/admin/students/${encodeURIComponent(studentId)}`}
                             size="sm"
                             muted
                           />
@@ -789,22 +792,22 @@ export default function EvidencePage() {
                       ) : null}
 
                       <div style={{ ...S.row, marginTop: 12 }}>
-                        {row.student ? (
+                        {row.student && studentId ? (
                           <button
                             style={S.btn}
                             onClick={() =>
-                              router.push(`/admin/students/${encodeURIComponent(row.student.id)}`)
+                              router.push(`/admin/students/${encodeURIComponent(studentId)}`)
                             }
                           >
                             Student
                           </button>
                         ) : null}
 
-                        {row.klass ? (
+                        {row.klass && classRowId ? (
                           <button
                             style={S.btn}
                             onClick={() =>
-                              router.push(`/admin/classes/${encodeURIComponent(row.klass!.id)}`)
+                              router.push(`/admin/classes/${encodeURIComponent(classRowId)}`)
                             }
                           >
                             Class
@@ -816,9 +819,11 @@ export default function EvidencePage() {
                           onClick={() =>
                             router.push(
                               `/admin/evidence-entry?id=${encodeURIComponent(row.evidence.id)}${
-                                row.student ? `&studentId=${encodeURIComponent(row.student.id)}` : ""
+                                studentId ? `&studentId=${encodeURIComponent(studentId)}` : ""
                               }${
-                                row.evidence.class_id ? `&classId=${encodeURIComponent(row.evidence.class_id)}` : ""
+                                row.evidence.class_id
+                                  ? `&classId=${encodeURIComponent(row.evidence.class_id)}`
+                                  : ""
                               }&returnTo=${encodeURIComponent(returnTo)}`
                             )
                           }
@@ -826,14 +831,14 @@ export default function EvidencePage() {
                           Edit evidence
                         </button>
 
-                        {row.student ? (
+                        {row.student && studentId ? (
                           <button
                             style={S.btn}
                             onClick={() =>
                               router.push(
-                                `/admin/interventions-entry?studentId=${encodeURIComponent(row.student.id)}${
-                                  row.student.class_id
-                                    ? `&classId=${encodeURIComponent(row.student.class_id)}`
+                                `/admin/interventions-entry?studentId=${encodeURIComponent(studentId)}${
+                                  studentClassId
+                                    ? `&classId=${encodeURIComponent(studentClassId)}`
                                     : ""
                                 }&returnTo=${encodeURIComponent(returnTo)}`
                               )
