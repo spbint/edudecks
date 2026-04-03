@@ -66,12 +66,14 @@ export default function LeadershipBenchmarksPage() {
 
   function validateValue(row: TargetRow, raw: string) {
     const trimmed = raw.trim();
-    if (!trimmed) return { ok: false, msg: `"${row.label}" target must be a valid number.` };
+    if (!trimmed) return { ok: false as const, msg: `"${row.label}" target must be a valid number.` };
     const parsed = Number(trimmed);
-    if (Number.isNaN(parsed)) return { ok: false, msg: `"${row.label}" target must be a valid number.` };
+    if (Number.isNaN(parsed)) {
+      return { ok: false as const, msg: `"${row.label}" target must be a valid number.` };
+    }
     // sensible guardrails (optional)
-    if (parsed < 0) return { ok: false, msg: `"${row.label}" target cannot be negative.` };
-    return { ok: true, parsed };
+    if (parsed < 0) return { ok: false as const, msg: `"${row.label}" target cannot be negative.` };
+    return { ok: true as const, parsed };
   }
 
   async function saveOne(key: string) {
@@ -84,11 +86,11 @@ export default function LeadershipBenchmarksPage() {
       return;
     }
 
-    const raw = (draft[key] ?? "");
+    const raw = draft[key] ?? "";
     const v = validateValue(row, raw);
 
     if (!v.ok) {
-      setErrMsg(v.msg);
+      setErrMsg(v.msg ?? "Invalid benchmark value.");
       setSavingKey("");
       return;
     }
@@ -122,7 +124,7 @@ export default function LeadershipBenchmarksPage() {
       if (!row) continue;
       const v = validateValue(row, draft[key] ?? "");
       if (!v.ok) {
-        setErrMsg(v.msg);
+        setErrMsg(v.msg ?? "Invalid benchmark value.");
         return;
       }
     }
