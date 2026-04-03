@@ -14,6 +14,35 @@ type Scope = "class" | "year";
 const DEMO_CLASS_ID = "83421f06-b6e8-47ea-b021-2139243f29e5";
 const DEMO_SCHOOL_ID = "73d0be47-56e9-4b5a-8e4f-4e063b9c71f2";
 
+function safe(v: any) {
+  return String(v ?? "").trim();
+}
+
+function firstUsableStudentId(payload: any, signals: any[]): string {
+  const candidates = [
+    payload?.student_id,
+    payload?.studentId,
+    payload?.focus_student_id,
+    payload?.focusStudentId,
+    payload?.primary_student_id,
+    payload?.primaryStudentId,
+    payload?.rows?.[0]?.student_id,
+    payload?.rows?.[0]?.studentId,
+    payload?.students?.[0]?.id,
+    payload?.students?.[0]?.student_id,
+    signals?.[0]?.student_id,
+    signals?.[0]?.studentId,
+    signals?.[0]?.id,
+  ];
+
+  for (const c of candidates) {
+    const s = safe(c);
+    if (s) return s;
+  }
+
+  return "";
+}
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +142,10 @@ export default function DashboardPage() {
     return { total, red, amber, green };
   }, [signals]);
 
+  const assessmentStudentId = useMemo(() => {
+    return firstUsableStudentId(payload, signals);
+  }, [payload, signals]);
+
   if (loading) {
     return <div style={{ padding: 24 }}>Loading dashboard…</div>;
   }
@@ -193,7 +226,23 @@ export default function DashboardPage() {
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
         <div>
           <CohortSnapshot payload={payload} loading={false} />
-          <AssessmentSnapshot payload={payload} />
+
+          {assessmentStudentId ? (
+            <AssessmentSnapshot studentId={assessmentStudentId} />
+          ) : (
+            <div
+              style={{
+                marginTop: 20,
+                border: "1px solid #e6e6e6",
+                borderRadius: 14,
+                padding: 12,
+                color: "#64748b",
+                fontWeight: 700,
+              }}
+            >
+              Assessment snapshot will appear when a student context is available.
+            </div>
+          )}
         </div>
 
         <div>
