@@ -4,8 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-/* ================= TYPES ================= */
-
 type FamilyTopNavShellProps = {
   title?: string;
   subtitle?: string;
@@ -16,7 +14,15 @@ type FamilyTopNavShellProps = {
   children: React.ReactNode;
 };
 
-/* ================= HELPERS ================= */
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+type NavSection = {
+  title: string;
+  items: NavItem[];
+};
 
 function isActive(pathname: string, href: string) {
   if (href === "/family") return pathname === "/family";
@@ -70,7 +76,40 @@ function sectionLabel(): React.CSSProperties {
   };
 }
 
-/* ================= COMPONENT ================= */
+const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
+
+const SECTIONS: NavSection[] = [
+  {
+    title: "Workflow",
+    items: [
+      { href: "/capture", label: "Capture" },
+      { href: "/portfolio", label: "Portfolio" },
+      { href: "/reports", label: "Reports" },
+      { href: "/reports/library", label: "Report Library" },
+      { href: "/reports/output", label: "Output" },
+    ],
+  },
+  {
+    title: "Planning",
+    items: [
+      { href: "/goals", label: "Goals" },
+      { href: "/planner", label: "Planner" },
+    ],
+  },
+  {
+    title: "Authority",
+    items: [
+      { href: "/authority", label: "Authority Hub" },
+      { href: "/authority/readiness", label: "Readiness" },
+      { href: "/authority/builder", label: "Pack Builder" },
+      { href: "/authority/export", label: "Pack Export" },
+    ],
+  },
+  {
+    title: "System",
+    items: [{ href: "/settings", label: "Settings" }],
+  },
+];
 
 export default function FamilyTopNavShell({
   title = "EduDecks Family",
@@ -82,29 +121,6 @@ export default function FamilyTopNavShell({
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
-
-  const primary = [{ href: "/family", label: "Home" }];
-
-  const workflow = [
-    { href: "/capture", label: "Capture" },
-    { href: "/portfolio", label: "Portfolio" },
-    { href: "/reports", label: "Reports" },
-    { href: "/reports/library", label: "Library" },
-    { href: "/reports/output", label: "Output" },
-    { href: "/authority/readiness", label: "Readiness ⭐" },
-    { href: "/authority/builder", label: "Pack Builder 🧱" },
-    { href: "/authority/export", label: "Pack Export 📦" },
-  ];
-
-  const planning = [
-    { href: "/goals", label: "Goals" },
-    { href: "/planner", label: "Planner" },
-  ];
-
-  const system = [
-    { href: "/authority", label: "Authority Router" },
-    { href: "/settings", label: "Settings" },
-  ];
 
   return (
     <div
@@ -124,121 +140,206 @@ export default function FamilyTopNavShell({
           zIndex: 20,
         }}
       >
-        <div style={{ maxWidth: 1320, margin: "0 auto", padding: 20 }}>
+        <div
+          style={{
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "16px 20px",
+            display: "grid",
+            gap: 14,
+          }}
+        >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 12,
               alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
             }}
           >
             <div>
-              <div style={{ fontSize: 20, fontWeight: 900 }}>{title}</div>
-              <div style={{ fontSize: 13, color: "#64748b" }}>{subtitle}</div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/capture" style={utilBtn()}>
-                Quick Capture
-              </Link>
-              <Link href="/reports" style={utilBtn(true)}>
-                Build Report
-              </Link>
-              <Link href="/authority/builder" style={utilBtn()}>
-                Authority Pack Builder
-              </Link>
-              <Link href="/authority/export" style={utilBtn()}>
-                Authority Pack Export
-              </Link>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 14,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
-              gap: 14,
-            }}
-          >
-            {[["Home", primary], ["Workflow", workflow], ["Planning", planning], ["System", system]].map(
-              ([title, items]) => (
-                <div key={title as string}>
-                  <div style={sectionLabel()}>{title}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {(items as { href: string; label: string }[]).map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        style={navBtn(isActive(pathname, item.href))}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main style={{ maxWidth: 1320, margin: "0 auto", padding: 24 }}>
-        <section
-          style={{
-            marginBottom: 20,
-            padding: 24,
-            borderRadius: 20,
-            background: "#eff6ff",
-            border: "1px solid #bfdbfe",
-          }}
-        >
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#475569" }}>
-            Homeschool Command Layer
-          </div>
-
-          <div style={{ fontSize: 28, fontWeight: 900, marginTop: 6 }}>
-            {heroTitle}
-          </div>
-
-          <div style={{ marginTop: 6, color: "#334155" }}>{heroText}</div>
-
-          {heroAsideTitle || heroAsideText ? (
-            <div
-              style={{
-                marginTop: 16,
-                padding: 16,
-                borderRadius: 16,
-                background: "rgba(255,255,255,0.72)",
-                border: "1px solid rgba(191,219,254,0.9)",
-                maxWidth: 460,
-              }}
-            >
               <div
                 style={{
                   fontSize: 12,
                   fontWeight: 900,
-                  letterSpacing: 1,
+                  letterSpacing: 1.2,
                   textTransform: "uppercase",
                   color: "#64748b",
-                  marginBottom: 6,
                 }}
               >
-                {heroAsideTitle}
+                {title}
               </div>
               <div
                 style={{
                   fontSize: 14,
                   color: "#475569",
-                  lineHeight: 1.55,
+                  marginTop: 4,
                 }}
               >
-                {heroAsideText}
+                {subtitle}
               </div>
             </div>
-          ) : null}
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/capture" style={utilBtn(true)}>
+                Quick Capture
+              </Link>
+              <Link href="/reports" style={utilBtn(false)}>
+                Build Report
+              </Link>
+              <Link href="/reports/library" style={utilBtn(false)}>
+                Report Library
+              </Link>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {PRIMARY_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={navBtn(isActive(pathname, item.href))}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {SECTIONS.map((section) => (
+              <div key={section.title}>
+                <div style={sectionLabel()}>{section.title}</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={navBtn(isActive(pathname, item.href))}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main
+        style={{
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: 20,
+        }}
+      >
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+            gap: 20,
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              border: "1px solid #dbeafe",
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
+              borderRadius: 24,
+              padding: 24,
+              boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
+              }}
+            >
+              Family workspace
+            </div>
+            <div
+              style={{
+                fontSize: 34,
+                lineHeight: 1.08,
+                fontWeight: 900,
+                color: "#0f172a",
+                marginBottom: 12,
+              }}
+            >
+              {heroTitle}
+            </div>
+            <div
+              style={{
+                fontSize: 15,
+                lineHeight: 1.7,
+                color: "#334155",
+                maxWidth: 820,
+              }}
+            >
+              {heroText}
+            </div>
+          </div>
+
+          <aside
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#ffffff",
+              borderRadius: 24,
+              padding: 20,
+              boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
+              }}
+            >
+              {heroAsideTitle}
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: "#475569",
+              }}
+            >
+              {heroAsideText}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginTop: 16,
+              }}
+            >
+              <Link href="/portfolio" style={utilBtn(false)}>
+                Portfolio
+              </Link>
+              <Link href="/planner" style={utilBtn(false)}>
+                Planner
+              </Link>
+            </div>
+          </aside>
         </section>
 
         {children}
