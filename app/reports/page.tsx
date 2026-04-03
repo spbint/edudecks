@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
-  type FamilyProfile,
+  type FamilyProfileRow,
 } from "@/lib/familySettings";
 import {
   marketLabel,
@@ -20,7 +20,6 @@ import {
   type ReportMode,
   type SelectionMetaMap,
 } from "@/lib/reportDrafts";
-import { familyStyles as S } from "@/lib/theme/familyStyles";
 
 type StudentRow = {
   id: string;
@@ -61,35 +60,6 @@ type ReportSelectionMeta = SelectionMetaMap;
 type PresetKey = "family-summary" | "authority-pack" | "term-review";
 type CoverageStatus = "strong" | "developing" | "attention";
 type ReadinessTone = "success" | "info" | "warning" | "danger";
-
-type StageOption = {
-  id: string;
-  label: string;
-};
-
-type FrameworkOption = {
-  id: string;
-  label: string;
-  description: string;
-  stageLabel: string;
-  stages: StageOption[];
-};
-
-type FrameworkFamily = {
-  id: string;
-  label: string;
-  description: string;
-  options: FrameworkOption[];
-};
-
-type MarketConfig = {
-  market: PreferredMarket;
-  label: string;
-  familyLabel: string;
-  frameworkLabel: string;
-  stageLabel: string;
-  families: FrameworkFamily[];
-};
 
 const AREA_OPTIONS = [
   "Literacy",
@@ -268,437 +238,6 @@ function shortDate(value?: string | null) {
   }
 }
 
-function makeYearStages(prefix: string, start: number, end: number): StageOption[] {
-  const items: StageOption[] = [];
-  for (let year = start; year <= end; year += 1) {
-    items.push({ id: `${prefix}-${year}`, label: `Year ${year}` });
-  }
-  return items;
-}
-
-function makeGradeStages(prefix: string, labels: string[]): StageOption[] {
-  return labels.map((label) => ({
-    id: `${prefix}-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-    label,
-  }));
-}
-
-const AU_YEAR_STAGES = [
-  { id: "au-foundation", label: "Foundation" },
-  ...makeYearStages("au-year", 1, 10),
-];
-
-const UK_KEY_STAGES = [
-  { id: "uk-eyfs", label: "EYFS" },
-  { id: "uk-ks1", label: "Key Stage 1" },
-  { id: "uk-ks2", label: "Key Stage 2" },
-  { id: "uk-ks3", label: "Key Stage 3" },
-  { id: "uk-ks4", label: "Key Stage 4" },
-];
-
-const WALES_STAGES = [
-  { id: "wales-ps1", label: "Progression Step 1" },
-  { id: "wales-ps2", label: "Progression Step 2" },
-  { id: "wales-ps3", label: "Progression Step 3" },
-  { id: "wales-ps4", label: "Progression Step 4" },
-  { id: "wales-ps5", label: "Progression Step 5" },
-];
-
-const SCOTLAND_STAGES = [
-  { id: "scotland-early", label: "Early Level" },
-  { id: "scotland-first", label: "First Level" },
-  { id: "scotland-second", label: "Second Level" },
-  { id: "scotland-third", label: "Third Level" },
-  { id: "scotland-fourth", label: "Fourth Level" },
-];
-
-const NI_STAGES = [
-  { id: "ni-foundation", label: "Foundation Stage" },
-  { id: "ni-ks1", label: "Key Stage 1" },
-  { id: "ni-ks2", label: "Key Stage 2" },
-  { id: "ni-ks3", label: "Key Stage 3" },
-  { id: "ni-ks4", label: "Key Stage 4" },
-];
-
-const US_COMMON_CORE_STAGES = [
-  { id: "us-k", label: "Kindergarten" },
-  ...makeGradeStages("us-grade", [
-    "Grade 1",
-    "Grade 2",
-    "Grade 3",
-    "Grade 4",
-    "Grade 5",
-    "Grade 6",
-    "Grade 7",
-    "Grade 8",
-  ]),
-  { id: "us-hs", label: "High School Band" },
-];
-
-const US_STATE_STAGES = [
-  { id: "us-state-k", label: "Kindergarten" },
-  ...makeGradeStages("us-state-grade", [
-    "Grade 1",
-    "Grade 2",
-    "Grade 3",
-    "Grade 4",
-    "Grade 5",
-    "Grade 6",
-    "Grade 7",
-    "Grade 8",
-    "Grade 9",
-    "Grade 10",
-    "Grade 11",
-    "Grade 12",
-  ]),
-];
-
-const FLEXIBLE_STAGES = [
-  { id: "flex-early-years", label: "Early Years" },
-  { id: "flex-lower-primary", label: "Lower Primary" },
-  { id: "flex-upper-primary", label: "Upper Primary" },
-  { id: "flex-lower-secondary", label: "Lower Secondary" },
-  { id: "flex-upper-secondary", label: "Upper Secondary" },
-];
-
-const MARKET_CONFIGS: Record<PreferredMarket, MarketConfig> = {
-  au: {
-    market: "au",
-    label: "Australia",
-    familyLabel: "Framework family",
-    frameworkLabel: "Specific framework",
-    stageLabel: "Year level / band",
-    families: [
-      {
-        id: "au-national",
-        label: "Australian national pathways",
-        description:
-          "National curriculum-aligned reporting lenses commonly used across Australia.",
-        options: [
-          {
-            id: "acara-v9",
-            label: "Australian Curriculum v9",
-            description:
-              "General Australian Curriculum-aligned reporting using national achievement pathways.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "acara-general-coverage",
-            label: "Australian homeschool general coverage",
-            description:
-              "A lighter Australian homeschool reporting lens focused on balanced evidence and coverage.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-        ],
-      },
-      {
-        id: "au-state",
-        label: "State / territory authority lenses",
-        description:
-          "Authority-aware pathways for Australian homeschool and reporting contexts.",
-        options: [
-          {
-            id: "nsw-homeschool",
-            label: "New South Wales homeschool lens",
-            description:
-              "A draft posture shaped for NESA-style Australian homeschool reporting expectations.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "vic-curriculum",
-            label: "Victoria curriculum lens",
-            description:
-              "A Victorian-aligned reporting view for F–10 style evidence grouping.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "qld-homeschool",
-            label: "Queensland homeschool lens",
-            description:
-              "A Queensland-oriented family reporting view with broad curriculum coverage framing.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "sa-homeschool",
-            label: "South Australia homeschool lens",
-            description:
-              "A South Australian reporting pathway for family evidence and coverage balance.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "tas-homeschool",
-            label: "Tasmania homeschool lens",
-            description:
-              "A Tasmanian reporting pathway for evidence-backed family learning summaries.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-          {
-            id: "wa-homeschool",
-            label: "Western Australia homeschool lens",
-            description:
-              "A Western Australian reporting pathway with evidence, balance, and review structure.",
-            stageLabel: "Year level",
-            stages: AU_YEAR_STAGES,
-          },
-        ],
-      },
-      {
-        id: "au-flexible",
-        label: "Alternative / flexible pathways",
-        description:
-          "Useful when families want broad reporting categories without a narrow government lens.",
-        options: [
-          {
-            id: "classical-au",
-            label: "Classical education lens",
-            description:
-              "A broad classical reporting structure for families blending traditional disciplines and portfolio evidence.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "charlotte-mason-au",
-            label: "Charlotte Mason-inspired lens",
-            description:
-              "A gentle, rich, narrative-friendly pathway for families using living books and habit-based learning.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "custom-au",
-            label: "Custom flexible framework",
-            description:
-              "A neutral EduDecks reporting pathway for families who want freedom over strict curriculum mapping.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-        ],
-      },
-    ],
-  },
-  uk: {
-    market: "uk",
-    label: "United Kingdom",
-    familyLabel: "Framework family",
-    frameworkLabel: "Specific framework",
-    stageLabel: "Key stage / phase",
-    families: [
-      {
-        id: "uk-national",
-        label: "UK national pathways",
-        description:
-          "National and devolved curriculum pathways across the United Kingdom.",
-        options: [
-          {
-            id: "england-national-curriculum",
-            label: "England National Curriculum",
-            description:
-              "A Key Stage-based reporting lens aligned to England’s National Curriculum structure.",
-            stageLabel: "Key stage",
-            stages: UK_KEY_STAGES,
-          },
-          {
-            id: "wales-curriculum",
-            label: "Curriculum for Wales",
-            description:
-              "A Wales-aligned pathway using progression steps rather than older key-stage framing.",
-            stageLabel: "Progression step",
-            stages: WALES_STAGES,
-          },
-          {
-            id: "scotland-cfe",
-            label: "Curriculum for Excellence (Scotland)",
-            description:
-              "A Scottish pathway using Curriculum for Excellence levels and broader capability development.",
-            stageLabel: "Level",
-            stages: SCOTLAND_STAGES,
-          },
-          {
-            id: "northern-ireland-curriculum",
-            label: "Northern Ireland Curriculum",
-            description:
-              "A Northern Ireland pathway using foundation and key-stage reporting phases.",
-            stageLabel: "Key stage",
-            stages: NI_STAGES,
-          },
-        ],
-      },
-      {
-        id: "uk-flexible",
-        label: "Alternative / flexible pathways",
-        description:
-          "Useful for UK families wanting broad, readable portfolio and review outputs.",
-        options: [
-          {
-            id: "uk-home-ed-general",
-            label: "UK home education general coverage",
-            description:
-              "A broad home-education pathway focused on balanced coverage and representative evidence.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "classical-uk",
-            label: "Classical education lens",
-            description:
-              "A classical structure for families using traditional knowledge-rich disciplines and narrative summaries.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "custom-uk",
-            label: "Custom flexible framework",
-            description:
-              "A neutral EduDecks framework for UK families using personalised pathways.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-        ],
-      },
-    ],
-  },
-  us: {
-    market: "us",
-    label: "United States",
-    familyLabel: "Framework family",
-    frameworkLabel: "Specific framework",
-    stageLabel: "Grade / band",
-    families: [
-      {
-        id: "us-national",
-        label: "US national pathways",
-        description:
-          "National and multi-state reporting pathways for broad US homeschool and school alignment.",
-        options: [
-          {
-            id: "common-core",
-            label: "Common Core",
-            description:
-              "A Common Core-aligned reporting pathway for English language arts and mathematics coverage.",
-            stageLabel: "Grade / band",
-            stages: US_COMMON_CORE_STAGES,
-          },
-          {
-            id: "us-general-coverage",
-            label: "General US homeschool coverage",
-            description:
-              "A broad US-friendly pathway focused on evidence balance and family reporting clarity.",
-            stageLabel: "Grade / band",
-            stages: US_STATE_STAGES,
-          },
-        ],
-      },
-      {
-        id: "us-state",
-        label: "State standards pathways",
-        description:
-          "Major state-level pathways for families wanting a closer curriculum reference.",
-        options: [
-          {
-            id: "california-standards",
-            label: "California standards lens",
-            description:
-              "A California-oriented reporting pathway for evidence and grade-level framing.",
-            stageLabel: "Grade level",
-            stages: US_STATE_STAGES,
-          },
-          {
-            id: "texas-teks",
-            label: "Texas TEKS lens",
-            description:
-              "A Texas pathway shaped around TEKS-style grade expectations and structured evidence.",
-            stageLabel: "Grade level",
-            stages: US_STATE_STAGES,
-          },
-          {
-            id: "florida-best",
-            label: "Florida B.E.S.T. lens",
-            description:
-              "A Florida pathway for evidence-backed reporting aligned to B.E.S.T.-style expectations.",
-            stageLabel: "Grade level",
-            stages: US_STATE_STAGES,
-          },
-          {
-            id: "new-york-next-gen",
-            label: "New York Next Generation lens",
-            description:
-              "A New York pathway for grade-level reporting with balanced evidence grouping.",
-            stageLabel: "Grade level",
-            stages: US_STATE_STAGES,
-          },
-        ],
-      },
-      {
-        id: "us-flexible",
-        label: "Alternative / flexible pathways",
-        description:
-          "Useful for portfolio-heavy US families and personalised homeschool approaches.",
-        options: [
-          {
-            id: "classical-us",
-            label: "Classical education lens",
-            description:
-              "A classical reporting structure for families using traditional disciplines and narrative evidence.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "charlotte-mason-us",
-            label: "Charlotte Mason-inspired lens",
-            description:
-              "A gentle narrative-friendly pathway for living-book and habit-led homeschool documentation.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-          {
-            id: "custom-us",
-            label: "Custom flexible framework",
-            description:
-              "A neutral EduDecks pathway for US families using customised or mixed curricula.",
-            stageLabel: "Phase",
-            stages: FLEXIBLE_STAGES,
-          },
-        ],
-      },
-    ],
-  },
-};
-
-function getMarketConfig(market: PreferredMarket): MarketConfig {
-  return MARKET_CONFIGS[market] || MARKET_CONFIGS.au;
-}
-
-function getFamilyById(config: MarketConfig, familyId: string) {
-  return config.families.find((family) => family.id === familyId) || null;
-}
-
-function getFirstFamily(config: MarketConfig) {
-  return config.families[0] || null;
-}
-
-function getFrameworkById(config: MarketConfig, frameworkId: string) {
-  for (const family of config.families) {
-    const found = family.options.find((option) => option.id === frameworkId);
-    if (found) return found;
-  }
-  return null;
-}
-
-function getFamilyForFramework(config: MarketConfig, frameworkId: string) {
-  return (
-    config.families.find((family) =>
-      family.options.some((option) => option.id === frameworkId)
-    ) || null
-  );
-}
-
 function buildSelectedEvidenceIds(meta: ReportSelectionMeta): string[] {
   return Object.keys(meta).filter((id) => meta[id]);
 }
@@ -818,7 +357,7 @@ async function loadStudents(): Promise<StudentRow[]> {
   for (const select of variants) {
     const res = await supabase.from("students").select(select);
     if (!res.error) {
-      return (res.data || []) as StudentRow[];
+      return ((res.data || []) as unknown) as StudentRow[];
     }
     lastErr = res.error;
     if (!isMissingRelationOrColumn(res.error)) break;
@@ -845,7 +384,9 @@ async function loadEvidence(): Promise<EvidenceRow[]> {
       .order("created_at", { ascending: false });
 
     if (!res.error) {
-      return ((res.data || []) as EvidenceRow[]).filter((x) => !x.is_deleted);
+      return (((res.data || []) as unknown) as EvidenceRow[]).filter(
+        (x) => !x.is_deleted
+      );
     }
 
     lastErr = res.error;
@@ -856,12 +397,172 @@ async function loadEvidence(): Promise<EvidenceRow[]> {
   return [];
 }
 
+const pageStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f6f8fc",
+};
+
+const innerStyle: React.CSSProperties = {
+  maxWidth: 1380,
+  margin: "0 auto",
+  padding: "24px 20px 48px",
+};
+
+const stickyStyle: React.CSSProperties = {
+  position: "sticky",
+  top: 0,
+  zIndex: 20,
+  background: "rgba(246,248,252,0.96)",
+  backdropFilter: "blur(10px)",
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const topBarStyle: React.CSSProperties = {
+  maxWidth: 1380,
+  margin: "0 auto",
+  padding: "14px 20px",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+const cardStyle: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  background: "#ffffff",
+  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  padding: 18,
+};
+
+const softCardStyle: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  background: "#f8fafc",
+  padding: 14,
+};
+
+const buttonStyle = (primary = false): React.CSSProperties => ({
+  minHeight: 42,
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: `1px solid ${primary ? "#2563eb" : "#d1d5db"}`,
+  background: primary ? "#2563eb" : "#ffffff",
+  color: primary ? "#ffffff" : "#0f172a",
+  textDecoration: "none",
+  fontWeight: 900,
+  cursor: "pointer",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+const pillStyle = (
+  tone: ReadinessTone | "primary" | "secondary"
+): React.CSSProperties => {
+  const map: Record<string, { bg: string; bd: string; fg: string }> = {
+    primary: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
+    secondary: { bg: "#f8fafc", bd: "#e2e8f0", fg: "#475569" },
+    success: { bg: "#f0fdf4", bd: "#bbf7d0", fg: "#166534" },
+    info: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
+    warning: { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" },
+    danger: { bg: "#fff1f2", bd: "#fecdd3", fg: "#be123c" },
+  };
+  const t = map[tone];
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: t.bg,
+    border: `1px solid ${t.bd}`,
+    color: t.fg,
+    fontSize: 12,
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  };
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const displayStyle: React.CSSProperties = {
+  marginTop: 6,
+  fontSize: 34,
+  lineHeight: 1.06,
+  fontWeight: 950,
+  color: "#0f172a",
+};
+
+const bodyStyle: React.CSSProperties = {
+  marginTop: 10,
+  fontSize: 14,
+  lineHeight: 1.7,
+  color: "#475569",
+};
+
+const smallStyle: React.CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.5,
+  color: "#64748b",
+};
+
+const h2Style: React.CSSProperties = {
+  fontSize: 22,
+  fontWeight: 950,
+  color: "#0f172a",
+  margin: 0,
+};
+
+const h3Style: React.CSSProperties = {
+  fontSize: 16,
+  fontWeight: 900,
+  color: "#0f172a",
+  margin: 0,
+};
+
+const miniStatStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "center",
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid #e5e7eb",
+  background: "#f8fafc",
+};
+
+const miniStatLabel: React.CSSProperties = {
+  fontSize: 13,
+  color: "#64748b",
+};
+
+const checkRowStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  gap: 10,
+  alignItems: "center",
+  padding: "10px 12px",
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  background: "#ffffff",
+  fontWeight: 800,
+  color: "#334155",
+};
+
 export default function ReportsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoSelectedStudentRef = useRef<string>("");
 
-  const [profile, setProfile] = useState<FamilyProfile>(DEFAULT_FAMILY_PROFILE);
+  const [profile, setProfile] = useState<FamilyProfileRow>(DEFAULT_FAMILY_PROFILE);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
 
@@ -875,13 +576,7 @@ export default function ReportsPage() {
   const [reportMode, setReportMode] = useState<ReportMode>("family-summary");
   const [periodMode, setPeriodMode] = useState<PeriodMode>("term");
   const [presetKey, setPresetKey] = useState<PresetKey>("family-summary");
-  const [preferredMarket, setPreferredMarket] =
-    useState<PreferredMarket>("au");
-
-  const [selectedFrameworkFamilyId, setSelectedFrameworkFamilyId] =
-    useState("");
-  const [selectedFrameworkId, setSelectedFrameworkId] = useState("");
-  const [selectedStageId, setSelectedStageId] = useState("");
+  const [preferredMarket, setPreferredMarket] = useState<PreferredMarket>("au");
 
   const [includeActionPlan, setIncludeActionPlan] = useState(true);
   const [includeWeeklyPlan, setIncludeWeeklyPlan] = useState(true);
@@ -896,36 +591,6 @@ export default function ReportsPage() {
   const [selectionMeta, setSelectionMeta] = useState<ReportSelectionMeta>({});
   const [notes, setNotes] = useState("");
   const [highlightEvidenceId, setHighlightEvidenceId] = useState("");
-
-  const marketConfig = useMemo(
-    () => getMarketConfig(preferredMarket),
-    [preferredMarket]
-  );
-
-  const activeFamily = useMemo(() => {
-    return (
-      getFamilyById(marketConfig, selectedFrameworkFamilyId) ||
-      getFamilyForFramework(marketConfig, selectedFrameworkId) ||
-      getFirstFamily(marketConfig)
-    );
-  }, [marketConfig, selectedFrameworkFamilyId, selectedFrameworkId]);
-
-  const activeFramework = useMemo(() => {
-    return (
-      getFrameworkById(marketConfig, selectedFrameworkId) ||
-      activeFamily?.options?.[0] ||
-      null
-    );
-  }, [marketConfig, selectedFrameworkId, activeFamily]);
-
-  const activeStage = useMemo(() => {
-    if (!activeFramework) return null;
-    return (
-      activeFramework.stages.find((stage) => stage.id === selectedStageId) ||
-      activeFramework.stages[0] ||
-      null
-    );
-  }, [activeFramework, selectedStageId]);
 
   useEffect(() => {
     let mounted = true;
@@ -950,10 +615,7 @@ export default function ReportsPage() {
         if (!mounted) return;
 
         const seedStudents = buildSeedStudents();
-        const mergedStudents =
-          dbStudentRows.length > 0
-            ? dbStudentRows
-            : seedStudents;
+        const mergedStudents = dbStudentRows.length > 0 ? dbStudentRows : seedStudents;
 
         const activeStoredStudent =
           typeof window !== "undefined"
@@ -961,30 +623,9 @@ export default function ReportsPage() {
             : "";
 
         const initialMarket =
-          (existingDraft?.preferred_market as PreferredMarket) ||
-          familyProfile.preferred_market ||
-          "au";
-
-        const initialConfig = getMarketConfig(initialMarket);
-        const initialFamily =
-          getFamilyForFramework(
-            initialConfig,
-            safe(existingDraft?.framework_id || existingDraft?.framework_key)
-          ) || getFirstFamily(initialConfig);
-        const initialFramework =
-          getFrameworkById(
-            initialConfig,
-            safe(existingDraft?.framework_id || existingDraft?.framework_key)
-          ) ||
-          initialFamily?.options?.[0] ||
-          null;
-        const initialStage =
-          initialFramework?.stages?.find(
-            (stage) =>
-              stage.id === safe(existingDraft?.stage_id || existingDraft?.stage_key)
-          ) ||
-          initialFramework?.stages?.[0] ||
-          null;
+          ((existingDraft?.preferred_market as PreferredMarket) ||
+            safe((familyProfile as any)?.preferred_market) ||
+            "au") as PreferredMarket;
 
         setProfile(familyProfile);
         setStudents(mergedStudents);
@@ -1003,34 +644,33 @@ export default function ReportsPage() {
             : "";
 
         const defaultStudentId =
-          existingDraft?.student_id ||
+          safe(existingDraft?.student_id) ||
           validRequestedStudent ||
           validStoredStudent ||
-          familyProfile.default_child_id ||
-          mergedStudents[0]?.id ||
+          safe((familyProfile as any)?.default_child_id) ||
+          safe(mergedStudents[0]?.id) ||
           "";
 
         setDraftId(existingDraft?.id || "");
         setSelectedStudentId(defaultStudentId);
         setReportMode(
-          existingDraft?.report_mode || familyProfile.report_tone_default
+          (existingDraft?.report_mode ||
+            safe((familyProfile as any)?.report_tone_default) ||
+            "family-summary") as ReportMode
         );
-        setPeriodMode(existingDraft?.period_mode || "term");
+        setPeriodMode((existingDraft?.period_mode || "term") as PeriodMode);
         setPresetKey(
           existingDraft
             ? detectPreset(existingDraft.report_mode, existingDraft.period_mode)
             : "family-summary"
         );
         setPreferredMarket(initialMarket);
-        setSelectedFrameworkFamilyId(initialFamily?.id || "");
-        setSelectedFrameworkId(initialFramework?.id || "");
-        setSelectedStageId(initialStage?.id || "");
         setIncludeActionPlan(existingDraft?.include_action_plan ?? true);
         setIncludeWeeklyPlan(existingDraft?.include_weekly_plan ?? true);
         setIncludeAppendix(existingDraft?.include_appendix ?? true);
         setIncludeReadinessNotes(
           existingDraft?.include_readiness_notes ??
-            familyProfile.show_authority_guidance
+            Boolean((familyProfile as any)?.show_authority_guidance)
         );
         setSelectedAreas(
           existingDraft?.selected_areas?.length
@@ -1053,24 +693,16 @@ export default function ReportsPage() {
           }
         }
 
-        if (
-          !existingDraft &&
-          validStoredStudent &&
-          firstNameOf(
-            mergedStudents.find((student) => student.id === validStoredStudent) || null
-          )
-        ) {
+        if (!existingDraft && validStoredStudent) {
+          const found =
+            mergedStudents.find((student) => student.id === validStoredStudent) || null;
           setMessage(
-            `${firstNameOf(
-              mergedStudents.find((student) => student.id === validStoredStudent) || null
-            )} is already selected so you can move straight from capture into reporting.`
+            `${firstNameOf(found)} is already selected so you can move straight from capture into reporting.`
           );
         }
       } catch (err: any) {
         if (!mounted) return;
-        setError(
-          String(err?.message || err || "Failed to load reports builder.")
-        );
+        setError(String(err?.message || err || "Failed to load reports builder."));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -1083,48 +715,8 @@ export default function ReportsPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    const family =
-      getFamilyById(marketConfig, selectedFrameworkFamilyId) ||
-      getFirstFamily(marketConfig);
-
-    if (!family) return;
-
-    if (family.id !== selectedFrameworkFamilyId) {
-      setSelectedFrameworkFamilyId(family.id);
-      return;
-    }
-
-    const framework =
-      family.options.find((option) => option.id === selectedFrameworkId) ||
-      family.options[0];
-
-    if (!framework) return;
-
-    if (framework.id !== selectedFrameworkId) {
-      setSelectedFrameworkId(framework.id);
-      return;
-    }
-
-    const stage =
-      framework.stages.find((item) => item.id === selectedStageId) ||
-      framework.stages[0];
-
-    if (!stage) return;
-
-    if (stage.id !== selectedStageId) {
-      setSelectedStageId(stage.id);
-    }
-  }, [
-    marketConfig,
-    selectedFrameworkFamilyId,
-    selectedFrameworkId,
-    selectedStageId,
-  ]);
-
-  useEffect(() => {
     if (typeof window === "undefined") return;
     if (!safe(selectedStudentId)) return;
-
     try {
       window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, selectedStudentId);
     } catch {}
@@ -1136,9 +728,7 @@ export default function ReportsPage() {
   );
 
   const studentEvidence = useMemo(() => {
-    const rows = evidence.filter(
-      (row) => safe(row.student_id) === selectedStudentId
-    );
+    const rows = evidence.filter((row) => safe(row.student_id) === selectedStudentId);
     if (!rows.length) return [];
     if (!selectedAreas.length) return rows;
 
@@ -1251,15 +841,11 @@ export default function ReportsPage() {
   }, [studentEvidence]);
 
   const interpretation = useMemo(() => {
-    const strongAreas = areaStats
-      .filter((x) => x.status === "strong")
-      .map((x) => x.area);
+    const strongAreas = areaStats.filter((x) => x.status === "strong").map((x) => x.area);
     const developingAreas = areaStats
       .filter((x) => x.status === "developing")
       .map((x) => x.area);
-    const weakAreas = areaStats
-      .filter((x) => x.status === "attention")
-      .map((x) => x.area);
+    const weakAreas = areaStats.filter((x) => x.status === "attention").map((x) => x.area);
 
     let text = "";
 
@@ -1286,9 +872,7 @@ export default function ReportsPage() {
         developingAreas.slice(0, 3)
       )}, but the report still needs stronger anchors before it will feel settled.`;
       if (weakAreas.length) {
-        text += ` ${joinNatural(
-          weakAreas.slice(0, 2)
-        )} remain the clearest gaps.`;
+        text += ` ${joinNatural(weakAreas.slice(0, 2))} remain the clearest gaps.`;
       }
     } else {
       text =
@@ -1424,9 +1008,8 @@ export default function ReportsPage() {
   function buildDraftTitle() {
     const child = studentName(selectedStudent);
     const mode = modeLabel(reportMode);
-    const framework = activeFramework?.label || "Framework";
-    const stage = activeStage?.label ? ` — ${activeStage.label}` : "";
-    return `${child} — ${mode} — ${framework}${stage}`;
+    const market = marketLabel(preferredMarket);
+    return `${child} — ${mode} — ${market}`;
   }
 
   async function handleSave(openOutput = false) {
@@ -1561,52 +1144,38 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <main style={S.page()}>
-        <div style={S.pageInner()}>
-          <div style={S.card()}>Loading reports builder…</div>
+      <main style={pageStyle}>
+        <div style={innerStyle}>
+          <div style={cardStyle}>Loading reports builder…</div>
         </div>
       </main>
     );
   }
 
   return (
-    <main style={S.page()}>
-      <div style={S.stickyTop()}>
-        <div style={S.topBar()}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
-            }}
-          >
-            <Link
-              href="/family"
-              style={{ ...S.mutedLink(), fontWeight: 900, color: "#0f172a" }}
-            >
+    <main style={pageStyle}>
+      <div style={stickyStyle}>
+        <div style={topBarStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/family" style={{ color: "#0f172a", fontWeight: 900, textDecoration: "none" }}>
               EduDecks Family
             </Link>
             <span style={{ color: "#94a3b8" }}>/</span>
-            <span style={{ ...S.mutedLink(), color: "#0f172a" }}>Reports</span>
+            <span style={{ color: "#0f172a", fontWeight: 900 }}>Reports</span>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/reports/library" style={S.button(false)}>
+            <Link href="/reports/library" style={buttonStyle(false)}>
               Library
             </Link>
-            <button
-              type="button"
-              onClick={() => void handleSave(false)}
-              style={S.button(false)}
-            >
+            <button type="button" onClick={() => void handleSave(false)} style={buttonStyle(false)}>
               {saving ? "Saving…" : "Save draft"}
             </button>
             <button
               type="button"
               onClick={handleQuickBuild}
               style={{
-                ...S.button(false),
+                ...buttonStyle(false),
                 borderColor: "#bfdbfe",
                 background: "#eff6ff",
                 color: "#2563eb",
@@ -1614,32 +1183,26 @@ export default function ReportsPage() {
             >
               {saving ? "Building…" : "Quick Build Report"}
             </button>
-            <button
-              type="button"
-              onClick={() => void handleSave(true)}
-              style={S.button(true)}
-            >
+            <button type="button" onClick={() => void handleSave(true)} style={buttonStyle(true)}>
               {saving ? "Building…" : "Build report"}
             </button>
           </div>
         </div>
       </div>
 
-      <div style={S.pageInner()}>
+      <div style={innerStyle}>
         {highlightedEvidence ? (
           <section
             style={{
-              ...S.card(),
+              ...cardStyle,
               marginBottom: 18,
               border: "1px solid #bfdbfe",
               background: "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
             }}
           >
-            <div style={S.label()}>Fresh evidence ready to use</div>
-            <div style={S.h2()}>
-              Your latest learning moment is already available in reporting
-            </div>
-            <div style={{ ...S.body(), marginTop: 8, maxWidth: 900 }}>
+            <div style={labelStyle}>Fresh evidence ready to use</div>
+            <div style={h2Style}>Your latest learning moment is already available in reporting</div>
+            <div style={{ ...bodyStyle, maxWidth: 900 }}>
               <strong>{safe(highlightedEvidence.title) || "New learning moment"}</strong>
               {safe(highlightedEvidence.learning_area)
                 ? ` in ${guessArea(highlightedEvidence.learning_area)}`
@@ -1647,25 +1210,16 @@ export default function ReportsPage() {
               {" "}has flowed straight into the report builder so you can move from capture into a draft without losing momentum.
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                marginTop: 14,
-              }}
-            >
-              <span style={S.pill("success")}>Freshly captured</span>
-              <span style={S.pill("secondary")}>
-                {guessArea(highlightedEvidence.learning_area)}
-              </span>
-              <span style={S.pill("info")}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+              <span style={pillStyle("success")}>Freshly captured</span>
+              <span style={pillStyle("secondary")}>{guessArea(highlightedEvidence.learning_area)}</span>
+              <span style={pillStyle("info")}>
                 {shortDate(highlightedEvidence.occurred_on || highlightedEvidence.created_at)}
               </span>
             </div>
 
-            <div style={{ ...S.softCard(), marginTop: 14 }}>
-              <div style={S.small()}>
+            <div style={{ ...softCardStyle, marginTop: 14 }}>
+              <div style={smallStyle}>
                 {clip(evidenceText(highlightedEvidence), 220) ||
                   "This newly captured item is ready to support the next saved report draft."}
               </div>
@@ -1673,83 +1227,67 @@ export default function ReportsPage() {
           </section>
         ) : null}
 
-        <section style={S.hero()}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0,1.25fr) minmax(280px,0.9fr)",
-              gap: 24,
-            }}
-          >
+        <section style={{ ...cardStyle, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
             <div>
-              <div style={S.label()}>Guided report builder</div>
-              <div style={S.display()}>
-                Build once, save once, and use evidence-led drafts that feel calm
-                and trustworthy
+              <div style={labelStyle}>Guided report builder</div>
+              <div style={displayStyle}>
+                Build once, save once, and use evidence-led drafts that feel calm and trustworthy
               </div>
-              <div style={S.body()}>
-                This builder creates a durable report draft object with saved
-                child, market, mode, areas, selected evidence, and report notes.
-                Quick Build can choose strong evidence automatically so the
-                reporting flow feels faster and more guided.
+              <div style={bodyStyle}>
+                This builder creates a durable report draft object with saved child, market, mode, areas, selected evidence, and report notes.
+                Quick Build can choose strong evidence automatically so the reporting flow feels faster and more guided.
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  marginTop: 16,
-                }}
-              >
-                <span style={S.pill("primary")}>
-                  Market: {marketLabel(preferredMarket)}
-                </span>
-                <span style={S.pill("secondary")}>{modeLabel(reportMode)}</span>
-                <span style={S.pill("info")}>{periodLabel(periodMode)}</span>
-                {activeFramework ? (
-                  <span style={S.pill("secondary")}>{activeFramework.label}</span>
-                ) : null}
-                {activeStage ? (
-                  <span style={S.pill("info")}>{activeStage.label}</span>
-                ) : null}
-                {draftId ? (
-                  <span style={S.pill("success")}>Saved draft active</span>
-                ) : null}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                <span style={pillStyle("primary")}>Market: {marketLabel(preferredMarket)}</span>
+                <span style={pillStyle("secondary")}>{modeLabel(reportMode)}</span>
+                <span style={pillStyle("info")}>{periodLabel(periodMode)}</span>
+                {draftId ? <span style={pillStyle("success")}>Saved draft active</span> : null}
                 {selectedStudent ? (
-                  <span style={S.pill("secondary")}>
-                    Child: {firstNameOf(selectedStudent)}
-                  </span>
+                  <span style={pillStyle("secondary")}>Child: {firstNameOf(selectedStudent)}</span>
                 ) : null}
               </div>
 
               <div style={{ height: 18 }} />
 
-              <div style={{ ...S.statCard(readiness.tone), display: "grid", gap: 8 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  <span style={S.pill(readiness.tone)}>{readiness.label}</span>
+              <div
+                style={{
+                  ...cardStyle,
+                  padding: 14,
+                  background:
+                    readiness.tone === "success"
+                      ? "#f0fdf4"
+                      : readiness.tone === "info"
+                      ? "#eff6ff"
+                      : readiness.tone === "warning"
+                      ? "#fffbeb"
+                      : "#fff1f2",
+                  borderColor:
+                    readiness.tone === "success"
+                      ? "#bbf7d0"
+                      : readiness.tone === "info"
+                      ? "#bfdbfe"
+                      : readiness.tone === "warning"
+                      ? "#fde68a"
+                      : "#fecdd3",
+                }}
+              >
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
                   <strong style={{ color: "#0f172a", fontSize: 15 }}>
                     Report readiness: {readinessScore}%
                   </strong>
                 </div>
-                <div style={S.body()}>{readiness.message}</div>
-                <div style={{ ...S.small(), fontWeight: 800 }}>
-                  {readiness.action}
-                </div>
+                <div style={bodyStyle}>{readiness.message}</div>
+                <div style={{ ...smallStyle, fontWeight: 800 }}>{readiness.action}</div>
               </div>
             </div>
 
-            <div style={S.card()}>
-              <div style={S.label()}>Selection readiness</div>
-              <div style={S.h1()}>{readinessScore}%</div>
-              <div style={{ ...S.body(), marginBottom: 12 }}>{readiness.label}</div>
+            <div style={cardStyle}>
+              <div style={labelStyle}>Selection readiness</div>
+              <div style={displayStyle}>{readinessScore}%</div>
+              <div style={{ ...bodyStyle, marginBottom: 12 }}>{readiness.label}</div>
 
               <div
                 style={{
@@ -1778,7 +1316,7 @@ export default function ReportsPage() {
                 />
               </div>
 
-              <div style={S.small()}>{nextBestMove}</div>
+              <div style={smallStyle}>{nextBestMove}</div>
 
               <div style={{ height: 12 }} />
 
@@ -1805,55 +1343,63 @@ export default function ReportsPage() {
         </section>
 
         {message ? (
-          <div style={{ ...S.statCard("success"), marginTop: 18 }}>
-            <div style={S.small()}>{message}</div>
+          <div style={{ ...cardStyle, marginBottom: 18, borderColor: "#bbf7d0", background: "#f0fdf4" }}>
+            <div style={smallStyle}>{message}</div>
           </div>
         ) : null}
 
         {error ? (
-          <div style={{ ...S.statCard("danger"), marginTop: 18 }}>
-            <div style={S.small()}>{error}</div>
+          <div style={{ ...cardStyle, marginBottom: 18, borderColor: "#fecdd3", background: "#fff1f2" }}>
+            <div style={smallStyle}>{error}</div>
           </div>
         ) : null}
 
-        <div style={{ height: 18 }} />
-
-        <div style={S.splitMain()}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 18 }}>
           <div style={{ display: "grid", gap: 18 }}>
-            <section style={S.card()}>
-              <div style={S.h2()}>Preset and report settings</div>
+            <section style={cardStyle}>
+              <div style={h2Style}>Preset and report settings</div>
 
-              <div style={S.autoFitCards(220)}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 12,
+                  marginTop: 16,
+                }}
+              >
                 {PRESET_OPTIONS.map((preset) => (
                   <button
                     key={preset.key}
                     type="button"
                     onClick={() => applyPreset(preset)}
                     style={{
-                      ...S.statCard(preset.tone),
+                      ...cardStyle,
+                      padding: 14,
                       textAlign: "left",
                       cursor: "pointer",
-                      border:
-                        presetKey === preset.key
-                          ? "1px solid #2563eb"
-                          : undefined,
+                      borderColor: presetKey === preset.key ? "#2563eb" : "#e5e7eb",
                       boxShadow:
                         presetKey === preset.key
                           ? "0 0 0 2px rgba(37,99,235,0.08)"
-                          : undefined,
+                          : "0 10px 30px rgba(15,23,42,0.04)",
                     }}
                   >
-                    <div style={S.h3()}>{preset.title}</div>
-                    <div style={S.small()}>{preset.description}</div>
+                    <div style={h3Style}>{preset.title}</div>
+                    <div style={smallStyle}>{preset.description}</div>
                   </button>
                 ))}
               </div>
 
-              <div style={{ height: 18 }} />
-
-              <div style={S.autoFitCards(220)}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gap: 12,
+                  marginTop: 18,
+                }}
+              >
                 <div>
-                  <div style={S.label()}>Child</div>
+                  <div style={labelStyle}>Child</div>
                   <select
                     value={selectedStudentId}
                     onChange={(e) => {
@@ -1863,7 +1409,7 @@ export default function ReportsPage() {
                         window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, e.target.value);
                       }
                     }}
-                    style={{ ...S.input(220), width: "100%" }}
+                    style={{ width: "100%", minHeight: 44, borderRadius: 12, border: "1px solid #d1d5db", padding: "10px 12px" }}
                   >
                     <option value="">Select child…</option>
                     {students.map((student) => (
@@ -1880,13 +1426,11 @@ export default function ReportsPage() {
                 </div>
 
                 <div>
-                  <div style={S.label()}>Market</div>
+                  <div style={labelStyle}>Market</div>
                   <select
                     value={preferredMarket}
-                    onChange={(e) =>
-                      setPreferredMarket(e.target.value as PreferredMarket)
-                    }
-                    style={{ ...S.input(180), width: "100%" }}
+                    onChange={(e) => setPreferredMarket(e.target.value as PreferredMarket)}
+                    style={{ width: "100%", minHeight: 44, borderRadius: 12, border: "1px solid #d1d5db", padding: "10px 12px" }}
                   >
                     <option value="au">Australia</option>
                     <option value="uk">United Kingdom</option>
@@ -1895,54 +1439,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div>
-                  <div style={S.label()}>{marketConfig.familyLabel}</div>
-                  <select
-                    value={selectedFrameworkFamilyId}
-                    onChange={(e) => setSelectedFrameworkFamilyId(e.target.value)}
-                    style={{ ...S.input(220), width: "100%" }}
-                  >
-                    {marketConfig.families.map((family) => (
-                      <option key={family.id} value={family.id}>
-                        {family.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div style={S.label()}>{marketConfig.frameworkLabel}</div>
-                  <select
-                    value={selectedFrameworkId}
-                    onChange={(e) => setSelectedFrameworkId(e.target.value)}
-                    style={{ ...S.input(220), width: "100%" }}
-                  >
-                    {(activeFamily?.options || []).map((framework) => (
-                      <option key={framework.id} value={framework.id}>
-                        {framework.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div style={S.label()}>
-                    {activeFramework?.stageLabel || marketConfig.stageLabel}
-                  </div>
-                  <select
-                    value={selectedStageId}
-                    onChange={(e) => setSelectedStageId(e.target.value)}
-                    style={{ ...S.input(180), width: "100%" }}
-                  >
-                    {(activeFramework?.stages || []).map((stage) => (
-                      <option key={stage.id} value={stage.id}>
-                        {stage.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div style={S.label()}>Mode</div>
+                  <div style={labelStyle}>Mode</div>
                   <select
                     value={reportMode}
                     onChange={(e) => {
@@ -1950,7 +1447,7 @@ export default function ReportsPage() {
                       setReportMode(nextMode);
                       setPresetKey(detectPreset(nextMode, periodMode));
                     }}
-                    style={{ ...S.input(180), width: "100%" }}
+                    style={{ width: "100%", minHeight: 44, borderRadius: 12, border: "1px solid #d1d5db", padding: "10px 12px" }}
                   >
                     <option value="family-summary">Family summary</option>
                     <option value="authority-ready">Authority ready</option>
@@ -1959,7 +1456,7 @@ export default function ReportsPage() {
                 </div>
 
                 <div>
-                  <div style={S.label()}>Period</div>
+                  <div style={labelStyle}>Period</div>
                   <select
                     value={periodMode}
                     onChange={(e) => {
@@ -1967,7 +1464,7 @@ export default function ReportsPage() {
                       setPeriodMode(nextPeriod);
                       setPresetKey(detectPreset(reportMode, nextPeriod));
                     }}
-                    style={{ ...S.input(180), width: "100%" }}
+                    style={{ width: "100%", minHeight: 44, borderRadius: 12, border: "1px solid #d1d5db", padding: "10px 12px" }}
                   >
                     <option value="term">Term</option>
                     <option value="semester">Semester</option>
@@ -1979,23 +1476,7 @@ export default function ReportsPage() {
 
               <div style={{ height: 14 }} />
 
-              <div style={S.softCard()}>
-                <div style={S.h3()}>
-                  {activeFramework?.label || "Framework pathway"}
-                </div>
-                <div style={{ ...S.small(), marginTop: 6 }}>
-                  {activeFramework?.description ||
-                    "Choose a market and framework pathway to shape the report lens more precisely."}
-                </div>
-                <div style={{ ...S.small(), marginTop: 10, fontWeight: 800 }}>
-                  {activeFramework?.stageLabel || marketConfig.stageLabel}:{" "}
-                  {activeStage?.label || "—"}
-                </div>
-              </div>
-
-              <div style={{ height: 18 }} />
-
-              <div style={S.autoFitCards(240)}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
                 <label style={checkRowStyle}>
                   <input
                     type="checkbox"
@@ -2034,11 +1515,10 @@ export default function ReportsPage() {
               </div>
             </section>
 
-            <section style={S.card()}>
-              <div style={S.h2()}>Coverage snapshot</div>
-              <div style={S.small()}>
-                Choose the learning areas this saved report object should speak
-                for.
+            <section style={cardStyle}>
+              <div style={h2Style}>Coverage snapshot</div>
+              <div style={smallStyle}>
+                Choose the learning areas this saved report object should speak for.
               </div>
 
               <div style={{ height: 14 }} />
@@ -2052,7 +1532,7 @@ export default function ReportsPage() {
                       type="button"
                       onClick={() => toggleArea(area)}
                       style={{
-                        ...S.button(active),
+                        ...buttonStyle(active),
                         background: active ? "#2563eb" : "#ffffff",
                         color: active ? "#ffffff" : "#1f2937",
                       }}
@@ -2065,14 +1545,20 @@ export default function ReportsPage() {
 
               <div style={{ height: 14 }} />
 
-              <div style={S.autoFitCards(220)}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gap: 12,
+                }}
+              >
                 {areaStats
                   .filter((item) => selectedAreas.includes(item.area))
                   .map((item) => (
                     <div
                       key={item.area}
                       style={{
-                        ...S.softCard(),
+                        ...softCardStyle,
                         border:
                           item.status === "strong"
                             ? "1px solid #bbf7d0"
@@ -2096,44 +1582,43 @@ export default function ReportsPage() {
                           marginBottom: 8,
                         }}
                       >
-                        <div style={S.h3()}>{item.area}</div>
-                        <span style={S.pill(coverageTone(item.status))}>
-                          {item.statusLabel}
-                        </span>
+                        <div style={h3Style}>{item.area}</div>
+                        <span style={pillStyle(coverageTone(item.status))}>{item.statusLabel}</span>
                       </div>
-                      <div style={S.small()}>
+                      <div style={smallStyle}>
                         {item.count} evidence item{item.count === 1 ? "" : "s"}
-                        {item.lastSeen
-                          ? ` · last seen ${shortDate(item.lastSeen)}`
-                          : " · no evidence yet"}
+                        {item.lastSeen ? ` · last seen ${shortDate(item.lastSeen)}` : " · no evidence yet"}
                       </div>
                     </div>
                   ))}
               </div>
             </section>
 
-            <section style={S.card()}>
-              <div style={S.h2()}>What this report currently shows</div>
-              <div style={S.body()}>{interpretation.text}</div>
+            <section style={cardStyle}>
+              <div style={h2Style}>What this report currently shows</div>
+              <div style={bodyStyle}>{interpretation.text}</div>
 
-              <div style={{ height: 14 }} />
-
-              <div style={S.autoFitCards(220)}>
-                <div style={S.softCard()}>
-                  <div style={S.label()}>Strongest current focus</div>
-                  <div style={S.h3()}>{interpretation.strongestFocus || "—"}</div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 12,
+                  marginTop: 14,
+                }}
+              >
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Strongest current focus</div>
+                  <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
                 </div>
 
-                <div style={S.softCard()}>
-                  <div style={S.label()}>Weakest current area</div>
-                  <div style={S.h3()}>
-                    {interpretation.weakestFocus || "No major gap yet"}
-                  </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Weakest current area</div>
+                  <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
                 </div>
 
-                <div style={S.softCard()}>
-                  <div style={S.label()}>Coverage balance</div>
-                  <div style={S.h3()}>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Coverage balance</div>
+                  <div style={h3Style}>
                     {interpretation.weakAreas.length === 0
                       ? "Balanced"
                       : interpretation.weakAreas.length <= 2
@@ -2144,7 +1629,7 @@ export default function ReportsPage() {
               </div>
             </section>
 
-            <section style={S.card()}>
+            <section style={cardStyle}>
               <div
                 style={{
                   display: "flex",
@@ -2155,27 +1640,21 @@ export default function ReportsPage() {
                 }}
               >
                 <div>
-                  <div style={S.h2()}>Curate evidence</div>
-                  <div style={S.small()}>
-                    Strong evidence is now the centre of the report flow. You
-                    can select manually, or let the system choose a strong first
-                    pass for you.
+                  <div style={h2Style}>Curate evidence</div>
+                  <div style={smallStyle}>
+                    Strong evidence is now the centre of the report flow. You can select manually, or let the system choose a strong first pass for you.
                   </div>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    onClick={autoSelectTopEvidence}
-                    style={S.button(false)}
-                  >
+                  <button type="button" onClick={autoSelectTopEvidence} style={buttonStyle(false)}>
                     Auto-select top evidence
                   </button>
                   <button
                     type="button"
                     onClick={handleQuickBuild}
                     style={{
-                      ...S.button(false),
+                      ...buttonStyle(false),
                       borderColor: "#bfdbfe",
                       background: "#eff6ff",
                       color: "#2563eb",
@@ -2191,10 +1670,9 @@ export default function ReportsPage() {
               {selectedStudentId ? (
                 <div style={{ display: "grid", gap: 12 }}>
                   {studentEvidence.length === 0 ? (
-                    <div style={S.softCard()}>
-                      <div style={S.small()}>
-                        No evidence was found for the current child and area
-                        filter.
+                    <div style={softCardStyle}>
+                      <div style={smallStyle}>
+                        No evidence was found for the current child and area filter.
                       </div>
                     </div>
                   ) : (
@@ -2208,7 +1686,7 @@ export default function ReportsPage() {
                         <div
                           key={row.id}
                           style={{
-                            ...S.softCard(),
+                            ...softCardStyle,
                             border: highlighted
                               ? "2px solid #2563eb"
                               : chosen
@@ -2226,100 +1704,62 @@ export default function ReportsPage() {
                         >
                           <div
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
+                              display: "grid",
+                              gridTemplateColumns: "auto 1fr auto auto",
                               gap: 12,
-                              flexWrap: "wrap",
                               alignItems: "start",
                             }}
                           >
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <div style={S.h3()}>
-                                {safe(row.title) || "Untitled evidence"}
+                            <input
+                              type="checkbox"
+                              checked={chosen}
+                              onChange={() => toggleEvidence(row)}
+                              style={{ marginTop: 4 }}
+                            />
+
+                            <div style={{ minWidth: 0 }}>
+                              <div style={h3Style}>{safe(row.title) || "Untitled evidence"}</div>
+                              <div style={smallStyle}>
+                                {guessArea(row.learning_area)} • {shortDate(row.occurred_on || row.created_at)}
                               </div>
-                              <div style={S.small()}>
-                                {guessArea(row.learning_area)} ·{" "}
-                                {shortDate(row.occurred_on || row.created_at)}
-                              </div>
-                              <div style={{ ...S.body(), marginTop: 8 }}>
-                                {clip(evidenceText(row), 180) ||
-                                  "No written summary yet."}
+                              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                                {clip(evidenceText(row), 220) || "No written summary yet."}
                               </div>
                             </div>
 
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 8,
-                                flexWrap: "wrap",
-                              }}
-                            >
-                              <span style={S.pill(scoreTone(score))}>
-                                Quality {score}
-                              </span>
-                              {hasMedia(row) ? (
-                                <span style={S.pill("secondary")}>Media</span>
-                              ) : null}
-                              {highlighted ? (
-                                <span style={S.pill("primary")}>Fresh capture</span>
-                              ) : null}
+                            <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
+
+                            <div style={{ display: "grid", gap: 8 }}>
                               {chosen ? (
-                                <span style={S.pill("success")}>Selected</span>
+                                <>
+                                  <select
+                                    value={meta?.role || "core"}
+                                    onChange={(e) =>
+                                      setEvidenceRole(row.id, e.target.value as "core" | "appendix")
+                                    }
+                                    style={{
+                                      minHeight: 36,
+                                      borderRadius: 10,
+                                      border: "1px solid #d1d5db",
+                                      padding: "8px 10px",
+                                      fontWeight: 800,
+                                    }}
+                                  >
+                                    <option value="core">Core</option>
+                                    <option value="appendix">Appendix</option>
+                                  </select>
+
+                                  <label style={{ ...smallStyle, display: "flex", gap: 8, alignItems: "center" }}>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(meta?.required)}
+                                      onChange={() => toggleEvidenceRequired(row.id)}
+                                    />
+                                    Required
+                                  </label>
+                                </>
                               ) : null}
                             </div>
-                          </div>
-
-                          <div style={{ height: 12 }} />
-
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              flexWrap: "wrap",
-                              alignItems: "center",
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleEvidence(row)}
-                              style={S.button(chosen)}
-                            >
-                              {chosen ? "Remove from report" : "Select for report"}
-                            </button>
-
-                            {chosen ? (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => setEvidenceRole(row.id, "core")}
-                                  style={S.miniButton()}
-                                >
-                                  {meta?.role === "core" ? "Core ✓" : "Make core"}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setEvidenceRole(row.id, "appendix")
-                                  }
-                                  style={S.miniButton()}
-                                >
-                                  {meta?.role === "appendix"
-                                    ? "Appendix ✓"
-                                    : "Move to appendix"}
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => toggleEvidenceRequired(row.id)}
-                                  style={S.miniButton()}
-                                >
-                                  {meta?.required
-                                    ? "Required ✓"
-                                    : "Mark required"}
-                                </button>
-                              </>
-                            ) : null}
                           </div>
                         </div>
                       );
@@ -2327,146 +1767,96 @@ export default function ReportsPage() {
                   )}
                 </div>
               ) : (
-                <div style={S.softCard()}>
-                  <div style={S.small()}>
-                    Choose a child first, then the report object can be
-                    populated with evidence.
-                  </div>
+                <div style={softCardStyle}>
+                  <div style={smallStyle}>Choose a child to begin selecting evidence.</div>
                 </div>
               )}
             </section>
           </div>
 
           <aside style={{ display: "grid", gap: 18 }}>
-            <section style={S.card()}>
-              <div style={S.h2()}>Draft note</div>
-              <div style={S.small()}>
-                Add a short human note so the output reads calmly and
-                intentionally.
-              </div>
+            <section style={cardStyle}>
+              <div style={h2Style}>Draft readiness</div>
+
               <div style={{ height: 12 }} />
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Child selected</span>
+                  <strong>{selectedStudentId ? "Yes" : "No"}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Evidence selected</span>
+                  <strong>{selectedEvidenceIds.length}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Core anchors</span>
+                  <strong>{selectedCoreCount}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Appendix items</span>
+                  <strong>{selectedAppendixCount}</strong>
+                </div>
+              </div>
+
+              <div style={{ ...softCardStyle, marginTop: 14 }}>
+                <div style={labelStyle}>Save guidance</div>
+                <div style={smallStyle}>{saveConfidenceText}</div>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={h2Style}>Parent note</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>
+                Add a short note so the saved report object feels more human and intentional.
+              </div>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Write a short summary of what this report should emphasise..."
-                style={S.textarea()}
+                rows={8}
+                style={{
+                  width: "100%",
+                  marginTop: 12,
+                  borderRadius: 12,
+                  border: "1px solid #d1d5db",
+                  padding: "12px 14px",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  resize: "vertical",
+                }}
+                placeholder="Write a short summary of what feels most important in this report..."
               />
             </section>
 
-            <section style={S.card()}>
-              <div style={S.h2()}>Current object summary</div>
-              <div style={{ display: "grid", gap: 10 }}>
-                <SummaryRow label="Child" value={studentName(selectedStudent)} />
-                <SummaryRow label="Market" value={marketLabel(preferredMarket)} />
-                <SummaryRow
-                  label="Framework family"
-                  value={activeFamily?.label || "—"}
-                />
-                <SummaryRow
-                  label="Framework"
-                  value={activeFramework?.label || "—"}
-                />
-                <SummaryRow
-                  label={activeFramework?.stageLabel || marketConfig.stageLabel}
-                  value={activeStage?.label || "—"}
-                />
-                <SummaryRow label="Mode" value={modeLabel(reportMode)} />
-                <SummaryRow label="Period" value={periodLabel(periodMode)} />
-                <SummaryRow
-                  label="Selected"
-                  value={`${selectedEvidenceIds.length} evidence item${
-                    selectedEvidenceIds.length === 1 ? "" : "s"
-                  }`}
-                />
-                <SummaryRow
-                  label="Draft ID"
-                  value={draftId || "Not saved yet"}
-                  mono
-                />
-              </div>
-            </section>
+            <section style={cardStyle}>
+              <div style={h2Style}>Next best move</div>
+              <div style={bodyStyle}>{nextBestMove}</div>
 
-            <section style={S.card()}>
-              <div style={S.h2()}>Selected evidence snapshot</div>
-              <div style={S.small()}>
-                {selectedEvidenceIds.length
-                  ? `${selectedEvidenceIds.length} items will be written into the saved draft object.`
-                  : "No evidence selected yet — use Auto-select or Quick Build to move faster."}
-              </div>
-
-              <div style={{ height: 12 }} />
-
-              <div style={{ display: "grid", gap: 10 }}>
-                {selectedEvidenceRows.slice(0, 6).map((row) => (
-                  <div key={row.id} style={S.softCard()}>
-                    <div style={S.h3()}>
-                      {safe(row.title) || "Untitled evidence"}
-                    </div>
-                    <div style={S.small()}>
-                      {guessArea(row.learning_area)} ·{" "}
-                      {selectionMeta[row.id]?.role || "core"}
-                    </div>
-                  </div>
-                ))}
-
-                {!selectedEvidenceRows.length ? (
-                  <div style={S.softCard()}>
-                    <div style={S.small()}>
-                      No evidence selected yet. Click{" "}
-                      <strong>Auto-select top evidence</strong> or{" "}
-                      <strong>Quick Build Report</strong> to generate an
-                      evidence-backed first draft.
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </section>
-
-            <section style={S.card()}>
-              <div style={S.h2()}>Save confidence</div>
-              <div style={S.body()}>{saveConfidenceText}</div>
-
-              <div style={{ height: 12 }} />
-
-              <div style={{ ...S.statCard(readiness.tone), display: "grid", gap: 6 }}>
-                <span style={S.pill(readiness.tone)}>{readiness.label}</span>
-                <div style={S.small()}>{readiness.action}</div>
-              </div>
-            </section>
-
-            <section style={S.card()}>
-              <div style={S.h2()}>Next best move</div>
-              <div style={S.body()}>{nextBestMove}</div>
-
-              <div style={{ height: 14 }} />
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(false)}
-                  style={S.button(false)}
-                >
-                  Save draft
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button type="button" onClick={() => void handleSave(false)} style={buttonStyle(false)}>
+                  {saving ? "Saving…" : "Save draft"}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleQuickBuild}
+                <button type="button" onClick={() => void handleSave(true)} style={buttonStyle(true)}>
+                  {saving ? "Building…" : "Open output"}
+                </button>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={h2Style}>Saved object reference</div>
+              <div style={{ ...softCardStyle, marginTop: 12 }}>
+                <div style={labelStyle}>Draft ID</div>
+                <div
                   style={{
-                    ...S.button(false),
-                    borderColor: "#bfdbfe",
-                    background: "#eff6ff",
-                    color: "#2563eb",
+                    marginTop: 8,
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                    fontSize: 13,
+                    color: "#334155",
+                    wordBreak: "break-word",
                   }}
                 >
-                  Quick Build
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(true)}
-                  style={S.button(true)}
-                >
-                  Open output
-                </button>
+                  {draftId || "Not saved yet"}
+                </div>
               </div>
             </section>
           </aside>
@@ -2475,77 +1865,3 @@ export default function ReportsPage() {
     </main>
   );
 }
-
-function SummaryRow({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "110px minmax(0,1fr)",
-        gap: 10,
-        alignItems: "start",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          letterSpacing: 1.05,
-          textTransform: "uppercase",
-          color: "#64748b",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "#334155",
-          fontFamily: mono
-            ? 'ui-monospace, SFMono-Regular, Menlo, monospace'
-            : undefined,
-          wordBreak: "break-word",
-        }}
-      >
-        {value || "—"}
-      </div>
-    </div>
-  );
-}
-
-const miniStatStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  alignItems: "center",
-  padding: "10px 12px",
-  borderRadius: 12,
-  border: "1px solid #e5e7eb",
-  background: "#f8fafc",
-};
-
-const miniStatLabel: React.CSSProperties = {
-  fontSize: 13,
-  color: "#64748b",
-};
-
-const checkRowStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  padding: "12px 14px",
-  border: "1px solid #e5e7eb",
-  borderRadius: 14,
-  background: "#f8fafc",
-  fontSize: 14,
-  color: "#1f2937",
-};
