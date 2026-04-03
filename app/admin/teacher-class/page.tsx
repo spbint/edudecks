@@ -47,21 +47,15 @@ export default function TeacherClassPage() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  // Filters / UI state
   const [classFocusId, setClassFocusId] = useState<string>("");
   const [teacherSearch, setTeacherSearch] = useState<string>("");
 
-  // Assignment controls
   const [assignClassId, setAssignClassId] = useState<string>("");
   const [assignTeacherId, setAssignTeacherId] = useState<string>("");
 
-  // Print settings
   const [printIncludeIds, setPrintIncludeIds] = useState(false);
   const [printFontSize, setPrintFontSize] = useState<"S" | "M" | "L">("M");
 
-  // ─────────────────────────────
-  // AUTH GUARD
-  // ─────────────────────────────
   useEffect(() => {
     const guard = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -70,9 +64,6 @@ export default function TeacherClassPage() {
     guard();
   }, []);
 
-  // ─────────────────────────────
-  // LOADERS (resilient)
-  // ─────────────────────────────
   const loadClasses = async (): Promise<ClassRow[]> => {
     const { data, error } = await supabase
       .from("classes")
@@ -103,7 +94,6 @@ export default function TeacherClassPage() {
   };
 
   const loadTeachers = async (): Promise<TeacherRow[]> => {
-    // Try teachers table (various column layouts)
     const teacherTries: Array<{
       select: string;
       map: (r: any) => TeacherRow;
@@ -139,8 +129,6 @@ export default function TeacherClassPage() {
       }
     }
 
-    // Fallback: admins table (common in your build)
-    // We keep it broad; if you have role column you can filter later.
     const adminRes = await supabase.from("admins").select("id, email, role").order("email", { ascending: true });
     if (adminRes.error) {
       throw new Error(
@@ -175,7 +163,6 @@ export default function TeacherClassPage() {
       setTeachers(t);
       setLinks(l);
 
-      // sensible defaults
       if (!assignClassId && c.length > 0) setAssignClassId(c[0].id);
       if (!assignTeacherId && t.length > 0) setAssignTeacherId(t[0].id);
     } catch (e: any) {
@@ -190,9 +177,6 @@ export default function TeacherClassPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ─────────────────────────────
-  // DERIVED
-  // ─────────────────────────────
   const classById = useMemo(() => {
     const m = new Map<string, ClassRow>();
     for (const c of classes) m.set(c.id, c);
@@ -208,7 +192,7 @@ export default function TeacherClassPage() {
   const linkByClass = useMemo(() => {
     const m = new Map<string, Set<string>>();
     for (const l of links) {
-      if (!m.has(l.class_id)) m.set(l.class_id, new Set());
+      if (!m.has(l.class_id)) m.set(l.class_id, new Set<string>());
       m.get(l.class_id)!.add(l.teacher_id);
     }
     return m;
@@ -233,9 +217,6 @@ export default function TeacherClassPage() {
     return 14;
   }, [printFontSize]);
 
-  // ─────────────────────────────
-  // DB ACTIONS
-  // ─────────────────────────────
   const assignTeacherToClass = async (classId: string, teacherId: string) => {
     setErr("");
     setOk("");
@@ -243,7 +224,6 @@ export default function TeacherClassPage() {
     if (!classId) return setErr("Choose a class.");
     if (!teacherId) return setErr("Choose a teacher.");
 
-    // quick local duplicate guard
     const set = linkByClass.get(classId);
     if (set && set.has(teacherId)) {
       setOk("Already assigned ✅");
@@ -254,7 +234,6 @@ export default function TeacherClassPage() {
     const { error } = await supabase.from("class_teachers").insert([{ class_id: classId, teacher_id: teacherId }]);
 
     if (error) {
-      // if it’s a duplicate unique constraint (23505) or similar, we just treat as OK
       const msg = error.message ?? "";
       if (msg.toLowerCase().includes("duplicate") || msg.includes("23505")) {
         setOk("Already assigned ✅");
@@ -294,13 +273,10 @@ export default function TeacherClassPage() {
     setSaving(false);
   };
 
-  // ─────────────────────────────
-  // CSV EXPORT
-  // ─────────────────────────────
   const escapeCsv = (v: string) => {
     const needs = /[",\n]/.test(v);
-    const safe = v.replace(/"/g, '""');
-    return needs ? `"${safe}"` : safe;
+    const safeValue = v.replace(/"/g, '""');
+    return needs ? `"${safeValue}"` : safeValue;
   };
 
   const downloadCsv = (filename: string, rows: Record<string, any>[]) => {
@@ -313,7 +289,7 @@ export default function TeacherClassPage() {
       headers.map(escapeCsv).join(","),
       ...rows.map((r) => headers.map((h) => escapeCsv(String(r[h] ?? ""))).join(",")),
     ];
-    const csv = "\ufeff" + lines.join("\n"); // BOM for Excel
+    const csv = "\ufeff" + lines.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
@@ -367,15 +343,9 @@ export default function TeacherClassPage() {
     downloadCsv(`class_teachers_all_${today}.csv`, rows);
   };
 
-  // ─────────────────────────────
-  // PRINT
-  // ─────────────────────────────
   const doPrint = () => setTimeout(() => window.print(), 50);
 
-  // ─────────────────────────────
-  // UI
-  // ─────────────────────────────
-  if (loading) return <main style={{ padding: 24 }}>Loading…</main>;
+  if (loading) return <main style={{ padding: 24, maxWidth: 1200 }}>Loading…</main>;
 
   return (
     <main style={{ padding: 24, maxWidth: 1200 }}>
@@ -390,13 +360,11 @@ export default function TeacherClassPage() {
         .print-only { display: none; }
       `}</style>
 
-      {/* Print header */}
       <section className="print-only" style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 18, fontWeight: 900 }}>Teacher ↔ Class Assignments</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>{new Date().toLocaleString()}</div>
       </section>
 
-      {/* Header */}
       <section style={panel} className="no-print">
         <div>
           <div style={{ fontSize: 12, opacity: 0.7 }}>ADMIN • SCHOOL SETUP</div>
@@ -436,7 +404,6 @@ export default function TeacherClassPage() {
         </div>
       )}
 
-      {/* Assign panel */}
       <section className="no-print" style={{ ...panel, marginBottom: 16 }}>
         <div style={{ width: "100%" }}>
           <div style={{ fontWeight: 900, marginBottom: 6 }}>Quick Assign</div>
@@ -484,7 +451,6 @@ export default function TeacherClassPage() {
         </div>
       </section>
 
-      {/* Print + settings */}
       <section className="no-print" style={{ ...panel, marginBottom: 16 }}>
         <div style={{ width: "100%" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -507,7 +473,7 @@ export default function TeacherClassPage() {
                 Font
                 <select
                   value={printFontSize}
-                  onChange={(e) => setPrintFontSize(e.target.value as any)}
+                  onChange={(e) => setPrintFontSize(e.target.value as "S" | "M" | "L")}
                   style={{ ...select, width: 140, marginTop: 6 }}
                 >
                   <option value="S">Small</option>
@@ -524,7 +490,6 @@ export default function TeacherClassPage() {
         </div>
       </section>
 
-      {/* Focus + Search */}
       <section className="no-print" style={{ ...panel, marginBottom: 16 }}>
         <div style={{ width: "100%" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.8fr", gap: 12 }}>
@@ -559,7 +524,6 @@ export default function TeacherClassPage() {
         </div>
       </section>
 
-      {/* Rosters */}
       <section style={panel} className="print-avoid-break">
         <div className="no-print" style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div>
@@ -570,7 +534,10 @@ export default function TeacherClassPage() {
 
         <div style={{ marginTop: 12, fontSize: fontSizePx, width: "100%" }}>
           {(classFocusId ? classes.filter((c) => c.id === classFocusId) : classes).map((c, idx, arr) => {
-            const assignedTeacherIds = Array.from(linkByClass.get(c.id) ?? new Set());
+            const assignedTeacherIds = Array.from(
+              (linkByClass.get(c.id) ?? new Set<string>()) as Set<string>
+            ) as string[];
+
             const assignedTeachers = assignedTeacherIds
               .map((tid) => teacherById.get(tid))
               .filter(Boolean) as TeacherRow[];
@@ -605,7 +572,6 @@ export default function TeacherClassPage() {
                     <button
                       onClick={() => {
                         setAssignClassId(c.id);
-                        // If teacher search is active, default to first filtered teacher
                         if (filteredTeachers.length > 0) setAssignTeacherId(filteredTeachers[0].id);
                       }}
                       style={tinyBtn}
@@ -656,7 +622,6 @@ export default function TeacherClassPage() {
         </div>
       </section>
 
-      {/* Debug hint */}
       <section className="no-print" style={{ marginTop: 14, fontSize: 12, opacity: 0.7 }}>
         <details>
           <summary>Schema notes (if something breaks)</summary>
@@ -685,9 +650,6 @@ export default function TeacherClassPage() {
   );
 }
 
-/* ─────────────────────────────
-   UI Helpers
-───────────────────────────── */
 function Pill({ label }: { label: string }) {
   return (
     <span
