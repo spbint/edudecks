@@ -39,6 +39,35 @@ function childLandingLabel(key: DefaultChildLanding) {
   return "Reports";
 }
 
+function childOptionLabel(child: ChildOption | null | undefined) {
+  if (!child) return "Not selected";
+
+  return (
+    (child as any).name ||
+    (child as any).label ||
+    (child as any).title ||
+    [
+      (child as any).preferred_name,
+      (child as any).first_name,
+      (child as any).surname || (child as any).family_name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    "Not selected"
+  );
+}
+
+function childOptionYearLabel(child: ChildOption | null | undefined) {
+  if (!child) return "";
+
+  return (
+    (child as any).yearLabel ||
+    (child as any).year_label ||
+    ((child as any).year_level ? `Year ${(child as any).year_level}` : "")
+  );
+}
+
 export default function FamilySettingsPage() {
   const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [initialSettings, setInitialSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
@@ -305,7 +334,7 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.summaryRow}>
                 <span style={shellStyles.summaryKey}>Default child</span>
                 <span style={shellStyles.summaryValue}>
-                  {children.find((c) => c.id === settings.default_child_id)?.name || "Not selected"}
+                  {childOptionLabel(children.find((c) => c.id === settings.default_child_id))}
                 </span>
               </div>
               <div style={shellStyles.summaryRow}>
@@ -430,7 +459,8 @@ export default function FamilySettingsPage() {
                   >
                     {children.map((child) => (
                       <option key={child.id} value={child.id}>
-                        {child.name} · {child.yearLabel}
+                        {childOptionLabel(child)}
+                        {childOptionYearLabel(child) ? ` · ${childOptionYearLabel(child)}` : ""}
                       </option>
                     ))}
                   </select>
