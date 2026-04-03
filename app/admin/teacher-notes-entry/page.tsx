@@ -305,7 +305,7 @@ export default function TeacherNotesEntryPage() {
         .limit(50000);
 
       if (!error) {
-        setStudents((data ?? []) as StudentRow[]);
+        setStudents(((data ?? []) as unknown) as StudentRow[]);
         return;
       }
       if (!isMissingColumnError(error)) throw error;
@@ -322,7 +322,7 @@ export default function TeacherNotesEntryPage() {
       .limit(5000);
 
     if (error) throw error;
-    setClasses((data ?? []) as ClassRow[]);
+    setClasses(((data ?? []) as unknown) as ClassRow[]);
   }
 
   async function loadExisting() {
@@ -337,7 +337,7 @@ export default function TeacherNotesEntryPage() {
     for (const sel of tries) {
       const { data, error } = await supabase.from("teacher_notes").select(sel).eq("id", editId).single();
       if (!error) {
-        const r = data as TeacherNoteRow;
+        const r = (data as unknown) as TeacherNoteRow;
         setStudentId(r.student_id ?? "");
         setClassId(r.class_id ?? "");
         setNoteKind(r.note_kind ?? "");
@@ -372,7 +372,7 @@ export default function TeacherNotesEntryPage() {
         .limit(30);
 
       if (!error) {
-        const rows = ((data ?? []) as TeacherNoteRow[]).filter((x) => !x.is_deleted);
+        const rows = (((data ?? []) as unknown) as TeacherNoteRow[]).filter((x) => !x.is_deleted);
         setLatest(rows);
         return;
       }
@@ -527,7 +527,11 @@ export default function TeacherNotesEntryPage() {
 
       setOkMsg("Note deleted.");
       await loadLatestForStudent(studentId);
-      if (editId === noteId) router.push(studentId ? `/admin/teacher-notes-entry?studentId=${studentId}` : "/admin/teacher-notes-entry");
+      if (editId === noteId) {
+        router.push(
+          studentId ? `/admin/teacher-notes-entry?studentId=${studentId}` : "/admin/teacher-notes-entry"
+        );
+      }
     } catch (e: any) {
       setErr(e?.message ?? "Delete failed.");
     } finally {
@@ -551,7 +555,8 @@ export default function TeacherNotesEntryPage() {
             <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
               {selectedClass ? (
                 <span style={S.chip}>
-                  Class: {safe(selectedClass.name) || "Class"} {selectedClass.year_level ? `Y${selectedClass.year_level}` : ""}
+                  Class: {safe(selectedClass.name) || "Class"}{" "}
+                  {selectedClass.year_level ? `Y${selectedClass.year_level}` : ""}
                 </span>
               ) : (
                 <span style={S.chip}>Class: —</span>
@@ -744,7 +749,15 @@ export default function TeacherNotesEntryPage() {
                         {safe(n.title) || safe(n.note_kind) || "Teacher note"}
                       </div>
                       {safe(n.note) ? (
-                        <div style={{ marginTop: 6, color: "#334155", fontWeight: 800, lineHeight: 1.35, whiteSpace: "pre-wrap" }}>
+                        <div
+                          style={{
+                            marginTop: 6,
+                            color: "#334155",
+                            fontWeight: 800,
+                            lineHeight: 1.35,
+                            whiteSpace: "pre-wrap",
+                          }}
+                        >
                           {clip(safe(n.note), 280)}
                         </div>
                       ) : (
