@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import AdminShell from "../components/AdminShell";
@@ -125,7 +125,6 @@ async function firstTableThatWorks<T>(
     const res = await trySelect<T>(t, select, opts);
     if (!res.error && Array.isArray(res.data)) return { table: t, data: res.data, error: null };
   }
-  // return last error-like shape
   const last = await trySelect<T>(tables[tables.length - 1], select, opts);
   return { table: null, data: [], error: last.error ?? "No matching table found." };
 }
@@ -134,8 +133,6 @@ async function countByInstrument(
   evidenceTable: string,
   instrumentId: string
 ): Promise<{ total: number; lastAt: string | null }> {
-  // We do a lightweight “latest record” lookup instead of a heavy count query across big tables.
-  // If you want exact totals later, we’ll move this into an RPC.
   const { data, error } = await supabase
     .from(evidenceTable)
     .select("id, created_at, instrument_id, instrument_fk, instrument", { count: "exact" })
@@ -151,13 +148,28 @@ async function countByInstrument(
 
   if (error) return { total: 0, lastAt: null };
 
-  // supabase-js returns count only when requested, but “count” is not always exposed on this call depending on client version.
-  // So we compute a “best effort”: if there is at least one row, we show “≥1” style via UI.
   const lastAt = (data?.[0] as any)?.created_at ?? null;
   return { total: Array.isArray(data) ? data.length : 0, lastAt };
 }
 
-export default function AssessmentsPage() {
+function AssessmentsPageFallback() {
+  return (
+    <div className="flex min-h-screen">
+      <AdminLeftNav />
+      <div className="flex-1">
+        <AdminShell
+          title="Assessments"
+          subtitle="FM-style instruments dashboard • evidence • coverage • audit"
+          backHref="/admin"
+        >
+          <div className="dash-alert">Loading assessments…</div>
+        </AdminShell>
+      </div>
+    </div>
+  );
+}
+
+function AssessmentsPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -204,21 +216,18 @@ export default function AssessmentsPage() {
     setParams({ tab: t });
   };
 
-  /** Initial load */
   useEffect(() => {
     let alive = true;
     (async () => {
       setLoading(true);
       setLoadHint(null);
 
-      // Load instruments
       const instRes = await firstTableThatWorks<InstrumentRow>(
         instrumentCandidates,
         "id, label, name, short, code, domain, year_level, is_active, archived, created_at",
         { order: { col: "created_at", ascending: false }, limit: 500 }
       );
 
-      // Load evidence preview
       const evRes = await firstTableThatWorks<EvidenceRow>(
         evidenceCandidates,
         "id, created_at, student_id, class_id, instrument_id, instrument_fk, notes, score, percentile, stanine",
@@ -296,7 +305,6 @@ export default function AssessmentsPage() {
     [filtered, instruments, selectedId]
   );
 
-  /** Focus stats for selected instrument */
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -333,7 +341,6 @@ export default function AssessmentsPage() {
           subtitle="FM-style instruments dashboard • evidence • coverage • audit"
           backHref="/admin"
         >
-          {/* HERO */}
           <section className="dash-card overflow-hidden">
             <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-blue-50 p-5">
               <div className="text-[11px] font-black tracking-widest text-slate-500">
@@ -360,7 +367,6 @@ export default function AssessmentsPage() {
                 </div>
               </div>
 
-              {/* FILTER BAR */}
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px_220px] md:items-start">
                 <div>
                   <input
@@ -415,7 +421,6 @@ export default function AssessmentsPage() {
                 </select>
               </div>
 
-              {/* QUICK CHIPS */}
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <div className="text-xs font-black text-slate-500">Quick filters:</div>
                 <ChipButton label="✅ Active" active={status === "Active"} onClick={() => setStatus("Active")} />
@@ -426,7 +431,6 @@ export default function AssessmentsPage() {
             </div>
           </section>
 
-          {/* SNAPSHOT TILES */}
           <section className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="dash-card">
               <div className="text-xs font-black text-slate-500">Total instruments</div>
@@ -454,7 +458,6 @@ export default function AssessmentsPage() {
             </div>
           </section>
 
-          {/* TABS */}
           <section className="mt-4 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -484,9 +487,7 @@ export default function AssessmentsPage() {
             </div>
           </section>
 
-          {/* MAIN GRID + FOCUS PANEL */}
           <section className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-            {/* LEFT: LIST / GRID */}
             <div className="dash-card">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -565,7 +566,6 @@ export default function AssessmentsPage() {
               )}
             </div>
 
-            {/* RIGHT: FOCUS PANEL */}
             <div className="dash-card">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -593,7 +593,6 @@ export default function AssessmentsPage() {
                     </div>
                   </div>
 
-                  {/* Quick stats */}
                   <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="text-xs font-black text-slate-500">Latest evidence</div>
@@ -615,7 +614,6 @@ export default function AssessmentsPage() {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="mt-4 flex flex-wrap gap-2">
                     <Link
                       href={`/admin/evidence?${encodeURIComponent(EVIDENCE_INSTRUMENT_FK)}=${encodeURIComponent(
@@ -641,7 +639,6 @@ export default function AssessmentsPage() {
                     </Link>
                   </div>
 
-                  {/* Tab content */}
                   <div className="mt-5">
                     {tab === "overview" ? (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -676,7 +673,6 @@ export default function AssessmentsPage() {
             </div>
           </section>
 
-          {/* RECENT EVIDENCE FEED */}
           <section className="mt-4 dash-card">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -773,5 +769,13 @@ export default function AssessmentsPage() {
         </AdminShell>
       </div>
     </div>
+  );
+}
+
+export default function AssessmentsPage() {
+  return (
+    <Suspense fallback={<AssessmentsPageFallback />}>
+      <AssessmentsPageInner />
+    </Suspense>
   );
 }
