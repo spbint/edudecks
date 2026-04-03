@@ -37,6 +37,15 @@ function shortDate(value?: string | null) {
   }
 }
 
+/* ✅ NEW: jurisdiction normaliser */
+function normaliseJurisdiction(value: any): "au" | "uk" | "us" {
+  const raw = String(value ?? "").trim().toLowerCase();
+
+  if (raw === "uk" || raw === "united kingdom") return "uk";
+  if (raw === "us" || raw === "usa" || raw === "united states") return "us";
+  return "au"; // safe fallback
+}
+
 function selectedCoreCount(draft: ReportDraftRow) {
   return draft.selected_evidence_ids.filter(
     (id) => draft.selection_meta?.[id]?.role !== "appendix"
@@ -55,10 +64,13 @@ function selectedRequiredCount(draft: ReportDraftRow) {
   ).length;
 }
 
+/* ✅ FIX APPLIED HERE */
 function buildDefaultConfig(draft: ReportDraftRow): AuthorityPackConfig {
+  const jurisdiction = normaliseJurisdiction(draft.preferred_market);
+
   return {
     draftId: draft.id,
-    jurisdiction: draft.preferred_market,
+    jurisdiction,
     title: `${draft.child_name} — Authority Pack`,
     includeSections: {
       cover: true,
