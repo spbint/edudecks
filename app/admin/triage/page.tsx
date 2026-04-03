@@ -802,7 +802,7 @@ export default function TriagePage() {
       <AdminLeftNav />
 
       <main style={S.main}>
-        <ModeSwitcher mode="school" />
+        <ModeSwitcher />
 
         <section style={S.hero}>
           <div style={S.subtle}>MAX Triage Queue</div>
