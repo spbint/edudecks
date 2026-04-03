@@ -145,7 +145,7 @@ export default function ChildWorkspacePage() {
 
     for (const sel of tries) {
       const r = await supabase.from("students").select(sel).eq("id", childId).single();
-      if (!r.error) return (r.data ?? null) as ChildRow | null;
+      if (!r.error) return ((r.data ?? null) as unknown) as ChildRow | null;
       if (!isMissingColumnError(r.error)) throw r.error;
     }
 
@@ -169,7 +169,7 @@ export default function ChildWorkspacePage() {
         .order("created_at", { ascending: false });
 
       if (!r.error) {
-        return ((r.data ?? []) as EvidenceRow[]).filter((x) => !x.is_deleted);
+        return (((r.data ?? []) as unknown) as EvidenceRow[]).filter((x) => !x.is_deleted);
       }
       if (!isMissingColumnError(r.error)) throw r.error;
     }
