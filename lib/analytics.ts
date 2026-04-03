@@ -320,7 +320,7 @@ async function loadStudentById(studentId: string): Promise<StudentRow | null> {
 
   for (const sel of tries) {
     const r = await supabase.from("students").select(sel).eq("id", studentId).maybeSingle();
-    if (!r.error) return (r.data as StudentRow) || null;
+    if (!r.error) return (((r.data as unknown) as StudentRow) || null);
     if (!isMissingColumnError(r.error)) throw r.error;
   }
 
@@ -335,7 +335,7 @@ async function loadClassById(classId: string): Promise<ClassRow | null> {
 
   for (const sel of tries) {
     const r = await supabase.from("classes").select(sel).eq("id", classId).maybeSingle();
-    if (!r.error) return (r.data as ClassRow) || null;
+    if (!r.error) return (((r.data as unknown) as ClassRow) || null);
     if (!isMissingColumnError(r.error)) throw r.error;
   }
 
@@ -359,7 +359,7 @@ async function loadStudentsForClass(classId: string): Promise<StudentRow[]> {
       .order("first_name", { ascending: true });
 
     if (!r.error) {
-      return ((r.data ?? []) as StudentRow[]).filter((s) => !s.is_archived);
+      return ((((r.data ?? []) as unknown) as StudentRow[])).filter((s) => !s.is_archived);
     }
     if (!isMissingColumnError(r.error)) throw r.error;
   }
@@ -382,7 +382,9 @@ async function loadEvidenceForStudent(studentId: string): Promise<EvidenceEntryR
     throw r.error;
   }
 
-  return ((r.data ?? []) as EvidenceEntryRow[]).filter((x) => !x.is_deleted).sort(sortEvidenceNewest);
+  return ((((r.data ?? []) as unknown) as EvidenceEntryRow[]))
+    .filter((x) => !x.is_deleted)
+    .sort(sortEvidenceNewest);
 }
 
 async function loadEvidenceForClass(classId: string): Promise<EvidenceEntryRow[]> {
@@ -400,7 +402,9 @@ async function loadEvidenceForClass(classId: string): Promise<EvidenceEntryRow[]
     throw r.error;
   }
 
-  return ((r.data ?? []) as EvidenceEntryRow[]).filter((x) => !x.is_deleted).sort(sortEvidenceNewest);
+  return ((((r.data ?? []) as unknown) as EvidenceEntryRow[]))
+    .filter((x) => !x.is_deleted)
+    .sort(sortEvidenceNewest);
 }
 
 async function loadInterventionsForStudent(studentId: string): Promise<InterventionRow[]> {
@@ -417,7 +421,7 @@ async function loadInterventionsForStudent(studentId: string): Promise<Intervent
     throw r.error;
   }
 
-  return ((r.data ?? []) as InterventionRow[]).sort(sortInterventionsNewest);
+  return ((((r.data ?? []) as unknown) as InterventionRow[])).sort(sortInterventionsNewest);
 }
 
 async function loadInterventionsForClass(classId: string): Promise<InterventionRow[]> {
@@ -434,7 +438,7 @@ async function loadInterventionsForClass(classId: string): Promise<InterventionR
     throw r.error;
   }
 
-  return ((r.data ?? []) as InterventionRow[]).sort(sortInterventionsNewest);
+  return ((((r.data ?? []) as unknown) as InterventionRow[])).sort(sortInterventionsNewest);
 }
 
 async function loadAttributesForStudent(_studentId: string): Promise<AttributeRow[]> {
