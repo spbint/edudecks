@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import AdminPageActions from "@/app/components/AdminPageActions";
@@ -237,9 +237,20 @@ function toneCard(
   return { borderColor: "#a7f3d0", background: "#ecfdf5" };
 }
 
+function ClassesPageFallback() {
+  return (
+    <div style={S.shell}>
+      <AdminLeftNav />
+      <main style={S.main}>
+        <div style={S.ok}>Loading classes board…</div>
+      </main>
+    </div>
+  );
+}
+
 /* ───────────────────────── PAGE ───────────────────────── */
 
-export default function AdminClassesIndexPage() {
+function AdminClassesIndexPageInner() {
   const router = useRouter();
 
   const [busy, setBusy] = useState(false);
@@ -1037,6 +1048,14 @@ export default function AdminClassesIndexPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function AdminClassesIndexPage() {
+  return (
+    <Suspense fallback={<ClassesPageFallback />}>
+      <AdminClassesIndexPageInner />
+    </Suspense>
   );
 }
 
