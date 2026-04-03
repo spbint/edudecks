@@ -1,4 +1,4 @@
-import type { PremiumTriggerKey } from "@/lib/premiumUpgradeEngine";
+import type { PremiumTrigger } from "@/lib/premiumUpgradeEngine";
 
 export type PremiumPlanKey = "free" | "premium";
 
@@ -30,7 +30,7 @@ export type PremiumFeatureMeta = {
 };
 
 export type PremiumTriggerConfig = {
-  trigger: PremiumTriggerKey;
+  trigger: PremiumTrigger;
   headline: string;
   supportingText: string;
   primaryCtaLabel: string;
@@ -132,7 +132,7 @@ export const PREMIUM_FEATURES: Record<PremiumFeatureKey, PremiumFeatureMeta> = {
 };
 
 export const PREMIUM_TRIGGER_CONFIGS: Record<
-  PremiumTriggerKey,
+  PremiumTrigger,
   PremiumTriggerConfig
 > = {
   "capture-media": {
@@ -199,7 +199,7 @@ export function getPremiumFeature(featureKey: PremiumFeatureKey) {
   return PREMIUM_FEATURES[featureKey];
 }
 
-export function getPremiumTriggerConfig(trigger: PremiumTriggerKey) {
+export function getPremiumTriggerConfig(trigger: PremiumTrigger) {
   return PREMIUM_TRIGGER_CONFIGS[trigger];
 }
 
@@ -210,12 +210,12 @@ export function planIncludesFeature(
   return PREMIUM_PLANS[planKey].features.includes(featureKey);
 }
 
-export function getFeaturesForTrigger(trigger: PremiumTriggerKey) {
+export function getFeaturesForTrigger(trigger: PremiumTrigger) {
   const config = getPremiumTriggerConfig(trigger);
   return config.featureKeys.map((key) => getPremiumFeature(key));
 }
 
-export function getRecommendedPlanForTrigger(trigger: PremiumTriggerKey) {
+export function getRecommendedPlanForTrigger(trigger: PremiumTrigger) {
   const config = getPremiumTriggerConfig(trigger);
   return getPremiumPlan(config.recommendedPlan);
 }
