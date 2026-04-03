@@ -5,7 +5,11 @@ export type PremiumTrigger =
   | "portfolio"
   | "authority"
   | "planner"
-  | "general";
+  | "general"
+  | "capture-media"
+  | "authority-pack"
+  | "momentum-progress"
+  | "reports-guidance";
 
 export type PremiumUpgradeDecision = {
   shouldShow: boolean;
@@ -106,6 +110,26 @@ export function getPremiumUpgradeDecision(
       title: "Unlock EduDecks Premium",
       message:
         "Premium adds richer guidance, deeper tools, and more polished outputs across the family workflow.",
+    },
+    "capture-media": {
+      title: "Unlock richer media capture",
+      message:
+        "Premium adds stronger photo and media workflows, smarter capture support, and richer evidence presentation.",
+    },
+    "authority-pack": {
+      title: "Unlock stronger authority packs",
+      message:
+        "Premium adds deeper pack-building support, clearer compliance guidance, and more polished formal export options.",
+    },
+    "momentum-progress": {
+      title: "Unlock deeper progress insights",
+      message:
+        "Premium adds stronger momentum signals, richer progress interpretation, and more advanced family insight tools.",
+    },
+    "reports-guidance": {
+      title: "Unlock enhanced export guidance",
+      message:
+        "Premium adds cleaner branded exports, richer report guidance, and more polished authority handoff formats.",
     },
   };
 
