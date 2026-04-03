@@ -11,6 +11,15 @@ export type PremiumTrigger =
   | "momentum-progress"
   | "reports-guidance";
 
+export type PremiumUpgradeContext = {
+  surface?: string;
+  hasPremium?: PremiumPlan;
+  captureCount?: number;
+  reportCount?: number;
+  authorityPackCount?: number;
+  hasEnteredAuthorityFlow?: boolean;
+};
+
 export type PremiumUpgradeDecision = {
   shouldShow: boolean;
   trigger: PremiumTrigger;
@@ -62,10 +71,44 @@ export function dismissPremiumTrigger(trigger: PremiumTrigger) {
   writeDismissedTriggers([...current, trigger]);
 }
 
+function resolveTriggerFromContext(input: PremiumTrigger | PremiumUpgradeContext | undefined): PremiumTrigger {
+  if (!input) return "general";
+  if (typeof input === "string") return input;
+
+  const surface = String(input.surface ?? "").toLowerCase();
+  const captureCount = Number(input.captureCount ?? 0);
+  const reportCount = Number(input.reportCount ?? 0);
+  const authorityPackCount = Number(input.authorityPackCount ?? 0);
+  const hasEnteredAuthorityFlow = Boolean(input.hasEnteredAuthorityFlow);
+
+  if (surface === "family") {
+    if (hasEnteredAuthorityFlow || authorityPackCount > 0) return "authority";
+    if (reportCount > 0) return "reports";
+    if (captureCount > 0) return "portfolio";
+    return "general";
+  }
+
+  if (surface.includes("authority")) return "authority";
+  if (surface.includes("report")) return "reports";
+  if (surface.includes("portfolio")) return "portfolio";
+  if (surface.includes("planner")) return "planner";
+
+  return "general";
+}
+
+function resolvePlanFromInput(input: PremiumTrigger | PremiumUpgradeContext | undefined): PremiumPlan {
+  if (input && typeof input !== "string" && input.hasPremium) {
+    return input.hasPremium === "premium" ? "premium" : "free";
+  }
+  return getPremiumPlanFromStorage();
+}
+
 export function getPremiumUpgradeDecision(
-  trigger: PremiumTrigger = "general"
+  input: PremiumTrigger | PremiumUpgradeContext = "general"
 ): PremiumUpgradeDecision {
-  const plan = getPremiumPlanFromStorage();
+  const trigger = resolveTriggerFromContext(input);
+  const plan = resolvePlanFromInput(input);
+
   if (plan === "premium") {
     return {
       shouldShow: false,
