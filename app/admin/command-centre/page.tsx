@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import AdminPageActions from "@/app/components/AdminPageActions";
@@ -114,7 +114,14 @@ type CommandPreset = {
     showOnlyInvisibleRisk: boolean;
     emphasizeAuthority: boolean;
     emphasizeDeployment: boolean;
-    sortMode: "priority" | "name" | "coverage" | "interventions" | "reporting" | "authority" | "deployment";
+    sortMode:
+      | "priority"
+      | "name"
+      | "coverage"
+      | "interventions"
+      | "reporting"
+      | "authority"
+      | "deployment";
     maxRows: number;
   };
 };
@@ -494,9 +501,25 @@ function benchmarkPosition(avgRisk: number) {
   return "Below" as const;
 }
 
+function toClassLabel(c: ClassRow | undefined | null) {
+  if (!c) return "Class";
+  return [safe(c.name), fmtYear(c.year_level), safe(c.room)].filter(Boolean).join(" • ") || "Class";
+}
+
+function CommandCentrePageFallback() {
+  return (
+    <div style={S.shell}>
+      <AdminLeftNav />
+      <main style={S.main}>
+        <div style={S.ok}>Loading command centre…</div>
+      </main>
+    </div>
+  );
+}
+
 /* ───────────────────────── PAGE ───────────────────────── */
 
-export default function AdminCommandCentrePage() {
+function AdminCommandCentrePageInner() {
   const router = useRouter();
 
   const [busy, setBusy] = useState(false);
@@ -537,7 +560,7 @@ export default function AdminCommandCentrePage() {
         .order("name", { ascending: true });
 
       if (!r.error) {
-        setClasses(((r.data as any[]) ?? []) as ClassRow[]);
+        setClasses((((r.data as any[]) ?? []) as unknown) as ClassRow[]);
         return;
       }
       if (!isMissingRelationOrColumn(r.error)) throw r.error;
@@ -563,7 +586,7 @@ export default function AdminCommandCentrePage() {
         .order("first_name", { ascending: true });
 
       if (!q.error) {
-        setStudents(((q.data as any[]) ?? []) as StudentRow[]);
+        setStudents((((q.data as any[]) ?? []) as unknown) as StudentRow[]);
         return;
       }
       if (!isMissingRelationOrColumn(q.error)) throw q.error;
@@ -589,7 +612,7 @@ export default function AdminCommandCentrePage() {
         .limit(18000);
 
       if (!q.error) {
-        setEvidenceEntries(((q.data as any[]) ?? []) as EvidenceEntryRow[]);
+        setEvidenceEntries((((q.data as any[]) ?? []) as unknown) as EvidenceEntryRow[]);
         return;
       }
       if (!isMissingRelationOrColumn(q.error)) throw q.error;
@@ -613,7 +636,7 @@ export default function AdminCommandCentrePage() {
         .limit(8000);
 
       if (!q.error) {
-        setInterventions(((q.data as any[]) ?? []) as InterventionRow[]);
+        setInterventions((((q.data as any[]) ?? []) as unknown) as InterventionRow[]);
         return;
       }
       if (!isMissingRelationOrColumn(q.error)) throw q.error;
@@ -633,7 +656,7 @@ export default function AdminCommandCentrePage() {
       throw q.error;
     }
 
-    setStudentOverviewRows(((q.data as any[]) ?? []) as StudentProfileOverviewRow[]);
+    setStudentOverviewRows((((q.data as any[]) ?? []) as unknown) as StudentProfileOverviewRow[]);
   }
 
   async function loadClassHealthView() {
@@ -647,7 +670,7 @@ export default function AdminCommandCentrePage() {
       throw q.error;
     }
 
-    setClassHealthRows(((q.data as any[]) ?? []) as ClassHealthViewRow[]);
+    setClassHealthRows((((q.data as any[]) ?? []) as unknown) as ClassHealthViewRow[]);
   }
 
   async function loadAll() {
@@ -783,7 +806,8 @@ export default function AdminCommandCentrePage() {
         null;
 
       const lastEvidenceDays = daysSince(lastEvidenceAt);
-      const invisibleRisk = totalEvidenceCount === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
+      const invisibleRisk =
+        totalEvidenceCount === 0 || lastEvidenceDays == null || lastEvidenceDays > 45;
 
       const attentionStatus =
         safe(o?.attention_status) === "Attention"
@@ -886,8 +910,12 @@ export default function AdminCommandCentrePage() {
         totalEvidenceCount,
         lastEvidenceDays,
 
-        openInterventions: Number(o?.open_interventions_count ?? activeInterventions.length) || activeInterventions.length,
-        overdueReviews: Number(o?.overdue_reviews_count ?? overdueReviews.length) || overdueReviews.length,
+        openInterventions:
+          Number(o?.open_interventions_count ?? activeInterventions.length) ||
+          activeInterventions.length,
+        overdueReviews:
+          Number(o?.overdue_reviews_count ?? overdueReviews.length) ||
+          overdueReviews.length,
         dueSoonReviews: dueSoonReviews.length,
 
         missingAreaCount,
@@ -913,7 +941,12 @@ export default function AdminCommandCentrePage() {
     }
 
     if (activePreset.filters.showOnlyAttention) {
-      rows = rows.filter((r) => r.attentionStatus === "Attention" || r.overdueReviews > 0 || r.openInterventions > 0);
+      rows = rows.filter(
+        (r) =>
+          r.attentionStatus === "Attention" ||
+          r.overdueReviews > 0 ||
+          r.openInterventions > 0
+      );
     }
 
     if (activePreset.filters.showOnlyInvisibleRisk) {
@@ -923,15 +956,27 @@ export default function AdminCommandCentrePage() {
     if (activePreset.filters.sortMode === "name") {
       rows.sort((a, b) => a.studentName.localeCompare(b.studentName));
     } else if (activePreset.filters.sortMode === "coverage") {
-      rows.sort((a, b) => b.missingAreaCount - a.missingAreaCount || b.priorityScore - a.priorityScore);
+      rows.sort(
+        (a, b) => b.missingAreaCount - a.missingAreaCount || b.priorityScore - a.priorityScore
+      );
     } else if (activePreset.filters.sortMode === "interventions") {
-      rows.sort((a, b) => b.overdueReviews + b.openInterventions - (a.overdueReviews + a.openInterventions));
+      rows.sort(
+        (a, b) =>
+          b.overdueReviews + b.openInterventions -
+          (a.overdueReviews + a.openInterventions)
+      );
     } else if (activePreset.filters.sortMode === "reporting") {
-      rows.sort((a, b) => Number(b.reportingFragile) - Number(a.reportingFragile) || b.priorityScore - a.priorityScore);
+      rows.sort(
+        (a, b) =>
+          Number(b.reportingFragile) - Number(a.reportingFragile) ||
+          b.priorityScore - a.priorityScore
+      );
     } else if (activePreset.filters.sortMode === "authority") {
-      rows.sort((a, b) => a.authorityReadinessScore - b.authorityReadinessScore || b.priorityScore - a.priorityScore);
-    } else if (activePreset.filters.sortMode === "deployment") {
-      rows.sort((a, b) => b.priorityScore - a.priorityScore);
+      rows.sort(
+        (a, b) =>
+          a.authorityReadinessScore - b.authorityReadinessScore ||
+          b.priorityScore - a.priorityScore
+      );
     } else {
       rows.sort((a, b) => b.priorityScore - a.priorityScore);
     }
@@ -965,7 +1010,11 @@ export default function AdminCommandCentrePage() {
             0,
             Math.min(
               100,
-              100 - attentionCount * 8 - invisibleCount * 7 - overdueReviews * 4 - Math.max(0, 60 - evidenceFreshPct) * 0.5
+              100 -
+                attentionCount * 8 -
+                invisibleCount * 7 -
+                overdueReviews * 4 -
+                Math.max(0, 60 - evidenceFreshPct) * 0.5
             )
           );
 
@@ -983,17 +1032,22 @@ export default function AdminCommandCentrePage() {
 
         let deploymentRecommendation = "Maintain normal teacher workflow.";
         if (teacherLoadScore >= 75) deploymentRecommendation = "Deploy support time here first.";
-        else if (teacherLoadScore >= 45) deploymentRecommendation = "Protect time for focused review and evidence capture.";
+        else if (teacherLoadScore >= 45)
+          deploymentRecommendation = "Protect time for focused review and evidence capture.";
 
         let recommendedAction = "Stable class — maintain normal operations.";
-        if (reportingFragileCount >= 4) recommendedAction = "Run evidence push and reporting prep this week.";
-        else if (overdueReviews >= 3) recommendedAction = "Clear overdue reviews before workload compounds.";
-        else if (invisibleCount >= 3) recommendedAction = "Restore learner visibility through fresh capture.";
-        else if (attentionCount >= 3) recommendedAction = "Prioritise support check-in and triage.";
+        if (reportingFragileCount >= 4)
+          recommendedAction = "Run evidence push and reporting prep this week.";
+        else if (overdueReviews >= 3)
+          recommendedAction = "Clear overdue reviews before workload compounds.";
+        else if (invisibleCount >= 3)
+          recommendedAction = "Restore learner visibility through fresh capture.";
+        else if (attentionCount >= 3)
+          recommendedAction = "Prioritise support check-in and triage.";
 
         return {
           classId: c.id,
-          classLabel: [safe(c.name), fmtYear(c.year_level), safe(c.room)].filter(Boolean).join(" • ") || "Class",
+          classLabel: toClassLabel(c),
           teacherName: safe(c.teacher_name) || "—",
           studentsTotal,
           attentionCount,
@@ -1002,7 +1056,9 @@ export default function AdminCommandCentrePage() {
           authorityFragileCount,
           overdueReviews,
           avgRisk,
-          evidenceFreshPct: Math.round(Number(classHealth?.evidence_fresh_pct ?? evidenceFreshPct)) || evidenceFreshPct,
+          evidenceFreshPct:
+            Math.round(Number(classHealth?.evidence_fresh_pct ?? evidenceFreshPct)) ||
+            evidenceFreshPct,
           healthScore,
           teacherLoadScore,
           deploymentRecommendation,
@@ -1021,7 +1077,9 @@ export default function AdminCommandCentrePage() {
         rows.push({
           id: `student-${student.studentId}-forecast`,
           title: `${student.studentName} is escalating`,
-          text: `${student.nextAction}. Momentum is ${student.evidenceMomentumDelta >= 0 ? "stable/improving" : "declining"} and risk is rising.`,
+          text: `${student.nextAction}. Momentum is ${
+            student.evidenceMomentumDelta >= 0 ? "stable/improving" : "declining"
+          } and risk is rising.`,
           studentId: student.studentId,
           classId: student.classId,
           priority: 90 + student.priorityScore,
@@ -1165,7 +1223,12 @@ export default function AdminCommandCentrePage() {
       return [
         {
           title: "If no new evidence is added this week",
-          tone: projected > total * 0.35 ? "danger" : projected > total * 0.2 ? "watch" : "good",
+          tone:
+            projected > total * 0.35
+              ? "danger"
+              : projected > total * 0.2
+              ? "watch"
+              : "good",
           text: `${projected} students would likely move into or remain in fragile visibility / reporting posture.`,
         },
       ];
@@ -1200,7 +1263,9 @@ export default function AdminCommandCentrePage() {
       ];
     }
 
-    const boosted = classRows.filter((c) => c.reportingFragileCount >= 3 || c.invisibleCount >= 3).length;
+    const boosted = classRows.filter(
+      (c) => c.reportingFragileCount >= 3 || c.invisibleCount >= 3
+    ).length;
     return [
       {
         title: "If we run a targeted evidence push",
@@ -1464,7 +1529,15 @@ export default function AdminCommandCentrePage() {
                     title={preset.description}
                   >
                     <div style={{ fontSize: 13, fontWeight: 950 }}>{preset.label}</div>
-                    <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.35, opacity: active ? 0.95 : 0.78, fontWeight: 800 }}>
+                    <div
+                      style={{
+                        marginTop: 4,
+                        fontSize: 11,
+                        lineHeight: 1.35,
+                        opacity: active ? 0.95 : 0.78,
+                        fontWeight: 800,
+                      }}
+                    >
                       {preset.description}
                     </div>
                   </button>
@@ -1480,7 +1553,7 @@ export default function AdminCommandCentrePage() {
                 <option value="all">All classes</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {[safe(c.name), fmtYear(c.year_level), safe(c.room)].filter(Boolean).join(" • ") || "Class"}
+                    {toClassLabel(c)}
                   </option>
                 ))}
               </select>
@@ -1498,7 +1571,11 @@ export default function AdminCommandCentrePage() {
 
             <div>
               <label style={S.subtle}>Scenario mode</label>
-              <select value={scenarioMode} onChange={(e) => setScenarioMode(e.target.value as ScenarioMode)} style={S.select}>
+              <select
+                value={scenarioMode}
+                onChange={(e) => setScenarioMode(e.target.value as ScenarioMode)}
+                style={S.select}
+              >
                 <option value="today">If we act today</option>
                 <option value="no_evidence_week">If no evidence is added this week</option>
                 <option value="reporting_starts_now">If reporting started now</option>
@@ -1515,53 +1592,14 @@ export default function AdminCommandCentrePage() {
           </div>
 
           <div style={S.tiles}>
-            <div style={S.tile}>
-              <div style={S.tileK}>Students in View</div>
-              <div style={S.tileV}>{summaryMetrics.totalStudents}</div>
-              <div style={S.tileS}>Students shown after current preset and filters.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Attention</div>
-              <div style={S.tileV}>{summaryMetrics.attentionCount}</div>
-              <div style={S.tileS}>Highest concern learners.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Invisible</div>
-              <div style={S.tileV}>{summaryMetrics.invisible}</div>
-              <div style={S.tileS}>Learners slipping out of view.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Reporting Fragile</div>
-              <div style={S.tileV}>{summaryMetrics.fragile}</div>
-              <div style={S.tileS}>Weak readiness for report writing.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Authority Fragile</div>
-              <div style={S.tileV}>{summaryMetrics.authorityFragile}</div>
-              <div style={S.tileS}>Documentation/audit confidence risk.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Escalating</div>
-              <div style={S.tileV}>{summaryMetrics.escalating}</div>
-              <div style={S.tileS}>Learners forecast to worsen soon.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Fresh Evidence</div>
-              <div style={S.tileV}>{summaryMetrics.freshEvidence}%</div>
-              <div style={S.tileS}>Students with evidence in the last 30 days.</div>
-            </div>
-
-            <div style={S.tile}>
-              <div style={S.tileK}>Average Risk</div>
-              <div style={S.tileV}>{summaryMetrics.avgRisk}</div>
-              <div style={S.tileS}>Overall class pressure position.</div>
-            </div>
+            <MetricTile label="Students in View" value={summaryMetrics.totalStudents} text="Students shown after current preset and filters." />
+            <MetricTile label="Attention" value={summaryMetrics.attentionCount} text="Highest concern learners." />
+            <MetricTile label="Invisible" value={summaryMetrics.invisible} text="Learners slipping out of view." />
+            <MetricTile label="Reporting Fragile" value={summaryMetrics.fragile} text="Weak readiness for report writing." />
+            <MetricTile label="Authority Fragile" value={summaryMetrics.authorityFragile} text="Documentation/audit confidence risk." />
+            <MetricTile label="Escalating" value={summaryMetrics.escalating} text="Learners forecast to worsen soon." />
+            <MetricTile label="Fresh Evidence" value={`${summaryMetrics.freshEvidence}%`} text="Students with evidence in the last 30 days." />
+            <MetricTile label="Average Risk" value={summaryMetrics.avgRisk} text="Overall class pressure position." />
           </div>
         </section>
 
@@ -1569,11 +1607,7 @@ export default function AdminCommandCentrePage() {
         {err ? <div style={S.err}>{err}</div> : null}
 
         <section style={S.grid2}>
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Teacher Alerts</div>
-            <div style={S.sectionHelp}>
-              Signals that should shape today’s teaching and support priorities.
-            </div>
+          <Card title="Teacher Alerts" help="Signals that should shape today’s teaching and support priorities.">
             <div style={S.list}>
               {alerts.map((a) => (
                 <div key={a.id} style={{ ...S.item, ...alertToneStyle(a.tone) }}>
@@ -1581,13 +1615,9 @@ export default function AdminCommandCentrePage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
 
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Scenario Simulator</div>
-            <div style={S.sectionHelp}>
-              Pressure-test the current operating picture under realistic classroom and reporting scenarios.
-            </div>
+          <Card title="Scenario Simulator" help="Pressure-test the current operating picture under realistic classroom and reporting scenarios.">
             <div style={S.list}>
               {scenarioRows.map((r) => (
                 <div key={r.title} style={{ ...S.item, ...alertToneStyle(r.tone) }}>
@@ -1596,15 +1626,11 @@ export default function AdminCommandCentrePage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </section>
 
         <section style={S.grid2}>
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Priority Queue</div>
-            <div style={S.sectionHelp}>
-              Ranked actions for today. Start here instead of scanning dashboards.
-            </div>
+          <Card title="Priority Queue" help="Ranked actions for today. Start here instead of scanning dashboards.">
             <div style={S.list}>
               {queueRows.length === 0 ? (
                 <div style={S.empty}>No immediate queue items stand out right now.</div>
@@ -1632,13 +1658,9 @@ export default function AdminCommandCentrePage() {
                 ))
               )}
             </div>
-          </div>
+          </Card>
 
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Strategic Intervention Planner</div>
-            <div style={S.sectionHelp}>
-              A short operating plan that turns today’s signals into concrete next steps.
-            </div>
+          <Card title="Strategic Intervention Planner" help="A short operating plan that turns today’s signals into concrete next steps.">
             <div style={S.list}>
               {strategicPlan.map((row) => (
                 <div key={row.title} style={{ ...S.item, ...alertToneStyle(row.tone) }}>
@@ -1650,15 +1672,11 @@ export default function AdminCommandCentrePage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </section>
 
         <section style={S.grid2}>
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Resource Allocation Optimizer</div>
-            <div style={S.sectionHelp}>
-              Where support time, relief, moderation, or review blocks should go first.
-            </div>
+          <Card title="Resource Allocation Optimizer" help="Where support time, relief, moderation, or review blocks should go first.">
             <div style={S.list}>
               {resourceRecommendations.length === 0 ? (
                 <div style={S.empty}>No strong resource reallocation signal is visible right now.</div>
@@ -1675,13 +1693,9 @@ export default function AdminCommandCentrePage() {
                 ))
               )}
             </div>
-          </div>
+          </Card>
 
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Staff Workload Modelling</div>
-            <div style={S.sectionHelp}>
-              Compare evidence pressure, review pressure, and support pressure by class.
-            </div>
+          <Card title="Staff Workload Modelling" help="Compare evidence pressure, review pressure, and support pressure by class.">
             <div style={S.tableWrap}>
               <table style={S.table}>
                 <thead>
@@ -1708,23 +1722,15 @@ export default function AdminCommandCentrePage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </section>
 
         <section style={S.grid2}>
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Automated Leadership Briefing</div>
-            <div style={S.sectionHelp}>
-              Ready-to-use operational briefing text for leadership or teacher planning conversations.
-            </div>
+          <Card title="Automated Leadership Briefing" help="Ready-to-use operational briefing text for leadership or teacher planning conversations.">
             <textarea readOnly value={automatedBriefing} style={S.textarea} />
-          </div>
+          </Card>
 
-          <div style={{ ...S.card, ...S.sectionPad }}>
-            <div style={S.sectionTitle}>Benchmark Positioning</div>
-            <div style={S.sectionHelp}>
-              Quick comparison against internal benchmark expectations.
-            </div>
+          <Card title="Benchmark Positioning" help="Quick comparison against internal benchmark expectations.">
             <div style={S.list}>
               {benchmarkRows.slice(0, 8).map((row) => (
                 <div key={row.classId} style={S.item}>
@@ -1736,7 +1742,7 @@ export default function AdminCommandCentrePage() {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         </section>
 
         <section style={{ ...S.card, ...S.sectionPad, marginTop: 14 }}>
@@ -1784,7 +1790,14 @@ export default function AdminCommandCentrePage() {
                       <td style={S.td}>{row.invisibleCount}</td>
                       <td style={S.td}>{row.reportingFragileCount}</td>
                       <td style={S.td}>
-                        <span style={{ ...S.chip, background: tone.bg, borderColor: tone.bd, color: tone.fg }}>
+                        <span
+                          style={{
+                            ...S.chip,
+                            background: tone.bg,
+                            borderColor: tone.bd,
+                            color: tone.fg,
+                          }}
+                        >
                           {row.authorityStatus}
                         </span>
                       </td>
@@ -1792,7 +1805,9 @@ export default function AdminCommandCentrePage() {
                       <td style={S.td}>{row.teacherLoadScore}</td>
                       <td style={S.td}>
                         <div style={{ fontWeight: 900 }}>{row.deploymentRecommendation}</div>
-                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{row.recommendedAction}</div>
+                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
+                          {row.recommendedAction}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1837,12 +1852,26 @@ export default function AdminCommandCentrePage() {
                         </div>
                       </td>
                       <td style={S.td}>
-                        <span style={{ ...S.chip, background: att.bg, borderColor: att.bd, color: att.fg }}>
+                        <span
+                          style={{
+                            ...S.chip,
+                            background: att.bg,
+                            borderColor: att.bd,
+                            color: att.fg,
+                          }}
+                        >
                           {row.attentionStatus}
                         </span>
                       </td>
                       <td style={S.td}>
-                        <span style={{ ...S.chip, background: ft.bg, borderColor: ft.bd, color: ft.fg }}>
+                        <span
+                          style={{
+                            ...S.chip,
+                            background: ft.bg,
+                            borderColor: ft.bd,
+                            color: ft.fg,
+                          }}
+                        >
                           {row.forecastRisk}
                         </span>
                       </td>
@@ -1857,11 +1886,20 @@ export default function AdminCommandCentrePage() {
                       <td style={S.td}>{row.authorityReadinessScore}</td>
                       <td style={S.td}>
                         <div style={{ fontWeight: 900 }}>{row.recommendedAction}</div>
-                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{row.nextAction}</div>
+                        <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>
+                          {row.nextAction}
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
+                {!filteredStudents.length && (
+                  <tr>
+                    <td style={S.td} colSpan={8}>
+                      No students match the current preset and filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1878,14 +1916,60 @@ export default function AdminCommandCentrePage() {
   );
 }
 
+export default function AdminCommandCentrePage() {
+  return (
+    <Suspense fallback={<CommandCentrePageFallback />}>
+      <AdminCommandCentrePageInner />
+    </Suspense>
+  );
+}
+
+/* ───────────────────────── SMALL UI ───────────────────────── */
+
+function Card({
+  title,
+  help,
+  children,
+}: {
+  title: string;
+  help?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ ...S.card, ...S.sectionPad }}>
+      <div style={S.sectionTitle}>{title}</div>
+      {help ? <div style={S.sectionHelp}>{help}</div> : null}
+      <div style={{ marginTop: 12 }}>{children}</div>
+    </div>
+  );
+}
+
+function MetricTile({
+  label,
+  value,
+  text,
+}: {
+  label: string;
+  value: React.ReactNode;
+  text: string;
+}) {
+  return (
+    <div style={S.tile}>
+      <div style={S.tileK}>{label}</div>
+      <div style={S.tileV}>{value}</div>
+      <div style={S.tileS}>{text}</div>
+    </div>
+  );
+}
+
 /* ───────────────────────── STYLES ───────────────────────── */
 
-const S = {
+const S: Record<string, React.CSSProperties> = {
   shell: {
     display: "flex",
     minHeight: "100vh",
     background: "#f6f7fb",
-  } as React.CSSProperties,
+  },
 
   main: {
     flex: 1,
@@ -1893,20 +1977,20 @@ const S = {
     maxWidth: 1680,
     margin: "0 auto",
     padding: 22,
-  } as React.CSSProperties,
+  },
 
   hero: {
     border: "1px solid #e8eaf0",
     borderRadius: 24,
     background: "linear-gradient(135deg, rgba(17,24,39,0.08), rgba(37,99,235,0.10))",
     padding: 18,
-  } as React.CSSProperties,
+  },
 
   card: {
     border: "1px solid #e8eaf0",
     borderRadius: 18,
     background: "#fff",
-  } as React.CSSProperties,
+  },
 
   subtle: {
     color: "#6b7280",
@@ -1914,7 +1998,7 @@ const S = {
     fontWeight: 900,
     letterSpacing: 0.6,
     textTransform: "uppercase",
-  } as React.CSSProperties,
+  },
 
   h1: {
     fontSize: 38,
@@ -1922,125 +2006,68 @@ const S = {
     lineHeight: 1.05,
     marginTop: 8,
     color: "#0f172a",
-  } as React.CSSProperties,
+  },
 
   sub: {
     marginTop: 8,
     color: "#475569",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 800,
-    lineHeight: 1.45,
-  } as React.CSSProperties,
+    lineHeight: 1.5,
+    maxWidth: 980,
+  },
 
   row: {
     display: "flex",
     gap: 10,
     flexWrap: "wrap",
     alignItems: "center",
-  } as React.CSSProperties,
+  },
 
   topBar: {
     display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr auto",
+    gridTemplateColumns: "1.1fr 1.1fr 1.1fr auto",
     gap: 12,
     marginTop: 14,
-  } as React.CSSProperties,
+  },
 
   tiles: {
     display: "grid",
-    gridTemplateColumns: "repeat(8, minmax(135px, 1fr))",
+    gridTemplateColumns: "repeat(8, minmax(0, 1fr))",
     gap: 12,
     marginTop: 14,
-  } as React.CSSProperties,
+  },
 
   tile: {
+    background: "#fff",
     border: "1px solid #e8eaf0",
     borderRadius: 16,
-    background: "#fff",
     padding: 14,
-    minHeight: 92,
-  } as React.CSSProperties,
+  },
 
   tileK: {
     fontSize: 11,
-    color: "#64748b",
     fontWeight: 900,
-    letterSpacing: 0.4,
     textTransform: "uppercase",
-  } as React.CSSProperties,
+    letterSpacing: 0.4,
+    color: "#64748b",
+  },
 
   tileV: {
     marginTop: 6,
-    fontSize: 28,
-    color: "#0f172a",
-    fontWeight: 950,
+    fontSize: 30,
     lineHeight: 1.05,
-  } as React.CSSProperties,
+    fontWeight: 950,
+    color: "#0f172a",
+  },
 
   tileS: {
     marginTop: 8,
     fontSize: 12,
-    color: "#475569",
-    fontWeight: 800,
-    lineHeight: 1.35,
-  } as React.CSSProperties,
-
-  grid2: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 14,
-    marginTop: 14,
-  } as React.CSSProperties,
-
-  sectionPad: {
-    padding: 16,
-  } as React.CSSProperties,
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 950,
-    color: "#0f172a",
-  } as React.CSSProperties,
-
-  sectionHelp: {
-    marginTop: 6,
-    fontSize: 12,
-    lineHeight: 1.45,
     color: "#64748b",
     fontWeight: 800,
-  } as React.CSSProperties,
-
-  input: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    color: "#0f172a",
-    fontWeight: 800,
-    outline: "none",
-  } as React.CSSProperties,
-
-  select: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    color: "#0f172a",
-    fontWeight: 800,
-    outline: "none",
-  } as React.CSSProperties,
-
-  btn: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
-    color: "#0f172a",
-    fontWeight: 900,
-    cursor: "pointer",
-  } as React.CSSProperties,
+    lineHeight: 1.35,
+  },
 
   chip: {
     display: "inline-flex",
@@ -2048,67 +2075,126 @@ const S = {
     gap: 8,
     padding: "6px 10px",
     borderRadius: 999,
-    border: "1px solid #e5e7eb",
-    background: "#fff",
+    border: "1px solid #cbd5e1",
     fontSize: 12,
-    fontWeight: 900,
-    color: "#0f172a",
-    whiteSpace: "nowrap",
-  } as React.CSSProperties,
+    fontWeight: 800,
+  },
 
   chipMuted: {
     display: "inline-flex",
     alignItems: "center",
-    gap: 8,
     padding: "6px 10px",
     borderRadius: 999,
     border: "1px solid #e2e8f0",
     background: "#f8fafc",
     fontSize: 12,
-    fontWeight: 900,
+    fontWeight: 800,
     color: "#475569",
-    whiteSpace: "nowrap",
-  } as React.CSSProperties,
+  },
+
+  btn: {
+    background: "#fff",
+    color: "#0f172a",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontWeight: 700,
+    fontSize: 14,
+    cursor: "pointer",
+  },
+
+  input: {
+    width: "100%",
+    background: "#fff",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: "10px 12px",
+    fontSize: 14,
+    color: "#0f172a",
+  },
+
+  select: {
+    width: "100%",
+    background: "#fff",
+    border: "1px solid #cbd5e1",
+    borderRadius: 10,
+    padding: "10px 12px",
+    fontSize: 14,
+    color: "#0f172a",
+  },
+
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 14,
+    marginTop: 14,
+  },
+
+  sectionPad: {
+    padding: 18,
+  },
+
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 950,
+    color: "#0f172a",
+  },
+
+  sectionHelp: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 1.45,
+    color: "#64748b",
+    fontWeight: 800,
+  },
 
   list: {
     display: "grid",
     gap: 10,
-    marginTop: 12,
-  } as React.CSSProperties,
+  },
 
   item: {
-    border: "1px solid #edf2f7",
+    border: "1px solid #e5e7eb",
     borderRadius: 14,
-    background: "#fff",
     padding: 12,
-  } as React.CSSProperties,
+    background: "#fff",
+  },
 
   itemTitle: {
-    fontWeight: 950,
+    fontWeight: 900,
     color: "#0f172a",
-    fontSize: 15,
-    lineHeight: 1.3,
-  } as React.CSSProperties,
+    fontSize: 14,
+    lineHeight: 1.35,
+  },
 
   itemText: {
     marginTop: 8,
     color: "#475569",
     fontWeight: 800,
     lineHeight: 1.45,
-  } as React.CSSProperties,
+  },
+
+  empty: {
+    border: "1px dashed #dbe2ea",
+    borderRadius: 14,
+    padding: 14,
+    color: "#64748b",
+    fontWeight: 800,
+    background: "#f8fafc",
+  },
 
   tableWrap: {
-    marginTop: 12,
     overflowX: "auto",
-    border: "1px solid #e8eaf0",
+    border: "1px solid #e5e7eb",
     borderRadius: 14,
     background: "#fff",
-  } as React.CSSProperties,
+  },
 
   table: {
     width: "100%",
     borderCollapse: "collapse",
-  } as React.CSSProperties,
+    background: "#fff",
+  },
 
   th: {
     textAlign: "left",
@@ -2116,33 +2202,19 @@ const S = {
     fontSize: 12,
     color: "#64748b",
     fontWeight: 900,
-    borderBottom: "1px solid #e8eaf0",
+    borderBottom: "1px solid #e5e7eb",
     background: "#f8fafc",
     whiteSpace: "nowrap",
-  } as React.CSSProperties,
+  },
 
   td: {
     padding: "12px 12px",
-    borderBottom: "1px solid #edf2f7",
-    color: "#0f172a",
-    fontWeight: 800,
-    verticalAlign: "top",
-  } as React.CSSProperties,
-
-  textarea: {
-    width: "100%",
-    minHeight: 220,
-    padding: "12px 14px",
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
-    background: "#f8fafc",
+    fontSize: 13,
     color: "#0f172a",
     fontWeight: 700,
-    lineHeight: 1.5,
-    outline: "none",
-    resize: "vertical",
-    fontFamily: "inherit",
-  } as React.CSSProperties,
+    borderBottom: "1px solid #eef2f7",
+    verticalAlign: "top",
+  },
 
   linkBtn: {
     border: "none",
@@ -2152,10 +2224,23 @@ const S = {
     fontWeight: 900,
     cursor: "pointer",
     textAlign: "left",
-  } as React.CSSProperties,
+  },
+
+  textarea: {
+    width: "100%",
+    minHeight: 220,
+    border: "1px solid #cbd5e1",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: "#0f172a",
+    background: "#fff",
+    resize: "vertical",
+  },
 
   ok: {
-    marginTop: 12,
+    marginTop: 14,
     borderRadius: 14,
     border: "1px solid #a7f3d0",
     background: "#ecfdf5",
@@ -2163,10 +2248,10 @@ const S = {
     color: "#065f46",
     fontWeight: 900,
     fontSize: 13,
-  } as React.CSSProperties,
+  },
 
   err: {
-    marginTop: 12,
+    marginTop: 14,
     borderRadius: 14,
     border: "1px solid #fecaca",
     background: "#fff1f2",
@@ -2175,14 +2260,5 @@ const S = {
     fontWeight: 900,
     fontSize: 13,
     lineHeight: 1.45,
-  } as React.CSSProperties,
-
-  empty: {
-    border: "1px dashed #cbd5e1",
-    borderRadius: 14,
-    background: "#f8fafc",
-    padding: 12,
-    color: "#64748b",
-    fontWeight: 900,
-  } as React.CSSProperties,
+  },
 };
