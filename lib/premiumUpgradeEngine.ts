@@ -9,7 +9,8 @@ export type PremiumTrigger =
   | "capture-media"
   | "authority-pack"
   | "momentum-progress"
-  | "reports-guidance";
+  | "reports-guidance"
+  | "output-export";
 
 export type PremiumUpgradeContext = {
   surface?: string;
@@ -71,7 +72,9 @@ export function dismissPremiumTrigger(trigger: PremiumTrigger) {
   writeDismissedTriggers([...current, trigger]);
 }
 
-function resolveTriggerFromContext(input: PremiumTrigger | PremiumUpgradeContext | undefined): PremiumTrigger {
+function resolveTriggerFromContext(
+  input: PremiumTrigger | PremiumUpgradeContext | undefined
+): PremiumTrigger {
   if (!input) return "general";
   if (typeof input === "string") return input;
 
@@ -89,6 +92,7 @@ function resolveTriggerFromContext(input: PremiumTrigger | PremiumUpgradeContext
   }
 
   if (surface.includes("authority")) return "authority";
+  if (surface.includes("export")) return "output-export";
   if (surface.includes("report")) return "reports";
   if (surface.includes("portfolio")) return "portfolio";
   if (surface.includes("planner")) return "planner";
@@ -96,7 +100,9 @@ function resolveTriggerFromContext(input: PremiumTrigger | PremiumUpgradeContext
   return "general";
 }
 
-function resolvePlanFromInput(input: PremiumTrigger | PremiumUpgradeContext | undefined): PremiumPlan {
+function resolvePlanFromInput(
+  input: PremiumTrigger | PremiumUpgradeContext | undefined
+): PremiumPlan {
   if (input && typeof input !== "string" && input.hasPremium) {
     return input.hasPremium === "premium" ? "premium" : "free";
   }
@@ -170,9 +176,14 @@ export function getPremiumUpgradeDecision(
         "Premium adds stronger momentum signals, richer progress interpretation, and more advanced family insight tools.",
     },
     "reports-guidance": {
-      title: "Unlock enhanced export guidance",
+      title: "Unlock enhanced report guidance",
       message:
-        "Premium adds cleaner branded exports, richer report guidance, and more polished authority handoff formats.",
+        "Premium adds cleaner report building, richer guidance, and stronger support when shaping evidence into trusted outputs.",
+    },
+    "output-export": {
+      title: "Unlock polished export tools",
+      message:
+        "Premium adds cleaner PDF and DOCX export options for sharing, printing, and formal authority-ready handoff.",
     },
   };
 
