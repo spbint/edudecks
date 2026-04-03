@@ -40,6 +40,14 @@ function shortDate(value?: string | null) {
   }
 }
 
+function normaliseJurisdiction(value: unknown): "au" | "uk" | "us" {
+  const raw = String(value ?? "").trim().toLowerCase();
+
+  if (raw === "uk" || raw === "united kingdom") return "uk";
+  if (raw === "us" || raw === "usa" || raw === "united states") return "us";
+  return "au";
+}
+
 function selectedCoreCount(draft: ReportDraftRow) {
   return draft.selected_evidence_ids.filter(
     (id) => draft.selection_meta?.[id]?.role !== "appendix"
@@ -84,9 +92,11 @@ function sectionLabel(key: AuthorityPackSectionKey) {
 }
 
 function buildDefaultConfig(draft: ReportDraftRow): AuthorityPackConfig {
+  const jurisdiction = normaliseJurisdiction(draft.preferred_market);
+
   return {
     draftId: draft.id,
-    jurisdiction: draft.preferred_market,
+    jurisdiction,
     title: `${draft.child_name} — Authority Pack`,
     includeSections: {
       cover: true,
