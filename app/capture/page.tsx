@@ -903,7 +903,7 @@ export default function CapturePage() {
           for (const sel of tries) {
             const r = await supabase.from("students").select(sel).in("id", ids);
             if (!r.error) {
-              students = (r.data ?? []) as ChildRow[];
+              students = ((r.data ?? []) as unknown) as ChildRow[];
               break;
             }
             if (!isMissingColumnError(r.error)) throw r.error;
