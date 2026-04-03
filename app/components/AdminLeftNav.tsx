@@ -183,6 +183,10 @@ function isActivePath(pathname: string, href: string) {
     return false;
   }
 
+  if (href === buildClassListPath()) {
+    return pathname === href || pathname.startsWith("/admin/classes/");
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -240,23 +244,26 @@ function findRecommendedSurface(pathname: string) {
   return "/admin/command-centre";
 }
 
+function buildInitialOpenSections() {
+  return NAV_SECTIONS.reduce<Record<string, boolean>>((acc, section) => {
+    acc[section.key] = !!section.defaultOpen;
+    return acc;
+  }, {});
+}
+
 /* ───────────────────────── COMPONENT ───────────────────────── */
 
 export default function AdminLeftNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const [collapsed, setCollapsed] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    flagship: true,
-    teaching: true,
-    assessment: false,
-    admin: false,
-    system: false,
-  });
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
+    buildInitialOpenSections()
+  );
 
-  const currentLabel = useMemo(() => currentSurfaceLabel(pathname || ""), [pathname]);
+  const currentLabel = useMemo(() => currentSurfaceLabel(pathname), [pathname]);
 
   const recommendedHref = useMemo(
-    () => findRecommendedSurface(pathname || ""),
+    () => findRecommendedSurface(pathname),
     [pathname]
   );
 
@@ -396,7 +403,7 @@ export default function AdminLeftNav() {
               {!collapsed && isOpen ? (
                 <div style={S.linkList}>
                   {section.items.map((item) => {
-                    const active = isActivePath(pathname || "", item.href);
+                    const active = isActivePath(pathname, item.href);
                     const tone = toneStyles(item.tone || "slate");
 
                     return (
@@ -432,7 +439,14 @@ export default function AdminLeftNav() {
                         </div>
 
                         {item.description ? (
-                          <div style={S.linkDesc}>{item.description}</div>
+                          <div
+                            style={{
+                              ...S.linkDesc,
+                              color: active ? "#334155" : "#94a3b8",
+                            }}
+                          >
+                            {item.description}
+                          </div>
                         ) : null}
                       </Link>
                     );
