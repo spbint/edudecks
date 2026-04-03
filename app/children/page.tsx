@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import {
   loadFamilyProfile,
   DEFAULT_FAMILY_PROFILE,
-  type FamilyProfile,
+  type FamilyProfileRow as FamilyProfile,
 } from "@/lib/familySettings";
 
 /* ============================================================
@@ -50,7 +50,7 @@ export default function ChildrenPage() {
       console.error(error);
     }
 
-    setChildren(data || []);
+    setChildren((data ?? []) as Child[]);
     setLoading(false);
   }
 
