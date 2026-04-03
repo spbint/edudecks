@@ -9,7 +9,8 @@ import {
   getFeaturesForTrigger,
 } from "@/lib/premiumConfig";
 
-import type { PremiumTriggerKey } from "@/lib/premiumUpgradeEngine";
+/* ✅ FIXED TYPE IMPORT */
+import type { PremiumTrigger as PremiumTriggerKey } from "@/lib/premiumUpgradeEngine";
 
 /* =========================
    TYPES
@@ -112,7 +113,10 @@ function toneStyles(tone: Tone) {
    BUTTONS
 ========================= */
 
-function buttonStyle(kind: "primary" | "secondary" | "ghost", tone: ReturnType<typeof toneStyles>): React.CSSProperties {
+function buttonStyle(
+  kind: "primary" | "secondary" | "ghost",
+  tone: ReturnType<typeof toneStyles>
+): React.CSSProperties {
   if (kind === "ghost") {
     return {
       border: "none",
@@ -216,17 +220,11 @@ export default function UpgradeCard({
 
       {/* ACTIONS */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button
-          style={buttonStyle("primary", tone)}
-          onClick={onPrimaryClick}
-        >
+        <button style={buttonStyle("primary", tone)} onClick={onPrimaryClick}>
           {config.primaryCtaLabel}
         </button>
 
-        <button
-          style={buttonStyle("ghost", tone)}
-          onClick={onSecondaryClick}
-        >
+        <button style={buttonStyle("ghost", tone)} onClick={onSecondaryClick}>
           {config.secondaryCtaLabel}
         </button>
       </div>
