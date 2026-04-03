@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -528,9 +528,18 @@ const S = {
   } as React.CSSProperties,
 };
 
-/* ───────────────────────────── PAGE ───────────────────────────── */
+function AccessPageFallback() {
+  return (
+    <div style={S.shell}>
+      <AdminLeftNav />
+      <main style={S.main}>
+        <div style={S.ok}>Loading access page…</div>
+      </main>
+    </div>
+  );
+}
 
-export default function AdminClassHubPage() {
+function AdminClassHubPageInner() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -795,7 +804,7 @@ export default function AdminClassHubPage() {
     return {
       label: "Attention Required",
       text: "Evidence freshness or intervention load suggests this class needs immediate review.",
-    };
+      };
   }, [studentRows, openInterventions]);
 
   const nextActions = useMemo(() => {
@@ -1588,5 +1597,13 @@ export default function AdminClassHubPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AdminClassHubPage() {
+  return (
+    <Suspense fallback={<AccessPageFallback />}>
+      <AdminClassHubPageInner />
+    </Suspense>
   );
 }
