@@ -212,7 +212,7 @@ export default function AuthorityUsPage() {
       for (const sel of studentTries) {
         const r = await supabase.from("students").select(sel).in("id", ids);
         if (!r.error) {
-          students = (r.data ?? []) as ChildRow[];
+          students = ((r.data ?? []) as unknown) as ChildRow[];
           break;
         }
         if (!isMissingColumnError(r.error)) throw r.error;
@@ -248,7 +248,7 @@ export default function AuthorityUsPage() {
           .order("created_at", { ascending: false });
 
         if (!r.error) {
-          evidenceRows = ((r.data ?? []) as EvidenceRow[]).filter((x) => !x.is_deleted);
+          evidenceRows = (((r.data ?? []) as unknown) as EvidenceRow[]).filter((x) => !x.is_deleted);
           break;
         }
         if (!isMissingColumnError(r.error)) throw r.error;
