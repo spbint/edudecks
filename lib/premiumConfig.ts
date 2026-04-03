@@ -135,6 +135,61 @@ export const PREMIUM_TRIGGER_CONFIGS: Record<
   PremiumTrigger,
   PremiumTriggerConfig
 > = {
+  general: {
+    trigger: "general",
+    headline: "Unlock richer support across the family workflow",
+    supportingText:
+      "Premium adds stronger guidance, cleaner organisation, and more polished outputs as your family record grows.",
+    primaryCtaLabel: "See premium options",
+    secondaryCtaLabel: "Keep using free",
+    featureKeys: ["advanced-workflow", "guided-reports"],
+    recommendedPlan: "premium",
+  },
+
+  reports: {
+    trigger: "reports",
+    headline: "Unlock stronger reporting support",
+    supportingText:
+      "Premium helps families shape evidence into clearer, calmer, and more trustworthy reports with less manual effort.",
+    primaryCtaLabel: "Unlock reporting support",
+    secondaryCtaLabel: "Keep building manually",
+    featureKeys: ["guided-reports", "advanced-workflow"],
+    recommendedPlan: "premium",
+  },
+
+  portfolio: {
+    trigger: "portfolio",
+    headline: "Make your portfolio more polished and organised",
+    supportingText:
+      "Premium helps families keep growing records better organised and easier to present as evidence builds over time.",
+    primaryCtaLabel: "Unlock portfolio extras",
+    secondaryCtaLabel: "Keep using free portfolio",
+    featureKeys: ["advanced-workflow", "curriculum-refinement"],
+    recommendedPlan: "premium",
+  },
+
+  planner: {
+    trigger: "planner",
+    headline: "Unlock deeper planning support",
+    supportingText:
+      "Premium adds stronger planning workflows and a calmer way to keep weekly learning more connected to evidence and reporting.",
+    primaryCtaLabel: "Unlock planning support",
+    secondaryCtaLabel: "Keep using free planner",
+    featureKeys: ["advanced-workflow"],
+    recommendedPlan: "premium",
+  },
+
+  authority: {
+    trigger: "authority",
+    headline: "Build a stronger authority-ready record",
+    supportingText:
+      "Premium helps families move from basic readiness to a more structured, more defensible authority-facing workflow.",
+    primaryCtaLabel: "Unlock authority support",
+    secondaryCtaLabel: "Keep using free authority tools",
+    featureKeys: ["authority-pack", "pdf-export", "docx-export"],
+    recommendedPlan: "premium",
+  },
+
   "capture-media": {
     trigger: "capture-media",
     headline: "Add richer evidence with photos, audio, and video",
