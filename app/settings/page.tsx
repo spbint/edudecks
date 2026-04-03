@@ -82,16 +82,19 @@ export default function FamilySettingsPage() {
         return;
       }
 
-      const { data, error } = await loadFamilyProfile(currentUserId);
+      let data: any = null;
 
-      if (!mounted) return;
-
-      if (error) {
+      try {
+        data = await loadFamilyProfile(currentUserId);
+      } catch {
+        if (!mounted) return;
         setStorageMode("local");
         setLoadError("Database profile could not be loaded, so local settings are being used.");
         setHydrated(true);
         return;
       }
+
+      if (!mounted) return;
 
       if (!data) {
         setStorageMode("database");
