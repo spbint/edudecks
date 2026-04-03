@@ -12,7 +12,6 @@ import {
 import {
   listStudentEvidenceCuration,
   replaceStudentEvidenceCurationMap,
-  type StudentEvidenceCurationMap,
 } from "@/lib/studentEvidenceCuration";
 
 /* ──────────────────────────────────────────────────────────────
@@ -109,6 +108,18 @@ type CurationFlags = {
 };
 
 type CurationMap = Record<string, CurationFlags>;
+
+type StudentEvidenceCurationMap = Record<
+  string,
+  {
+    reportRole?: "core" | "appendix";
+    portfolioPinned?: boolean;
+    conferencePinned?: boolean;
+    exemplar?: boolean;
+    weak?: boolean;
+    needsRewrite?: boolean;
+  }
+>;
 
 type TimelinePriority = "highlight" | "watch" | "neutral";
 
@@ -433,26 +444,6 @@ function toDbCurationMap(curation: CurationMap): StudentEvidenceCurationMap {
   return map;
 }
 
-function fromDbCurationMap(curation: StudentEvidenceCurationMap): CurationMap {
-  const map: CurationMap = {};
-
-  Object.entries(curation || {}).forEach(([evidenceId, flags]) => {
-    map[evidenceId] = {
-      reportRole:
-        flags.reportRole === "core" || flags.reportRole === "appendix"
-          ? flags.reportRole
-          : undefined,
-      portfolioPinned: Boolean(flags.portfolioPinned),
-      conferencePinned: Boolean(flags.conferencePinned),
-      exemplar: Boolean(flags.exemplar),
-      weak: Boolean(flags.weak),
-      needsRewrite: Boolean(flags.needsRewrite),
-    };
-  });
-
-  return map;
-}
-
 /* ──────────────────────────────────────────────────────────────
    SMALL COMPONENTS
    ────────────────────────────────────────────────────────────── */
@@ -627,10 +618,6 @@ export default function StudentTimelinePage() {
   const [windowFilter, setWindowFilter] = useState<TimeWindow>("all");
   const [searchText, setSearchText] = useState("");
 
-  /* ──────────────────────────────────────────────────────────
-     LOAD DATA
-     ────────────────────────────────────────────────────────── */
-
   useEffect(() => {
     async function load() {
       if (!studentId) return;
@@ -757,16 +744,12 @@ export default function StudentTimelinePage() {
     load();
   }, [studentId]);
 
-  /* ──────────────────────────────────────────────────────────
-     CURATION STATE
-     ────────────────────────────────────────────────────────── */
-
   useEffect(() => {
     async function loadCuration() {
       if (!studentId) return;
 
       try {
-        const rows = await listStudentEvidenceCuration(studentId);
+        const rows: any[] = await listStudentEvidenceCuration(studentId);
 
         if (rows.length > 0) {
           const dbMap: CurationMap = {};
@@ -871,10 +854,6 @@ export default function StudentTimelinePage() {
 
     void saveCuration(next, "Timeline curation saved.");
   }
-
-  /* ──────────────────────────────────────────────────────────
-     DERIVED STATE
-     ────────────────────────────────────────────────────────── */
 
   const displayName = useMemo(() => {
     return safe(overview?.student_name) || nameOf(student);
@@ -1190,10 +1169,6 @@ export default function StudentTimelinePage() {
       .slice(0, 4);
   }, [evidenceItems]);
 
-  /* ──────────────────────────────────────────────────────────
-     RENDER
-     ────────────────────────────────────────────────────────── */
-
   return (
     <div
       style={{
@@ -1216,78 +1191,14 @@ export default function StudentTimelinePage() {
         <StudentHubNav studentId={studentId} />
 
         {busy ? (
-          <div
-            style={{
-              marginBottom: 14,
-              borderRadius: 12,
-              border: "1px solid #bfdbfe",
-              background: "#eff6ff",
-              padding: 12,
-              color: "#1d4ed8",
-              fontWeight: 800,
-              fontSize: 13,
-            }}
-          >
-            Refreshing student timeline…
-          </div>
+          <div style={BANNER_INFO}>Refreshing student timeline…</div>
         ) : null}
 
-        {err ? (
-          <div
-            style={{
-              marginBottom: 14,
-              borderRadius: 12,
-              border: "1px solid #fecdd3",
-              background: "#fff1f2",
-              padding: 12,
-              color: "#be123c",
-              fontWeight: 800,
-              fontSize: 13,
-              lineHeight: 1.45,
-            }}
-          >
-            {err}
-          </div>
-        ) : null}
+        {err ? <div style={BANNER_ERR}>{err}</div> : null}
 
-        {curationMessage ? (
-          <div
-            style={{
-              marginBottom: 14,
-              borderRadius: 12,
-              border: "1px solid #bfdbfe",
-              background: "#eff6ff",
-              padding: 12,
-              color: "#1d4ed8",
-              fontWeight: 700,
-              fontSize: 13,
-              lineHeight: 1.45,
-            }}
-          >
-            {curationMessage}
-          </div>
-        ) : null}
+        {curationMessage ? <div style={BANNER_INFO}>{curationMessage}</div> : null}
 
-        {/* Sticky top shell */}
-        <section
-          style={{
-            position: "sticky",
-            top: 12,
-            zIndex: 20,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-            background: "rgba(255,255,255,0.92)",
-            backdropFilter: "blur(14px)",
-            border: "1px solid #e5e7eb",
-            borderRadius: 18,
-            padding: "12px 14px",
-            boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-            marginBottom: 18,
-          }}
-        >
+        <section style={TOP_BAR}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
             <button
               type="button"
@@ -1348,55 +1259,13 @@ export default function StudentTimelinePage() {
           </div>
         </section>
 
-        {/* Hero summary band */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.45fr) minmax(320px, 0.95fr)",
-            gap: 18,
-            background:
-              "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
-            border: "1px solid #bfdbfe",
-            borderRadius: 26,
-            padding: "28px 24px",
-            boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
-            marginBottom: 18,
-          }}
-        >
+        <section style={HERO_GRID}>
           <div style={{ display: "grid", gap: 14 }}>
-            <div
-              style={{
-                fontSize: 12,
-                lineHeight: 1.2,
-                fontWeight: 800,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-              }}
-            >
-              Student timeline intelligence
-            </div>
+            <div style={HERO_KICKER}>Student timeline intelligence</div>
 
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 34,
-                lineHeight: 1.1,
-                fontWeight: 900,
-                color: "#0f172a",
-              }}
-            >
-              {displayName}
-            </h1>
+            <h1 style={HERO_TITLE}>{displayName}</h1>
 
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "#475569",
-                maxWidth: 820,
-              }}
-            >
+            <div style={HERO_TEXT}>
               This page turns the learner timeline into a usable story by highlighting significant
               evidence, surfacing support pressure, and pointing toward the next best move.
             </div>
@@ -1419,50 +1288,14 @@ export default function StudentTimelinePage() {
             </div>
           </div>
 
-          <div
-            style={{
-              background: "rgba(255,255,255,0.84)",
-              border: "1px solid #dbeafe",
-              borderRadius: 20,
-              padding: 18,
-              boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-              display: "grid",
-              alignContent: "start",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: 1.05,
-                textTransform: "uppercase",
-                color: "#64748b",
-              }}
-            >
-              Timeline reading
-            </div>
+          <div style={READ_PANEL}>
+            <div style={READ_KICKER}>Timeline reading</div>
 
-            <div
-              style={{
-                fontSize: 18,
-                lineHeight: 1.25,
-                fontWeight: 900,
-                color: "#0f172a",
-              }}
-            >
+            <div style={READ_TITLE}>
               {safe(overview?.next_action) || timelineActions[0]?.label || "Maintain visibility"}
             </div>
 
-            <div
-              style={{
-                fontSize: 13,
-                lineHeight: 1.6,
-                color: "#475569",
-              }}
-            >
-              {narrativeRead}
-            </div>
+            <div style={READ_TEXT}>{narrativeRead}</div>
 
             <div style={{ display: "grid", gap: 10 }}>
               <SummaryRow label="Timeline events" value={String(timelineItems.length)} />
@@ -1473,30 +1306,13 @@ export default function StudentTimelinePage() {
           </div>
         </section>
 
-        {/* Scorecard */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gap: 14,
-            marginBottom: 18,
-          }}
-        >
+        <section style={SIGNAL_GRID}>
           {timelineSignals.map((signal) => (
             <SignalCard key={signal.label} signal={signal} />
           ))}
         </section>
 
-        {/* Main grid */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.35fr) minmax(300px, 0.92fr)",
-            gap: 18,
-            alignItems: "start",
-          }}
-        >
-          {/* LEFT */}
+        <section style={MAIN_GRID}>
           <div style={{ display: "grid", gap: 18 }}>
             <SectionCard
               title="Timeline intelligence"
@@ -1574,29 +1390,13 @@ export default function StudentTimelinePage() {
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {action.label}
-                        </div>
+                        <div style={ACTION_TITLE}>{action.label}</div>
                         <Chip bg={p.bg} bd={p.bd} fg={p.fg}>
                           {action.priority}
                         </Chip>
                       </div>
 
-                      <div
-                        style={{
-                          fontSize: 13,
-                          lineHeight: 1.5,
-                          color: "#475569",
-                        }}
-                      >
-                        {action.reason}
-                      </div>
+                      <div style={ACTION_TEXT}>{action.reason}</div>
 
                       {action.href ? (
                         <div>
@@ -1626,49 +1426,22 @@ export default function StudentTimelinePage() {
                     const flags = curation[item.sourceId] || {};
 
                     return (
-                      <div
-                        key={item.id}
-                        style={{
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 14,
-                          padding: 12,
-                          background: "#f8fafc",
-                          display: "grid",
-                          gap: 8,
-                        }}
-                      >
+                      <div key={item.id} style={ANCHOR_CARD}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                          <div
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 800,
-                              color: "#0f172a",
-                            }}
-                          >
-                            {item.title}
-                          </div>
+                          <div style={ACTION_TITLE}>{item.title}</div>
                           <Chip bg={t.bg} bd={t.bd} fg={t.fg}>
                             {item.significance}
                           </Chip>
                         </div>
 
-                        <div
-                          style={{
-                            fontSize: 13,
-                            lineHeight: 1.55,
-                            color: "#475569",
-                          }}
-                        >
-                          {item.text}
-                        </div>
+                        <div style={ACTION_TEXT}>{item.text}</div>
 
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                           <button
                             type="button"
                             onClick={() =>
                               patchCuration(item.sourceId, {
-                                reportRole:
-                                  flags.reportRole === "core" ? undefined : "core",
+                                reportRole: flags.reportRole === "core" ? undefined : "core",
                               })
                             }
                             style={SS.miniButton}
@@ -1702,7 +1475,6 @@ export default function StudentTimelinePage() {
             </SectionCard>
           </div>
 
-          {/* CENTRE */}
           <div style={{ display: "grid", gap: 18 }}>
             <SectionCard
               title="Timeline filters"
@@ -1730,9 +1502,7 @@ export default function StudentTimelinePage() {
                     Evidence
                   </button>
                   <button
-                    style={
-                      kindFilter === "Intervention" ? SS.primaryButton : SS.secondaryButton
-                    }
+                    style={kindFilter === "Intervention" ? SS.primaryButton : SS.secondaryButton}
                     onClick={() => setKindFilter("Intervention")}
                     type="button"
                   >
@@ -1757,16 +1527,7 @@ export default function StudentTimelinePage() {
                   value={searchText}
                   onChange={(e) => setSearchText(e.target.value)}
                   placeholder="Search timeline..."
-                  style={{
-                    minWidth: 260,
-                    padding: "10px 12px",
-                    borderRadius: 12,
-                    border: "1px solid #d1d5db",
-                    background: "#ffffff",
-                    color: "#1f2937",
-                    fontWeight: 700,
-                    outline: "none",
-                  }}
+                  style={SEARCH_INPUT}
                 />
               </div>
             </SectionCard>
@@ -1781,14 +1542,7 @@ export default function StudentTimelinePage() {
                 ) : (
                   groupedTimeline.map((group) => (
                     <div key={group.date} style={{ display: "grid", gap: 10 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          flexWrap: "wrap",
-                          alignItems: "center",
-                        }}
-                      >
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <Chip bg="#f8fafc" bd="#e5e7eb" fg="#475569">
                           {group.date}
                         </Chip>
@@ -1797,7 +1551,7 @@ export default function StudentTimelinePage() {
                         </Chip>
                       </div>
 
-                      <div style={{ display: "grid", gap: 12, position: "relative" }}>
+                      <div style={{ display: "grid", gap: 12 }}>
                         {group.items.map((item) => {
                           const tone = significanceTone(item.significance);
                           const evidenceFlags =
@@ -1838,14 +1592,7 @@ export default function StudentTimelinePage() {
                                   alignItems: "center",
                                 }}
                               >
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 10,
-                                    flexWrap: "wrap",
-                                  }}
-                                >
+                                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                                   <span
                                     style={{
                                       width: 12,
@@ -1855,16 +1602,7 @@ export default function StudentTimelinePage() {
                                       display: "inline-block",
                                     }}
                                   />
-                                  <div
-                                    style={{
-                                      fontSize: 15,
-                                      lineHeight: 1.3,
-                                      fontWeight: 800,
-                                      color: "#0f172a",
-                                    }}
-                                  >
-                                    {item.title}
-                                  </div>
+                                  <div style={TIMELINE_TITLE}>{item.title}</div>
                                 </div>
 
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1908,15 +1646,7 @@ export default function StudentTimelinePage() {
                                 ) : null}
                               </div>
 
-                              <div
-                                style={{
-                                  fontSize: 13,
-                                  lineHeight: 1.6,
-                                  color: "#475569",
-                                }}
-                              >
-                                {item.text}
-                              </div>
+                              <div style={ACTION_TEXT}>{item.text}</div>
 
                               {item.kind === "Evidence" ? (
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1985,7 +1715,6 @@ export default function StudentTimelinePage() {
             </SectionCard>
           </div>
 
-          {/* RIGHT */}
           <div style={{ display: "grid", gap: 18 }}>
             <SectionCard
               title="Event significance guide"
@@ -2004,19 +1733,7 @@ export default function StudentTimelinePage() {
                 ).map((key) => {
                   const t = significanceTone(key);
                   return (
-                    <div
-                      key={key}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        alignItems: "center",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 12,
-                        padding: 10,
-                        background: "#f8fafc",
-                      }}
-                    >
+                    <div key={key} style={LEGEND_ROW}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span
                           style={{
@@ -2027,15 +1744,7 @@ export default function StudentTimelinePage() {
                             display: "inline-block",
                           }}
                         />
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 800,
-                            color: "#0f172a",
-                          }}
-                        >
-                          {key}
-                        </span>
+                        <span style={LEGEND_TEXT}>{key}</span>
                       </div>
                       <Chip bg={t.bg} bd={t.bd} fg={t.fg}>
                         weighted
@@ -2143,33 +1852,9 @@ function SummaryRow({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 10,
-        paddingTop: 8,
-        borderTop: "1px solid #e5e7eb",
-      }}
-    >
-      <span
-        style={{
-          fontSize: 13,
-          color: "#64748b",
-        }}
-      >
-        {label}
-      </span>
-      <span
-        style={{
-          fontSize: 13,
-          color: "#0f172a",
-          fontWeight: 800,
-          textAlign: "right",
-        }}
-      >
-        {value}
-      </span>
+    <div style={SUMMARY_ROW}>
+      <span style={SUMMARY_LABEL}>{label}</span>
+      <span style={SUMMARY_VALUE}>{value}</span>
     </div>
   );
 }
@@ -2182,37 +1867,9 @@ function InterpretationRow({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        border: "1px solid #e5e7eb",
-        borderRadius: 12,
-        background: "#f8fafc",
-        padding: 10,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          lineHeight: 1.2,
-          fontWeight: 800,
-          letterSpacing: 1.05,
-          textTransform: "uppercase",
-          color: "#64748b",
-          marginBottom: 6,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 14,
-          lineHeight: 1.45,
-          fontWeight: 800,
-          color: "#0f172a",
-        }}
-      >
-        {value}
-      </div>
+    <div style={INTERPRET_ROW}>
+      <div style={INTERPRET_LABEL}>{label}</div>
+      <div style={INTERPRET_VALUE}>{value}</div>
     </div>
   );
 }
@@ -2225,40 +1882,264 @@ function MiniStat({
   value: string;
 }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 10,
-        alignItems: "center",
-        border: "1px solid #e5e7eb",
-        borderRadius: 14,
-        padding: 12,
-        background: "#f8fafc",
-      }}
-    >
-      <div
-        style={{
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "#475569",
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 20,
-          lineHeight: 1.1,
-          fontWeight: 900,
-          color: "#0f172a",
-        }}
-      >
-        {value}
-      </div>
+    <div style={MINI_STAT_ROW}>
+      <div style={MINI_STAT_LABEL}>{label}</div>
+      <div style={MINI_STAT_VALUE}>{value}</div>
     </div>
   );
 }
+
+/* ──────────────────────────────────────────────────────────────
+   STYLES
+   ────────────────────────────────────────────────────────────── */
+
+const BANNER_INFO: React.CSSProperties = {
+  marginBottom: 14,
+  borderRadius: 12,
+  border: "1px solid #bfdbfe",
+  background: "#eff6ff",
+  padding: 12,
+  color: "#1d4ed8",
+  fontWeight: 800,
+  fontSize: 13,
+};
+
+const BANNER_ERR: React.CSSProperties = {
+  marginBottom: 14,
+  borderRadius: 12,
+  border: "1px solid #fecdd3",
+  background: "#fff1f2",
+  padding: 12,
+  color: "#be123c",
+  fontWeight: 800,
+  fontSize: 13,
+  lineHeight: 1.45,
+};
+
+const TOP_BAR: React.CSSProperties = {
+  position: "sticky",
+  top: 12,
+  zIndex: 20,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+  background: "rgba(255,255,255,0.92)",
+  backdropFilter: "blur(14px)",
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  padding: "12px 14px",
+  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  marginBottom: 18,
+};
+
+const HERO_GRID: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.45fr) minmax(320px, 0.95fr)",
+  gap: 18,
+  background:
+    "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
+  border: "1px solid #bfdbfe",
+  borderRadius: 26,
+  padding: "28px 24px",
+  boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
+  marginBottom: 18,
+};
+
+const HERO_KICKER: React.CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.2,
+  fontWeight: 800,
+  letterSpacing: 1.1,
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const HERO_TITLE: React.CSSProperties = {
+  margin: 0,
+  fontSize: 34,
+  lineHeight: 1.1,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const HERO_TEXT: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.6,
+  color: "#475569",
+  maxWidth: 820,
+};
+
+const READ_PANEL: React.CSSProperties = {
+  background: "rgba(255,255,255,0.84)",
+  border: "1px solid #dbeafe",
+  borderRadius: 20,
+  padding: 18,
+  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  display: "grid",
+  alignContent: "start",
+  gap: 12,
+};
+
+const READ_KICKER: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: 1.05,
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const READ_TITLE: React.CSSProperties = {
+  fontSize: 18,
+  lineHeight: 1.25,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const READ_TEXT: React.CSSProperties = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: "#475569",
+};
+
+const SIGNAL_GRID: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: 14,
+  marginBottom: 18,
+};
+
+const MAIN_GRID: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(300px, 0.88fr) minmax(0, 1.35fr) minmax(300px, 0.92fr)",
+  gap: 18,
+  alignItems: "start",
+};
+
+const SEARCH_INPUT: React.CSSProperties = {
+  minWidth: 260,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid #d1d5db",
+  background: "#ffffff",
+  color: "#1f2937",
+  fontWeight: 700,
+  outline: "none",
+};
+
+const ACTION_TITLE: React.CSSProperties = {
+  fontSize: 14,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const ACTION_TEXT: React.CSSProperties = {
+  fontSize: 13,
+  lineHeight: 1.5,
+  color: "#475569",
+};
+
+const ANCHOR_CARD: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: 12,
+  background: "#f8fafc",
+  display: "grid",
+  gap: 8,
+};
+
+const TIMELINE_TITLE: React.CSSProperties = {
+  fontSize: 15,
+  lineHeight: 1.3,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const LEGEND_ROW: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  alignItems: "center",
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  padding: 10,
+  background: "#f8fafc",
+};
+
+const LEGEND_TEXT: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const SUMMARY_ROW: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  paddingTop: 8,
+  borderTop: "1px solid #e5e7eb",
+};
+
+const SUMMARY_LABEL: React.CSSProperties = {
+  fontSize: 13,
+  color: "#64748b",
+};
+
+const SUMMARY_VALUE: React.CSSProperties = {
+  fontSize: 13,
+  color: "#0f172a",
+  fontWeight: 800,
+  textAlign: "right",
+};
+
+const INTERPRET_ROW: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  background: "#f8fafc",
+  padding: 10,
+};
+
+const INTERPRET_LABEL: React.CSSProperties = {
+  fontSize: 12,
+  lineHeight: 1.2,
+  fontWeight: 800,
+  letterSpacing: 1.05,
+  textTransform: "uppercase",
+  color: "#64748b",
+  marginBottom: 6,
+};
+
+const INTERPRET_VALUE: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.45,
+  fontWeight: 800,
+  color: "#0f172a",
+};
+
+const MINI_STAT_ROW: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  alignItems: "center",
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: 12,
+  background: "#f8fafc",
+};
+
+const MINI_STAT_LABEL: React.CSSProperties = {
+  fontSize: 13,
+  lineHeight: 1.5,
+  color: "#475569",
+};
+
+const MINI_STAT_VALUE: React.CSSProperties = {
+  fontSize: 20,
+  lineHeight: 1.1,
+  fontWeight: 900,
+  color: "#0f172a",
+};
 
 const SS: Record<string, React.CSSProperties> = {
   softNote: {
@@ -2310,7 +2191,7 @@ const SS: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     padding: "8px 10px",
     fontWeight: 700,
-    fontSize: 12,
+    fontSize: 13,
     cursor: "pointer",
   },
 };
