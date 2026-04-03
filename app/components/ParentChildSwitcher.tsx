@@ -23,6 +23,8 @@ type Props = {
   onChange?: (child: ParentChildOption | null) => void;
 };
 
+/* ───────────────────────── HELPERS ───────────────────────── */
+
 function safe(v: any) {
   return String(v ?? "").trim();
 }
@@ -37,12 +39,18 @@ function isMissingRelationOrColumn(err: any) {
   return msg.includes("does not exist") && (msg.includes("column") || msg.includes("relation"));
 }
 
+function isValidStudentRow(row: any): row is ParentChildOption {
+  return row && typeof row === "object" && typeof row.id === "string";
+}
+
 function studentDisplayName(s: ParentChildOption | null | undefined) {
   if (!s) return "Child";
   const first = safe(s.preferred_name || s.first_name);
   const sur = safe(s.surname || s.family_name);
   return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Child";
 }
+
+/* ───────────────────────── STYLES ───────────────────────── */
 
 const S = {
   wrap: {
@@ -110,6 +118,8 @@ const S = {
   } as React.CSSProperties,
 };
 
+/* ───────────────────────── COMPONENT ───────────────────────── */
+
 export default function ParentChildSwitcher({ onChange }: Props) {
   const router = useRouter();
 
@@ -149,7 +159,7 @@ export default function ParentChildSwitcher({ onChange }: Props) {
         throw linksResp.error;
       }
 
-      const links = (linksResp.data ?? []) as Array<{
+      const links = ((linksResp.data ?? []) as unknown) as Array<{
         student_id: string;
         relationship_label?: string | null;
         sort_order?: number | null;
@@ -177,10 +187,13 @@ export default function ParentChildSwitcher({ onChange }: Props) {
 
       for (const sel of tries) {
         const r = await supabase.from("students").select(sel).in("id", ids);
+
         if (!r.error) {
-          students = (r.data ?? []) as ParentChildOption[];
+          const safeData = ((r.data ?? []) as unknown[]).filter(isValidStudentRow);
+          students = safeData;
           break;
         }
+
         if (!isMissingColumnError(r.error)) throw r.error;
       }
 
@@ -189,6 +202,7 @@ export default function ParentChildSwitcher({ onChange }: Props) {
           const student = students.find((s) => s.id === id);
           const link = links.find((l) => l.student_id === id);
           if (!student) return null;
+
           return {
             ...student,
             relationship_label: link?.relationship_label ?? null,
@@ -200,8 +214,11 @@ export default function ParentChildSwitcher({ onChange }: Props) {
       setChildren(merged);
 
       const storedActive = safe(localStorage.getItem(ACTIVE_STUDENT_ID_KEY));
+
       const nextActive =
-        merged.find((c) => c.id === storedActive)?.id || merged[0]?.id || "";
+        merged.find((c) => c.id === storedActive)?.id ||
+        merged[0]?.id ||
+        "";
 
       setActiveId(nextActive);
 
@@ -241,6 +258,7 @@ export default function ParentChildSwitcher({ onChange }: Props) {
       <div style={S.wrap}>
         <div style={S.selectWrap}>
           <div style={S.label}>Active child</div>
+
           <select
             style={S.select}
             value={activeId}
@@ -258,7 +276,9 @@ export default function ParentChildSwitcher({ onChange }: Props) {
           </select>
         </div>
 
-        {activeChild ? <span style={S.chip}>{studentDisplayName(activeChild)}</span> : null}
+        {activeChild ? (
+          <span style={S.chip}>{studentDisplayName(activeChild)}</span>
+        ) : null}
 
         <button style={S.btn} onClick={() => router.push("/children")}>
           Manage children
