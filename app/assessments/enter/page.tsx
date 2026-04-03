@@ -119,7 +119,15 @@ export default function DashboardPage() {
 
   return (
     <main style={{ padding: 24 }}>
-      <TopNav />
+      <TopNav
+        productName="EduDecks"
+        orgName="School"
+        userEmail="user@school.com"
+        role="Admin"
+        onSignOut={() => {
+          window.location.href = "/";
+        }}
+      />
 
       {/* Scope controls */}
       <section style={{ margin: "12px 0 18px", display: "flex", gap: 10 }}>
@@ -154,13 +162,27 @@ export default function DashboardPage() {
       </section>
 
       {errorMsg && (
-        <div style={{ marginBottom: 14, padding: 10, border: "1px solid #f2c1c1", borderRadius: 10 }}>
+        <div
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            border: "1px solid #f2c1c1",
+            borderRadius: 10,
+          }}
+        >
           <strong style={{ color: "crimson" }}>Error:</strong> {errorMsg}
         </div>
       )}
 
       {/* FM-style summary tiles */}
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: 12,
+          marginBottom: 18,
+        }}
+      >
         <Tile title="Signals" value={summary.total} />
         <Tile title="Red" value={summary.red} />
         <Tile title="Amber" value={summary.amber} />
