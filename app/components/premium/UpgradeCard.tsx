@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 
 /* 🔥 NEW SOURCE OF TRUTH */
 import {
@@ -27,7 +26,7 @@ type Props = {
 };
 
 /* =========================
-   TONE SYSTEM (UNCHANGED)
+   TONE SYSTEM
 ========================= */
 
 type Tone = "blue" | "amber" | "green" | "violet";
@@ -36,12 +35,10 @@ function resolveTone(trigger: PremiumTriggerKey): Tone {
   switch (trigger) {
     case "capture-media":
       return "blue";
-    case "reports-guidance":
-      return "violet";
-    case "output-export":
-      return "green";
     case "authority-pack":
       return "amber";
+    case "reports-guidance":
+      return "violet";
     case "momentum-progress":
     default:
       return "violet";
@@ -192,7 +189,6 @@ export default function UpgradeCard({
         ...style,
       }}
     >
-      {/* HEADER */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 800, color: tone.eyebrow }}>
           PREMIUM
@@ -207,7 +203,6 @@ export default function UpgradeCard({
         </div>
       </div>
 
-      {/* FEATURES */}
       {!banner && (
         <div style={{ display: "grid", gap: 8 }}>
           {features.map((f) => (
@@ -218,7 +213,6 @@ export default function UpgradeCard({
         </div>
       )}
 
-      {/* ACTIONS */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button style={buttonStyle("primary", tone)} onClick={onPrimaryClick}>
           {config.primaryCtaLabel}
