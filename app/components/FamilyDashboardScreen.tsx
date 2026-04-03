@@ -412,7 +412,7 @@ export default function FamilyDashboardScreen({
         .order("preferred_name", { ascending: true });
 
       if (!res.error) {
-        return (res.data || []) as StudentRow[];
+        return ((res.data || []) as unknown) as StudentRow[];
       }
       lastErr = res.error;
       if (!isMissingRelationOrColumn(res.error)) break;
@@ -439,7 +439,7 @@ export default function FamilyDashboardScreen({
         .order("created_at", { ascending: false });
 
       if (!res.error) {
-        return ((res.data || []) as EvidenceRow[]).filter((x) => !x.is_deleted);
+        return (((res.data || []) as unknown) as EvidenceRow[]).filter((x) => !x.is_deleted);
       }
 
       lastErr = res.error;
