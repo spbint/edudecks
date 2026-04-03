@@ -1046,7 +1046,7 @@ export default function AuthorityExportPage() {
 
                   <div style={{ height: 12 }} />
 
-                  <UpgradeCard trigger="authority-pack" variant="compact" />
+                  <UpgradeCard trigger="reports-guidance" variant="compact" />
                 </section>
 
                 <section style={S.card()}>
