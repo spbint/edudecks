@@ -5,10 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
-import {
-  listReportDrafts,
-  type ReportDraftRow,
-} from "@/lib/reportDrafts";
+import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
 import {
   getPremiumUpgradeDecision,
@@ -521,11 +518,7 @@ export default function FamilyPage() {
   }, []);
 
   const selectedChild = useMemo(() => {
-    return (
-      children.find((child) => child.id === selectedChildId) ||
-      children[0] ||
-      null
-    );
+    return children.find((child) => child.id === selectedChildId) || children[0] || null;
   }, [children, selectedChildId]);
 
   const selectedChildDraft = useMemo(() => {
@@ -543,8 +536,7 @@ export default function FamilyPage() {
     return (
       drafts.find(
         (draft) =>
-          safe(draft.child_name).toLowerCase() ===
-          safe(selectedChild.name).toLowerCase()
+          safe(draft.child_name).toLowerCase() === safe(selectedChild.name).toLowerCase()
       ) || null
     );
   }, [drafts, selectedChild]);
@@ -567,9 +559,7 @@ export default function FamilyPage() {
 
   const learningStep = useMemo(() => {
     if (!selectedChild) return AREA_SEQUENCE.default;
-    return inferLearningStep(
-      selectedChild.nextFocusArea || selectedChild.strongestArea
-    );
+    return inferLearningStep(selectedChild.nextFocusArea || selectedChild.strongestArea);
   }, [selectedChild]);
 
   const timeSavedHours = useMemo(
@@ -577,13 +567,9 @@ export default function FamilyPage() {
     [selectedChild, selectedChildDraft]
   );
 
-  const learningStreak = useMemo(
-    () => estimateLearningStreak(selectedChild),
-    [selectedChild]
-  );
+  const learningStreak = useMemo(() => estimateLearningStreak(selectedChild), [selectedChild]);
 
-  const familyDisplayName =
-    safe(settings.familyDisplayName) || "Your family";
+  const familyDisplayName = safe(settings.familyDisplayName) || "Your family";
 
   const parentName = safe(settings.parentName);
 
@@ -676,14 +662,12 @@ export default function FamilyPage() {
               </div>
             </div>
 
-            {upgradeDecision.show && upgradeDecision.trigger ? (
+            {upgradeDecision.shouldShow ? (
               <div style={{ marginTop: 16 }}>
                 <UpgradeCard
                   trigger={upgradeDecision.trigger}
-                  variant={upgradeDecision.variant}
-                  onSecondaryClick={() =>
-                    dismissPremiumTrigger("family", upgradeDecision.trigger!)
-                  }
+                  variant="compact"
+                  onSecondaryClick={() => dismissPremiumTrigger(upgradeDecision.trigger)}
                 />
               </div>
             ) : null}
@@ -700,22 +684,10 @@ export default function FamilyPage() {
             <div style={{ height: 12 }} />
 
             <div style={{ display: "grid", gap: 10 }}>
-              <MiniStat
-                label="Evidence"
-                value={String(selectedChild?.evidenceCount ?? 0)}
-              />
-              <MiniStat
-                label="Coverage"
-                value={String(selectedChild?.recentAreaCount ?? 0)}
-              />
-              <MiniStat
-                label="Saved draft"
-                value={selectedChildDraft ? "Yes" : "No"}
-              />
-              <MiniStat
-                label="Last update"
-                value={shortDate(selectedChild?.lastUpdated)}
-              />
+              <MiniStat label="Evidence" value={String(selectedChild?.evidenceCount ?? 0)} />
+              <MiniStat label="Coverage" value={String(selectedChild?.recentAreaCount ?? 0)} />
+              <MiniStat label="Saved draft" value={selectedChildDraft ? "Yes" : "No"} />
+              <MiniStat label="Last update" value={shortDate(selectedChild?.lastUpdated)} />
             </div>
           </div>
         </div>
@@ -734,9 +706,7 @@ export default function FamilyPage() {
             <div style={S.label()}>Calm check</div>
             <div style={S.h2()}>
               {selectedChild
-                ? `${selectedChild.name} is ${statusLabel(
-                    selectedChild.status
-                  ).toLowerCase()}`
+                ? `${selectedChild.name} is ${statusLabel(selectedChild.status).toLowerCase()}`
                 : "Select a child"}
             </div>
             <div style={S.body()}>
@@ -756,12 +726,8 @@ export default function FamilyPage() {
               <span style={S.pill(calmCheckTone(confidenceSummary))}>
                 Calm check {confidenceSummary}%
               </span>
-              <span style={S.pill("secondary")}>
-                {learningStreak} day learning streak
-              </span>
-              <span style={S.pill("info")}>
-                ~{timeSavedHours.toFixed(1)} hrs saved
-              </span>
+              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
+              <span style={S.pill("info")}>~{timeSavedHours.toFixed(1)} hrs saved</span>
             </div>
           </div>
 
@@ -792,14 +758,8 @@ export default function FamilyPage() {
                 label="Status"
                 value={statusLabel(selectedChild?.status || "getting-started")}
               />
-              <MiniStat
-                label="Strongest area"
-                value={selectedChild?.strongestArea || "—"}
-              />
-              <MiniStat
-                label="Next focus"
-                value={selectedChild?.nextFocusArea || "Literacy"}
-              />
+              <MiniStat label="Strongest area" value={selectedChild?.strongestArea || "—"} />
+              <MiniStat label="Next focus" value={selectedChild?.nextFocusArea || "Literacy"} />
             </div>
           </div>
         </div>
@@ -862,11 +822,7 @@ export default function FamilyPage() {
                   Capture learning
                 </Link>
                 <Link
-                  href={
-                    selectedChildDraft
-                      ? `/reports?draftId=${selectedChildDraft.id}`
-                      : "/reports"
-                  }
+                  href={selectedChildDraft ? `/reports?draftId=${selectedChildDraft.id}` : "/reports"}
                   style={S.button(false)}
                 >
                   Build report
@@ -899,9 +855,7 @@ export default function FamilyPage() {
               }}
             >
               <div style={S.label()}>Evidence quality coaching</div>
-              <div style={S.small()}>
-                {evidenceQualityHint(selectedChild, selectedChildDraft)}
-              </div>
+              <div style={S.small()}>{evidenceQualityHint(selectedChild, selectedChildDraft)}</div>
             </div>
 
             <div
@@ -962,20 +916,15 @@ export default function FamilyPage() {
                 (draft) =>
                   safe(draft.child_id) === child.id ||
                   safe(draft.student_id) === child.id ||
-                  safe(draft.child_name).toLowerCase() ===
-                    safe(child.name).toLowerCase()
+                  safe(draft.child_name).toLowerCase() === safe(child.name).toLowerCase()
               ) || null;
 
             return (
               <div
                 key={child.id}
                 style={{
-                  border:
-                    selectedChild?.id === child.id
-                      ? "2px solid #4f7cf0"
-                      : "1px solid #e5e7eb",
-                  background:
-                    selectedChild?.id === child.id ? "#f8fbff" : "#ffffff",
+                  border: selectedChild?.id === child.id ? "2px solid #4f7cf0" : "1px solid #e5e7eb",
+                  background: selectedChild?.id === child.id ? "#f8fbff" : "#ffffff",
                   borderRadius: 16,
                   padding: 14,
                   display: "grid",
@@ -994,28 +943,14 @@ export default function FamilyPage() {
                     <div style={S.h3()}>{child.name}</div>
                     <div style={S.small()}>{child.yearLabel}</div>
                   </div>
-                  <span style={statusPill(child.status)}>
-                    {statusLabel(child.status)}
-                  </span>
+                  <span style={statusPill(child.status)}>{statusLabel(child.status)}</span>
                 </div>
 
                 <div style={{ display: "grid", gap: 6 }}>
-                  <SummaryRow
-                    label="Evidence"
-                    value={String(child.evidenceCount)}
-                  />
-                  <SummaryRow
-                    label="Coverage"
-                    value={String(child.recentAreaCount)}
-                  />
-                  <SummaryRow
-                    label="Strongest"
-                    value={child.strongestArea || "—"}
-                  />
-                  <SummaryRow
-                    label="Last update"
-                    value={shortDate(child.lastUpdated)}
-                  />
+                  <SummaryRow label="Evidence" value={String(child.evidenceCount)} />
+                  <SummaryRow label="Coverage" value={String(child.recentAreaCount)} />
+                  <SummaryRow label="Strongest" value={child.strongestArea || "—"} />
+                  <SummaryRow label="Last update" value={shortDate(child.lastUpdated)} />
                 </div>
 
                 <div
@@ -1051,10 +986,7 @@ export default function FamilyPage() {
                   >
                     Select
                   </button>
-                  <Link
-                    href={childActionHref(childDraft)}
-                    style={S.button(true)}
-                  >
+                  <Link href={childActionHref(childDraft)} style={S.button(true)}>
                     {childActionLabel(child, childDraft)}
                   </Link>
                 </div>
