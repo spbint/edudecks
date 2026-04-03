@@ -85,7 +85,7 @@ export default function FamilySettingsPage() {
       let data: any = null;
 
       try {
-        data = await loadFamilyProfile(currentUserId);
+        data = await loadFamilyProfile();
       } catch {
         if (!mounted) return;
         setStorageMode("local");
