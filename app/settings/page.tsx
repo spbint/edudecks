@@ -453,7 +453,7 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.formGrid}>
                 <Field label="Default child" help="The child selected first when family pages open.">
                   <select
-                    value={settings.default_child_id}
+                    value={settings.default_child_id ?? ""}
                     onChange={(e) => update("default_child_id", e.target.value)}
                     style={shellStyles.input}
                   >
