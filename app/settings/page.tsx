@@ -58,10 +58,10 @@ export default function FamilySettingsPage() {
       const seededChildren = loadChildrenFromLocalStorage();
       const localSettings = loadSettingsFromLocalStorage();
 
-      const localMerged = {
+      const localMerged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...localSettings,
-        defaultChildId: localSettings.defaultChildId || seededChildren[0]?.id || "",
+        default_child_id: localSettings.default_child_id || seededChildren[0]?.id || "",
       };
 
       if (!mounted) return;
@@ -99,10 +99,11 @@ export default function FamilySettingsPage() {
         return;
       }
 
-      const dbSettings = {
+      const dbSettings: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...rowToSettings(data),
-        defaultChildId: data.default_child_id || localMerged.defaultChildId || seededChildren[0]?.id || "",
+        default_child_id:
+          data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || "",
       };
 
       setStorageMode("database");
@@ -124,13 +125,13 @@ export default function FamilySettingsPage() {
   }, [settings, initialSettings]);
 
   const preferredAuthorityHref = useMemo(() => {
-    if (settings.preferredMarket === "au") return "/authority-au";
-    if (settings.preferredMarket === "uk") return "/authority-uk";
+    if (settings.preferred_market === "au") return "/authority-au";
+    if (settings.preferred_market === "uk") return "/authority-uk";
     return "/authority-us";
-  }, [settings.preferredMarket]);
+  }, [settings.preferred_market]);
 
   const readinessTone = useMemo(() => {
-    if (settings.showAuthorityGuidance && settings.experienceMode === "family") {
+    if (settings.show_authority_guidance && settings.experience_mode === "family") {
       return {
         label: "Guided family mode",
         text: "Families will see simpler guidance, calmer explanations, and authority-ready prompts where helpful.",
@@ -140,7 +141,7 @@ export default function FamilySettingsPage() {
       };
     }
 
-    if (settings.experienceMode === "teacher") {
+    if (settings.experience_mode === "teacher") {
       return {
         label: "Teacher detail mode",
         text: "Pages can surface more working detail while still using the family design language.",
@@ -157,7 +158,7 @@ export default function FamilySettingsPage() {
       chipBorder: "#fed7aa",
       chipText: "#9a3412",
     };
-  }, [settings.showAuthorityGuidance, settings.experienceMode]);
+  }, [settings.show_authority_guidance, settings.experience_mode]);
 
   function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -187,10 +188,10 @@ export default function FamilySettingsPage() {
         return;
       }
 
-      const merged = {
+      const merged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...rowToSettings(data),
-        defaultChildId: data.default_child_id || settings.defaultChildId || "",
+        default_child_id: data.default_child_id || settings.default_child_id || "",
       };
 
       setStorageMode("database");
@@ -204,9 +205,9 @@ export default function FamilySettingsPage() {
   }
 
   function handleReset() {
-    const fallback = {
+    const fallback: FamilySettings = {
       ...DEFAULT_FAMILY_SETTINGS,
-      defaultChildId: children[0]?.id || "",
+      default_child_id: children[0]?.id || "",
     };
     setSettings(fallback);
   }
@@ -265,10 +266,10 @@ export default function FamilySettingsPage() {
                 {readinessTone.label}
               </span>
               <span style={shellStyles.chipMuted}>
-                Preferred market: {marketLabel(settings.preferredMarket)}
+                Preferred market: {marketLabel(settings.preferred_market)}
               </span>
               <span style={shellStyles.chipMuted}>
-                Default child view: {childLandingLabel(settings.defaultChildLanding)}
+                Default child view: {childLandingLabel(settings.default_child_landing)}
               </span>
               <span style={shellStyles.chipMuted}>
                 Storage: {storageMode === "database" ? "Durable database profile" : "Local device fallback"}
@@ -286,16 +287,16 @@ export default function FamilySettingsPage() {
             <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
               <div style={shellStyles.summaryRow}>
                 <span style={shellStyles.summaryKey}>Market</span>
-                <span style={shellStyles.summaryValue}>{marketLabel(settings.preferredMarket)}</span>
+                <span style={shellStyles.summaryValue}>{marketLabel(settings.preferred_market)}</span>
               </div>
               <div style={shellStyles.summaryRow}>
                 <span style={shellStyles.summaryKey}>Mode</span>
-                <span style={shellStyles.summaryValue}>{modeLabel(settings.experienceMode)}</span>
+                <span style={shellStyles.summaryValue}>{modeLabel(settings.experience_mode)}</span>
               </div>
               <div style={shellStyles.summaryRow}>
                 <span style={shellStyles.summaryKey}>Default child</span>
                 <span style={shellStyles.summaryValue}>
-                  {children.find((c) => c.id === settings.defaultChildId)?.name || "Not selected"}
+                  {children.find((c) => c.id === settings.default_child_id)?.name || "Not selected"}
                 </span>
               </div>
               <div style={shellStyles.summaryRow}>
@@ -311,26 +312,26 @@ export default function FamilySettingsPage() {
         <section style={shellStyles.metricsGrid}>
           <MetricCard
             label="Experience mode"
-            value={modeLabel(settings.experienceMode)}
+            value={modeLabel(settings.experience_mode)}
             note="Controls the default depth and emphasis of the interface."
           />
           <MetricCard
             label="Planner behaviour"
-            value={settings.plannerAutoCarryForward ? "Carry forward on" : "Carry forward off"}
+            value={settings.planner_auto_carry_forward ? "Carry forward on" : "Carry forward off"}
             note="Defines how unfinished weekly activity rolls into the next cycle."
           />
           <MetricCard
             label="Authority support"
-            value={settings.showAuthorityGuidance ? "Guidance on" : "Guidance off"}
+            value={settings.show_authority_guidance ? "Guidance on" : "Guidance off"}
             note="Adds reassurance and readiness framing for family users."
           />
           <MetricCard
             label="Notifications"
             value={
               [
-                settings.notificationsWeeklyDigest,
-                settings.notificationsReadinessAlerts,
-                settings.notificationsPlannerNudges,
+                settings.notifications_weekly_digest,
+                settings.notifications_readiness_alerts,
+                settings.notifications_planner_nudges,
               ].filter(Boolean).length + " active"
             }
             note="Weekly digests, readiness alerts, and planner nudges."
@@ -350,8 +351,8 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.formGrid}>
                 <Field label="Family display name" help="Used in family-facing summaries and future shared views.">
                   <input
-                    value={settings.familyDisplayName}
-                    onChange={(e) => update("familyDisplayName", e.target.value)}
+                    value={settings.family_display_name}
+                    onChange={(e) => update("family_display_name", e.target.value)}
                     style={shellStyles.input}
                     placeholder="Your family"
                   />
@@ -359,8 +360,8 @@ export default function FamilySettingsPage() {
 
                 <Field label="Preferred market" help="Sets the authority lens and future market-specific guidance.">
                   <select
-                    value={settings.preferredMarket}
-                    onChange={(e) => update("preferredMarket", e.target.value as MarketKey)}
+                    value={settings.preferred_market}
+                    onChange={(e) => update("preferred_market", e.target.value as MarketKey)}
                     style={shellStyles.input}
                   >
                     <option value="au">Australia</option>
@@ -372,12 +373,12 @@ export default function FamilySettingsPage() {
                 <Field label="Experience mode" help="Family keeps the calmest interface. Teacher and leadership allow more operational detail.">
                   <div style={shellStyles.segmentWrap}>
                     {(["family", "teacher", "leadership"] as ExperienceMode[]).map((mode) => {
-                      const active = settings.experienceMode === mode;
+                      const active = settings.experience_mode === mode;
                       return (
                         <button
                           key={mode}
                           type="button"
-                          onClick={() => update("experienceMode", mode)}
+                          onClick={() => update("experience_mode", mode)}
                           style={{
                             ...shellStyles.segmentButton,
                             ...(active ? shellStyles.segmentButtonActive : {}),
@@ -392,8 +393,8 @@ export default function FamilySettingsPage() {
 
                 <Field label="Week starts on" help="Used in planner and weekly schedule views.">
                   <select
-                    value={settings.weekStart}
-                    onChange={(e) => update("weekStart", e.target.value as WeekStart)}
+                    value={settings.week_start}
+                    onChange={(e) => update("week_start", e.target.value as WeekStart)}
                     style={shellStyles.input}
                   >
                     <option value="monday">Monday</option>
@@ -414,8 +415,8 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.formGrid}>
                 <Field label="Default child" help="The child selected first when family pages open.">
                   <select
-                    value={settings.defaultChildId}
-                    onChange={(e) => update("defaultChildId", e.target.value)}
+                    value={settings.default_child_id}
+                    onChange={(e) => update("default_child_id", e.target.value)}
                     style={shellStyles.input}
                   >
                     {children.map((child) => (
@@ -428,9 +429,9 @@ export default function FamilySettingsPage() {
 
                 <Field label="Default child landing view" help="Controls where the system opens once a child context is chosen.">
                   <select
-                    value={settings.defaultChildLanding}
+                    value={settings.default_child_landing}
                     onChange={(e) =>
-                      update("defaultChildLanding", e.target.value as DefaultChildLanding)
+                      update("default_child_landing", e.target.value as DefaultChildLanding)
                     }
                     style={shellStyles.input}
                   >
@@ -444,15 +445,15 @@ export default function FamilySettingsPage() {
                 <ToggleRow
                   title="Open last viewed child automatically"
                   description="When enabled, the family workspace returns to the most recently used child context."
-                  checked={settings.autoOpenLastChild}
-                  onChange={(value) => update("autoOpenLastChild", value)}
+                  checked={settings.auto_open_last_child}
+                  onChange={(value) => update("auto_open_last_child", value)}
                 />
 
                 <ToggleRow
                   title="Use compact mode on family pages"
                   description="Tightens spacing slightly for users who want more information on screen."
-                  checked={settings.compactMode}
-                  onChange={(value) => update("compactMode", value)}
+                  checked={settings.compact_mode}
+                  onChange={(value) => update("compact_mode", value)}
                 />
               </div>
             </section>
@@ -469,36 +470,36 @@ export default function FamilySettingsPage() {
                 <ToggleRow
                   title="Show advanced insights"
                   description="Adds more detailed analytics and richer explanatory signals on family surfaces."
-                  checked={settings.showAdvancedInsights}
-                  onChange={(value) => update("showAdvancedInsights", value)}
+                  checked={settings.show_advanced_insights}
+                  onChange={(value) => update("show_advanced_insights", value)}
                 />
 
                 <ToggleRow
                   title="Show authority guidance"
                   description="Adds calm readiness language and clearer next-step prompts for compliance-related pages."
-                  checked={settings.showAuthorityGuidance}
-                  onChange={(value) => update("showAuthorityGuidance", value)}
+                  checked={settings.show_authority_guidance}
+                  onChange={(value) => update("show_authority_guidance", value)}
                 />
 
                 <ToggleRow
                   title="Carry unfinished planner items forward"
                   description="Helpful for families who roll weekly plans over rather than resetting them."
-                  checked={settings.plannerAutoCarryForward}
-                  onChange={(value) => update("plannerAutoCarryForward", value)}
+                  checked={settings.planner_auto_carry_forward}
+                  onChange={(value) => update("planner_auto_carry_forward", value)}
                 />
 
                 <ToggleRow
                   title="Show weekends in planner"
                   description="Useful for flexible or family-led schedules that include weekend learning."
-                  checked={settings.plannerShowWeekend}
-                  onChange={(value) => update("plannerShowWeekend", value)}
+                  checked={settings.planner_show_weekend}
+                  onChange={(value) => update("planner_show_weekend", value)}
                 />
 
                 <Field label="Default evidence privacy" help="Sets the default visibility for newly captured evidence.">
                   <select
-                    value={settings.evidencePrivacyDefault}
+                    value={settings.evidence_privacy_default}
                     onChange={(e) =>
-                      update("evidencePrivacyDefault", e.target.value as EvidencePrivacy)
+                      update("evidence_privacy_default", e.target.value as EvidencePrivacy)
                     }
                     style={shellStyles.input}
                   >
@@ -510,10 +511,10 @@ export default function FamilySettingsPage() {
 
                 <Field label="Default report tone" help="Preselects the reporting voice that best suits your household.">
                   <select
-                    value={settings.reportToneDefault}
+                    value={settings.report_tone_default}
                     onChange={(e) =>
                       update(
-                        "reportToneDefault",
+                        "report_tone_default",
                         e.target.value as "family-summary" | "authority-ready" | "progress-review"
                       )
                     }
@@ -528,12 +529,12 @@ export default function FamilySettingsPage() {
                 <Field label="Portfolio print style" help="Lets you choose a softer showcase feel or a more formal presentation layout later.">
                   <div style={shellStyles.segmentWrap}>
                     {(["calm", "formal"] as Array<"calm" | "formal">).map((styleKey) => {
-                      const active = settings.portfolioPrintStyle === styleKey;
+                      const active = settings.portfolio_print_style === styleKey;
                       return (
                         <button
                           key={styleKey}
                           type="button"
-                          onClick={() => update("portfolioPrintStyle", styleKey)}
+                          onClick={() => update("portfolio_print_style", styleKey)}
                           style={{
                             ...shellStyles.segmentButton,
                             ...(active ? shellStyles.segmentButtonActive : {}),
@@ -560,22 +561,22 @@ export default function FamilySettingsPage() {
                 <ToggleRow
                   title="Weekly digest"
                   description="A compact summary of recent evidence, planner movement, and reporting momentum."
-                  checked={settings.notificationsWeeklyDigest}
-                  onChange={(value) => update("notificationsWeeklyDigest", value)}
+                  checked={settings.notifications_weekly_digest}
+                  onChange={(value) => update("notifications_weekly_digest", value)}
                 />
 
                 <ToggleRow
                   title="Readiness alerts"
                   description="Shows when evidence coverage or reporting readiness starts to drift."
-                  checked={settings.notificationsReadinessAlerts}
-                  onChange={(value) => update("notificationsReadinessAlerts", value)}
+                  checked={settings.notifications_readiness_alerts}
+                  onChange={(value) => update("notifications_readiness_alerts", value)}
                 />
 
                 <ToggleRow
                   title="Planner nudges"
                   description="Provides gentle prompts when the next week has not yet been shaped."
-                  checked={settings.notificationsPlannerNudges}
-                  onChange={(value) => update("notificationsPlannerNudges", value)}
+                  checked={settings.notifications_planner_nudges}
+                  onChange={(value) => update("notifications_planner_nudges", value)}
                 />
               </div>
             </section>
@@ -592,16 +593,16 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.previewStack}>
                 <PreviewRow
                   label="Market lens"
-                  value={`Primary guidance will lean toward ${marketLabel(settings.preferredMarket)} reporting expectations.`}
+                  value={`Primary guidance will lean toward ${marketLabel(settings.preferred_market)} reporting expectations.`}
                 />
                 <PreviewRow
                   label="Default route"
-                  value={`Selected child contexts open into ${childLandingLabel(settings.defaultChildLanding)} first.`}
+                  value={`Selected child contexts open into ${childLandingLabel(settings.default_child_landing)} first.`}
                 />
                 <PreviewRow
                   label="Family feel"
                   value={
-                    settings.showAdvancedInsights
+                    settings.show_advanced_insights
                       ? "Pages can reveal richer analysis where helpful."
                       : "Pages stay calmer and simpler by default."
                   }
@@ -609,7 +610,7 @@ export default function FamilySettingsPage() {
                 <PreviewRow
                   label="Planner posture"
                   value={
-                    settings.plannerAutoCarryForward
+                    settings.planner_auto_carry_forward
                       ? "Unfinished weekly items can carry forward."
                       : "Each planner cycle starts fresh unless edited manually."
                   }
