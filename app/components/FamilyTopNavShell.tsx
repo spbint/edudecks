@@ -84,6 +84,7 @@ const SECTIONS: NavSection[] = [
   {
     title: "Workflow",
     items: [
+      { href: "/calendar", label: "Calendar" },
       { href: "/capture", label: "Capture" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/reports", label: "Reports" },
@@ -96,6 +97,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/goals", label: "Goals" },
       { href: "/planner", label: "Planner" },
+      { href: "/calendar", label: "Calendar" },
     ],
   },
   {
@@ -186,6 +188,9 @@ export default function FamilyTopNavShell({
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Link href="/capture" style={utilBtn(true)}>
                 Quick Capture
+              </Link>
+              <Link href="/calendar" style={utilBtn(false)}>
+                Calendar
               </Link>
               <Link href="/reports" style={utilBtn(false)}>
                 Build Report
@@ -340,6 +345,9 @@ export default function FamilyTopNavShell({
                 marginTop: 16,
               }}
             >
+              <Link href="/calendar" style={utilBtn(false)}>
+                Calendar
+              </Link>
               <Link href="/portfolio" style={utilBtn(false)}>
                 Portfolio
               </Link>

@@ -37,9 +37,10 @@ function stepStyle(active: boolean): React.CSSProperties {
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
   { href: "/family", label: "Home", matches: ["/family"] },
+  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
+  { href: "/planner", label: "Planning", matches: ["/planner", "/goals"] },
   { href: "/capture", label: "Capture", matches: ["/capture"] },
   { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
-  { href: "/planner", label: "Planning", matches: ["/planner", "/goals"] },
   { href: "/reports", label: "Reports", matches: ["/reports", "/reports/library", "/reports/presets"] },
   { href: "/reports/output", label: "Output", matches: ["/reports/output"] },
   {
