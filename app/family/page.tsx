@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -429,6 +429,14 @@ function evidenceQualityHint(
 ========================= */
 
 export default function FamilyPage() {
+  return (
+    <Suspense fallback={null}>
+      <FamilyPageContent />
+    </Suspense>
+  );
+}
+
+function FamilyPageContent() {
   const searchParams = useSearchParams();
 
   const [children, setChildren] = useState<ChildRecord[]>([]);

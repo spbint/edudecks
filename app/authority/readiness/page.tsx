@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -336,6 +336,14 @@ function signalTone(passed: boolean) {
 }
 
 export default function AuthorityReadinessPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthorityReadinessPageContent />
+    </Suspense>
+  );
+}
+
+function AuthorityReadinessPageContent() {
   const searchParams = useSearchParams();
 
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);

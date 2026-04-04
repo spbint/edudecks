@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Edu Dashboard",
@@ -24,11 +13,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* Ensure font variables are available globally */}
       <body
-        className={`${geistSans.variable} ${geistMono.variable}`}
         style={{
-          fontFamily: "var(--font-geist-sans), system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
         }}
       >
         {children}

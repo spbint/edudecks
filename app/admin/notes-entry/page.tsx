@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -35,6 +35,14 @@ function studentDisplayName(student: StudentRow | null) {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function NotesEntryPage() {
+  return (
+    <Suspense fallback={<div style={S.page} />}>
+      <NotesEntryPageContent />
+    </Suspense>
+  );
+}
+
+function NotesEntryPageContent() {
   const searchParams = useSearchParams();
 
   const studentId = searchParams?.get("studentId") || "";

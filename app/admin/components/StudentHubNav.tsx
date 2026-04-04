@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { buildStudentProfilePath } from "@/lib/studentRoutes";
@@ -90,6 +90,14 @@ type Props = {
 };
 
 export default function StudentHubNav({ studentId }: Props) {
+  return (
+    <Suspense fallback={null}>
+      <StudentHubNavContent studentId={studentId} />
+    </Suspense>
+  );
+}
+
+function StudentHubNavContent({ studentId }: Props) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [expanded, setExpanded] = useState(false);

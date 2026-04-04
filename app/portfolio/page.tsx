@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -569,6 +569,14 @@ const UI = {
    ────────────────────────────────────────────────────────────── */
 
 export default function PortfolioPage() {
+  return (
+    <Suspense fallback={null}>
+      <PortfolioPageContent />
+    </Suspense>
+  );
+}
+
+function PortfolioPageContent() {
   const searchParams = useSearchParams();
   const queryStudentId = safe(searchParams?.get("studentId"));
   const queryHighlightId = safe(searchParams?.get("highlightEvidenceId"));

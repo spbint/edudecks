@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 
@@ -43,6 +43,14 @@ type InstrumentSummary = {
 };
 
 export default function StudentProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentProfilePageContent />
+    </Suspense>
+  );
+}
+
+function StudentProfilePageContent() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();

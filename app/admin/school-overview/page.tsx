@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildWholeSchoolPath } from "@/lib/leadershipRoutes";
 
 export default function LegacySchoolOverviewRedirectPage() {
+  return (
+    <Suspense fallback={null}>
+      <LegacySchoolOverviewRedirectPageContent />
+    </Suspense>
+  );
+}
+
+function LegacySchoolOverviewRedirectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryString = searchParams?.toString() || "";

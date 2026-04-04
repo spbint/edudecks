@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
@@ -712,6 +712,14 @@ const S: Record<string, React.CSSProperties> = {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function AdminInterventionsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminInterventionsPageContent />
+    </Suspense>
+  );
+}
+
+function AdminInterventionsPageContent() {
   const router = useRouter();
   const sp = useSearchParams();
 

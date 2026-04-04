@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { buildClassListPath } from "@/lib/classRoutes";
@@ -143,6 +143,14 @@ function findRecommendedAction(pathname: string) {
 /* ───────────────────────── COMPONENT ───────────────────────── */
 
 export default function AdminPageActions() {
+  return (
+    <Suspense fallback={null}>
+      <AdminPageActionsContent />
+    </Suspense>
+  );
+}
+
+function AdminPageActionsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 

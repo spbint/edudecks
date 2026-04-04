@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -558,6 +558,14 @@ const checkRowStyle: React.CSSProperties = {
 };
 
 export default function ReportsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReportsPageContent />
+    </Suspense>
+  );
+}
+
+function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoSelectedStudentRef = useRef<string>("");

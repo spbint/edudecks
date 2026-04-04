@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -208,6 +208,14 @@ function deriveTermKeyFromDate(input?: string | null) {
 /* ───────────────────────────── PAGE ───────────────────────────── */
 
 export default function ClassPage() {
+  return (
+    <Suspense fallback={null}>
+      <ClassPageContent />
+    </Suspense>
+  );
+}
+
+function ClassPageContent() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();

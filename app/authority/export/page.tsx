@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -319,6 +319,14 @@ function resolveBuilderResult(result: any, fallbackName: string) {
 }
 
 export default function AuthorityExportPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthorityExportPageContent />
+    </Suspense>
+  );
+}
+
+function AuthorityExportPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const printRef = useRef<HTMLDivElement | null>(null);

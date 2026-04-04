@@ -1,9 +1,17 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LegacyAdminDashboardRedirectPage() {
+  return (
+    <Suspense fallback={null}>
+      <LegacyAdminDashboardRedirectPageContent />
+    </Suspense>
+  );
+}
+
+function LegacyAdminDashboardRedirectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryString = searchParams?.toString() || "";

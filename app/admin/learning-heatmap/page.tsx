@@ -1,10 +1,18 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { buildLeadershipHeatmapPath } from "@/lib/leadershipRoutes";
 
 export default function LegacyLearningHeatmapRedirectPage() {
+  return (
+    <Suspense fallback={null}>
+      <LegacyLearningHeatmapRedirectPageContent />
+    </Suspense>
+  );
+}
+
+function LegacyLearningHeatmapRedirectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryString = searchParams?.toString() || "";

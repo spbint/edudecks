@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -219,6 +219,14 @@ function studentDisplayName(s: StudentRow, surnameCol: SurnameField | null) {
 /* ───────────────────────────── PAGE ───────────────────────────── */
 
 export default function StudentClassPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentClassPageContent />
+    </Suspense>
+  );
+}
+
+function StudentClassPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

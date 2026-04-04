@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentQuickViewDrawer from "@/app/admin/components/StudentQuickViewDrawer";
@@ -530,6 +530,14 @@ const S = {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function InterventionReviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <InterventionReviewPageContent />
+    </Suspense>
+  );
+}
+
+function InterventionReviewPageContent() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const sp = useSearchParams();
