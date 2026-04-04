@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 type InstrumentRow = {
@@ -46,6 +46,8 @@ export default function AssessmentEntryPage() {
   // AUTH GUARD
   // ─────────────────────────────
   useEffect(() => {
+    if (!hasSupabaseEnv) return;
+
     const guard = async () => {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) window.location.href = "/";
@@ -57,6 +59,13 @@ export default function AssessmentEntryPage() {
   // LOAD
   // ─────────────────────────────
   const load = async () => {
+    if (!hasSupabaseEnv) {
+      setRows([]);
+      setLoading(false);
+      setErr("Supabase environment variables are not configured for this deployment yet.");
+      return;
+    }
+
     setLoading(true);
     setErr("");
     setOk("");
@@ -77,6 +86,11 @@ export default function AssessmentEntryPage() {
   };
 
   useEffect(() => {
+    if (!hasSupabaseEnv) {
+      setLoading(false);
+      return;
+    }
+
     load();
   }, []);
 
@@ -84,6 +98,11 @@ export default function AssessmentEntryPage() {
   // CREATE
   // ─────────────────────────────
   const create = async () => {
+    if (!hasSupabaseEnv) {
+      setErr("Supabase environment variables are not configured for this deployment yet.");
+      return;
+    }
+
     setErr("");
     setOk("");
 
@@ -125,6 +144,11 @@ export default function AssessmentEntryPage() {
   // TOGGLE VISIBILITY
   // ─────────────────────────────
   const toggleActive = async (id: string, next: boolean) => {
+    if (!hasSupabaseEnv) {
+      setErr("Supabase environment variables are not configured for this deployment yet.");
+      return;
+    }
+
     setErr("");
     setOk("");
 
@@ -145,6 +169,11 @@ export default function AssessmentEntryPage() {
   // DELETE (SAFE)
   // ─────────────────────────────
   const del = async (id: string) => {
+    if (!hasSupabaseEnv) {
+      setErr("Supabase environment variables are not configured for this deployment yet.");
+      return;
+    }
+
     if (!confirm("Delete this assessment instrument? (Any results linked to it may fail.)")) return;
     setErr("");
     setOk("");
@@ -157,6 +186,39 @@ export default function AssessmentEntryPage() {
   };
 
   if (loading) return <main style={{ padding: 24 }}>Loading assessment instruments…</main>;
+
+  if (!hasSupabaseEnv) {
+    return (
+      <main style={{ padding: 24, maxWidth: 860 }}>
+        <section
+          style={{
+            border: "1px solid #f2c1c1",
+            background: "#fff8f8",
+            borderRadius: 16,
+            padding: 18,
+          }}
+        >
+          <div style={{ fontSize: 12, opacity: 0.7 }}>ADMIN • SCHOOL SETUP</div>
+          <div style={{ fontSize: 22, fontWeight: 900, marginTop: 4 }}>
+            Supabase setup is still needed
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, opacity: 0.82, marginTop: 10 }}>
+            This page depends on Supabase. Add <code>NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to the deployment environment, then rebuild.
+          </div>
+
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 16 }}>
+            <button
+              onClick={() => router.push("/admin")}
+              style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid #ddd" }}
+            >
+              Back to Admin
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main style={{ padding: 24, maxWidth: 1100 }}>
