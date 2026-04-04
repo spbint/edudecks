@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import useIsMobile from "@/app/components/useIsMobile";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
@@ -658,6 +659,7 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
   const autoSelectedStudentRef = useRef<string>("");
 
   const [profile, setProfile] = useState<FamilyProfileRow>(DEFAULT_FAMILY_PROFILE);
@@ -1351,7 +1353,13 @@ function ReportsPageContent() {
         ) : null}
 
         <section style={{ ...cardStyle, marginBottom: 18 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
+              gap: 24,
+            }}
+          >
             <div>
               <div style={labelStyle}>Guided report builder</div>
               <div style={displayStyle}>
@@ -1485,7 +1493,13 @@ function ReportsPageContent() {
           </div>
         ) : null}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 18 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
+            gap: 18,
+          }}
+        >
           <div style={{ display: "grid", gap: 18 }}>
             <section style={cardStyle}>
               <div style={h2Style}>Preset and report settings</div>
@@ -1493,7 +1507,9 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gridTemplateColumns: isMobile
+                    ? "1fr"
+                    : "repeat(3, minmax(0, 1fr))",
                   gap: 12,
                   marginTop: 16,
                 }}
@@ -1524,7 +1540,9 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: isMobile
+                    ? "1fr"
+                    : "repeat(4, minmax(0, 1fr))",
                   gap: 12,
                   marginTop: 18,
                 }}
@@ -1607,7 +1625,15 @@ function ReportsPageContent() {
 
               <div style={{ height: 14 }} />
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile
+                    ? "1fr"
+                    : "repeat(4, minmax(0, 1fr))",
+                  gap: 12,
+                }}
+              >
                 <label style={checkRowStyle}>
                   <input
                     type="checkbox"
@@ -1679,7 +1705,9 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: isMobile
+                    ? "repeat(2, minmax(0, 1fr))"
+                    : "repeat(4, minmax(0, 1fr))",
                   gap: 12,
                 }}
               >
@@ -1732,7 +1760,7 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
                   gap: 12,
                   marginTop: 14,
                 }}
@@ -1836,7 +1864,9 @@ function ReportsPageContent() {
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "auto 1fr auto auto",
+                              gridTemplateColumns: isMobile
+                                ? "auto 1fr"
+                                : "auto 1fr auto auto",
                               gap: 12,
                               alignItems: "start",
                             }}
@@ -1858,9 +1888,20 @@ function ReportsPageContent() {
                               </div>
                             </div>
 
-                            <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
+                            {!isMobile ? (
+                              <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
+                            ) : null}
 
-                            <div style={{ display: "grid", gap: 8 }}>
+                            <div
+                              style={{
+                                display: "grid",
+                                gap: 8,
+                                gridColumn: isMobile ? "1 / -1" : undefined,
+                              }}
+                            >
+                              {isMobile ? (
+                                <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
+                              ) : null}
                               {chosen ? (
                                 <>
                                   <select

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import useIsMobile from "@/app/components/useIsMobile";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
@@ -855,6 +856,7 @@ export default function CapturePage() {
 
 function CapturePageContent() {
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -1332,8 +1334,9 @@ function CapturePageContent() {
                 display: "flex",
                 justifyContent: "space-between",
                 gap: 14,
-                alignItems: "center",
+                alignItems: isMobile ? "stretch" : "center",
                 flexWrap: "wrap",
+                flexDirection: isMobile ? "column" : "row",
               }}
             >
               <div>
@@ -1362,14 +1365,31 @@ function CapturePageContent() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href="/family" style={buttonStyle(false)}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  width: isMobile ? "100%" : "auto",
+                  flexDirection: isMobile ? "column" : "row",
+                }}
+              >
+                <Link
+                  href="/family"
+                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                >
                   Family Home
                 </Link>
-                <Link href="/portfolio" style={buttonStyle(false)}>
+                <Link
+                  href="/portfolio"
+                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                >
                   Portfolio
                 </Link>
-                <Link href="/reports" style={buttonStyle(false)}>
+                <Link
+                  href="/reports"
+                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                >
                   Reports
                 </Link>
               </div>
@@ -1437,7 +1457,9 @@ function CapturePageContent() {
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
               gap: 20,
               alignItems: "start",
             }}
@@ -1583,7 +1605,9 @@ function CapturePageContent() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0,1fr) minmax(180px,220px)",
+                      gridTemplateColumns: isMobile
+                        ? "1fr"
+                        : "minmax(0,1fr) minmax(180px,220px)",
                       gap: 14,
                     }}
                   >
@@ -1875,6 +1899,7 @@ function CapturePageContent() {
                         cursor: !canSave || saveState === "saving" ? "not-allowed" : "pointer",
                         opacity: !canSave || saveState === "saving" ? 0.7 : 1,
                         minWidth: 190,
+                        width: isMobile ? "100%" : undefined,
                       }}
                     >
                       {saveState === "saving" ? "Saving..." : "Save learning record"}
@@ -1901,7 +1926,7 @@ function CapturePageContent() {
                           });
                         }
                       }}
-                      style={buttonStyle(false)}
+                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
                     >
                       Clear
                     </button>
@@ -1924,7 +1949,8 @@ function CapturePageContent() {
                     justifyContent: "space-between",
                     gap: 16,
                     flexWrap: "wrap",
-                    alignItems: "center",
+                    alignItems: isMobile ? "stretch" : "center",
+                    flexDirection: isMobile ? "column" : "row",
                   }}
                 >
                   <div>
@@ -1958,11 +1984,25 @@ function CapturePageContent() {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link href="/portfolio" style={buttonStyle(false)}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      width: isMobile ? "100%" : "auto",
+                      flexDirection: isMobile ? "column" : "row",
+                    }}
+                  >
+                    <Link
+                      href="/portfolio"
+                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                    >
                       Open Portfolio
                     </Link>
-                    <Link href="/reports" style={buttonStyle(false)}>
+                    <Link
+                      href="/reports"
+                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                    >
                       Open Reports
                     </Link>
                   </div>

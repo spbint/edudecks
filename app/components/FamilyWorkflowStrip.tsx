@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import useIsMobile from "@/app/components/useIsMobile";
 
 type WorkflowStep = {
   href: string;
@@ -46,6 +47,7 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
 
 export default function FamilyWorkflowStrip() {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -78,7 +80,9 @@ export default function FamilyWorkflowStrip() {
           fontWeight: 700,
         }}
       >
-        Follow one clear family loop from planning into capture, then into portfolio and reports.
+        {isMobile
+          ? "Keep the daily family loop close at hand."
+          : "Follow one clear family loop from planning into capture, then into portfolio and reports."}
       </div>
 
       <div
@@ -86,7 +90,9 @@ export default function FamilyWorkflowStrip() {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          flexWrap: "wrap",
+          flexWrap: isMobile ? "nowrap" : "wrap",
+          overflowX: isMobile ? "auto" : "visible",
+          paddingBottom: isMobile ? 4 : 0,
         }}
       >
         {WORKFLOW_STEPS.map((step, index) => {
@@ -123,6 +129,7 @@ export default function FamilyWorkflowStrip() {
                     color: "#94a3b8",
                     fontSize: 14,
                     fontWeight: 900,
+                    flexShrink: 0,
                   }}
                 >
                   →
@@ -133,33 +140,35 @@ export default function FamilyWorkflowStrip() {
         })}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          marginTop: 12,
-        }}
-      >
-        <Link href="/reports/library" style={stepStyle(isStepActive(pathname, { href: "/reports/library", label: "Report Library", matches: ["/reports/library"] }))}>
-          <span>Report Library</span>
-        </Link>
-        <Link href="/reports/output" style={stepStyle(isStepActive(pathname, { href: "/reports/output", label: "Output", matches: ["/reports/output"] }))}>
-          <span>Output</span>
-        </Link>
-        <Link
-          href="/authority"
-          style={stepStyle(
-            isStepActive(pathname, {
-              href: "/authority",
-              label: "Authority",
-              matches: ["/authority", "/authority-au", "/authority-uk", "/authority-us"],
-            })
-          )}
+      {!isMobile ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+            marginTop: 12,
+          }}
         >
-          <span>Authority</span>
-        </Link>
-      </div>
+          <Link href="/reports/library" style={stepStyle(isStepActive(pathname, { href: "/reports/library", label: "Report Library", matches: ["/reports/library"] }))}>
+            <span>Report Library</span>
+          </Link>
+          <Link href="/reports/output" style={stepStyle(isStepActive(pathname, { href: "/reports/output", label: "Output", matches: ["/reports/output"] }))}>
+            <span>Output</span>
+          </Link>
+          <Link
+            href="/authority"
+            style={stepStyle(
+              isStepActive(pathname, {
+                href: "/authority",
+                label: "Authority",
+                matches: ["/authority", "/authority-au", "/authority-uk", "/authority-us"],
+              })
+            )}
+          >
+            <span>Authority</span>
+          </Link>
+        </div>
+      ) : null}
     </div>
   );
 }

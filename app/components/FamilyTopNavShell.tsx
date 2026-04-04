@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import useIsMobile from "@/app/components/useIsMobile";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -128,6 +129,7 @@ export default function FamilyTopNavShell({
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -151,18 +153,19 @@ export default function FamilyTopNavShell({
           style={{
             maxWidth: 1280,
             margin: "0 auto",
-            padding: "16px 20px",
+            padding: isMobile ? "14px 16px" : "16px 20px",
             display: "grid",
-            gap: 14,
+            gap: isMobile ? 12 : 14,
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center",
+              alignItems: isMobile ? "start" : "center",
               gap: 12,
-              flexWrap: "wrap",
+              flexWrap: isMobile ? "nowrap" : "wrap",
+              flexDirection: isMobile ? "column" : "row",
             }}
           >
             <div>
@@ -188,22 +191,41 @@ export default function FamilyTopNavShell({
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/planner" style={utilBtn(false)}>
-                Planner
-              </Link>
-              <Link href="/calendar" style={utilBtn(false)}>
-                Calendar
-              </Link>
-              <Link href="/capture" style={utilBtn(true)}>
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                width: isMobile ? "100%" : "auto",
+                gridTemplateColumns: isMobile ? "1fr 1fr" : "none",
+              }}
+            >
+              <Link
+                href="/capture"
+                style={{
+                  ...utilBtn(true),
+                  justifyContent: "center",
+                  width: "100%",
+                  gridColumn: isMobile ? "1 / -1" : undefined,
+                }}
+              >
                 Quick Capture
               </Link>
-              <Link href="/reports" style={utilBtn(false)}>
-                Build Report
+              <Link href="/calendar" style={{ ...utilBtn(false), justifyContent: "center", width: isMobile ? "100%" : undefined }}>
+                Calendar
               </Link>
-              <Link href="/reports/library" style={utilBtn(false)}>
-                Report Library
+              <Link href="/planner" style={{ ...utilBtn(false), justifyContent: "center", width: isMobile ? "100%" : undefined }}>
+                Planner
               </Link>
+              {!isMobile ? (
+                <>
+                  <Link href="/reports" style={utilBtn(false)}>
+                    Build Report
+                  </Link>
+                  <Link href="/reports/library" style={utilBtn(false)}>
+                    Report Library
+                  </Link>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -219,30 +241,71 @@ export default function FamilyTopNavShell({
             ))}
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
-            }}
-          >
-            {SECTIONS.map((section) => (
-              <div key={section.title}>
-                <div style={sectionLabel()}>{section.title}</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {section.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      style={navBtn(isActive(pathname, item.href))}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
+          {isMobile ? (
+            <details
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 16,
+                background: "#ffffff",
+                padding: 12,
+              }}
+            >
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 900,
+                  color: "#334155",
+                  listStyle: "none",
+                }}
+              >
+                More family navigation
+              </summary>
+              <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                {SECTIONS.map((section) => (
+                  <div key={section.title}>
+                    <div style={sectionLabel()}>{section.title}</div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {section.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          style={navBtn(isActive(pathname, item.href))}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </details>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 14,
+              }}
+            >
+              {SECTIONS.map((section) => (
+                <div key={section.title}>
+                  <div style={sectionLabel()}>{section.title}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {section.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        style={navBtn(isActive(pathname, item.href))}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <FamilyWorkflowStrip />
         </div>
@@ -252,14 +315,14 @@ export default function FamilyTopNavShell({
         style={{
           maxWidth: 1280,
           margin: "0 auto",
-          padding: 20,
+          padding: isMobile ? 16 : 20,
         }}
       >
         <section
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
-            gap: 20,
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+            gap: isMobile ? 14 : 20,
             marginBottom: 20,
           }}
         >
@@ -287,10 +350,10 @@ export default function FamilyTopNavShell({
             </div>
             <div
               style={{
-                fontSize: 34,
-                lineHeight: 1.08,
-                fontWeight: 900,
-                color: "#0f172a",
+              fontSize: isMobile ? 28 : 34,
+              lineHeight: 1.08,
+              fontWeight: 900,
+              color: "#0f172a",
                 marginBottom: 12,
               }}
             >

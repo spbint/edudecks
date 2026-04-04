@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import useIsMobile from "@/app/components/useIsMobile";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -578,6 +579,7 @@ export default function PortfolioPage() {
 
 function PortfolioPageContent() {
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
   const queryStudentId = safe(searchParams?.get("studentId"));
   const queryHighlightId = safe(searchParams?.get("highlightEvidenceId"));
 
@@ -1056,7 +1058,9 @@ function PortfolioPageContent() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "minmax(220px, 300px) minmax(0,1fr)",
+                gridTemplateColumns: isMobile
+                  ? "1fr"
+                  : "minmax(220px, 300px) minmax(0,1fr)",
                 gap: 16,
                 alignItems: "end",
               }}
@@ -1087,24 +1091,40 @@ function PortfolioPageContent() {
                   display: "flex",
                   gap: 10,
                   flexWrap: "wrap",
-                  justifyContent: "flex-end",
+                  justifyContent: isMobile ? "stretch" : "flex-end",
+                  flexDirection: isMobile ? "column" : "row",
                 }}
               >
-                <Link href="/capture" style={UI.button(false)}>
+                <Link
+                  href="/capture"
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
                   Capture
                 </Link>
-                <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomize(true)}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
                   Customize
                 </button>
-                <button type="button" onClick={copyPortfolioSummary} style={UI.button(false)}>
+                <button
+                  type="button"
+                  onClick={copyPortfolioSummary}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
                   {copied ? "Copied" : "Copy summary"}
                 </button>
-                <button type="button" onClick={() => window.print()} style={UI.button(false)}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
                   Print / PDF
                 </button>
                 <Link
                   href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
-                  style={UI.button(true)}
+                  style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
                 >
                   Build report
                 </Link>
@@ -1132,7 +1152,9 @@ function PortfolioPageContent() {
               ...UI.card(),
               marginBottom: 18,
               display: "grid",
-              gridTemplateColumns: "minmax(0,1.2fr) minmax(260px,0.8fr)",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "minmax(0,1.2fr) minmax(260px,0.8fr)",
               gap: 16,
               alignItems: "start",
             }}
@@ -1142,11 +1164,26 @@ function PortfolioPageContent() {
               <div style={{ ...UI.h2(), fontSize: 28 }}>{nextMove.title}</div>
               <div style={{ ...UI.body(), marginTop: 10, maxWidth: 820 }}>{nextMove.text}</div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                <Link href={nextMove.href} style={UI.button(true)}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  marginTop: 16,
+                  flexDirection: isMobile ? "column" : "row",
+                }}
+              >
+                <Link
+                  href={nextMove.href}
+                  style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
+                >
                   {nextMove.cta}
                 </Link>
-                <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomize(true)}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
                   Customize dashboard
                 </button>
               </div>
@@ -1209,7 +1246,9 @@ function PortfolioPageContent() {
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0,1.08fr) minmax(360px,0.92fr)",
+              gridTemplateColumns: isMobile
+                ? "1fr"
+                : "minmax(0,1.08fr) minmax(360px,0.92fr)",
               gap: 16,
               alignItems: "start",
             }}

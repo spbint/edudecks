@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
@@ -492,6 +493,7 @@ export default function FamilyPage() {
 
 function FamilyPageContent() {
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
 
   const [children, setChildren] = useState<ChildRecord[]>([]);
   const [selectedChildId, setSelectedChildId] = useState("");
@@ -729,8 +731,9 @@ function FamilyPageContent() {
             display: "flex",
             justifyContent: "space-between",
             gap: 16,
-            alignItems: "center",
+            alignItems: isMobile ? "stretch" : "center",
             flexWrap: "wrap",
+            flexDirection: isMobile ? "column" : "row",
           }}
         >
           <div style={{ maxWidth: 760 }}>
@@ -739,8 +742,11 @@ function FamilyPageContent() {
             <div style={S.body()}>{familyGuidance.body}</div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href={familyGuidance.ctaHref || "/calendar"} style={S.button(true)}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+            <Link
+              href={familyGuidance.ctaHref || "/calendar"}
+              style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+            >
               {familyGuidance.ctaLabel || "Open Calendar"}
             </Link>
           </div>
@@ -751,7 +757,7 @@ function FamilyPageContent() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0,1.15fr) minmax(280px,0.85fr)",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(280px,0.85fr)",
             gap: 18,
             alignItems: "start",
           }}
@@ -823,7 +829,7 @@ function FamilyPageContent() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0,1.15fr) minmax(300px,0.85fr)",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(300px,0.85fr)",
             gap: 18,
             alignItems: "start",
           }}
@@ -874,23 +880,37 @@ function FamilyPageContent() {
                   display: "flex",
                   gap: 10,
                   flexWrap: "wrap",
+                  flexDirection: isMobile ? "column" : "row",
                 }}
               >
-                <Link href="/calendar" style={S.button(true)}>
+                <Link href="/calendar" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
                   Plan this week
                 </Link>
-                <Link href="/planner" style={S.button(false)}>
-                  Adjust plan
-                </Link>
-                <Link href="/capture" style={S.button(false)}>
-                  Capture learning
-                </Link>
-                <Link
-                  href={selectedChildDraft ? `/reports?draftId=${selectedChildDraft.id}` : "/reports"}
-                  style={S.button(false)}
-                >
-                  Build report
-                </Link>
+                {!isMobile ? (
+                  <>
+                    <Link href="/planner" style={S.button(false)}>
+                      Adjust plan
+                    </Link>
+                    <Link href="/capture" style={S.button(false)}>
+                      Capture learning
+                    </Link>
+                    <Link
+                      href={selectedChildDraft ? `/reports?draftId=${selectedChildDraft.id}` : "/reports"}
+                      style={S.button(false)}
+                    >
+                      Build report
+                    </Link>
+                  </>
+                ) : (
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link href="/capture" style={S.button(false)}>
+                      Capture
+                    </Link>
+                    <Link href="/planner" style={S.button(false)}>
+                      Planner
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -927,7 +947,7 @@ function FamilyPageContent() {
                 flexWrap: "wrap",
               }}
             >
-              <Link href="/capture" style={S.button(true)}>
+              <Link href="/capture" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
                 Capture next step learning
               </Link>
             </div>

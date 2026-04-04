@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import useIsMobile from "@/app/components/useIsMobile";
 
 type ViewMode = "day" | "week" | "month";
 type BlockStatus = "planned" | "done";
@@ -221,6 +222,7 @@ export default function CalendarPage() {
 function CalendarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
 
   const [view, setView] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -752,7 +754,13 @@ function CalendarPageContent() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        <section style={styles.hero}>
+        <section
+          style={{
+            ...styles.hero,
+            flexDirection: isMobile ? "column" : "row",
+            padding: isMobile ? 18 : styles.hero.padding,
+          }}
+        >
           <div>
             <div style={styles.kicker}>FAMILY CALENDAR</div>
             <h1 style={styles.h1}>Plan visually for your learner</h1>
@@ -773,19 +781,47 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div style={styles.heroActions}>
-            <Link href="/planner" style={styles.secondaryBtn}>
+          <div
+            style={{
+              ...styles.heroActions,
+              width: isMobile ? "100%" : undefined,
+              flexDirection: isMobile ? "column" : "row",
+            }}
+          >
+            <button
+              style={{ ...styles.primaryBtn, width: isMobile ? "100%" : undefined }}
+              onClick={() =>
+                handleAddBlock({
+                  date: toolbarDate,
+                  area: learningArea,
+                  title: title || "Learning block",
+                })
+              }
+            >
+              Add block
+            </button>
+            <Link href="/planner" style={{ ...styles.secondaryBtn, justifyContent: "center", width: isMobile ? "100%" : undefined }}>
               Back to Planner
             </Link>
-            <button style={styles.primaryBtn} onClick={() => goToCapture()}>
+            <button style={{ ...styles.secondaryBtn, width: isMobile ? "100%" : undefined }} onClick={() => goToCapture()}>
               Capture
             </button>
           </div>
         </section>
 
-        <section style={styles.toolbarCard}>
-          <div style={styles.topRow}>
-            <div style={styles.navLeft}>
+        <section style={{ ...styles.toolbarCard, padding: isMobile ? 14 : 16 }}>
+          <div
+            style={{
+              ...styles.topRow,
+              alignItems: isMobile ? "stretch" : "center",
+            }}
+          >
+            <div
+              style={{
+                ...styles.navLeft,
+                width: isMobile ? "100%" : undefined,
+              }}
+            >
               <button style={styles.smallBtn} onClick={goToday}>
                 Today
               </button>
@@ -798,11 +834,18 @@ function CalendarPageContent() {
               <div style={styles.heading}>{heading}</div>
             </div>
 
-            <div style={styles.navRight}>
+            <div
+              style={{
+                ...styles.navRight,
+                width: isMobile ? "100%" : undefined,
+                flexDirection: isMobile ? "column" : "row",
+                alignItems: isMobile ? "stretch" : "center",
+              }}
+            >
               <select
                 value={activeLearnerId}
                 onChange={(e) => handleLearnerChange(e.target.value)}
-                style={styles.select}
+                style={{ ...styles.select, width: isMobile ? "100%" : undefined }}
               >
                 <option value="">Your learner</option>
                 {learners.map((learner) => (
@@ -812,9 +855,13 @@ function CalendarPageContent() {
                 ))}
               </select>
 
-              <div style={styles.viewToggle}>
+              <div style={{ ...styles.viewToggle, width: isMobile ? "100%" : undefined }}>
                 <button
-                  style={{ ...styles.toggleBtn, ...(view === "day" ? styles.toggleBtnActive : {}) }}
+                  style={{
+                    ...styles.toggleBtn,
+                    ...(view === "day" ? styles.toggleBtnActive : {}),
+                    flex: isMobile ? 1 : undefined,
+                  }}
                   onClick={() => setView("day")}
                 >
                   DAY
@@ -823,6 +870,7 @@ function CalendarPageContent() {
                   style={{
                     ...styles.toggleBtn,
                     ...(view === "week" ? styles.toggleBtnActive : {}),
+                    flex: isMobile ? 1 : undefined,
                   }}
                   onClick={() => setView("week")}
                 >
@@ -832,6 +880,7 @@ function CalendarPageContent() {
                   style={{
                     ...styles.toggleBtn,
                     ...(view === "month" ? styles.toggleBtnActive : {}),
+                    flex: isMobile ? 1 : undefined,
                   }}
                   onClick={() => setView("month")}
                 >
@@ -841,7 +890,12 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div style={styles.inputRow}>
+          <div
+            style={{
+              ...styles.inputRow,
+              gridTemplateColumns: isMobile ? "1fr" : styles.inputRow.gridTemplateColumns,
+            }}
+          >
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -878,7 +932,11 @@ function CalendarPageContent() {
               style={styles.dateInput}
             />
 
-            <button style={styles.addBtn} onClick={() => handleAddBlock()} disabled={savingBlock}>
+            <button
+              style={{ ...styles.addBtn, width: isMobile ? "100%" : undefined }}
+              onClick={() => handleAddBlock()}
+              disabled={savingBlock}
+            >
               {savingBlock ? "..." : "Add"}
             </button>
           </div>
@@ -912,7 +970,12 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div style={styles.intelligenceGrid}>
+          <div
+            style={{
+              ...styles.intelligenceGrid,
+              gridTemplateColumns: isMobile ? "1fr" : styles.intelligenceGrid.gridTemplateColumns,
+            }}
+          >
             <div style={styles.intelligencePanel}>
               <div style={styles.intelligencePanelTitle}>Covered this week</div>
               <div style={styles.chipRow}>
@@ -931,9 +994,9 @@ function CalendarPageContent() {
             <div style={styles.intelligencePanel}>
               <div style={styles.intelligencePanelTitle}>Suggested next block</div>
               <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
-              <div style={styles.cardActions}>
+              <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                 <button
-                  style={styles.darkSmBtn}
+                  style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -954,9 +1017,9 @@ function CalendarPageContent() {
               <div style={styles.intelligenceText}>
                 A simple Literacy or Numeracy block is enough to begin. You can round out the week once the first piece is in place.
               </div>
-              <div style={styles.cardActions}>
+              <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                 <button
-                  style={styles.outlineSmBtn}
+                  style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -968,7 +1031,7 @@ function CalendarPageContent() {
                   Add Literacy block
                 </button>
                 <button
-                  style={styles.outlineSmBtn}
+                  style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -1006,7 +1069,12 @@ function CalendarPageContent() {
         {loading ? (
           <section style={styles.loadingCard}>Loading calendar…</section>
         ) : view === "week" ? (
-          <section style={styles.weekGrid}>
+          <section
+            style={{
+              ...styles.weekGrid,
+              gridTemplateColumns: isMobile ? "1fr" : styles.weekGrid.gridTemplateColumns,
+            }}
+          >
             {visibleDates.map((date) => {
               const dayBlocks = blocksFor(date);
               const isToday = sameDay(date, new Date());
@@ -1096,9 +1164,9 @@ function CalendarPageContent() {
                         the day.
                       </div>
 
-                      <div style={styles.cardActions}>
+                      <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                         <button
-                          style={styles.outlineSmBtn}
+                          style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
                           onClick={() =>
                             handleAddBlock({
                               date: isoDate(date),
@@ -1109,10 +1177,16 @@ function CalendarPageContent() {
                         >
                           + Add block
                         </button>
-                        <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
+                        <button
+                          style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                          onClick={() => openDay(date)}
+                        >
                           Open day
                         </button>
-                        <button style={styles.darkSmBtn} onClick={() => goToCapture(undefined, date)}>
+                        <button
+                          style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
+                          onClick={() => goToCapture(undefined, date)}
+                        >
                           Capture
                         </button>
                       </div>
@@ -1142,11 +1216,17 @@ function CalendarPageContent() {
                           ) : null}
                           {block.note ? <div style={styles.blockMeta}>{block.note}</div> : null}
 
-                          <div style={styles.cardActions}>
-                            <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
+                          <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+                            <button
+                              style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                              onClick={() => openDay(date)}
+                            >
                               Open day
                             </button>
-                            <button style={styles.darkSmBtn} onClick={() => goToCapture(block)}>
+                            <button
+                              style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
+                              onClick={() => goToCapture(block)}
+                            >
                               Capture
                             </button>
                           </div>
@@ -1178,7 +1258,12 @@ function CalendarPageContent() {
             })}
           </section>
         ) : view === "day" ? (
-          <section style={styles.dayLayout}>
+          <section
+            style={{
+              ...styles.dayLayout,
+              gridTemplateColumns: isMobile ? "1fr" : styles.dayLayout.gridTemplateColumns,
+            }}
+          >
             <div style={styles.dayMain}>
               <div style={styles.dayCard}>
                 <div style={styles.kicker}>DAY VIEW</div>
@@ -1226,8 +1311,11 @@ function CalendarPageContent() {
 
                         {block.note ? <div style={styles.blockNoteWide}>{block.note}</div> : null}
 
-                        <div style={styles.cardActions}>
-                          <button style={styles.outlineSmBtn} onClick={() => goToCapture(block)}>
+                        <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+                          <button
+                            style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                            onClick={() => goToCapture(block)}
+                          >
                             Capture from this block
                           </button>
                         </div>
@@ -1247,7 +1335,11 @@ function CalendarPageContent() {
                   placeholder="Type a note..."
                   style={styles.notesArea}
                 />
-                <button style={styles.darkSmBtn} onClick={handleSaveDayNote} disabled={savingNote}>
+                <button
+                  style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
+                  onClick={handleSaveDayNote}
+                  disabled={savingNote}
+                >
                   {savingNote ? "Saving..." : "Save note"}
                 </button>
               </div>
@@ -1266,7 +1358,12 @@ function CalendarPageContent() {
           </section>
         ) : (
           <section>
-            <div style={styles.monthWeekdays}>
+            <div
+              style={{
+                ...styles.monthWeekdays,
+                gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.monthWeekdays.gridTemplateColumns,
+              }}
+            >
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((w) => (
                 <div key={w} style={styles.monthWeekday}>
                   {w}
@@ -1274,7 +1371,12 @@ function CalendarPageContent() {
               ))}
             </div>
 
-            <div style={styles.monthGrid}>
+            <div
+              style={{
+                ...styles.monthGrid,
+                gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.monthGrid.gridTemplateColumns,
+              }}
+            >
               {visibleDates.map((date) => {
                 const currentMonth = date.getMonth() === selectedDate.getMonth();
                 const selected = sameDay(date, selectedDate);
@@ -1312,7 +1414,13 @@ function CalendarPageContent() {
           </section>
         )}
 
-        <section style={styles.footerStrip}>
+        <section
+          style={{
+            ...styles.footerStrip,
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
+          }}
+        >
           <div>
             <div style={styles.footerTitle}>Continue your flow</div>
             <div style={styles.footerText}>
