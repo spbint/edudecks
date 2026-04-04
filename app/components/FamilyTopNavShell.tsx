@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import GuidedModeBlock from "@/app/components/GuidedModeBlock";
+import PostOnboardingPanel from "@/app/components/guided/PostOnboardingPanel";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -245,7 +245,7 @@ export default function FamilyTopNavShell({
         }}
       >
         <div style={{ marginBottom: 20 }}>
-          <GuidedModeBlock />
+          <PostOnboardingPanel />
         </div>
 
         <section

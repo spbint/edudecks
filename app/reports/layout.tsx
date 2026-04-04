@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import GuidedModeBlock from "@/app/components/GuidedModeBlock";
+import PostOnboardingPanel from "@/app/components/guided/PostOnboardingPanel";
 
 export default function ReportsLayout({
   children,
@@ -59,7 +59,7 @@ export default function ReportsLayout({
           </div>
 
           <FamilyWorkflowStrip />
-          <GuidedModeBlock />
+          <PostOnboardingPanel />
         </div>
       </div>
 
