@@ -25,7 +25,7 @@ export default function HomePage() {
           One connected workflow
         </div>
         <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
-          Move from one learning moment to a trusted report in a way that feels clear, calm, and connected.
+          Start with one learning moment and build toward a report you can confidently share.
         </div>
 
         <div
@@ -78,8 +78,19 @@ export default function HomePage() {
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                   <span style={publicPill("#eff6ff", "#1d4ed8")}>{item.step}</span>
                   {index < items.length - 1 ? (
-                    <span style={{ fontSize: 16, fontWeight: 900, color: "#94a3b8" }}>
-                      →
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 8,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: "#94a3b8",
+                        letterSpacing: 0.4,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Next <span style={{ fontSize: 16, fontWeight: 900 }}>→</span>
                     </span>
                   ) : null}
                 </div>
@@ -93,9 +104,14 @@ export default function HomePage() {
         </div>
 
         <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-start" }}>
-          <Link href="/capture" style={publicButtonStyle(true)}>
-            Start with your first learning moment
-          </Link>
+          <div style={{ display: "grid", gap: 8 }}>
+            <Link href="/capture" style={publicButtonStyle(true)}>
+              Start with your first learning moment
+            </Link>
+            <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
+              Start here — most families begin with one simple learning moment
+            </div>
+          </div>
         </div>
       </section>
 
