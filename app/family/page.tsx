@@ -4,14 +4,9 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
-import UpgradeCard from "@/app/components/premium/UpgradeCard";
-import {
-  getPremiumUpgradeDecision,
-  dismissPremiumTrigger,
-  getPremiumPlanFromStorage,
-} from "@/lib/premiumUpgradeEngine";
 
 /* =========================
    TYPES
@@ -39,16 +34,18 @@ type FamilySettings = {
   parentName?: string;
 };
 
-type GuideState = {
+type FamilyGuidanceState = {
   title: string;
   body: string;
-  primaryLabel: string;
-  primaryHref: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  primaryLabel?: string;
+  primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
-  tone: "info" | "success" | "warning";
-  reason: string;
-  progressNudge: string;
+  tone?: "info" | "success" | "warning";
+  reason?: string;
+  progressNudge?: string;
 };
 
 type LearningStep = {
@@ -64,6 +61,8 @@ type LearningStep = {
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const SETTINGS_KEY = "edudecks_family_settings_v1";
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+const PLANNER_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
+const RECENT_EVIDENCE_DAYS = 7;
 
 const FALLBACK_CHILDREN: ChildRecord[] = [
   {
@@ -289,7 +288,7 @@ function inferLearningStep(area: string): LearningStep {
 function buildGuideState(
   child: ChildRecord | null,
   childDraft: ReportDraftRow | null
-): GuideState {
+): FamilyGuidanceState {
   if (!child) {
     return {
       title: "Start by adding your first child",
@@ -383,6 +382,56 @@ function buildGuideState(
   };
 }
 
+function hasRecentChildEvidence(children: ChildRecord[], days = RECENT_EVIDENCE_DAYS) {
+  return children.some(
+    (child) =>
+      child.evidenceCount > 0 &&
+      child.lastUpdated &&
+      (daysSince(child.lastUpdated) ?? days + 1) <= days
+  );
+}
+
+function countLocalPlannerBlocks() {
+  if (typeof window === "undefined") return 0;
+
+  const raw = parseJson<any[]>(window.localStorage.getItem(PLANNER_BLOCKS_KEY), []);
+  if (!Array.isArray(raw)) return 0;
+
+  return raw.filter(
+    (block) => safe(block?.id) || safe(block?.title) || safe(block?.planned_for)
+  ).length;
+}
+
+function buildFamilyGuidanceState(
+  plannerBlockCount: number,
+  hasRecentEvidence: boolean
+): FamilyGuidanceState {
+  if (hasRecentEvidence) {
+    return {
+      title: "You’re on track",
+      body: "You’ve captured learning this week — keep going",
+      ctaLabel: "View Portfolio",
+      ctaHref: "/portfolio",
+    };
+  }
+
+  if (plannerBlockCount > 0) {
+    return {
+      title: "Do this next",
+      body: "You planned learning — capture what happened",
+      ctaLabel: "Capture",
+      ctaHref: "/capture",
+    };
+  }
+
+  return {
+    title: "Start here",
+    body: "Plan one small learning moment",
+    ctaLabel: "Open Calendar",
+    ctaHref: "/calendar",
+  };
+}
+
 function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null) {
   if (child.evidenceCount === 0) return "Start entry";
   if (!childDraft) return "Build draft";
@@ -450,6 +499,8 @@ function FamilyPageContent() {
   const [drafts, setDrafts] = useState<ReportDraftRow[]>([]);
   const [loadingDrafts, setLoadingDrafts] = useState(true);
   const [welcomeMessage, setWelcomeMessage] = useState("");
+  const [plannerBlockCount, setPlannerBlockCount] = useState(0);
+  const [hasRecentEvidence, setHasRecentEvidence] = useState(false);
 
   useEffect(() => {
     const storedChildren = parseJson<any[]>(
@@ -530,6 +581,63 @@ function FamilyPageContent() {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateGuidance() {
+      const fallbackPlannerBlocks = countLocalPlannerBlocks();
+      const fallbackRecentEvidence = hasRecentChildEvidence(children);
+
+      if (mounted) {
+        setPlannerBlockCount(fallbackPlannerBlocks);
+        setHasRecentEvidence(fallbackRecentEvidence);
+      }
+
+      if (!hasSupabaseEnv) return;
+
+      try {
+        const authResp = await supabase.auth.getUser();
+        const userId = authResp.data.user?.id;
+        if (!userId) return;
+
+        const recentCutoff = new Date();
+        recentCutoff.setDate(recentCutoff.getDate() - RECENT_EVIDENCE_DAYS);
+        const recentCutoffIso = recentCutoff.toISOString();
+
+        const [plannerResp, evidenceResp] = await Promise.all([
+          supabase.from("planner_blocks").select("id", { count: "exact", head: true }).eq("user_id", userId),
+          supabase
+            .from("evidence_entries")
+            .select("id, occurred_on, created_at")
+            .eq("user_id", userId)
+            .or(`occurred_on.gte.${recentCutoffIso.slice(0, 10)},created_at.gte.${recentCutoffIso}`),
+        ]);
+
+        if (!mounted) return;
+
+        if (!plannerResp.error && typeof plannerResp.count === "number") {
+          setPlannerBlockCount(plannerResp.count);
+        }
+
+        if (!evidenceResp.error) {
+          const nextHasRecentEvidence = (evidenceResp.data ?? []).some((entry) => {
+            const stamp = safe(entry?.occurred_on) || safe(entry?.created_at);
+            return stamp && (daysSince(stamp) ?? RECENT_EVIDENCE_DAYS + 1) <= RECENT_EVIDENCE_DAYS;
+          });
+          setHasRecentEvidence(nextHasRecentEvidence);
+        }
+      } catch {
+        if (!mounted) return;
+      }
+    }
+
+    void hydrateGuidance();
+
+    return () => {
+      mounted = false;
+    };
+  }, [children]);
+
   const selectedChild = useMemo(() => {
     return children.find((child) => child.id === selectedChildId) || children[0] || null;
   }, [children, selectedChildId]);
@@ -554,9 +662,9 @@ function FamilyPageContent() {
     );
   }, [drafts, selectedChild]);
 
-  const guideState = useMemo(
-    () => buildGuideState(selectedChild, selectedChildDraft),
-    [selectedChild, selectedChildDraft]
+  const familyGuidance = useMemo(
+    () => buildFamilyGuidanceState(plannerBlockCount, hasRecentEvidence),
+    [plannerBlockCount, hasRecentEvidence]
   );
 
   const confidenceSummary = useMemo(() => {
@@ -585,17 +693,6 @@ function FamilyPageContent() {
   const familyDisplayName = safe(settings.familyDisplayName) || "Your family";
 
   const parentName = safe(settings.parentName);
-
-  const upgradeDecision = useMemo(() => {
-    return getPremiumUpgradeDecision({
-      surface: "family",
-      hasPremium: getPremiumPlanFromStorage(),
-      captureCount: selectedChild?.evidenceCount ?? 0,
-      reportCount: selectedChildDraft ? 1 : 0,
-      authorityPackCount: selectedChildDraft ? 1 : 0,
-      hasEnteredAuthorityFlow: Boolean(selectedChildDraft),
-    });
-  }, [selectedChild, selectedChildDraft]);
 
   return (
     <FamilyTopNavShell
@@ -629,79 +726,23 @@ function FamilyPageContent() {
       <section style={{ ...S.card(), marginBottom: 18 }}>
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0,1.2fr) minmax(280px,0.8fr)",
-            gap: 18,
-            alignItems: "start",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            alignItems: "center",
+            flexWrap: "wrap",
           }}
         >
-          <div>
-            <div style={S.label()}>Next step for your family</div>
-            <div style={S.h1()}>{guideState.title}</div>
-            <div style={S.body()}>{guideState.body}</div>
-
-            <div
-              style={{
-                marginTop: 14,
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-              }}
-            >
-              <Link href={guideState.primaryHref} style={S.button(true)}>
-                {guideState.primaryLabel}
-              </Link>
-              {guideState.secondaryHref && guideState.secondaryLabel ? (
-                <Link href={guideState.secondaryHref} style={S.button(false)}>
-                  {guideState.secondaryLabel}
-                </Link>
-              ) : null}
-            </div>
-
-            <div
-              style={{
-                marginTop: 14,
-                padding: "12px 14px",
-                borderRadius: 14,
-                border: "1px solid #e5e7eb",
-                background: "#f8fafc",
-              }}
-            >
-              <div style={S.label()}>Why this is the best next move</div>
-              <div style={S.small()}>{guideState.reason}</div>
-              <div style={{ height: 8 }} />
-              <div style={S.small()}>
-                <strong>Progress nudge:</strong> {guideState.progressNudge}
-              </div>
-            </div>
-
-            {upgradeDecision.shouldShow ? (
-              <div style={{ marginTop: 16 }}>
-                <UpgradeCard
-                  trigger={upgradeDecision.trigger}
-                  variant="compact"
-                  onSecondaryClick={() => dismissPremiumTrigger(upgradeDecision.trigger)}
-                />
-              </div>
-            ) : null}
+          <div style={{ maxWidth: 760 }}>
+            <div style={S.label()}>Guidance</div>
+            <div style={S.h1()}>{familyGuidance.title}</div>
+            <div style={S.body()}>{familyGuidance.body}</div>
           </div>
 
-          <div style={S.card()}>
-            <div style={S.label()}>Confidence summary</div>
-            <div style={S.h1()}>{confidenceSummary}%</div>
-            <div style={S.small()}>
-              This is a parent-side confidence read based on evidence, coverage,
-              saved draft state, and recency.
-            </div>
-
-            <div style={{ height: 12 }} />
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <MiniStat label="Evidence" value={String(selectedChild?.evidenceCount ?? 0)} />
-              <MiniStat label="Coverage" value={String(selectedChild?.recentAreaCount ?? 0)} />
-              <MiniStat label="Saved draft" value={selectedChildDraft ? "Yes" : "No"} />
-              <MiniStat label="Last update" value={shortDate(selectedChild?.lastUpdated)} />
-            </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href={familyGuidance.ctaHref || "/calendar"} style={S.button(true)}>
+              {familyGuidance.ctaLabel || "Open Calendar"}
+            </Link>
           </div>
         </div>
       </section>
