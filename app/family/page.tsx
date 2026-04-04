@@ -823,6 +823,10 @@ function FamilyPageContent() {
                   : "Choose a child to unlock a suggested focus area."}
               </div>
 
+              <div style={{ ...S.small(), marginTop: 8 }}>
+                Calendar is the best place to shape the week before you capture what actually happened.
+              </div>
+
               <div
                 style={{
                   marginTop: 14,
@@ -831,13 +835,13 @@ function FamilyPageContent() {
                   flexWrap: "wrap",
                 }}
               >
+                <Link href="/calendar" style={S.button(true)}>
+                  Plan this week
+                </Link>
                 <Link href="/planner" style={S.button(false)}>
-                  Open planner
+                  Adjust plan
                 </Link>
-                <Link href="/calendar" style={S.button(false)}>
-                  Open calendar
-                </Link>
-                <Link href="/capture" style={S.button(true)}>
+                <Link href="/capture" style={S.button(false)}>
                   Capture learning
                 </Link>
                 <Link

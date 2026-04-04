@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -71,6 +72,14 @@ type SearchableSelectProps = {
   placeholder: string;
   onChange: (value: string) => void;
   helperText?: string;
+};
+
+type PlannerCaptureContext = {
+  date: string;
+  learningArea: string;
+  title: string;
+  plannerBlockId: string;
+  isActive: boolean;
 };
 
 function safe(v: any) {
@@ -832,7 +841,20 @@ function SearchableSelect({
   );
 }
 
+function isIsoDate(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
 export default function CapturePage() {
+  return (
+    <Suspense fallback={null}>
+      <CapturePageContent />
+    </Suspense>
+  );
+}
+
+function CapturePageContent() {
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -848,6 +870,7 @@ export default function CapturePage() {
   const [feedback, setFeedback] = useState("");
   const [savedCount, setSavedCount] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
+  const [didApplyPlannerContext, setDidApplyPlannerContext] = useState(false);
 
   const [premiumMediaType, setPremiumMediaType] = useState<PremiumMediaType>(null);
   const [isPremium, setIsPremium] = useState(false);
@@ -860,6 +883,21 @@ export default function CapturePage() {
     strand: "",
     skill: "",
   });
+
+  const plannerContext = useMemo<PlannerCaptureContext>(() => {
+    const date = safe(searchParams.get("date"));
+    const learningArea = safe(searchParams.get("learning_area"));
+    const title = safe(searchParams.get("title"));
+    const plannerBlockId = safe(searchParams.get("planner_block_id"));
+
+    return {
+      date: isIsoDate(date) ? date : "",
+      learningArea,
+      title,
+      plannerBlockId,
+      isActive: Boolean(date || learningArea || title || plannerBlockId),
+    };
+  }, [searchParams]);
 
   async function loadChildren() {
     setBusy(true);
@@ -957,6 +995,27 @@ export default function CapturePage() {
     loadChildren();
     setIsPremium(getPremiumFromStorage());
   }, []);
+
+  useEffect(() => {
+    if (didApplyPlannerContext) return;
+
+    if (!plannerContext.isActive) {
+      setDidApplyPlannerContext(true);
+      return;
+    }
+
+    if (plannerContext.date) {
+      setOccurredOn(plannerContext.date);
+    }
+    if (plannerContext.learningArea && !safe(learningArea)) {
+      setLearningArea(plannerContext.learningArea);
+    }
+    if (plannerContext.title && !safe(title)) {
+      setTitle(plannerContext.title);
+    }
+
+    setDidApplyPlannerContext(true);
+  }, [didApplyPlannerContext, learningArea, plannerContext, title]);
 
   useEffect(() => {
     if (!saveFlash) return;
@@ -1315,6 +1374,64 @@ export default function CapturePage() {
                 </Link>
               </div>
             </div>
+
+            {plannerContext.isActive ? (
+              <div
+                style={{
+                  ...softCard(),
+                  marginTop: 16,
+                  border: "1px solid #dbeafe",
+                  background: "#eff6ff",
+                }}
+              >
+                <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
+                  Capturing from your calendar plan
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 14,
+                    lineHeight: 1.65,
+                    color: "#1e3a8a",
+                    fontWeight: 700,
+                  }}
+                >
+                  Bring the planned learning moment into a real record. Adjust anything you need
+                  before saving.
+                </div>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                  {plannerContext.date ? (
+                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                      Date {plannerContext.date}
+                    </span>
+                  ) : null}
+                  {plannerContext.learningArea ? (
+                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                      {plannerContext.learningArea}
+                    </span>
+                  ) : null}
+                  {plannerContext.title ? (
+                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                      {plannerContext.title}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                  <Link
+                    href={
+                      plannerContext.date
+                        ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
+                        : "/calendar"
+                    }
+                    style={buttonStyle(false)}
+                  >
+                    Back to Calendar
+                  </Link>
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section
