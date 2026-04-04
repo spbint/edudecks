@@ -1,3 +1,5 @@
+export const ENABLE_GUIDED_AI = false;
+
 export type GuidedModeStage =
   | "capture"
   | "portfolio"
@@ -11,6 +13,8 @@ export type GuidedModeContent = {
   reassurance: string;
   next: string;
   state: string;
+  nextDynamic?: string;
+  confidence?: number;
 };
 
 export const guidedModeConfig: Record<GuidedModeStage, GuidedModeContent> = {
