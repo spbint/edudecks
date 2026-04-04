@@ -57,12 +57,22 @@ type PlannerCalendarSyncPayload = {
 
 type PlannerCalendarSyncMap = Record<string, PlannerCalendarSyncPayload>;
 
+type CalendarCaptureContext = {
+  studentId: string;
+  date: string;
+  title: string;
+  category: CalendarCategory;
+  notes: string;
+  createdAt: string;
+};
+
 const STORAGE_KEYS = {
   ACTIVE_STUDENT: "edudecks_active_student_id",
   CHILDREN: "edudecks_children_seed_v1",
   CALENDAR_ITEMS: "edudecks_calendar_items_v1",
   CALENDAR_NOTES: "edudecks_calendar_notes_v1",
   PLANNER_CALENDAR_SYNC: "edudecks_planner_calendar_sync_v1",
+  CALENDAR_CAPTURE_CONTEXT: "edudecks_calendar_capture_context_v1",
 };
 
 const CATEGORY_STYLES: Record<
@@ -337,6 +347,21 @@ function mapPlannerActionToCalendarCategory(action: PlannerAction): CalendarCate
   }
 }
 
+function buildCaptureHref(args: {
+  date: string;
+  title?: string;
+  category?: CalendarCategory;
+  studentId?: string;
+}) {
+  const params = new URLSearchParams();
+  if (safe(args.date)) params.set("date", safe(args.date));
+  if (safe(args.title)) params.set("title", safe(args.title));
+  if (safe(args.category)) params.set("category", safe(args.category));
+  if (safe(args.studentId)) params.set("studentId", safe(args.studentId));
+  const query = params.toString();
+  return query ? `/capture?${query}` : "/capture";
+}
+
 export default function CalendarPage() {
   const today = useMemo(() => new Date(), []);
   const [view, setView] = useState<ViewMode>("week");
@@ -597,6 +622,26 @@ export default function CalendarPage() {
     window.setTimeout(() => setBridgeMessage(""), 2000);
   }
 
+  function rememberCaptureContext(args: {
+    date: string;
+    title?: string;
+    category?: CalendarCategory;
+    notes?: string;
+  }) {
+    if (typeof window === "undefined" || !activeStudentId) return;
+
+    const payload: CalendarCaptureContext = {
+      studentId: activeStudentId,
+      date: safe(args.date),
+      title: safe(args.title),
+      category: args.category || "Literacy",
+      notes: safe(args.notes),
+      createdAt: new Date().toISOString(),
+    };
+
+    writeJson(STORAGE_KEYS.CALENDAR_CAPTURE_CONTEXT, payload);
+  }
+
   const pageHeading =
     view === "week"
       ? `Week of ${formatWeekHeader(startOfWeekMonday(anchorDate))}`
@@ -625,7 +670,23 @@ export default function CalendarPage() {
               <Link href="/planner" style={styles.subtleLinkButton}>
                 Back to Planner
               </Link>
-              <Link href="/capture" style={styles.primaryLinkButton}>
+              <Link
+                href={buildCaptureHref({
+                  date: draftDate,
+                  title: draftTitle,
+                  category: draftCategory,
+                  studentId: activeStudentId,
+                })}
+                style={styles.primaryLinkButton}
+                onClick={() =>
+                  rememberCaptureContext({
+                    date: draftDate,
+                    title: draftTitle,
+                    category: draftCategory,
+                    notes: draftContent,
+                  })
+                }
+              >
                 Capture
               </Link>
             </div>
@@ -870,8 +931,20 @@ export default function CalendarPage() {
                             Open day
                           </button>
                           <Link
-                            href={`/capture?date=${dateIso}`}
+                            href={buildCaptureHref({
+                              date: dateIso,
+                              title: "Learning block",
+                              category: "Literacy",
+                              studentId: activeStudentId,
+                            })}
                             style={styles.inlineLinkButton}
+                            onClick={() =>
+                              rememberCaptureContext({
+                                date: dateIso,
+                                title: "Learning block",
+                                category: "Literacy",
+                              })
+                            }
                           >
                             Capture
                           </Link>
@@ -933,8 +1006,21 @@ export default function CalendarPage() {
                                 Open day
                               </button>
                               <Link
-                                href={`/capture?date=${dateIso}`}
+                                href={buildCaptureHref({
+                                  date: dateIso,
+                                  title: item.title,
+                                  category: item.category,
+                                  studentId: activeStudentId,
+                                })}
                                 style={styles.smallLinkButton}
+                                onClick={() =>
+                                  rememberCaptureContext({
+                                    date: dateIso,
+                                    title: item.title,
+                                    category: item.category,
+                                    notes: item.content,
+                                  })
+                                }
                               >
                                 Capture this
                               </Link>
@@ -1065,8 +1151,21 @@ export default function CalendarPage() {
 
                             <div style={styles.dayBlockActionRow}>
                               <Link
-                                href={`/capture?date=${isoDate(anchorDate)}`}
+                                href={buildCaptureHref({
+                                  date: isoDate(anchorDate),
+                                  title: item.title,
+                                  category: item.category,
+                                  studentId: activeStudentId,
+                                })}
                                 style={styles.smallLinkButton}
+                                onClick={() =>
+                                  rememberCaptureContext({
+                                    date: isoDate(anchorDate),
+                                    title: item.title,
+                                    category: item.category,
+                                    notes: item.content,
+                                  })
+                                }
                               >
                                 Capture
                               </Link>
@@ -1211,7 +1310,23 @@ export default function CalendarPage() {
             <Link href="/planner" style={styles.flowButton}>
               Planner
             </Link>
-            <Link href="/capture" style={styles.flowButton}>
+            <Link
+              href={buildCaptureHref({
+                date: isoDate(anchorDate),
+                title: draftTitle,
+                category: draftCategory,
+                studentId: activeStudentId,
+              })}
+              style={styles.flowButton}
+              onClick={() =>
+                rememberCaptureContext({
+                  date: isoDate(anchorDate),
+                  title: draftTitle,
+                  category: draftCategory,
+                  notes: draftContent,
+                })
+              }
+            >
               Capture
             </Link>
             <Link href="/portfolio" style={styles.flowButton}>
