@@ -58,6 +58,12 @@ type LearningStep = {
   action: string;
 };
 
+type JourneyStage = {
+  label: string;
+  stepLabel: string;
+  detail: string;
+};
+
 /* =========================
    CONSTANTS
 ========================= */
@@ -269,6 +275,41 @@ function inferLearningStep(area: string): LearningStep {
   return AREA_SEQUENCE[key] || AREA_SEQUENCE.default;
 }
 
+function buildJourneyStage(
+  child: ChildRecord | null,
+  childDraft: ReportDraftRow | null
+): JourneyStage {
+  if (!child) {
+    return {
+      label: "Setup",
+      stepLabel: "Step 0 of 3",
+      detail: "Add a child profile to begin the family journey.",
+    };
+  }
+
+  if (child.evidenceCount === 0) {
+    return {
+      label: "Capture",
+      stepLabel: "Step 1 of 3",
+      detail: "One learning entry is enough to start building momentum.",
+    };
+  }
+
+  if (!childDraft) {
+    return {
+      label: "Draft",
+      stepLabel: "Step 2 of 3",
+      detail: "You have evidence. The next step is shaping it into a saved draft.",
+    };
+  }
+
+  return {
+    label: "Review",
+    stepLabel: "Step 3 of 3",
+    detail: "A saved draft is in place. Review the output before sharing or exporting.",
+  };
+}
+
 function buildGuideState(
   child: ChildRecord | null,
   childDraft: ReportDraftRow | null
@@ -297,7 +338,7 @@ function buildGuideState(
     return {
       title: `Start ${child.name}'s first learning entry`,
       body: `${child.name} does not have any saved learning evidence yet. Capture one small learning moment today so the system can begin guiding the next step with more confidence.`,
-      primaryLabel: "Capture learning",
+      primaryLabel: "Capture first entry",
       primaryHref: "/capture",
       secondaryLabel: "View portfolio",
       secondaryHref: "/portfolio",
@@ -312,9 +353,9 @@ function buildGuideState(
     return {
       title: `Turn ${child.name}'s evidence into a saved draft`,
       body: `${child.name} already has evidence building, but there is no saved report draft yet. The strongest next move is to formalise the learning story into a calm, reusable draft.`,
-      primaryLabel: "Create report draft",
+      primaryLabel: "Start first draft",
       primaryHref: "/reports",
-      secondaryLabel: "Capture more evidence",
+      secondaryLabel: "Capture one more entry",
       secondaryHref: "/capture",
       tone: "info",
       reason: "Evidence exists, but no saved report draft is linked yet.",
@@ -327,9 +368,9 @@ function buildGuideState(
     return {
       title: `Strengthen ${child.name}'s report before moving on`,
       body: `A saved draft exists, but the evidence set is still light. Add one or two stronger pieces across a wider spread of areas before treating it as submission-ready.`,
-      primaryLabel: "Capture stronger evidence",
+      primaryLabel: "Strengthen this draft",
       primaryHref: "/capture",
-      secondaryLabel: "Open report",
+      secondaryLabel: "Review saved draft",
       secondaryHref: `/reports?draftId=${childDraft.id}`,
       tone: "warning",
       reason: "Draft exists, but coverage and evidence volume are still limited.",
@@ -342,7 +383,7 @@ function buildGuideState(
     return {
       title: `Refresh ${child.name}'s recent evidence`,
       body: `The draft is in place, but the latest saved learning evidence is getting older. Add one fresh learning moment so your reporting and authority posture stay current.`,
-      primaryLabel: "Add fresh evidence",
+      primaryLabel: "Add one fresh entry",
       primaryHref: "/capture",
       secondaryLabel: "Open authority pack",
       secondaryHref: `/authority/pack-builder?draftId=${childDraft.id}`,
@@ -356,21 +397,21 @@ function buildGuideState(
   return {
     title: `${child.name} is ready for the next reporting step`,
     body: `You have enough current evidence and a saved draft for ${child.name}. The strongest next move is to shape the authority pack or review the output before export.`,
-    primaryLabel: "Open authority pack",
-    primaryHref: `/authority/pack-builder?draftId=${childDraft.id}`,
-    secondaryLabel: "Review report output",
-    secondaryHref: `/reports/output?draftId=${childDraft.id}`,
+    primaryLabel: "Review report output",
+    primaryHref: `/reports/output?draftId=${childDraft.id}`,
+    secondaryLabel: "Open authority pack",
+    secondaryHref: `/authority/pack-builder?draftId=${childDraft.id}`,
     tone: "success",
     reason: "Evidence, recency, and saved draft state are all in a strong place.",
-    progressNudge: "You are at the formal reporting stage now.",
+    progressNudge: "The next step is a calm review before export or authority use.",
   };
 }
 
 function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null) {
-  if (child.evidenceCount === 0) return "Start entry";
-  if (!childDraft) return "Build draft";
-  if (child.evidenceCount < 3) return "Build draft";
-  return "Continue";
+  if (child.evidenceCount === 0) return "Start first entry";
+  if (!childDraft) return "Start draft";
+  if (child.evidenceCount < 3) return "Strengthen draft";
+  return "Review next step";
 }
 
 function childActionHref(childDraft: ReportDraftRow | null) {
@@ -542,6 +583,11 @@ function FamilyPageContent() {
     [selectedChild, selectedChildDraft]
   );
 
+  const journeyStage = useMemo(
+    () => buildJourneyStage(selectedChild, selectedChildDraft),
+    [selectedChild, selectedChildDraft]
+  );
+
   const confidenceSummary = useMemo(() => {
     if (!selectedChild) return 0;
     let score = 0;
@@ -651,6 +697,15 @@ function FamilyPageContent() {
               }}
             >
               <div style={S.label()}>Why this is the best next move</div>
+              <div style={{ marginTop: 6, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span style={S.pill("secondary")}>{journeyStage.stepLabel}</span>
+                <span style={S.pill(guideState.tone === "success" ? "success" : guideState.tone === "warning" ? "warning" : "info")}>
+                  {journeyStage.label}
+                </span>
+              </div>
+              <div style={{ height: 8 }} />
+              <div style={S.small()}>{journeyStage.detail}</div>
+              <div style={{ height: 8 }} />
               <div style={S.small()}>{guideState.reason}</div>
               <div style={{ height: 8 }} />
               <div style={S.small()}>
@@ -804,6 +859,11 @@ function FamilyPageContent() {
                       selectedChild.nextFocusArea || "literacy"
                     } learning moment. Add a short note, photo, or work sample that shows what they can now do.`
                   : "Choose a child to unlock a suggested focus area."}
+              </div>
+              <div style={{ ...S.small(), marginTop: 8 }}>
+                {selectedChildDraft
+                  ? "Once you add that stronger piece, return to the saved draft and review the output."
+                  : "Once you capture it, the next step is starting the first saved draft."}
               </div>
 
               <div
@@ -960,11 +1020,11 @@ function FamilyPageContent() {
                   <div style={S.label()}>Suggested next move</div>
                   <div style={S.small()}>
                     {child.evidenceCount === 0
-                      ? "Start by adding your first learning entry."
+                      ? "Start by adding your first learning entry so a report can begin later."
                       : childDraft
                       ? child.status === "ready"
-                        ? "Open the saved report or authority pack."
-                        : "Turn this evidence into a saved report draft."
+                        ? "Review the saved output, then open the authority pack if needed."
+                        : "Add one or two stronger pieces, then review the saved draft."
                       : "Turn this evidence into a first saved report draft."}
                   </div>
                 </div>

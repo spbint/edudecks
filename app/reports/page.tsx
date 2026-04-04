@@ -61,6 +61,11 @@ type ReportSelectionMeta = SelectionMetaMap;
 type PresetKey = "family-summary" | "authority-pack" | "term-review";
 type CoverageStatus = "strong" | "developing" | "attention";
 type ReadinessTone = "success" | "info" | "warning" | "danger";
+type BuilderStage = {
+  label: string;
+  stepLabel: string;
+  detail: string;
+};
 
 const AREA_OPTIONS = [
   "Literacy",
@@ -321,6 +326,42 @@ function interpretReadiness(score: number): {
     message:
       "This report still needs its basic foundations. Start with a child, evidence, and a clearer area mix.",
     action: "Choose a child and select evidence to start building a real draft object.",
+  };
+}
+
+function buildBuilderStage(
+  selectedStudentId: string,
+  selectedEvidenceCount: number,
+  draftId: string
+): BuilderStage {
+  if (!selectedStudentId) {
+    return {
+      label: "Choose child",
+      stepLabel: "Step 1 of 3",
+      detail: "Choose the child first so the report can gather the right evidence.",
+    };
+  }
+
+  if (selectedEvidenceCount === 0) {
+    return {
+      label: "Choose evidence",
+      stepLabel: "Step 2 of 3",
+      detail: "Select a few strong pieces so the draft has something real to say.",
+    };
+  }
+
+  if (!draftId) {
+    return {
+      label: "Save draft",
+      stepLabel: "Step 3 of 3",
+      detail: "You are ready to save the first working draft for review.",
+    };
+  }
+
+  return {
+    label: "Review output",
+    stepLabel: "Step 3 of 3",
+    detail: "Your draft is saved. Review the output before exporting or opening the authority pack.",
   };
 }
 
@@ -707,7 +748,7 @@ function ReportsPageContent() {
           const found =
             mergedStudents.find((student) => student.id === validStoredStudent) || null;
           setMessage(
-            `${firstNameOf(found)} is already selected so you can move straight from capture into reporting.`
+            `${firstNameOf(found)} is already selected. Next step: choose evidence and save a first draft.`
           );
         }
       } catch (err: any) {
@@ -910,7 +951,7 @@ function ReportsPageContent() {
       return "No evidence is available for this child and area filter yet. Add evidence or widen the area filter first.";
     }
     if (selectedEvidenceIds.length < 3) {
-      return "Use Auto-select top evidence or choose a few strong pieces so the report becomes evidence-backed.";
+      return "Use Auto-select top evidence or choose a few strong pieces so the draft has enough substance to review.";
     }
     if (selectedCoreCount < 2) {
       return "Mark at least two selected items as core so the main report has clear anchors.";
@@ -921,8 +962,12 @@ function ReportsPageContent() {
     if (!notes.trim()) {
       return "Add a short family note so the output reads more human and intentional.";
     }
-    return "Save the report draft, then open output to review the frozen report object.";
+    if (!draftId) {
+      return "Save the draft now. The next step after saving is reviewing the output before exporting or opening the authority pack.";
+    }
+    return "Open output to review the saved draft, then export it or open the authority pack if you need the formal version.";
   }, [
+    draftId,
     selectedStudentId,
     studentEvidence.length,
     selectedEvidenceIds.length,
@@ -933,13 +978,18 @@ function ReportsPageContent() {
 
   const saveConfidenceText = useMemo(() => {
     if (readinessScore >= 85) {
-      return "You are ready to save this report draft. It has enough structure and evidence to become a stable output object.";
+      return "You are ready to save this draft. After saving, review the output before exporting or opening the authority pack.";
     }
     if (readinessScore >= 65) {
-      return "You are close to ready. One or two small improvements will make this draft much stronger before saving.";
+      return "You are close to ready. One or two small improvements will make the saved draft feel much stronger.";
     }
     return "This draft can still be saved now, but it will feel more trustworthy once evidence and balance improve.";
   }, [readinessScore]);
+
+  const builderStage = useMemo(
+    () => buildBuilderStage(selectedStudentId, selectedEvidenceIds.length, draftId),
+    [draftId, selectedEvidenceIds.length, selectedStudentId]
+  );
 
   useEffect(() => {
     if (!selectedStudentId) return;
@@ -952,7 +1002,7 @@ function ReportsPageContent() {
 
     setSelectionMeta(autoMeta);
     autoSelectedStudentRef.current = selectedStudentId;
-    setMessage("Top evidence was selected automatically for this child.");
+    setMessage("Top evidence was selected automatically. Review it, then save the draft when it looks right.");
     setError("");
   }, [selectedStudentId, studentEvidence, selectedEvidenceIds.length]);
 
@@ -1011,7 +1061,7 @@ function ReportsPageContent() {
 
     setSelectionMeta(next);
     autoSelectedStudentRef.current = selectedStudentId;
-    setMessage("Top evidence has been selected.");
+    setMessage("Top evidence has been selected. Next step: save the draft or open output when you are ready.");
     setError("");
   }
 
@@ -1071,9 +1121,9 @@ function ReportsPageContent() {
 
       setDraftId(row.id);
       setMessage(
-        `Report draft saved with ${finalSelectedEvidenceIds.length} selected evidence item${
+        `Draft saved with ${finalSelectedEvidenceIds.length} selected evidence item${
           finalSelectedEvidenceIds.length === 1 ? "" : "s"
-        }. This draft is now a stable object for output and authority flows.`
+        }. Next step: review the output before exporting or opening the authority pack.`
       );
 
       if (openOutput) {
@@ -1250,6 +1300,8 @@ function ReportsPageContent() {
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
+                <span style={pillStyle("secondary")}>{builderStage.stepLabel}</span>
+                <span style={pillStyle(readiness.tone)}>{builderStage.label}</span>
                 <span style={pillStyle("primary")}>Market: {marketLabel(preferredMarket)}</span>
                 <span style={pillStyle("secondary")}>{modeLabel(reportMode)}</span>
                 <span style={pillStyle("info")}>{periodLabel(periodMode)}</span>
@@ -1258,6 +1310,8 @@ function ReportsPageContent() {
                   <span style={pillStyle("secondary")}>Child: {firstNameOf(selectedStudent)}</span>
                 ) : null}
               </div>
+
+              <div style={{ ...smallStyle, marginTop: 10 }}>{builderStage.detail}</div>
 
               <div style={{ height: 18 }} />
 
