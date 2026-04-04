@@ -199,6 +199,17 @@ function learnerLabel(row: any): string {
   return [first, last].filter(Boolean).join(" ").trim() || "Learner";
 }
 
+function titleForSuggestedArea(area: string) {
+  if (area === "Literacy") return "Literacy learning moment";
+  if (area === "Numeracy") return "Numeracy learning moment";
+  if (area === "Science") return "Science learning moment";
+  if (area === "Humanities") return "Humanities learning moment";
+  if (area === "Inquiry") return "Inquiry learning moment";
+  if (area === "Creative") return "Creative learning moment";
+  if (area === "Bible") return "Bible learning moment";
+  return `${area} learning moment`;
+}
+
 export default function CalendarPage() {
   return (
     <Suspense fallback={null}>
@@ -407,6 +418,122 @@ function CalendarPageContent() {
   }, [blocks]);
 
   const selectedIso = isoDate(selectedDate);
+  const selectedWeekStart = useMemo(() => startOfWeekMonday(selectedDate), [selectedDate]);
+  const selectedWeekEnd = useMemo(() => endOfWeekSunday(selectedDate), [selectedDate]);
+  const selectedWeekDates = useMemo(
+    () => rangeDates(selectedWeekStart, selectedWeekEnd),
+    [selectedWeekStart, selectedWeekEnd]
+  );
+  const selectedWeekStartIso = isoDate(selectedWeekStart);
+  const selectedWeekEndIso = isoDate(selectedWeekEnd);
+
+  const weeklyBlocks = useMemo(
+    () =>
+      blocks.filter((block) => {
+        const plannedFor = safeString(block.planned_for);
+        return plannedFor >= selectedWeekStartIso && plannedFor <= selectedWeekEndIso;
+      }),
+    [blocks, selectedWeekEndIso, selectedWeekStartIso]
+  );
+
+  const weeklyAreaCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    weeklyBlocks.forEach((block) => {
+      const area = safeString(block.learning_area) || "General";
+      counts[area] = (counts[area] || 0) + 1;
+    });
+    return counts;
+  }, [weeklyBlocks]);
+
+  const coveredAreas = useMemo(
+    () => LEARNING_AREAS.filter((area) => (weeklyAreaCounts[area] || 0) > 0),
+    [weeklyAreaCounts]
+  );
+
+  const missingAreas = useMemo(
+    () => LEARNING_AREAS.filter((area) => !coveredAreas.includes(area)),
+    [coveredAreas]
+  );
+
+  const strongestArea = useMemo(() => {
+    let best = "";
+    let bestCount = 0;
+    Object.entries(weeklyAreaCounts).forEach(([area, count]) => {
+      if (count > bestCount) {
+        best = area;
+        bestCount = count;
+      }
+    });
+    return best;
+  }, [weeklyAreaCounts]);
+
+  const isBalancedWeek =
+    weeklyBlocks.length > 0 && coveredAreas.length >= 4 && missingAreas.length <= 4;
+
+  const suggestedNextArea = useMemo(() => {
+    if (weeklyBlocks.length === 0) return "Literacy";
+
+    const coreMissing = ["Literacy", "Numeracy", "Science", "Humanities"].find((area) =>
+      missingAreas.includes(area)
+    );
+    if (coreMissing) return coreMissing;
+
+    const anyMissing = LEARNING_AREAS.find((area) => missingAreas.includes(area));
+    if (anyMissing) return anyMissing;
+
+    if ((weeklyAreaCounts.Inquiry || 0) === 0) return "Inquiry";
+    if ((weeklyAreaCounts.Creative || 0) === 0) return "Creative";
+    if ((weeklyAreaCounts.Bible || 0) === 0) return "Bible";
+    return "Inquiry";
+  }, [missingAreas, weeklyAreaCounts, weeklyBlocks.length]);
+
+  const suggestedNextCopy = useMemo(() => {
+    if (weeklyBlocks.length === 0) {
+      return "Start with one small Literacy or Numeracy block this week.";
+    }
+
+    if (missingAreas.length > 0) {
+      if (suggestedNextArea === "Science" || suggestedNextArea === "Humanities") {
+        return `A simple ${suggestedNextArea} block would help round out the week.`;
+      }
+      return `Suggested next block: Add one ${suggestedNextArea} moment this week.`;
+    }
+
+    return "This week looks balanced - consider adding one creative or inquiry moment.";
+  }, [missingAreas.length, suggestedNextArea, weeklyBlocks.length]);
+
+  const weeklySummaryText = useMemo(() => {
+    if (weeklyBlocks.length === 0) {
+      return "This week is still open. Start with one small learning moment and let the week take shape gently.";
+    }
+    if (isBalancedWeek) {
+      return "This week is looking balanced. You've already planned a healthy spread of learning.";
+    }
+    return "This week is beginning to take shape.";
+  }, [isBalancedWeek, weeklyBlocks.length]);
+
+  const weeklyCoverageText = useMemo(() => {
+    if (weeklyBlocks.length === 0) {
+      return "A simple Literacy or Numeracy block is enough to begin.";
+    }
+    if (missingAreas.length === 0) {
+      return "You already have something planned across each learning area in this weekly view.";
+    }
+    return `Missing this week: ${missingAreas.slice(0, 4).join(", ")}${missingAreas.length > 4 ? "..." : ""}`;
+  }, [missingAreas, weeklyBlocks.length]);
+
+  const strongestAreaText =
+    weeklyBlocks.length > 0 && strongestArea
+      ? `Strongest planned area: ${strongestArea}`
+      : "No area is leading yet.";
+
+  const suggestedDateIso = useMemo(() => {
+    const firstOpenDay = selectedWeekDates.find((date) => {
+      const dateKey = isoDate(date);
+      return (blocksByDate[dateKey] || []).length === 0;
+    });
+    return isoDate(firstOpenDay || selectedDate);
+  }, [blocksByDate, selectedDate, selectedWeekDates]);
 
   function shiftPeriod(direction: -1 | 1) {
     if (view === "day") {
@@ -766,6 +893,115 @@ function CalendarPageContent() {
           {message ? <div style={styles.message}>{message}</div> : null}
           <div style={styles.storageHint}>Storage mode: {storageMode}</div>
         </section>
+
+        <section style={styles.intelligenceCard}>
+          <div style={styles.intelligenceTop}>
+            <div>
+              <div style={styles.intelligenceEyebrow}>Weekly guidance</div>
+              <div style={styles.intelligenceTitle}>{weeklySummaryText}</div>
+              <div style={styles.intelligenceText}>{weeklyCoverageText}</div>
+            </div>
+
+            <div style={styles.intelligencePills}>
+              <span style={styles.intelligencePill}>
+                {weeklyBlocks.length === 0
+                  ? "No blocks planned yet"
+                  : `${weeklyBlocks.length} planned ${weeklyBlocks.length === 1 ? "block" : "blocks"}`}
+              </span>
+              <span style={styles.intelligencePill}>{strongestAreaText}</span>
+            </div>
+          </div>
+
+          <div style={styles.intelligenceGrid}>
+            <div style={styles.intelligencePanel}>
+              <div style={styles.intelligencePanelTitle}>Covered this week</div>
+              <div style={styles.chipRow}>
+                {coveredAreas.length ? (
+                  coveredAreas.map((area) => (
+                    <span key={area} style={styles.coveredChip}>
+                      {area}
+                    </span>
+                  ))
+                ) : (
+                  <span style={styles.helperText}>Nothing is planned yet.</span>
+                )}
+              </div>
+            </div>
+
+            <div style={styles.intelligencePanel}>
+              <div style={styles.intelligencePanelTitle}>Suggested next block</div>
+              <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
+              <div style={styles.cardActions}>
+                <button
+                  style={styles.darkSmBtn}
+                  onClick={() =>
+                    handleAddBlock({
+                      date: suggestedDateIso,
+                      area: suggestedNextArea,
+                      title: titleForSuggestedArea(suggestedNextArea),
+                    })
+                  }
+                >
+                  Add suggested block
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {weeklyBlocks.length === 0 ? (
+            <div style={styles.emptyWeekCard}>
+              <div style={styles.intelligencePanelTitle}>Start with one small learning moment</div>
+              <div style={styles.intelligenceText}>
+                A simple Literacy or Numeracy block is enough to begin. You can round out the week once the first piece is in place.
+              </div>
+              <div style={styles.cardActions}>
+                <button
+                  style={styles.outlineSmBtn}
+                  onClick={() =>
+                    handleAddBlock({
+                      date: suggestedDateIso,
+                      area: "Literacy",
+                      title: titleForSuggestedArea("Literacy"),
+                    })
+                  }
+                >
+                  Add Literacy block
+                </button>
+                <button
+                  style={styles.outlineSmBtn}
+                  onClick={() =>
+                    handleAddBlock({
+                      date: suggestedDateIso,
+                      area: "Numeracy",
+                      title: titleForSuggestedArea("Numeracy"),
+                    })
+                  }
+                >
+                  Add Numeracy block
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        {!loading && view === "week" ? (
+          <section style={styles.weekSignals}>
+            <div style={styles.weekSignalsTitle}>Missing area signals</div>
+            <div style={styles.chipRow}>
+              {missingAreas.length ? (
+                missingAreas.map((area) => (
+                  <span key={area} style={styles.missingChip}>
+                    {area}
+                  </span>
+                ))
+              ) : (
+                <span style={styles.helperText}>
+                  This week is already carrying a healthy spread.
+                </span>
+              )}
+            </div>
+          </section>
+        ) : null}
 
         {loading ? (
           <section style={styles.loadingCard}>Loading calendar…</section>
@@ -1245,6 +1481,117 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 20,
     padding: 16,
   },
+  intelligenceCard: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 18,
+    display: "grid",
+    gap: 14,
+  },
+  intelligenceTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 14,
+    alignItems: "flex-start",
+    flexWrap: "wrap",
+  },
+  intelligenceEyebrow: {
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    color: "#64748b",
+    marginBottom: 6,
+  },
+  intelligenceTitle: {
+    fontSize: 22,
+    lineHeight: 1.2,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  intelligenceText: {
+    marginTop: 8,
+    fontSize: 14,
+    lineHeight: 1.65,
+    color: "#556070",
+    maxWidth: 760,
+  },
+  intelligencePills: {
+    display: "grid",
+    gap: 8,
+    alignItems: "start",
+  },
+  intelligencePill: {
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 32,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: "1px solid #dce3ef",
+    background: "#f8fafc",
+    color: "#475569",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  intelligenceGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+    gap: 14,
+  },
+  intelligencePanel: {
+    border: "1px solid #eef2f7",
+    borderRadius: 16,
+    background: "#fbfdff",
+    padding: 14,
+  },
+  intelligencePanelTitle: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  chipRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+  coveredChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 30,
+    padding: "0 10px",
+    borderRadius: 999,
+    border: "1px solid #bfdbfe",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  missingChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 30,
+    padding: "0 10px",
+    borderRadius: 999,
+    border: "1px solid #fde68a",
+    background: "#fffbeb",
+    color: "#92400e",
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  helperText: {
+    fontSize: 13,
+    color: "#64748b",
+    lineHeight: 1.55,
+    fontWeight: 700,
+  },
+  emptyWeekCard: {
+    border: "1px solid #dbeafe",
+    borderRadius: 16,
+    background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+    padding: 14,
+  },
   topRow: {
     display: "flex",
     justifyContent: "space-between",
@@ -1396,6 +1743,17 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: 32,
     fontSize: 15,
+    color: "#475569",
+  },
+  weekSignals: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 18,
+    padding: 14,
+  },
+  weekSignalsTitle: {
+    fontSize: 13,
+    fontWeight: 800,
     color: "#475569",
   },
   weekGrid: {
