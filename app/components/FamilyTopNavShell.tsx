@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import GuidedModeBlock from "@/app/components/GuidedModeBlock";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -243,6 +244,10 @@ export default function FamilyTopNavShell({
           padding: 20,
         }}
       >
+        <div style={{ marginBottom: 20 }}>
+          <GuidedModeBlock />
+        </div>
+
         <section
           style={{
             display: "grid",

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import GuidedModeBlock from "@/app/components/GuidedModeBlock";
 
 export default function ReportsLayout({
   children,
@@ -58,6 +59,7 @@ export default function ReportsLayout({
           </div>
 
           <FamilyWorkflowStrip />
+          <GuidedModeBlock />
         </div>
       </div>
 
