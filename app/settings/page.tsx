@@ -42,14 +42,24 @@ function childLandingLabel(key: DefaultChildLanding) {
 function childOptionLabel(child: ChildOption | null | undefined) {
   if (!child) return "Not selected";
 
+  const row = child as ChildOption &
+    Partial<{
+      name: string | null;
+      title: string | null;
+      preferred_name: string | null;
+      first_name: string | null;
+      surname: string | null;
+      family_name: string | null;
+    }>;
+
   return (
-    (child as any).name ||
-    (child as any).label ||
-    (child as any).title ||
+    row.label ||
+    row.name ||
+    row.title ||
     [
-      (child as any).preferred_name,
-      (child as any).first_name,
-      (child as any).surname || (child as any).family_name,
+      row.preferred_name,
+      row.first_name,
+      row.surname || row.family_name,
     ]
       .filter(Boolean)
       .join(" ")
@@ -61,10 +71,17 @@ function childOptionLabel(child: ChildOption | null | undefined) {
 function childOptionYearLabel(child: ChildOption | null | undefined) {
   if (!child) return "";
 
+  const row = child as ChildOption &
+    Partial<{
+      yearLabel: string | null;
+      year_label: string | null;
+      year_level: string | number | null;
+    }>;
+
   return (
-    (child as any).yearLabel ||
-    (child as any).year_label ||
-    ((child as any).year_level ? `Year ${(child as any).year_level}` : "")
+    row.yearLabel ||
+    row.year_label ||
+    (row.year_level ? `Year ${row.year_level}` : "")
   );
 }
 
@@ -90,7 +107,7 @@ export default function FamilySettingsPage() {
       const localMerged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...localSettings,
-        default_child_id: localSettings.default_child_id || seededChildren[0]?.id || "",
+        default_child_id: localSettings.default_child_id || seededChildren[0]?.id || null,
       };
 
       if (!mounted) return;
@@ -137,7 +154,7 @@ export default function FamilySettingsPage() {
         ...DEFAULT_FAMILY_SETTINGS,
         ...rowToSettings(data),
         default_child_id:
-          data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || "",
+          data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || null,
       };
 
       setStorageMode("database");
@@ -229,7 +246,7 @@ export default function FamilySettingsPage() {
       const merged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...rowToSettings(data),
-        default_child_id: data?.default_child_id || settings.default_child_id || "",
+        default_child_id: data?.default_child_id || settings.default_child_id || null,
       };
 
       setStorageMode("database");
@@ -245,7 +262,7 @@ export default function FamilySettingsPage() {
   function handleReset() {
     const fallback: FamilySettings = {
       ...DEFAULT_FAMILY_SETTINGS,
-      default_child_id: children[0]?.id || "",
+      default_child_id: children[0]?.id || null,
     };
     setSettings(fallback);
   }
@@ -454,9 +471,10 @@ export default function FamilySettingsPage() {
                 <Field label="Default child" help="The child selected first when family pages open.">
                   <select
                     value={settings.default_child_id ?? ""}
-                    onChange={(e) => update("default_child_id", e.target.value)}
+                    onChange={(e) => update("default_child_id", e.target.value || null)}
                     style={shellStyles.input}
                   >
+                    <option value="">No child selected</option>
                     {children.map((child) => (
                       <option key={child.id} value={child.id}>
                         {childOptionLabel(child)}

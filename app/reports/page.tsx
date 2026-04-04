@@ -334,12 +334,29 @@ function joinNatural(items: string[]) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+function seedStudentName(raw: any, index: number) {
+  return (
+    safe(raw?.name) ||
+    safe(raw?.label) ||
+    safe(raw?.title) ||
+    [
+      safe(raw?.preferred_name || raw?.first_name),
+      safe(raw?.surname || raw?.family_name || raw?.last_name),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
+    `Child ${index + 1}`
+  );
+}
+
 function buildSeedStudents(): StudentRow[] {
   if (typeof window === "undefined") return [];
   const raw = parseJson<any[]>(window.localStorage.getItem(CHILDREN_KEY), []);
   return raw.map((child, index) => ({
     id: safe(child?.id) || `seed-child-${index + 1}`,
-    preferred_name: safe(child?.name) || `Child ${index + 1}`,
+    preferred_name: seedStudentName(child, index),
+    surname: safe(child?.surname || child?.family_name || child?.last_name) || null,
     yearLabel: safe(child?.yearLabel || child?.year_label),
     source: "seed",
   }));
@@ -632,7 +649,7 @@ function ReportsPageContent() {
 
         const initialMarket =
           ((existingDraft?.preferred_market as PreferredMarket) ||
-            safe((familyProfile as any)?.preferred_market) ||
+            safe(familyProfile?.preferred_market) ||
             "au") as PreferredMarket;
 
         setProfile(familyProfile);
@@ -655,7 +672,7 @@ function ReportsPageContent() {
           safe(existingDraft?.student_id) ||
           validRequestedStudent ||
           validStoredStudent ||
-          safe((familyProfile as any)?.default_child_id) ||
+          safe(familyProfile?.default_child_id) ||
           safe(mergedStudents[0]?.id) ||
           "";
 
@@ -663,7 +680,7 @@ function ReportsPageContent() {
         setSelectedStudentId(defaultStudentId);
         setReportMode(
           (existingDraft?.report_mode ||
-            safe((familyProfile as any)?.report_tone_default) ||
+            safe(familyProfile?.report_tone_default) ||
             "family-summary") as ReportMode
         );
         setPeriodMode((existingDraft?.period_mode || "term") as PeriodMode);

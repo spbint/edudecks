@@ -220,7 +220,12 @@ function normalizeChild(raw: any, index: number): ChildRecord {
   const name =
     safe(raw?.name) ||
     safe(raw?.child_name) ||
-    [safe(raw?.preferred_name), safe(raw?.surname || raw?.last_name)]
+    safe(raw?.label) ||
+    safe(raw?.title) ||
+    [
+      safe(raw?.preferred_name || raw?.first_name),
+      safe(raw?.surname || raw?.family_name || raw?.last_name),
+    ]
       .filter(Boolean)
       .join(" ") ||
     `Child ${index + 1}`;
