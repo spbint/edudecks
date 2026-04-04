@@ -25,30 +25,77 @@ export default function HomePage() {
           One connected workflow
         </div>
         <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
-          Instead of juggling separate tools, the whole family workflow connects.
+          Move from one learning moment to a trusted report in a way that feels clear, calm, and connected.
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+            gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))",
             gap: 16,
+            alignItems: "stretch",
           }}
         >
           {[
-            ["Capture", "/capture"],
-            ["Portfolio", "/portfolio"],
-            ["Goals", "/goals"],
-            ["Planner", "/planner"],
-            ["Reports", "/reports"],
-          ].map(([label, href]) => (
-            <div key={label} style={publicCardStyle()}>
-              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 8 }}>{label}</div>
-              <Link href={href} style={publicButtonStyle(false)}>
-                Open
+            {
+              title: "Capture",
+              description: "Save one real learning moment",
+              href: "/capture",
+              step: "01",
+            },
+            {
+              title: "Portfolio",
+              description: "Build evidence naturally over time",
+              href: "/portfolio",
+              step: "02",
+            },
+            {
+              title: "Planning",
+              description: "Shape what comes next with clarity",
+              href: "/planner",
+              step: "03",
+            },
+            {
+              title: "Reports",
+              description: "Turn learning into a trusted summary",
+              href: "/reports",
+              step: "04",
+            },
+          ].map((item, index, items) => (
+            <React.Fragment key={item.title}>
+              <Link
+                href={item.href}
+                style={{
+                  ...publicCardStyle(),
+                  textDecoration: "none",
+                  color: "inherit",
+                  display: "grid",
+                  gap: 10,
+                  minHeight: 160,
+                  alignContent: "start",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                  <span style={publicPill("#eff6ff", "#1d4ed8")}>{item.step}</span>
+                  {index < items.length - 1 ? (
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "#94a3b8" }}>
+                      →
+                    </span>
+                  ) : null}
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#0f172a" }}>{item.title}</div>
+                <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
+                  {item.description}
+                </div>
               </Link>
-            </div>
+            </React.Fragment>
           ))}
+        </div>
+
+        <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-start" }}>
+          <Link href="/capture" style={publicButtonStyle(true)}>
+            Start with your first learning moment
+          </Link>
         </div>
       </section>
 
