@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   getPostOnboardingStage,
@@ -8,6 +8,13 @@ import {
   postOnboardingConfig,
   type PostOnboardingStage,
 } from "@/lib/postOnboarding";
+import {
+  buildGuidedContext,
+  getCompletionMessage,
+  getGuidedReturnState,
+  getReturnGuidance,
+  type GuidedReturnState,
+} from "@/lib/guidedReturn";
 
 type PostOnboardingPanelProps = {
   stage?: PostOnboardingStage | null;
@@ -35,12 +42,31 @@ function helperCardStyle(): React.CSSProperties {
 export default function PostOnboardingPanel({ stage }: PostOnboardingPanelProps) {
   const pathname = usePathname();
   const resolvedStage = stage ?? getPostOnboardingStage(pathname);
+  const [returnState, setReturnState] = useState<GuidedReturnState | null>(null);
 
   if (!resolvedStage) return null;
 
   const content = postOnboardingConfig[resolvedStage];
   const rhythmCue = getWeeklyRhythmCue();
   const planningSurface = resolvedStage === "planning";
+  const context = useMemo(
+    () =>
+      buildGuidedContext({
+        page:
+          resolvedStage === "planning"
+            ? "planner"
+            : resolvedStage,
+        reportReady:
+          resolvedStage === "output" || resolvedStage === "authority",
+      }),
+    [resolvedStage]
+  );
+  const returnMessage = returnState ? getReturnGuidance(context, returnState) : "";
+  const completionMessage = getCompletionMessage(context);
+
+  useEffect(() => {
+    setReturnState(getGuidedReturnState());
+  }, []);
 
   return (
     <section
@@ -143,6 +169,37 @@ export default function PostOnboardingPanel({ stage }: PostOnboardingPanelProps)
           >
             {content.next}
           </div>
+
+          {returnMessage ? (
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 13,
+                color: "#4b5563",
+                lineHeight: 1.6,
+              }}
+            >
+              {returnMessage}
+            </div>
+          ) : null}
+
+          {completionMessage ? (
+            <div
+              style={{
+                marginTop: 12,
+                padding: "10px 12px",
+                borderRadius: 8,
+                background: "#ecfdf5",
+                border: "1px solid #bbf7d0",
+                fontSize: 13,
+                color: "#065f46",
+                fontWeight: 500,
+                lineHeight: 1.6,
+              }}
+            >
+              {completionMessage}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
