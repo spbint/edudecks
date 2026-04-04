@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
@@ -11,14 +11,6 @@ function safe(value: unknown) {
 }
 
 export default function StudentSharePage() {
-  return (
-    <Suspense fallback={null}>
-      <StudentSharePageContent />
-    </Suspense>
-  );
-}
-
-function StudentSharePageContent() {
   const params = useParams();
   const searchParams = useSearchParams();
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 type ChildRecord = {
   id: string;
@@ -432,14 +432,6 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
 }
 
 export default function PlannerPage() {
-  return (
-    <Suspense fallback={null}>
-      <PlannerPageContent />
-    </Suspense>
-  );
-}
-
-function PlannerPageContent() {
   const searchParams = useSearchParams();
 
   const [children, setChildren] = useState<ChildRecord[]>([]);

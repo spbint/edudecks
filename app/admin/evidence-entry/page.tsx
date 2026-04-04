@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
@@ -591,14 +591,6 @@ const S: Record<string, React.CSSProperties> = {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function EvidenceEntryPage() {
-  return (
-    <Suspense fallback={null}>
-      <EvidenceEntryPageContent />
-    </Suspense>
-  );
-}
-
-function EvidenceEntryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

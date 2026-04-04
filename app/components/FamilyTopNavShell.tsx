@@ -3,8 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import PostOnboardingPanel from "@/app/components/guided/PostOnboardingPanel";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -84,7 +82,6 @@ const SECTIONS: NavSection[] = [
   {
     title: "Workflow",
     items: [
-      { href: "/calendar", label: "Calendar" },
       { href: "/capture", label: "Capture" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/reports", label: "Reports" },
@@ -97,7 +94,6 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/goals", label: "Goals" },
       { href: "/planner", label: "Planner" },
-      { href: "/calendar", label: "Calendar" },
     ],
   },
   {
@@ -189,9 +185,6 @@ export default function FamilyTopNavShell({
               <Link href="/capture" style={utilBtn(true)}>
                 Quick Capture
               </Link>
-              <Link href="/calendar" style={utilBtn(false)}>
-                Calendar
-              </Link>
               <Link href="/reports" style={utilBtn(false)}>
                 Build Report
               </Link>
@@ -237,8 +230,6 @@ export default function FamilyTopNavShell({
               </div>
             ))}
           </div>
-
-          <FamilyWorkflowStrip />
         </div>
       </header>
 
@@ -249,10 +240,6 @@ export default function FamilyTopNavShell({
           padding: 20,
         }}
       >
-        <div style={{ marginBottom: 20 }}>
-          <PostOnboardingPanel />
-        </div>
-
         <section
           style={{
             display: "grid",
@@ -345,9 +332,6 @@ export default function FamilyTopNavShell({
                 marginTop: 16,
               }}
             >
-              <Link href="/calendar" style={utilBtn(false)}>
-                Calendar
-              </Link>
               <Link href="/portfolio" style={utilBtn(false)}>
                 Portfolio
               </Link>

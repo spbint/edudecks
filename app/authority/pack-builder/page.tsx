@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -443,14 +443,6 @@ function buildPostureSummary(args: {
 /* ================= PAGE ================= */
 
 export default function AuthorityPackBuilderPage() {
-  return (
-    <Suspense fallback={null}>
-      <AuthorityPackBuilderPageContent />
-    </Suspense>
-  );
-}
-
-function AuthorityPackBuilderPageContent() {
   const searchParams = useSearchParams();
 
   const [drafts, setDrafts] = useState<ReportDraftRow[]>([]);

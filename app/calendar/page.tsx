@@ -1,185 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
-type ViewMode = "week" | "day" | "month";
+type ViewMode = "day" | "week" | "month";
+type BlockStatus = "planned" | "done";
 
-type ChildRecord = {
+type PlannerBlock = {
   id: string;
-  first_name?: string;
-  last_name?: string;
-  name?: string;
-  age?: number | string;
-  year_level?: string;
+  user_id: string | null;
+  student_id: string | null;
+  title: string;
+  learning_area: string;
+  planned_for: string;
+  planned_time: string | null;
+  note: string | null;
+  status: BlockStatus;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
-type CalendarCategory =
-  | "Literacy"
-  | "Numeracy"
-  | "Bible"
-  | "Inquiry"
-  | "Creative"
-  | "Life Skills"
-  | "Outdoor";
-
-type CalendarItem = {
+type PlannerDayNote = {
   id: string;
-  studentId: string;
-  date: string;
-  title: string;
-  content: string;
-  category: CalendarCategory;
-  timeLabel: string;
-  createdAt: string;
+  user_id: string | null;
+  student_id: string | null;
+  note_date: string;
+  note: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
-type DayNoteMap = Record<string, string>;
-type CalendarItemMap = Record<string, CalendarItem[]>;
-
-type PlannerAction = {
+type Learner = {
   id: string;
-  title: string;
-  description: string;
-  category: "observe" | "do" | "capture" | "reflect";
-  completed: boolean;
+  label: string;
 };
 
-type PlannerCalendarSyncPayload = {
-  studentId: string;
-  weekKey: string;
-  focusTitle: string;
-  focusSummary: string;
-  encouragement: string;
-  actions: PlannerAction[];
-  updatedAt: string;
-};
+const STORAGE_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
+const STORAGE_NOTES_KEY = "edudecks_calendar_notes_v1";
+const STORAGE_LEARNER_KEY = "edudecks_active_student_id";
 
-type PlannerCalendarSyncMap = Record<string, PlannerCalendarSyncPayload>;
-
-type CalendarCaptureContext = {
-  studentId: string;
-  date: string;
-  title: string;
-  category: CalendarCategory;
-  notes: string;
-  createdAt: string;
-};
-
-const STORAGE_KEYS = {
-  ACTIVE_STUDENT: "edudecks_active_student_id",
-  CHILDREN: "edudecks_children_seed_v1",
-  CALENDAR_ITEMS: "edudecks_calendar_items_v1",
-  CALENDAR_NOTES: "edudecks_calendar_notes_v1",
-  PLANNER_CALENDAR_SYNC: "edudecks_planner_calendar_sync_v1",
-  CALENDAR_CAPTURE_CONTEXT: "edudecks_calendar_capture_context_v1",
-};
-
-const CATEGORY_STYLES: Record<
-  CalendarCategory,
-  {
-    bg: string;
-    border: string;
-    text: string;
-    chipBg: string;
-    chipText: string;
-    monthBar: string;
-  }
-> = {
-  Literacy: {
-    bg: "#eaf2ff",
-    border: "#87b2ff",
-    text: "#1d4ed8",
-    chipBg: "#dbeafe",
-    chipText: "#1e40af",
-    monthBar: "#60a5fa",
-  },
-  Numeracy: {
-    bg: "#ecfdf3",
-    border: "#86efac",
-    text: "#15803d",
-    chipBg: "#dcfce7",
-    chipText: "#166534",
-    monthBar: "#4ade80",
-  },
-  Bible: {
-    bg: "#fff7e8",
-    border: "#fcd34d",
-    text: "#b45309",
-    chipBg: "#fef3c7",
-    chipText: "#92400e",
-    monthBar: "#fbbf24",
-  },
-  Inquiry: {
-    bg: "#f4ebff",
-    border: "#c4b5fd",
-    text: "#7c3aed",
-    chipBg: "#ede9fe",
-    chipText: "#6d28d9",
-    monthBar: "#8b5cf6",
-  },
-  Creative: {
-    bg: "#fff0f7",
-    border: "#f9a8d4",
-    text: "#be185d",
-    chipBg: "#fce7f3",
-    chipText: "#9d174d",
-    monthBar: "#ec4899",
-  },
-  "Life Skills": {
-    bg: "#eefbf8",
-    border: "#99f6e4",
-    text: "#0f766e",
-    chipBg: "#ccfbf1",
-    chipText: "#115e59",
-    monthBar: "#14b8a6",
-  },
-  Outdoor: {
-    bg: "#f6ffe8",
-    border: "#bef264",
-    text: "#4d7c0f",
-    chipBg: "#ecfccb",
-    chipText: "#3f6212",
-    monthBar: "#84cc16",
-  },
-};
-
-const CATEGORY_OPTIONS: CalendarCategory[] = [
+const LEARNING_AREAS = [
   "Literacy",
   "Numeracy",
   "Bible",
   "Inquiry",
   "Creative",
-  "Life Skills",
-  "Outdoor",
+  "Science",
+  "Humanities",
+  "Wellbeing",
 ];
 
-function safe(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function makeId(prefix = "item"): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function readJson<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeJson<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // silent for resilience
-  }
+function safeString(value: unknown): string {
+  return String(value ?? "").trim();
 }
 
 function isoDate(date: Date): string {
@@ -189,83 +63,53 @@ function isoDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function addDays(date: Date, days: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + days);
-  return next;
+function parseDate(value: string | null | undefined): Date {
+  if (!value) return new Date();
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? new Date() : d;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function startOfWeekMonday(date: Date): Date {
-  const next = new Date(date);
-  const day = next.getDay();
+  const d = startOfDay(date);
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  next.setDate(next.getDate() + diff);
-  next.setHours(0, 0, 0, 0);
-  return next;
+  d.setDate(d.getDate() + diff);
+  return d;
 }
 
-function isSameDay(a: Date, b: Date): boolean {
+function endOfWeekSunday(date: Date): Date {
+  const d = startOfWeekMonday(date);
+  d.setDate(d.getDate() + 6);
+  return d;
+}
+
+function startOfMonthGrid(date: Date): Date {
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  return startOfWeekMonday(first);
+}
+
+function endOfMonthGrid(date: Date): Date {
+  const last = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  const end = endOfWeekSunday(last);
+  return end;
+}
+
+function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+function sameDay(a: Date, b: Date): boolean {
   return isoDate(a) === isoDate(b);
 }
 
-function getWeekKey(date = new Date()): string {
-  const year = date.getFullYear();
-  const start = new Date(year, 0, 1);
-  const diffDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
-  const week = Math.ceil((diffDays + start.getDay() + 1) / 7);
-  return `${year}-W${String(week).padStart(2, "0")}`;
-}
-
-function normaliseChildren(input: unknown): ChildRecord[] {
-  if (!Array.isArray(input)) return [];
-  return input
-    .map((item) => {
-      const row = item as Record<string, unknown>;
-      const id = safe(row.id) || makeId("child");
-      const first_name =
-        safe(row.first_name) ||
-        safe(row.firstName) ||
-        safe(row.given_name) ||
-        safe(row.givenName);
-      const last_name =
-        safe(row.last_name) ||
-        safe(row.lastName) ||
-        safe(row.surname) ||
-        safe(row.family_name) ||
-        safe(row.familyName);
-      const name = safe(row.name);
-      const age =
-        typeof row.age === "number" || typeof row.age === "string"
-          ? row.age
-          : undefined;
-      const year_level =
-        safe(row.year_level) ||
-        safe(row.yearLevel) ||
-        safe(row.grade) ||
-        safe(row.class_level);
-
-      return {
-        id,
-        first_name,
-        last_name,
-        name,
-        age,
-        year_level,
-      };
-    })
-    .filter((c) => safe(c.id));
-}
-
-function getChildDisplayName(child: ChildRecord | null): string {
-  if (!child) return "your learner";
-  const full =
-    safe(child.name) ||
-    [safe(child.first_name), safe(child.last_name)].filter(Boolean).join(" ");
-  return full || "your learner";
-}
-
 function formatLongDate(date: Date): string {
-  return date.toLocaleDateString("en-AU", {
+  return date.toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -273,1023 +117,926 @@ function formatLongDate(date: Date): string {
   });
 }
 
-function formatMonthYear(date: Date): string {
-  return date.toLocaleDateString("en-AU", {
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function formatWeekHeader(start: Date): string {
-  const end = addDays(start, 6);
-  const startMonth = start.toLocaleDateString("en-AU", { month: "short" });
-  const endMonth = end.toLocaleDateString("en-AU", { month: "short" });
-  return `${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth} ${end.getFullYear()}`;
-}
-
-function formatShortWeekDay(date: Date): string {
-  return date.toLocaleDateString("en-AU", {
+function formatShortDay(date: Date): string {
+  return date.toLocaleDateString(undefined, {
     weekday: "short",
     day: "numeric",
   });
 }
 
-function getMonthGrid(anchor: Date): Date[] {
-  const year = anchor.getFullYear();
-  const month = anchor.getMonth();
-  const firstOfMonth = new Date(year, month, 1);
-  const gridStart = startOfWeekMonday(firstOfMonth);
-  return Array.from({ length: 42 }).map((_, index) => addDays(gridStart, index));
+function formatMonthYear(date: Date): string {
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
 }
 
-function getDayLoadLabel(count: number): string {
-  if (count === 0) return "Open";
-  if (count <= 2) return "Light day";
-  if (count <= 4) return "Balanced";
-  return "Busy";
+function formatWeekLabel(date: Date): string {
+  const start = startOfWeekMonday(date);
+  const end = endOfWeekSunday(date);
+
+  const startMonth = start.toLocaleDateString(undefined, { month: "short" });
+  const endMonth = end.toLocaleDateString(undefined, { month: "short" });
+
+  return `Week of ${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth} ${end.getFullYear()}`;
 }
 
-function mapPlannerActionToCalendarCategory(action: PlannerAction): CalendarCategory {
-  const text = `${safe(action.title)} ${safe(action.description)}`.toLowerCase();
+function rangeDates(start: Date, end: Date): Date[] {
+  const out: Date[] = [];
+  let current = startOfDay(start);
+  const final = startOfDay(end);
 
-  if (text.includes("read") || text.includes("writing") || text.includes("spell") || text.includes("literacy")) {
-    return "Literacy";
-  }
-  if (text.includes("math") || text.includes("numeracy") || text.includes("number")) {
-    return "Numeracy";
-  }
-  if (text.includes("bible") || text.includes("prayer") || text.includes("devotion")) {
-    return "Bible";
-  }
-  if (text.includes("science") || text.includes("inquiry") || text.includes("question") || text.includes("investigation")) {
-    return "Inquiry";
-  }
-  if (text.includes("draw") || text.includes("art") || text.includes("creative") || text.includes("music")) {
-    return "Creative";
-  }
-  if (text.includes("routine") || text.includes("calm") || text.includes("confidence") || text.includes("wellbeing")) {
-    return "Life Skills";
-  }
-  if (text.includes("outdoor") || text.includes("nature") || text.includes("walk")) {
-    return "Outdoor";
+  while (current <= final) {
+    out.push(new Date(current));
+    current = addDays(current, 1);
   }
 
-  switch (action.category) {
-    case "observe":
-      return "Inquiry";
-    case "capture":
-      return "Creative";
-    case "reflect":
-      return "Bible";
-    case "do":
-    default:
-      return "Literacy";
+  return out;
+}
+
+function getLocalBlocks(): PlannerBlock[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_BLOCKS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
-function buildCaptureHref(args: {
-  date: string;
-  title?: string;
-  category?: CalendarCategory;
-  studentId?: string;
-}) {
-  const params = new URLSearchParams();
-  if (safe(args.date)) params.set("date", safe(args.date));
-  if (safe(args.title)) params.set("title", safe(args.title));
-  if (safe(args.category)) params.set("category", safe(args.category));
-  if (safe(args.studentId)) params.set("studentId", safe(args.studentId));
-  const query = params.toString();
-  return query ? `/capture?${query}` : "/capture";
+function setLocalBlocks(blocks: PlannerBlock[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_BLOCKS_KEY, JSON.stringify(blocks));
+}
+
+function getLocalNotes(): Record<string, PlannerDayNote> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_NOTES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLocalNotes(notes: Record<string, PlannerDayNote>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
+}
+
+function buildNoteKey(userId: string | null, studentId: string | null, date: string) {
+  return `${userId || "anon"}::${studentId || "none"}::${date}`;
+}
+
+function learnerLabel(row: any): string {
+  const first =
+    safeString(row?.preferred_name || row?.first_name || row?.name || row?.label || row?.title);
+  const last = safeString(row?.surname || row?.family_name || row?.last_name);
+  return [first, last].filter(Boolean).join(" ").trim() || "Learner";
 }
 
 export default function CalendarPage() {
-  const today = useMemo(() => new Date(), []);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [view, setView] = useState<ViewMode>("week");
-  const [children, setChildren] = useState<ChildRecord[]>([]);
-  const [activeStudentId, setActiveStudentId] = useState("");
-  const [anchorDate, setAnchorDate] = useState<Date>(today);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  const [itemsByStudent, setItemsByStudent] = useState<Record<string, CalendarItem[]>>({});
-  const [notesByStudent, setNotesByStudent] = useState<Record<string, Record<string, string>>>({});
-  const [plannerSyncMap, setPlannerSyncMap] = useState<PlannerCalendarSyncMap>({});
+  const [userId, setUserId] = useState<string | null>(null);
+  const [learners, setLearners] = useState<Learner[]>([]);
+  const [activeLearnerId, setActiveLearnerId] = useState<string>("");
 
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftContent, setDraftContent] = useState("");
-  const [draftCategory, setDraftCategory] = useState<CalendarCategory>("Literacy");
-  const [draftTimeLabel, setDraftTimeLabel] = useState("");
-  const [draftDate, setDraftDate] = useState<string>(isoDate(today));
-  const [bridgeMessage, setBridgeMessage] = useState("");
+  const [title, setTitle] = useState("");
+  const [learningArea, setLearningArea] = useState("Literacy");
+  const [plannedTime, setPlannedTime] = useState("");
+  const [toolbarDate, setToolbarDate] = useState(isoDate(new Date()));
+  const [toolbarNote, setToolbarNote] = useState("");
 
-  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [blocks, setBlocks] = useState<PlannerBlock[]>([]);
+  const [noteText, setNoteText] = useState("");
+  const [dayNotesMap, setDayNotesMap] = useState<Record<string, PlannerDayNote>>({});
 
-  const activeChild = useMemo(
-    () => children.find((child) => child.id === activeStudentId) || null,
-    [children, activeStudentId]
-  );
+  const [loading, setLoading] = useState(true);
+  const [savingBlock, setSavingBlock] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [storageMode, setStorageMode] = useState<"database" | "local">("local");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const loadedChildren = normaliseChildren(
-      readJson<unknown[]>(STORAGE_KEYS.CHILDREN, [])
-    );
+    const qView = safeString(searchParams.get("view")).toLowerCase();
+    const qDate = searchParams.get("date");
 
-    const storedActiveStudent = safe(
-      window.localStorage.getItem(STORAGE_KEYS.ACTIVE_STUDENT)
-    );
+    if (qView === "day" || qView === "week" || qView === "month") {
+      setView(qView);
+    }
+    if (qDate) {
+      const d = parseDate(qDate);
+      setSelectedDate(d);
+      setToolbarDate(isoDate(d));
+    }
+  }, [searchParams]);
 
-    const initialStudentId =
-      storedActiveStudent || loadedChildren[0]?.id || "default-family-child";
+  useEffect(() => {
+    let mounted = true;
 
-    setChildren(
-      loadedChildren.length > 0
-        ? loadedChildren
-        : [{ id: "default-family-child", name: "Your learner" }]
-    );
-    setActiveStudentId(initialStudentId);
+    async function init() {
+      setLoading(true);
 
-    setItemsByStudent(readJson<Record<string, CalendarItem[]>>(STORAGE_KEYS.CALENDAR_ITEMS, {}));
-    setNotesByStudent(
-      readJson<Record<string, Record<string, string>>>(STORAGE_KEYS.CALENDAR_NOTES, {})
-    );
-    setPlannerSyncMap(
-      readJson<PlannerCalendarSyncMap>(STORAGE_KEYS.PLANNER_CALENDAR_SYNC, {})
-    );
+      try {
+        const auth = await supabase.auth.getUser();
+        const uid = auth?.data?.user?.id ?? null;
+        if (!mounted) return;
+        setUserId(uid);
+
+        const learnerOptions = await loadLearners();
+        if (!mounted) return;
+        setLearners(learnerOptions);
+
+        const storedLearner =
+          typeof window !== "undefined"
+            ? safeString(window.localStorage.getItem(STORAGE_LEARNER_KEY))
+            : "";
+
+        const chosenLearner =
+          learnerOptions.find((l) => l.id === storedLearner)?.id ||
+          learnerOptions[0]?.id ||
+          "";
+
+        setActiveLearnerId(chosenLearner);
+
+        await loadCalendarData(uid, chosenLearner);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    init();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (!activeStudentId) return;
-    window.localStorage.setItem(STORAGE_KEYS.ACTIVE_STUDENT, activeStudentId);
-  }, [activeStudentId]);
+    const selectedIso = isoDate(selectedDate);
+    setToolbarDate(selectedIso);
 
-  useEffect(() => {
-    writeJson(STORAGE_KEYS.CALENDAR_ITEMS, itemsByStudent);
-  }, [itemsByStudent]);
+    const key = buildNoteKey(userId, activeLearnerId || null, selectedIso);
+    setNoteText(dayNotesMap[key]?.note || "");
+  }, [selectedDate, activeLearnerId, userId, dayNotesMap]);
 
-  useEffect(() => {
-    writeJson(STORAGE_KEYS.CALENDAR_NOTES, notesByStudent);
-  }, [notesByStudent]);
+  async function loadLearners(): Promise<Learner[]> {
+    try {
+      const childrenRes = await supabase
+        .from("children")
+        .select("id, preferred_name, first_name, surname, family_name, last_name, name, label, title")
+        .limit(50);
 
-  const studentItems = useMemo(() => {
-    return itemsByStudent[activeStudentId] || [];
-  }, [itemsByStudent, activeStudentId]);
+      if (!childrenRes.error && Array.isArray(childrenRes.data) && childrenRes.data.length > 0) {
+        return childrenRes.data.map((row: any) => ({
+          id: safeString(row?.id),
+          label: learnerLabel(row),
+        }));
+      }
+    } catch {}
 
-  const studentNotes = useMemo(() => {
-    return notesByStudent[activeStudentId] || {};
-  }, [notesByStudent, activeStudentId]);
+    try {
+      const studentsRes = await supabase
+        .from("students")
+        .select("id, preferred_name, first_name, surname, family_name, last_name, name, label, title")
+        .limit(50);
 
-  const weekDates = useMemo(() => {
-    const start = startOfWeekMonday(anchorDate);
-    return Array.from({ length: 7 }).map((_, idx) => addDays(start, idx));
-  }, [anchorDate]);
+      if (!studentsRes.error && Array.isArray(studentsRes.data) && studentsRes.data.length > 0) {
+        return studentsRes.data.map((row: any) => ({
+          id: safeString(row?.id),
+          label: learnerLabel(row),
+        }));
+      }
+    } catch {}
 
-  const monthGridDates = useMemo(() => getMonthGrid(anchorDate), [anchorDate]);
-
-  const currentWeekKey = useMemo(() => getWeekKey(anchorDate), [anchorDate]);
-
-  const plannerBridge = useMemo(() => {
-    if (!activeStudentId) return null;
-    return plannerSyncMap[`${activeStudentId}:${currentWeekKey}`] || null;
-  }, [plannerSyncMap, activeStudentId, currentWeekKey]);
-
-  const pendingPlannerActions = useMemo(() => {
-    return (plannerBridge?.actions || []).filter((action) => !action.completed);
-  }, [plannerBridge]);
-
-  function itemsForDate(dateIso: string) {
-    return studentItems
-      .filter((item) => item.date === dateIso)
-      .sort((a, b) => (a.timeLabel || "").localeCompare(b.timeLabel || ""));
+    return [];
   }
 
-  function focusToolbarInput() {
-    window.setTimeout(() => {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 30);
+  async function loadCalendarData(uid: string | null, learnerId: string) {
+    const localBlocks = getLocalBlocks();
+    const localNotes = getLocalNotes();
+
+    try {
+      let blockQuery = supabase
+        .from("planner_blocks")
+        .select("*")
+        .order("planned_for", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (uid) {
+        blockQuery = blockQuery.eq("user_id", uid);
+      }
+
+      if (learnerId) {
+        blockQuery = blockQuery.eq("student_id", learnerId);
+      }
+
+      const blockRes = await blockQuery;
+
+      let notesQuery = supabase.from("planner_day_notes").select("*");
+
+      if (uid) {
+        notesQuery = notesQuery.eq("user_id", uid);
+      }
+
+      if (learnerId) {
+        notesQuery = notesQuery.eq("student_id", learnerId);
+      }
+
+      const notesRes = await notesQuery;
+
+      if (!blockRes.error && !notesRes.error) {
+        setStorageMode("database");
+        setBlocks((blockRes.data || []) as PlannerBlock[]);
+
+        const notesMap: Record<string, PlannerDayNote> = {};
+        ((notesRes.data || []) as PlannerDayNote[]).forEach((note) => {
+          const key = buildNoteKey(note.user_id, note.student_id, note.note_date);
+          notesMap[key] = note;
+        });
+
+        setDayNotesMap(notesMap);
+        return;
+      }
+    } catch {}
+
+    setStorageMode("local");
+    setBlocks(
+      localBlocks.filter((b) => {
+        const userOk = !uid || b.user_id === uid || !b.user_id;
+        const learnerOk = !learnerId || b.student_id === learnerId || !b.student_id;
+        return userOk && learnerOk;
+      })
+    );
+    setDayNotesMap(localNotes);
   }
 
-  function handleAddItem() {
-    if (!activeStudentId) return;
-    if (!safe(draftTitle)) return;
+  const visibleDates = useMemo(() => {
+    if (view === "day") return [startOfDay(selectedDate)];
+    if (view === "week") return rangeDates(startOfWeekMonday(selectedDate), endOfWeekSunday(selectedDate));
+    return rangeDates(startOfMonthGrid(selectedDate), endOfMonthGrid(selectedDate));
+  }, [view, selectedDate]);
 
-    const nextItem: CalendarItem = {
-      id: makeId("calendar"),
-      studentId: activeStudentId,
-      date: draftDate,
-      title: safe(draftTitle),
-      content: safe(draftContent),
-      category: draftCategory,
-      timeLabel: safe(draftTimeLabel),
-      createdAt: new Date().toISOString(),
-    };
-
-    setItemsByStudent((current) => {
-      const existing = current[activeStudentId] || [];
-      return {
-        ...current,
-        [activeStudentId]: [...existing, nextItem],
-      };
+  const blocksByDate = useMemo(() => {
+    const map: Record<string, PlannerBlock[]> = {};
+    blocks.forEach((block) => {
+      const key = safeString(block.planned_for);
+      if (!map[key]) map[key] = [];
+      map[key].push(block);
     });
+    return map;
+  }, [blocks]);
 
-    setDraftTitle("");
-    setDraftContent("");
-    setDraftTimeLabel("");
-  }
+  const selectedIso = isoDate(selectedDate);
 
-  function handleDeleteItem(itemId: string) {
-    if (!activeStudentId) return;
-    setItemsByStudent((current) => {
-      const existing = current[activeStudentId] || [];
-      return {
-        ...current,
-        [activeStudentId]: existing.filter((item) => item.id !== itemId),
-      };
-    });
-  }
-
-  function updateDayNote(dateIso: string, value: string) {
-    if (!activeStudentId) return;
-    setNotesByStudent((current) => ({
-      ...current,
-      [activeStudentId]: {
-        ...(current[activeStudentId] || {}),
-        [dateIso]: value,
-      },
-    }));
-  }
-
-  function moveAnchor(direction: number) {
-    if (view === "month") {
-      const next = new Date(anchorDate);
-      next.setMonth(next.getMonth() + direction);
-      setAnchorDate(next);
+  function shiftPeriod(direction: -1 | 1) {
+    if (view === "day") {
+      setSelectedDate(addDays(selectedDate, direction));
       return;
     }
 
     if (view === "week") {
-      setAnchorDate(addDays(anchorDate, direction * 7));
+      setSelectedDate(addDays(selectedDate, direction * 7));
       return;
     }
 
-    setAnchorDate(addDays(anchorDate, direction));
+    const d = new Date(selectedDate);
+    d.setMonth(d.getMonth() + direction);
+    setSelectedDate(d);
   }
 
-  function jumpToday() {
-    setAnchorDate(today);
-    setDraftDate(isoDate(today));
+  function goToday() {
+    const now = new Date();
+    setSelectedDate(now);
+    setToolbarDate(isoDate(now));
+  }
+
+  async function persistBlock(block: PlannerBlock) {
+    try {
+      const res = await supabase.from("planner_blocks").insert(block).select("*").single();
+      if (!res.error && res.data) {
+        setStorageMode("database");
+        setBlocks((prev) => {
+          const next = [...prev, res.data as PlannerBlock].sort((a, b) => {
+            if (a.planned_for !== b.planned_for) return a.planned_for.localeCompare(b.planned_for);
+            return safeString(a.created_at).localeCompare(safeString(b.created_at));
+          });
+          return next;
+        });
+        return true;
+      }
+    } catch {}
+
+    const local = getLocalBlocks();
+    local.push(block);
+    setLocalBlocks(local);
+    setStorageMode("local");
+    setBlocks((prev) => [...prev, block]);
+    return false;
+  }
+
+  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
+    const nextTitle = safeString(custom?.title ?? title);
+    const nextArea = safeString(custom?.area ?? learningArea) || "Literacy";
+    const nextDate = safeString(custom?.date ?? toolbarDate) || selectedIso;
+
+    if (!nextTitle) {
+      setMessage("Add a simple learning moment first.");
+      return;
+    }
+
+    setSavingBlock(true);
+    setMessage("");
+
+    const block: PlannerBlock = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `local-${Date.now()}`,
+      user_id: userId,
+      student_id: activeLearnerId || null,
+      title: nextTitle,
+      learning_area: nextArea,
+      planned_for: nextDate,
+      planned_time: safeString(plannedTime) || null,
+      note: safeString(toolbarNote) || null,
+      status: "planned",
+    };
+
+    await persistBlock(block);
+
+    setTitle("");
+    setToolbarNote("");
+    setMessage(storageMode === "database" ? "Learning block added." : "Learning block added locally.");
+    setSavingBlock(false);
+  }
+
+  async function handleSaveDayNote() {
+    const note = safeString(noteText);
+    const noteDate = selectedIso;
+
+    setSavingNote(true);
+    setMessage("");
+
+    const payload: PlannerDayNote = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `note-${Date.now()}`,
+      user_id: userId,
+      student_id: activeLearnerId || null,
+      note_date: noteDate,
+      note,
+    };
+
+    try {
+      const existingKey = buildNoteKey(userId, activeLearnerId || null, noteDate);
+      const existing = dayNotesMap[existingKey];
+
+      if (existing?.id) {
+        const res = await supabase
+          .from("planner_day_notes")
+          .update({
+            note,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id)
+          .select("*")
+          .single();
+
+        if (!res.error && res.data) {
+          const next = { ...dayNotesMap };
+          next[existingKey] = res.data as PlannerDayNote;
+          setDayNotesMap(next);
+          setStorageMode("database");
+          setMessage("Day note saved.");
+          setSavingNote(false);
+          return;
+        }
+      } else {
+        const res = await supabase.from("planner_day_notes").insert(payload).select("*").single();
+
+        if (!res.error && res.data) {
+          const key = buildNoteKey(userId, activeLearnerId || null, noteDate);
+          const next = { ...dayNotesMap, [key]: res.data as PlannerDayNote };
+          setDayNotesMap(next);
+          setStorageMode("database");
+          setMessage("Day note saved.");
+          setSavingNote(false);
+          return;
+        }
+      }
+    } catch {}
+
+    const key = buildNoteKey(userId, activeLearnerId || null, noteDate);
+    const existing = getLocalNotes();
+    existing[key] = payload;
+    setLocalNotes(existing);
+    setDayNotesMap(existing);
+    setStorageMode("local");
+    setMessage("Day note saved locally.");
+    setSavingNote(false);
+  }
+
+  async function markDone(block: PlannerBlock) {
+    const nextStatus: BlockStatus = block.status === "done" ? "planned" : "done";
+
+    try {
+      const res = await supabase
+        .from("planner_blocks")
+        .update({ status: nextStatus, updated_at: new Date().toISOString() })
+        .eq("id", block.id)
+        .select("*")
+        .single();
+
+      if (!res.error && res.data) {
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === block.id ? ((res.data as PlannerBlock) || b) : b))
+        );
+        setStorageMode("database");
+        return;
+      }
+    } catch {}
+
+    const next = blocks.map((b) => (b.id === block.id ? { ...b, status: nextStatus } : b));
+    setBlocks(next);
+    setLocalBlocks(next);
+    setStorageMode("local");
   }
 
   function openDay(date: Date) {
-    setAnchorDate(date);
-    setDraftDate(isoDate(date));
+    setSelectedDate(date);
     setView("day");
   }
 
-  function prepareDraftForDate(
-    dateIso: string,
-    seedTitle = "",
-    seedCategory: CalendarCategory = "Literacy"
-  ) {
-    setDraftDate(dateIso);
-    setDraftCategory(seedCategory);
-    setDraftTitle(seedTitle);
-    setDraftContent("");
-    setDraftTimeLabel("");
-    focusToolbarInput();
+  function goToCapture(block?: PlannerBlock, date?: Date, area?: string) {
+    const params = new URLSearchParams();
+
+    const plannedDate = block?.planned_for || (date ? isoDate(date) : selectedIso);
+    const plannedArea = block?.learning_area || safeString(area) || learningArea;
+    const plannedTitle = block?.title || title;
+
+    if (plannedDate) params.set("date", plannedDate);
+    if (plannedArea) params.set("learning_area", plannedArea);
+    if (plannedTitle) params.set("title", plannedTitle);
+    if (block?.id) params.set("planner_block_id", block.id);
+
+    router.push(`/capture?${params.toString()}`);
   }
 
-  function quickAddToDate(dateIso: string, category: CalendarCategory, title: string) {
-    if (!activeStudentId) return;
-
-    const nextItem: CalendarItem = {
-      id: makeId("calendar"),
-      studentId: activeStudentId,
-      date: dateIso,
-      title,
-      content: "",
-      category,
-      timeLabel: "",
-      createdAt: new Date().toISOString(),
-    };
-
-    setItemsByStudent((current) => {
-      const existing = current[activeStudentId] || [];
-      return {
-        ...current,
-        [activeStudentId]: [...existing, nextItem],
-      };
-    });
+  async function handleLearnerChange(nextId: string) {
+    setActiveLearnerId(nextId);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_LEARNER_KEY, nextId);
+    }
+    await loadCalendarData(userId, nextId);
   }
 
-  function addPlannerActionToDate(action: PlannerAction, dateIso: string) {
-    if (!activeStudentId) return;
-
-    const nextItem: CalendarItem = {
-      id: makeId("planner"),
-      studentId: activeStudentId,
-      date: dateIso,
-      title: safe(action.title) || "Planner action",
-      content: safe(action.description),
-      category: mapPlannerActionToCalendarCategory(action),
-      timeLabel: "",
-      createdAt: new Date().toISOString(),
-    };
-
-    setItemsByStudent((current) => {
-      const existing = current[activeStudentId] || [];
-      return {
-        ...current,
-        [activeStudentId]: [...existing, nextItem],
-      };
-    });
-
-    setBridgeMessage(`Added "${action.title}" to ${dateIso}.`);
-    window.setTimeout(() => setBridgeMessage(""), 1800);
+  function blocksFor(date: Date) {
+    return blocksByDate[isoDate(date)] || [];
   }
 
-  function addPlannerActionToFirstOpenDay(action: PlannerAction) {
-    const firstOpen = weekDates.find((date) => itemsForDate(isoDate(date)).length === 0);
-    const fallback = weekDates[0];
-    const target = firstOpen || fallback;
-    addPlannerActionToDate(action, isoDate(target));
-  }
-
-  function importAllPlannerActionsAcrossWeek() {
-    pendingPlannerActions.forEach((action, index) => {
-      const target = weekDates[index % weekDates.length];
-      addPlannerActionToDate(action, isoDate(target));
-    });
-    setBridgeMessage("Imported planner actions into this week.");
-    window.setTimeout(() => setBridgeMessage(""), 2000);
-  }
-
-  function rememberCaptureContext(args: {
-    date: string;
-    title?: string;
-    category?: CalendarCategory;
-    notes?: string;
-  }) {
-    if (typeof window === "undefined" || !activeStudentId) return;
-
-    const payload: CalendarCaptureContext = {
-      studentId: activeStudentId,
-      date: safe(args.date),
-      title: safe(args.title),
-      category: args.category || "Literacy",
-      notes: safe(args.notes),
-      createdAt: new Date().toISOString(),
-    };
-
-    writeJson(STORAGE_KEYS.CALENDAR_CAPTURE_CONTEXT, payload);
-  }
-
-  const pageHeading =
-    view === "week"
-      ? `Week of ${formatWeekHeader(startOfWeekMonday(anchorDate))}`
-      : view === "month"
-      ? formatMonthYear(anchorDate)
-      : formatLongDate(anchorDate);
-
-  const weekFocusText =
-    "Use the calendar to place gentle learning blocks across the week without turning home into school.";
+  const heading =
+    view === "day"
+      ? formatLongDate(selectedDate)
+      : view === "week"
+      ? formatWeekLabel(selectedDate)
+      : formatMonthYear(selectedDate);
 
   return (
-    <main style={styles.page}>
-      <div style={styles.shell}>
-        <section style={styles.heroCard}>
-          <div style={styles.heroTop}>
-            <div>
-              <div style={styles.eyebrow}>Family Calendar</div>
-              <h1 style={styles.heroTitle}>Plan visually for {getChildDisplayName(activeChild)}</h1>
-              <p style={styles.heroText}>
-                Keep your rhythm visible across the day, week, and month. This
-                calendar is designed to support learning gently, not pressure it.
-              </p>
-            </div>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <section style={styles.hero}>
+          <div>
+            <div style={styles.kicker}>FAMILY CALENDAR</div>
+            <h1 style={styles.h1}>Plan visually for your learner</h1>
+            <p style={styles.sub}>
+              Keep your rhythm visible across the day, week, and month. This calendar is designed
+              to support learning gently, not pressure it.
+            </p>
 
-            <div style={styles.heroActions}>
-              <Link href="/planner" style={styles.subtleLinkButton}>
-                Back to Planner
-              </Link>
-              <Link
-                href={buildCaptureHref({
-                  date: draftDate,
-                  title: draftTitle,
-                  category: draftCategory,
-                  studentId: activeStudentId,
-                })}
-                style={styles.primaryLinkButton}
-                onClick={() =>
-                  rememberCaptureContext({
-                    date: draftDate,
-                    title: draftTitle,
-                    category: draftCategory,
-                    notes: draftContent,
-                  })
-                }
-              >
-                Capture
-              </Link>
+            <div style={styles.heroChips}>
+              <div style={styles.heroChip}>Current view {view.toUpperCase()}</div>
+              <div style={styles.heroChip}>
+                This week’s focus&nbsp;
+                <strong>Use the calendar to place gentle learning blocks across the week without turning home into school.</strong>
+              </div>
             </div>
           </div>
 
-          <div style={styles.heroMetaRow}>
-            <div style={styles.metaPill}>
-              <span style={styles.metaLabel}>Current view</span>
-              <span style={styles.metaValue}>{view.toUpperCase()}</span>
-            </div>
-            <div style={styles.metaPill}>
-              <span style={styles.metaLabel}>This week’s focus</span>
-              <span style={styles.metaValue}>{weekFocusText}</span>
-            </div>
+          <div style={styles.heroActions}>
+            <Link href="/planner" style={styles.secondaryBtn}>
+              Back to Planner
+            </Link>
+            <button style={styles.primaryBtn} onClick={() => goToCapture()}>
+              Capture
+            </button>
           </div>
         </section>
 
-        {view === "week" && plannerBridge ? (
-          <section style={styles.bridgeCard}>
-            <div style={styles.bridgeTop}>
-              <div>
-                <div style={styles.bridgeEyebrow}>Planner sync</div>
-                <div style={styles.bridgeTitle}>
-                  {safe(plannerBridge.focusTitle) || "This week’s planner focus"}
-                </div>
-                <div style={styles.bridgeText}>
-                  {safe(plannerBridge.focusSummary) ||
-                    "Planner actions are ready to place into your week."}
-                </div>
-              </div>
-
-              <div style={styles.bridgeTopActions}>
-                <button
-                  type="button"
-                  style={styles.bridgePrimaryButton}
-                  onClick={importAllPlannerActionsAcrossWeek}
-                >
-                  Import all to week
-                </button>
-                <Link href="/planner" style={styles.bridgeSecondaryLink}>
-                  Open planner
-                </Link>
-              </div>
-            </div>
-
-            {safe(plannerBridge.encouragement) ? (
-              <div style={styles.bridgeEncouragement}>{plannerBridge.encouragement}</div>
-            ) : null}
-
-            {pendingPlannerActions.length > 0 ? (
-              <div style={styles.bridgeGrid}>
-                {pendingPlannerActions.map((action) => (
-                  <div key={action.id} style={styles.bridgeActionCard}>
-                    <div style={styles.bridgeActionTitle}>{action.title}</div>
-                    {safe(action.description) ? (
-                      <div style={styles.bridgeActionText}>{action.description}</div>
-                    ) : null}
-
-                    <div style={styles.bridgeActionButtons}>
-                      <button
-                        type="button"
-                        style={styles.bridgeSmallButton}
-                        onClick={() => addPlannerActionToFirstOpenDay(action)}
-                      >
-                        Add to first open day
-                      </button>
-
-                      <div style={styles.bridgeDayButtons}>
-                        {weekDates.map((date) => (
-                          <button
-                            key={isoDate(date)}
-                            type="button"
-                            style={styles.bridgeDayButton}
-                            onClick={() => addPlannerActionToDate(action, isoDate(date))}
-                          >
-                            {date.toLocaleDateString("en-AU", { weekday: "short" })}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={styles.bridgeEmpty}>
-                No incomplete planner actions are waiting to be placed into the calendar this week.
-              </div>
-            )}
-
-            <div style={styles.bridgeMessage}>{bridgeMessage}</div>
-          </section>
-        ) : null}
-
         <section style={styles.toolbarCard}>
-          <div style={styles.toolbarTop}>
-            <div style={styles.navCluster}>
-              <button onClick={jumpToday} style={styles.lightButton} type="button">
+          <div style={styles.topRow}>
+            <div style={styles.navLeft}>
+              <button style={styles.smallBtn} onClick={goToday}>
                 Today
               </button>
-              <button onClick={() => moveAnchor(-1)} style={styles.iconButton} type="button">
+              <button style={styles.iconBtn} onClick={() => shiftPeriod(-1)}>
                 ←
               </button>
-              <button onClick={() => moveAnchor(1)} style={styles.iconButton} type="button">
+              <button style={styles.iconBtn} onClick={() => shiftPeriod(1)}>
                 →
               </button>
-              <div style={styles.dateTitle}>{pageHeading}</div>
+              <div style={styles.heading}>{heading}</div>
             </div>
 
-            <div style={styles.rightToolbar}>
+            <div style={styles.navRight}>
               <select
-                value={activeStudentId}
-                onChange={(e) => setActiveStudentId(e.target.value)}
+                value={activeLearnerId}
+                onChange={(e) => handleLearnerChange(e.target.value)}
                 style={styles.select}
               >
-                {children.map((child) => (
-                  <option key={child.id} value={child.id}>
-                    {getChildDisplayName(child)}
-                    {safe(child.year_level) ? ` • ${safe(child.year_level)}` : ""}
+                <option value="">Your learner</option>
+                {learners.map((learner) => (
+                  <option key={learner.id} value={learner.id}>
+                    {learner.label}
                   </option>
                 ))}
               </select>
 
               <div style={styles.viewToggle}>
-                {(["day", "week", "month"] as ViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setView(mode)}
-                    type="button"
-                    style={{
-                      ...styles.toggleButton,
-                      ...(view === mode ? styles.toggleButtonActive : {}),
-                    }}
-                  >
-                    {mode.toUpperCase()}
-                  </button>
-                ))}
+                <button
+                  style={{ ...styles.toggleBtn, ...(view === "day" ? styles.toggleBtnActive : {}) }}
+                  onClick={() => setView("day")}
+                >
+                  DAY
+                </button>
+                <button
+                  style={{ ...styles.toggleBtn, ...(view === "week" ? styles.toggleBtnActive : {}) }}
+                  onClick={() => setView("week")}
+                >
+                  WEEK
+                </button>
+                <button
+                  style={{ ...styles.toggleBtn, ...(view === "month" ? styles.toggleBtnActive : {}) }}
+                  onClick={() => setView("month")}
+                >
+                  MONTH
+                </button>
               </div>
             </div>
           </div>
 
-          <div style={styles.addBar}>
+          <div style={styles.inputRow}>
             <input
-              ref={titleInputRef}
-              value={draftTitle}
-              onChange={(e) => setDraftTitle(e.target.value)}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Add a simple learning moment..."
-              style={styles.input}
+              style={styles.textInput}
             />
+
             <select
-              value={draftCategory}
-              onChange={(e) => setDraftCategory(e.target.value as CalendarCategory)}
+              value={learningArea}
+              onChange={(e) => setLearningArea(e.target.value)}
               style={styles.select}
             >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              {LEARNING_AREAS.map((area) => (
+                <option key={area} value={area}>
+                  {area}
                 </option>
               ))}
             </select>
+
             <input
-              value={draftTimeLabel}
-              onChange={(e) => setDraftTimeLabel(e.target.value)}
+              value={plannedTime}
+              onChange={(e) => setPlannedTime(e.target.value)}
               placeholder="Optional time"
               style={styles.timeInput}
             />
+
             <input
               type="date"
-              value={draftDate}
-              onChange={(e) => setDraftDate(e.target.value)}
+              value={toolbarDate}
+              onChange={(e) => {
+                setToolbarDate(e.target.value);
+                setSelectedDate(parseDate(e.target.value));
+              }}
               style={styles.dateInput}
             />
-            <button onClick={handleAddItem} style={styles.addButton} type="button">
-              Add
+
+            <button style={styles.addBtn} onClick={() => handleAddBlock()} disabled={savingBlock}>
+              {savingBlock ? "..." : "Add"}
             </button>
           </div>
 
           <textarea
-            value={draftContent}
-            onChange={(e) => setDraftContent(e.target.value)}
+            value={toolbarNote}
+            onChange={(e) => setToolbarNote(e.target.value)}
             placeholder="Optional notes for this learning block..."
-            rows={2}
-            style={styles.quickTextarea}
+            style={styles.noteInput}
           />
+
+          {message ? <div style={styles.message}>{message}</div> : null}
+          <div style={styles.storageHint}>Storage mode: {storageMode}</div>
         </section>
 
-        {view === "week" && (
-          <section style={styles.weekSection}>
-            {weekDates.map((date) => {
-              const dateIso = isoDate(date);
-              const isToday = isSameDay(date, today);
-              const dayItems = itemsForDate(dateIso);
-              const dayLoad = getDayLoadLabel(dayItems.length);
+        {loading ? (
+          <section style={styles.loadingCard}>Loading calendar…</section>
+        ) : view === "week" ? (
+          <section style={styles.weekGrid}>
+            {visibleDates.map((date) => {
+              const dayBlocks = blocksFor(date);
+              const isToday = sameDay(date, new Date());
 
               return (
-                <div
-                  key={dateIso}
-                  style={{
-                    ...styles.weekColumn,
-                    ...(isToday ? styles.todayColumn : {}),
-                  }}
-                >
+                <div key={isoDate(date)} style={styles.weekCol}>
                   <div style={styles.weekHeader}>
-                    <div>
-                      <div style={styles.weekDayName}>{formatShortWeekDay(date)}</div>
-                      <div style={styles.dayLoadText}>{dayLoad}</div>
+                    <div style={styles.weekDayTitle}>
+                      {date.toLocaleDateString(undefined, { weekday: "short" })} {date.getDate()}
                     </div>
-                    {isToday && <div style={styles.todayBadge}>Today</div>}
+                    {isToday ? <div style={styles.todayPill}>Today</div> : null}
                   </div>
 
+                  <div style={styles.openState}>Open</div>
+
                   <textarea
-                    value={studentNotes[dateIso] || ""}
-                    onChange={(e) => updateDayNote(dateIso, e.target.value)}
+                    style={styles.dayScratch}
                     placeholder="A gentle note for today..."
-                    rows={4}
-                    style={styles.dayNote}
+                    value={
+                      dayNotesMap[buildNoteKey(userId, activeLearnerId || null, isoDate(date))]?.note || ""
+                    }
+                    onChange={(e) => {
+                      const key = buildNoteKey(userId, activeLearnerId || null, isoDate(date));
+                      setDayNotesMap((prev) => ({
+                        ...prev,
+                        [key]: {
+                          id: prev[key]?.id || `scratch-${Date.now()}`,
+                          user_id: userId,
+                          student_id: activeLearnerId || null,
+                          note_date: isoDate(date),
+                          note: e.target.value,
+                        },
+                      }));
+                    }}
+                    onBlur={async () => {
+                      if (sameDay(date, selectedDate)) return;
+                      const key = buildNoteKey(userId, activeLearnerId || null, isoDate(date));
+                      const val = dayNotesMap[key]?.note || "";
+                      if (!val) return;
+
+                      try {
+                        const existing = dayNotesMap[key];
+                        if (existing?.id && !existing.id.startsWith("scratch-")) {
+                          await supabase
+                            .from("planner_day_notes")
+                            .update({ note: val, updated_at: new Date().toISOString() })
+                            .eq("id", existing.id);
+                        } else {
+                          const res = await supabase
+                            .from("planner_day_notes")
+                            .insert({
+                              user_id: userId,
+                              student_id: activeLearnerId || null,
+                              note_date: isoDate(date),
+                              note: val,
+                            })
+                            .select("*")
+                            .single();
+
+                          if (!res.error && res.data) {
+                            setDayNotesMap((prev) => ({ ...prev, [key]: res.data as PlannerDayNote }));
+                          }
+                        }
+                      } catch {
+                        const local = getLocalNotes();
+                        local[key] = {
+                          id: dayNotesMap[key]?.id || `local-note-${Date.now()}`,
+                          user_id: userId,
+                          student_id: activeLearnerId || null,
+                          note_date: isoDate(date),
+                          note: val,
+                        };
+                        setLocalNotes(local);
+                      }
+                    }}
                   />
 
-                  <div style={styles.columnItems}>
-                    {dayItems.length === 0 ? (
-                      <div style={styles.weekEmptyState}>
-                        <div style={styles.weekEmptyTitle}>
-                          Start with one small learning moment
-                        </div>
-                        <div style={styles.weekEmptyText}>
-                          Keep it light. Add one block, capture one moment, or place one focus for the day.
-                        </div>
-                        <div style={styles.weekEmptyActions}>
-                          <button
-                            type="button"
-                            style={styles.inlineActionButton}
-                            onClick={() =>
-                              prepareDraftForDate(dateIso, "Learning block", "Literacy")
-                            }
-                          >
-                            + Add block
-                          </button>
-                          <button
-                            type="button"
-                            style={styles.inlineGhostButton}
-                            onClick={() => openDay(date)}
-                          >
-                            Open day
-                          </button>
-                          <Link
-                            href={buildCaptureHref({
-                              date: dateIso,
-                              title: "Learning block",
-                              category: "Literacy",
-                              studentId: activeStudentId,
-                            })}
-                            style={styles.inlineLinkButton}
-                            onClick={() =>
-                              rememberCaptureContext({
-                                date: dateIso,
-                                title: "Learning block",
-                                category: "Literacy",
-                              })
-                            }
-                          >
-                            Capture
-                          </Link>
-                        </div>
-                      </div>
-                    ) : (
-                      dayItems.map((item) => {
-                        const color = CATEGORY_STYLES[item.category];
-                        return (
-                          <div
-                            key={item.id}
-                            style={{
-                              ...styles.blockCard,
-                              background: color.bg,
-                              borderColor: color.border,
-                            }}
-                          >
-                            <div style={styles.blockTop}>
-                              <span
-                                style={{
-                                  ...styles.categoryChip,
-                                  background: color.chipBg,
-                                  color: color.chipText,
-                                }}
-                              >
-                                {item.category}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteItem(item.id)}
-                                style={styles.deleteInlineButton}
-                              >
-                                Remove
-                              </button>
-                            </div>
-
-                            <div style={styles.blockTitle}>{item.title}</div>
-
-                            {safe(item.timeLabel) ? (
-                              <div style={styles.blockTime}>{item.timeLabel}</div>
-                            ) : (
-                              <div style={styles.blockTimeMuted}>Flexible timing</div>
-                            )}
-
-                            {safe(item.content) ? (
-                              <div style={styles.blockContent}>{item.content}</div>
-                            ) : (
-                              <div style={styles.blockContentMuted}>
-                                Add a short note or leave this block simple.
-                              </div>
-                            )}
-
-                            <div style={styles.blockFooter}>
-                              <button
-                                type="button"
-                                onClick={() => openDay(date)}
-                                style={styles.smallGhostButton}
-                              >
-                                Open day
-                              </button>
-                              <Link
-                                href={buildCaptureHref({
-                                  date: dateIso,
-                                  title: item.title,
-                                  category: item.category,
-                                  studentId: activeStudentId,
-                                })}
-                                style={styles.smallLinkButton}
-                                onClick={() =>
-                                  rememberCaptureContext({
-                                    date: dateIso,
-                                    title: item.title,
-                                    category: item.category,
-                                    notes: item.content,
-                                  })
-                                }
-                              >
-                                Capture this
-                              </Link>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-
-                    <div style={styles.inlineAddCard}>
-                      <div style={styles.inlineAddTitle}>Quick add</div>
-                      <div style={styles.inlineAddActions}>
-                        <button
-                          type="button"
-                          style={styles.inlineActionButton}
-                          onClick={() =>
-                            prepareDraftForDate(dateIso, "Reading together", "Literacy")
-                          }
-                        >
-                          Literacy
-                        </button>
-                        <button
-                          type="button"
-                          style={styles.inlineActionButton}
-                          onClick={() =>
-                            prepareDraftForDate(dateIso, "Maths practice", "Numeracy")
-                          }
-                        >
-                          Numeracy
-                        </button>
-                        <button
-                          type="button"
-                          style={styles.inlineActionButton}
-                          onClick={() =>
-                            prepareDraftForDate(dateIso, "Bible reflection", "Bible")
-                          }
-                        >
-                          Bible
-                        </button>
+                  {dayBlocks.length === 0 ? (
+                    <div style={styles.emptyCard}>
+                      <div style={styles.emptyTitle}>Start with one small learning moment</div>
+                      <div style={styles.emptyText}>
+                        Keep it light. Add one block, capture one moment, or place one focus for the day.
                       </div>
 
-                      <div style={styles.inlineMiniActions}>
+                      <div style={styles.cardActions}>
                         <button
-                          type="button"
-                          style={styles.inlineGhostButton}
+                          style={styles.outlineSmBtn}
                           onClick={() =>
-                            quickAddToDate(dateIso, "Inquiry", "Inquiry moment")
+                            handleAddBlock({
+                              date: isoDate(date),
+                              title: `Learning focus for ${formatShortDay(date)}`,
+                              area: "Literacy",
+                            })
                           }
                         >
-                          + Inquiry
+                          + Add block
                         </button>
-                        <button
-                          type="button"
-                          style={styles.inlineGhostButton}
-                          onClick={() =>
-                            quickAddToDate(dateIso, "Creative", "Creative task")
-                          }
-                        >
-                          + Creative
+                        <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
+                          Open day
+                        </button>
+                        <button style={styles.darkSmBtn} onClick={() => goToCapture(undefined, date)}>
+                          Capture
                         </button>
                       </div>
                     </div>
+                  ) : (
+                    <div style={styles.dayBlockList}>
+                      {dayBlocks.map((block) => (
+                        <div
+                          key={block.id}
+                          style={{
+                            ...styles.blockCard,
+                            ...(block.status === "done" ? styles.blockCardDone : {}),
+                          }}
+                        >
+                          <div style={styles.blockTop}>
+                            <div>
+                              <div style={styles.blockArea}>{block.learning_area}</div>
+                              <div style={styles.blockTitle}>{block.title}</div>
+                            </div>
+                            <button style={styles.markDoneBtn} onClick={() => markDone(block)}>
+                              {block.status === "done" ? "Planned" : "Done"}
+                            </button>
+                          </div>
+
+                          {block.planned_time ? (
+                            <div style={styles.blockMeta}>Time: {block.planned_time}</div>
+                          ) : null}
+                          {block.note ? <div style={styles.blockMeta}>{block.note}</div> : null}
+
+                          <div style={styles.cardActions}>
+                            <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
+                              Open day
+                            </button>
+                            <button style={styles.darkSmBtn} onClick={() => goToCapture(block)}>
+                              Capture
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={styles.quickAddLabel}>QUICK ADD</div>
+                  <div style={styles.quickAddStack}>
+                    {["Literacy", "Numeracy", "Bible", "Inquiry", "Creative"].map((area) => (
+                      <button
+                        key={area}
+                        style={styles.quickChip}
+                        onClick={() =>
+                          handleAddBlock({
+                            date: isoDate(date),
+                            area,
+                            title: `${area} learning block`,
+                          })
+                        }
+                      >
+                        {area === "Inquiry" || area === "Creative" ? `+ ${area}` : area}
+                      </button>
+                    ))}
                   </div>
                 </div>
               );
             })}
           </section>
-        )}
-
-        {view === "day" && (
+        ) : view === "day" ? (
           <section style={styles.dayLayout}>
             <div style={styles.dayMain}>
-              <section style={styles.dayHeroCard}>
-                <div>
-                  <div style={styles.eyebrow}>Day View</div>
-                  <h2 style={styles.dayTitle}>{formatLongDate(anchorDate)}</h2>
-                  <p style={styles.dayText}>
-                    Use today’s blocks to shape a gentle flow of learning. Keep
-                    structure visible, but leave room for flexibility.
-                  </p>
-                </div>
-              </section>
+              <div style={styles.dayCard}>
+                <div style={styles.kicker}>DAY VIEW</div>
+                <h2 style={styles.dayTitle}>{formatLongDate(selectedDate)}</h2>
+                <p style={styles.dayText}>
+                  Use today’s blocks to shape a gentle flow of learning. Keep structure visible, but leave room for flexibility.
+                </p>
+              </div>
 
-              <section style={styles.dayBlocksWrap}>
-                {itemsForDate(isoDate(anchorDate)).length === 0 ? (
-                  <div style={styles.dayEmptyCard}>
+              <div style={styles.dayContentCard}>
+                {blocksFor(selectedDate).length === 0 ? (
+                  <div style={styles.dayEmpty}>
                     <div style={styles.dayEmptyTitle}>Nothing planned yet for today</div>
-                    <p style={styles.dayEmptyText}>
-                      Add one or two meaningful learning blocks to get started.
-                    </p>
+                    <div style={styles.dayEmptyText}>Add one or two meaningful learning blocks to get started.</div>
                   </div>
                 ) : (
-                  itemsForDate(isoDate(anchorDate)).map((item) => {
-                    const color = CATEGORY_STYLES[item.category];
-                    return (
-                      <article
-                        key={item.id}
+                  <div style={styles.dayBlockList}>
+                    {blocksFor(selectedDate).map((block) => (
+                      <div
+                        key={block.id}
                         style={{
-                          ...styles.dayBlockCard,
-                          borderColor: color.border,
+                          ...styles.blockCardWide,
+                          ...(block.status === "done" ? styles.blockCardDone : {}),
                         }}
                       >
-                        <div
-                          style={{
-                            ...styles.dayBlockBanner,
-                            background: color.monthBar,
-                          }}
-                        >
+                        <div style={styles.blockTop}>
                           <div>
-                            <div style={styles.dayBlockBannerTitle}>{item.title}</div>
-                            <div style={styles.dayBlockBannerTime}>
-                              {safe(item.timeLabel) || "Flexible timing"}
-                            </div>
+                            <div style={styles.blockArea}>{block.learning_area}</div>
+                            <div style={styles.blockTitle}>{block.title}</div>
                           </div>
+                          <button style={styles.markDoneBtn} onClick={() => markDone(block)}>
+                            {block.status === "done" ? "Planned" : "Done"}
+                          </button>
                         </div>
 
-                        <div style={styles.dayBlockBody}>
-                          <div style={styles.dayBlockMetaRow}>
-                            <span
-                              style={{
-                                ...styles.categoryChip,
-                                background: color.chipBg,
-                                color: color.chipText,
-                              }}
-                            >
-                              {item.category}
-                            </span>
-
-                            <div style={styles.dayBlockActionRow}>
-                              <Link
-                                href={buildCaptureHref({
-                                  date: isoDate(anchorDate),
-                                  title: item.title,
-                                  category: item.category,
-                                  studentId: activeStudentId,
-                                })}
-                                style={styles.smallLinkButton}
-                                onClick={() =>
-                                  rememberCaptureContext({
-                                    date: isoDate(anchorDate),
-                                    title: item.title,
-                                    category: item.category,
-                                    notes: item.content,
-                                  })
-                                }
-                              >
-                                Capture
-                              </Link>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteItem(item.id)}
-                                style={styles.smallGhostButton}
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          </div>
-
-                          <div style={styles.dayBlockContent}>
-                            {safe(item.content) ||
-                              "Add a short note, reminder, or outline for this block."}
-                          </div>
+                        <div style={styles.dayBlockMetaRow}>
+                          <div style={styles.blockMeta}>Date: {block.planned_for}</div>
+                          {block.planned_time ? <div style={styles.blockMeta}>Time: {block.planned_time}</div> : null}
                         </div>
-                      </article>
-                    );
-                  })
+
+                        {block.note ? <div style={styles.blockNoteWide}>{block.note}</div> : null}
+
+                        <div style={styles.cardActions}>
+                          <button style={styles.outlineSmBtn} onClick={() => goToCapture(block)}>
+                            Capture from this block
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
-              </section>
+              </div>
             </div>
 
-            <aside style={styles.daySidebar}>
-              <section style={styles.sidebarCard}>
-                <div style={styles.sidebarTitle}>Notes for today</div>
+            <div style={styles.daySide}>
+              <div style={styles.sideCard}>
+                <div style={styles.sideTitle}>Notes for today</div>
                 <textarea
-                  value={studentNotes[isoDate(anchorDate)] || ""}
-                  onChange={(e) => updateDayNote(isoDate(anchorDate), e.target.value)}
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
                   placeholder="Type a note..."
-                  rows={8}
-                  style={styles.sidebarNote}
+                  style={styles.notesArea}
                 />
-              </section>
+                <button style={styles.darkSmBtn} onClick={handleSaveDayNote} disabled={savingNote}>
+                  {savingNote ? "Saving..." : "Save note"}
+                </button>
+              </div>
 
-              <section style={styles.sidebarCard}>
-                <div style={styles.sidebarTitle}>Mini calendar</div>
-                <div style={styles.miniMonthLabel}>{formatMonthYear(anchorDate)}</div>
-                <div style={styles.miniCalendarGrid}>
-                  {["M", "T", "W", "T", "F", "S", "S"].map((label, index) => (
-                    <div key={`${label}-${index}`} style={styles.miniWeekday}>
-                      {label}
-                    </div>
-                  ))}
-                  {monthGridDates.map((date) => {
-                    const dateIso = isoDate(date);
-                    const inMonth = date.getMonth() === anchorDate.getMonth();
-                    const selected = isSameDay(date, anchorDate);
-                    const itemCount = itemsForDate(dateIso).length;
-
-                    return (
-                      <button
-                        key={dateIso}
-                        type="button"
-                        onClick={() => openDay(date)}
-                        style={{
-                          ...styles.miniDateButton,
-                          ...(selected ? styles.miniDateSelected : {}),
-                          ...(inMonth ? {} : styles.miniDateMuted),
-                        }}
-                      >
-                        <span>{date.getDate()}</span>
-                        {itemCount > 0 ? <span style={styles.miniDot} /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            </aside>
+              <div style={styles.sideCard}>
+                <div style={styles.sideTitle}>Mini calendar</div>
+                <MiniMonth
+                  selectedDate={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setToolbarDate(isoDate(date));
+                  }}
+                />
+              </div>
+            </div>
           </section>
-        )}
-
-        {view === "month" && (
-          <section style={styles.monthSection}>
+        ) : (
+          <section>
             <div style={styles.monthWeekdays}>
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
-                <div key={label} style={styles.monthWeekday}>
-                  {label}
+              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((w) => (
+                <div key={w} style={styles.monthWeekday}>
+                  {w}
                 </div>
               ))}
             </div>
 
             <div style={styles.monthGrid}>
-              {monthGridDates.map((date) => {
-                const dateIso = isoDate(date);
-                const monthItems = itemsForDate(dateIso);
-                const inMonth = date.getMonth() === anchorDate.getMonth();
-                const isTodayCell = isSameDay(date, today);
+              {visibleDates.map((date) => {
+                const currentMonth = date.getMonth() === selectedDate.getMonth();
+                const selected = sameDay(date, selectedDate);
+                const count = blocksFor(date).length;
 
                 return (
                   <button
-                    key={dateIso}
-                    type="button"
-                    onClick={() => openDay(date)}
+                    key={isoDate(date)}
                     style={{
                       ...styles.monthCell,
-                      ...(inMonth ? {} : styles.monthCellMuted),
-                      ...(isTodayCell ? styles.monthCellToday : {}),
+                      ...(selected ? styles.monthCellSelected : {}),
+                      ...(currentMonth ? {} : styles.monthCellMuted),
+                    }}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      setView("day");
                     }}
                   >
                     <div style={styles.monthCellTop}>
-                      <span style={styles.monthDateNumber}>{date.getDate()}</span>
-                      {isTodayCell ? <span style={styles.todayMiniBadge}>Today</span> : null}
+                      <span>{date.getDate()}</span>
+                      {sameDay(date, new Date()) ? <span style={styles.todayTiny}>Today</span> : null}
                     </div>
 
-                    <div style={styles.monthSignals}>
-                      {monthItems.slice(0, 3).map((item) => (
-                        <div
-                          key={item.id}
-                          style={{
-                            ...styles.monthSignal,
-                            background: CATEGORY_STYLES[item.category].monthBar,
-                          }}
-                        />
-                      ))}
-                      {monthItems.length > 3 ? (
-                        <div style={styles.moreText}>+{monthItems.length - 3} more</div>
-                      ) : null}
-                    </div>
-
-                    {safe(studentNotes[dateIso]) ? (
-                      <div style={styles.monthNoteHint}>Note saved</div>
+                    {count > 0 ? (
+                      <div style={styles.monthCount}>
+                        {count} planned {count === 1 ? "block" : "blocks"}
+                      </div>
                     ) : null}
                   </button>
                 );
@@ -1298,780 +1045,748 @@ export default function CalendarPage() {
           </section>
         )}
 
-        <section style={styles.flowCard}>
+        <section style={styles.footerStrip}>
           <div>
-            <div style={styles.flowTitle}>Continue your flow</div>
-            <div style={styles.flowText}>
+            <div style={styles.footerTitle}>Continue your flow</div>
+            <div style={styles.footerText}>
               Move between planning, capture, portfolio, and reporting without losing the thread.
             </div>
           </div>
 
-          <div style={styles.flowButtons}>
-            <Link href="/planner" style={styles.flowButton}>
+          <div style={styles.footerLinks}>
+            <Link href="/planner" style={styles.footerChip}>
               Planner
             </Link>
-            <Link
-              href={buildCaptureHref({
-                date: isoDate(anchorDate),
-                title: draftTitle,
-                category: draftCategory,
-                studentId: activeStudentId,
-              })}
-              style={styles.flowButton}
-              onClick={() =>
-                rememberCaptureContext({
-                  date: isoDate(anchorDate),
-                  title: draftTitle,
-                  category: draftCategory,
-                  notes: draftContent,
-                })
-              }
-            >
+            <Link href="/calendar" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
+              Calendar
+            </Link>
+            <Link href="/capture" style={styles.footerChip}>
               Capture
             </Link>
-            <Link href="/portfolio" style={styles.flowButton}>
+            <Link href="/portfolio" style={styles.footerChip}>
               Portfolio
             </Link>
-            <Link href="/reports" style={styles.flowButton}>
+            <Link href="/reports" style={styles.footerChip}>
               Reports
             </Link>
           </div>
         </section>
       </div>
-    </main>
+    </div>
+  );
+}
+
+function MiniMonth({
+  selectedDate,
+  onSelect,
+}: {
+  selectedDate: Date;
+  onSelect: (date: Date) => void;
+}) {
+  const dates = rangeDates(startOfMonthGrid(selectedDate), endOfMonthGrid(selectedDate));
+
+  return (
+    <div>
+      <div style={styles.miniMonthLabel}>{formatMonthYear(selectedDate)}</div>
+      <div style={styles.miniWeekdays}>
+        {["M", "T", "W", "T", "F", "S", "S"].map((d) => (
+          <div key={d} style={styles.miniWeekday}>
+            {d}
+          </div>
+        ))}
+      </div>
+      <div style={styles.miniGrid}>
+        {dates.map((date) => {
+          const selected = sameDay(date, selectedDate);
+          const currentMonth = date.getMonth() === selectedDate.getMonth();
+
+          return (
+            <button
+              key={isoDate(date)}
+              style={{
+                ...styles.miniCell,
+                ...(selected ? styles.miniCellSelected : {}),
+                ...(currentMonth ? {} : styles.miniCellMuted),
+              }}
+              onClick={() => onSelect(date)}
+            >
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
+    background: "#f5f7fb",
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #f8fbff 0%, #f6f7fb 48%, #ffffff 100%)",
-    padding: "30px 18px 48px",
+    padding: "32px 20px 60px",
   },
-  shell: {
-    width: "100%",
-    maxWidth: 1480,
+  container: {
+    maxWidth: 1380,
     margin: "0 auto",
+    display: "grid",
+    gap: 16,
   },
-  heroCard: {
-    background: "rgba(255,255,255,0.96)",
-    border: "1px solid rgba(15,23,42,0.08)",
-    borderRadius: 28,
-    padding: 28,
-    boxShadow: "0 16px 48px rgba(15,23,42,0.06)",
-    marginBottom: 18,
-  },
-  heroTop: {
+  hero: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 24,
+    padding: 24,
     display: "flex",
     justifyContent: "space-between",
-    gap: 18,
+    gap: 20,
     alignItems: "flex-start",
-    flexWrap: "wrap",
   },
-  eyebrow: {
-    fontSize: 12,
+  kicker: {
+    fontSize: 11,
     fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: "0.12em",
-    color: "#64748b",
-    marginBottom: 10,
+    letterSpacing: "0.14em",
+    color: "#6b7280",
+    marginBottom: 8,
   },
-  heroTitle: {
+  h1: {
     margin: 0,
-    fontSize: "clamp(2rem, 3vw, 3rem)",
+    fontSize: 34,
     lineHeight: 1.05,
-    fontWeight: 800,
     color: "#0f172a",
   },
-  heroText: {
-    margin: "12px 0 0",
+  sub: {
+    marginTop: 10,
+    marginBottom: 0,
+    fontSize: 15,
+    lineHeight: 1.7,
+    color: "#556070",
     maxWidth: 760,
-    fontSize: 16,
-    lineHeight: 1.65,
+  },
+  heroChips: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 16,
+  },
+  heroChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 34,
+    padding: "0 12px",
+    borderRadius: 999,
+    border: "1px solid #dce3ef",
+    background: "#f8fafc",
     color: "#475569",
+    fontSize: 12,
+    fontWeight: 700,
   },
   heroActions: {
     display: "flex",
     gap: 10,
-    flexWrap: "wrap",
+    flexShrink: 0,
   },
-  subtleLinkButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 46,
+  primaryBtn: {
+    minHeight: 42,
     padding: "0 16px",
-    borderRadius: 14,
-    border: "1px solid #dbe3ee",
-    background: "#fff",
-    color: "#0f172a",
-    textDecoration: "none",
-    fontWeight: 800,
-  },
-  primaryLinkButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 46,
-    padding: "0 16px",
-    borderRadius: 14,
-    border: "none",
-    background: "#0f172a",
-    color: "#fff",
-    textDecoration: "none",
-    fontWeight: 800,
-  },
-  heroMetaRow: {
-    marginTop: 16,
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  metaPill: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 999,
-    border: "1px solid #e2e8f0",
-    background: "#f8fafc",
-    padding: "10px 14px",
-    maxWidth: "100%",
-  },
-  metaLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#64748b",
-  },
-  metaValue: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#0f172a",
-  },
-  bridgeCard: {
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
-    borderRadius: 24,
-    padding: 20,
-    boxShadow: "0 12px 36px rgba(15,23,42,0.05)",
-    marginBottom: 18,
-  },
-  bridgeTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 16,
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    marginBottom: 14,
-  },
-  bridgeEyebrow: {
-    fontSize: 12,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: "0.1em",
-    color: "#64748b",
-    marginBottom: 8,
-  },
-  bridgeTitle: {
-    fontSize: 22,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  bridgeText: {
-    marginTop: 8,
-    color: "#475569",
-    lineHeight: 1.6,
-    fontSize: 14,
-    maxWidth: 760,
-  },
-  bridgeTopActions: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  bridgePrimaryButton: {
-    appearance: "none",
-    border: "none",
-    background: "#0f172a",
-    color: "#fff",
-    borderRadius: 14,
-    padding: "12px 16px",
-    fontWeight: 800,
-    fontSize: 13,
-    cursor: "pointer",
-  },
-  bridgeSecondaryLink: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid #cbd5e1",
-    background: "#fff",
-    color: "#0f172a",
-    borderRadius: 14,
-    padding: "12px 16px",
-    fontWeight: 800,
-    fontSize: 13,
-    textDecoration: "none",
-  },
-  bridgeEncouragement: {
-    marginBottom: 14,
-    background: "#f8fbff",
-    border: "1px solid #e2ecf7",
-    borderRadius: 18,
-    padding: 14,
-    color: "#334155",
-    lineHeight: 1.6,
-    fontSize: 14,
-    fontWeight: 600,
-  },
-  bridgeGrid: {
-    display: "grid",
-    gap: 12,
-  },
-  bridgeActionCard: {
-    border: "1px solid #e2e8f0",
-    borderRadius: 18,
-    background: "#f8fafc",
-    padding: 14,
-  },
-  bridgeActionTitle: {
-    fontSize: 16,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  bridgeActionText: {
-    marginTop: 6,
-    color: "#64748b",
-    lineHeight: 1.55,
-    fontSize: 14,
-  },
-  bridgeActionButtons: {
-    marginTop: 12,
-    display: "grid",
-    gap: 10,
-  },
-  bridgeSmallButton: {
-    appearance: "none",
-    border: "1px solid #0f172a",
-    background: "#0f172a",
-    color: "#fff",
     borderRadius: 12,
-    padding: "10px 12px",
-    fontSize: 12,
+    border: "none",
+    background: "#0f172a",
+    color: "#ffffff",
     fontWeight: 800,
     cursor: "pointer",
-    justifySelf: "start",
   },
-  bridgeDayButtons: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  bridgeDayButton: {
-    appearance: "none",
-    border: "1px solid #cbd5e1",
-    background: "#fff",
-    color: "#334155",
-    borderRadius: 10,
-    padding: "8px 10px",
-    fontSize: 12,
-    fontWeight: 700,
+  secondaryBtn: {
+    minHeight: 42,
+    padding: "0 16px",
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    color: "#111827",
+    fontWeight: 800,
     cursor: "pointer",
-  },
-  bridgeEmpty: {
-    color: "#64748b",
-    lineHeight: 1.6,
-    fontSize: 14,
-  },
-  bridgeMessage: {
-    marginTop: 12,
-    minHeight: 20,
-    color: "#1d4ed8",
-    fontSize: 14,
-    fontWeight: 700,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
   },
   toolbarCard: {
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
-    borderRadius: 24,
-    padding: 20,
-    boxShadow: "0 12px 36px rgba(15,23,42,0.05)",
-    marginBottom: 18,
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 16,
   },
-  toolbarTop: {
+  topRow: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 14,
+    gap: 12,
     alignItems: "center",
     flexWrap: "wrap",
-    marginBottom: 14,
   },
-  navCluster: {
+  navLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  navRight: {
     display: "flex",
     alignItems: "center",
     gap: 10,
     flexWrap: "wrap",
   },
-  lightButton: {
-    appearance: "none",
-    border: "1px solid #dbe3ee",
-    background: "#fff",
-    color: "#0f172a",
-    borderRadius: 12,
-    padding: "10px 14px",
-    fontSize: 14,
+  smallBtn: {
+    minHeight: 34,
+    padding: "0 12px",
+    borderRadius: 10,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    color: "#111827",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    color: "#111827",
     fontWeight: 800,
     cursor: "pointer",
   },
-  iconButton: {
-    appearance: "none",
-    border: "1px solid #dbe3ee",
-    background: "#fff",
-    color: "#0f172a",
-    borderRadius: 12,
-    width: 42,
-    height: 42,
+  heading: {
     fontSize: 18,
     fontWeight: 800,
-    cursor: "pointer",
-  },
-  dateTitle: {
-    fontSize: 24,
-    fontWeight: 800,
     color: "#0f172a",
-  },
-  rightToolbar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
+    marginLeft: 4,
   },
   viewToggle: {
-    display: "flex",
-    gap: 6,
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: 14,
-    padding: 4,
+    display: "inline-flex",
+    border: "1px solid #d8deea",
+    borderRadius: 12,
+    overflow: "hidden",
   },
-  toggleButton: {
-    appearance: "none",
+  toggleBtn: {
+    minHeight: 36,
+    padding: "0 12px",
     border: "none",
-    background: "transparent",
+    background: "#ffffff",
     color: "#475569",
-    borderRadius: 10,
-    padding: "10px 14px",
     fontWeight: 800,
+    fontSize: 12,
     cursor: "pointer",
-    fontSize: 13,
   },
-  toggleButtonActive: {
+  toggleBtnActive: {
     background: "#0f172a",
-    color: "#fff",
+    color: "#ffffff",
   },
-  addBar: {
+  inputRow: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.4fr) auto auto auto auto",
+    gridTemplateColumns: "1.6fr 180px 140px 140px 80px",
     gap: 10,
-    alignItems: "center",
+    marginTop: 14,
   },
-  input: {
-    width: "100%",
-    minHeight: 48,
-    borderRadius: 14,
-    border: "1px solid #dbe3ee",
-    padding: "12px 14px",
-    fontSize: 15,
-    outline: "none",
-    background: "#fff",
-    color: "#0f172a",
-  },
-  quickTextarea: {
-    width: "100%",
-    marginTop: 10,
-    borderRadius: 16,
-    border: "1px solid #dbe3ee",
-    padding: "12px 14px",
+  textInput: {
+    minHeight: 46,
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    padding: "0 14px",
     fontSize: 14,
-    lineHeight: 1.6,
-    resize: "vertical",
+    color: "#111827",
     outline: "none",
-    background: "#fff",
-    color: "#334155",
   },
   select: {
-    minHeight: 48,
-    borderRadius: 14,
-    border: "1px solid #dbe3ee",
-    padding: "12px 14px",
+    minHeight: 46,
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    padding: "0 12px",
     fontSize: 14,
+    color: "#111827",
     outline: "none",
-    background: "#fff",
-    color: "#0f172a",
   },
   timeInput: {
-    minHeight: 48,
-    width: 140,
-    borderRadius: 14,
-    border: "1px solid #dbe3ee",
-    padding: "12px 14px",
+    minHeight: 46,
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    padding: "0 12px",
     fontSize: 14,
+    color: "#111827",
     outline: "none",
-    background: "#fff",
-    color: "#0f172a",
   },
   dateInput: {
-    minHeight: 48,
-    borderRadius: 14,
-    border: "1px solid #dbe3ee",
-    padding: "12px 14px",
+    minHeight: 46,
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    padding: "0 12px",
     fontSize: 14,
+    color: "#111827",
     outline: "none",
-    background: "#fff",
-    color: "#0f172a",
   },
-  addButton: {
-    appearance: "none",
+  addBtn: {
+    minHeight: 46,
+    borderRadius: 12,
     border: "none",
     background: "#0f172a",
-    color: "#fff",
-    borderRadius: 14,
-    padding: "12px 16px",
+    color: "#ffffff",
     fontWeight: 800,
     cursor: "pointer",
-    minHeight: 48,
   },
-  weekSection: {
+  noteInput: {
+    width: "100%",
+    minHeight: 62,
+    marginTop: 10,
+    borderRadius: 12,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    padding: 12,
+    fontSize: 14,
+    color: "#111827",
+    resize: "vertical",
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  message: {
+    marginTop: 10,
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#1d4ed8",
+  },
+  storageHint: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#64748b",
+  },
+  loadingCard: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 18,
+    padding: 32,
+    fontSize: 15,
+    color: "#475569",
+  },
+  weekGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-    gap: 14,
-    alignItems: "start",
-    marginBottom: 20,
+    gap: 10,
   },
-  weekColumn: {
+  weekCol: {
     background: "#ffffff",
-    border: "1px solid rgba(15,23,42,0.08)",
-    borderRadius: 24,
-    padding: 14,
-    boxShadow: "0 12px 30px rgba(15,23,42,0.04)",
-    minHeight: 680,
+    border: "1px solid #e6e9f0",
+    borderRadius: 18,
+    padding: 12,
     display: "flex",
     flexDirection: "column",
-    gap: 12,
-  },
-  todayColumn: {
-    boxShadow: "0 0 0 2px rgba(59,130,246,0.2), 0 12px 30px rgba(15,23,42,0.06)",
-    background: "#fbfdff",
+    gap: 10,
+    minHeight: 470,
   },
   weekHeader: {
     display: "flex",
-    alignItems: "flex-start",
     justifyContent: "space-between",
+    alignItems: "center",
     gap: 8,
   },
-  weekDayName: {
-    fontSize: 18,
+  weekDayTitle: {
+    fontSize: 20,
     fontWeight: 800,
     color: "#0f172a",
   },
-  dayLoadText: {
+  todayPill: {
+    minHeight: 24,
+    padding: "0 8px",
+    borderRadius: 999,
+    background: "#dbeafe",
+    color: "#2563eb",
+    fontSize: 11,
+    fontWeight: 800,
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  openState: {
     fontSize: 12,
     fontWeight: 700,
     color: "#64748b",
-    marginTop: 4,
   },
-  todayBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    background: "#dbeafe",
-    color: "#1d4ed8",
-    padding: "6px 10px",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  dayNote: {
+  dayScratch: {
     width: "100%",
-    borderRadius: 18,
-    border: "1px solid #f5e48d",
-    background: "#fffad1",
-    padding: "12px 14px",
+    minHeight: 68,
+    borderRadius: 14,
+    border: "1px solid #e5d58f",
+    background: "#fef8d6",
+    padding: 10,
+    fontSize: 13,
+    color: "#665c1d",
     resize: "vertical",
+    boxSizing: "border-box",
     outline: "none",
-    minHeight: 110,
-    lineHeight: 1.55,
-    color: "#334155",
-    fontSize: 14,
   },
-  columnItems: {
-    display: "grid",
-    gap: 10,
-    alignContent: "start",
-  },
-  weekEmptyState: {
-    border: "1px dashed #cbd5e1",
-    background: "#f8fafc",
-    borderRadius: 18,
+  emptyCard: {
+    border: "1px dashed #d8deea",
+    borderRadius: 16,
     padding: 14,
+    background: "#fbfcfe",
   },
-  weekEmptyTitle: {
-    fontSize: 15,
+  emptyTitle: {
+    fontSize: 16,
     fontWeight: 800,
     color: "#0f172a",
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  weekEmptyText: {
+  emptyText: {
     fontSize: 13,
-    lineHeight: 1.5,
+    lineHeight: 1.6,
     color: "#64748b",
     marginBottom: 12,
   },
-  weekEmptyActions: {
+  cardActions: {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
   },
-  inlineActionButton: {
-    appearance: "none",
-    border: "1px solid #dbe3ee",
-    background: "#fff",
-    color: "#0f172a",
-    borderRadius: 12,
-    padding: "9px 10px",
+  outlineSmBtn: {
+    minHeight: 34,
+    padding: "0 10px",
+    borderRadius: 10,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    color: "#111827",
     fontSize: 12,
     fontWeight: 800,
     cursor: "pointer",
   },
-  inlineGhostButton: {
-    appearance: "none",
-    border: "1px solid #cbd5e1",
-    background: "#fff",
-    color: "#334155",
-    borderRadius: 12,
-    padding: "9px 10px",
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: "pointer",
-    textDecoration: "none",
-  },
-  inlineLinkButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid #0f172a",
+  darkSmBtn: {
+    minHeight: 34,
+    padding: "0 10px",
+    borderRadius: 10,
+    border: "none",
     background: "#0f172a",
-    color: "#fff",
-    borderRadius: 12,
-    padding: "9px 10px",
+    color: "#ffffff",
     fontSize: 12,
     fontWeight: 800,
-    textDecoration: "none",
+    cursor: "pointer",
+  },
+  dayBlockList: {
+    display: "grid",
+    gap: 10,
   },
   blockCard: {
-    border: "1px solid",
-    borderRadius: 18,
+    border: "1px solid #d8deea",
+    borderRadius: 14,
     padding: 12,
+    background: "#ffffff",
+  },
+  blockCardWide: {
+    border: "1px solid #d8deea",
+    borderRadius: 16,
+    padding: 16,
+    background: "#ffffff",
+  },
+  blockCardDone: {
+    background: "#f8fafc",
+    opacity: 0.82,
   },
   blockTop: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 8,
-    alignItems: "center",
-    marginBottom: 10,
+    gap: 12,
+    alignItems: "flex-start",
   },
-  categoryChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 999,
-    padding: "6px 10px",
-    fontSize: 12,
+  blockArea: {
+    fontSize: 11,
     fontWeight: 800,
-  },
-  deleteInlineButton: {
-    appearance: "none",
-    border: "none",
-    background: "transparent",
-    color: "#7f1d1d",
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer",
+    letterSpacing: "0.12em",
+    color: "#64748b",
+    marginBottom: 4,
   },
   blockTitle: {
     fontSize: 16,
     fontWeight: 800,
     color: "#0f172a",
-    marginBottom: 4,
+    lineHeight: 1.35,
   },
-  blockTime: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#475569",
-    marginBottom: 8,
-  },
-  blockTimeMuted: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#94a3b8",
-    marginBottom: 8,
-  },
-  blockContent: {
-    fontSize: 14,
-    lineHeight: 1.55,
-    color: "#334155",
-    whiteSpace: "pre-wrap",
-  },
-  blockContentMuted: {
-    fontSize: 13,
-    lineHeight: 1.5,
-    color: "#64748b",
-  },
-  blockFooter: {
-    marginTop: 12,
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  inlineAddCard: {
-    border: "1px dashed #cbd5e1",
+  markDoneBtn: {
+    minHeight: 30,
+    padding: "0 10px",
+    borderRadius: 10,
+    border: "1px solid #d8deea",
     background: "#ffffff",
-    borderRadius: 18,
-    padding: 12,
-  },
-  inlineAddTitle: {
-    fontSize: 13,
+    color: "#111827",
+    fontSize: 12,
     fontWeight: 800,
-    color: "#475569",
-    marginBottom: 10,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-  },
-  inlineAddActions: {
-    display: "grid",
-    gap: 8,
-    marginBottom: 8,
-  },
-  inlineMiniActions: {
-    display: "grid",
-    gap: 8,
-  },
-  smallGhostButton: {
-    appearance: "none",
-    border: "1px solid #cbd5e1",
-    background: "#fff",
-    color: "#334155",
-    borderRadius: 10,
-    padding: "8px 10px",
-    fontWeight: 700,
-    fontSize: 12,
     cursor: "pointer",
-    textDecoration: "none",
+    flexShrink: 0,
   },
-  smallLinkButton: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    border: "1px solid #0f172a",
-    background: "#0f172a",
-    color: "#fff",
+  blockMeta: {
+    fontSize: 13,
+    color: "#64748b",
+    lineHeight: 1.6,
+    marginTop: 8,
+  },
+  quickAddLabel: {
+    fontSize: 11,
+    fontWeight: 800,
+    letterSpacing: "0.12em",
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  quickAddStack: {
+    display: "grid",
+    gap: 8,
+  },
+  quickChip: {
+    minHeight: 34,
+    padding: "0 10px",
     borderRadius: 10,
-    padding: "8px 10px",
-    fontWeight: 700,
+    border: "1px solid #d8deea",
+    background: "#ffffff",
+    color: "#111827",
     fontSize: 12,
-    textDecoration: "none",
+    fontWeight: 800,
+    cursor: "pointer",
   },
   dayLayout: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.65fr) minmax(300px, 0.55fr)",
-    gap: 18,
+    gridTemplateColumns: "1.55fr 0.85fr",
+    gap: 14,
     alignItems: "start",
-    marginBottom: 20,
   },
   dayMain: {
     display: "grid",
-    gap: 16,
+    gap: 12,
   },
-  dayHeroCard: {
-    background: "#fff",
-    border: "1px solid rgba(15,23,42,0.08)",
-    borderRadius: 24,
-    padding: 22,
-    boxShadow: "0 12px 36px rgba(15,23,42,0.05)",
+  dayCard: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 18,
   },
   dayTitle: {
-    margin: 0,
-    fontSize: 32,
+    margin: "4px 0 8px",
+    fontSize: 22,
     fontWeight: 800,
     color: "#0f172a",
   },
   dayText: {
-    margin: "10px 0 0",
-    color: "#475569",
-    lineHeight: 1.65,
-    fontSize: 15,
+    margin: 0,
+    fontSize: 14,
+    color: "#64748b",
+    lineHeight: 1.7,
   },
-  dayBlocksWrap: {
+  dayContentCard: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 18,
+  },
+  dayEmpty: {
+    minHeight: 160,
+    border: "1px dashed #d8deea",
+    borderRadius: 16,
     display: "grid",
-    gap: 16,
-  },
-  dayEmptyCard: {
-    background: "#fff",
-    border: "1px dashed #cbd5e1",
-    borderRadius: 22,
-    padding: 28,
+    placeItems: "center",
     textAlign: "center",
+    padding: 20,
   },
   dayEmptyTitle: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 800,
     color: "#0f172a",
     marginBottom: 8,
   },
   dayEmptyText: {
-    margin: 0,
+    fontSize: 14,
     color: "#64748b",
-    lineHeight: 1.6,
   },
-  dayBlockCard: {
-    background: "#fff",
-    border: "1px solid",
-    borderRadius: 24,
-    overflow: "hidden",
-    boxShadow: "0 12px 36px rgba(15,23,42,0.05)",
+  daySide: {
+    display: "grid",
+    gap: 12,
   },
-  dayBlockBanner: {
-    padding: "20px 22px",
-    color: "#fff",
+  sideCard: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 16,
   },
-  dayBlockBannerTitle: {
-    fontSize: 28,
+  sideTitle: {
+    fontSize: 18,
     fontWeight: 800,
-    lineHeight: 1.1,
+    color: "#0f172a",
+    marginBottom: 12,
   },
-  dayBlockBannerTime: {
-    marginTop: 8,
-    fontSize: 16,
+  notesArea: {
+    width: "100%",
+    minHeight: 118,
+    borderRadius: 14,
+    border: "1px solid #e5d58f",
+    background: "#fef8d6",
+    padding: 12,
+    fontSize: 14,
+    color: "#665c1d",
+    resize: "vertical",
+    boxSizing: "border-box",
+    outline: "none",
+    marginBottom: 10,
+  },
+  miniMonthLabel: {
+    fontSize: 14,
+    fontWeight: 800,
+    color: "#0f172a",
+    marginBottom: 10,
+  },
+  miniWeekdays: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: 4,
+    marginBottom: 6,
+  },
+  miniWeekday: {
+    textAlign: "center",
+    fontSize: 11,
     fontWeight: 700,
-    opacity: 0.92,
+    color: "#64748b",
   },
-  dayBlockBody: {
-    padding: 22,
+  miniGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: 4,
   },
-  dayBlockMetaRow: {
+  miniCell: {
+    minHeight: 32,
+    borderRadius: 10,
+    border: "1px solid transparent",
+    background: "#ffffff",
+    color: "#111827",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  miniCellSelected: {
+    background: "#eaf2ff",
+    color: "#1d4ed8",
+    border: "1px solid #9ab8ff",
+  },
+  miniCellMuted: {
+    color: "#94a3b8",
+  },
+  monthWeekdays: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    gap: 10,
+    marginBottom: 8,
+  },
+  monthWeekday: {
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#475569",
+  },
+  monthGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+    gap: 10,
+  },
+  monthCell: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 18,
+    minHeight: 118,
+    padding: 12,
+    textAlign: "left",
+    cursor: "pointer",
+  },
+  monthCellSelected: {
+    border: "1px solid #9ab8ff",
+    boxShadow: "0 0 0 1px rgba(59,130,246,0.08) inset",
+  },
+  monthCellMuted: {
+    opacity: 0.62,
+  },
+  monthCellTop: {
     display: "flex",
     justifyContent: "space-between",
-    gap: 10,
+    alignItems: "center",
+    gap: 8,
+    fontSize: 16,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  todayTiny: {
+    minHeight: 22,
+    padding: "0 8px",
+    borderRadius: 999,
+    background: "#dbeafe",
+    color: "#2563eb",
+    fontSize: 10,
+    fontWeight: 800,
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  monthCount: {
+    marginTop: 12,
+    fontSize: 13,
+    color: "#475569",
+    lineHeight: 1.6,
+  },
+  footerStrip: {
+    background: "#ffffff",
+    border: "1px solid #e6e9f0",
+    borderRadius: 20,
+    padding: 18,
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
     alignItems: "center",
     flexWrap: "wrap",
-    marginBottom: 14,
   },
-  dayBlockActionRow: {
+  footerTitle: {
+    fontSize: 22,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  footerText: {
+    marginTop: 6,
+    fontSize: 14,
+    color: "#64748b",
+  },
+  footerLinks: {
     display: "flex",
     gap: 8,
     flexWrap: "wrap",
   },
-  dayBlockContent: {
-    color: "#334155",
+  footerChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 36,
+    padding: "0 14px",
+    borderRadius: 999,
+    background: "#ffffff",
+    border: "1px solid #d8deea",
+    color: "#1f2940",
+    textDecoration: "none",
+    fontSize: 13,
+    fontWeight: 800,
+  },
+  footerChipActive: {
+    background: "#eef4ff",
+    border: "1px solid #7aa2ff",
+    color: "#1d4ed8",
+  },
+  dayBlockMetaRow: {
+    display: "flex",
+    gap: 14,
+    flexWrap: "wrap",
+    marginTop: 8,
+  },
+  blockNoteWide: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 1.7,
+  },
+};55",
     fontSize: 15,
     lineHeight: 1.7,
     whiteSpace: "pre-wrap",

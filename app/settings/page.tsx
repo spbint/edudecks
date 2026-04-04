@@ -19,7 +19,6 @@ import {
   rowToSettings,
   upsertFamilyProfile,
 } from "@/lib/familySettings";
-import { getDisplayName, getYearLabel, toRenderValue } from "@/lib/system";
 
 function marketLabel(key: MarketKey) {
   if (key === "au") return "Australia";
@@ -43,16 +42,28 @@ function childLandingLabel(key: DefaultChildLanding) {
 function childOptionLabel(child: ChildOption | null | undefined) {
   if (!child) return "Not selected";
 
-  return getDisplayName(
-    child as ChildOption &
-      Partial<{
-        name: string | null;
-        title: string | null;
-        preferred_name: string | null;
-        first_name: string | null;
-        surname: string | null;
-        family_name: string | null;
-      }>,
+  const row = child as ChildOption &
+    Partial<{
+      name: string | null;
+      title: string | null;
+      preferred_name: string | null;
+      first_name: string | null;
+      surname: string | null;
+      family_name: string | null;
+    }>;
+
+  return (
+    row.label ||
+    row.name ||
+    row.title ||
+    [
+      row.preferred_name,
+      row.first_name,
+      row.surname || row.family_name,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() ||
     "Not selected"
   );
 }
@@ -60,13 +71,17 @@ function childOptionLabel(child: ChildOption | null | undefined) {
 function childOptionYearLabel(child: ChildOption | null | undefined) {
   if (!child) return "";
 
-  return getYearLabel(
-    child as ChildOption &
-      Partial<{
-        yearLabel: string | null;
-        year_label: string | null;
-        year_level: string | number | null;
-      }>
+  const row = child as ChildOption &
+    Partial<{
+      yearLabel: string | null;
+      year_label: string | null;
+      year_level: string | number | null;
+    }>;
+
+  return (
+    row.yearLabel ||
+    row.year_label ||
+    (row.year_level ? `Year ${row.year_level}` : "")
   );
 }
 
@@ -455,7 +470,7 @@ export default function FamilySettingsPage() {
               <div style={shellStyles.formGrid}>
                 <Field label="Default child" help="The child selected first when family pages open.">
                   <select
-                    value={toRenderValue(settings.default_child_id)}
+                    value={settings.default_child_id ?? ""}
                     onChange={(e) => update("default_child_id", e.target.value || null)}
                     style={shellStyles.input}
                   >
