@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentHubNav from "@/app/admin/components/StudentHubNav";
@@ -119,6 +119,14 @@ const S = {
 /* ───────────────── PAGE ───────────────── */
 
 export default function StudentSupportPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentSupportPageContent />
+    </Suspense>
+  );
+}
+
+function StudentSupportPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();

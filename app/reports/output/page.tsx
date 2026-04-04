@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -81,5 +81,13 @@ async function loadEvidence(): Promise<EvidenceRow[]> {
 /* --- REST OF YOUR FILE REMAINS IDENTICAL --- */
 
 export default function ReportsOutputPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReportsOutputPageContent />
+    </Suspense>
+  );
+}
+
+function ReportsOutputPageContent() {
   return <div>Report Output Page</div>;
 }

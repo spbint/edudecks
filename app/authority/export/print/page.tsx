@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   loadLatestReportDraft,
@@ -125,6 +125,14 @@ function confidenceLabel(band: string) {
 }
 
 export default function AuthorityPrintPage() {
+  return (
+    <Suspense fallback={<div style={styles.loading}>Preparing printâ€¦</div>}>
+      <AuthorityPrintPageContent />
+    </Suspense>
+  );
+}
+
+function AuthorityPrintPageContent() {
   const searchParams = useSearchParams();
 
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);
