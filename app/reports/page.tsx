@@ -67,6 +67,13 @@ type BuilderStage = {
   detail: string;
 };
 
+type BuilderValueSignal = {
+  valueText: string;
+  conversionText: string;
+  primaryIntent: string;
+  secondaryIntent: string;
+};
+
 const AREA_OPTIONS = [
   "Literacy",
   "Numeracy",
@@ -362,6 +369,46 @@ function buildBuilderStage(
     label: "Review output",
     stepLabel: "Step 3 of 3",
     detail: "Your draft is saved. Review the output before exporting or opening the authority pack.",
+  };
+}
+
+function buildBuilderValueSignal(
+  readinessScore: number,
+  draftId: string,
+  selectedEvidenceCount: number
+): BuilderValueSignal {
+  if (!selectedEvidenceCount) {
+    return {
+      valueText: "Once strong evidence is selected, EduDecks can turn it into a draft you can keep improving instead of rebuilding each time.",
+      conversionText: "This is where the product starts saving real admin time.",
+      primaryIntent: "reports_select_evidence",
+      secondaryIntent: "reports_quick_build",
+    };
+  }
+
+  if (!draftId) {
+    return {
+      valueText: "Saving the first draft gives you a reusable report base for output, later edits, and authority-ready work.",
+      conversionText: "This is the point where progress starts to feel tangible.",
+      primaryIntent: "reports_save_draft",
+      secondaryIntent: "reports_open_output",
+    };
+  }
+
+  if (readinessScore >= 85) {
+    return {
+      valueText: "You already have a saved report foundation. Reviewing output now helps you share progress with less friction.",
+      conversionText: "This is the kind of calm handoff that makes the product feel worth paying for.",
+      primaryIntent: "reports_open_output",
+      secondaryIntent: "reports_open_authority_next",
+    };
+  }
+
+  return {
+    valueText: "The draft is saved, which means you now have something reusable to strengthen rather than starting over later.",
+    conversionText: "Each stronger draft reduces the effort of the next reporting cycle.",
+    primaryIntent: "reports_improve_saved_draft",
+    secondaryIntent: "reports_open_output",
   };
 }
 
@@ -991,6 +1038,11 @@ function ReportsPageContent() {
     [draftId, selectedEvidenceIds.length, selectedStudentId]
   );
 
+  const builderValueSignal = useMemo(
+    () => buildBuilderValueSignal(readinessScore, draftId, selectedEvidenceIds.length),
+    [draftId, readinessScore, selectedEvidenceIds.length]
+  );
+
   useEffect(() => {
     if (!selectedStudentId) return;
     if (!studentEvidence.length) return;
@@ -1228,7 +1280,12 @@ function ReportsPageContent() {
             <Link href="/reports/library" style={buttonStyle(false)}>
               Library
             </Link>
-            <button type="button" onClick={() => void handleSave(false)} style={buttonStyle(false)}>
+            <button
+              type="button"
+              onClick={() => void handleSave(false)}
+              style={buttonStyle(false)}
+              data-journey-intent={builderValueSignal.primaryIntent}
+            >
               {saving ? "Saving…" : "Save draft"}
             </button>
             <button
@@ -1240,10 +1297,16 @@ function ReportsPageContent() {
                 background: "#eff6ff",
                 color: "#2563eb",
               }}
+              data-journey-intent="reports_quick_build"
             >
               {saving ? "Building…" : "Quick Build Report"}
             </button>
-            <button type="button" onClick={() => void handleSave(true)} style={buttonStyle(true)}>
+            <button
+              type="button"
+              onClick={() => void handleSave(true)}
+              style={buttonStyle(true)}
+              data-journey-intent={builderValueSignal.secondaryIntent}
+            >
               {saving ? "Building…" : "Build report"}
             </button>
           </div>
@@ -1312,6 +1375,10 @@ function ReportsPageContent() {
               </div>
 
               <div style={{ ...smallStyle, marginTop: 10 }}>{builderStage.detail}</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>
+                <strong>Why this matters:</strong> {builderValueSignal.valueText}
+              </div>
+              <div style={{ ...smallStyle, marginTop: 6 }}>{builderValueSignal.conversionText}</div>
 
               <div style={{ height: 18 }} />
 
@@ -1866,6 +1933,9 @@ function ReportsPageContent() {
               <div style={{ ...softCardStyle, marginTop: 14 }}>
                 <div style={labelStyle}>Save guidance</div>
                 <div style={smallStyle}>{saveConfidenceText}</div>
+                <div style={{ ...smallStyle, marginTop: 8 }}>
+                  A saved draft gives you a clearer next step, a reusable report base, and a calmer review flow.
+                </div>
               </div>
             </section>
 
@@ -1895,12 +1965,25 @@ function ReportsPageContent() {
             <section style={cardStyle}>
               <div style={h2Style}>Next best move</div>
               <div style={bodyStyle}>{nextBestMove}</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>
+                The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
+              </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button type="button" onClick={() => void handleSave(false)} style={buttonStyle(false)}>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(false)}
+                  style={buttonStyle(false)}
+                  data-journey-intent={builderValueSignal.primaryIntent}
+                >
                   {saving ? "Saving…" : "Save draft"}
                 </button>
-                <button type="button" onClick={() => void handleSave(true)} style={buttonStyle(true)}>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(true)}
+                  style={buttonStyle(true)}
+                  data-journey-intent={builderValueSignal.secondaryIntent}
+                >
                   {saving ? "Building…" : "Open output"}
                 </button>
               </div>

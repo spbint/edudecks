@@ -50,6 +50,9 @@ type GuideState = {
   tone: "info" | "success" | "warning";
   reason: string;
   progressNudge: string;
+  impactText: string;
+  primaryIntent: string;
+  secondaryIntent?: string;
 };
 
 type LearningStep = {
@@ -326,6 +329,9 @@ function buildGuideState(
       reason: "No child is currently selected.",
       progressNudge:
         "Your first completed setup step unlocks the rest of the journey.",
+      impactText: "This is how EduDecks starts turning family learning into a usable record.",
+      primaryIntent: "family_add_child",
+      secondaryIntent: "family_open_settings",
     };
   }
 
@@ -346,6 +352,9 @@ function buildGuideState(
       reason: "No evidence has been captured yet.",
       progressNudge:
         "You’re building a real learning record — one step at a time.",
+      impactText: "A first entry gives the system something real to guide, organise, and build on later.",
+      primaryIntent: "family_capture_first_entry",
+      secondaryIntent: "family_view_portfolio",
     };
   }
 
@@ -361,6 +370,9 @@ function buildGuideState(
       reason: "Evidence exists, but no saved report draft is linked yet.",
       progressNudge:
         "You’re one step away from a reusable report draft.",
+      impactText: "A saved draft turns scattered evidence into a report you can refine instead of starting from scratch.",
+      primaryIntent: "family_start_first_draft",
+      secondaryIntent: "family_capture_more_before_draft",
     };
   }
 
@@ -376,6 +388,9 @@ function buildGuideState(
       reason: "Draft exists, but coverage and evidence volume are still limited.",
       progressNudge:
         "One more strong piece could move this into ‘ready to report’.",
+      impactText: "A slightly stronger evidence mix makes the report feel calmer, clearer, and easier to trust.",
+      primaryIntent: "family_strengthen_draft",
+      secondaryIntent: "family_review_saved_draft",
     };
   }
 
@@ -391,6 +406,9 @@ function buildGuideState(
       reason: "The evidence set is useful, but recency is softening confidence.",
       progressNudge:
         "A fresh entry will strengthen confidence and make the next step feel calmer.",
+      impactText: "Fresh evidence helps the report feel current, credible, and easier to stand behind.",
+      primaryIntent: "family_add_fresh_entry",
+      secondaryIntent: "family_open_authority_pack",
     };
   }
 
@@ -404,6 +422,9 @@ function buildGuideState(
     tone: "success",
     reason: "Evidence, recency, and saved draft state are all in a strong place.",
     progressNudge: "The next step is a calm review before export or authority use.",
+    impactText: "You already have the foundations of a reusable report, which saves time each time you need to share progress.",
+    primaryIntent: "family_review_report_output",
+    secondaryIntent: "family_open_authority_pack",
   };
 }
 
@@ -677,11 +698,19 @@ function FamilyPageContent() {
                 flexWrap: "wrap",
               }}
             >
-              <Link href={guideState.primaryHref} style={S.button(true)}>
+              <Link
+                href={guideState.primaryHref}
+                style={S.button(true)}
+                data-journey-intent={guideState.primaryIntent}
+              >
                 {guideState.primaryLabel}
               </Link>
               {guideState.secondaryHref && guideState.secondaryLabel ? (
-                <Link href={guideState.secondaryHref} style={S.button(false)}>
+                <Link
+                  href={guideState.secondaryHref}
+                  style={S.button(false)}
+                  data-journey-intent={guideState.secondaryIntent}
+                >
                   {guideState.secondaryLabel}
                 </Link>
               ) : null}
@@ -707,6 +736,10 @@ function FamilyPageContent() {
               <div style={S.small()}>{journeyStage.detail}</div>
               <div style={{ height: 8 }} />
               <div style={S.small()}>{guideState.reason}</div>
+              <div style={{ height: 8 }} />
+              <div style={S.small()}>
+                <strong>Why this matters:</strong> {guideState.impactText}
+              </div>
               <div style={{ height: 8 }} />
               <div style={S.small()}>
                 <strong>Progress nudge:</strong> {guideState.progressNudge}
@@ -864,6 +897,9 @@ function FamilyPageContent() {
                 {selectedChildDraft
                   ? "Once you add that stronger piece, return to the saved draft and review the output."
                   : "Once you capture it, the next step is starting the first saved draft."}
+              </div>
+              <div style={{ ...S.small(), marginTop: 6 }}>
+                The value of doing this now is simple: the next report becomes easier, clearer, and less rushed.
               </div>
 
               <div
