@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -80,20 +81,26 @@ const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
 
 const SECTIONS: NavSection[] = [
   {
+    title: "Planning",
+    items: [
+      { href: "/goals", label: "Goals" },
+      { href: "/planner", label: "Planner" },
+      { href: "/calendar", label: "Calendar" },
+    ],
+  },
+  {
     title: "Workflow",
     items: [
       { href: "/capture", label: "Capture" },
       { href: "/portfolio", label: "Portfolio" },
       { href: "/reports", label: "Reports" },
-      { href: "/reports/library", label: "Report Library" },
-      { href: "/reports/output", label: "Output" },
     ],
   },
   {
-    title: "Planning",
+    title: "More",
     items: [
-      { href: "/goals", label: "Goals" },
-      { href: "/planner", label: "Planner" },
+      { href: "/reports/library", label: "Report Library" },
+      { href: "/reports/output", label: "Output" },
     ],
   },
   {
@@ -182,6 +189,12 @@ export default function FamilyTopNavShell({
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/planner" style={utilBtn(false)}>
+                Planner
+              </Link>
+              <Link href="/calendar" style={utilBtn(false)}>
+                Calendar
+              </Link>
               <Link href="/capture" style={utilBtn(true)}>
                 Quick Capture
               </Link>
@@ -230,6 +243,8 @@ export default function FamilyTopNavShell({
               </div>
             ))}
           </div>
+
+          <FamilyWorkflowStrip />
         </div>
       </header>
 
@@ -332,11 +347,17 @@ export default function FamilyTopNavShell({
                 marginTop: 16,
               }}
             >
-              <Link href="/portfolio" style={utilBtn(false)}>
-                Portfolio
+              <Link href="/goals" style={utilBtn(false)}>
+                Goals
               </Link>
               <Link href="/planner" style={utilBtn(false)}>
                 Planner
+              </Link>
+              <Link href="/calendar" style={utilBtn(false)}>
+                Calendar
+              </Link>
+              <Link href="/portfolio" style={utilBtn(false)}>
+                Portfolio
               </Link>
             </div>
           </aside>

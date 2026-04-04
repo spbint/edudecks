@@ -831,6 +831,12 @@ function FamilyPageContent() {
                   flexWrap: "wrap",
                 }}
               >
+                <Link href="/planner" style={S.button(false)}>
+                  Open planner
+                </Link>
+                <Link href="/calendar" style={S.button(false)}>
+                  Open calendar
+                </Link>
                 <Link href="/capture" style={S.button(true)}>
                   Capture learning
                 </Link>
@@ -839,9 +845,6 @@ function FamilyPageContent() {
                   style={S.button(false)}
                 >
                   Build report
-                </Link>
-                <Link href="/portfolio" style={S.button(false)}>
-                  Open portfolio
                 </Link>
               </div>
             </div>

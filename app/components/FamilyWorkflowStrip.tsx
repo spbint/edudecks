@@ -37,17 +37,11 @@ function stepStyle(active: boolean): React.CSSProperties {
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
   { href: "/family", label: "Home", matches: ["/family"] },
-  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
   { href: "/planner", label: "Planning", matches: ["/planner", "/goals"] },
+  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
   { href: "/capture", label: "Capture", matches: ["/capture"] },
   { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
-  { href: "/reports", label: "Reports", matches: ["/reports", "/reports/library", "/reports/presets"] },
-  { href: "/reports/output", label: "Output", matches: ["/reports/output"] },
-  {
-    href: "/authority",
-    label: "Authority",
-    matches: ["/authority", "/authority-au", "/authority-uk", "/authority-us"],
-  },
+  { href: "/reports", label: "Reports", matches: ["/reports", "/reports/library", "/reports/output", "/reports/presets"] },
 ];
 
 export default function FamilyWorkflowStrip() {
@@ -73,6 +67,18 @@ export default function FamilyWorkflowStrip() {
         }}
       >
         Family workflow
+      </div>
+
+      <div
+        style={{
+          fontSize: 13,
+          color: "#475569",
+          lineHeight: 1.55,
+          marginBottom: 10,
+          fontWeight: 700,
+        }}
+      >
+        Follow one clear family loop from planning into capture, then into portfolio and reports.
       </div>
 
       <div
@@ -125,6 +131,34 @@ export default function FamilyWorkflowStrip() {
             </React.Fragment>
           );
         })}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+          marginTop: 12,
+        }}
+      >
+        <Link href="/reports/library" style={stepStyle(isStepActive(pathname, { href: "/reports/library", label: "Report Library", matches: ["/reports/library"] }))}>
+          <span>Report Library</span>
+        </Link>
+        <Link href="/reports/output" style={stepStyle(isStepActive(pathname, { href: "/reports/output", label: "Output", matches: ["/reports/output"] }))}>
+          <span>Output</span>
+        </Link>
+        <Link
+          href="/authority"
+          style={stepStyle(
+            isStepActive(pathname, {
+              href: "/authority",
+              label: "Authority",
+              matches: ["/authority", "/authority-au", "/authority-uk", "/authority-us"],
+            })
+          )}
+        >
+          <span>Authority</span>
+        </Link>
       </div>
     </div>
   );
