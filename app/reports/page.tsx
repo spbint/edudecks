@@ -20,6 +20,7 @@ import {
   type ReportMode,
   type SelectionMetaMap,
 } from "@/lib/reportDrafts";
+import { getDisplayName, getEvidenceText, safeText } from "@/lib/system";
 
 type StudentRow = {
   id: string;
@@ -113,8 +114,8 @@ const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
 
-function safe(v: any) {
-  return String(v ?? "").trim();
+function safe(v: unknown) {
+  return safeText(typeof v === "string" ? v : String(v ?? ""));
 }
 
 function clip(v: string | null | undefined, max = 140) {
@@ -133,11 +134,7 @@ function parseJson<T>(value: string | null, fallback: T): T {
 }
 
 function studentName(student?: StudentRow | null) {
-  if (!student) return "Selected child";
-  const first = safe(student.preferred_name || student.first_name);
-  const last = safe(student.surname || student.family_name || student.last_name);
-  const combined = `${first} ${last}`.trim();
-  return combined || "Selected child";
+  return getDisplayName(student, "Selected child");
 }
 
 function firstNameOf(student?: StudentRow | null) {
@@ -201,7 +198,7 @@ function hasMedia(row: EvidenceRow) {
 }
 
 function evidenceText(row: EvidenceRow) {
-  return safe(row.summary || row.body || row.note);
+  return getEvidenceText(row);
 }
 
 function evidenceScore(row: EvidenceRow) {
@@ -335,19 +332,7 @@ function joinNatural(items: string[]) {
 }
 
 function seedStudentName(raw: any, index: number) {
-  return (
-    safe(raw?.name) ||
-    safe(raw?.label) ||
-    safe(raw?.title) ||
-    [
-      safe(raw?.preferred_name || raw?.first_name),
-      safe(raw?.surname || raw?.family_name || raw?.last_name),
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .trim() ||
-    `Child ${index + 1}`
-  );
+  return getDisplayName(raw, `Child ${index + 1}`);
 }
 
 function buildSeedStudents(): StudentRow[] {

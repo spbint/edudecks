@@ -12,6 +12,7 @@ import {
   dismissPremiumTrigger,
   getPremiumPlanFromStorage,
 } from "@/lib/premiumUpgradeEngine";
+import { getDisplayName, safeDateText, safeNumber, safeText } from "@/lib/system";
 
 /* =========================
    TYPES
@@ -138,20 +139,9 @@ const AREA_SEQUENCE: Record<string, LearningStep> = {
    HELPERS
 ========================= */
 
-function safe(v: unknown) {
-  return String(v ?? "").trim();
-}
-
-function asNumber(v: unknown, fallback = 0) {
-  if (typeof v === "number" && Number.isFinite(v)) return v;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function asDateText(v: unknown): string | null {
-  const s = safe(v);
-  return s || null;
-}
+const safe = safeText;
+const asNumber = safeNumber;
+const asDateText = safeDateText;
 
 function shortDate(value?: string | null) {
   const s = safe(value);
@@ -220,14 +210,7 @@ function normalizeChild(raw: any, index: number): ChildRecord {
   const name =
     safe(raw?.name) ||
     safe(raw?.child_name) ||
-    safe(raw?.label) ||
-    safe(raw?.title) ||
-    [
-      safe(raw?.preferred_name || raw?.first_name),
-      safe(raw?.surname || raw?.family_name || raw?.last_name),
-    ]
-      .filter(Boolean)
-      .join(" ") ||
+    getDisplayName(raw) ||
     `Child ${index + 1}`;
 
   const yearLabel =
