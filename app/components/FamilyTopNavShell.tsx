@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -230,6 +231,8 @@ export default function FamilyTopNavShell({
               </div>
             ))}
           </div>
+
+          <FamilyWorkflowStrip />
         </div>
       </header>
 
