@@ -73,6 +73,25 @@ export default function TeacherShellHeader({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           {children}
           <Link
+            href="/community"
+            style={{
+              minHeight: 42,
+              borderRadius: 12,
+              border: "1px solid #d1d5db",
+              background: "#ffffff",
+              color: "#0f172a",
+              padding: "10px 14px",
+              fontSize: 14,
+              fontWeight: 800,
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            Community
+          </Link>
+          <Link
             href="/"
             style={{
               minHeight: 42,
