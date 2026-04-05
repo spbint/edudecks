@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import TeacherShellHeader from "@/app/components/TeacherShellHeader";
 
 type ClassRow = {
   id: string;
@@ -130,12 +131,21 @@ export default function TeacherStudentProfileBrowserPage() {
   // ─────────────────────────────
   // UI
   // ─────────────────────────────
-  if (loading) return <main style={{ padding: 24 }}>Loading…</main>;
+  if (loading) return <main style={{ padding: 24 }}>Loading...</main>;
 
   return (
     <main style={{ padding: 24, maxWidth: 1200 }}>
+      <TeacherShellHeader
+        title="Student Profile Browser"
+        subtitle="Signed in and ready to browse student profiles without losing your place."
+      >
+        <button onClick={() => loadAll()} style={btn}>
+          Refresh
+        </button>
+      </TeacherShellHeader>
+
       {/* Header */}
-      <section style={panel}>
+      <section style={{ ...panel, marginTop: 16 }}>
         <div>
           <div style={{ fontSize: 12, opacity: 0.7 }}>TEACHER • STUDENT PROFILES</div>
           <div style={{ fontSize: 22, fontWeight: 900, marginTop: 4 }}>Student Profile Browser</div>

@@ -443,8 +443,8 @@ function buildFamilyGuidanceState(
 ): FamilyGuidanceState {
   if (plannerBlockCount === 0) {
     return {
-      title: "You’re on track",
-      body: "You’ve captured learning this week — keep going",
+    title: "You're on track",
+      body: "You've captured learning this week — keep going",
       ctaLabel: "View Portfolio",
       ctaHref: "/portfolio",
     };
@@ -504,7 +504,7 @@ function buildBeginnerGuidanceState(
   }
 
   return {
-    title: "Youâ€™re on track",
+    title: "You're on track",
     body: "Your plan, capture, and report are moving well. Portfolio is there when you want to keep the strongest pieces together.",
     ctaLabel: "Continue Report",
     ctaHref: "/reports",
@@ -672,6 +672,8 @@ function FamilyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
+  const authMessage = safe(searchParams.get("authMessage"));
+  const isPostSignupArrival = Boolean(authMessage);
 
   const [children, setChildren] = useState<ChildRecord[]>([]);
   const [selectedChildId, setSelectedChildId] = useState("");
@@ -753,7 +755,6 @@ function FamilyPageContent() {
       );
     }
 
-    const authMessage = safe(searchParams.get("authMessage"));
     if (authMessage) {
       setWelcomeMessage(authMessage);
     }
@@ -1096,17 +1097,10 @@ function FamilyPageContent() {
       }
     >
       {!isMobile && welcomeMessage ? (
-        <section
-          style={{
-            ...S.card(),
-            marginBottom: 18,
-            border: "1px solid #bfdbfe",
-            background: "#eff6ff",
-          }}
-        >
-          <div style={S.label()}>Welcome</div>
-          <div style={{ ...S.body(), color: "#1e3a8a" }}>{welcomeMessage}</div>
-        </section>
+        <WelcomeStatusCard
+          message={welcomeMessage}
+          postSignup={isPostSignupArrival}
+        />
       ) : null}
 
       <section style={{ ...S.card(), marginBottom: 18 }}>
@@ -1115,13 +1109,13 @@ function FamilyPageContent() {
             <div style={S.label()}>Guided start</div>
             {!guidedDraft.age_band ? (
               <>
-                <div style={S.h1()}>Letâ€™s get you started</div>
+                <div style={S.h1()}>Let's get you started</div>
                 <div style={S.body()}>Your child is:</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
-                    { label: "Age 5â€“6", value: "5-6" },
-                    { label: "Age 7â€“8", value: "7-8" },
-                    { label: "Age 9â€“10", value: "9-10" },
+                    { label: "Age 5–6", value: "5-6" },
+                    { label: "Age 7–8", value: "7-8" },
+                    { label: "Age 9–10", value: "9-10" },
                     { label: "Age 11+", value: "11+" },
                   ].map((option) => (
                     <button
@@ -1145,7 +1139,7 @@ function FamilyPageContent() {
               <>
                 <div style={S.h1()}>Where are you based?</div>
                 <div style={S.body()}>
-                  Weâ€™ll use this later for gentle reporting guidance. You do not need to set anything complex now.
+                  We'll use this later for gentle reporting guidance. You do not need to set anything complex now.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1175,7 +1169,7 @@ function FamilyPageContent() {
               <>
                 <div style={S.h1()}>Right now your child is:</div>
                 <div style={S.body()}>
-                  You can change this anytime â€” this just helps us start gently.
+                  You can change this anytime — this just helps us start gently.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1218,9 +1212,9 @@ function FamilyPageContent() {
               </>
             ) : (
               <>
-                <div style={S.h1()}>Great â€” hereâ€™s a calm place to begin</div>
+                <div style={S.h1()}>Great — here's a calm place to begin</div>
                 <div style={S.body()}>
-                  Youâ€™re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
+                  You're set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
                   {guidedStageLabel(guidedDraft.learning_stage)}.
                 </div>
 
@@ -1362,7 +1356,7 @@ function FamilyPageContent() {
               <div style={S.h1()}>{familyGuidance.title}</div>
               <div style={S.body()}>{familyGuidance.body}</div>
               <div style={{ ...S.small(), marginTop: 10 }}>
-                Beginner path: Planning â†’ Capture â†’ Reports â†’ Portfolio
+                Beginner path: Planning → Capture → Reports → Portfolio
               </div>
             </div>
 
@@ -1397,17 +1391,10 @@ function FamilyPageContent() {
       {!shouldShowGuidedStart ? (
         <>
       {isMobile && welcomeMessage ? (
-        <section
-          style={{
-            ...S.card(),
-            marginBottom: 18,
-            border: "1px solid #bfdbfe",
-            background: "#eff6ff",
-          }}
-        >
-          <div style={S.label()}>Welcome</div>
-          <div style={{ ...S.body(), color: "#1e3a8a" }}>{welcomeMessage}</div>
-        </section>
+        <WelcomeStatusCard
+          message={welcomeMessage}
+          postSignup={isPostSignupArrival}
+        />
       ) : null}
 
       <section style={{ ...S.card(), marginBottom: 18 }}>
@@ -1745,6 +1732,56 @@ function FamilyPageContent() {
 /* =========================
    SMALL COMPONENTS
 ========================= */
+
+function WelcomeStatusCard({
+  message,
+  postSignup,
+}: {
+  message: string;
+  postSignup: boolean;
+}) {
+  return (
+    <section
+      style={{
+        ...S.card(),
+        marginBottom: 18,
+        border: "1px solid #bfdbfe",
+        background: "#eff6ff",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 14,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ maxWidth: 760 }}>
+          <div style={S.label()}>{postSignup ? "Progress saved" : "Welcome"}</div>
+          <div style={S.h2()}>
+            {postSignup ? "Your first guided record is saved." : "You’re on track."}
+          </div>
+          <div style={{ ...S.body(), color: "#1e3a8a" }}>
+            {postSignup
+              ? "You’re on track. EduDecks has brought you back to the right place so you can keep building calmly."
+              : message}
+          </div>
+          {postSignup ? (
+            <div style={{ ...S.small(), marginTop: 8, color: "#1d4ed8" }}>{message}</div>
+          ) : null}
+        </div>
+
+        {postSignup ? (
+          <Link href="/reports" style={S.button(true)}>
+            Continue your record
+          </Link>
+        ) : null}
+      </div>
+    </section>
+  );
+}
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (

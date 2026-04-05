@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 import PostOnboardingPanel from "@/app/components/guided/PostOnboardingPanel";
+import SignOutButton from "@/app/components/SignOutButton";
 
 export default function ReportsLayout({
   children,
@@ -50,11 +51,21 @@ export default function ReportsLayout({
 
             <div
               style={{
-                fontSize: 13,
-                color: "#64748b",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
-              Keep the whole family journey visible while you build and review reports.
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#64748b",
+                }}
+              >
+                Keep the whole family journey visible while you build and review reports.
+              </div>
+              <SignOutButton />
             </div>
           </div>
 

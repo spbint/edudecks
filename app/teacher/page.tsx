@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SupportSignalsEvidence from "../components/SupportSignalsEvidence";
+import TeacherShellHeader from "@/app/components/TeacherShellHeader";
 import TeacherStudentTable from "./components/TeacherStudentTable";
 
 /* ───────────────────────────── TYPES ───────────────────────────── */
@@ -31,7 +32,7 @@ function safeClassName(name: string | null) {
 }
 
 function fmtYear(y: number | null) {
-  if (y == null) return "—";
+  if (y == null) return "-";
   if (y === 0) return "Kinder/Prep";
   return `Year ${y}`;
 }
@@ -219,7 +220,7 @@ export default function TeacherPage() {
 
   const ilpCount = useMemo(() => (classId ? classCounts.get(classId)?.ilp ?? 0 : 0), [classCounts, classId]);
 
-  // filter students before passing to the table (so TeacherStudentTable doesn’t need changes)
+  // filter students before passing to the table (so TeacherStudentTable doesn't need changes)
   const filteredStudents = useMemo(() => {
     if (!studentQ.trim()) return students;
 
@@ -239,7 +240,7 @@ export default function TeacherPage() {
         <div className="mx-auto max-w-[1200px] px-6 py-8">
           <div className="dash-card p-6">
             <div className="text-[12px] font-semibold tracking-widest text-slate-500">TEACHER</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Loading…</div>
+            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Loading...</div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <div className="h-[160px] rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50" />
               <div className="h-[160px] rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50" />
@@ -255,6 +256,18 @@ export default function TeacherPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-[1200px] px-6 py-8 space-y-4">
+        <TeacherShellHeader
+          title="Class Overview"
+          subtitle="You're signed in, your class workspace is ready, and the next actions are kept close by."
+        >
+          <Link href="/students" className="dash-btn dash-btn-muted">
+            Open Students
+          </Link>
+          <button className="dash-btn dash-btn-muted" onClick={loadAll} type="button">
+            Refresh
+          </button>
+        </TeacherShellHeader>
+
         {/* HERO */}
         <section className="dash-card overflow-hidden">
           <div className="bg-gradient-to-br from-slate-50 to-sky-50 p-6">
@@ -274,16 +287,8 @@ export default function TeacherPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Link href="/students" className="dash-btn dash-btn-muted">
-                  Open Students
-                </Link>
-
-                <button className="dash-btn dash-btn-muted" onClick={loadAll} type="button">
-                  Refresh
-                </button>
-
                 <Link href="/admin" className="dash-btn dash-btn-primary">
-                  Admin →
+                  Admin ->
                 </Link>
               </div>
             </div>
@@ -302,14 +307,14 @@ export default function TeacherPage() {
 
             <div className="flex flex-wrap gap-2">
               <Link href="/admin/enter-results" className="dash-btn dash-btn-primary">
-                Enter Results →
+                Enter Results ->
               </Link>
             </div>
           </div>
 
           {!hasClasses ? (
             <div className="mt-4 dash-alert">
-              No classes found. Create one in <Link className="font-semibold underline" href="/admin/class-entry">Admin → Class Entry</Link>.
+              No classes found. Create one in <Link className="font-semibold underline" href="/admin/class-entry">Admin -> Class Entry</Link>.
             </div>
           ) : (
             <>
@@ -334,7 +339,7 @@ export default function TeacherPage() {
                     >
                       <div className="text-base font-semibold text-slate-900 leading-tight">{safeClassName(c.name)}</div>
                       <div className="mt-2 text-sm text-slate-600">
-                        {fmtYear(c.year_level)} • {counts.total} student{counts.total === 1 ? "" : "s"}
+                        {fmtYear(c.year_level)} - {counts.total} student{counts.total === 1 ? "" : "s"}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">ILP: {counts.ilp}</div>
 
@@ -362,7 +367,7 @@ export default function TeacherPage() {
                       const counts = classCounts.get(c.id) ?? { total: 0, ilp: 0 };
                       return (
                         <option key={c.id} value={c.id}>
-                          {safeClassName(c.name)} ({fmtYear(c.year_level)}) · {counts.total} students · ILP {counts.ilp}
+                          {safeClassName(c.name)} ({fmtYear(c.year_level)}) - {counts.total} students - ILP {counts.ilp}
                         </option>
                       );
                     })}
@@ -400,7 +405,7 @@ export default function TeacherPage() {
               <div className="min-w-[260px]">
                 <input
                   className="dash-input"
-                  placeholder="Quick search students… (Esc to clear)"
+                  placeholder="Quick search students... (Esc to clear)"
                   value={studentQ}
                   onChange={(e) => setStudentQ(e.target.value)}
                   onKeyDown={(e) => {
@@ -415,7 +420,7 @@ export default function TeacherPage() {
               <div className="mt-3 text-sm text-slate-600">
                 No students are assigned to this class yet. Assign in{" "}
                 <Link href="/admin/student-class" className="font-semibold text-slate-900 underline">
-                  Admin → Assign Students → Classes
+                  Admin -> Assign Students -> Classes
                 </Link>
                 .
               </div>

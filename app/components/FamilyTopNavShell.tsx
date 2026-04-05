@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import SignOutButton from "@/app/components/SignOutButton";
 import useIsMobile from "@/app/components/useIsMobile";
 
 type FamilyTopNavShellProps = {
@@ -190,20 +191,22 @@ export default function FamilyTopNavShell({
                   {subtitle}
                 </div>
               </div>
-              <details
-                style={{
-                  position: "relative",
-                }}
-              >
-                <summary
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <SignOutButton style={utilBtn(false)} />
+                <details
                   style={{
-                    ...utilBtn(false),
-                    cursor: "pointer",
-                    listStyle: "none",
+                    position: "relative",
                   }}
                 >
-                  Menu
-                </summary>
+                  <summary
+                    style={{
+                      ...utilBtn(false),
+                      cursor: "pointer",
+                      listStyle: "none",
+                    }}
+                  >
+                    Menu
+                  </summary>
                 <div
                   style={{
                     position: "absolute",
@@ -221,6 +224,7 @@ export default function FamilyTopNavShell({
                     zIndex: 30,
                   }}
                 >
+                  <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
                   <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
                     Home
                   </Link>
@@ -241,7 +245,8 @@ export default function FamilyTopNavShell({
                     </div>
                   ))}
                 </div>
-              </details>
+                </details>
+              </div>
             </div>
           ) : (
             <>
@@ -299,6 +304,7 @@ export default function FamilyTopNavShell({
                   <Link href="/reports/library" style={utilBtn(false)}>
                     Report Library
                   </Link>
+                  <SignOutButton style={utilBtn(false)} />
                 </div>
               </div>
 
