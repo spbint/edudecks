@@ -100,6 +100,7 @@ const SECTIONS: NavSection[] = [
   {
     title: "More",
     items: [
+      { href: "/community", label: "Community" },
       { href: "/reports/library", label: "Report Library" },
       { href: "/reports/output", label: "Output" },
     ],
@@ -202,6 +203,9 @@ export default function FamilyTopNavShell({
                 <Link href="/calendar" style={utilBtn(false)}>
                   Calendar
                 </Link>
+                <Link href="/community" style={utilBtn(false)}>
+                  Community
+                </Link>
                 <SignOutButton style={utilBtn(false)} />
                 <details
                   style={{
@@ -239,6 +243,9 @@ export default function FamilyTopNavShell({
                   </Link>
                   <Link href="/calendar" style={navBtn(isActive(pathname, "/calendar"))}>
                     Calendar
+                  </Link>
+                  <Link href="/community" style={navBtn(isActive(pathname, "/community"))}>
+                    Community
                   </Link>
                   <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
                   {SECTIONS.map((section) => (
@@ -309,6 +316,9 @@ export default function FamilyTopNavShell({
                   </Link>
                   <Link href="/calendar" style={utilBtn(false)}>
                     Calendar
+                  </Link>
+                  <Link href="/community" style={utilBtn(false)}>
+                    Community
                   </Link>
                   <SignOutButton style={utilBtn(false)} />
                 </div>
