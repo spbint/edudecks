@@ -12,7 +12,7 @@ export default function HomePage() {
     <PublicSiteShell
       eyebrow="Homeschool-first workflow"
       heroTitle="Start with one simple learning moment, then let EduDecks guide what comes next."
-      heroText="EduDecks helps nervous homeschool parents begin gently. Try one small learning moment first, then move into planning, calendar, capture, reporting, and building a portfolio when you are ready."
+      heroText="EduDecks helps nervous homeschool parents begin gently. Try one small learning moment first, then move into planning, calendar, capture, reporting, and building a portfolio when you are ready. We’ll start with a simple weekly plan for your child."
       heroMicrocopy="No signup needed to try it first."
       heroBadges={[]}
       primaryCta={{ label: "Start your first learning moment", href: "/capture" }}
@@ -61,6 +61,17 @@ export default function HomePage() {
           boxShadow: "0 18px 50px rgba(15,23,42,0.1)",
         }}
       >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: 0.4,
+            color: "rgba(255,255,255,0.82)",
+            marginBottom: 10,
+          }}
+        >
+          Most families start here ↓
+        </div>
         <div style={{ fontSize: 34, fontWeight: 900, marginBottom: 12 }}>
           Start your first learning moment
         </div>
@@ -81,6 +92,48 @@ export default function HomePage() {
           >
             Start your first learning moment
           </Link>
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "rgba(255,255,255,0.84)",
+            fontWeight: 700,
+          }}
+        >
+          Takes less than 30 seconds · You can change this later
+        </div>
+
+        <div
+          style={{
+            marginTop: 16,
+            display: "grid",
+            gap: 6,
+            maxWidth: 360,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 0.6,
+              textTransform: "uppercase",
+              color: "rgba(255,255,255,0.74)",
+            }}
+          >
+            What happens next
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: "#ffffff", fontWeight: 700 }}>
+            1. Add one small plan
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: "#ffffff", fontWeight: 700 }}>
+            2. Capture what happens
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: "#ffffff", fontWeight: 700 }}>
+            3. We build your record for you
+          </div>
         </div>
 
         <div style={{ marginTop: 12 }}>
