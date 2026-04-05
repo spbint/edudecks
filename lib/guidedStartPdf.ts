@@ -76,12 +76,17 @@ function fixCommonTypos(value: string) {
   return next;
 }
 
+function removeRepeatedWords(value: string) {
+  return value.replace(/\b(\w+)(\s+\1\b)+/gi, "$1");
+}
+
 function cleanFragment(value: string) {
   let next = safe(value);
   next = humanizeRunOnWords(next);
   next = fixCommonTypos(next);
   next = next.replace(/\s*([,.;:!?])\s*/g, "$1 ");
   next = next.replace(/\s{2,}/g, " ");
+  next = removeRepeatedWords(next);
   return normalizeWhitespace(next);
 }
 
@@ -93,6 +98,60 @@ function toSentence(value: string, fallback: string) {
   next = next.charAt(0).toUpperCase() + next.slice(1);
   if (!/[.!?]$/.test(next)) next += ".";
   return next;
+}
+
+function hasMeaningfulNote(value: string) {
+  const clean = cleanFragment(value).toLowerCase();
+  if (!clean) return false;
+  return !["nothing", "none", "n/a", "na", "no", "nope"].includes(clean);
+}
+
+function tryParseDatePart(value: string) {
+  const clean = safe(value);
+  if (!clean) return null;
+
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]) - 1;
+    const day = Number(isoMatch[3]);
+    return new Date(year, month, day);
+  }
+
+  const slashMatch = clean.match(/^(\d{1,2})[\/\-. ](\d{1,2})[\/\-. ](\d{4})$/);
+  if (slashMatch) {
+    const day = Number(slashMatch[1]);
+    const month = Number(slashMatch[2]) - 1;
+    const year = Number(slashMatch[3]);
+    return new Date(year, month, day);
+  }
+
+  const parsed = new Date(clean);
+  if (!Number.isNaN(parsed.getTime())) return parsed;
+  return null;
+}
+
+function formatSingleDate(value: Date) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${value.getDate()} ${months[value.getMonth()]} ${value.getFullYear()}`;
+}
+
+function formatDateRange(value: string) {
+  const clean = cleanFragment(value);
+  if (!clean) return "This week";
+
+  const parts = clean.split(/\s*-\s*/);
+  if (parts.length === 2) {
+    const start = tryParseDatePart(parts[0]);
+    const end = tryParseDatePart(parts[1]);
+    if (start && end) {
+      return `${formatSingleDate(start)} – ${formatSingleDate(end)}`;
+    }
+  }
+
+  const single = tryParseDatePart(clean);
+  if (single) return formatSingleDate(single);
+  return clean;
 }
 
 function learningAreaFromSession(session: GuidedStartSession) {
@@ -149,19 +208,19 @@ function buildWhatThisShows(session: GuidedStartSession) {
   const area = learningAreaFromSession(session).toLowerCase();
 
   if (showed.includes("confidence")) {
-    return `${childName} is developing confidence in ${area} and is responding well to gentle guidance.`;
+    return `Confidence in ${area} is growing, and gentle support is helping progress feel achievable.`;
   }
   if (showed.includes("focus") || showed.includes("attention")) {
-    return `${childName} was able to stay engaged with the task and is building stronger focus through short, supported learning moments.`;
+    return `Focus is strengthening through short, supported learning moments that feel manageable.`;
   }
   if (showed.includes("recall") || showed.includes("retell")) {
-    return `${childName} is strengthening recall and can communicate key ideas with growing clarity.`;
+    return "Recall is improving, and key ideas can be communicated with growing clarity.";
   }
   if (showed.includes("persist") || showed.includes("persever")) {
-    return `${childName} is building persistence and is willing to keep working through supported challenge.`;
+    return "Persistence is developing, with a willingness to stay with supported challenge.";
   }
   if (showed.includes("understand") || showed.includes("reason")) {
-    return `${childName} is showing emerging understanding and can explain parts of their thinking with support.`;
+    return "Emerging understanding is visible, especially when there is space to explain thinking aloud.";
   }
   if (
     happened.includes("could not") ||
@@ -169,10 +228,10 @@ function buildWhatThisShows(session: GuidedStartSession) {
     happened.includes("hard") ||
     note.includes("split digraph")
   ) {
-    return `${childName} is developing confidence in this area and benefits from guided support and small repeat practice.`;
+    return `Confidence in this area is still developing, and guided support with short repeat practice is helping learning move forward.`;
   }
 
-  return `${childName} is building confidence in ${area} through short, meaningful learning moments that can be revisited over time.`;
+  return `Confidence in ${area} is building through short, meaningful learning moments that can be revisited over time.`;
 }
 
 function buildPositiveInsight(session: GuidedStartSession) {
@@ -183,16 +242,16 @@ function buildPositiveInsight(session: GuidedStartSession) {
   const note = cleanFragment(safe(session.capture.note)).toLowerCase();
 
   if (showed.includes("confidence")) {
-    return `${childName} is growing in confidence in ${area} and is responding well to short supported practice.`;
+    return `${childName} is growing in confidence in ${area}, and short supported practice is helping that confidence hold.`;
   }
   if (showed.includes("focus")) {
-    return `${childName} is showing stronger focus and is able to stay with a small learning task in a calm routine.`;
+    return `${childName} is showing stronger focus and can stay with a small learning task in a calm routine.`;
   }
   if (showed.includes("recall") || happened.includes("retold")) {
-    return `${childName} is strengthening recall and can share back learning in their own words.`;
+    return `${childName} is strengthening recall and can now share back learning in their own words.`;
   }
   if (showed.includes("reason") || happened.includes("explained")) {
-    return `${childName} is beginning to explain their thinking and benefits from opportunities to talk through ideas aloud.`;
+    return `${childName} is beginning to explain thinking more clearly and benefits from opportunities to talk ideas through aloud.`;
   }
   if (
     happened.includes("could not") ||
@@ -200,10 +259,10 @@ function buildPositiveInsight(session: GuidedStartSession) {
     happened.includes("hard") ||
     note.includes("split digraph")
   ) {
-    return `${childName} is developing confidence in this area and benefits from guided support and short repeat experiences.`;
+    return `${childName} is developing confidence in this area, and guided support is helping learning feel more manageable.`;
   }
 
-  return `${childName} is building a positive foundation in ${area} through small, supported learning moments that are worth keeping.`;
+  return `${childName} is building a positive foundation in ${area} through small, supported learning moments worth keeping.`;
 }
 
 function buildReportSummary(session: GuidedStartSession) {
@@ -213,10 +272,25 @@ function buildReportSummary(session: GuidedStartSession) {
   const whatThisShows = buildWhatThisShows(session);
   const note = safe(session.capture.note);
 
-  let summary = `${childName} completed ${planTitle.toLowerCase()} as part of a guided weekly learning plan. ${whatWeDid} ${whatThisShows}`;
-  if (note) {
-    summary += ` A further note from this moment: ${toSentence(note, cleanFragment(note))}`;
+  let summary = `${childName} completed ${planTitle.toLowerCase()} as part of a guided weekly learning plan. `;
+  summary += `${whatWeDid} `;
+  summary += `${whatThisShows}`;
+
+  if (hasMeaningfulNote(note)) {
+    summary += ` An additional note from this moment: ${toSentence(note, cleanFragment(note))}`;
   }
+
+  summary = summary.replace(new RegExp(`\\b${childName}\\b`, "g"), childName);
+  summary = summary.replace(
+    new RegExp(`\\b${childName}\\b(?=[^]*\\b${childName}\\b)`, "i"),
+    childName
+  );
+
+  summary = summary
+    .replace(/([.?!])\s+([A-Z][a-z]+)\s+completed\b/, "$1 The learner completed")
+    .replace(/([.?!])\s+([A-Z][a-z]+)\s+is\b/, "$1 They are")
+    .replace(/([.?!])\s+([A-Z][a-z]+)\s+can\b/, "$1 They can");
+
   return normalizeWhitespace(summary);
 }
 
@@ -226,18 +300,18 @@ function buildNextStep(session: GuidedStartSession) {
   ).toLowerCase();
 
   if (source.includes("reading") || source.includes("recall") || source.includes("retold")) {
-    return "Continue with short shared reading and invite your child to retell key ideas in their own words.";
+    return "Continue with short shared reading and encourage retelling in your child's own words.";
   }
   if (source.includes("math")) {
-    return "Continue with one short supported maths task and encourage your child to explain how they worked it out.";
+    return "Continue with one short supported maths task and encourage verbal reasoning while working it out.";
   }
   if (source.includes("outdoor") || source.includes("observ")) {
-    return "Continue with another short observation task and invite your child to describe what they notice and why it matters.";
+    return "Continue with another short observation activity and encourage clear noticing and description.";
   }
   if (source.includes("split digraph") || source.includes("confidence") || source.includes("struggle")) {
-    return "Continue with short supported practice in this area and encourage verbal reasoning so confidence can build steadily.";
+    return "Continue with short supported practice in this area and encourage calm verbal reasoning as confidence builds.";
   }
-  return "Repeat this type of short guided task next week and invite your child to explain what they noticed, remembered, or understood.";
+  return "Continue with another short guided task and encourage your child to explain what they noticed, remembered, or understood.";
 }
 
 function setFill(doc: jsPDF, rgb: readonly number[]) {
@@ -290,9 +364,9 @@ function addFooter(doc: jsPDF) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   setText(doc, C.textSoft);
-  doc.text("Created with EduDecks Family", 48, pageHeight - 42);
-  doc.text("Helping you build your child's learning story", 48, pageHeight - 28);
-  doc.text("Save this record to continue building your child's learning journey.", 48, pageHeight - 14);
+  doc.text("Created with EduDecks Family", 48, pageHeight - 50);
+  doc.text("Helping you build your child's learning story", 48, pageHeight - 34);
+  doc.text("Save this record to continue building your child's learning journey.", 48, pageHeight - 18);
 }
 
 export async function buildGuidedStartPdf(session: GuidedStartSession): Promise<Blob> {
@@ -314,16 +388,17 @@ export async function buildGuidedStartPdf(session: GuidedStartSession): Promise<
   const learningArea = learningAreaFromSession(session);
   const activityType = activityTypeFromSession(session);
   const evidenceType = evidenceTypeFromSession(session);
-  const weekRange = cleanFragment(safe(session.calendar.weekLabel)) || "This week";
+  const weekRange = formatDateRange(safe(session.calendar.weekLabel));
   const learningFocus = cleanFragment(safe(session.plan.title)) || "Guided learning activity";
   const approach = buildApproach(session);
+  const scheduleLine = `${safe(session.calendar.scheduledDay) || "This week"} – ${weekRange}`;
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 48;
   const contentWidth = pageWidth - margin * 2;
 
   setFill(doc, C.green);
-  doc.rect(0, 0, pageWidth, 68, "F");
+  doc.rect(0, 0, pageWidth, 72, "F");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -331,159 +406,157 @@ export async function buildGuidedStartPdf(session: GuidedStartSession): Promise<
   doc.text("GUIDED HOMESCHOOL RECORD", margin, 22);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(20);
   setText(doc, C.white);
-  doc.text("EduDecks Family", margin, 44);
+  doc.text("EduDecks Family", margin, 46);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
-  doc.text("Guided Learning Record", pageWidth - margin, 44, { align: "right" });
+  doc.text("Guided Learning Record", pageWidth - margin, 46, { align: "right" });
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
+  doc.setFontSize(30);
   setText(doc, C.textStrong);
-  doc.text(title, margin, 106);
+  doc.text(title, margin, 114);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   setText(doc, C.textSoft);
-  doc.text("A guided homeschool moment", margin, 128);
-  doc.text(supportLine, margin, 146);
+  doc.text("A guided homeschool moment", margin, 138);
+  doc.text(supportLine, margin, 158);
 
-  drawSoftCard(doc, margin, 170, contentWidth, 104, C.greenSoft, 20);
+  drawSoftCard(doc, margin, 188, contentWidth, 118, C.greenSoft, 22);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setText(doc, C.green);
-  doc.text("HIGHLIGHT", margin + 18, 194);
+  doc.text("HIGHLIGHT", margin + 22, 214);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
+  doc.setFontSize(17);
   setText(doc, C.textStrong);
-  drawWrappedText(doc, insight, margin + 18, 220, contentWidth - 36, 20);
+  drawWrappedText(doc, insight, margin + 22, 244, contentWidth - 44, 22);
 
-  drawSoftCard(doc, margin, 294, contentWidth, 174, C.paper, 18);
+  drawSoftCard(doc, margin, 334, contentWidth, 184, C.paper, 18);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
+  doc.setFontSize(14);
   setText(doc, C.textStrong);
-  doc.text("Learning Snapshot", margin + 18, 320);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  setText(doc, C.textSoft);
-  doc.text("WHAT WE DID", margin + 18, 348);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(13);
-  setText(doc, C.textStrong);
-  drawWrappedText(doc, whatWeDid, margin + 18, 370, contentWidth - 36, 18);
+  doc.text("Learning Snapshot", margin + 20, 362);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setText(doc, C.textSoft);
-  doc.text("WHAT THIS SHOWS", margin + 18, 412);
+  doc.text("WHAT WE DID", margin + 20, 392);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   setText(doc, C.textStrong);
-  drawWrappedText(doc, whatThisShows, margin + 18, 434, contentWidth - 36, 18);
+  drawWrappedText(doc, whatWeDid, margin + 20, 416, contentWidth - 40, 19);
 
-  drawSoftCard(doc, margin, 490, contentWidth, 92, C.blueSoft, 18);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  setText(doc, C.textSoft);
+  doc.text("WHAT THIS SHOWS", margin + 20, 462);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(13);
+  setText(doc, C.textStrong);
+  drawWrappedText(doc, whatThisShows, margin + 20, 486, contentWidth - 40, 19);
+
+  drawSoftCard(doc, margin, 542, contentWidth, 104, C.blueSoft, 18);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setText(doc, C.blue);
-  doc.text("WEEK CONTEXT", margin + 18, 514);
+  doc.text("WEEK CONTEXT", margin + 20, 568);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   setText(doc, C.textSoft);
-  doc.text("WEEK RANGE", margin + 18, 540);
-  doc.text("LEARNING FOCUS", margin + 190, 540);
-  doc.text("APPROACH", margin + 392, 540);
+  doc.text("WEEK RANGE", margin + 20, 596);
+  doc.text("LEARNING FOCUS", margin + 190, 596);
+  doc.text("APPROACH", margin + 392, 596);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   setText(doc, C.textStrong);
-  drawWrappedText(doc, weekRange, margin + 18, 560, 150, 15);
-  drawWrappedText(doc, learningFocus, margin + 190, 560, 180, 15);
-  drawWrappedText(doc, approach, margin + 392, 560, 120, 15);
+  drawWrappedText(doc, weekRange, margin + 20, 618, 150, 16);
+  drawWrappedText(doc, learningFocus, margin + 190, 618, 180, 16);
+  drawWrappedText(doc, approach, margin + 392, 618, 120, 16);
 
   addFooter(doc);
 
   doc.addPage();
 
   setFill(doc, C.blue);
-  doc.rect(0, 0, pageWidth, 48, "F");
+  doc.rect(0, 0, pageWidth, 50, "F");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   setText(doc, C.blueSoft);
-  doc.text("REPORT VIEW", margin, 22);
+  doc.text("REPORT VIEW", margin, 24);
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
+  doc.setFontSize(24);
   setText(doc, C.textStrong);
-  doc.text("Report Summary", margin, 88);
+  doc.text("Report Summary", margin, 94);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   setText(doc, C.textSoft);
-  doc.text("A calm, report-ready summary built from your guided record.", margin, 110);
+  doc.text("A calm, report-ready summary built from your guided record.", margin, 118);
 
-  drawSoftCard(doc, margin, 138, contentWidth, 176, C.white, 18);
+  drawSoftCard(doc, margin, 150, contentWidth, 188, C.white, 18);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(14);
   setText(doc, C.textStrong);
-  drawWrappedText(doc, reportSummary, margin + 20, 168, contentWidth - 40, 20);
+  drawWrappedText(doc, reportSummary, margin + 22, 182, contentWidth - 44, 21);
 
-  drawSoftCard(doc, margin, 338, contentWidth, 88, C.yellowSoft, 18);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  setText(doc, C.textSoft);
+  doc.text(`This record contributes to ${childName}'s growing learning portfolio.`, margin, 364);
+
+  drawSoftCard(doc, margin, 390, contentWidth, 92, C.yellowSoft, 18);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setText(doc, C.yellow);
-  doc.text("NEXT STEP", margin + 18, 362);
+  doc.text("NEXT STEP", margin + 20, 416);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(13);
   setText(doc, C.textStrong);
-  drawWrappedText(doc, nextStep, margin + 18, 388, contentWidth - 36, 18);
+  drawWrappedText(doc, nextStep, margin + 20, 444, contentWidth - 40, 19);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
   setText(doc, C.textSoft);
-  doc.text("TAGS", margin, 458);
+  doc.text("TAGS", margin, 516);
 
   let pillX = margin;
-  pillX += drawPill(doc, pillX, 470, learningArea, C.greenSoft, C.green) + 10;
-  pillX += drawPill(doc, pillX, 470, activityType, C.blueSoft, C.blue) + 10;
-  drawPill(doc, pillX, 470, evidenceType, C.yellowSoft, [143, 108, 12]);
+  pillX += drawPill(doc, pillX, 528, learningArea, C.greenSoft, C.green) + 10;
+  pillX += drawPill(doc, pillX, 528, activityType, C.blueSoft, C.blue) + 10;
+  drawPill(doc, pillX, 528, evidenceType, C.yellowSoft, [143, 108, 12]);
 
-  drawSoftCard(doc, margin, 524, contentWidth, 124, C.paper, 18);
+  drawSoftCard(doc, margin, 582, contentWidth, 116, C.paper, 18);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   setText(doc, C.textStrong);
-  doc.text("Record Overview", margin + 18, 548);
+  doc.text("Record Overview", margin + 20, 608);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   setText(doc, C.textSoft);
-  doc.text("CHILD", margin + 18, 574);
-  doc.text("PLAN", margin + 196, 574);
-  doc.text("SCHEDULE", margin + 374, 574);
+  doc.text("CHILD", margin + 20, 636);
+  doc.text("PLAN", margin + 196, 636);
+  doc.text("SCHEDULE", margin + 372, 636);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(12);
   setText(doc, C.textStrong);
   drawWrappedText(
     doc,
-    `${childName}${safe(session.child.yearLevel) ? ` - ${cleanFragment(safe(session.child.yearLevel))}` : ""}`,
-    margin + 18,
-    594,
+    `${childName}${safe(session.child.yearLevel) ? ` – ${cleanFragment(safe(session.child.yearLevel))}` : ""}`,
+    margin + 20,
+    658,
     150,
-    15
+    16
   );
-  drawWrappedText(doc, learningFocus, margin + 196, 594, 150, 15);
-  drawWrappedText(
-    doc,
-    `${safe(session.calendar.scheduledDay) || "This week"}${weekRange ? ` - ${weekRange}` : ""}`,
-    margin + 374,
-    594,
-    140,
-    15
-  );
+  drawWrappedText(doc, learningFocus, margin + 196, 658, 150, 16);
+  drawWrappedText(doc, scheduleLine, margin + 372, 658, 140, 16);
 
   addFooter(doc);
 
