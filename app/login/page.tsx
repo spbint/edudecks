@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { buildAuthCallbackUrl } from "@/lib/authRedirect";
 
 type FormState = {
   email: string;
@@ -114,6 +115,8 @@ function LoginPageContent() {
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const otpRedirectTo = useMemo(() => buildAuthCallbackUrl("/family"), []);
+
   useEffect(() => {
     const authError = safe(searchParams.get("authError"));
     const authMessage = safe(searchParams.get("authMessage"));
@@ -143,9 +146,7 @@ function LoginPageContent() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function handleLogin() {
     if (!formReady) {
       setSaveState("error");
       setMessage("Just enter your email and password and we’ll get you back in.");
@@ -185,6 +186,45 @@ function LoginPageContent() {
           err?.message ||
             err ||
             "We couldn’t sign you in just yet — please check your details and try again."
+        )
+      );
+    }
+  }
+
+  async function handleOtpLogin() {
+    if (!emailValid) {
+      setSaveState("error");
+      setMessage("Please enter a valid email address first.");
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setMessage("");
+
+      const email = safe(form.email).toLowerCase();
+
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: otpRedirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setSaveState("success");
+      setMessage("Check your email — your login link is on its way");
+    } catch (err: any) {
+      console.error("OTP sign-in failed", err);
+      setSaveState("error");
+      setMessage(
+        String(
+          err?.message ||
+            err ||
+            "We couldn't send your login link just yet. Please try again."
         )
       );
     }
@@ -249,7 +289,7 @@ function LoginPageContent() {
             and reports.
           </div>
 
-          <form onSubmit={handleLogin} style={{ display: "grid", gap: 16 }}>
+          <form style={{ display: "grid", gap: 16 }}>
             <div>
               <label style={labelStyle()}>Email address</label>
               <input
@@ -279,8 +319,38 @@ function LoginPageContent() {
               ) : null}
             </div>
 
+            <button
+              type="button"
+              onClick={() => void handleOtpLogin()}
+              disabled={!emailValid || saveState === "saving"}
+              style={primaryButtonStyle(!emailValid || saveState === "saving")}
+            >
+              {saveState === "saving" ? "Sending your login link..." : "Send login link"}
+            </button>
+
+            <div
+              style={{
+                marginTop: -4,
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: "#64748b",
+                fontWeight: 700,
+                textAlign: "center",
+              }}
+            >
+              Password-free sign in. We'll send a secure link that returns you to your family space.
+            </div>
+
+            <div
+              style={{
+                height: 1,
+                background: "#e5e7eb",
+                margin: "4px 0",
+              }}
+            />
+
             <div>
-              <label style={labelStyle()}>Password</label>
+              <label style={labelStyle()}>Or sign in with password</label>
               <div
                 style={{
                   display: "grid",
@@ -335,7 +405,7 @@ function LoginPageContent() {
                   fontWeight: 700,
                 }}
               >
-                Secure email link sign-in can be added later if you want an even lighter return flow.
+                Use your password only if you prefer it. Email login is the lighter default path.
               </div>
             </div>
 
@@ -372,15 +442,16 @@ function LoginPageContent() {
             ) : null}
 
             <button
-              type="submit"
+              type="button"
+              onClick={() => void handleLogin()}
               disabled={!formReady || saveState === "saving"}
-              style={primaryButtonStyle(!formReady || saveState === "saving")}
+              style={secondaryButtonStyle()}
             >
               {saveState === "saving"
                 ? "Signing you in…"
                 : formReady
-                ? "Continue into EduDecks"
-                : "Sign in to continue"}
+                ? "Sign in with password"
+                : "Enter password to continue"}
             </button>
 
             <div
