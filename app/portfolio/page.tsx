@@ -1096,38 +1096,63 @@ function PortfolioPageContent() {
                 }}
               >
                 <Link
-                  href="/capture"
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Capture
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomize(true)}
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Customize
-                </button>
-                <button
-                  type="button"
-                  onClick={copyPortfolioSummary}
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
-                >
-                  {copied ? "Copied" : "Copy summary"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Print / PDF
-                </button>
-                <Link
                   href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
                   style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
                 >
                   Build report
                 </Link>
+                <Link
+                  href="/capture"
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                >
+                  Capture
+                </Link>
+                {isMobile ? (
+                  <details
+                    style={{
+                      width: "100%",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      background: "#ffffff",
+                      padding: 12,
+                    }}
+                  >
+                    <summary
+                      style={{
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: "#334155",
+                        listStyle: "none",
+                      }}
+                    >
+                      More options
+                    </summary>
+                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
+                        Customize
+                      </button>
+                      <button type="button" onClick={copyPortfolioSummary} style={UI.button(false)}>
+                        {copied ? "Copied" : "Copy summary"}
+                      </button>
+                      <button type="button" onClick={() => window.print()} style={UI.button(false)}>
+                        Print / PDF
+                      </button>
+                    </div>
+                  </details>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
+                      Customize
+                    </button>
+                    <button type="button" onClick={copyPortfolioSummary} style={UI.button(false)}>
+                      {copied ? "Copied" : "Copy summary"}
+                    </button>
+                    <button type="button" onClick={() => window.print()} style={UI.button(false)}>
+                      Print / PDF
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 

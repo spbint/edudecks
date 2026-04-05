@@ -53,9 +53,9 @@ export default function FamilyWorkflowStrip() {
     <div
       style={{
         border: "1px solid #e5e7eb",
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+        background: isMobile ? "#ffffff" : "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
         borderRadius: 18,
-        padding: 14,
+        padding: isMobile ? 12 : 14,
       }}
     >
       <div
@@ -68,7 +68,7 @@ export default function FamilyWorkflowStrip() {
           marginBottom: 10,
         }}
       >
-        Family workflow
+        {isMobile ? "Daily loop" : "Family workflow"}
       </div>
 
       <div
@@ -81,7 +81,7 @@ export default function FamilyWorkflowStrip() {
         }}
       >
         {isMobile
-          ? "Keep the daily family loop close at hand."
+          ? "Keep the next family step nearby."
           : "Follow one clear family loop from planning into capture, then into portfolio and reports."}
       </div>
 

@@ -1374,24 +1374,30 @@ function CapturePageContent() {
                   flexDirection: isMobile ? "column" : "row",
                 }}
               >
-                <Link
-                  href="/family"
-                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Family Home
-                </Link>
-                <Link
-                  href="/portfolio"
-                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Portfolio
-                </Link>
-                <Link
-                  href="/reports"
-                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Reports
-                </Link>
+                {isMobile ? (
+                  <Link
+                    href={
+                      plannerContext.date
+                        ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
+                        : "/portfolio"
+                    }
+                    style={{ ...buttonStyle(false), width: "100%" }}
+                  >
+                    {plannerContext.isActive ? "Back to Calendar" : "Open Portfolio"}
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/family" style={buttonStyle(false)}>
+                      Family Home
+                    </Link>
+                    <Link href="/portfolio" style={buttonStyle(false)}>
+                      Portfolio
+                    </Link>
+                    <Link href="/reports" style={buttonStyle(false)}>
+                      Reports
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
@@ -1448,6 +1454,69 @@ function CapturePageContent() {
                     style={buttonStyle(false)}
                   >
                     Back to Calendar
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
+            {isMobile ? (
+              <div
+                style={{
+                  ...softCard(),
+                  marginTop: 16,
+                  border: "1px solid #bfdbfe",
+                  background: "#f8fbff",
+                }}
+              >
+                <div style={eyebrowStyle()}>Next step</div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 16,
+                    lineHeight: 1.35,
+                    fontWeight: 900,
+                    color: "#0f172a",
+                  }}
+                >
+                  Save one useful learning record
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "#475569",
+                  }}
+                >
+                  Start with the short title and what happened. You can refine the details after the first save.
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexDirection: "column",
+                    marginTop: 14,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={saveEvidence}
+                    disabled={!canSave || saveState === "saving"}
+                    style={{
+                      ...buttonStyle(true),
+                      width: "100%",
+                      cursor: !canSave || saveState === "saving" ? "not-allowed" : "pointer",
+                      opacity: !canSave || saveState === "saving" ? 0.7 : 1,
+                    }}
+                  >
+                    {saveState === "saving" ? "Saving..." : "Save learning"}
+                  </button>
+                  <Link
+                    href={plannerContext.isActive ? "/calendar" : "/portfolio"}
+                    style={{ ...buttonStyle(false), width: "100%" }}
+                  >
+                    {plannerContext.isActive ? "Return to Calendar" : "Review Portfolio"}
                   </Link>
                 </div>
               </div>

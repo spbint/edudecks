@@ -711,7 +711,7 @@ function FamilyPageContent() {
           : "Select a child to see the strongest next move."
       }
     >
-      {welcomeMessage ? (
+      {!isMobile && welcomeMessage ? (
         <section
           style={{
             ...S.card(),
@@ -752,6 +752,20 @@ function FamilyPageContent() {
           </div>
         </div>
       </section>
+
+      {isMobile && welcomeMessage ? (
+        <section
+          style={{
+            ...S.card(),
+            marginBottom: 18,
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
+          }}
+        >
+          <div style={S.label()}>Welcome</div>
+          <div style={{ ...S.body(), color: "#1e3a8a" }}>{welcomeMessage}</div>
+        </section>
+      ) : null}
 
       <section style={{ ...S.card(), marginBottom: 18 }}>
         <div

@@ -158,129 +158,165 @@ export default function FamilyTopNavShell({
             gap: isMobile ? 12 : 14,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "start" : "center",
-              gap: 12,
-              flexWrap: isMobile ? "nowrap" : "wrap",
-              flexDirection: isMobile ? "column" : "row",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                }}
-              >
-                {title}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  color: "#475569",
-                  marginTop: 4,
-                }}
-              >
-                {subtitle}
-              </div>
-            </div>
-
+          {isMobile ? (
             <div
               style={{
-                display: "grid",
-                gap: 10,
-                width: isMobile ? "100%" : "auto",
-                gridTemplateColumns: isMobile ? "1fr 1fr" : "none",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
               }}
             >
-              <Link
-                href="/capture"
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: 1.2,
+                    textTransform: "uppercase",
+                    color: "#64748b",
+                  }}
+                >
+                  {title}
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "#475569",
+                    marginTop: 4,
+                    fontWeight: 700,
+                  }}
+                >
+                  {subtitle}
+                </div>
+              </div>
+              <details
                 style={{
-                  ...utilBtn(true),
-                  justifyContent: "center",
-                  width: "100%",
-                  gridColumn: isMobile ? "1 / -1" : undefined,
+                  position: "relative",
                 }}
               >
-                Quick Capture
-              </Link>
-              <Link href="/calendar" style={{ ...utilBtn(false), justifyContent: "center", width: isMobile ? "100%" : undefined }}>
-                Calendar
-              </Link>
-              <Link href="/planner" style={{ ...utilBtn(false), justifyContent: "center", width: isMobile ? "100%" : undefined }}>
-                Planner
-              </Link>
-              {!isMobile ? (
-                <>
+                <summary
+                  style={{
+                    ...utilBtn(false),
+                    cursor: "pointer",
+                    listStyle: "none",
+                  }}
+                >
+                  Menu
+                </summary>
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: "calc(100% + 10px)",
+                    width: 280,
+                    maxWidth: "calc(100vw - 32px)",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    background: "#ffffff",
+                    boxShadow: "0 20px 50px rgba(15,23,42,0.12)",
+                    padding: 14,
+                    display: "grid",
+                    gap: 12,
+                    zIndex: 30,
+                  }}
+                >
+                  <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
+                    Home
+                  </Link>
+                  {SECTIONS.map((section) => (
+                    <div key={section.title}>
+                      <div style={sectionLabel()}>{section.title}</div>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {section.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            style={navBtn(isActive(pathname, item.href))}
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      letterSpacing: 1.2,
+                      textTransform: "uppercase",
+                      color: "#64748b",
+                    }}
+                  >
+                    {title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#475569",
+                      marginTop: 4,
+                    }}
+                  >
+                    {subtitle}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Link href="/capture" style={utilBtn(true)}>
+                    Quick Capture
+                  </Link>
+                  <Link href="/calendar" style={utilBtn(false)}>
+                    Calendar
+                  </Link>
+                  <Link href="/planner" style={utilBtn(false)}>
+                    Planner
+                  </Link>
                   <Link href="/reports" style={utilBtn(false)}>
                     Build Report
                   </Link>
                   <Link href="/reports/library" style={utilBtn(false)}>
                     Report Library
                   </Link>
-                </>
-              ) : null}
-            </div>
-          </div>
+                </div>
+              </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {PRIMARY_NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={navBtn(isActive(pathname, item.href))}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-
-          {isMobile ? (
-            <details
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 16,
-                background: "#ffffff",
-                padding: 12,
-              }}
-            >
-              <summary
-                style={{
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: 900,
-                  color: "#334155",
-                  listStyle: "none",
-                }}
-              >
-                More family navigation
-              </summary>
-              <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-                {SECTIONS.map((section) => (
-                  <div key={section.title}>
-                    <div style={sectionLabel()}>{section.title}</div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      {section.items.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          style={navBtn(isActive(pathname, item.href))}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {PRIMARY_NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={navBtn(isActive(pathname, item.href))}
+                  >
+                    {item.label}
+                  </Link>
                 ))}
               </div>
-            </details>
-          ) : (
+            </>
+          )}
+
+          {!isMobile ? (
             <div
               style={{
                 display: "grid",
@@ -305,9 +341,7 @@ export default function FamilyTopNavShell({
                 </div>
               ))}
             </div>
-          )}
-
-          <FamilyWorkflowStrip />
+          ) : null}
         </div>
       </header>
 
@@ -318,115 +352,123 @@ export default function FamilyTopNavShell({
           padding: isMobile ? 16 : 20,
         }}
       >
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
-            gap: isMobile ? 14 : 20,
-            marginBottom: 20,
-          }}
-        >
-          <div
+        {!isMobile ? (
+          <section
             style={{
-              border: "1px solid #dbeafe",
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
-              borderRadius: 24,
-              padding: 24,
-              boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+              gap: 20,
+              marginBottom: 20,
             }}
           >
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 10,
+                border: "1px solid #dbeafe",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
               }}
             >
-              Family workspace
-            </div>
-            <div
-              style={{
-              fontSize: isMobile ? 28 : 34,
-              lineHeight: 1.08,
-              fontWeight: 900,
-              color: "#0f172a",
-                marginBottom: 12,
-              }}
-            >
-              {heroTitle}
-            </div>
-            <div
-              style={{
-                fontSize: 15,
-                lineHeight: 1.7,
-                color: "#334155",
-                maxWidth: 820,
-              }}
-            >
-              {heroText}
-            </div>
-          </div>
-
-          <aside
-            style={{
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
-              borderRadius: 24,
-              padding: 20,
-              boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 10,
-              }}
-            >
-              {heroAsideTitle}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              {heroAsideText}
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 1.1,
+                  textTransform: "uppercase",
+                  color: "#64748b",
+                  marginBottom: 10,
+                }}
+              >
+                Family workspace
+              </div>
+              <div
+                style={{
+                  fontSize: 34,
+                  lineHeight: 1.08,
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: 12,
+                }}
+              >
+                {heroTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1.7,
+                  color: "#334155",
+                  maxWidth: 820,
+                }}
+              >
+                {heroText}
+              </div>
             </div>
 
-            <div
+            <aside
               style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                marginTop: 16,
+                border: "1px solid #e5e7eb",
+                background: "#ffffff",
+                borderRadius: 24,
+                padding: 20,
+                boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
               }}
             >
-              <Link href="/goals" style={utilBtn(false)}>
-                Goals
-              </Link>
-              <Link href="/planner" style={utilBtn(false)}>
-                Planner
-              </Link>
-              <Link href="/calendar" style={utilBtn(false)}>
-                Calendar
-              </Link>
-              <Link href="/portfolio" style={utilBtn(false)}>
-                Portfolio
-              </Link>
-            </div>
-          </aside>
-        </section>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 1.1,
+                  textTransform: "uppercase",
+                  color: "#64748b",
+                  marginBottom: 10,
+                }}
+              >
+                {heroAsideTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  color: "#475569",
+                }}
+              >
+                {heroAsideText}
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  marginTop: 16,
+                }}
+              >
+                <Link href="/goals" style={utilBtn(false)}>
+                  Goals
+                </Link>
+                <Link href="/planner" style={utilBtn(false)}>
+                  Planner
+                </Link>
+                <Link href="/calendar" style={utilBtn(false)}>
+                  Calendar
+                </Link>
+                <Link href="/portfolio" style={utilBtn(false)}>
+                  Portfolio
+                </Link>
+              </div>
+            </aside>
+          </section>
+        ) : null}
 
         {children}
+
+        {isMobile ? (
+          <section style={{ marginTop: 18 }}>
+            <FamilyWorkflowStrip />
+          </section>
+        ) : null}
       </main>
     </div>
   );

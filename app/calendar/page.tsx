@@ -765,8 +765,9 @@ function CalendarPageContent() {
             <div style={styles.kicker}>FAMILY CALENDAR</div>
             <h1 style={styles.h1}>Plan visually for your learner</h1>
             <p style={styles.sub}>
-              Keep your rhythm visible across the day, week, and month. This calendar is designed
-              to support learning gently, not pressure it.
+              {isMobile
+                ? "Add one simple learning block, then keep the week moving gently."
+                : "Keep your rhythm visible across the day, week, and month. This calendar is designed to support learning gently, not pressure it."}
             </p>
 
             <div style={styles.heroChips}>
@@ -800,12 +801,14 @@ function CalendarPageContent() {
             >
               Add block
             </button>
-            <Link href="/planner" style={{ ...styles.secondaryBtn, justifyContent: "center", width: isMobile ? "100%" : undefined }}>
-              Back to Planner
-            </Link>
             <button style={{ ...styles.secondaryBtn, width: isMobile ? "100%" : undefined }} onClick={() => goToCapture()}>
               Capture
             </button>
+            {!isMobile ? (
+              <Link href="/planner" style={{ ...styles.secondaryBtn, justifyContent: "center" }}>
+                Back to Planner
+              </Link>
+            ) : null}
           </div>
         </section>
 

@@ -1278,18 +1278,29 @@ function ReportsPageContent() {
             <span style={{ color: "#0f172a", fontWeight: 900 }}>Reports</span>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/reports/library" style={buttonStyle(false)}>
-              Library
-            </Link>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              flexDirection: isMobile ? "column" : "row",
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            {!isMobile ? (
+              <Link href="/reports/library" style={buttonStyle(false)}>
+                Library
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={() => void handleSave(false)}
-              style={buttonStyle(false)}
+              style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
               data-journey-intent={builderValueSignal.primaryIntent}
             >
               {saving ? "Saving…" : "Save draft"}
             </button>
+            {!isMobile ? (
             <button
               type="button"
               onClick={handleQuickBuild}
@@ -1303,10 +1314,11 @@ function ReportsPageContent() {
             >
               {saving ? "Building…" : "Quick Build Report"}
             </button>
+            ) : null}
             <button
               type="button"
               onClick={() => void handleSave(true)}
-              style={buttonStyle(true)}
+              style={{ ...buttonStyle(true), width: isMobile ? "100%" : undefined, order: isMobile ? -1 : 0 }}
               data-journey-intent={builderValueSignal.secondaryIntent}
             >
               {saving ? "Building…" : "Build report"}
