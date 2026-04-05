@@ -1347,7 +1347,7 @@ function FamilyPageContent() {
       heroTitle="A calmer way to move through family learning"
       heroText="The Family Home now works as a guided journey. Start with the current step, glance at what comes next, and leave the deeper tools for later."
       hideHeroAside={true}
-      workflowCurrentHref={shouldShowGuidedStart ? "/planner" : familyJourney.current.href}
+      workflowCurrentHref="/family"
       workflowHelperText={
         shouldShowGuidedStart
           ? "Planning is the first step. Once one small plan is in place, the ribbon will guide you into calendar, capture, reports, and portfolio."
