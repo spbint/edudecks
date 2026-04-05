@@ -844,19 +844,19 @@ function PortfolioPageContent() {
 
     if (evidence.length === 0) {
       return {
-        title: `Start ${firstNameOf(student)}'s portfolio`,
-        text: "Add one simple learning moment to begin shaping the story you’ll later use in reports.",
+        title: `Start ${firstNameOf(student)}'s story`,
+        text: "Add one simple learning moment to begin shaping the story you'll later use in reports.",
         href: "/capture",
-        cta: "Add learning",
+        cta: "Capture your first learning moment",
       };
     }
 
     if (evidence.length < 3) {
       return {
-        title: "Strengthen the portfolio",
-        text: "Add a few more learning moments so the portfolio feels broader and more representative before reporting.",
+        title: "Keep the story growing",
+        text: "Add a few more learning moments so the portfolio feels broader, more human, and more representative before reporting.",
         href: "/capture",
-        cta: "Add more learning",
+        cta: "Capture next learning moment",
       };
     }
 
@@ -865,15 +865,15 @@ function PortfolioPageContent() {
         title: "Broaden the learning story",
         text: "Try adding learning from another domain so the portfolio shows more balance and confidence.",
         href: "/capture",
-        cta: "Capture another area",
+        cta: "Capture next learning moment",
       };
     }
 
     return {
-      title: "Build a report from this portfolio",
-      text: "This portfolio now has enough depth to move confidently into a first report draft.",
-      href: `/reports?studentId=${encodeURIComponent(student.id)}`,
-      cta: "Build report",
+      title: "Keep the story growing",
+      text: "This portfolio already shows meaningful progress. Add another learning moment to keep it current, then use Reports when you want a shareable summary.",
+      href: "/capture",
+      cta: "Capture next learning moment",
     };
   }, [student, evidence.length, portfolio.areas.length]);
 
@@ -964,7 +964,7 @@ function PortfolioPageContent() {
       title="EduDecks Family"
       subtitle="Learning Portfolio"
       heroTitle={student ? `${studentName(student)}'s Learning Story` : "Your family learning portfolio"}
-      heroText="A visual, parent-friendly portfolio of growth, milestones, creativity, and progress over time — designed to feel like a celebration of learning, not a report page."
+      heroText="A growing record of learning, reflection, and progress — built from everyday moments."
       heroAsideTitle="Portfolio confidence"
       heroAsideText={portfolio.confidenceText || "A strong portfolio turns separate captures into a meaningful picture of growth over time."}
     >
@@ -993,7 +993,7 @@ function PortfolioPageContent() {
         </section>
       ) : students.length === 0 ? (
         <section style={UI.card()}>
-          <div style={UI.h2()}>No learners added yet</div>
+          <div style={UI.h2()}>Your story is just beginning</div>
           <div style={{ ...UI.body(), marginTop: 8 }}>
             Add a child first so you can begin capturing learning and building a calm portfolio over time.
           </div>
@@ -1092,20 +1092,14 @@ function PortfolioPageContent() {
                   gap: 10,
                   flexWrap: "wrap",
                   justifyContent: isMobile ? "stretch" : "flex-end",
-                  flexDirection: isMobile ? "column" : "row",
+                  flexDirection: "column",
                 }}
               >
                 <Link
-                  href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
-                  style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
-                >
-                  Build report
-                </Link>
-                <Link
                   href="/capture"
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                  style={{ ...UI.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                 >
-                  Capture
+                  Capture next learning moment
                 </Link>
                 {isMobile ? (
                   <details
@@ -1129,6 +1123,12 @@ function PortfolioPageContent() {
                       More options
                     </summary>
                     <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      <Link
+                        href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
+                        style={UI.button(false)}
+                      >
+                        Build report
+                      </Link>
                       <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
                         Customize
                       </button>
@@ -1141,7 +1141,21 @@ function PortfolioPageContent() {
                     </div>
                   </details>
                 ) : (
-                  <>
+                  <div
+                    style={{
+                      ...UI.softCard(),
+                      display: "flex",
+                      gap: 8,
+                      flexWrap: "wrap",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <Link
+                      href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
+                      style={UI.button(false)}
+                    >
+                      Build report
+                    </Link>
                     <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
                       Customize
                     </button>
@@ -1151,9 +1165,13 @@ function PortfolioPageContent() {
                     <button type="button" onClick={() => window.print()} style={UI.button(false)}>
                       Print / PDF
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
+            </div>
+
+            <div style={{ ...UI.body(), marginTop: 16, maxWidth: 820 }}>
+              This is {student ? `${firstNameOf(student)}'s` : "your child's"} learning story. Add another moment to keep the story growing, or use Reports when you want to turn it into a shareable summary.
             </div>
 
             <div
@@ -1166,9 +1184,7 @@ function PortfolioPageContent() {
             >
               <StatCard label="Learning moments" value={String(evidence.length)} />
               <StatCard label="Learning domains" value={String(portfolio.areas.length)} />
-              <StatCard label="Recent uploads" value={String(recentCount)} />
-              <StatCard label="Showcase picks" value={String(showcaseItems.length)} />
-              <StatCard label="Curriculum linked" value={String(curriculumLinkedCount)} />
+              <StatCard label="Recent moments" value={String(recentCount)} />
             </div>
           </section>
 
@@ -1204,13 +1220,6 @@ function PortfolioPageContent() {
                 >
                   {nextMove.cta}
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowCustomize(true)}
-                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
-                >
-                  Customize dashboard
-                </button>
               </div>
             </div>
 
