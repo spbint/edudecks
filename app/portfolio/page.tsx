@@ -1335,31 +1335,52 @@ function PortfolioPageContent() {
                     </div>
                   </details>
                 ) : (
-                  <div
+                  <details
                     style={{
-                      ...UI.softCard(),
-                      display: "flex",
-                      gap: 8,
-                      flexWrap: "wrap",
-                      justifyContent: "flex-end",
+                      width: isMobile ? "100%" : "auto",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      background: "#ffffff",
+                      padding: 12,
                     }}
                   >
-                    <Link
-                      href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
-                      style={UI.button(false)}
+                    <summary
+                      style={{
+                        cursor: "pointer",
+                        fontSize: 13,
+                        fontWeight: 900,
+                        color: "#334155",
+                        listStyle: "none",
+                      }}
                     >
-                      Build report
-                    </Link>
-                    <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
-                      Customize
-                    </button>
-                    <button type="button" onClick={copyPortfolioSummary} style={UI.button(false)}>
-                      {copied ? "Copied" : "Copy summary"}
-                    </button>
-                    <button type="button" onClick={() => window.print()} style={UI.button(false)}>
-                      Print
-                    </button>
-                  </div>
+                      More options
+                    </summary>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        justifyContent: "flex-end",
+                        marginTop: 12,
+                      }}
+                    >
+                      <Link
+                        href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
+                        style={UI.button(false)}
+                      >
+                        Build report
+                      </Link>
+                      <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
+                        Customize
+                      </button>
+                      <button type="button" onClick={copyPortfolioSummary} style={UI.button(false)}>
+                        {copied ? "Copied" : "Copy summary"}
+                      </button>
+                      <button type="button" onClick={() => window.print()} style={UI.button(false)}>
+                        Print
+                      </button>
+                    </div>
+                  </details>
                 )}
               </div>
             </div>
@@ -1380,18 +1401,6 @@ function PortfolioPageContent() {
               </div>
             ) : null}
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                gap: 12,
-                marginTop: 16,
-              }}
-            >
-              <StatCard label="Learning moments" value={String(evidence.length)} />
-              <StatCard label="Learning domains" value={String(portfolio.areas.length)} />
-              <StatCard label="Recent moments" value={String(recentCount)} />
-            </div>
           </section>
 
           <section
@@ -1457,6 +1466,27 @@ function PortfolioPageContent() {
             </div>
           </section>
 
+          <details
+            style={{
+              ...UI.card(),
+              marginBottom: 18,
+              background: "#f8fafc",
+              border: "1px solid #e5e7eb",
+            }}
+          >
+            <summary
+              style={{
+                cursor: "pointer",
+                listStyle: "none",
+                fontSize: 14,
+                fontWeight: 900,
+                color: "#334155",
+              }}
+            >
+              See deeper portfolio details
+            </summary>
+
+            <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
           {topFeatureEnabled() && layout.topFeature === "featured_showcase" && blockEnabled("featured_showcase") ? (
             <FeaturedShowcase
               showcaseItems={showcaseItems}
@@ -1938,6 +1968,8 @@ function PortfolioPageContent() {
               ) : null}
             </div>
           </section>
+            </div>
+          </details>
 
           {showCustomize ? (
             <div

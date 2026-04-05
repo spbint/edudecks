@@ -1278,8 +1278,7 @@ function CalendarPageContent() {
                     <div style={styles.emptyCard}>
                       <div style={styles.emptyTitle}>Start with one small learning moment</div>
                       <div style={styles.emptyText}>
-                        Keep it light. Add one block, capture one moment, or place one focus for
-                        the day.
+                        Keep it light. Place one learning block in the day, then capture what happened.
                       </div>
 
                       <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
@@ -1324,12 +1323,6 @@ function CalendarPageContent() {
 
                           <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                             <button
-                              style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
-                              onClick={() => openDay(date)}
-                            >
-                              Open day
-                            </button>
-                            <button
                               style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
                               onClick={() => goToCapture(block)}
                             >
@@ -1341,28 +1334,7 @@ function CalendarPageContent() {
                     </div>
                   )}
 
-                  {dayBlocks.length === 0 ? (
-                    <>
-                      <div style={styles.quickAddLabel}>QUICK ADD</div>
-                      <div style={styles.quickAddStack}>
-                        {["Literacy", "Numeracy", "Inquiry"].map((area) => (
-                          <button
-                            key={area}
-                            style={styles.quickChip}
-                            onClick={() =>
-                              handleAddBlock({
-                                date: isoDate(date),
-                                area,
-                                title: `${area} learning block`,
-                              })
-                            }
-                          >
-                            {area}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : null}
+                  {null}
                 </div>
               );
             })}
@@ -1423,10 +1395,10 @@ function CalendarPageContent() {
 
                         <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                           <button
-                            style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                            style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
                             onClick={() => goToCapture(block)}
                           >
-                            Capture from this block
+                            Capture
                           </button>
                         </div>
                       </div>
@@ -1534,7 +1506,7 @@ function CalendarPageContent() {
           <div>
             <div style={styles.footerTitle}>Continue your flow</div>
             <div style={styles.footerText}>
-              Move between planning, capture, portfolio, and reporting without losing the thread.
+              Place the next learning block in the week, then move naturally into capture when it happens.
             </div>
           </div>
         </section>

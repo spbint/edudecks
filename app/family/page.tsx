@@ -1546,7 +1546,7 @@ function FamilyPageContent() {
       workflowCurrentHref="/family"
       workflowHelperText={
         shouldShowGuidedStart
-          ? "Planning is the first step. Once one small plan is in place, the ribbon will guide you into calendar, capture, reports, and portfolio."
+          ? "Planning is the first step. Once one small plan is in place, the ribbon will guide you into calendar, capture, and portfolio."
           : familyJourney.progressText
       }
     >
@@ -1554,7 +1554,7 @@ function FamilyPageContent() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(300px,0.85fr)",
+            gridTemplateColumns: "1fr",
             gap: 18,
             alignItems: "start",
           }}
@@ -1626,47 +1626,10 @@ function FamilyPageContent() {
               </div>
             </div>
           </div>
-
-          <div style={S.card()}>
-            <div style={S.label()}>Support and progress</div>
-            <div style={S.h2()}>{familyJourney.supportTitle}</div>
-            <div style={S.body()}>{familyJourney.supportBody}</div>
-
-            <div style={{ height: 12 }} />
-
-            <div
-              style={{
-                padding: "12px 14px",
-                borderRadius: 14,
-                border: "1px solid #e5e7eb",
-                background: "#f8fafc",
-              }}
-            >
-              <div style={S.label()}>Evidence quality coaching</div>
-              <div style={S.small()}>{evidenceQualityHint(selectedChild, selectedChildDraft)}</div>
-            </div>
-
-            <div
-              style={{
-                marginTop: 12,
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-              }}
-            >
-              <span style={S.pill(calmCheckTone(confidenceSummary))}>
-                Calm check {confidenceSummary}%
-              </span>
-              <span style={S.pill(familyJourney.supportTone)}>
-                {familyJourney.current.ribbonLabel} is current
-              </span>
-              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
-            </div>
-          </div>
         </div>
       </section>
 
-      {!isMobile && welcomeMessage ? (
+      {!isMobile && welcomeMessage && isPostSignupArrival ? (
         <WelcomeStatusCard
           message={welcomeMessage}
           postSignup={isPostSignupArrival}
@@ -1927,7 +1890,7 @@ function FamilyPageContent() {
 
       {!shouldShowGuidedStart ? (
         <>
-      {isMobile && welcomeMessage ? (
+      {isMobile && welcomeMessage && isPostSignupArrival ? (
         <WelcomeStatusCard
           message={welcomeMessage}
           postSignup={isPostSignupArrival}
