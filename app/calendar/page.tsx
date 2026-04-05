@@ -1246,18 +1246,6 @@ function CalendarPageContent() {
                       <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                         <button
                           style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
-                          onClick={() =>
-                            handleAddBlock({
-                              date: isoDate(date),
-                              title: `Learning focus for ${formatShortDay(date)}`,
-                              area: "Literacy",
-                            })
-                          }
-                        >
-                          + Add block
-                        </button>
-                        <button
-                          style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
                           onClick={() => openDay(date)}
                         >
                           Open day
@@ -1314,24 +1302,28 @@ function CalendarPageContent() {
                     </div>
                   )}
 
-                  <div style={styles.quickAddLabel}>QUICK ADD</div>
-                  <div style={styles.quickAddStack}>
-                    {["Literacy", "Numeracy", "Bible", "Inquiry", "Creative"].map((area) => (
-                      <button
-                        key={area}
-                        style={styles.quickChip}
-                        onClick={() =>
-                          handleAddBlock({
-                            date: isoDate(date),
-                            area,
-                            title: `${area} learning block`,
-                          })
-                        }
-                      >
-                        {area === "Inquiry" || area === "Creative" ? `+ ${area}` : area}
-                      </button>
-                    ))}
-                  </div>
+                  {dayBlocks.length === 0 ? (
+                    <>
+                      <div style={styles.quickAddLabel}>QUICK ADD</div>
+                      <div style={styles.quickAddStack}>
+                        {["Literacy", "Numeracy", "Inquiry"].map((area) => (
+                          <button
+                            key={area}
+                            style={styles.quickChip}
+                            onClick={() =>
+                              handleAddBlock({
+                                date: isoDate(date),
+                                area,
+                                title: `${area} learning block`,
+                              })
+                            }
+                          >
+                            {area}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               );
             })}
@@ -1505,24 +1497,6 @@ function CalendarPageContent() {
             <div style={styles.footerText}>
               Move between planning, capture, portfolio, and reporting without losing the thread.
             </div>
-          </div>
-
-          <div style={styles.footerLinks}>
-            <Link href="/planner" style={styles.footerChip}>
-              Planner
-            </Link>
-            <Link href="/calendar" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
-              Calendar
-            </Link>
-            <Link href="/capture" style={styles.footerChip}>
-              Capture
-            </Link>
-            <Link href="/reports" style={styles.footerChip}>
-              Reports
-            </Link>
-            <Link href="/portfolio" style={styles.footerChip}>
-              Portfolio
-            </Link>
           </div>
         </section>
 
