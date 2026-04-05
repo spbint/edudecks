@@ -14,6 +14,23 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function userFacingAuthError(error: any) {
+  const message = safe(error?.message || error);
+  if (!message) {
+    return "We couldn't send your sign-in link just now. Please try again.";
+  }
+
+  if (
+    message.toLowerCase().includes("redirect") ||
+    message.toLowerCase().includes("site url") ||
+    message.toLowerCase().includes("not allowed")
+  ) {
+    return "We couldn't send your sign-in link because the return URL is not configured correctly yet.";
+  }
+
+  return message;
+}
+
 export default function AuthModal({ open, onClose, returnPath }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [sendingGoogle, setSendingGoogle] = useState(false);
@@ -41,8 +58,9 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       if (authError) {
         throw authError;
       }
-    } catch {
-      setError("Something went wrong - try again.");
+    } catch (error: any) {
+      console.error("Google sign-in failed", error);
+      setError(userFacingAuthError(error));
       setSendingGoogle(false);
     }
   }
@@ -71,8 +89,9 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       }
 
       setSentEmail(nextEmail);
-    } catch {
-      setError("Something went wrong - try again.");
+    } catch (error: any) {
+      console.error("OTP sign-in failed", error);
+      setError(userFacingAuthError(error));
     } finally {
       setSendingEmail(false);
     }

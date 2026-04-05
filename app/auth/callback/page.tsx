@@ -80,13 +80,16 @@ function AuthCallbackPageContent() {
           router.replace(nextPath);
         }, 350);
       } catch (err: any) {
+        console.error("Auth callback failed", err);
         if (!mounted) return;
-        setError(
-          safe(err?.message) || "We could not complete sign-in. Please try again."
-        );
+        const safeMessage =
+          safe(err?.message) || "We could not complete sign-in. Please try again.";
+        setError(safeMessage);
 
         window.setTimeout(() => {
-          router.replace(`/login?authError=${encodeURIComponent(safe(err?.message) || "We could not complete sign-in. Please try again.")}`);
+          router.replace(
+            `/login?authError=${encodeURIComponent(safeMessage)}`
+          );
         }, 900);
       }
     }
