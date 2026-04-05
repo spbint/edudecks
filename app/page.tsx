@@ -12,10 +12,10 @@ export default function HomePage() {
     <PublicSiteShell
       eyebrow="Homeschool-first workflow"
       heroTitle="Start with one simple learning moment, then let EduDecks guide what comes next."
-      heroText="EduDecks helps nervous homeschool parents begin gently. Try one small learning moment first, then move into planning, calendar, capture, reporting, and building a portfolio when you are ready. We’ll start with a simple weekly plan for your child."
+      heroText="EduDecks helps nervous homeschool parents begin gently. Try one small learning moment first, then move into planning, calendar, capture, reporting, and building a portfolio when you are ready. We'll start with a simple weekly plan for your child."
       heroMicrocopy="No signup needed to try it first."
       heroBadges={[]}
-      primaryCta={{ label: "Start your first learning moment", href: "/capture" }}
+      primaryCta={{ label: "Start your first learning moment", href: "/start" }}
       secondaryCta={null}
       headerAction={{ label: "Sign in", href: "/login" }}
       footerPrimaryCta={null}
@@ -82,7 +82,7 @@ export default function HomePage() {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
-            href="/capture"
+            href="/start"
             style={{
               ...publicButtonStyle(true),
               background: "#ffffff",
