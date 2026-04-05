@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
@@ -55,6 +55,31 @@ type LearningStep = {
   action: string;
 };
 
+type GuidedAgeBand = "5-6" | "7-8" | "9-10" | "11+";
+type GuidedLocation = "au" | "uk" | "us" | "other";
+type GuidedLearningStage =
+  | "just-getting-started"
+  | "building-confidence"
+  | "working-steadily"
+  | "ready-for-challenge";
+
+type GuidedFamilyProfile = {
+  age_band: GuidedAgeBand;
+  location: GuidedLocation;
+  learning_stage: GuidedLearningStage;
+};
+
+type GuidedStartActivity = {
+  title: string;
+  learningArea: string;
+  emphasis: "primary" | "secondary" | "optional";
+};
+
+type GuidedStartPlan = {
+  focusAreas: string[];
+  activities: GuidedStartActivity[];
+};
+
 /* =========================
    CONSTANTS
 ========================= */
@@ -63,6 +88,7 @@ const CHILDREN_KEY = "edudecks_children_seed_v1";
 const SETTINGS_KEY = "edudecks_family_settings_v1";
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLANNER_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
+const FAMILY_PROFILE_KEY = "edudecks_family_profile_v1";
 const RECENT_EVIDENCE_DAYS = 7;
 
 const FALLBACK_CHILDREN: ChildRecord[] = [
@@ -479,6 +505,103 @@ function evidenceQualityHint(
   return "At this stage, stronger evidence shows progress, confidence, and the likely next step — not just completion.";
 }
 
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function readGuidedFamilyProfile(): GuidedFamilyProfile | null {
+  if (typeof window === "undefined") return null;
+  const raw = parseJson<Partial<GuidedFamilyProfile> | null>(
+    window.localStorage.getItem(FAMILY_PROFILE_KEY),
+    null
+  );
+  if (!raw) return null;
+
+  const ageBand = safe(raw.age_band) as GuidedAgeBand;
+  const location = safe(raw.location) as GuidedLocation;
+  const learningStage = safe(raw.learning_stage) as GuidedLearningStage;
+
+  if (
+    (ageBand === "5-6" || ageBand === "7-8" || ageBand === "9-10" || ageBand === "11+") &&
+    (location === "au" || location === "uk" || location === "us" || location === "other") &&
+    (learningStage === "just-getting-started" ||
+      learningStage === "building-confidence" ||
+      learningStage === "working-steadily" ||
+      learningStage === "ready-for-challenge")
+  ) {
+    return {
+      age_band: ageBand,
+      location,
+      learning_stage: learningStage,
+    };
+  }
+
+  return null;
+}
+
+function writeGuidedFamilyProfile(profile: GuidedFamilyProfile) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(FAMILY_PROFILE_KEY, JSON.stringify(profile));
+}
+
+function guidedStageLabel(stage: GuidedLearningStage) {
+  if (stage === "just-getting-started") return "Just getting started";
+  if (stage === "building-confidence") return "Building confidence";
+  if (stage === "working-steadily") return "Working steadily";
+  return "Ready for more challenge";
+}
+
+function guidedLocationLabel(location: GuidedLocation) {
+  if (location === "au") return "Australia";
+  if (location === "uk") return "UK";
+  if (location === "us") return "US";
+  return "Other";
+}
+
+function buildGuidedStartPlan(learningStage: GuidedLearningStage | ""): GuidedStartPlan {
+  if (learningStage === "just-getting-started") {
+    return {
+      focusAreas: ["Literacy", "Light Maths"],
+      activities: [
+        { title: "10 min reading", learningArea: "Literacy", emphasis: "primary" },
+        { title: "Simple maths task", learningArea: "Numeracy", emphasis: "secondary" },
+        { title: "Outdoor learning", learningArea: "Science", emphasis: "optional" },
+      ],
+    };
+  }
+
+  if (learningStage === "building-confidence") {
+    return {
+      focusAreas: ["Reading", "Short writing", "Light maths"],
+      activities: [
+        { title: "10 min reading", learningArea: "Literacy", emphasis: "primary" },
+        { title: "Short writing", learningArea: "Literacy", emphasis: "secondary" },
+        { title: "Light maths task", learningArea: "Numeracy", emphasis: "optional" },
+      ],
+    };
+  }
+
+  if (learningStage === "working-steadily") {
+    return {
+      focusAreas: ["Balanced literacy", "Numeracy"],
+      activities: [
+        { title: "Reading and response", learningArea: "Literacy", emphasis: "primary" },
+        { title: "Problem solving maths", learningArea: "Numeracy", emphasis: "secondary" },
+        { title: "Creative extension", learningArea: "Creative", emphasis: "optional" },
+      ],
+    };
+  }
+
+  return {
+    focusAreas: ["Extended literacy", "Problem solving"],
+    activities: [
+      { title: "Extended reading", learningArea: "Literacy", emphasis: "primary" },
+      { title: "Challenge maths", learningArea: "Numeracy", emphasis: "secondary" },
+      { title: "Inquiry task", learningArea: "Inquiry", emphasis: "optional" },
+    ],
+  };
+}
+
 /* =========================
    PAGE
 ========================= */
@@ -492,6 +615,7 @@ export default function FamilyPage() {
 }
 
 function FamilyPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
 
@@ -503,6 +627,20 @@ function FamilyPageContent() {
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [plannerBlockCount, setPlannerBlockCount] = useState(0);
   const [hasRecentEvidence, setHasRecentEvidence] = useState(false);
+  const [totalEvidenceCount, setTotalEvidenceCount] = useState(0);
+  const [guidedProfile, setGuidedProfile] = useState<GuidedFamilyProfile | null>(null);
+  const [guidedDraft, setGuidedDraft] = useState<{
+    age_band: GuidedAgeBand | "";
+    location: GuidedLocation | "";
+    learning_stage: GuidedLearningStage | "";
+  }>({
+    age_band: "",
+    location: "",
+    learning_stage: "",
+  });
+  const [guidedBusy, setGuidedBusy] = useState(false);
+  const [guidedMessage, setGuidedMessage] = useState("");
+  const [showGuidedStart, setShowGuidedStart] = useState(false);
 
   useEffect(() => {
     const storedChildren = parseJson<any[]>(
@@ -523,9 +661,16 @@ function FamilyPageContent() {
         : null,
       {}
     );
+    const storedGuidedProfile = readGuidedFamilyProfile();
 
     setChildren(normalizedChildren);
     setSettings(storedSettings);
+    setGuidedProfile(storedGuidedProfile);
+    setShowGuidedStart(!storedGuidedProfile);
+
+    if (storedGuidedProfile) {
+      setGuidedDraft(storedGuidedProfile);
+    }
 
     const storedActive =
       typeof window !== "undefined"
@@ -589,10 +734,15 @@ function FamilyPageContent() {
     async function hydrateGuidance() {
       const fallbackPlannerBlocks = countLocalPlannerBlocks();
       const fallbackRecentEvidence = hasRecentChildEvidence(children);
+      const fallbackEvidenceCount = children.reduce(
+        (sum, child) => sum + Math.max(0, child.evidenceCount || 0),
+        0
+      );
 
       if (mounted) {
         setPlannerBlockCount(fallbackPlannerBlocks);
         setHasRecentEvidence(fallbackRecentEvidence);
+        setTotalEvidenceCount(fallbackEvidenceCount);
       }
 
       if (!hasSupabaseEnv) return;
@@ -622,6 +772,7 @@ function FamilyPageContent() {
         }
 
         if (!evidenceResp.error) {
+          setTotalEvidenceCount((evidenceResp.data ?? []).length);
           const nextHasRecentEvidence = (evidenceResp.data ?? []).some((entry) => {
             const stamp = safe(entry?.occurred_on) || safe(entry?.created_at);
             return stamp && (daysSince(stamp) ?? RECENT_EVIDENCE_DAYS + 1) <= RECENT_EVIDENCE_DAYS;
@@ -668,6 +819,21 @@ function FamilyPageContent() {
     () => buildFamilyGuidanceState(plannerBlockCount, hasRecentEvidence),
     [plannerBlockCount, hasRecentEvidence]
   );
+  const hasCompletedGuidedDraft =
+    !!guidedDraft.age_band && !!guidedDraft.location && !!guidedDraft.learning_stage;
+  const shouldShowGuidedStart =
+    plannerBlockCount === 0 &&
+    totalEvidenceCount === 0 &&
+    showGuidedStart;
+  const shouldShowGuidedStartFallbackCard =
+    plannerBlockCount === 0 &&
+    totalEvidenceCount === 0 &&
+    !!guidedProfile &&
+    !showGuidedStart;
+  const activeGuidedPlan = useMemo(
+    () => buildGuidedStartPlan(guidedProfile?.learning_stage || guidedDraft.learning_stage),
+    [guidedDraft.learning_stage, guidedProfile]
+  );
 
   const confidenceSummary = useMemo(() => {
     if (!selectedChild) return 0;
@@ -695,6 +861,82 @@ function FamilyPageContent() {
   const familyDisplayName = safe(settings.familyDisplayName) || "Your family";
 
   const parentName = safe(settings.parentName);
+
+  async function persistGuidedProfile(profile: GuidedFamilyProfile) {
+    writeGuidedFamilyProfile(profile);
+    setGuidedProfile(profile);
+  }
+
+  async function handleGuidedSelection<K extends keyof GuidedFamilyProfile>(
+    key: K,
+    value: GuidedFamilyProfile[K]
+  ) {
+    const nextDraft = {
+      ...guidedDraft,
+      [key]: value,
+    };
+    setGuidedDraft(nextDraft);
+    setGuidedMessage("");
+
+    if (key === "learning_stage" && nextDraft.age_band && nextDraft.location && nextDraft.learning_stage) {
+      await persistGuidedProfile(nextDraft as GuidedFamilyProfile);
+    }
+  }
+
+  async function handleGuidedActivityTap(activity: GuidedStartActivity) {
+    setGuidedBusy(true);
+    setGuidedMessage("");
+
+    const plannedFor = todayIso();
+    const block = {
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `family-guided-${Date.now()}`,
+      user_id: null as string | null,
+      student_id: selectedChild?.id || null,
+      title: activity.title,
+      learning_area: activity.learningArea,
+      planned_for: plannedFor,
+      planned_time: null as string | null,
+      note: "Guided start suggestion",
+      status: "planned" as const,
+    };
+
+    try {
+      if (hasSupabaseEnv) {
+        const authResp = await supabase.auth.getUser();
+        const userId = authResp.data.user?.id || null;
+        const payload = { ...block, user_id: userId };
+        const res = await supabase.from("planner_blocks").insert(payload).select("id").single();
+
+        if (!res.error) {
+          setPlannerBlockCount((prev) => prev + 1);
+          router.push(`/calendar?view=week&date=${encodeURIComponent(plannedFor)}`);
+          return;
+        }
+      }
+
+      const localBlocks = parseJson<any[]>(
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(PLANNER_BLOCKS_KEY)
+          : null,
+        []
+      );
+      localBlocks.push(block);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(PLANNER_BLOCKS_KEY, JSON.stringify(localBlocks));
+      }
+      setPlannerBlockCount((prev) => prev + 1);
+      router.push(`/calendar?view=week&date=${encodeURIComponent(plannedFor)}`);
+    } catch (error: any) {
+      setGuidedMessage(
+        String(error?.message || error || "We couldn't add that just now. Try the next suggestion.")
+      );
+    } finally {
+      setGuidedBusy(false);
+    }
+  }
 
   return (
     <FamilyTopNavShell
@@ -726,33 +968,273 @@ function FamilyPageContent() {
       ) : null}
 
       <section style={{ ...S.card(), marginBottom: 18 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 16,
-            alignItems: isMobile ? "stretch" : "center",
-            flexWrap: "wrap",
-            flexDirection: isMobile ? "column" : "row",
-          }}
-        >
-          <div style={{ maxWidth: 760 }}>
-            <div style={S.label()}>Guidance</div>
-            <div style={S.h1()}>{familyGuidance.title}</div>
-            <div style={S.body()}>{familyGuidance.body}</div>
-          </div>
+        {shouldShowGuidedStart ? (
+          <>
+            <div style={S.label()}>Guided start</div>
+            {!guidedDraft.age_band ? (
+              <>
+                <div style={S.h1()}>Letâ€™s get you started</div>
+                <div style={S.body()}>Your child is:</div>
+                <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+                  {[
+                    { label: "Age 5â€“6", value: "5-6" },
+                    { label: "Age 7â€“8", value: "7-8" },
+                    { label: "Age 9â€“10", value: "9-10" },
+                    { label: "Age 11+", value: "11+" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        void handleGuidedSelection("age_band", option.value as GuidedAgeBand)
+                      }
+                      style={{
+                        ...S.button(false),
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : !guidedDraft.location ? (
+              <>
+                <div style={S.h1()}>Where are you based?</div>
+                <div style={S.body()}>
+                  Weâ€™ll use this later for gentle reporting guidance. You do not need to set anything complex now.
+                </div>
+                <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+                  {[
+                    { label: "Australia", value: "au" },
+                    { label: "UK", value: "uk" },
+                    { label: "US", value: "us" },
+                    { label: "Other", value: "other" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        void handleGuidedSelection("location", option.value as GuidedLocation)
+                      }
+                      style={{
+                        ...S.button(false),
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : !guidedDraft.learning_stage ? (
+              <>
+                <div style={S.h1()}>Right now your child is:</div>
+                <div style={S.body()}>
+                  You can change this anytime â€” this just helps us start gently.
+                </div>
+                <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+                  {[
+                    {
+                      label: "Just getting started",
+                      value: "just-getting-started",
+                    },
+                    {
+                      label: "Building confidence",
+                      value: "building-confidence",
+                    },
+                    {
+                      label: "Working steadily",
+                      value: "working-steadily",
+                    },
+                    {
+                      label: "Ready for more challenge",
+                      value: "ready-for-challenge",
+                    },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        void handleGuidedSelection(
+                          "learning_stage",
+                          option.value as GuidedLearningStage
+                        )
+                      }
+                      style={{
+                        ...S.button(false),
+                        width: "100%",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={S.h1()}>Great â€” hereâ€™s a calm place to begin</div>
+                <div style={S.body()}>
+                  Youâ€™re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
+                  {guidedStageLabel(guidedDraft.learning_stage)}.
+                </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
-            <Link
-              href={familyGuidance.ctaHref || "/calendar"}
-              style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                <div
+                  style={{
+                    marginTop: 16,
+                    padding: "14px 16px",
+                    borderRadius: 16,
+                    border: "1px solid #dbeafe",
+                    background: "#f8fbff",
+                  }}
+                >
+                  <div style={S.label()}>Focus this week</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+                    {activeGuidedPlan.focusAreas.map((focus) => (
+                      <span key={focus} style={S.pill("info")}>
+                        {focus}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ ...S.label(), marginTop: 16 }}>Start with</div>
+                <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                  {activeGuidedPlan.activities.map((activity) =>
+                    activity.emphasis === "primary" ? (
+                      <button
+                        key={activity.title}
+                        type="button"
+                        onClick={() => void handleGuidedActivityTap(activity)}
+                        disabled={guidedBusy}
+                        style={{
+                          ...S.button(true),
+                          width: "100%",
+                          justifyContent: "center",
+                          opacity: guidedBusy ? 0.7 : 1,
+                        }}
+                      >
+                        {guidedBusy ? "Adding to calendar..." : activity.title}
+                      </button>
+                    ) : (
+                      <button
+                        key={activity.title}
+                        type="button"
+                        onClick={() => void handleGuidedActivityTap(activity)}
+                        disabled={guidedBusy}
+                        style={{
+                          ...S.button(false),
+                          width: "100%",
+                          justifyContent: "center",
+                          opacity: guidedBusy ? 0.7 : 1,
+                        }}
+                      >
+                        {activity.title}
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {guidedMessage ? (
+                  <div style={{ ...S.small(), marginTop: 12, color: "#b91c1c" }}>
+                    {guidedMessage}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </>
+        ) : shouldShowGuidedStartFallbackCard ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: isMobile ? "stretch" : "center",
+              flexWrap: "wrap",
+              flexDirection: isMobile ? "column" : "row",
+            }}
+          >
+            <div style={{ maxWidth: 760 }}>
+              <div style={S.label()}>Start here</div>
+              <div style={S.h1()}>Plan one small learning moment</div>
+              <div style={S.body()}>
+                A calm place to begin is {activeGuidedPlan.focusAreas.join(" and ").toLowerCase()}.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                {activeGuidedPlan.focusAreas.map((focus) => (
+                  <span key={focus} style={S.pill("info")}>
+                    {focus}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                width: isMobile ? "100%" : "auto",
+                flexDirection: isMobile ? "column" : "row",
+              }}
             >
-              {familyGuidance.ctaLabel || "Open Calendar"}
-            </Link>
+              <Link
+                href="/calendar"
+                style={{
+                  ...S.button(true),
+                  width: isMobile ? "100%" : undefined,
+                  justifyContent: "center",
+                }}
+              >
+                Plan today
+              </Link>
+              <button
+                type="button"
+                onClick={() => void handleGuidedActivityTap(activeGuidedPlan.activities[0])}
+                style={{
+                  ...S.button(false),
+                  width: isMobile ? "100%" : undefined,
+                  justifyContent: "center",
+                }}
+              >
+                Add {activeGuidedPlan.activities[0]?.title || "first activity"}
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: isMobile ? "stretch" : "center",
+              flexWrap: "wrap",
+              flexDirection: isMobile ? "column" : "row",
+            }}
+          >
+            <div style={{ maxWidth: 760 }}>
+              <div style={S.label()}>Guidance</div>
+              <div style={S.h1()}>{familyGuidance.title}</div>
+              <div style={S.body()}>{familyGuidance.body}</div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+              <Link
+                href={familyGuidance.ctaHref || "/calendar"}
+                style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+              >
+                {familyGuidance.ctaLabel || "Open Calendar"}
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
+      {!shouldShowGuidedStart ? (
+        <>
       {isMobile && welcomeMessage ? (
         <section
           style={{
@@ -1096,6 +1578,8 @@ function FamilyPageContent() {
           </div>
         ) : null}
       </section>
+        </>
+      ) : null}
     </FamilyTopNavShell>
   );
 }
