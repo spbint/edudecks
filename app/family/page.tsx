@@ -1126,17 +1126,6 @@ function FamilyPageContent() {
     );
   }, [drafts, selectedChild]);
 
-  const familyGuidance = useMemo(
-    () =>
-      buildBeginnerGuidanceState(
-        plannerBlockCount,
-        totalEvidenceCount,
-        Boolean(selectedChildDraft)
-      ),
-    [plannerBlockCount, totalEvidenceCount, selectedChildDraft]
-  );
-  const isEarlyFlowState =
-    plannerBlockCount === 0 || totalEvidenceCount === 0 || !selectedChildDraft;
   const hasCompletedGuidedDraft =
     !!guidedDraft.age_band && !!guidedDraft.location && !!guidedDraft.learning_stage;
   const shouldShowGuidedStart =
@@ -1182,11 +1171,6 @@ function FamilyPageContent() {
     if (lastDays != null && lastDays <= 14) score += 10;
     return Math.min(score, 100);
   }, [selectedChild, selectedChildDraft]);
-
-  const learningStep = useMemo(() => {
-    if (!selectedChild) return AREA_SEQUENCE.default;
-    return inferLearningStep(selectedChild.nextFocusArea || selectedChild.strongestArea);
-  }, [selectedChild]);
 
   const timeSavedHours = useMemo(
     () => estimateTimeSaved(selectedChild, selectedChildDraft),
@@ -1359,15 +1343,15 @@ function FamilyPageContent() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Home"
-      heroTitle="Your Family Learning Home"
-      heroText="Keep daily capture simple, stay on track with curriculum coverage, and grow a professional record of progress without the admin feel."
-      heroAsideTitle="Readiness snapshot"
-      heroAsideText={
-        selectedChild
-          ? `${selectedChild.name} is currently ${statusLabel(
-              selectedChild.status
-            ).toLowerCase()}. The system is watching evidence volume, coverage, draft state, and recency to guide the next move.`
-          : "Select a child to see the strongest next move."
+      heroTitle="A calmer way to move through family learning"
+      heroText="The Family Home now works as a guided journey. Start with the current step, glance at what comes next, and leave the deeper tools for later."
+      heroAsideTitle="Current focus"
+      heroAsideText={`${familyJourney.current.ribbonLabel} is the main step right now. EduDecks will keep the next move close by so you do not have to plan the workflow yourself.`}
+      workflowCurrentHref={shouldShowGuidedStart ? "/planner" : familyJourney.current.href}
+      workflowHelperText={
+        shouldShowGuidedStart
+          ? "Planning is the first step. Once one small plan is in place, the ribbon will guide you into calendar, capture, reports, and portfolio."
+          : familyJourney.progressText
       }
     >
       {!isMobile && welcomeMessage ? (
@@ -1377,13 +1361,19 @@ function FamilyPageContent() {
         />
       ) : null}
 
-      <section style={{ ...S.card(), marginBottom: 18 }}>
+      <section
+        style={{
+          ...S.hero(),
+          marginBottom: 18,
+          padding: isMobile ? "20px 18px" : "28px 24px",
+        }}
+      >
         {shouldShowGuidedStart ? (
           <>
-            <div style={S.label()}>Guided start</div>
+            <div style={S.label()}>Current step</div>
             {!guidedDraft.age_band ? (
               <>
-                <div style={S.h1()}>Let's get you started</div>
+                <div style={S.h1()}>Start with one small plan</div>
                 <div style={S.body()}>Your child is:</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1411,7 +1401,7 @@ function FamilyPageContent() {
               </>
             ) : !guidedDraft.location ? (
               <>
-                <div style={S.h1()}>Where are you based?</div>
+                <div style={S.h1()}>Keep the reporting guidance local</div>
                 <div style={S.body()}>
                   We'll use this later for gentle reporting guidance. You do not need to set anything complex now.
                 </div>
@@ -1441,7 +1431,7 @@ function FamilyPageContent() {
               </>
             ) : !guidedDraft.learning_stage ? (
               <>
-                <div style={S.h1()}>Right now your child is:</div>
+                <div style={S.h1()}>Choose the learning starting point</div>
                 <div style={S.body()}>
                   You can change this anytime — this just helps us start gently.
                 </div>
@@ -1486,10 +1476,10 @@ function FamilyPageContent() {
               </>
             ) : (
               <>
-                <div style={S.h1()}>Great — here's a calm place to begin</div>
+                <div style={S.h1()}>Start with one calm plan</div>
                 <div style={S.body()}>
-                  You're set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
-                  {guidedStageLabel(guidedDraft.learning_stage)}.
+                  You’re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
+                  {guidedStageLabel(guidedDraft.learning_stage)}. We’ll build this step by step.
                 </div>
 
                 <div
@@ -1511,7 +1501,7 @@ function FamilyPageContent() {
                   </div>
                 </div>
 
-                <div style={{ ...S.label(), marginTop: 16 }}>Start with</div>
+                <div style={{ ...S.label(), marginTop: 16 }}>One good way to begin</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
                   {activeGuidedPlan.activities.map((activity) =>
                     activity.emphasis === "primary" ? (
@@ -1552,7 +1542,11 @@ function FamilyPageContent() {
                   <div style={{ ...S.small(), marginTop: 12, color: "#b91c1c" }}>
                     {guidedMessage}
                   </div>
-                ) : null}
+                ) : (
+                  <div style={{ ...S.small(), marginTop: 12, color: "#1d4ed8" }}>
+                    Planning is enough for now. Calendar comes next, then capture.
+                  </div>
+                )}
               </>
             )}
           </>
@@ -1626,11 +1620,11 @@ function FamilyPageContent() {
             }}
           >
             <div style={{ maxWidth: 760 }}>
-              <div style={S.label()}>Guidance</div>
-              <div style={S.h1()}>{familyGuidance.title}</div>
-              <div style={S.body()}>{familyGuidance.body}</div>
-              <div style={{ ...S.small(), marginTop: 10 }}>
-                Beginner path: Planning → Capture → Reports → Portfolio
+              <div style={S.label()}>{familyJourney.current.eyebrow}</div>
+              <div style={S.h1()}>{familyJourney.current.title}</div>
+              <div style={S.body()}>{familyJourney.current.body}</div>
+              <div style={{ ...S.small(), marginTop: 10, color: "#1d4ed8" }}>
+                {familyJourney.current.reassurance}
               </div>
             </div>
 
@@ -1644,19 +1638,16 @@ function FamilyPageContent() {
               }}
             >
               <Link
-                href={familyGuidance.ctaHref || "/calendar"}
+                href={familyJourney.current.primaryHref}
                 style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
               >
-                {familyGuidance.ctaLabel || "Open Calendar"}
+                {familyJourney.current.primaryLabel}
               </Link>
-              {familyGuidance.secondaryHref && familyGuidance.secondaryLabel ? (
-                <Link
-                  href={familyGuidance.secondaryHref}
-                  style={{ ...S.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                >
-                  {familyGuidance.secondaryLabel}
-                </Link>
-              ) : null}
+              <div style={{ ...S.small(), maxWidth: 280 }}>
+                {selectedChild
+                  ? `${selectedChild.name} is ready for the ${familyJourney.current.ribbonLabel.toLowerCase()} step.`
+                  : "EduDecks will keep this step close by until you are ready to move on."}
+              </div>
             </div>
           </div>
         )}
@@ -1776,64 +1767,54 @@ function FamilyPageContent() {
                 padding: 16,
               }}
             >
-              <div style={S.label()}>Smart suggested focus</div>
+              <div style={S.label()}>Next step preview</div>
               <div style={S.h2()}>
-                Strengthen {selectedChild?.nextFocusArea || "Literacy"}
+                {familyJourney.next
+                  ? `${familyJourney.next.ribbonLabel} comes next`
+                  : "Portfolio keeps the strongest work together"}
               </div>
               <div style={S.body()}>
-                {selectedChild
-                  ? `${selectedChild.name} would benefit from one stronger ${
-                      selectedChild.nextFocusArea || "literacy"
-                    } learning moment. Add a short note, photo, or work sample that shows what they can now do.`
-                  : "Choose a child to unlock a suggested focus area."}
+                {familyJourney.next
+                  ? familyJourney.next.body
+                  : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
               </div>
 
               <div style={{ ...S.small(), marginTop: 8 }}>
-                Start with planning, then capture what happened, then build a report. Portfolio can come after that.
+                {familyJourney.progressText}
               </div>
 
-              {isEarlyFlowState ? (
-                <div style={{ ...S.small(), marginTop: 14, color: "#1e3a8a", fontWeight: 800 }}>
-                  Your next step is shown above so you do not need to choose between several actions here.
-                </div>
-              ) : (
-                <div
-                  style={{
-                    marginTop: 14,
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    flexDirection: isMobile ? "column" : "row",
-                  }}
-                >
+              <div
+                style={{
+                  marginTop: 14,
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  flexDirection: isMobile ? "column" : "row",
+                }}
+              >
+                {familyJourney.next ? (
                   <Link
-                    href={familyGuidance.ctaHref || "/reports"}
+                    href={familyJourney.next.primaryHref}
                     style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                   >
-                    {familyGuidance.ctaLabel || "Continue Report"}
+                    Preview {familyJourney.next.ribbonLabel}
                   </Link>
-                  {familyGuidance.secondaryHref && familyGuidance.secondaryLabel ? (
-                    <Link
-                      href={familyGuidance.secondaryHref}
-                      style={{ ...S.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                    >
-                      {familyGuidance.secondaryLabel}
-                    </Link>
-                  ) : null}
-                </div>
-              )}
+                ) : (
+                  <Link
+                    href="/portfolio"
+                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    Open portfolio
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
           <div style={S.card()}>
-            <div style={S.label()}>Learning journey</div>
-            <div style={S.h2()}>
-              {selectedChild?.name || "Your child"} is currently building{" "}
-              {learningStep.current}
-            </div>
-            <div style={S.body()}>
-              Next likely step: <strong>{learningStep.next}</strong>.
-            </div>
+            <div style={S.label()}>Support and progress</div>
+            <div style={S.h2()}>{familyJourney.supportTitle}</div>
+            <div style={S.body()}>{familyJourney.supportBody}</div>
 
             <div style={{ height: 12 }} />
 
@@ -1857,15 +1838,19 @@ function FamilyPageContent() {
                 flexWrap: "wrap",
               }}
             >
-              <Link href="/capture" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
-                Capture next step learning
-              </Link>
+              <span style={S.pill(calmCheckTone(confidenceSummary))}>
+                Calm check {confidenceSummary}%
+              </span>
+              <span style={S.pill(familyJourney.supportTone)}>
+                {familyJourney.current.ribbonLabel} is current
+              </span>
+              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section style={S.card()}>
+      <section style={{ ...S.card(), opacity: 0.97 }}>
         <div
           style={{
             display: "flex",
@@ -1877,20 +1862,19 @@ function FamilyPageContent() {
           }}
         >
           <div>
-            <div style={S.h2()}>Child snapshots</div>
+            <div style={S.h2()}>Family progress</div>
             <div style={S.small()}>
-              A simple overview of each child so you can see who is ready and
-              who needs attention next.
+              Keep this as a quieter reference. The guided step above is still
+              the main thing to do now.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/children" style={S.button(false)}>
-              Manage children
-            </Link>
-            <Link href="/capture" style={S.button(false)}>
-              Add learning
-            </Link>
+            {familyJourney.secondaryTools.map((tool) => (
+              <Link key={`${tool.href}-${tool.label}`} href={tool.href} style={S.button(false)}>
+                {tool.label}
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -1984,6 +1968,12 @@ function FamilyPageContent() {
               </div>
             );
           })}
+        </div>
+
+        <div style={{ ...S.small(), marginTop: 14, color: "#1d4ed8" }}>
+          {selectedChild
+            ? `${selectedChild.name} is moving through ${familyJourney.current.ribbonLabel.toLowerCase()} now. EduDecks will keep the next step visible so the journey stays calm.`
+            : "EduDecks will keep the next step visible so the family journey stays calm."}
         </div>
 
         {loadingDrafts ? (
