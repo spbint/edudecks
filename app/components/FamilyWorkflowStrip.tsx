@@ -27,19 +27,25 @@ function stepStyle(active: boolean): React.CSSProperties {
     borderRadius: 999,
     border: `1px solid ${active ? "#2563eb" : "#dbe3ef"}`,
     background: active ? "#eff6ff" : "#ffffff",
-    color: active ? "#1d4ed8" : "#475569",
+    color: active ? "#1d4ed8" : "#64748b",
     textDecoration: "none",
     fontSize: 13,
     fontWeight: active ? 900 : 700,
     whiteSpace: "nowrap",
     boxShadow: active ? "0 8px 20px rgba(37,99,235,0.12)" : "none",
+    opacity: active ? 1 : 0.85,
   };
 }
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
-  { href: "/calendar", label: "Planning", matches: ["/planner", "/goals", "/calendar"] },
+  { href: "/planner", label: "Planning", matches: ["/planner", "/goals"] },
+  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
   { href: "/capture", label: "Capture", matches: ["/capture"] },
-  { href: "/reports", label: "Reports", matches: ["/reports", "/reports/library", "/reports/output", "/reports/presets"] },
+  {
+    href: "/reports",
+    label: "Reports",
+    matches: ["/reports", "/reports/library", "/reports/output", "/reports/presets"],
+  },
   { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
 ];
 
@@ -51,9 +57,10 @@ export default function FamilyWorkflowStrip() {
     <div
       style={{
         border: "1px solid #e5e7eb",
-        background: isMobile ? "#ffffff" : "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
-        borderRadius: 18,
+        background: "#ffffff",
+        borderRadius: 16,
         padding: isMobile ? 12 : 14,
+        boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
       }}
     >
       <div
@@ -66,21 +73,7 @@ export default function FamilyWorkflowStrip() {
           marginBottom: 10,
         }}
       >
-        {isMobile ? "Beginner path" : "Beginner progression"}
-      </div>
-
-      <div
-        style={{
-          fontSize: 13,
-          color: "#475569",
-          lineHeight: 1.55,
-          marginBottom: 10,
-          fontWeight: 700,
-        }}
-      >
-        {isMobile
-          ? "One clear path: plan, capture, report, then keep the best pieces in portfolio."
-          : "Start with planning, then capture what happened, turn it into a report, and keep the strongest pieces in portfolio."}
+        Workflow ribbon
       </div>
 
       <div
@@ -130,24 +123,12 @@ export default function FamilyWorkflowStrip() {
                     flexShrink: 0,
                   }}
                 >
-                  →
+                  &rarr;
                 </span>
               ) : null}
             </React.Fragment>
           );
         })}
-      </div>
-
-      <div
-        style={{
-          marginTop: 12,
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: "#64748b",
-          fontWeight: 700,
-        }}
-      >
-        Start small. One planned block is enough to begin.
       </div>
     </div>
   );

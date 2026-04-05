@@ -93,8 +93,8 @@ const SECTIONS: NavSection[] = [
     title: "Workflow",
     items: [
       { href: "/capture", label: "Capture" },
-      { href: "/portfolio", label: "Portfolio" },
       { href: "/reports", label: "Reports" },
+      { href: "/portfolio", label: "Portfolio" },
     ],
   },
   {
@@ -315,33 +315,6 @@ export default function FamilyTopNavShell({
               </div>
             </>
           )}
-
-          {!isMobile ? (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: 14,
-              }}
-            >
-              {SECTIONS.map((section) => (
-                <div key={section.title}>
-                  <div style={sectionLabel()}>{section.title}</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        style={navBtn(isActive(pathname, item.href))}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
         </div>
       </header>
 
@@ -352,6 +325,10 @@ export default function FamilyTopNavShell({
           padding: isMobile ? 16 : 20,
         }}
       >
+        <section style={{ marginBottom: 18 }}>
+          <FamilyWorkflowStrip />
+        </section>
+
         {!isMobile ? (
           <section
             style={{
@@ -463,12 +440,6 @@ export default function FamilyTopNavShell({
         ) : null}
 
         {children}
-
-        {isMobile ? (
-          <section style={{ marginTop: 18 }}>
-            <FamilyWorkflowStrip />
-          </section>
-        ) : null}
       </main>
     </div>
   );
