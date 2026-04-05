@@ -4,14 +4,20 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+type CtaLink = { label: string; href: string };
+
 type PublicSiteShellProps = {
   title?: string;
   eyebrow?: string;
   heroTitle: string;
   heroText: string;
+  heroMicrocopy?: string;
   heroBadges?: string[];
-  primaryCta?: { label: string; href: string };
-  secondaryCta?: { label: string; href: string };
+  primaryCta?: CtaLink;
+  secondaryCta?: CtaLink;
+  headerAction?: CtaLink | null;
+  footerPrimaryCta?: CtaLink | null;
+  footerSecondaryCta?: CtaLink | null;
   asideTitle?: string;
   asideText?: string;
   children: React.ReactNode;
@@ -36,14 +42,11 @@ const C = {
   textStrong: "#0f172a",
   textMain: "#1f2937",
   textMuted: "#64748b",
-  textFaint: "#94a3b8",
 
-  brandPrimary: "#4f7cf0",
   brandPrimaryStrong: "#2563eb",
   brandPrimarySoft: "#eff6ff",
   brandPrimaryBorder: "#bfdbfe",
 
-  brandSecondary: "#8b7cf6",
   brandSecondarySoft: "#f5f3ff",
   brandSecondaryBorder: "#ddd6fe",
 
@@ -54,14 +57,6 @@ const C = {
   warningBg: "#fff7ed",
   warningBorder: "#fed7aa",
   warningText: "#9a3412",
-
-  infoBg: "#ecfeff",
-  infoBorder: "#a5f3fc",
-  infoText: "#0c4a6e",
-
-  premiumBg: "#fffaf0",
-  premiumBorder: "#fde68a",
-  premiumText: "#92400e",
 };
 
 function isActive(pathname: string, href: string) {
@@ -151,9 +146,13 @@ export default function PublicSiteShell({
   eyebrow = "Homeschool-first workflow",
   heroTitle,
   heroText,
+  heroMicrocopy,
   heroBadges = [],
   primaryCta = { label: "Start Free", href: "/capture" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
+  headerAction = { label: "Sign in", href: "/login" },
+  footerPrimaryCta = primaryCta,
+  footerSecondaryCta = { label: "Contact", href: "/contact" },
   asideTitle = "Why families feel calmer",
   asideText = "EduDecks Family gives families one connected place to capture learning, organise evidence, plan intentionally, and build credible reports over time.",
   children,
@@ -246,9 +245,11 @@ export default function PublicSiteShell({
               <Link href="/family" style={shellButtonStyle(false)}>
                 Family Hub
               </Link>
-              <Link href={primaryCta.href} style={shellButtonStyle(true)}>
-                {primaryCta.label}
-              </Link>
+              {headerAction ? (
+                <Link href={headerAction.href} style={shellButtonStyle(false)}>
+                  {headerAction.label}
+                </Link>
+              ) : null}
             </div>
           </div>
 
@@ -367,10 +368,26 @@ export default function PublicSiteShell({
                   <Link href={primaryCta.href} style={shellButtonStyle(true)}>
                     {primaryCta.label}
                   </Link>
-                  <Link href={secondaryCta.href} style={shellButtonStyle(false)}>
-                    {secondaryCta.label}
-                  </Link>
+                  {secondaryCta ? (
+                    <Link href={secondaryCta.href} style={shellButtonStyle(false)}>
+                      {secondaryCta.label}
+                    </Link>
+                  ) : null}
                 </div>
+
+                {heroMicrocopy ? (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                      color: C.textMuted,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {heroMicrocopy}
+                  </div>
+                ) : null}
               </div>
 
               <div style={shellCardStyle()}>
@@ -489,18 +506,22 @@ export default function PublicSiteShell({
                 maxWidth: 620,
               }}
             >
-              A calm, evidence-led homeschool operating system for capture,
-              portfolio, planning, and reporting.
+              A calm, evidence-led homeschool operating system for planning,
+              capture, reporting, and portfolio over time.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/contact" style={shellButtonStyle(false)}>
-              Contact
-            </Link>
-            <Link href="/capture" style={shellButtonStyle(true)}>
-              Start Free
-            </Link>
+            {footerSecondaryCta ? (
+              <Link href={footerSecondaryCta.href} style={shellButtonStyle(false)}>
+                {footerSecondaryCta.label}
+              </Link>
+            ) : null}
+            {footerPrimaryCta ? (
+              <Link href={footerPrimaryCta.href} style={shellButtonStyle(true)}>
+                {footerPrimaryCta.label}
+              </Link>
+            ) : null}
           </div>
         </div>
       </footer>

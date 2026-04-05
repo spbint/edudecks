@@ -8,24 +8,63 @@ import PublicSiteShell, {
   publicPill,
 } from "@/app/components/PublicSiteShell";
 
+const WORKFLOW_STEPS = [
+  {
+    title: "Planning",
+    description: "Shape what comes next with a calm, simple weekly focus.",
+    href: "/planner",
+    step: "01",
+    nextLabel: "Then capture",
+  },
+  {
+    title: "Capture",
+    description: "Log real learning simply, so small moments do not get lost.",
+    href: "/capture",
+    step: "02",
+    nextLabel: "Then report",
+  },
+  {
+    title: "Reports",
+    description: "Turn learning into a trusted summary you can build on.",
+    href: "/reports",
+    step: "03",
+    nextLabel: "Then portfolio",
+  },
+  {
+    title: "Portfolio",
+    description: "Build the bigger learning story over time, without pressure.",
+    href: "/portfolio",
+    step: "04",
+    nextLabel: "",
+  },
+];
+
 export default function HomePage() {
   return (
     <PublicSiteShell
       eyebrow="Homeschool-first workflow"
-      heroTitle="Homeschool records that build confidence, not overwhelm."
-      heroText="Capture meaningful learning, curate a strong portfolio, plan intentionally, and produce credible reports — all in one calm, homeschool-first workflow."
-      heroBadges={["Capture", "Portfolio", "Planning", "Reporting"]}
-      primaryCta={{ label: "Start Free", href: "/capture" }}
-      secondaryCta={{ label: "Get Started", href: "/get-started" }}
-      asideTitle="Why families switch"
-      asideText="EduDecks Family helps families move beyond scattered notes, spreadsheets, and last-minute reporting panic into one connected system."
+      heroTitle="Start with one simple learning moment, then let EduDecks guide what comes next."
+      heroText="EduDecks helps nervous homeschool parents begin gently. Try one small learning moment first, then move into planning, reporting, and building a portfolio when you are ready."
+      heroMicrocopy="No signup needed to try it first."
+      heroBadges={["Planning", "Capture", "Reports", "Portfolio"]}
+      primaryCta={{ label: "Start your first learning moment", href: "/capture" }}
+      secondaryCta={{ label: "See how it works", href: "/get-started" }}
+      headerAction={{ label: "Sign in", href: "/login" }}
+      footerPrimaryCta={{
+        label: "Start your first learning moment",
+        href: "/capture",
+      }}
+      footerSecondaryCta={{ label: "See how it works", href: "/get-started" }}
+      asideTitle="Why families feel calmer"
+      asideText="You do not need to feel like a teacher, planner, or assessor on day one. Start with one real moment, and EduDecks helps you shape the next step without turning home into school."
     >
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div style={{ fontSize: 30, fontWeight: 900, color: "#0f172a", marginBottom: 12 }}>
           One connected workflow
         </div>
         <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
-          Start with one learning moment and build toward a report you can confidently share.
+          The full workflow is planning, capture, reports, and portfolio. You can still begin with
+          one learning moment, and we will guide the rest from there.
         </div>
 
         <div
@@ -36,80 +75,55 @@ export default function HomePage() {
             alignItems: "stretch",
           }}
         >
-          {[
-            {
-              title: "Capture",
-              description: "Save one real learning moment",
-              href: "/capture",
-              step: "01",
-            },
-            {
-              title: "Portfolio",
-              description: "Build evidence naturally over time",
-              href: "/portfolio",
-              step: "02",
-            },
-            {
-              title: "Planning",
-              description: "Shape what comes next with clarity",
-              href: "/planner",
-              step: "03",
-            },
-            {
-              title: "Reports",
-              description: "Turn learning into a trusted summary",
-              href: "/reports",
-              step: "04",
-            },
-          ].map((item, index, items) => (
-            <React.Fragment key={item.title}>
-              <Link
-                href={item.href}
-                style={{
-                  ...publicCardStyle(),
-                  textDecoration: "none",
-                  color: "inherit",
-                  display: "grid",
-                  gap: 10,
-                  minHeight: 160,
-                  alignContent: "start",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                  <span style={publicPill("#eff6ff", "#1d4ed8")}>{item.step}</span>
-                  {index < items.length - 1 ? (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 8,
-                        fontSize: 12,
-                        fontWeight: 800,
-                        color: "#94a3b8",
-                        letterSpacing: 0.4,
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Next <span style={{ fontSize: 16, fontWeight: 900 }}>→</span>
-                    </span>
-                  ) : null}
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: "#0f172a" }}>{item.title}</div>
-                <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
-                  {item.description}
-                </div>
-              </Link>
-            </React.Fragment>
+          {WORKFLOW_STEPS.map((item, index, items) => (
+            <Link
+              key={item.title}
+              href={item.href}
+              style={{
+                ...publicCardStyle(),
+                textDecoration: "none",
+                color: "inherit",
+                display: "grid",
+                gap: 10,
+                minHeight: 176,
+                alignContent: "start",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <span style={publicPill("#eff6ff", "#1d4ed8")}>{item.step}</span>
+                {index < items.length - 1 ? (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#94a3b8",
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {item.nextLabel} <span style={{ fontSize: 16, fontWeight: 900 }}>&rarr;</span>
+                  </span>
+                ) : null}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: "#0f172a" }}>{item.title}</div>
+              <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.6 }}>
+                {item.description}
+              </div>
+            </Link>
           ))}
         </div>
 
         <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-start" }}>
           <div style={{ display: "grid", gap: 8 }}>
             <Link href="/capture" style={publicButtonStyle(true)}>
-              Start with your first learning moment
+              Start your first learning moment
             </Link>
             <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5 }}>
-              Start here — most families begin with one simple learning moment
+              Start with one learning moment, then we&apos;ll guide you through planning,
+              reporting, and building your portfolio.
             </div>
           </div>
         </div>
@@ -121,11 +135,11 @@ export default function HomePage() {
         </div>
         <div style={{ display: "grid", gap: 12 }}>
           {[
-            "Mixed ages and flexible rhythms",
-            "Classical, eclectic, unschooling, or hybrid",
-            "Portfolio-based reporting support",
-            "Authority-friendly documentation",
-            "No school-at-home pressure",
+            "Start gently, even if you do not feel confident yet.",
+            "Follow your own homeschool rhythm, not a school dashboard.",
+            "Keep simple records without chasing perfection.",
+            "Build trusted summaries over time, not in a last-minute rush.",
+            "Stay focused on your child, not admin.",
           ].map((item) => (
             <div
               key={item}
@@ -155,10 +169,11 @@ export default function HomePage() {
         }}
       >
         <div style={{ fontSize: 34, fontWeight: 900, marginBottom: 12 }}>
-          Start with one learning moment
+          Start your first learning moment
         </div>
-        <div style={{ marginBottom: 18, opacity: 0.95, lineHeight: 1.7 }}>
-          You do not need perfect records. You just need a starting point.
+        <div style={{ marginBottom: 18, opacity: 0.95, lineHeight: 1.7, maxWidth: 760 }}>
+          One small step is enough. Try a simple learning moment first, then EduDecks helps you
+          shape what to plan, what to keep, and what to turn into a report later.
         </div>
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -171,10 +186,10 @@ export default function HomePage() {
               border: "1px solid #ffffff",
             }}
           >
-            Open Quick Capture
+            Start your first learning moment
           </Link>
           <Link
-            href="/contact"
+            href="/get-started"
             style={{
               ...publicButtonStyle(false),
               background: "transparent",
@@ -182,7 +197,7 @@ export default function HomePage() {
               border: "1px solid rgba(255,255,255,0.5)",
             }}
           >
-            Join Waitlist
+            See how it works
           </Link>
         </div>
       </section>
