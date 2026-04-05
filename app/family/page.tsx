@@ -1672,6 +1672,7 @@ function FamilyPageContent() {
         />
       ) : null}
 
+      {shouldShowGuidedStart || shouldShowGuidedStartFallbackCard ? (
       <section
         style={{
           ...S.hero(),
@@ -1919,50 +1920,9 @@ function FamilyPageContent() {
               </button>
             </div>
           </div>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 16,
-              alignItems: isMobile ? "stretch" : "center",
-              flexWrap: "wrap",
-              flexDirection: isMobile ? "column" : "row",
-            }}
-          >
-            <div style={{ maxWidth: 760 }}>
-              <div style={S.label()}>{familyJourney.current.eyebrow}</div>
-              <div style={S.h1()}>{familyJourney.current.title}</div>
-              <div style={S.body()}>{familyJourney.current.body}</div>
-              <div style={{ ...S.small(), marginTop: 10, color: "#1d4ed8" }}>
-                {familyJourney.current.reassurance}
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                width: isMobile ? "100%" : "auto",
-                flexDirection: isMobile ? "column" : "row",
-              }}
-            >
-              <Link
-                href={familyJourney.current.primaryHref}
-                style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-              >
-                {familyJourney.current.primaryLabel}
-              </Link>
-              <div style={{ ...S.small(), maxWidth: 280 }}>
-                {selectedChild
-                  ? `${selectedChild.name} is ready for the ${familyJourney.current.ribbonLabel.toLowerCase()} step.`
-                  : "EduDecks will keep this step close by until you are ready to move on."}
-              </div>
-            </div>
-          </div>
-        )}
+        ) : null}
       </section>
+      ) : null}
 
       {!shouldShowGuidedStart ? (
         <>
