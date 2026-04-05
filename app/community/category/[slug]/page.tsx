@@ -7,6 +7,7 @@ import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import ForumThreadRow from "@/app/components/ForumThreadRow";
 import {
   createForumThread,
+  isFeatureSuggestionCategory,
   loadCategoryPageData,
   requireCommunityUserId,
   type ForumCategory,
@@ -69,6 +70,12 @@ export default function CommunityCategoryPage() {
     router.push(`/community/thread/${result.thread.id}`);
   }
 
+  const isFeatureCategory = isFeatureSuggestionCategory(category);
+  const composerTitle = isFeatureCategory ? "Suggest a feature" : "Start a new discussion";
+  const composerPlaceholder = isFeatureCategory
+    ? "Tell us about your idea, the problem behind it, and how it would help your family."
+    : "Write the opening post";
+
   return (
     <FamilyTopNavShell
       title="EduDecks Family"
@@ -108,7 +115,7 @@ export default function CommunityCategoryPage() {
               Category
             </div>
             <div style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 900, color: "#0f172a" }}>
-              {category?.name || "Loading…"}
+              {category?.name || "Loading..."}
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
               {category?.description}
@@ -145,7 +152,7 @@ export default function CommunityCategoryPage() {
                 cursor: "pointer",
               }}
             >
-              Start new thread
+              {isFeatureCategory ? "Share an idea" : "Start new thread"}
             </button>
           </div>
         </div>
@@ -161,11 +168,38 @@ export default function CommunityCategoryPage() {
               gap: 12,
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>Start a new discussion</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>{composerTitle}</div>
+
+            {isFeatureCategory ? (
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  background: "#eff6ff",
+                  borderRadius: 14,
+                  padding: 14,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1d4ed8" }}>
+                  Optional prompts
+                </div>
+                <div style={{ fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+                  What would you like to see?
+                </div>
+                <div style={{ fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+                  What problem would this solve?
+                </div>
+                <div style={{ fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+                  How would it help your family?
+                </div>
+              </div>
+            ) : null}
+
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Thread title"
+              placeholder={isFeatureCategory ? "Idea title" : "Thread title"}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -179,7 +213,7 @@ export default function CommunityCategoryPage() {
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={6}
-              placeholder="Write the opening post"
+              placeholder={composerPlaceholder}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -211,7 +245,7 @@ export default function CommunityCategoryPage() {
                   opacity: saving ? 0.8 : 1,
                 }}
               >
-                {saving ? "Posting…" : "Post thread"}
+                {saving ? "Posting..." : isFeatureCategory ? "Share idea" : "Post thread"}
               </button>
             </div>
           </div>
@@ -229,7 +263,7 @@ export default function CommunityCategoryPage() {
             fontWeight: 700,
           }}
         >
-          Loading threads…
+          Loading threads...
         </section>
       ) : threads.length === 0 ? (
         <section
@@ -244,7 +278,9 @@ export default function CommunityCategoryPage() {
         >
           <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>No threads yet</div>
           <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
-            Start the first discussion in this category.
+            {isFeatureCategory
+              ? "Share the first idea for helping shape EduDecks."
+              : "Start the first discussion in this category."}
           </div>
         </section>
       ) : (

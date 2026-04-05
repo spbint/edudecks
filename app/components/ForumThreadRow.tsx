@@ -2,13 +2,43 @@
 
 import React from "react";
 import Link from "next/link";
-import { relativeTime, type ForumThreadSummary } from "@/lib/communityForum";
+import {
+  getThreadStatusLabel,
+  relativeTime,
+  type ForumThreadSummary,
+} from "@/lib/communityForum";
 
 type ForumThreadRowProps = {
   thread: ForumThreadSummary;
 };
 
+function statusBadge(status: ForumThreadSummary["status"]): React.CSSProperties {
+  if (status === "under_review") {
+    return {
+      border: "1px solid #bfdbfe",
+      background: "#eff6ff",
+      color: "#1d4ed8",
+    };
+  }
+
+  if (status === "planned") {
+    return {
+      border: "1px solid #fde68a",
+      background: "#fffbeb",
+      color: "#a16207",
+    };
+  }
+
+  return {
+    border: "1px solid #bbf7d0",
+    background: "#f0fdf4",
+    color: "#166534",
+  };
+}
+
 export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
+  const statusLabel = getThreadStatusLabel(thread.status);
+
   return (
     <Link
       href={`/community/thread/${thread.id}`}
@@ -41,13 +71,26 @@ export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
                 Pinned
               </span>
             ) : null}
+            {statusLabel ? (
+              <span
+                style={{
+                  ...statusBadge(thread.status),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 900,
+                }}
+              >
+                {statusLabel}
+              </span>
+            ) : null}
             <div style={{ fontSize: 18, lineHeight: 1.25, fontWeight: 900, color: "#0f172a" }}>
               {thread.title}
             </div>
           </div>
 
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
-            {thread.body.length > 180 ? `${thread.body.slice(0, 180)}…` : thread.body}
+            {thread.body.length > 180 ? `${thread.body.slice(0, 180)}...` : thread.body}
           </div>
         </div>
 
@@ -58,6 +101,7 @@ export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13, color: "#64748b", fontWeight: 700 }}>
         <span>{thread.replyCount} replies</span>
+        <span>{thread.supportCount} support</span>
         <span>{thread.latestActivityText}</span>
       </div>
     </Link>

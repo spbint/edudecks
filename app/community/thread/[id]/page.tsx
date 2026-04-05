@@ -6,10 +6,14 @@ import { useParams, useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   createForumReply,
+  getThreadStatusLabel,
+  isFeatureSuggestionCategory,
   loadThreadPageData,
   relativeTime,
   requireCommunityUserId,
+  supportForumThread,
   type ForumCategory,
+  type ForumThreadStatus,
 } from "@/lib/communityForum";
 
 type ThreadView = {
@@ -19,9 +23,12 @@ type ThreadView = {
   title: string;
   body: string;
   is_pinned: boolean;
+  status: ForumThreadStatus;
   created_at: string;
   updated_at: string;
   authorLabel: string;
+  supportCount: number;
+  viewerSupports: boolean;
 };
 
 type ReplyView = {
@@ -33,6 +40,30 @@ type ReplyView = {
   updated_at: string;
   authorLabel: string;
 };
+
+function statusBadge(status: ForumThreadStatus): React.CSSProperties {
+  if (status === "under_review") {
+    return {
+      border: "1px solid #bfdbfe",
+      background: "#eff6ff",
+      color: "#1d4ed8",
+    };
+  }
+
+  if (status === "planned") {
+    return {
+      border: "1px solid #fde68a",
+      background: "#fffbeb",
+      color: "#a16207",
+    };
+  }
+
+  return {
+    border: "1px solid #bbf7d0",
+    background: "#f0fdf4",
+    color: "#166534",
+  };
+}
 
 export default function CommunityThreadPage() {
   const params = useParams<{ id: string }>();
@@ -46,6 +77,7 @@ export default function CommunityThreadPage() {
   const [loading, setLoading] = useState(true);
   const [replyBody, setReplyBody] = useState("");
   const [replying, setReplying] = useState(false);
+  const [supporting, setSupporting] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -94,6 +126,44 @@ export default function CommunityThreadPage() {
     setReplying(false);
   }
 
+  async function handleSupport() {
+    if (!viewerId || !thread || thread.viewerSupports) return;
+
+    setSupporting(true);
+    setMessage("");
+
+    const result = await supportForumThread({
+      viewerId,
+      threadId: thread.id,
+    });
+
+    if (!result.alreadySupported) {
+      setThread((current) =>
+        current
+          ? {
+              ...current,
+              supportCount: current.supportCount + 1,
+              viewerSupports: true,
+            }
+          : current
+      );
+    } else {
+      setThread((current) =>
+        current
+          ? {
+              ...current,
+              viewerSupports: true,
+            }
+          : current
+      );
+    }
+
+    setSupporting(false);
+  }
+
+  const statusLabel = getThreadStatusLabel(thread?.status ?? null);
+  const isFeatureCategory = isFeatureSuggestionCategory(category);
+
   return (
     <FamilyTopNavShell
       title="EduDecks Family"
@@ -114,7 +184,7 @@ export default function CommunityThreadPage() {
             fontWeight: 700,
           }}
         >
-          Loading discussion…
+          Loading discussion...
         </section>
       ) : !thread ? (
         <section
@@ -160,8 +230,23 @@ export default function CommunityThreadPage() {
                 >
                   {category?.name || "Community thread"}
                 </div>
-                <div style={{ fontSize: 30, lineHeight: 1.1, fontWeight: 900, color: "#0f172a" }}>
-                  {thread.title}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  {statusLabel ? (
+                    <span
+                      style={{
+                        ...statusBadge(thread.status),
+                        borderRadius: 999,
+                        padding: "4px 8px",
+                        fontSize: 11,
+                        fontWeight: 900,
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
+                  ) : null}
+                  <div style={{ fontSize: 30, lineHeight: 1.1, fontWeight: 900, color: "#0f172a" }}>
+                    {thread.title}
+                  </div>
                 </div>
               </div>
 
@@ -193,6 +278,49 @@ export default function CommunityThreadPage() {
             <div style={{ fontSize: 15, lineHeight: 1.75, color: "#334155", whiteSpace: "pre-wrap" }}>
               {thread.body}
             </div>
+
+            {isFeatureCategory ? (
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  background: "#f8fafc",
+                  borderRadius: 16,
+                  padding: 14,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ display: "grid", gap: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
+                    {thread.supportCount} families support this idea
+                  </div>
+                  <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b" }}>
+                    A simple way to show that this idea would help more than one family.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleSupport()}
+                  disabled={thread.viewerSupports || supporting}
+                  style={{
+                    border: thread.viewerSupports ? "1px solid #bbf7d0" : "1px solid #2563eb",
+                    background: thread.viewerSupports ? "#f0fdf4" : "#2563eb",
+                    color: thread.viewerSupports ? "#166534" : "#ffffff",
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: thread.viewerSupports ? "default" : "pointer",
+                    opacity: supporting ? 0.8 : 1,
+                  }}
+                >
+                  {thread.viewerSupports ? "You support this idea" : supporting ? "Saving..." : "Support this idea"}
+                </button>
+              </div>
+            ) : null}
           </section>
 
           <section style={{ display: "grid", gap: 14, marginBottom: 18 }}>
@@ -235,7 +363,7 @@ export default function CommunityThreadPage() {
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               rows={5}
-              placeholder="Write a thoughtful reply"
+              placeholder={isFeatureCategory ? "Add a thoughtful reply or build on the idea" : "Write a thoughtful reply"}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -267,7 +395,7 @@ export default function CommunityThreadPage() {
                   opacity: replying ? 0.8 : 1,
                 }}
               >
-                {replying ? "Posting…" : "Reply"}
+                {replying ? "Posting..." : "Reply"}
               </button>
             </div>
           </section>
