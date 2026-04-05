@@ -869,9 +869,14 @@ function CalendarPageContent() {
             >
               Add block
             </button>
-            <button style={{ ...styles.secondaryBtn, width: isMobile ? "100%" : undefined }} onClick={() => goToCapture()}>
-              Capture
-            </button>
+            {weeklyBlocks.length > 0 ? (
+              <button
+                style={{ ...styles.secondaryBtn, width: isMobile ? "100%" : undefined }}
+                onClick={() => goToCapture()}
+              >
+                Capture
+              </button>
+            ) : null}
             {!isMobile ? (
               <Link href="/planner" style={{ ...styles.secondaryBtn, justifyContent: "center" }}>
                 Back to Planner
@@ -1065,6 +1070,9 @@ function CalendarPageContent() {
             <div style={styles.intelligencePanel}>
               <div style={styles.intelligencePanelTitle}>Suggested next block</div>
               <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
+              <div style={{ ...styles.helperText, marginTop: 8 }}>
+                Beginner path: plan first, then capture what happened, then build a report, then use portfolio for the best pieces.
+              </div>
               <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
                 <button
                   style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
@@ -1509,11 +1517,11 @@ function CalendarPageContent() {
             <Link href="/capture" style={styles.footerChip}>
               Capture
             </Link>
-            <Link href="/portfolio" style={styles.footerChip}>
-              Portfolio
-            </Link>
             <Link href="/reports" style={styles.footerChip}>
               Reports
+            </Link>
+            <Link href="/portfolio" style={styles.footerChip}>
+              Portfolio
             </Link>
           </div>
         </section>

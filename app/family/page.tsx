@@ -438,9 +438,10 @@ function countLocalPlannerBlocks() {
 
 function buildFamilyGuidanceState(
   plannerBlockCount: number,
-  hasRecentEvidence: boolean
+  totalEvidenceCount: number,
+  hasReportDraft: boolean
 ): FamilyGuidanceState {
-  if (hasRecentEvidence) {
+  if (plannerBlockCount === 0) {
     return {
       title: "You’re on track",
       body: "You’ve captured learning this week — keep going",
@@ -463,6 +464,52 @@ function buildFamilyGuidanceState(
     body: "Plan one small learning moment",
     ctaLabel: "Open Calendar",
     ctaHref: "/calendar",
+  };
+}
+
+function buildBeginnerGuidanceState(
+  plannerBlockCount: number,
+  totalEvidenceCount: number,
+  hasReportDraft: boolean
+): FamilyGuidanceState {
+  if (plannerBlockCount === 0) {
+    return {
+      title: "Start here",
+      body: "Plan one small learning moment. One small step is enough to begin.",
+      ctaLabel: "Open Calendar",
+      ctaHref: "/calendar",
+    };
+  }
+
+  if (totalEvidenceCount === 0) {
+    return {
+      title: "Do this next",
+      body: "You have a plan. Next, capture what happened so the record starts to take shape.",
+      ctaLabel: "Capture",
+      ctaHref: "/capture",
+      secondaryLabel: "See planning",
+      secondaryHref: "/calendar",
+    };
+  }
+
+  if (!hasReportDraft) {
+    return {
+      title: "Next step",
+      body: "You have captured learning. Turn it into a simple report next, then keep the strongest pieces in portfolio later.",
+      ctaLabel: "Build Report",
+      ctaHref: "/reports",
+      secondaryLabel: "Capture again",
+      secondaryHref: "/capture",
+    };
+  }
+
+  return {
+    title: "Youâ€™re on track",
+    body: "Your plan, capture, and report are moving well. Portfolio is there when you want to keep the strongest pieces together.",
+    ctaLabel: "Continue Report",
+    ctaHref: "/reports",
+    secondaryLabel: "Open Portfolio",
+    secondaryHref: "/portfolio",
   };
 }
 
@@ -824,9 +871,16 @@ function FamilyPageContent() {
   }, [drafts, selectedChild]);
 
   const familyGuidance = useMemo(
-    () => buildFamilyGuidanceState(plannerBlockCount, hasRecentEvidence),
-    [plannerBlockCount, hasRecentEvidence]
+    () =>
+      buildBeginnerGuidanceState(
+        plannerBlockCount,
+        totalEvidenceCount,
+        Boolean(selectedChildDraft)
+      ),
+    [plannerBlockCount, totalEvidenceCount, selectedChildDraft]
   );
+  const isEarlyFlowState =
+    plannerBlockCount === 0 || totalEvidenceCount === 0 || !selectedChildDraft;
   const hasCompletedGuidedDraft =
     !!guidedDraft.age_band && !!guidedDraft.location && !!guidedDraft.learning_stage;
   const shouldShowGuidedStart =
@@ -1307,15 +1361,34 @@ function FamilyPageContent() {
               <div style={S.label()}>Guidance</div>
               <div style={S.h1()}>{familyGuidance.title}</div>
               <div style={S.body()}>{familyGuidance.body}</div>
+              <div style={{ ...S.small(), marginTop: 10 }}>
+                Beginner path: Planning â†’ Capture â†’ Reports â†’ Portfolio
+              </div>
             </div>
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                width: isMobile ? "100%" : "auto",
+                flexDirection: isMobile ? "column" : "row",
+              }}
+            >
               <Link
                 href={familyGuidance.ctaHref || "/calendar"}
                 style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
               >
                 {familyGuidance.ctaLabel || "Open Calendar"}
               </Link>
+              {familyGuidance.secondaryHref && familyGuidance.secondaryLabel ? (
+                <Link
+                  href={familyGuidance.secondaryHref}
+                  style={{ ...S.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                >
+                  {familyGuidance.secondaryLabel}
+                </Link>
+              ) : null}
             </div>
           </div>
         )}
@@ -1455,47 +1528,39 @@ function FamilyPageContent() {
               </div>
 
               <div style={{ ...S.small(), marginTop: 8 }}>
-                Calendar is the best place to shape the week before you capture what actually happened.
+                Start with planning, then capture what happened, then build a report. Portfolio can come after that.
               </div>
 
-              <div
-                style={{
-                  marginTop: 14,
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  flexDirection: isMobile ? "column" : "row",
-                }}
-              >
-                <Link href="/calendar" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
-                  Plan this week
-                </Link>
-                {!isMobile ? (
-                  <>
-                    <Link href="/planner" style={S.button(false)}>
-                      Adjust plan
-                    </Link>
-                    <Link href="/capture" style={S.button(false)}>
-                      Capture learning
-                    </Link>
+              {isEarlyFlowState ? (
+                <div style={{ ...S.small(), marginTop: 14, color: "#1e3a8a", fontWeight: 800 }}>
+                  Your next step is shown above so you do not need to choose between several actions here.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    flexDirection: isMobile ? "column" : "row",
+                  }}
+                >
+                  <Link
+                    href={familyGuidance.ctaHref || "/reports"}
+                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    {familyGuidance.ctaLabel || "Continue Report"}
+                  </Link>
+                  {familyGuidance.secondaryHref && familyGuidance.secondaryLabel ? (
                     <Link
-                      href={selectedChildDraft ? `/reports?draftId=${selectedChildDraft.id}` : "/reports"}
-                      style={S.button(false)}
+                      href={familyGuidance.secondaryHref}
+                      style={{ ...S.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                     >
-                      Build report
+                      {familyGuidance.secondaryLabel}
                     </Link>
-                  </>
-                ) : (
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Link href="/capture" style={S.button(false)}>
-                      Capture
-                    </Link>
-                    <Link href="/planner" style={S.button(false)}>
-                      Planner
-                    </Link>
-                  </div>
-                )}
-              </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           </div>
 
@@ -1562,7 +1627,7 @@ function FamilyPageContent() {
             <Link href="/children" style={S.button(false)}>
               Manage children
             </Link>
-            <Link href="/capture" style={S.button(true)}>
+            <Link href="/capture" style={S.button(false)}>
               Add learning
             </Link>
           </div>

@@ -37,12 +37,10 @@ function stepStyle(active: boolean): React.CSSProperties {
 }
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
-  { href: "/family", label: "Home", matches: ["/family"] },
-  { href: "/planner", label: "Planning", matches: ["/planner", "/goals"] },
-  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
+  { href: "/calendar", label: "Planning", matches: ["/planner", "/goals", "/calendar"] },
   { href: "/capture", label: "Capture", matches: ["/capture"] },
-  { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
   { href: "/reports", label: "Reports", matches: ["/reports", "/reports/library", "/reports/output", "/reports/presets"] },
+  { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
 ];
 
 export default function FamilyWorkflowStrip() {
@@ -68,7 +66,7 @@ export default function FamilyWorkflowStrip() {
           marginBottom: 10,
         }}
       >
-        {isMobile ? "Daily loop" : "Family workflow"}
+        {isMobile ? "Beginner path" : "Beginner progression"}
       </div>
 
       <div
@@ -81,8 +79,8 @@ export default function FamilyWorkflowStrip() {
         }}
       >
         {isMobile
-          ? "Keep the next family step nearby."
-          : "Follow one clear family loop from planning into capture, then into portfolio and reports."}
+          ? "One clear path: plan, capture, report, then keep the best pieces in portfolio."
+          : "Start with planning, then capture what happened, turn it into a report, and keep the strongest pieces in portfolio."}
       </div>
 
       <div
@@ -140,35 +138,17 @@ export default function FamilyWorkflowStrip() {
         })}
       </div>
 
-      {!isMobile ? (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            marginTop: 12,
-          }}
-        >
-          <Link href="/reports/library" style={stepStyle(isStepActive(pathname, { href: "/reports/library", label: "Report Library", matches: ["/reports/library"] }))}>
-            <span>Report Library</span>
-          </Link>
-          <Link href="/reports/output" style={stepStyle(isStepActive(pathname, { href: "/reports/output", label: "Output", matches: ["/reports/output"] }))}>
-            <span>Output</span>
-          </Link>
-          <Link
-            href="/authority"
-            style={stepStyle(
-              isStepActive(pathname, {
-                href: "/authority",
-                label: "Authority",
-                matches: ["/authority", "/authority-au", "/authority-uk", "/authority-us"],
-              })
-            )}
-          >
-            <span>Authority</span>
-          </Link>
-        </div>
-      ) : null}
+      <div
+        style={{
+          marginTop: 12,
+          fontSize: 12,
+          lineHeight: 1.6,
+          color: "#64748b",
+          fontWeight: 700,
+        }}
+      >
+        Start small. One planned block is enough to begin.
+      </div>
     </div>
   );
 }

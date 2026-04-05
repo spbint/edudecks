@@ -1466,22 +1466,22 @@ function CapturePageContent() {
                     href={
                       plannerContext.date
                         ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                        : "/portfolio"
+                        : "/reports"
                     }
                     style={{ ...buttonStyle(false), width: "100%" }}
                   >
-                    {plannerContext.isActive ? "Back to Calendar" : "Open Portfolio"}
+                    {plannerContext.isActive ? "Back to Calendar" : "Build report"}
                   </Link>
                 ) : (
                   <>
                     <Link href="/family" style={buttonStyle(false)}>
                       Family Home
                     </Link>
-                    <Link href="/portfolio" style={buttonStyle(false)}>
-                      Portfolio
-                    </Link>
                     <Link href="/reports" style={buttonStyle(false)}>
                       Reports
+                    </Link>
+                    <Link href="/portfolio" style={buttonStyle(false)}>
+                      Portfolio
                     </Link>
                   </>
                 )}
@@ -1600,10 +1600,10 @@ function CapturePageContent() {
                     {saveState === "saving" ? "Saving..." : "Save learning"}
                   </button>
                   <Link
-                    href={plannerContext.isActive ? "/calendar" : "/portfolio"}
+                    href={plannerContext.isActive ? "/calendar" : "/reports"}
                     style={{ ...buttonStyle(false), width: "100%" }}
                   >
-                    {plannerContext.isActive ? "Return to Calendar" : "Review Portfolio"}
+                    {plannerContext.isActive ? "Return to Calendar" : "Build report"}
                   </Link>
                 </div>
               </div>
@@ -2150,16 +2150,16 @@ function CapturePageContent() {
                     }}
                   >
                     <Link
+                      href="/reports"
+                      style={{ ...buttonStyle(true), width: isMobile ? "100%" : undefined }}
+                    >
+                      Open Reports
+                    </Link>
+                    <Link
                       href="/portfolio"
                       style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
                     >
                       Open Portfolio
-                    </Link>
-                    <Link
-                      href="/reports"
-                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-                    >
-                      Open Reports
                     </Link>
                   </div>
                 </div>
