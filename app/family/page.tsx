@@ -926,14 +926,15 @@ function buildFamilyJourneyState(params: {
 
 function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null) {
   if (child.evidenceCount === 0) return "Start entry";
-  if (!childDraft) return "Build draft";
-  if (child.evidenceCount < 3) return "Build draft";
+  if (!childDraft) return "Build learning block";
+  if (child.evidenceCount < 3) return "Build learning block";
   return "Continue";
 }
 
 function childActionHref(child: ChildRecord, childDraft: ReportDraftRow | null) {
   if (child.evidenceCount === 0) return "/calendar";
-  if (!childDraft) return "/reports";
+  if (!childDraft) return "/calendar";
+  if (child.evidenceCount < 3) return "/calendar";
   return `/reports?draftId=${childDraft.id}`;
 }
 
