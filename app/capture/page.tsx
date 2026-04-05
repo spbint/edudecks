@@ -4,10 +4,10 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
-import UpgradeCard from "@/app/components/premium/UpgradeCard";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLAN_STORAGE_KEY = "edudecks_plan";
@@ -1995,12 +1995,14 @@ function CapturePageContent() {
                       </button>
                     </div>
 
-                    {!isPremium ? (
+                    {!isPremium && premiumMediaType ? (
                       <div style={{ marginTop: 4 }}>
-                        <UpgradeCard
-                          trigger="capture-media"
-                          variant="compact"
-                          onSecondaryClick={() => setPremiumMediaType(null)}
+                        <UpgradeHint
+                          title="Add richer evidence with photos, audio, and files"
+                          description={mediaExplanation(premiumMediaType)}
+                          ctaLabel="Unlock media capture"
+                          ctaHref="/upgrade"
+                          variant="inline"
                         />
                       </div>
                     ) : null}
@@ -2089,6 +2091,18 @@ function CapturePageContent() {
                   </div>
                 </div>
               </section>
+
+              {!isPremium && savedCount >= 2 ? (
+                <section style={{ ...mainCard(), marginBottom: 18, padding: 14 }}>
+                  <UpgradeHint
+                    title="You're building a strong learning record"
+                    description="Want more flexibility as you grow?"
+                    ctaLabel="Unlock more control"
+                    ctaHref="/upgrade"
+                    variant="subtle"
+                  />
+                </section>
+              ) : null}
 
               <section
                 style={{
@@ -2258,76 +2272,6 @@ function CapturePageContent() {
             </div>
           </section>
 
-          {premiumMediaType ? (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(15,23,42,0.45)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                zIndex: 50,
-                padding: 18,
-              }}
-            >
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: 720,
-                  background: "#ffffff",
-                  borderRadius: 22,
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 30px 80px rgba(15,23,42,0.18)",
-                  padding: 24,
-                  display: "grid",
-                  gap: 16,
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                  <div>
-                    <div style={eyebrowStyle()}>Premium feature</div>
-                    <div
-                      style={{
-                        marginTop: 8,
-                        fontSize: 24,
-                        lineHeight: 1.2,
-                        fontWeight: 900,
-                        color: "#0f172a",
-                      }}
-                    >
-                      {mediaTitle(premiumMediaType)} are part of EduDecks Plus
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 10,
-                        fontSize: 15,
-                        lineHeight: 1.7,
-                        color: "#475569",
-                        maxWidth: 560,
-                      }}
-                    >
-                      {mediaExplanation(premiumMediaType)}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setPremiumMediaType(null)}
-                    style={{ ...buttonStyle(false), padding: "8px 12px", alignSelf: "start" }}
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <UpgradeCard
-                  trigger="capture-media"
-                  variant="full"
-                  onSecondaryClick={() => setPremiumMediaType(null)}
-                />
-              </div>
-            </div>
-          ) : null}
         </>
       )}
       <AuthModal

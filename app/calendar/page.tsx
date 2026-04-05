@@ -4,8 +4,10 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import useIsMobile from "@/app/components/useIsMobile";
+import { isPremiumActive } from "@/lib/premiumConfig";
 
 type ViewMode = "day" | "week" | "month";
 type BlockStatus = "planned" | "done";
@@ -267,6 +269,12 @@ function CalendarPageContent() {
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [message, setMessage] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [showCalendarUpgradeHint, setShowCalendarUpgradeHint] = useState(false);
+
+  useEffect(() => {
+    setIsPremium(isPremiumActive());
+  }, []);
 
   useEffect(() => {
     const qView = safeString(searchParams.get("view")).toLowerCase();
@@ -653,6 +661,10 @@ function CalendarPageContent() {
   }
 
   async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
+    if (!isPremium && weeklyBlocks.length >= 1) {
+      setShowCalendarUpgradeHint(true);
+    }
+
     const pending: PendingPlannerBlock = {
       title: safeString(custom?.title ?? title),
       learningArea: safeString(custom?.area ?? learningArea) || "Literacy",
@@ -781,6 +793,9 @@ function CalendarPageContent() {
   }
 
   function openDay(date: Date) {
+    if (!isPremium && weeklyBlocks.length > 0) {
+      setShowCalendarUpgradeHint(true);
+    }
     setSelectedDate(date);
     setView("day");
   }
@@ -822,6 +837,18 @@ function CalendarPageContent() {
   return (
     <div style={styles.page}>
       <div style={styles.container}>
+        {!isPremium && weeklyBlocks.length >= 2 ? (
+          <section style={{ ...styles.toolbarCard, padding: isMobile ? 14 : 16 }}>
+            <UpgradeHint
+              title="You're building a strong learning record"
+              description="Want more flexibility as you grow?"
+              ctaLabel="Unlock more control"
+              ctaHref="/upgrade"
+              variant="subtle"
+            />
+          </section>
+        ) : null}
+
         <section
           style={{
             ...styles.hero,
@@ -1026,6 +1053,18 @@ function CalendarPageContent() {
 
           {message ? <div style={styles.message}>{message}</div> : null}
           <div style={styles.storageHint}>Storage mode: {storageMode}</div>
+
+          {!isPremium && showCalendarUpgradeHint ? (
+            <div style={{ marginTop: 12 }}>
+              <UpgradeHint
+                title="Upgrade to organise your full week visually"
+                description="Go further when you're ready with more control over placement, editing, and a fuller weekly view."
+                ctaLabel="Unlock Calendar"
+                ctaHref="/upgrade"
+                variant="inline"
+              />
+            </div>
+          ) : null}
         </section>
 
         <section style={styles.intelligenceCard}>

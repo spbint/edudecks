@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 
 /* ──────────────────────────────────────────────────────────────
@@ -1008,6 +1009,18 @@ function PortfolioPageContent() {
         </section>
       ) : (
         <>
+          {!isPremium && evidence.length >= 2 ? (
+            <section style={{ ...UI.card(), marginBottom: 18 }}>
+              <UpgradeHint
+                title="You're building a strong learning record"
+                description="Want more flexibility as you grow?"
+                ctaLabel="Unlock more control"
+                ctaHref="/upgrade"
+                variant="subtle"
+              />
+            </section>
+          ) : null}
+
           {highlightedEvidence ? (
             <section
               style={{
@@ -1173,6 +1186,18 @@ function PortfolioPageContent() {
             <div style={{ ...UI.body(), marginTop: 16, maxWidth: 820 }}>
               This is {student ? `${firstNameOf(student)}'s` : "your child's"} learning story. Add another moment to keep the story growing, or use Reports when you want to turn it into a shareable summary.
             </div>
+
+            {!isPremium ? (
+              <div style={{ marginTop: 14 }}>
+                <UpgradeHint
+                  title="Full portfolio view grows over time"
+                  description="Unlock the full learning story when you want a deeper view of how everything connects."
+                  ctaLabel="Unlock full learning story"
+                  ctaHref="/upgrade"
+                  variant="subtle"
+                />
+              </div>
+            ) : null}
 
             <div
               style={{

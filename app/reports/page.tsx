@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import {
   DEFAULT_FAMILY_PROFILE,
@@ -21,6 +22,7 @@ import {
   type ReportMode,
   type SelectionMetaMap,
 } from "@/lib/reportDrafts";
+import { isPremiumActive } from "@/lib/premiumConfig";
 import { getDisplayName, getEvidenceText, safeText } from "@/lib/system";
 
 type StudentRow = {
@@ -670,6 +672,7 @@ function ReportsPageContent() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
 
   const [draftId, setDraftId] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -691,6 +694,10 @@ function ReportsPageContent() {
   const [selectionMeta, setSelectionMeta] = useState<ReportSelectionMeta>({});
   const [notes, setNotes] = useState("");
   const [highlightEvidenceId, setHighlightEvidenceId] = useState("");
+
+  useEffect(() => {
+    setIsPremium(isPremiumActive());
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -1410,6 +1417,26 @@ function ReportsPageContent() {
       </div>
 
       <div style={innerStyle}>
+        {!isPremium && studentEvidence.length >= 2 ? (
+          <section
+            style={{
+              ...cardStyle,
+              marginBottom: 18,
+              padding: 14,
+              background: "#f8fbff",
+              borderColor: "#dbeafe",
+            }}
+          >
+            <UpgradeHint
+              title="You're building a strong learning record"
+              description="Want more flexibility as you grow?"
+              ctaLabel="Unlock more control"
+              ctaHref="/upgrade"
+              variant="subtle"
+            />
+          </section>
+        ) : null}
+
         {highlightedEvidence ? (
           <section
             style={{
@@ -1591,6 +1618,18 @@ function ReportsPageContent() {
                   After the report is built, keep the strongest parts in portfolio so your child's learning story stays easy to revisit.
                 </div>
               </div>
+
+              {!isPremium && (draftId || selectedEvidenceIds.length > 0) ? (
+                <div style={{ marginTop: 14 }}>
+                  <UpgradeHint
+                    title="Want to build full reports anytime?"
+                    description="Access your report library and generate reports whenever you need."
+                    ctaLabel="Unlock Reports"
+                    ctaHref="/upgrade"
+                    variant="subtle"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
