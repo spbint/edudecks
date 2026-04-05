@@ -288,7 +288,7 @@ export default function TeacherPage() {
 
               <div className="flex flex-wrap items-center gap-2">
                 <Link href="/admin" className="dash-btn dash-btn-primary">
-                  Admin ->
+                  Admin &rarr;
                 </Link>
               </div>
             </div>
@@ -307,14 +307,18 @@ export default function TeacherPage() {
 
             <div className="flex flex-wrap gap-2">
               <Link href="/admin/enter-results" className="dash-btn dash-btn-primary">
-                Enter Results ->
+                Enter Results &rarr;
               </Link>
             </div>
           </div>
 
           {!hasClasses ? (
             <div className="mt-4 dash-alert">
-              No classes found. Create one in <Link className="font-semibold underline" href="/admin/class-entry">Admin -> Class Entry</Link>.
+              No classes found. Create one in{" "}
+              <Link className="font-semibold underline" href="/admin/class-entry">
+                Admin &rarr; Class Entry
+              </Link>
+              .
             </div>
           ) : (
             <>
@@ -420,7 +424,7 @@ export default function TeacherPage() {
               <div className="mt-3 text-sm text-slate-600">
                 No students are assigned to this class yet. Assign in{" "}
                 <Link href="/admin/student-class" className="font-semibold text-slate-900 underline">
-                  Admin -> Assign Students -> Classes
+                  Admin &rarr; Assign Students &rarr; Classes
                 </Link>
                 .
               </div>
