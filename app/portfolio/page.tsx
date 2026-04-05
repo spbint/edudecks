@@ -485,6 +485,37 @@ function buildSeedStudents(): StudentRow[] {
   }));
 }
 
+async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
+  const authResp = await supabase.auth.getUser();
+  const userId = authResp.data.user?.id;
+
+  if (!userId) return null;
+
+  const linksResp = await supabase
+    .from("parent_student_links")
+    .select("student_id,sort_order,created_at")
+    .eq("parent_user_id", userId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (linksResp.error) {
+    if (!isMissingRelationOrColumn(linksResp.error)) throw linksResp.error;
+    return null;
+  }
+
+  const orderedIds: string[] = [];
+  const seen = new Set<string>();
+
+  ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
+    const id = safe(row.student_id);
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    orderedIds.push(id);
+  });
+
+  return orderedIds;
+}
+
 /* ──────────────────────────────────────────────────────────────
    STYLES
    ────────────────────────────────────────────────────────────── */
@@ -622,6 +653,8 @@ function PortfolioPageContent() {
       try {
         const premium = getPremiumFromStorage();
         setIsPremium(premium);
+        const linkedStudentIds = await loadLinkedFamilyStudentIds();
+        const hasScopedFamily = Array.isArray(linkedStudentIds);
 
         const studentQueries = [
           supabase
@@ -652,8 +685,19 @@ function PortfolioPageContent() {
           if (!isMissingRelationOrColumn(r.error)) throw r.error;
         }
 
+        if (hasScopedFamily) {
+          const scopedIds = linkedStudentIds ?? [];
+          loadedStudents = scopedIds
+            .map((id) => loadedStudents.find((student) => safe(student.id) === id) || null)
+            .filter((student): student is StudentRow => student !== null);
+        }
+
         const seedStudents = buildSeedStudents();
-        const mergedStudents = loadedStudents.length > 0 ? loadedStudents : seedStudents;
+        const mergedStudents = hasScopedFamily
+          ? loadedStudents
+          : loadedStudents.length > 0
+          ? loadedStudents
+          : seedStudents;
 
         const evidenceQueries = [
           supabase
@@ -696,6 +740,11 @@ function PortfolioPageContent() {
             break;
           }
           if (!isMissingRelationOrColumn(r.error)) throw r.error;
+        }
+
+        if (hasScopedFamily) {
+          const allowedIds = new Set(linkedStudentIds ?? []);
+          loadedEvidence = loadedEvidence.filter((item) => allowedIds.has(safe(item.student_id)));
         }
 
         setStudents(mergedStudents);
