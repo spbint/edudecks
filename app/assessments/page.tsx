@@ -436,7 +436,7 @@ export default function AssessmentsPage() {
 
       setRecentEvidence(enriched.slice(0, 50));
     } catch (e: any) {
-      setError(e?.message || "Save failed");
+      setError("Not saved yet");
     } finally {
       setSaving(false);
     }

@@ -458,7 +458,7 @@ function StudentEntryPageContent() {
         router.push(classId ? `/admin/classes/${classId}` : "/admin/students");
       }
     } catch (e: any) {
-      setErr(e?.message ?? "Save failed.");
+      setErr("Not saved yet");
     } finally {
       setBusy(false);
       setTimeout(() => setOkMsg(null), 1400);

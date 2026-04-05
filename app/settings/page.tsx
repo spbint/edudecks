@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import {
   ChildOption,
   DEFAULT_FAMILY_SETTINGS,
@@ -211,6 +212,13 @@ export default function FamilySettingsPage() {
     };
   }, [settings.show_authority_guidance, settings.experience_mode]);
 
+  const saveStatus = useMemo<SaveStatusState>(() => {
+    if (saving) return "saving";
+    if (JSON.stringify(settings) !== JSON.stringify(initialSettings)) return "unsaved";
+    if (savedAt) return "saved";
+    return "unsaved";
+  }, [initialSettings, savedAt, saving, settings]);
+
   function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
   }
@@ -332,7 +340,6 @@ export default function FamilySettingsPage() {
             </div>
 
             {loadError ? <div style={shellStyles.warningBanner}>{loadError}</div> : null}
-            {saveError ? <div style={shellStyles.warningBanner}>{saveError}</div> : null}
           </div>
 
           <div style={shellStyles.heroAside}>
@@ -718,15 +725,9 @@ export default function FamilySettingsPage() {
 
       <div style={shellStyles.stickyBar}>
         <div style={{ display: "grid", gap: 4 }}>
-          <div style={shellStyles.stickyTitle}>
-            {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
-          </div>
+          <div style={shellStyles.stickyTitle}>Family settings</div>
           <div style={shellStyles.stickySub}>
-            {savedAt
-              ? `Last saved ${savedAt}`
-              : storageMode === "database"
-              ? "Save to persist these settings into the family profile."
-              : "Save will persist locally until signed-in database storage is available."}
+            <SaveStatus status={saveStatus} />
           </div>
         </div>
 
@@ -744,7 +745,7 @@ export default function FamilySettingsPage() {
             }}
             disabled={saving}
           >
-            {saving ? "Saving..." : "Save family settings"}
+            {saving ? "Saving…" : "Save family settings"}
           </button>
         </div>
       </div>

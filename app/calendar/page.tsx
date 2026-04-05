@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import useIsMobile from "@/app/components/useIsMobile";
@@ -266,6 +267,7 @@ function CalendarPageContent() {
   const [loading, setLoading] = useState(true);
   const [savingBlock, setSavingBlock] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatusState>("idle");
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [message, setMessage] = useState("");
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -635,6 +637,7 @@ function CalendarPageContent() {
     authenticatedUserId: string | null
   ) {
     setSavingBlock(true);
+    setSaveStatus("saving");
     setMessage("");
 
     const block: PlannerBlock = {
@@ -656,7 +659,7 @@ function CalendarPageContent() {
 
     setTitle("");
     setToolbarNote("");
-    setMessage(savedToDatabase ? "Learning block added." : "Learning block added locally.");
+    setSaveStatus("saved");
     setSavingBlock(false);
   }
 
@@ -675,6 +678,7 @@ function CalendarPageContent() {
     };
 
     if (!pending.title) {
+      setSaveStatus("idle");
       setMessage("Add a simple learning moment first.");
       return;
     }
@@ -688,6 +692,7 @@ function CalendarPageContent() {
           window.sessionStorage.setItem(PENDING_BLOCK_KEY, JSON.stringify(pending));
         }
         setAuthModalOpen(true);
+        setSaveStatus("idle");
         setMessage("Save your progress to keep this plan.");
         return;
       }
@@ -704,6 +709,7 @@ function CalendarPageContent() {
     const noteDate = selectedIso;
 
     setSavingNote(true);
+    setSaveStatus("saving");
     setMessage("");
 
     const payload: PlannerDayNote = {
@@ -737,7 +743,7 @@ function CalendarPageContent() {
           next[existingKey] = res.data as PlannerDayNote;
           setDayNotesMap(next);
           setStorageMode("database");
-          setMessage("Day note saved.");
+          setSaveStatus("saved");
           setSavingNote(false);
           return;
         }
@@ -749,7 +755,7 @@ function CalendarPageContent() {
           const next = { ...dayNotesMap, [key]: res.data as PlannerDayNote };
           setDayNotesMap(next);
           setStorageMode("database");
-          setMessage("Day note saved.");
+          setSaveStatus("saved");
           setSavingNote(false);
           return;
         }
@@ -762,7 +768,7 @@ function CalendarPageContent() {
     setLocalNotes(existing);
     setDayNotesMap(existing);
     setStorageMode("local");
-    setMessage("Day note saved locally.");
+    setSaveStatus("saved");
     setSavingNote(false);
   }
 
@@ -1051,6 +1057,12 @@ function CalendarPageContent() {
             style={styles.noteInput}
           />
 
+          {(savingBlock || savingNote || saveStatus !== "idle") ? (
+            <SaveStatus
+              status={savingBlock || savingNote ? "saving" : saveStatus}
+              style={{ marginTop: 2 }}
+            />
+          ) : null}
           {message ? <div style={styles.message}>{message}</div> : null}
           <div style={styles.storageHint}>Storage mode: {storageMode}</div>
 
@@ -1422,7 +1434,7 @@ function CalendarPageContent() {
                   onClick={handleSaveDayNote}
                   disabled={savingNote}
                 >
-                  {savingNote ? "Saving..." : "Save note"}
+                  {savingNote ? "Saving…" : "Save note"}
                 </button>
               </div>
 

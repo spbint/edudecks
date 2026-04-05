@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import SaveStatus from "@/app/components/SaveStatus";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -1341,7 +1342,7 @@ function CapturePageContent() {
       await loadChildren();
     } catch (e: any) {
       setSaveState("error");
-      setFeedback(String(e?.message ?? e ?? "Something went wrong while saving."));
+      setFeedback("");
     }
   }
 
@@ -1945,6 +1946,19 @@ function CapturePageContent() {
                     ) : null}
                   </div>
 
+                  {saveState !== "idle" ? (
+                    <SaveStatus
+                      status={
+                        saveState === "saving"
+                          ? "saving"
+                          : saveState === "success"
+                          ? "saved"
+                          : "unsaved"
+                      }
+                      style={{ marginBottom: 10 }}
+                    />
+                  ) : null}
+
                   {feedback ? (
                     <div
                       style={{
@@ -1997,7 +2011,7 @@ function CapturePageContent() {
                         width: isMobile ? "100%" : undefined,
                       }}
                     >
-                      {saveState === "saving" ? "Saving..." : "Save learning record"}
+                      {saveState === "saving" ? "Saving…" : "Save learning record"}
                     </button>
 
                     <button

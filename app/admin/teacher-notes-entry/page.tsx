@@ -514,7 +514,7 @@ function TeacherNotesEntryPageContent() {
       clearForm();
       router.push("/admin/teacher-notes");
     } catch (e: any) {
-      setErr(e?.message ?? "Save failed.");
+      setErr("Not saved yet");
     } finally {
       setBusy(false);
       setTimeout(() => setOkMsg(null), 1200);

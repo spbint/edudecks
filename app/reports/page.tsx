@@ -1293,11 +1293,7 @@ function ReportsPageContent() {
       });
 
       setDraftId(row.id);
-      setMessage(
-        `Draft saved with ${finalSelectedEvidenceIds.length} selected evidence item${
-          finalSelectedEvidenceIds.length === 1 ? "" : "s"
-        }. Next step: review the output before exporting or opening the authority pack.`
-      );
+      setMessage("Saved");
 
       if (openOutput) {
         router.push(`/reports/output?draftId=${row.id}`);
@@ -1305,7 +1301,7 @@ function ReportsPageContent() {
         router.replace(`/reports?draftId=${row.id}`);
       }
     } catch (err: any) {
-      setError(String(err?.message || err || "Save failed."));
+      setError("Not saved yet");
     } finally {
       setSaving(false);
     }

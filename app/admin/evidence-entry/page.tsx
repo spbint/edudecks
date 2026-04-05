@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentHubNav from "@/app/admin/components/StudentHubNav";
+import { getSaveStatusLabel } from "@/app/components/SaveStatus";
 import { supabase } from "@/lib/supabaseClient";
 import {
   buildStudentListPath,
@@ -1297,7 +1298,11 @@ function EvidenceEntryPageContent() {
                 disabled={saveState === "saving"}
                 type="button"
               >
-                {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved ✓" : "Save evidence"}
+                {saveState === "saving"
+                  ? getSaveStatusLabel("saving")
+                  : saveState === "saved"
+                  ? getSaveStatusLabel("saved")
+                  : "Save evidence"}
               </button>
 
               <button
