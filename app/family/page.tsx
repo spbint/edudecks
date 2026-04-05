@@ -50,6 +50,39 @@ type FamilyGuidanceState = {
   progressNudge?: string;
 };
 
+type FamilyJourneyStepKey =
+  | "planning"
+  | "calendar"
+  | "capture"
+  | "reports"
+  | "portfolio";
+
+type FamilyJourneyStep = {
+  key: FamilyJourneyStepKey;
+  href: string;
+  ribbonLabel: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  primaryLabel: string;
+  primaryHref: string;
+  reassurance: string;
+};
+
+type FamilyJourneyState = {
+  current: FamilyJourneyStep;
+  next: FamilyJourneyStep | null;
+  progressText: string;
+  supportTitle: string;
+  supportBody: string;
+  supportTone: "success" | "info" | "warning";
+  secondaryTools: Array<{
+    label: string;
+    href: string;
+    tone?: "primary" | "secondary";
+  }>;
+};
+
 type LearningStep = {
   current: string;
   next: string;
@@ -513,6 +546,228 @@ function buildBeginnerGuidanceState(
   };
 }
 
+function buildJourneyStep(
+  key: FamilyJourneyStepKey,
+  selectedChild: ChildRecord | null,
+  activeGuidedPlan: GuidedStartPlan,
+  hasRecentEvidence: boolean
+): FamilyJourneyStep {
+  const childName = selectedChild?.name || "your child";
+  const focusAreas = activeGuidedPlan.focusAreas.length
+    ? activeGuidedPlan.focusAreas.join(" and ").toLowerCase()
+    : "one gentle learning focus";
+
+  if (key === "planning") {
+    return {
+      key,
+      href: "/planner",
+      ribbonLabel: "Planning",
+      eyebrow: "Current step",
+      title: "Start with one small plan",
+      body: `Begin with a simple learning intention for ${childName}. A calm first step is often enough, and ${focusAreas} is a safe place to begin.`,
+      primaryLabel: "Start planning",
+      primaryHref: "/planner",
+      reassurance: "You do not need a full week mapped out today. One plan is enough to begin.",
+    };
+  }
+
+  if (key === "calendar") {
+    return {
+      key,
+      href: "/calendar",
+      ribbonLabel: "Calendar",
+      eyebrow: "Current step",
+      title: "Place the plan into your week",
+      body: `Your next move is to give the plan a gentle place in the week so the journey feels real, visible, and easy to follow.`,
+      primaryLabel: "Open calendar",
+      primaryHref: "/calendar",
+      reassurance: "A simple slot in the week is enough. You can adjust the rhythm later.",
+    };
+  }
+
+  if (key === "capture") {
+    return {
+      key,
+      href: "/capture",
+      ribbonLabel: "Capture",
+      eyebrow: "Current step",
+      title: "Capture one learning moment",
+      body: `Record what happened for ${childName} with one short note, photo, or work sample. This is where the journey starts to become meaningful.`,
+      primaryLabel: "Capture this moment",
+      primaryHref: "/capture",
+      reassurance: "One learning moment is enough to keep momentum moving.",
+    };
+  }
+
+  if (key === "reports") {
+    return {
+      key,
+      href: "/reports",
+      ribbonLabel: "Reports",
+      eyebrow: "Current step",
+      title: "Turn the moment into a calm summary",
+      body: `You already have learning captured. EduDecks can now help shape it into a simple, useful report draft without adding more admin pressure.`,
+      primaryLabel: "Build the report",
+      primaryHref: "/reports",
+      reassurance: "You have enough to move forward. The next step is about shaping, not starting again.",
+    };
+  }
+
+  return {
+    key,
+    href: "/portfolio",
+    ribbonLabel: "Portfolio",
+    eyebrow: "Current step",
+    title: "Keep the strongest work in the portfolio",
+    body: `Your learning record is taking shape. Save the strongest pieces so ${childName}'s story stays easy to revisit and share over time.`,
+    primaryLabel: "Open portfolio",
+    primaryHref: "/portfolio",
+    reassurance: hasRecentEvidence
+      ? "You’re on track. EduDecks is now helping you keep the strongest pieces together."
+      : "Your record is in a good place. Portfolio helps you keep the best parts visible.",
+  };
+}
+
+function buildFamilyJourneyState(params: {
+  plannerBlockCount: number;
+  totalEvidenceCount: number;
+  hasReportDraft: boolean;
+  selectedChild: ChildRecord | null;
+  activeGuidedPlan: GuidedStartPlan;
+  hasRecentEvidence: boolean;
+}): FamilyJourneyState {
+  const {
+    plannerBlockCount,
+    totalEvidenceCount,
+    hasReportDraft,
+    selectedChild,
+    activeGuidedPlan,
+    hasRecentEvidence,
+  } = params;
+
+  const currentKey: FamilyJourneyStepKey =
+    plannerBlockCount === 0
+      ? "planning"
+      : totalEvidenceCount === 0
+      ? "calendar"
+      : !hasRecentEvidence
+      ? "capture"
+      : !hasReportDraft
+      ? "reports"
+      : "portfolio";
+
+  const nextKey: Record<FamilyJourneyStepKey, FamilyJourneyStepKey | null> = {
+    planning: "calendar",
+    calendar: "capture",
+    capture: "reports",
+    reports: "portfolio",
+    portfolio: null,
+  };
+
+  const current = buildJourneyStep(
+    currentKey,
+    selectedChild,
+    activeGuidedPlan,
+    hasRecentEvidence
+  );
+  const next = nextKey[currentKey]
+    ? buildJourneyStep(
+        nextKey[currentKey] as FamilyJourneyStepKey,
+        selectedChild,
+        activeGuidedPlan,
+        hasRecentEvidence
+      )
+    : null;
+
+  if (currentKey === "planning") {
+    return {
+      current,
+      next,
+      progressText:
+        "Planning comes first. Once one small plan is in place, EduDecks will guide you into the week, then into capture and reports.",
+      supportTitle: "A calm start is enough",
+      supportBody:
+        "Begin with one learning intention, not a full system. The ribbon will open the next step when you are ready.",
+      supportTone: "info",
+      secondaryTools: [
+        { label: "Open calendar", href: "/calendar" },
+        { label: "Manage children", href: "/children" },
+        { label: "View portfolio", href: "/portfolio" },
+      ],
+    };
+  }
+
+  if (currentKey === "calendar") {
+    return {
+      current,
+      next,
+      progressText:
+        "Your plan exists. The next gentle move is to place it in the week, then capture what happened when the moment arrives.",
+      supportTitle: "The week does not need to be full",
+      supportBody:
+        "A single scheduled learning moment keeps the journey visible and lowers the pressure on everything else.",
+      supportTone: "info",
+      secondaryTools: [
+        { label: "Open planner", href: "/planner" },
+        { label: "Quick capture", href: "/capture" },
+        { label: "Manage children", href: "/children" },
+      ],
+    };
+  }
+
+  if (currentKey === "capture") {
+    return {
+      current,
+      next,
+      progressText:
+        "The week is taking shape. Your next best move is to record one real learning moment so the journey can continue into reports.",
+      supportTitle: "Capture keeps the journey real",
+      supportBody:
+        "You do not need a perfect write-up. One short note, photo, or work sample is enough to move forward.",
+      supportTone: "info",
+      secondaryTools: [
+        { label: "Open calendar", href: "/calendar" },
+        { label: "Open planner", href: "/planner" },
+        { label: "Manage children", href: "/children" },
+      ],
+    };
+  }
+
+  if (!hasReportDraft) {
+    return {
+      current,
+      next,
+      progressText:
+        "You have moved past setup. EduDecks can now turn what was captured into a calm, reusable report draft.",
+      supportTitle: "You already have enough to continue",
+      supportBody:
+        "This stage is about shaping the record you have, not doing more admin. One clear report draft creates confidence quickly.",
+      supportTone: "success",
+      secondaryTools: [
+        { label: "Capture again", href: "/capture" },
+        { label: "Open calendar", href: "/calendar" },
+        { label: "Report library", href: "/reports/library" },
+      ],
+    };
+  }
+
+  return {
+    current,
+    next,
+    progressText:
+      "You have reached the point where EduDecks is helping you keep the strongest learning together, ready to revisit and build on.",
+    supportTitle: "You’re on track",
+    supportBody:
+      "The plan, capture, and report steps are already doing their job. Portfolio is where that work starts to feel lasting.",
+    supportTone: "success",
+    secondaryTools: [
+      { label: "Continue reports", href: "/reports" },
+      { label: "Capture another moment", href: "/capture" },
+      { label: "Report library", href: "/reports/library" },
+    ],
+  };
+}
+
 function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null) {
   if (child.evidenceCount === 0) return "Start entry";
   if (!childDraft) return "Build draft";
@@ -896,6 +1151,25 @@ function FamilyPageContent() {
   const activeGuidedPlan = useMemo(
     () => buildGuidedStartPlan(guidedProfile?.learning_stage || guidedDraft.learning_stage),
     [guidedDraft.learning_stage, guidedProfile]
+  );
+  const familyJourney = useMemo(
+    () =>
+      buildFamilyJourneyState({
+        plannerBlockCount,
+        totalEvidenceCount,
+        hasReportDraft: Boolean(selectedChildDraft),
+        selectedChild,
+        activeGuidedPlan,
+        hasRecentEvidence,
+      }),
+    [
+      activeGuidedPlan,
+      hasRecentEvidence,
+      plannerBlockCount,
+      selectedChild,
+      selectedChildDraft,
+      totalEvidenceCount,
+    ]
   );
 
   const confidenceSummary = useMemo(() => {

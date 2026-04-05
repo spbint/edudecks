@@ -11,6 +11,11 @@ type WorkflowStep = {
   matches: string[];
 };
 
+type FamilyWorkflowStripProps = {
+  currentHref?: string;
+  helperText?: string;
+};
+
 function isStepActive(pathname: string, step: WorkflowStep) {
   return step.matches.some((match) => {
     if (match === pathname) return true;
@@ -49,7 +54,10 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
 ];
 
-export default function FamilyWorkflowStrip() {
+export default function FamilyWorkflowStrip({
+  currentHref,
+  helperText,
+}: FamilyWorkflowStripProps) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
 
@@ -76,6 +84,20 @@ export default function FamilyWorkflowStrip() {
         Workflow ribbon
       </div>
 
+      {helperText ? (
+        <div
+          style={{
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "#475569",
+            marginBottom: 12,
+            maxWidth: 760,
+          }}
+        >
+          {helperText}
+        </div>
+      ) : null}
+
       <div
         style={{
           display: "flex",
@@ -87,7 +109,9 @@ export default function FamilyWorkflowStrip() {
         }}
       >
         {WORKFLOW_STEPS.map((step, index) => {
-          const active = isStepActive(pathname, step);
+          const active =
+            currentHref === step.href ||
+            (!currentHref && isStepActive(pathname, step));
 
           return (
             <React.Fragment key={step.href}>

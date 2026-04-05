@@ -14,6 +14,8 @@ type FamilyTopNavShellProps = {
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
+  workflowCurrentHref?: string;
+  workflowHelperText?: string;
   children: React.ReactNode;
 };
 
@@ -127,6 +129,8 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
+  workflowCurrentHref,
+  workflowHelperText,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
@@ -332,7 +336,10 @@ export default function FamilyTopNavShell({
         }}
       >
         <section style={{ marginBottom: 18 }}>
-          <FamilyWorkflowStrip />
+          <FamilyWorkflowStrip
+            currentHref={workflowCurrentHref}
+            helperText={workflowHelperText}
+          />
         </section>
 
         {!isMobile ? (
