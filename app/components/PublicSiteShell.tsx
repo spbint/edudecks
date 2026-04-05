@@ -3,6 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type CtaLink = { label: string; href: string };
 
@@ -11,10 +13,10 @@ type PublicSiteShellProps = {
   eyebrow?: string;
   heroTitle: string;
   heroText: string;
-  heroMicrocopy?: string;
+  heroMicrocopy?: React.ReactNode;
   heroBadges?: string[];
   primaryCta?: CtaLink;
-  secondaryCta?: CtaLink;
+  secondaryCta?: CtaLink | null;
   headerAction?: CtaLink | null;
   footerPrimaryCta?: CtaLink | null;
   footerSecondaryCta?: CtaLink | null;
@@ -158,6 +160,44 @@ export default function PublicSiteShell({
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+
+  React.useEffect(() => {
+    let mounted = true;
+
+    async function hydrateAuth() {
+      if (!hasSupabaseEnv) {
+        if (mounted) setIsAuthenticated(false);
+        return;
+      }
+
+      const { data } = await supabase.auth.getUser();
+      if (mounted) {
+        setIsAuthenticated(Boolean(data.user));
+      }
+    }
+
+    void hydrateAuth();
+
+    if (!hasSupabaseEnv) {
+      return () => {
+        mounted = false;
+      };
+    }
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setIsAuthenticated(Boolean(session?.user));
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   return (
     <div
@@ -233,19 +273,33 @@ export default function PublicSiteShell({
                     fontWeight: 900,
                     color: C.textStrong,
                     marginBottom: 2,
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 8,
+                    flexWrap: "wrap",
                   }}
                 >
-                  {title}
+                  <span>{title}</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: C.textMuted,
+                    }}
+                  >
+                    (Beta v1)
+                  </span>
                 </div>
                 <div style={{ fontSize: 13, color: C.textMuted }}>{eyebrow}</div>
               </div>
             </Link>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/family" style={shellButtonStyle(false)}>
-                Family Hub
-              </Link>
-              {headerAction ? (
+              {isAuthenticated ? (
+                <Link href="/family" style={shellButtonStyle(false)}>
+                  Family Hub
+                </Link>
+              ) : headerAction ? (
                 <Link href={headerAction.href} style={shellButtonStyle(false)}>
                   {headerAction.label}
                 </Link>
@@ -275,6 +329,10 @@ export default function PublicSiteShell({
 
       <main style={{ padding: "24px 24px 48px" }}>
         <div style={{ maxWidth: 1320, margin: "0 auto" }}>
+          <section style={{ marginBottom: 20 }}>
+            <FamilyWorkflowStrip />
+          </section>
+
           <section
             style={{
               marginBottom: 24,
@@ -507,7 +565,7 @@ export default function PublicSiteShell({
               }}
             >
               A calm, evidence-led homeschool operating system for planning,
-              capture, reporting, and portfolio over time.
+              calendar, capture, reporting, and portfolio over time.
             </div>
           </div>
 
