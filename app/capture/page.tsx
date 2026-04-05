@@ -1375,8 +1375,7 @@ function CapturePageContent() {
       subtitle="Quick Capture"
       heroTitle="Capture one useful learning moment"
       heroText="Start with what happened, what it showed, and why it matters. That is enough to build a calm, trustworthy learning record over time."
-      heroAsideTitle="Best family move"
-      heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
+      hideHeroAside={true}
     >
       {busy ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>

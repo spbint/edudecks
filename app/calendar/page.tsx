@@ -1596,7 +1596,8 @@ const styles: Record<string, React.CSSProperties> = {
   h1: {
     margin: 0,
     fontSize: 34,
-    lineHeight: 1.05,
+    lineHeight: 1.08,
+    fontWeight: 900,
     color: "#0f172a",
   },
   sub: {

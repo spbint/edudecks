@@ -1053,8 +1053,7 @@ function PortfolioPageContent() {
       workflowCurrentHref="/portfolio"
       workflowHelperText="Portfolio is the final step in the family journey. Keep this record now, print it, or continue building gently over time."
       heroText="A growing record of learning, reflection, and progress — built from everyday moments."
-      heroAsideTitle="Portfolio confidence"
-      heroAsideText={portfolio.confidenceText || "A strong portfolio turns separate captures into a meaningful picture of growth over time."}
+      hideHeroAside={true}
     >
       {err ? (
         <section
