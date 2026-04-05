@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { buildAuthCallbackUrl } from "@/lib/authRedirect";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 
 type FormState = {
@@ -236,10 +237,7 @@ function SignupPageContent() {
       const email = safe(form.email).toLowerCase();
       const password = form.password;
 
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
-          : undefined;
+      const redirectTo = buildAuthCallbackUrl("/onboarding");
 
       const { data, error } = await supabase.auth.signUp({
         email,

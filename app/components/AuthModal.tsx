@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { buildAuthCallbackUrl } from "@/lib/authRedirect";
 
 type AuthModalProps = {
   open: boolean;
@@ -13,19 +14,6 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function buildReturnUrl(returnPath?: string) {
-  if (typeof window === "undefined") return "";
-
-  if (safe(returnPath)) {
-    if (returnPath!.startsWith("http://") || returnPath!.startsWith("https://")) {
-      return returnPath!;
-    }
-    return `${window.location.origin}${returnPath}`;
-  }
-
-  return window.location.href;
-}
-
 export default function AuthModal({ open, onClose, returnPath }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [sendingGoogle, setSendingGoogle] = useState(false);
@@ -33,7 +21,10 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
 
-  const resolvedReturnUrl = useMemo(() => buildReturnUrl(returnPath), [returnPath]);
+  const resolvedCallbackUrl = useMemo(
+    () => buildAuthCallbackUrl(returnPath || (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")),
+    [returnPath]
+  );
 
   async function continueWithGoogle() {
     setError("");
@@ -43,7 +34,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: resolvedReturnUrl,
+          redirectTo: resolvedCallbackUrl,
         },
       });
 
@@ -71,7 +62,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: nextEmail,
         options: {
-          emailRedirectTo: resolvedReturnUrl,
+          emailRedirectTo: resolvedCallbackUrl,
         },
       });
 
@@ -142,12 +133,12 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
             <div
               style={{
                 marginTop: 8,
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "#475569",
-              }}
-            >
-              Create a free account to keep your learning plan.
+              fontSize: 14,
+              lineHeight: 1.6,
+              color: "#475569",
+            }}
+          >
+              Create a free account to keep your learning plan and return safely to where you left off.
             </div>
           </div>
 
@@ -264,6 +255,8 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
               Check your email for a secure sign-in link.
               {` `}
               We sent it to {sentEmail}.
+              {` `}
+              It will bring you back to EduDecks to continue saving your progress.
             </div>
           ) : null}
         </div>
