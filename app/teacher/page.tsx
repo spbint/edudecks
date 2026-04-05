@@ -219,6 +219,7 @@ export default function TeacherPage() {
   const rosterCount = useMemo(() => (classId ? classCounts.get(classId)?.total ?? 0 : 0), [classCounts, classId]);
 
   const ilpCount = useMemo(() => (classId ? classCounts.get(classId)?.ilp ?? 0 : 0), [classCounts, classId]);
+  const totalStudentCount = students.length;
 
   // filter students before passing to the table (so TeacherStudentTable doesn't need changes)
   const filteredStudents = useMemo(() => {
@@ -252,6 +253,33 @@ export default function TeacherPage() {
   }
 
   const hasClasses = classes.length > 0;
+  const hasAnyStudents = totalStudentCount > 0;
+  const teacherStart = !hasClasses
+    ? {
+        title: "Check your classes first",
+        body: "Start by making sure your classes are ready. Once classes exist, the rest of the teacher workflow becomes much easier to follow.",
+        primaryLabel: "Create or review classes",
+        primaryHref: "/admin/class-entry",
+        secondaryLabel: "Open admin",
+        secondaryHref: "/admin",
+      }
+    : !hasAnyStudents
+    ? {
+        title: "Confirm students in class",
+        body: "Your classes are in place. The next sensible step is to assign or check students so this workspace becomes useful straight away.",
+        primaryLabel: "Assign students",
+        primaryHref: "/admin/student-class",
+        secondaryLabel: "Review classes",
+        secondaryHref: "/admin/classes",
+      }
+    : {
+        title: "Capture the first useful signal",
+        body: "Your classes and students are ready. Start with one concrete action today so this workspace begins with real evidence instead of noise.",
+        primaryLabel: "Enter first result",
+        primaryHref: "/admin/enter-results",
+        secondaryLabel: "Open full workspace",
+        secondaryHref: "/teacher",
+      };
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -267,6 +295,43 @@ export default function TeacherPage() {
             Refresh
           </button>
         </TeacherShellHeader>
+
+        <section className="dash-card p-5">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] md:items-start">
+            <div>
+              <div className="text-[12px] font-semibold tracking-widest text-slate-500">
+                WHERE TO START
+              </div>
+              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+                {teacherStart.title}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-slate-600">
+                {teacherStart.body}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-[12px] font-semibold tracking-widest text-slate-500">
+                TODAY'S PATH
+              </div>
+              <div className="mt-3 grid gap-2 text-sm text-slate-700">
+                <div>1. Check your classes</div>
+                <div>2. Confirm students in class</div>
+                <div>3. Capture first evidence or enter first result</div>
+                <div>4. Continue into the full teacher workspace</div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href={teacherStart.primaryHref} className="dash-btn dash-btn-primary">
+                  {teacherStart.primaryLabel}
+                </Link>
+                <Link href={teacherStart.secondaryHref} className="dash-btn dash-btn-muted">
+                  {teacherStart.secondaryLabel}
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* HERO */}
         <section className="dash-card overflow-hidden">
