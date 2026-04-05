@@ -114,6 +114,23 @@ type GuidedStartPlan = {
   activities: GuidedStartActivity[];
 };
 
+type LinkedStudentRow = {
+  id: string;
+  preferred_name?: string | null;
+  first_name?: string | null;
+  surname?: string | null;
+  family_name?: string | null;
+  year_level?: number | null;
+  created_at?: string | null;
+};
+
+type LinkedEvidenceRow = {
+  student_id?: string | null;
+  learning_area?: string | null;
+  occurred_on?: string | null;
+  created_at?: string | null;
+};
+
 type PendingGuidedStartAction = {
   activity: GuidedStartActivity;
   profile: GuidedFamilyProfile;
@@ -345,6 +362,150 @@ function normalizeChild(raw: any, index: number): ChildRecord {
     nextFocusArea,
     status,
   };
+}
+
+function dedupeChildrenById(children: ChildRecord[]) {
+  const seen = new Set<string>();
+  return children.filter((child) => {
+    const id = safe(child.id);
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+function buildLinkedChildRecord(
+  student: LinkedStudentRow,
+  evidence: LinkedEvidenceRow[],
+  index: number
+): ChildRecord {
+  const name =
+    [
+      safe(student.preferred_name || student.first_name),
+      safe(student.surname || student.family_name),
+    ]
+      .filter(Boolean)
+      .join(" ") || `Child ${index + 1}`;
+
+  const yearLevel = asNumber(student.year_level, NaN);
+  const yearLabel =
+    Number.isFinite(yearLevel) && yearLevel > 0 ? `Year ${yearLevel}` : "Year level";
+
+  const childEvidence = evidence.filter((item) => safe(item.student_id) === safe(student.id));
+  const recentCutoff = new Date();
+  recentCutoff.setDate(recentCutoff.getDate() - RECENT_EVIDENCE_DAYS);
+
+  const recentAreas = new Set<string>();
+  const areaCounts = new Map<string, number>();
+  let lastUpdated: string | null = asDateText(student.created_at);
+
+  childEvidence.forEach((item) => {
+    const area = safe(item.learning_area) || "General";
+    const occurred = asDateText(item.occurred_on) || asDateText(item.created_at);
+
+    areaCounts.set(area, (areaCounts.get(area) ?? 0) + 1);
+
+    if (!occurred) return;
+
+    const occurredDate = new Date(occurred);
+    if (!Number.isNaN(occurredDate.getTime()) && occurredDate >= recentCutoff) {
+      recentAreas.add(area);
+    }
+
+    if (!lastUpdated || occurredDate.getTime() > new Date(lastUpdated).getTime()) {
+      lastUpdated = occurred;
+    }
+  });
+
+  const strongestArea =
+    [...areaCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+  const nextFocusArea = strongestArea === "—" ? "Literacy" : strongestArea;
+  const evidenceCount = childEvidence.length;
+  const recentAreaCount = recentAreas.size;
+
+  let status: ChildRecord["status"] = "getting-started";
+  if (evidenceCount >= 4 && recentAreaCount >= 3) status = "ready";
+  else if (evidenceCount >= 1) status = "building";
+  if (lastUpdated && (daysSince(lastUpdated) ?? 0) > 30) status = "attention";
+
+  return {
+    id: safe(student.id) || `child-${index + 1}`,
+    name,
+    yearLabel,
+    evidenceCount,
+    recentAreaCount,
+    lastUpdated,
+    strongestArea,
+    nextFocusArea,
+    status,
+  };
+}
+
+async function loadLinkedFamilyChildren(): Promise<ChildRecord[] | null> {
+  if (!hasSupabaseEnv) return null;
+
+  const authResp = await supabase.auth.getUser();
+  const userId = authResp.data.user?.id;
+
+  if (!userId) return [];
+
+  const linksResp = await supabase
+    .from("parent_student_links")
+    .select("student_id,sort_order,created_at")
+    .eq("parent_user_id", userId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (linksResp.error) {
+    console.error(linksResp.error);
+    return [];
+  }
+
+  const orderedIds: string[] = [];
+  const seenIds = new Set<string>();
+
+  ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
+    const studentId = safe(row.student_id);
+    if (!studentId || seenIds.has(studentId)) return;
+    seenIds.add(studentId);
+    orderedIds.push(studentId);
+  });
+
+  if (!orderedIds.length) return [];
+
+  const studentsResp = await supabase
+    .from("students")
+    .select("id,preferred_name,first_name,surname,family_name,year_level,created_at")
+    .in("id", orderedIds);
+
+  if (studentsResp.error) {
+    console.error(studentsResp.error);
+    return [];
+  }
+
+  const evidenceResp = await supabase
+    .from("evidence_entries")
+    .select("student_id,learning_area,occurred_on,created_at")
+    .in("student_id", orderedIds);
+
+  if (evidenceResp.error) {
+    console.error(evidenceResp.error);
+  }
+
+  const students = ((studentsResp.data ?? []) as LinkedStudentRow[]).filter((student) =>
+    safe(student.id)
+  );
+  const evidence = ((evidenceResp.data ?? []) as LinkedEvidenceRow[]).filter((item) =>
+    safe(item.student_id)
+  );
+
+  return orderedIds
+    .map((id, index) => {
+      const student = students.find((row) => safe(row.id) === id);
+      if (!student) return null;
+      return buildLinkedChildRecord(student, evidence, index);
+    })
+    .filter((child): child is ChildRecord => child !== null);
 }
 
 function inferLearningStep(area: string): LearningStep {
@@ -690,9 +851,8 @@ function buildFamilyJourneyState(params: {
         "Begin with one learning intention, not a full system. The ribbon will open the next step when you are ready.",
       supportTone: "info",
       secondaryTools: [
-        { label: "Open calendar", href: "/calendar" },
-        { label: "Manage children", href: "/children" },
-        { label: "View portfolio", href: "/portfolio" },
+        { label: "Manage Family", href: "/children" },
+        { label: "Report library", href: "/reports/library" },
       ],
     };
   }
@@ -708,9 +868,8 @@ function buildFamilyJourneyState(params: {
         "A single scheduled learning moment keeps the journey visible and lowers the pressure on everything else.",
       supportTone: "info",
       secondaryTools: [
-        { label: "Open planner", href: "/planner" },
-        { label: "Quick capture", href: "/capture" },
-        { label: "Manage children", href: "/children" },
+        { label: "Manage Family", href: "/children" },
+        { label: "Report library", href: "/reports/library" },
       ],
     };
   }
@@ -726,9 +885,8 @@ function buildFamilyJourneyState(params: {
         "You do not need a perfect write-up. One short note, photo, or work sample is enough to move forward.",
       supportTone: "info",
       secondaryTools: [
-        { label: "Open calendar", href: "/calendar" },
-        { label: "Open planner", href: "/planner" },
-        { label: "Manage children", href: "/children" },
+        { label: "Manage Family", href: "/children" },
+        { label: "Report library", href: "/reports/library" },
       ],
     };
   }
@@ -744,8 +902,7 @@ function buildFamilyJourneyState(params: {
         "This stage is about shaping the record you have, not doing more admin. One clear report draft creates confidence quickly.",
       supportTone: "success",
       secondaryTools: [
-        { label: "Capture again", href: "/capture" },
-        { label: "Open calendar", href: "/calendar" },
+        { label: "Manage Family", href: "/children" },
         { label: "Report library", href: "/reports/library" },
       ],
     };
@@ -761,8 +918,7 @@ function buildFamilyJourneyState(params: {
       "The plan, capture, and report steps are already doing their job. Portfolio is where that work starts to feel lasting.",
     supportTone: "success",
     secondaryTools: [
-      { label: "Continue reports", href: "/reports" },
-      { label: "Capture another moment", href: "/capture" },
+      { label: "Manage Family", href: "/children" },
       { label: "Report library", href: "/reports/library" },
     ],
   };
@@ -956,65 +1112,104 @@ function FamilyPageContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    const storedChildren = parseJson<any[]>(
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(CHILDREN_KEY)
-        : null,
-      []
-    );
+    let cancelled = false;
 
-    const normalizedChildren =
-      storedChildren.length > 0
-        ? storedChildren.map((child, i) => normalizeChild(child, i))
-        : FALLBACK_CHILDREN;
-
-    const storedSettings = parseJson<FamilySettings>(
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(SETTINGS_KEY)
-        : null,
-      {}
-    );
-    const storedGuidedProfile = readGuidedFamilyProfile();
-
-    setChildren(normalizedChildren);
-    setSettings(storedSettings);
-    setGuidedProfile(storedGuidedProfile);
-    setShowGuidedStart(!storedGuidedProfile);
-
-    if (storedGuidedProfile) {
-      setGuidedDraft(storedGuidedProfile);
-    }
-
-    const storedActive =
-      typeof window !== "undefined"
-        ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
-        : "";
-
-    const preferredId =
-      storedActive ||
-      safe(storedSettings.defaultChildId) ||
-      safe(normalizedChildren[0]?.id);
-
-    setSelectedChildId(preferredId);
-
-    const onboarded = Boolean(storedSettings.onboardingComplete);
-    const childName = safe(normalizedChildren[0]?.name);
-    const familyName = safe(storedSettings.familyDisplayName);
-
-    if (onboarded) {
-      setWelcomeMessage(
-        familyName && childName
-          ? `Welcome to EduDecks, ${familyName}. ${childName} is ready for the first learning capture.`
-          : childName
-          ? `${childName} is ready for the first learning capture.`
-          : "Your family space is ready."
+    async function hydrateFamilyHome() {
+      const storedSettings = parseJson<FamilySettings>(
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(SETTINGS_KEY)
+          : null,
+        {}
       );
+      const storedGuidedProfile = readGuidedFamilyProfile();
+
+      let nextChildren = await loadLinkedFamilyChildren();
+
+      if (nextChildren === null) {
+        const storedChildren = parseJson<any[]>(
+          typeof window !== "undefined"
+            ? window.localStorage.getItem(CHILDREN_KEY)
+            : null,
+          []
+        );
+
+        nextChildren = dedupeChildrenById(
+          storedChildren.length > 0
+            ? storedChildren.map((child, i) => normalizeChild(child, i))
+            : FALLBACK_CHILDREN
+        );
+      } else {
+        nextChildren = dedupeChildrenById(nextChildren);
+      }
+
+      if (cancelled) return;
+
+      setChildren(nextChildren);
+      setSettings(storedSettings);
+      setGuidedProfile(storedGuidedProfile);
+      setShowGuidedStart(!storedGuidedProfile);
+
+      if (storedGuidedProfile) {
+        setGuidedDraft(storedGuidedProfile);
+      }
+
+      const storedActive =
+        typeof window !== "undefined"
+          ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
+          : "";
+
+      const preferredId =
+        nextChildren.find((child) => child.id === storedActive)?.id ||
+        nextChildren.find((child) => child.id === safe(storedSettings.defaultChildId))?.id ||
+        safe(nextChildren[0]?.id);
+
+      setSelectedChildId(preferredId);
+
+      const onboarded = Boolean(storedSettings.onboardingComplete);
+      const childName = safe(nextChildren[0]?.name);
+      const familyName = safe(storedSettings.familyDisplayName);
+
+      if (authMessage) {
+        setWelcomeMessage(authMessage);
+      } else if (onboarded) {
+        setWelcomeMessage(
+          familyName && childName
+            ? `Welcome to EduDecks, ${familyName}. ${childName} is ready for the first learning capture.`
+            : childName
+            ? `${childName} is ready for the first learning capture.`
+            : "Your family space is ready."
+        );
+      } else {
+        setWelcomeMessage("");
+      }
     }
 
-    if (authMessage) {
-      setWelcomeMessage(authMessage);
-    }
+    void hydrateFamilyHome();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
+
+  useEffect(() => {
+    const nextSelectedId =
+      children.find((child) => child.id === selectedChildId)?.id ||
+      children.find((child) => child.id === safe(settings.defaultChildId))?.id ||
+      children[0]?.id ||
+      "";
+
+    if (nextSelectedId === selectedChildId) return;
+
+    setSelectedChildId(nextSelectedId);
+
+    if (typeof window !== "undefined") {
+      if (nextSelectedId) {
+        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, nextSelectedId);
+      } else {
+        window.localStorage.removeItem(ACTIVE_STUDENT_ID_KEY);
+      }
+    }
+  }, [children, selectedChildId, settings.defaultChildId]);
 
   useEffect(() => {
     let mounted = true;
@@ -1390,12 +1585,12 @@ function FamilyPageContent() {
               <div style={S.label()}>Next step preview</div>
               <div style={S.h2()}>
                 {familyJourney.next
-                  ? `${familyJourney.next.ribbonLabel} comes next`
+                  ? `${familyJourney.next!.ribbonLabel} comes next`
                   : "Portfolio keeps the strongest work together"}
               </div>
               <div style={S.body()}>
                 {familyJourney.next
-                  ? familyJourney.next.body
+                  ? familyJourney.next!.body
                   : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
               </div>
 
@@ -1414,10 +1609,10 @@ function FamilyPageContent() {
               >
                 {familyJourney.next ? (
                   <Link
-                    href={familyJourney.next.primaryHref}
+                    href={familyJourney.next!.primaryHref}
                     style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                   >
-                    Preview {familyJourney.next.ribbonLabel}
+                    Preview {familyJourney.next!.ribbonLabel}
                   </Link>
                 ) : (
                   <Link
@@ -1850,6 +2045,7 @@ function FamilyPageContent() {
         </div>
       </section>
 
+      {false ? (
       <section style={{ ...S.card(), marginBottom: 18 }}>
         <div
           style={{
@@ -1886,12 +2082,12 @@ function FamilyPageContent() {
               <div style={S.label()}>Next step preview</div>
               <div style={S.h2()}>
                 {familyJourney.next
-                  ? `${familyJourney.next.ribbonLabel} comes next`
+                  ? `${familyJourney.next!.ribbonLabel} comes next`
                   : "Portfolio keeps the strongest work together"}
               </div>
               <div style={S.body()}>
                 {familyJourney.next
-                  ? familyJourney.next.body
+                  ? familyJourney.next!.body
                   : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
               </div>
 
@@ -1910,10 +2106,10 @@ function FamilyPageContent() {
               >
                 {familyJourney.next ? (
                   <Link
-                    href={familyJourney.next.primaryHref}
+                    href={familyJourney.next!.primaryHref}
                     style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                   >
-                    Preview {familyJourney.next.ribbonLabel}
+                    Preview {familyJourney.next!.ribbonLabel}
                   </Link>
                 ) : (
                   <Link
@@ -1965,6 +2161,7 @@ function FamilyPageContent() {
           </div>
         </div>
       </section>
+      ) : null}
 
       <section style={{ ...S.card(), opacity: 0.97 }}>
         <div
