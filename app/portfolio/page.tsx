@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
+import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -515,6 +516,22 @@ const UI = {
     fontWeight: 900,
     color: "#0f172a",
   }),
+  miniStat: (): React.CSSProperties => ({
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "start",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+  }),
+  miniLabel: (): React.CSSProperties => ({
+    fontSize: 12,
+    color: "#64748b",
+    fontWeight: 800,
+    minWidth: 110,
+  }),
   body: (): React.CSSProperties => ({
     fontSize: 14,
     lineHeight: 1.65,
@@ -590,6 +607,7 @@ function PortfolioPageContent() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [tagMap, setTagMap] = useState<TagMap>({});
   const [isPremium, setIsPremium] = useState(false);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -833,6 +851,54 @@ function PortfolioPageContent() {
     [evidence, tagMap]
   );
 
+  const guidedRecordFocus = useMemo(() => {
+    return highlightedEvidence || showcaseItems[0]?.item || timelineItems[0] || evidence[0] || null;
+  }, [highlightedEvidence, showcaseItems, timelineItems, evidence]);
+
+  const guidedRecordTitle = useMemo(() => {
+    return student ? `${firstNameOf(student)}'s first learning record` : "Your first learning record";
+  }, [student]);
+
+  const guidedRecordSession = useMemo<GuidedStartSession>(() => {
+    const focusDate = safe(guidedRecordFocus?.occurred_on || guidedRecordFocus?.created_at);
+    const focusArea = guessArea(guidedRecordFocus?.learning_area);
+    const focusTitle = safe(guidedRecordFocus?.title) || "A simple planned learning moment";
+    const capturedMoment =
+      clip(textOfEvidence(guidedRecordFocus || {}), 220) ||
+      safe(guidedRecordFocus?.title) ||
+      "One useful learning moment has been captured and kept in this record.";
+
+    return {
+      child: {
+        name: studentName(student),
+        yearLevel: studentYearLabel(student),
+      },
+      plan: {
+        category: focusArea,
+        title: focusTitle,
+        suggestedDay: "",
+      },
+      calendar: {
+        weekLabel: focusDate ? `Week of ${fullDate(focusDate)}` : "",
+        scheduledDay: "",
+      },
+      capture: {
+        happened: capturedMoment,
+        showed:
+          focusArea !== "Other"
+            ? `${firstNameOf(student)} showed progress in ${focusArea.toLowerCase()}.`
+            : `${firstNameOf(student)} showed useful progress in this learning moment.`,
+        note: hasAnyMedia(guidedRecordFocus || {}) ? `${mediaLabel(guidedRecordFocus || {})} attached` : "",
+      },
+      report: {
+        summary: portfolio.summary,
+      },
+      portfolio: {
+        previewTitle: guidedRecordTitle,
+      },
+    };
+  }, [guidedRecordFocus, guidedRecordTitle, portfolio.summary, student]);
+
   const nextMove = useMemo<NextMove>(() => {
     if (!student) {
       return {
@@ -960,11 +1026,32 @@ function PortfolioPageContent() {
     } catch {}
   }
 
+  async function handleDownloadPdf() {
+    setDownloadingPdf(true);
+    try {
+      const pdfBlob = await buildGuidedStartPdf(guidedRecordSession);
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${safe(studentName(student))
+        .replace(/[^a-z0-9]+/gi, "-")
+        .toLowerCase() || "learning-record"}-guided-record.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setErr("We could not prepare the PDF just yet. Please try again.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
   return (
     <FamilyTopNavShell
       title="EduDecks Family"
-      subtitle="Learning Portfolio"
-      heroTitle={student ? `${studentName(student)}'s Learning Story` : "Your family learning portfolio"}
+      subtitle="Portfolio"
+      heroTitle="Your first learning record is ready"
+      workflowCurrentHref="/portfolio"
+      workflowHelperText="Portfolio is the final step in the family journey. Keep this record now, print it, or continue building gently over time."
       heroText="A growing record of learning, reflection, and progress — built from everyday moments."
       heroAsideTitle="Portfolio confidence"
       heroAsideText={portfolio.confidenceText || "A strong portfolio turns separate captures into a meaningful picture of growth over time."}
@@ -1021,6 +1108,101 @@ function PortfolioPageContent() {
             </section>
           ) : null}
 
+          <section
+            style={{
+              ...UI.card(),
+              marginBottom: 18,
+              border: "1px solid #bfdbfe",
+              background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)",
+            }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(300px,0.85fr)",
+                gap: 18,
+                alignItems: "start",
+              }}
+            >
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={UI.label()}>Portfolio</div>
+                <div style={{ ...UI.h2(), fontSize: 30 }}>
+                  Your first learning record is ready
+                </div>
+                <div style={{ ...UI.body(), maxWidth: 780 }}>
+                  You can keep this now, or save it and continue later. This is how your learning story builds over time.
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 4,
+                    flexDirection: isMobile ? "column" : "row",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => void handleDownloadPdf()}
+                    disabled={downloadingPdf}
+                    style={{ ...UI.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    {downloadingPdf ? "Preparing PDF..." : "Download PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    style={{ ...UI.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    Print
+                  </button>
+                  <Link
+                    href="/capture"
+                    style={{ ...UI.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    Keep building
+                  </Link>
+                </div>
+
+                <div style={{ ...UI.body(), fontSize: 13, color: "#64748b" }}>
+                  Your portfolio is already saved because you are signed in. Add another moment whenever you are ready.
+                </div>
+              </div>
+
+              <div style={{ ...UI.softCard(), display: "grid", gap: 10 }}>
+                <div style={UI.label()}>{guidedRecordTitle}</div>
+                <div style={UI.miniStat()}>
+                  <span style={UI.miniLabel()}>Child</span>
+                  <strong>{student ? studentName(student) : "Your child"}</strong>
+                </div>
+                <div style={UI.miniStat()}>
+                  <span style={UI.miniLabel()}>Planned moment</span>
+                  <strong>{guidedRecordSession.plan.title}</strong>
+                </div>
+                <div style={UI.miniStat()}>
+                  <span style={UI.miniLabel()}>Captured learning moment</span>
+                  <strong>{guidedRecordSession.capture.happened}</strong>
+                </div>
+                <div style={UI.miniStat()}>
+                  <span style={UI.miniLabel()}>Report summary</span>
+                  <strong>{guidedRecordSession.report.summary}</strong>
+                </div>
+                <div style={UI.miniStat()}>
+                  <span style={UI.miniLabel()}>Next step</span>
+                  <strong>{portfolio.nextSteps[0] || "Keep building steadily over time."}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ ...UI.softCard(), marginTop: 16 }}>
+              <div style={UI.label()}>Record overview</div>
+              <div style={{ ...UI.body(), marginTop: 8 }}>
+                {portfolio.summary}
+              </div>
+            </div>
+          </section>
+
           {highlightedEvidence ? (
             <section
               style={{
@@ -1063,9 +1245,8 @@ function PortfolioPageContent() {
             style={{
               ...UI.card(),
               marginBottom: 18,
-              background:
-                "linear-gradient(135deg, rgba(79,124,240,0.06) 0%, rgba(16,185,129,0.05) 100%)",
-              border: "1px solid #bfdbfe",
+              background: "#f8fafc",
+              border: "1px dashed #cbd5e1",
             }}
           >
             <div
@@ -1079,7 +1260,7 @@ function PortfolioPageContent() {
               }}
             >
               <div>
-                <div style={UI.label()}>Child</div>
+                <div style={UI.label()}>Current child</div>
                 <select
                   value={student?.id || ""}
                   onChange={(e) => {
@@ -1110,7 +1291,7 @@ function PortfolioPageContent() {
               >
                 <Link
                   href="/capture"
-                  style={{ ...UI.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
                 >
                   Capture next learning moment
                 </Link>
@@ -1149,7 +1330,7 @@ function PortfolioPageContent() {
                         {copied ? "Copied" : "Copy summary"}
                       </button>
                       <button type="button" onClick={() => window.print()} style={UI.button(false)}>
-                        Print / PDF
+                        Print
                       </button>
                     </div>
                   </details>
@@ -1176,7 +1357,7 @@ function PortfolioPageContent() {
                       {copied ? "Copied" : "Copy summary"}
                     </button>
                     <button type="button" onClick={() => window.print()} style={UI.button(false)}>
-                      Print / PDF
+                      Print
                     </button>
                   </div>
                 )}
@@ -1217,7 +1398,7 @@ function PortfolioPageContent() {
             style={{
               ...UI.card(),
               marginBottom: 18,
-              display: "grid",
+              display: "none",
               gridTemplateColumns: isMobile
                 ? "1fr"
                 : "minmax(0,1.2fr) minmax(260px,0.8fr)",
