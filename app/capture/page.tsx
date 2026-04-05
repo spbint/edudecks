@@ -3,7 +3,8 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import AuthModal from "@/app/components/AuthModal";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -13,6 +14,7 @@ const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
+const PENDING_EVIDENCE_SAVE_KEY = "edudecks_pending_capture_save_v1";
 
 type ChildRow = {
   id: string;
@@ -81,6 +83,16 @@ type PlannerCaptureContext = {
   title: string;
   plannerBlockId: string;
   isActive: boolean;
+};
+
+type PendingEvidenceDraft = {
+  activeChildId: string;
+  title: string;
+  summary: string;
+  learningArea: string;
+  evidenceType: EvidenceType;
+  occurredOn: string;
+  curriculum: PremiumCurriculumState;
 };
 
 function safe(v: any) {
@@ -859,6 +871,8 @@ function CapturePageContent() {
   const isMobile = useIsMobile();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [activeChildId, setActiveChildId] = useState("");
 
@@ -876,6 +890,7 @@ function CapturePageContent() {
 
   const [premiumMediaType, setPremiumMediaType] = useState<PremiumMediaType>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const pendingResumeDraftRef = useRef<PendingEvidenceDraft | null>(null);
 
   const [curriculum, setCurriculum] = useState<PremiumCurriculumState>({
     country: "",
@@ -900,6 +915,10 @@ function CapturePageContent() {
       isActive: Boolean(date || learningArea || title || plannerBlockId),
     };
   }, [searchParams]);
+  const authReturnPath = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? `/capture?${query}` : "/capture";
+  }, [searchParams]);
 
   async function loadChildren() {
     setBusy(true);
@@ -908,6 +927,7 @@ function CapturePageContent() {
     try {
       const authResp = await supabase.auth.getUser();
       const userId = authResp.data.user?.id;
+      setAuthUserId(userId || null);
       let merged: ChildRow[] = [];
 
       if (userId) {
@@ -1025,6 +1045,47 @@ function CapturePageContent() {
     return () => window.clearTimeout(id);
   }, [saveFlash]);
 
+  useEffect(() => {
+    if (!hasSupabaseEnv || !authUserId || typeof window === "undefined") return;
+
+    const pendingRaw = window.sessionStorage.getItem(PENDING_EVIDENCE_SAVE_KEY);
+    if (!pendingRaw) return;
+
+    const pending = parseJson<PendingEvidenceDraft | null>(pendingRaw, null);
+    if (!pending?.title || !pending?.summary || !pending?.activeChildId) return;
+
+    pendingResumeDraftRef.current = pending;
+    setAuthModalOpen(false);
+    setActiveChildId(pending.activeChildId);
+    setTitle(pending.title);
+    setSummary(pending.summary);
+    setLearningArea(pending.learningArea);
+    setEvidenceType(pending.evidenceType);
+    setOccurredOn(pending.occurredOn || new Date().toISOString().slice(0, 10));
+    setCurriculum(pending.curriculum);
+  }, [authUserId]);
+
+  useEffect(() => {
+    const pending = pendingResumeDraftRef.current;
+    if (!pending || !authUserId) return;
+
+    const matchesDraft =
+      safe(activeChildId) === safe(pending.activeChildId) &&
+      safe(title) === safe(pending.title) &&
+      safe(summary) === safe(pending.summary) &&
+      safe(learningArea) === safe(pending.learningArea) &&
+      evidenceType === pending.evidenceType &&
+      safe(occurredOn) === safe(pending.occurredOn);
+
+    if (!matchesDraft) return;
+
+    pendingResumeDraftRef.current = null;
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(PENDING_EVIDENCE_SAVE_KEY);
+    }
+    void saveEvidence();
+  }, [authUserId, activeChildId, title, summary, learningArea, evidenceType, occurredOn]);
+
   const activeChild = useMemo(
     () => children.find((c) => c.id === activeChildId) || null,
     [children, activeChildId]
@@ -1067,6 +1128,18 @@ function CapturePageContent() {
 
   const canSave = !!safe(activeChildId) && !!safe(title) && !!safe(summary);
 
+  function buildPendingEvidenceDraft(): PendingEvidenceDraft {
+    return {
+      activeChildId: safe(activeChildId),
+      title: safe(title),
+      summary: safe(summary),
+      learningArea: safe(learningArea),
+      evidenceType,
+      occurredOn: safe(occurredOn),
+      curriculum: { ...curriculum },
+    };
+  }
+
   function resetDependentCurriculum(level: keyof PremiumCurriculumState, value: string) {
     setCurriculum((prev) => {
       if (level === "country") {
@@ -1096,9 +1169,23 @@ function CapturePageContent() {
   }
 
   async function saveEvidence() {
+    const pendingDraft = buildPendingEvidenceDraft();
+
     if (!canSave) {
       setSaveState("error");
       setFeedback("Please choose a learner, add a title, and include a short summary.");
+      return;
+    }
+
+    if (hasSupabaseEnv && !authUserId) {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          PENDING_EVIDENCE_SAVE_KEY,
+          JSON.stringify(pendingDraft)
+        );
+      }
+      setAuthModalOpen(true);
+      setFeedback("Save your progress to keep this learning record.");
       return;
     }
 
@@ -2243,6 +2330,11 @@ function CapturePageContent() {
           ) : null}
         </>
       )}
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        returnPath={authReturnPath}
+      />
     </FamilyTopNavShell>
   );
 }

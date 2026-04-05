@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import AuthModal from "@/app/components/AuthModal";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
@@ -80,6 +81,11 @@ type GuidedStartPlan = {
   activities: GuidedStartActivity[];
 };
 
+type PendingGuidedStartAction = {
+  activity: GuidedStartActivity;
+  profile: GuidedFamilyProfile;
+};
+
 /* =========================
    CONSTANTS
 ========================= */
@@ -89,6 +95,7 @@ const SETTINGS_KEY = "edudecks_family_settings_v1";
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLANNER_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
 const FAMILY_PROFILE_KEY = "edudecks_family_profile_v1";
+const GUIDED_PENDING_ACTION_KEY = "edudecks_pending_guided_start_action_v1";
 const RECENT_EVIDENCE_DAYS = 7;
 
 const FALLBACK_CHILDREN: ChildRecord[] = [
@@ -641,6 +648,7 @@ function FamilyPageContent() {
   const [guidedBusy, setGuidedBusy] = useState(false);
   const [guidedMessage, setGuidedMessage] = useState("");
   const [showGuidedStart, setShowGuidedStart] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const storedChildren = parseJson<any[]>(
@@ -865,6 +873,7 @@ function FamilyPageContent() {
   async function persistGuidedProfile(profile: GuidedFamilyProfile) {
     writeGuidedFamilyProfile(profile);
     setGuidedProfile(profile);
+    setShowGuidedStart(false);
   }
 
   async function handleGuidedSelection<K extends keyof GuidedFamilyProfile>(
@@ -877,13 +886,13 @@ function FamilyPageContent() {
     };
     setGuidedDraft(nextDraft);
     setGuidedMessage("");
-
-    if (key === "learning_stage" && nextDraft.age_band && nextDraft.location && nextDraft.learning_stage) {
-      await persistGuidedProfile(nextDraft as GuidedFamilyProfile);
-    }
   }
 
-  async function handleGuidedActivityTap(activity: GuidedStartActivity) {
+  async function runGuidedActivityTap(
+    activity: GuidedStartActivity,
+    authenticatedUserId: string | null,
+    profile: GuidedFamilyProfile
+  ) {
     setGuidedBusy(true);
     setGuidedMessage("");
 
@@ -904,39 +913,118 @@ function FamilyPageContent() {
     };
 
     try {
-      if (hasSupabaseEnv) {
-        const authResp = await supabase.auth.getUser();
-        const userId = authResp.data.user?.id || null;
-        const payload = { ...block, user_id: userId };
+      await persistGuidedProfile(profile);
+
+      if (hasSupabaseEnv && authenticatedUserId) {
+        const payload = { ...block, user_id: authenticatedUserId };
         const res = await supabase.from("planner_blocks").insert(payload).select("id").single();
 
         if (!res.error) {
           setPlannerBlockCount((prev) => prev + 1);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.removeItem(GUIDED_PENDING_ACTION_KEY);
+          }
           router.push(`/calendar?view=week&date=${encodeURIComponent(plannedFor)}`);
           return;
         }
       }
 
-      const localBlocks = parseJson<any[]>(
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(PLANNER_BLOCKS_KEY)
-          : null,
-        []
-      );
-      localBlocks.push(block);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(PLANNER_BLOCKS_KEY, JSON.stringify(localBlocks));
+      if (!hasSupabaseEnv) {
+        const localBlocks = parseJson<any[]>(
+          typeof window !== "undefined"
+            ? window.localStorage.getItem(PLANNER_BLOCKS_KEY)
+            : null,
+          []
+        );
+        localBlocks.push(block);
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(PLANNER_BLOCKS_KEY, JSON.stringify(localBlocks));
+          window.sessionStorage.removeItem(GUIDED_PENDING_ACTION_KEY);
+        }
+        setPlannerBlockCount((prev) => prev + 1);
+        router.push(`/calendar?view=week&date=${encodeURIComponent(plannedFor)}`);
+        return;
       }
-      setPlannerBlockCount((prev) => prev + 1);
-      router.push(`/calendar?view=week&date=${encodeURIComponent(plannedFor)}`);
+
+      throw new Error("Something went wrong - try again.");
     } catch (error: any) {
       setGuidedMessage(
-        String(error?.message || error || "We couldn't add that just now. Try the next suggestion.")
+        String(error?.message || error || "Something went wrong - try again.")
       );
     } finally {
       setGuidedBusy(false);
     }
   }
+
+  async function handleGuidedActivityTap(activity: GuidedStartActivity) {
+    const completeProfile =
+      guidedProfile ||
+      (hasCompletedGuidedDraft
+        ? ({
+            age_band: guidedDraft.age_band,
+            location: guidedDraft.location,
+            learning_stage: guidedDraft.learning_stage,
+          } as GuidedFamilyProfile)
+        : null);
+
+    if (!completeProfile) {
+      setGuidedMessage("Choose the quick start options first.");
+      return;
+    }
+
+    if (!hasSupabaseEnv) {
+      await runGuidedActivityTap(activity, null, completeProfile);
+      return;
+    }
+
+    const authResp = await supabase.auth.getUser();
+    const nextUserId = authResp.data.user?.id || null;
+
+    if (!nextUserId) {
+      if (typeof window !== "undefined") {
+        const pendingAction: PendingGuidedStartAction = {
+          activity,
+          profile: completeProfile,
+        };
+        window.sessionStorage.setItem(
+          GUIDED_PENDING_ACTION_KEY,
+          JSON.stringify(pendingAction)
+        );
+      }
+      setAuthModalOpen(true);
+      return;
+    }
+
+    await runGuidedActivityTap(activity, nextUserId, completeProfile);
+  }
+
+  useEffect(() => {
+    if (!hasSupabaseEnv || typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    async function resumePendingGuidedAction() {
+      const pendingRaw = window.sessionStorage.getItem(GUIDED_PENDING_ACTION_KEY);
+      if (!pendingRaw) return;
+
+      const pending = parseJson<PendingGuidedStartAction | null>(pendingRaw, null);
+      if (!pending?.activity || !pending?.profile) return;
+
+      const authResp = await supabase.auth.getUser();
+      const nextUserId = authResp.data.user?.id || null;
+      if (!nextUserId || cancelled) return;
+
+      setGuidedDraft(pending.profile);
+      setAuthModalOpen(false);
+      await runGuidedActivityTap(pending.activity, nextUserId, pending.profile);
+    }
+
+    void resumePendingGuidedAction();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <FamilyTopNavShell
@@ -1580,6 +1668,11 @@ function FamilyPageContent() {
       </section>
         </>
       ) : null}
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        returnPath="/family"
+      />
     </FamilyTopNavShell>
   );
 }

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import AuthModal from "@/app/components/AuthModal";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import useIsMobile from "@/app/components/useIsMobile";
 
 type ViewMode = "day" | "week" | "month";
@@ -38,9 +39,19 @@ type Learner = {
   label: string;
 };
 
+type PendingPlannerBlock = {
+  title: string;
+  learningArea: string;
+  plannedFor: string;
+  plannedTime: string;
+  note: string;
+  studentId: string;
+};
+
 const STORAGE_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
 const STORAGE_NOTES_KEY = "edudecks_calendar_notes_v1";
 const STORAGE_LEARNER_KEY = "edudecks_active_student_id";
+const PENDING_BLOCK_KEY = "edudecks_pending_calendar_block_v1";
 
 const LEARNING_AREAS = [
   "Literacy",
@@ -55,6 +66,15 @@ const LEARNING_AREAS = [
 
 function safeString(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function parseJson<T>(value: string | null, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 function isoDate(date: Date): string {
@@ -246,6 +266,7 @@ function CalendarPageContent() {
   const [savingNote, setSavingNote] = useState(false);
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [message, setMessage] = useState("");
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     const qView = safeString(searchParams.get("view")).toLowerCase();
@@ -309,6 +330,20 @@ function CalendarPageContent() {
     const key = buildNoteKey(userId, activeLearnerId || null, selectedIso);
     setNoteText(dayNotesMap[key]?.note || "");
   }, [selectedDate, activeLearnerId, userId, dayNotesMap]);
+
+  useEffect(() => {
+    if (!hasSupabaseEnv || !userId || typeof window === "undefined") return;
+
+    const pendingRaw = window.sessionStorage.getItem(PENDING_BLOCK_KEY);
+    if (!pendingRaw) return;
+
+    const pending = parseJson<PendingPlannerBlock | null>(pendingRaw, null);
+    if (!pending?.title) return;
+
+    window.sessionStorage.removeItem(PENDING_BLOCK_KEY);
+    setAuthModalOpen(false);
+    void executeAddBlock(pending, userId);
+  }, [userId]);
 
   async function loadLearners(): Promise<Learner[]> {
     try {
@@ -420,6 +455,10 @@ function CalendarPageContent() {
   }, [blocks]);
 
   const selectedIso = isoDate(selectedDate);
+  const authReturnPath = useMemo(() => {
+    const query = searchParams.toString();
+    return query ? `/calendar?${query}` : `/calendar`;
+  }, [searchParams]);
   const selectedWeekStart = useMemo(() => startOfWeekMonday(selectedDate), [selectedDate]);
   const selectedWeekEnd = useMemo(() => endOfWeekSunday(selectedDate), [selectedDate]);
   const selectedWeekDates = useMemo(
@@ -583,16 +622,10 @@ function CalendarPageContent() {
     return false;
   }
 
-  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
-    const nextTitle = safeString(custom?.title ?? title);
-    const nextArea = safeString(custom?.area ?? learningArea) || "Literacy";
-    const nextDate = safeString(custom?.date ?? toolbarDate) || selectedIso;
-
-    if (!nextTitle) {
-      setMessage("Add a simple learning moment first.");
-      return;
-    }
-
+  async function executeAddBlock(
+    pending: PendingPlannerBlock,
+    authenticatedUserId: string | null
+  ) {
     setSavingBlock(true);
     setMessage("");
 
@@ -601,13 +634,13 @@ function CalendarPageContent() {
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `local-${Date.now()}`,
-      user_id: userId,
-      student_id: activeLearnerId || null,
-      title: nextTitle,
-      learning_area: nextArea,
-      planned_for: nextDate,
-      planned_time: safeString(plannedTime) || null,
-      note: safeString(toolbarNote) || null,
+      user_id: authenticatedUserId,
+      student_id: pending.studentId || null,
+      title: pending.title,
+      learning_area: pending.learningArea,
+      planned_for: pending.plannedFor,
+      planned_time: safeString(pending.plannedTime) || null,
+      note: safeString(pending.note) || null,
       status: "planned",
     };
 
@@ -617,6 +650,41 @@ function CalendarPageContent() {
     setToolbarNote("");
     setMessage(savedToDatabase ? "Learning block added." : "Learning block added locally.");
     setSavingBlock(false);
+  }
+
+  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
+    const pending: PendingPlannerBlock = {
+      title: safeString(custom?.title ?? title),
+      learningArea: safeString(custom?.area ?? learningArea) || "Literacy",
+      plannedFor: safeString(custom?.date ?? toolbarDate) || selectedIso,
+      plannedTime: safeString(plannedTime),
+      note: safeString(toolbarNote),
+      studentId: activeLearnerId || "",
+    };
+
+    if (!pending.title) {
+      setMessage("Add a simple learning moment first.");
+      return;
+    }
+
+    if (hasSupabaseEnv) {
+      const authResp = await supabase.auth.getUser();
+      const nextUserId = authResp.data.user?.id || null;
+
+      if (!nextUserId) {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(PENDING_BLOCK_KEY, JSON.stringify(pending));
+        }
+        setAuthModalOpen(true);
+        setMessage("Save your progress to keep this plan.");
+        return;
+      }
+
+      await executeAddBlock(pending, nextUserId);
+      return;
+    }
+
+    await executeAddBlock(pending, userId);
   }
 
   async function handleSaveDayNote() {
@@ -1449,6 +1517,12 @@ function CalendarPageContent() {
             </Link>
           </div>
         </section>
+
+        <AuthModal
+          open={authModalOpen}
+          onClose={() => setAuthModalOpen(false)}
+          returnPath={authReturnPath}
+        />
       </div>
     </div>
   );
