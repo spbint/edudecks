@@ -14,6 +14,7 @@ type FamilyTopNavShellProps = {
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
+  hideHeroAside?: boolean;
   workflowCurrentHref?: string;
   workflowHelperText?: string;
   children: React.ReactNode;
@@ -125,6 +126,7 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
+  hideHeroAside = false,
   workflowCurrentHref,
   workflowHelperText,
   children,
@@ -334,7 +336,9 @@ export default function FamilyTopNavShell({
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+              gridTemplateColumns: hideHeroAside
+                ? "minmax(0, 1fr)"
+                : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
               gap: 20,
               marginBottom: 20,
             }}
@@ -384,59 +388,61 @@ export default function FamilyTopNavShell({
               </div>
             </div>
 
-            <aside
-              style={{
-                border: "1px solid #e5e7eb",
-                background: "#ffffff",
-                borderRadius: 24,
-                padding: 20,
-                boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
-              }}
-            >
-              <div
+            {!hideHeroAside ? (
+              <aside
                 style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.1,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                  marginBottom: 10,
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  borderRadius: 24,
+                  padding: 20,
+                  boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
                 }}
               >
-                {heroAsideTitle}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "#475569",
-                }}
-              >
-                {heroAsideText}
-              </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: 1.1,
+                    textTransform: "uppercase",
+                    color: "#64748b",
+                    marginBottom: 10,
+                  }}
+                >
+                  {heroAsideTitle}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "#475569",
+                  }}
+                >
+                  {heroAsideText}
+                </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  marginTop: 16,
-                }}
-              >
-                <Link href="/goals" style={utilBtn(false)}>
-                  Goals
-                </Link>
-                <Link href="/planner" style={utilBtn(false)}>
-                  Planner
-                </Link>
-                <Link href="/calendar" style={utilBtn(false)}>
-                  Calendar
-                </Link>
-                <Link href="/portfolio" style={utilBtn(false)}>
-                  Portfolio
-                </Link>
-              </div>
-            </aside>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 16,
+                  }}
+                >
+                  <Link href="/goals" style={utilBtn(false)}>
+                    Goals
+                  </Link>
+                  <Link href="/planner" style={utilBtn(false)}>
+                    Planner
+                  </Link>
+                  <Link href="/calendar" style={utilBtn(false)}>
+                    Calendar
+                  </Link>
+                  <Link href="/portfolio" style={utilBtn(false)}>
+                    Portfolio
+                  </Link>
+                </div>
+              </aside>
+            ) : null}
           </section>
         ) : null}
 

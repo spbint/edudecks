@@ -775,7 +775,8 @@ function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null)
   return "Continue";
 }
 
-function childActionHref(childDraft: ReportDraftRow | null) {
+function childActionHref(child: ChildRecord, childDraft: ReportDraftRow | null) {
+  if (child.evidenceCount === 0) return "/calendar";
   if (!childDraft) return "/reports";
   return `/reports?draftId=${childDraft.id}`;
 }
@@ -1345,8 +1346,7 @@ function FamilyPageContent() {
       subtitle="Home"
       heroTitle="A calmer way to move through family learning"
       heroText="The Family Home now works as a guided journey. Start with the current step, glance at what comes next, and leave the deeper tools for later."
-      heroAsideTitle="Current focus"
-      heroAsideText={`${familyJourney.current.ribbonLabel} is the main step right now. EduDecks will keep the next move close by so you do not have to plan the workflow yourself.`}
+      hideHeroAside={true}
       workflowCurrentHref={shouldShowGuidedStart ? "/planner" : familyJourney.current.href}
       workflowHelperText={
         shouldShowGuidedStart
@@ -1354,6 +1354,122 @@ function FamilyPageContent() {
           : familyJourney.progressText
       }
     >
+      <section style={{ ...S.card(), marginBottom: 18 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(300px,0.85fr)",
+            gap: 18,
+            alignItems: "start",
+          }}
+        >
+          <div>
+            <div style={S.label()}>Family workspace</div>
+            <div style={S.h2()}>
+              Welcome back,{" "}
+              {parentName || familyDisplayName === "Your family"
+                ? parentName || selectedChild?.name || "friend"
+                : familyDisplayName}
+            </div>
+            <div style={S.small()}>
+              Use this page as your guided starting point. You do not need to
+              think like a teacher â€” EduDecks should keep nudging the next
+              sensible move.
+            </div>
+
+            <div style={{ height: 14 }} />
+
+            <div
+              style={{
+                border: "1px solid #bfdbfe",
+                background: "#eff6ff",
+                borderRadius: 16,
+                padding: 16,
+              }}
+            >
+              <div style={S.label()}>Next step preview</div>
+              <div style={S.h2()}>
+                {familyJourney.next
+                  ? `${familyJourney.next.ribbonLabel} comes next`
+                  : "Portfolio keeps the strongest work together"}
+              </div>
+              <div style={S.body()}>
+                {familyJourney.next
+                  ? familyJourney.next.body
+                  : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
+              </div>
+
+              <div style={{ ...S.small(), marginTop: 8 }}>
+                {familyJourney.progressText}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 14,
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  flexDirection: isMobile ? "column" : "row",
+                }}
+              >
+                {familyJourney.next ? (
+                  <Link
+                    href={familyJourney.next.primaryHref}
+                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    Preview {familyJourney.next.ribbonLabel}
+                  </Link>
+                ) : (
+                  <Link
+                    href="/portfolio"
+                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+                  >
+                    Open portfolio
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div style={S.card()}>
+            <div style={S.label()}>Support and progress</div>
+            <div style={S.h2()}>{familyJourney.supportTitle}</div>
+            <div style={S.body()}>{familyJourney.supportBody}</div>
+
+            <div style={{ height: 12 }} />
+
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid #e5e7eb",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={S.label()}>Evidence quality coaching</div>
+              <div style={S.small()}>{evidenceQualityHint(selectedChild, selectedChildDraft)}</div>
+            </div>
+
+            <div
+              style={{
+                marginTop: 12,
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={S.pill(calmCheckTone(confidenceSummary))}>
+                Calm check {confidenceSummary}%
+              </span>
+              <span style={S.pill(familyJourney.supportTone)}>
+                {familyJourney.current.ribbonLabel} is current
+              </span>
+              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {!isMobile && welcomeMessage ? (
         <WelcomeStatusCard
           message={welcomeMessage}
@@ -1662,7 +1778,7 @@ function FamilyPageContent() {
         />
       ) : null}
 
-      <section style={{ ...S.card(), marginBottom: 18 }}>
+      <section style={{ ...S.card(), marginBottom: 18, display: "none" }}>
         <div
           style={{
             display: "grid",
@@ -1961,7 +2077,7 @@ function FamilyPageContent() {
                   >
                     Select
                   </button>
-                  <Link href={childActionHref(childDraft)} style={S.button(true)}>
+                  <Link href={childActionHref(child, childDraft)} style={S.button(true)}>
                     {childActionLabel(child, childDraft)}
                   </Link>
                 </div>
