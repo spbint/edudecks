@@ -1,10 +1,8 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import PostOnboardingPanel from "@/app/components/guided/PostOnboardingPanel";
-import SignOutButton from "@/app/components/SignOutButton";
 
 export default function ReportsLayout({
   children,
@@ -12,69 +10,18 @@ export default function ReportsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ minHeight: "100vh", background: "#f6f8fc" }}>
-      <div
-        style={{
-          borderBottom: "1px solid #e5e7eb",
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(8px)",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1380,
-            margin: "0 auto",
-            padding: "14px 20px 16px",
-            display: "grid",
-            gap: 14,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Link
-                href="/family"
-                style={{ color: "#0f172a", fontWeight: 900, textDecoration: "none" }}
-              >
-                EduDecks Family
-              </Link>
-              <span style={{ color: "#94a3b8" }}>/</span>
-              <span style={{ color: "#475569", fontWeight: 700 }}>Reports workflow</span>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "#64748b",
-                }}
-              >
-                Keep the whole family journey visible while you build and review reports.
-              </div>
-              <SignOutButton />
-            </div>
-          </div>
-
-          <FamilyWorkflowStrip />
-          <PostOnboardingPanel />
-        </div>
-      </div>
-
+    <FamilyTopNavShell
+      title="EduDecks Family"
+      subtitle="Reports"
+      heroTitle="Shape captured learning into calm reports"
+      heroText="Keep the family journey visible while you turn real learning moments into summaries, drafts, and cleaner reporting output."
+      heroAsideTitle="Reports step"
+      heroAsideText="Reports sits after capture and before portfolio, so parents can always see where this work belongs in the wider journey."
+      workflowCurrentHref="/reports"
+      workflowHelperText="You are in the reports step now. Review what was captured, shape the summary, and keep portfolio as the next quieter step."
+    >
+      <PostOnboardingPanel />
       {children}
-    </div>
+    </FamilyTopNavShell>
   );
 }

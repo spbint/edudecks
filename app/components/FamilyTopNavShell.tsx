@@ -19,14 +19,12 @@ type FamilyTopNavShellProps = {
   children: React.ReactNode;
 };
 
-type NavItem = {
-  href: string;
-  label: string;
-};
-
 type NavSection = {
   title: string;
-  items: NavItem[];
+  items: Array<{
+    href: string;
+    label: string;
+  }>;
 };
 
 function isActive(pathname: string, href: string) {
@@ -80,8 +78,6 @@ function sectionLabel(): React.CSSProperties {
     marginBottom: 8,
   };
 }
-
-const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
 
 const SECTIONS: NavSection[] = [
   {
@@ -173,17 +169,19 @@ export default function FamilyTopNavShell({
               }}
             >
               <div>
-                <div
+                <Link
+                  href="/family"
                   style={{
                     fontSize: 12,
                     fontWeight: 900,
                     letterSpacing: 1.2,
                     textTransform: "uppercase",
                     color: "#64748b",
+                    textDecoration: "none",
                   }}
                 >
                   {title}
-                </div>
+                </Link>
                 <div
                   style={{
                     fontSize: 13,
@@ -196,6 +194,12 @@ export default function FamilyTopNavShell({
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <Link href="/family" style={utilBtn(false)}>
+                  Home
+                </Link>
+                <Link href="/calendar" style={utilBtn(false)}>
+                  Calendar
+                </Link>
                 <SignOutButton style={utilBtn(false)} />
                 <details
                   style={{
@@ -228,10 +232,13 @@ export default function FamilyTopNavShell({
                     zIndex: 30,
                   }}
                 >
-                  <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
                   <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
                     Home
                   </Link>
+                  <Link href="/calendar" style={navBtn(isActive(pathname, "/calendar"))}>
+                    Calendar
+                  </Link>
+                  <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
                   {SECTIONS.map((section) => (
                     <div key={section.title}>
                       <div style={sectionLabel()}>{section.title}</div>
@@ -264,17 +271,19 @@ export default function FamilyTopNavShell({
                 }}
               >
                 <div>
-                  <div
+                  <Link
+                    href="/family"
                     style={{
                       fontSize: 12,
                       fontWeight: 900,
                       letterSpacing: 1.2,
                       textTransform: "uppercase",
                       color: "#64748b",
+                      textDecoration: "none",
                     }}
                   >
                     {title}
-                  </div>
+                  </Link>
                   <div
                     style={{
                       fontSize: 14,
@@ -293,35 +302,14 @@ export default function FamilyTopNavShell({
                     flexWrap: "wrap",
                   }}
                 >
-                  <Link href="/capture" style={utilBtn(true)}>
-                    Quick Capture
+                  <Link href="/family" style={utilBtn(false)}>
+                    Home
                   </Link>
                   <Link href="/calendar" style={utilBtn(false)}>
                     Calendar
                   </Link>
-                  <Link href="/planner" style={utilBtn(false)}>
-                    Planner
-                  </Link>
-                  <Link href="/reports" style={utilBtn(false)}>
-                    Build Report
-                  </Link>
-                  <Link href="/reports/library" style={utilBtn(false)}>
-                    Report Library
-                  </Link>
                   <SignOutButton style={utilBtn(false)} />
                 </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {PRIMARY_NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    style={navBtn(isActive(pathname, item.href))}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
               </div>
             </>
           )}
