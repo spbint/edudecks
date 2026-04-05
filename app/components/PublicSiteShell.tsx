@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import BrandHomeLink from "@/app/components/BrandHomeLink";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type CtaLink = { label: string; href: string };
@@ -199,6 +200,8 @@ export default function PublicSiteShell({
     };
   }, []);
 
+  void title;
+
   return (
     <div
       style={{
@@ -237,62 +240,7 @@ export default function PublicSiteShell({
               flexWrap: "wrap",
             }}
           >
-            <Link
-              href="/"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                textDecoration: "none",
-              }}
-            >
-              <div
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  background:
-                    "linear-gradient(135deg, rgba(79,124,240,0.12) 0%, rgba(139,124,246,0.12) 100%)",
-                  border: `1px solid ${C.brandPrimaryBorder}`,
-                  color: C.brandPrimaryStrong,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 900,
-                  fontSize: 16,
-                  boxShadow: "0 10px 24px rgba(15,23,42,0.05)",
-                }}
-              >
-                ED
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    color: C.textStrong,
-                    marginBottom: 2,
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 8,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span>{title}</span>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: C.textMuted,
-                    }}
-                  >
-                    (Beta v1)
-                  </span>
-                </div>
-                <div style={{ fontSize: 13, color: C.textMuted }}>{eyebrow}</div>
-              </div>
-            </Link>
+            <BrandHomeLink height={38} width={140} />
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {isAuthenticated ? (

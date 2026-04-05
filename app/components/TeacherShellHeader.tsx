@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import SignOutButton from "@/app/components/SignOutButton";
+import BrandHomeLink from "@/app/components/BrandHomeLink";
 
 type TeacherShellHeaderProps = {
   title: string;
@@ -36,17 +37,8 @@ export default function TeacherShellHeader({
         }}
       >
         <div style={{ maxWidth: 760 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: 1.1,
-              textTransform: "uppercase",
-              color: "#64748b",
-              marginBottom: 10,
-            }}
-          >
-            EduDecks Teacher
+          <div style={{ marginBottom: 14 }}>
+            <BrandHomeLink height={38} width={140} />
           </div>
           <div
             style={{

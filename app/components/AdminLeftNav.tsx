@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import BrandHomeLink from "@/app/components/BrandHomeLink";
 import { buildClassListPath } from "@/lib/classRoutes";
 import {
   buildLeadershipHeatmapPath,
@@ -331,14 +332,11 @@ export default function AdminLeftNav() {
       }}
     >
       <div style={S.brandWrap}>
-        <div>
-          <div style={S.brand}>EduDecks</div>
-          {!collapsed ? (
-            <div style={S.subtitle}>
-              Human development operating system
-            </div>
-          ) : null}
-        </div>
+        <BrandHomeLink
+          height={collapsed ? 28 : 34}
+          width={collapsed ? 103 : 125}
+          style={{ justifyContent: collapsed ? "center" : "flex-start" }}
+        />
 
         <button
           type="button"
@@ -493,24 +491,6 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: "flex-start",
     gap: 10,
   },
-
-  brand: {
-    fontSize: 24,
-    fontWeight: 1000,
-    color: "#ffffff",
-    lineHeight: 1.05,
-    letterSpacing: -0.3,
-  },
-
-  subtitle: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: 800,
-    color: "#94a3b8",
-    lineHeight: 1.4,
-    maxWidth: 220,
-  },
-
   collapseBtn: {
     border: "1px solid #334155",
     background: "#111827",

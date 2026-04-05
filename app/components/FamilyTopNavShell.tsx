@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 import SignOutButton from "@/app/components/SignOutButton";
 import useIsMobile from "@/app/components/useIsMobile";
+import BrandHomeLink from "@/app/components/BrandHomeLink";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -135,6 +136,9 @@ export default function FamilyTopNavShell({
   const pathname = usePathname();
   const isMobile = useIsMobile();
 
+  void title;
+  void subtitle;
+
   return (
     <div
       style={{
@@ -171,31 +175,7 @@ export default function FamilyTopNavShell({
                 gap: 12,
               }}
             >
-              <div>
-                <Link
-                  href="/family"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: 1.2,
-                    textTransform: "uppercase",
-                    color: "#64748b",
-                    textDecoration: "none",
-                  }}
-                >
-                  {title}
-                </Link>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#475569",
-                    marginTop: 4,
-                    fontWeight: 700,
-                  }}
-                >
-                  {subtitle}
-                </div>
-              </div>
+              <BrandHomeLink height={34} width={125} />
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <Link href="/family" style={utilBtn(false)}>
                   Home
@@ -221,109 +201,84 @@ export default function FamilyTopNavShell({
                   >
                     Menu
                   </summary>
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "calc(100% + 10px)",
-                    width: 280,
-                    maxWidth: "calc(100vw - 32px)",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 18,
-                    background: "#ffffff",
-                    boxShadow: "0 20px 50px rgba(15,23,42,0.12)",
-                    padding: 14,
-                    display: "grid",
-                    gap: 12,
-                    zIndex: 30,
-                  }}
-                >
-                  <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
-                    Home
-                  </Link>
-                  <Link href="/calendar" style={navBtn(isActive(pathname, "/calendar"))}>
-                    Calendar
-                  </Link>
-                  <Link href="/community" style={navBtn(isActive(pathname, "/community"))}>
-                    Community
-                  </Link>
-                  <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
-                  {SECTIONS.map((section) => (
-                    <div key={section.title}>
-                      <div style={sectionLabel()}>{section.title}</div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        {section.items.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            style={navBtn(isActive(pathname, item.href))}
-                          >
-                            {item.label}
-                          </Link>
-                        ))}
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "calc(100% + 10px)",
+                      width: 280,
+                      maxWidth: "calc(100vw - 32px)",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 18,
+                      background: "#ffffff",
+                      boxShadow: "0 20px 50px rgba(15,23,42,0.12)",
+                      padding: 14,
+                      display: "grid",
+                      gap: 12,
+                      zIndex: 30,
+                    }}
+                  >
+                    <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
+                      Home
+                    </Link>
+                    <Link href="/calendar" style={navBtn(isActive(pathname, "/calendar"))}>
+                      Calendar
+                    </Link>
+                    <Link href="/community" style={navBtn(isActive(pathname, "/community"))}>
+                      Community
+                    </Link>
+                    <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
+                    {SECTIONS.map((section) => (
+                      <div key={section.title}>
+                        <div style={sectionLabel()}>{section.title}</div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          {section.items.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              style={navBtn(isActive(pathname, item.href))}
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </details>
               </div>
             </div>
           ) : (
-            <>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <BrandHomeLink height={38} width={140} />
+
               <div
                 style={{
                   display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
+                  gap: 10,
                   flexWrap: "wrap",
                 }}
               >
-                <div>
-                  <Link
-                    href="/family"
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 900,
-                      letterSpacing: 1.2,
-                      textTransform: "uppercase",
-                      color: "#64748b",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {title}
-                  </Link>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      color: "#475569",
-                      marginTop: 4,
-                    }}
-                  >
-                    {subtitle}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Link href="/family" style={utilBtn(false)}>
-                    Home
-                  </Link>
-                  <Link href="/calendar" style={utilBtn(false)}>
-                    Calendar
-                  </Link>
-                  <Link href="/community" style={utilBtn(false)}>
-                    Community
-                  </Link>
-                  <SignOutButton style={utilBtn(false)} />
-                </div>
+                <Link href="/family" style={utilBtn(false)}>
+                  Home
+                </Link>
+                <Link href="/calendar" style={utilBtn(false)}>
+                  Calendar
+                </Link>
+                <Link href="/community" style={utilBtn(false)}>
+                  Community
+                </Link>
+                <SignOutButton style={utilBtn(false)} />
               </div>
-            </>
+            </div>
           )}
         </div>
       </header>
