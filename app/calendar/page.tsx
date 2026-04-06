@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import FlowStep from "@/app/components/FlowStep";
 import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
@@ -840,6 +841,23 @@ function CalendarPageContent() {
       ? formatWeekLabel(selectedDate)
       : formatMonthYear(selectedDate);
 
+  const stepOneBadge = weeklyBlocks.length === 0 ? "Start here" : "Quick add ready";
+  const stepTwoBadge =
+    view === "week" ? "Main planning view" : view === "day" ? "Focused day view" : "Month overview";
+  const stepThreeBadge = weeklyBlocks.length > 0 ? "Ready when learning happens" : "Comes after planning";
+  const stepFourBadge =
+    weeklyBlocks.length > 0 ? `${weeklyBlocks.length} block${weeklyBlocks.length === 1 ? "" : "s"} helping the picture grow` : "Report confidence builds gently";
+
+  const captureFlowCopy =
+    weeklyBlocks.length > 0
+      ? "You already have learning blocks in motion. When one happens, capture a quick note, photo, or summary so the record grows naturally."
+      : "Once the first block happens, capture it quickly. A small note or photo is enough to begin building a useful learning record.";
+
+  const reportFlowCopy =
+    weeklyBlocks.length > 0
+      ? "Each block and capture adds another piece of the learning story. You do not need everything perfect before moving toward a clearer report."
+      : "Even one small planned block can become the start of a clearer report once the learning moment is captured.";
+
   return (
     <div style={styles.page}>
       <div style={styles.container}>
@@ -918,6 +936,15 @@ function CalendarPageContent() {
           </div>
         </section>
 
+        <div style={styles.flowStack}>
+
+        <FlowStep
+          step={1}
+          title="Start your week"
+          description="Add your first learning block"
+          helperText="Start with one simple learning moment. You do not need a full week planned to begin."
+          badge={stepOneBadge}
+        >
         <section style={{ ...styles.toolbarCard, padding: isMobile ? 14 : 16 }}>
           <div
             style={{
@@ -1078,7 +1105,16 @@ function CalendarPageContent() {
             </div>
           ) : null}
         </section>
+        </FlowStep>
 
+        <FlowStep
+          step={2}
+          title="Build your week"
+          description="Spread learning gently across the week"
+          helperText="Place one to three learning blocks across the week to create a calm rhythm."
+          badge={stepTwoBadge}
+        >
+        <div style={styles.stepStack}>
         <section style={styles.intelligenceCard}>
           <div style={styles.intelligenceTop}>
             <div>
@@ -1508,20 +1544,72 @@ function CalendarPageContent() {
           </section>
         )}
 
-        <section
-          style={{
-            ...styles.footerStrip,
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : "center",
-          }}
+        </div>
+        </FlowStep>
+
+        <FlowStep
+          step={3}
+          title="Capture what happens"
+          description="Capture real learning moments"
+          helperText="When learning happens, record it quickly so your child's progress builds naturally over time."
+          badge={stepThreeBadge}
         >
-          <div>
-            <div style={styles.footerTitle}>Continue your flow</div>
-            <div style={styles.footerText}>
-              Place the next learning block in the week, then move naturally into capture when it happens.
+          <section style={styles.footerStrip}>
+            <div>
+              <div style={styles.footerTitle}>Move naturally into capture</div>
+              <div style={styles.footerText}>{captureFlowCopy}</div>
             </div>
-          </div>
-        </section>
+
+            <div style={styles.footerLinks}>
+              <button
+                style={{ ...styles.primaryBtn, minHeight: 40, padding: "0 14px" }}
+                onClick={() => goToCapture()}
+              >
+                Open Capture
+              </button>
+              <Link href="/capture" style={styles.footerChip}>
+                Capture dashboard
+              </Link>
+              <Link href="/planner" style={styles.footerChip}>
+                Back to Planner
+              </Link>
+            </div>
+          </section>
+        </FlowStep>
+
+        <FlowStep
+          step={4}
+          title="Keep moving toward a report"
+          description="Build toward Report Ready"
+          helperText="Each block and capture helps you build a clearer picture of learning when it is time to report."
+          badge={stepFourBadge}
+        >
+          <section
+            style={{
+              ...styles.footerStrip,
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "center",
+            }}
+          >
+            <div>
+              <div style={styles.footerTitle}>Each step builds toward a clearer report</div>
+              <div style={styles.footerText}>{reportFlowCopy}</div>
+            </div>
+
+            <div style={styles.footerLinks}>
+              <Link href="/reports" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
+                Open Reports
+              </Link>
+              <Link href="/reports/output" style={styles.footerChip}>
+                Report output
+              </Link>
+              <Link href="/portfolio" style={styles.footerChip}>
+                Keep the best pieces
+              </Link>
+            </div>
+          </section>
+        </FlowStep>
+        </div>
 
         <AuthModal
           open={authModalOpen}
@@ -1585,6 +1673,14 @@ const styles: Record<string, React.CSSProperties> = {
   container: {
     maxWidth: 1380,
     margin: "0 auto",
+    display: "grid",
+    gap: 16,
+  },
+  flowStack: {
+    display: "grid",
+    gap: 18,
+  },
+  stepStack: {
     display: "grid",
     gap: 16,
   },
@@ -2367,3 +2463,4 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.7,
   },
 };
+
