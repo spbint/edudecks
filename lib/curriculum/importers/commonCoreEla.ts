@@ -43,6 +43,35 @@ type LevelSeed = {
   metadata?: Record<string, unknown>;
 };
 
+type StrandPayload = {
+  framework_id: string;
+  code: string;
+  name: string;
+  description?: string;
+  sort_order: number;
+  metadata: Record<string, unknown>;
+  subject_id?: string;
+};
+
+type StandardPayload = {
+  framework_id: string;
+  official_code: string;
+  title: string;
+  description?: string | null;
+  is_anchor: boolean;
+  is_active: boolean;
+  metadata: Record<string, unknown>;
+  short_code?: string;
+  subject_id?: string;
+  strand_id?: string;
+  level_id?: string;
+  official_grade_label?: string;
+  normalized_grade_label?: string;
+  normalized_grade_sort?: number;
+  discipline_context?: string;
+  source_order?: number;
+};
+
 const FRAMEWORK_CODE = "common-core";
 const COUNTRY_CODE = "us";
 
@@ -328,7 +357,7 @@ async function ensureStrands(
   const strandMap: Record<string, { id: string; code: string }> = {};
 
   for (const seed of STRAND_SEEDS) {
-    const payload: Record<string, unknown> = {
+    const payload: StrandPayload = {
       framework_id: frameworkId,
       code: seed.code,
       name: seed.name,
@@ -337,10 +366,10 @@ async function ensureStrands(
       metadata: {},
     };
     if (seed.subject_code) {
-      payload["subject_id"] = subjects[seed.subject_code]?.id ?? null;
+      payload.subject_id = subjects[seed.subject_code]?.id;
     }
 
-    const row = await upsert("curriculum_strands", { framework_id: frameworkId, code: seed.code }, payload);
+    const row = await upsert("curriculum_strands", { framework_id: frameworkId, code: seed.code }, payload as Record<string, unknown>);
     strandMap[seed.code] = { id: row.id, code: seed.code };
   }
 
@@ -357,7 +386,7 @@ async function ensureStandards(
   const standardMap = new Map<string, CurriculumStandard>();
 
   for (const standard of standards) {
-    const payload: Record<string, unknown> = {
+    const payload: StandardPayload = {
       framework_id: frameworkId,
       official_code: standard.official_code,
       title: standard.title,
@@ -368,8 +397,8 @@ async function ensureStandards(
     };
 
     if (standard.short_code) payload.short_code = standard.short_code;
-    if (standard.subject_code) payload.subject_id = subjects[standard.subject_code]?.id ?? null;
-    if (standard.strand_code) payload.strand_id = strands[standard.strand_code]?.id ?? null;
+    if (standard.subject_code) payload.subject_id = subjects[standard.subject_code]?.id;
+    if (standard.strand_code) payload.strand_id = strands[standard.strand_code]?.id;
     if (standard.level_official_label) {
       const level = levels[standard.level_official_label];
       if (level) {
@@ -385,7 +414,7 @@ async function ensureStandards(
     if (standard.discipline_context) payload.discipline_context = standard.discipline_context;
     if (standard.source_order !== undefined) payload.source_order = standard.source_order;
 
-    const row = await upsert("curriculum_standards", { framework_id: frameworkId, official_code: standard.official_code }, payload);
+    const row = await upsert("curriculum_standards", { framework_id: frameworkId, official_code: standard.official_code }, payload as Record<string, unknown>);
     standardMap.set(standard.official_code, row);
   }
 
