@@ -10,6 +10,7 @@ import CurriculumSummary from "@/app/components/CurriculumSummary";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
+import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -836,6 +837,26 @@ function PortfolioPageContent() {
     [students, selectedStudentId]
   );
 
+  const { readinessReport } = useAssessmentInsights(
+    student?.id,
+    firstNameOf(student),
+    "parent_friendly"
+  );
+
+  const coverageSubjects = readinessReport?.subjectReadiness ?? [];
+  const strongSubjects = coverageSubjects.filter((subject) => subject.status === "Ready").slice(0, 3);
+  const watchSubjects = coverageSubjects.filter((subject) => subject.status !== "Ready").slice(0, 3);
+  const missingEvidence = readinessReport?.evidenceGaps.slice(0, 3) ?? [];
+  const coverageToneMap: Record<string, "green" | "blue" | "amber"> = {
+    Ready: "green",
+    "Nearly Ready": "blue",
+    Partial: "amber",
+    "Needs Evidence": "amber",
+  };
+  const missingMessage =
+    readinessReport?.captureGuidance[0] ??
+    "Keep adding learning moments to keep the accuracy of this record growing.";
+
   const evidence = useMemo(() => {
     if (!student) return [] as EvidenceRow[];
     return allEvidence.filter((e) => safe(e.student_id) === student.id);
@@ -1175,6 +1196,134 @@ function PortfolioPageContent() {
               helperText="Captured moments will reflect the framework and grade you selected in Settings."
               linkLabel="Change in Settings"
             />
+            {readinessReport ? (
+              <>
+                <section
+                  style={{
+                    ...UI.card(),
+                    display: "grid",
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div style={UI.label()}>Portfolio coverage</div>
+                      <div style={{ ...UI.h2(), fontSize: 24, marginTop: 4 }}>
+                        {readinessReport.overallStatus}
+                      </div>
+                      <div style={{ ...UI.body(), marginTop: 8 }}>
+                        {readinessReport.explanation}
+                      </div>
+                    </div>
+                    <span style={UI.chip(coverageToneMap[readinessReport.overallStatus] || "blue")}>
+                      {readinessReport.overallStatus}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <div style={UI.softCard()}>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>Strongest areas</div>
+                      <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                        {strongSubjects.length ? (
+                          strongSubjects.map((subject) => (
+                            <div key={subject.subjectName}>
+                              <div style={{ fontWeight: 900 }}>{subject.subjectName}</div>
+                              <div style={{ fontSize: 12, color: "#475569" }}>{subject.explanation}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={UI.body()}>Build stronger signals across your learning focus.</div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={UI.softCard()}>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>Under-evidenced areas</div>
+                      <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                        {watchSubjects.length ? (
+                          watchSubjects.map((subject) => (
+                            <div key={subject.subjectName}>
+                              <div style={{ fontWeight: 900 }}>{subject.subjectName}</div>
+                              <div style={{ fontSize: 12, color: "#475569" }}>{subject.nextCapture}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={UI.body()}>Coverage is balanced across the most important subjects.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section style={{ ...UI.softCard() }}>
+                  <div style={UI.label()}>What your portfolio is missing</div>
+                  <ul
+                    style={{
+                      margin: "8px 0 0 16px",
+                      padding: 0,
+                      listStyleType: "disc",
+                      color: "#475569",
+                      fontSize: 13,
+                    }}
+                  >
+                    {missingEvidence.length ? (
+                      missingEvidence.map((gap) => (
+                        <li key={gap.standardId} style={{ marginBottom: 6 }}>
+                          <strong>{gap.officialCode}</strong> — {gap.title}
+                        </li>
+                      ))
+                    ) : (
+                      <li style={{ marginBottom: 6 }}>Coverage is on track. Keep refreshing the strongest signals.</li>
+                    )}
+                  </ul>
+                </section>
+
+                <section style={{ ...UI.softCard() }}>
+                  <div style={UI.label()}>Suggested next step</div>
+                  <div style={{ ...UI.body(), marginTop: 8 }}>{missingMessage}</div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 10,
+                      flexWrap: "wrap",
+                      marginTop: 12,
+                      flexDirection: isMobile ? "column" : "row",
+                    }}
+                  >
+                    <Link
+                      href="/capture"
+                      style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
+                    >
+                      Capture more evidence
+                    </Link>
+                    <Link
+                      href="/reports"
+                      style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                    >
+                      Review readiness
+                    </Link>
+                    <Link
+                      href="#learning_feed"
+                      style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
+                    >
+                      Curate strongest work
+                    </Link>
+                  </div>
+                </section>
+              </>
+            ) : null}
             <FlowStep
               step={1}
               title="Choose your learner"
@@ -1591,7 +1740,7 @@ function PortfolioPageContent() {
           ) : null}
 
           {topFeatureEnabled() && layout.topFeature === "learning_feed" && blockEnabled("learning_feed") ? (
-            <section style={{ marginBottom: 18 }}>
+            <section id="learning_feed" style={{ marginBottom: 18 }}>
               <LearningFeed
                 items={timelineItems}
                 tagMap={tagMap}
