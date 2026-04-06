@@ -9,6 +9,7 @@ import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
+import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 
 /* =========================
    TYPES
@@ -1303,6 +1304,21 @@ function FamilyPageContent() {
     return children.find((child) => child.id === selectedChildId) || children[0] || null;
   }, [children, selectedChildId]);
 
+  const { readinessReport } = useAssessmentInsights(
+    selectedChild?.id,
+    selectedChild?.name,
+    "parent_friendly"
+  );
+
+  const compactGaps = readinessReport?.evidenceGaps.slice(0, 3) ?? [];
+  const compactGuidance = readinessReport?.captureGuidance.slice(0, 3) ?? [];
+  const topSubject = readinessReport?.subjectReadiness?.[0];
+  const positiveSignal = topSubject
+    ? `${topSubject.subjectName} is ${topSubject.status.toLowerCase()}`
+    : selectedChild?.strongestArea
+    ? `${selectedChild.strongestArea} remains steady`
+    : "Awaiting more evidence";
+
   const selectedChildDraft = useMemo(() => {
     if (!selectedChild) return null;
 
@@ -1897,41 +1913,128 @@ function FamilyPageContent() {
         />
       ) : null}
 
-      <section style={{ ...S.card(), marginBottom: 18, display: "none" }}>
+      <section style={{ ...S.card(), marginBottom: 18 }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(280px,0.85fr)",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.25fr) minmax(220px,0.75fr)",
             gap: 18,
             alignItems: "start",
           }}
         >
           <div>
-            <div style={S.label()}>Calm check</div>
-            <div style={S.h2()}>
-              {selectedChild
-                ? `${selectedChild.name} is ${statusLabel(selectedChild.status).toLowerCase()}`
-                : "Select a child"}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div style={S.label()}>What to do next</div>
+                <div style={S.h2()}>
+                  {selectedChild
+                    ? `${selectedChild.name} is ${statusLabel(selectedChild.status).toLowerCase()}`
+                    : "Select a child"}
+                </div>
+                <div style={S.body()}>
+                  {selectedChild
+                    ? readinessReport?.explanation ||
+                      "Gathering readiness signals to keep you calm."
+                    : "Choose a child to surface readiness insights."}
+                </div>
+              </div>
+              {readinessReport ? (
+                <span style={S.pill(readinessReport.reportReady ? "success" : "info")}>
+                  {readinessReport.overallStatus}
+                </span>
+              ) : null}
             </div>
-            <div style={S.body()}>
-              {selectedChild
-                ? calmCheckText(confidenceSummary, selectedChild.name)
-                : "Choose a child to see whether the system thinks you are on track."}
-            </div>
+
+            <div style={{ marginTop: 12, fontSize: 13, color: "#475569" }}>{positiveSignal}</div>
+
+            {compactGaps.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={S.label()}>Top evidence gaps</div>
+                <ul
+                  style={{
+                    margin: "6px 0 0 16px",
+                    padding: 0,
+                    listStyleType: "disc",
+                    color: "#475569",
+                    fontSize: 13,
+                  }}
+                >
+                  {compactGaps.map((gap) => (
+                    <li key={gap.standardId} style={{ marginBottom: 4 }}>
+                      <strong>{gap.officialCode}</strong> — {gap.title}
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>{gap.reason}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {compactGuidance.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={S.label()}>Recommended captures</div>
+                <ul
+                  style={{
+                    margin: "6px 0 0 16px",
+                    padding: 0,
+                    listStyleType: "disc",
+                    color: "#475569",
+                    fontSize: 13,
+                  }}
+                >
+                  {compactGuidance.map((guidance) => (
+                    <li key={guidance} style={{ marginBottom: 4 }}>
+                      {guidance}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div
               style={{
-                marginTop: 14,
+                marginTop: 18,
                 display: "flex",
                 gap: 10,
                 flexWrap: "wrap",
               }}
             >
-              <span style={S.pill(calmCheckTone(confidenceSummary))}>
-                Calm check {confidenceSummary}%
-              </span>
-              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
-              <span style={S.pill("info")}>~{timeSavedHours.toFixed(1)} hrs saved</span>
+              <Link
+                href="/capture"
+                style={{
+                  ...S.button(true),
+                  width: isMobile ? "100%" : undefined,
+                  justifyContent: "center",
+                }}
+              >
+                Capture evidence
+              </Link>
+              <Link
+                href="/reports"
+                style={{
+                  ...S.button(false),
+                  width: isMobile ? "100%" : undefined,
+                  justifyContent: "center",
+                }}
+              >
+                Open reports
+              </Link>
+              <Link
+                href="/portfolio"
+                style={{
+                  ...S.button(false),
+                  width: isMobile ? "100%" : undefined,
+                  justifyContent: "center",
+                }}
+              >
+                View portfolio
+              </Link>
             </div>
           </div>
 
