@@ -570,3 +570,1034 @@ function executiveSummaryForFocus(focus: FocusArea) {
   return "COO and CRO logic favour connecting plans to action so families move from intention to visible progress.";
 }
 
+function generateBoardCall(focus: FocusArea, signals: ProductSignals): SynthesisResult {
+  const captureWeak = signals.captureHealth < 45;
+  const reportWeak = signals.reportHealth < 45;
+  const portfolioWeak = signals.portfolioHealth < 45;
+  const readinessWeak = signals.readinessScore < 55;
+  const evidenceHealthy = signals.captureHealth >= 60;
+  const reportHealthy = signals.reportHealth >= 60;
+  const workflowHealthy =
+    signals.captureHealth >= 60 && signals.reportHealth >= 55 && signals.readinessScore >= 60;
+  const dataReady =
+    signals.evidenceCount >= 12 && signals.reportDraftCount >= 3 && signals.captureHealth >= 55;
+
+  if (focus === "authority") {
+    if (captureWeak) {
+      return {
+        title: "Capture before confidence layer",
+        boardCall: "Authority should not be the next build while capture activity is still weak.",
+        exec: "The board sees a confidence promise risk: authority messaging will underperform if families do not yet have enough evidence in the system.",
+        advisory: advisorySummaryForFocus(focus),
+        product: "Children are present, but evidence flow is not yet strong enough to support a reliable readiness layer.",
+        risk: "Building authority first could create a polished empty shell with too little real family signal behind it.",
+        next: "Tighten planner-to-capture flow and simplify evidence entry before expanding authority readiness.",
+      };
+    }
+
+    if (evidenceHealthy && (reportWeak || readinessWeak)) {
+      return {
+        title: "Authority confidence layer is justified",
+        boardCall: "Capture activity is healthy, but reporting and readiness conversion are lagging. The board recommends an Authority Confidence Layer next.",
+        exec: "This fits the CEO, COO, and CRO view: families need to know what has been captured, what is missing, and how close they are to being report-ready.",
+        advisory: advisorySummaryForFocus(focus),
+        product: "Evidence is accumulating, but the bridge from proof to parent confidence is incomplete.",
+        risk: "If readiness remains unclear, families may feel busy but still unsure they are on track.",
+        next: "Build a readiness panel that shows captured evidence, missing proof, and the next best reporting action for the week.",
+      };
+    }
+
+    return {
+      title: "Authority can move to polish",
+      boardCall: "Core workflow signals are relatively healthy, so authority work can shift from rescue to polish and regional confidence.",
+      exec: "The board sees room to refine compliance guidance rather than using authority as the first stabiliser.",
+      advisory: advisorySummaryForFocus(focus),
+      product: "Capture, reports, and readiness are no longer severely out of balance.",
+      risk: "Over-investing here now could delay more visible family wins elsewhere.",
+      next: "Polish regional guidance and keep authority improvements targeted rather than dominant.",
+    };
+  }
+
+  if (focus === "reports") {
+    if (signals.evidenceCount > 0 && reportWeak) {
+      return {
+        title: "Report conversion is the main bottleneck",
+        boardCall: "Evidence exists, but report drafting is not converting strongly. The board recommends simplifying report generation next.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "Families are doing the hard part of capture, but the system is not yet helping them finish reports with enough ease.",
+        risk: "If captured work does not become usable output, trust in the whole workflow will erode.",
+        next: "Reduce report setup steps and add stronger draft-from-evidence pathways.",
+      };
+    }
+
+    if (reportHealthy) {
+      return {
+        title: "Reporting is healthy enough to expand from",
+        boardCall: "Report health is already reasonably strong, so the next move can shift toward portfolio polish or better output presentation.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "The report engine is contributing value; it no longer appears to be the main workflow constraint.",
+        risk: "Further report work may produce diminishing returns compared with portfolio or authority improvements.",
+        next: "Move toward output polish, saved views, and better report-to-portfolio continuity.",
+      };
+    }
+
+    return {
+      title: "Reports remain important, but not alone",
+      boardCall: "Reports still matter, but the board sees them as part of a broader readiness loop rather than a standalone build frontier.",
+      exec: executiveSummaryForFocus(focus),
+      advisory: advisorySummaryForFocus(focus),
+      product: "Signal strength is mixed, so report work should stay connected to capture and authority readiness.",
+      risk: "Treating reports in isolation can hide upstream capture problems.",
+      next: "Pair report improvements with stronger readiness cues and clearer evidence quality signals.",
+    };
+  }
+
+  if (focus === "portfolio") {
+    if (reportHealthy && portfolioWeak) {
+      return {
+        title: "Portfolio should follow stronger reporting",
+        boardCall: "Reports are forming, but portfolio strength is lagging. The board recommends a stronger keep-this flow and portfolio polish next.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "Families are producing output, but the system is not yet helping them preserve and revisit standout work effectively.",
+        risk: "Without stronger portfolio flow, EduDecks may feel transactional instead of encouraging.",
+        next: "Add clearer save-to-portfolio prompts after reporting and during evidence review.",
+      };
+    }
+
+    if (captureWeak) {
+      return {
+        title: "Portfolio is premature",
+        boardCall: "The board does not recommend portfolio expansion yet because the evidence foundation is still weak.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "There is not yet enough captured work to make portfolio the next high-leverage move.",
+        risk: "A polished portfolio on weak input can look impressive but feel empty to families.",
+        next: "Strengthen capture behaviour first, then return to portfolio as a retention layer.",
+      };
+    }
+
+    return {
+      title: "Portfolio is a secondary growth layer",
+      boardCall: "Portfolio is strategically useful, but it should stay slightly behind capture, reporting, and readiness until the core loop is stronger.",
+      exec: executiveSummaryForFocus(focus),
+      advisory: advisorySummaryForFocus(focus),
+      product: "Current signals suggest portfolio is valuable as reinforcement rather than as the main corrective build.",
+      risk: "If prioritised too early, portfolio could absorb attention from more urgent workflow gaps.",
+      next: "Prepare lightweight portfolio improvements while keeping major effort on readiness and report conversion.",
+    };
+  }
+
+  if (focus === "community") {
+    if (!workflowHealthy) {
+      return {
+        title: "Community stays secondary",
+        boardCall: "Community should not be elevated yet because the core workflow is not healthy enough.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "Capture, reporting, or readiness still need work before community can compound value safely.",
+        risk: "A stronger community layer could mask core product weakness rather than deepen retention.",
+        next: "Keep community simple while improving the family operating loop first.",
+      };
+    }
+
+    return {
+      title: "Community can support retention",
+      boardCall: "Core signals are reasonably healthy, so community can now serve as a supporting retention layer rather than a distraction.",
+      exec: executiveSummaryForFocus(focus),
+      advisory: advisorySummaryForFocus(focus),
+      product: "The product now has enough functional stability for a thoughtful member community to add belonging and shared learning.",
+      risk: "Community still needs to remain structured and secondary to family progress.",
+      next: "Expand calm, category-based community support after readiness and reporting remain stable.",
+    };
+  }
+
+  if (focus === "ai") {
+    if (!dataReady) {
+      return {
+        title: "AI is not yet the next move",
+        boardCall: "AI should remain secondary until the workflow is producing more reliable evidence and reporting signals.",
+        exec: executiveSummaryForFocus(focus),
+        advisory: advisorySummaryForFocus(focus),
+        product: "The current product signal base is still too thin to make AI consistently useful and trustworthy.",
+        risk: "AI introduced too early may generate novelty without enough grounded value.",
+        next: "Improve capture volume and report completion before expanding AI-guided summaries or recommendations.",
+      };
+    }
+
+    return {
+      title: "AI can now become assistive",
+      boardCall: "The board sees enough workflow signal to justify assistive AI for summarisation, report drafting, and weekly next-step guidance.",
+      exec: executiveSummaryForFocus(focus),
+      advisory: advisorySummaryForFocus(focus),
+      product: "There is now enough captured work and draft behaviour to make AI outputs more grounded and premium-worthy.",
+      risk: "AI still needs to stay supportive and transparent rather than replacing parent judgment.",
+      next: "Add AI to compress effort in reporting and evidence review, not as a separate experience layer.",
+    };
+  }
+
+  if (signals.childrenCount > 0 && captureWeak) {
+    return {
+      title: "Planner to capture connection needs work",
+      boardCall: "Families have children in the system, but evidence flow is too light. The board recommends improving planner-to-capture connection next.",
+      exec: executiveSummaryForFocus(focus),
+      advisory: advisorySummaryForFocus(focus),
+      product: "Intent exists, but planned learning is not turning into enough captured proof.",
+      risk: "If planning and capture remain disconnected, the system can feel aspirational rather than operational.",
+      next: "Link planner moments more directly to evidence capture prompts and weekly follow-through cues.",
+    };
+  }
+
+  return {
+    title: "Planner can become a guidance surface",
+    boardCall: "The core workflow is stable enough for planner work to focus on guidance, rhythm, and next-step clarity rather than basic activation.",
+    exec: executiveSummaryForFocus(focus),
+    advisory: advisorySummaryForFocus(focus),
+    product: "Planning can now serve as a forward-looking confidence tool because enough capture and output behaviour already exists.",
+    risk: "If planner scope grows too broad, it can become another disconnected surface.",
+    next: "Keep planner lightweight and connect it tightly to capture prompts, readiness cues, and weekly momentum.",
+  };
+}
+
+async function loadCount(table: string, filter?: { column: string; value: string | number | boolean }) {
+  let query = supabase.from(table).select("*", { count: "exact", head: true });
+
+  if (filter) {
+    query = query.eq(filter.column, filter.value);
+  }
+
+  const { count, error } = await query;
+  if (error) {
+    throw error;
+  }
+
+  return count ?? 0;
+}
+
+/* -----------------------------------------------------------------------------
+   PAGE
+----------------------------------------------------------------------------- */
+
+export default function AdminExecutivePage() {
+  const [selectedRole, setSelectedRole] = useState<ExecRole | "ALL">("ALL");
+  const [selectedFocus, setSelectedFocus] = useState<FocusArea>("authority");
+  const [signalsLoading, setSignalsLoading] = useState(true);
+  const [productSignals, setProductSignals] = useState<ProductSignals>(
+    buildProductSignals({
+      ...FALLBACK_SIGNAL_COUNTS,
+      usingFallbackData: true,
+    })
+  );
+
+  useEffect(() => {
+    let active = true;
+
+    async function hydrateSignals() {
+      if (!hasSupabaseEnv) {
+        if (active) {
+          setProductSignals(
+            buildProductSignals({
+              ...FALLBACK_SIGNAL_COUNTS,
+              usingFallbackData: true,
+            })
+          );
+          setSignalsLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const [childrenCount, evidenceCount, reportDraftCount, portfolioItemsCount] =
+          await Promise.all([
+            loadCount("students"),
+            loadCount("evidence_entries"),
+            loadCount("report_drafts"),
+            loadCount("student_evidence_curation", {
+              column: "portfolio_pinned",
+              value: true,
+            }),
+          ]);
+
+        if (!active) return;
+
+        setProductSignals(
+          buildProductSignals({
+            childrenCount,
+            evidenceCount,
+            reportDraftCount,
+            portfolioItemsCount,
+            usingFallbackData: false,
+          })
+        );
+      } catch {
+        if (!active) return;
+
+        setProductSignals(
+          buildProductSignals({
+            ...FALLBACK_SIGNAL_COUNTS,
+            usingFallbackData: true,
+          })
+        );
+      } finally {
+        if (active) {
+          setSignalsLoading(false);
+        }
+      }
+    }
+
+    void hydrateSignals();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const visibleExecCards = useMemo(() => {
+    if (selectedRole === "ALL") return EXECUTIVE_CARDS;
+    return EXECUTIVE_CARDS.filter((card) => card.role === selectedRole);
+  }, [selectedRole]);
+
+  const avgReadiness = useMemo(() => {
+    if (!REGION_ROWS.length) return 0;
+    return Math.round(
+      REGION_ROWS.reduce((sum, row) => sum + row.readiness, 0) / REGION_ROWS.length
+    );
+  }, []);
+
+  const topPriority = useMemo(() => {
+    return [...BUILD_PRIORITIES].sort((a, b) => b.score - a.score)[0];
+  }, []);
+
+  const criticalCount = BUILD_PRIORITIES.filter((p) => p.status === "critical").length;
+
+  const synthesis = useMemo(() => {
+    return generateBoardCall(selectedFocus, productSignals);
+  }, [selectedFocus, productSignals]);
+
+  const sortedBuildPriorities = useMemo(() => {
+    return [...BUILD_PRIORITIES].sort((a, b) => b.score - a.score);
+  }, []);
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f8fafc",
+        color: "#0f172a",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "stretch" }}>
+        <AdminLeftNav />
+
+        <main
+          style={{
+            flex: 1,
+            padding: 24,
+          }}
+        >
+          <section
+            style={{
+              ...sectionCardStyle(true),
+              padding: 24,
+              marginBottom: 20,
+              background:
+                "linear-gradient(135deg, rgba(238,242,255,1) 0%, rgba(248,250,252,1) 60%, rgba(236,253,245,1) 100%)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ maxWidth: 820 }}>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 999,
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#4338ca",
+                    marginBottom: 14,
+                  }}
+                >
+                  DIGITAL EXECUTIVE BOARD
+                </div>
+
+                <h1
+                  style={{
+                    margin: 0,
+                    fontSize: 34,
+                    lineHeight: 1.1,
+                    fontWeight: 900,
+                    letterSpacing: -0.6,
+                  }}
+                >
+                  EduDecks Executive Dashboard
+                </h1>
+
+                <p
+                  style={{
+                    marginTop: 12,
+                    marginBottom: 0,
+                    fontSize: 16,
+                    lineHeight: 1.6,
+                    color: "#334155",
+                    maxWidth: 780,
+                  }}
+                >
+                  Research-led command view translating homeschooling market data into
+                  product strategy, advisory logic, live workflow signals, and build
+                  decisions for the EduDecks family product.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, minmax(140px, 1fr))",
+                  gap: 12,
+                  minWidth: 360,
+                  flex: 1,
+                  maxWidth: 520,
+                }}
+              >
+                <div style={sectionCardStyle()}>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    Top Priority
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 900, marginTop: 8 }}>
+                    {topPriority?.name || "-"}
+                  </div>
+                </div>
+
+                <div style={sectionCardStyle()}>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    Critical Workstreams
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>
+                    {criticalCount}
+                  </div>
+                </div>
+
+                <div style={sectionCardStyle()}>
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    Avg Region Readiness
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>
+                    {avgReadiness}%
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginTop: 18,
+              }}
+            >
+              <Link
+                href="/family"
+                style={{
+                  textDecoration: "none",
+                  background: "#4f46e5",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  fontSize: 14,
+                }}
+              >
+                Open Family Dashboard
+              </Link>
+
+              <Link
+                href="/reports"
+                style={{
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #e5e7eb",
+                  fontWeight: 800,
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  fontSize: 14,
+                }}
+              >
+                Open Reports Builder
+              </Link>
+
+              <Link
+                href="/portfolio"
+                style={{
+                  textDecoration: "none",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  border: "1px solid #e5e7eb",
+                  fontWeight: 800,
+                  padding: "10px 14px",
+                  borderRadius: 12,
+                  fontSize: 14,
+                }}
+              >
+                Open Portfolio
+              </Link>
+            </div>
+          </section>
+
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.25fr 1fr",
+              gap: 20,
+              marginBottom: 20,
+            }}
+          >
+            <div style={sectionCardStyle()}>
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  marginBottom: 14,
+                }}
+              >
+                Market Snapshot
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(220px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                {MARKET_METRICS.map((metric) => (
+                  <div
+                    key={metric.label}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#fafafa",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                      {metric.label}
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>
+                      {metric.value}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "#475569",
+                        lineHeight: 1.45,
+                        marginTop: 8,
+                      }}
+                    >
+                      {metric.note}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    marginBottom: 10,
+                  }}
+                >
+                  Homeschool Participation Trend
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: `repeat(${US_TREND.length}, minmax(90px, 1fr))`,
+                    gap: 12,
+                    alignItems: "end",
+                    height: 220,
+                  }}
+                >
+                  {US_TREND.map((point) => (
+                    <div
+                      key={point.year}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                        gap: 10,
+                        height: "100%",
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>
+                        {point.value.toFixed(1)}%
+                      </div>
+
+                      <div
+                        style={{
+                          width: "100%",
+                          maxWidth: 80,
+                          height: `${point.value * 24}px`,
+                          background: "linear-gradient(180deg, #6366f1 0%, #22c55e 100%)",
+                          borderRadius: 16,
+                          boxShadow: "0 10px 20px rgba(99,102,241,0.15)",
+                        }}
+                      />
+
+                      <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                        {point.year}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={sectionCardStyle()}>
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  marginBottom: 14,
+                }}
+              >
+                Executive Summary
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                }}
+              >
+                {INSIGHTS.map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#ffffff",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                      {item.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 900,
+                        marginTop: 8,
+                        color: "#0f172a",
+                      }}
+                    >
+                      {item.value}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: 13,
+                        color: "#475569",
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {item.note}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section
+            style={{
+              ...sectionCardStyle(),
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>
+                  Parent Motivation Map
+                </div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: "#475569",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Push factors are driving families away from traditional systems.
+                  Pull factors are attracting them toward flexible, parent-led learning.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 10px",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#b91c1c",
+                  }}
+                >
+                  PUSH
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "6px 10px",
+                    background: "#ecfdf5",
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#15803d",
+                  }}
+                >
+                  PULL
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid #fee2e2",
+                  background: "#fffafa",
+                  borderRadius: 18,
+                  padding: 16,
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#991b1b" }}>
+                  Push Factors
+                </div>
+                <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                  {PUSH_PULL_FACTORS.filter((f) => f.type === "push").map((factor) => (
+                    <div key={factor.label}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                        }}
+                      >
+                        <span>{factor.label}</span>
+                        <span>{factor.strength}</span>
+                      </div>
+                      <MiniBar value={factor.strength} color="#ef4444" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #dcfce7",
+                  background: "#f7fff9",
+                  borderRadius: 18,
+                  padding: 16,
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#166534" }}>
+                  Pull Factors
+                </div>
+                <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                  {PUSH_PULL_FACTORS.filter((f) => f.type === "pull").map((factor) => (
+                    <div key={factor.label}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          marginBottom: 6,
+                        }}
+                      >
+                        <span>{factor.label}</span>
+                        <span>{factor.strength}</span>
+                      </div>
+                      <MiniBar value={factor.strength} color="#22c55e" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            style={{
+              ...sectionCardStyle(),
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 14,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900 }}>
+                  Executive Board Decisions
+                </div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: "#475569",
+                  }}
+                >
+                  Role-based strategic verdicts generated from homeschool market signals.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                {(["ALL", "CEO", "COO", "CTO", "CRO", "CPO", "CFO", "CDO", "CAIO"] as const).map(
+                  (role) => {
+                    const active = selectedRole === role;
+                    return (
+                      <button
+                        key={role}
+                        onClick={() => setSelectedRole(role)}
+                        style={{
+                          border: active ? "1px solid #4f46e5" : "1px solid #e5e7eb",
+                          background: active ? "#eef2ff" : "#ffffff",
+                          color: active ? "#3730a3" : "#334155",
+                          borderRadius: 999,
+                          padding: "8px 12px",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {role}
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(320px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {visibleExecCards.map((card) => (
+                <div
+                  key={card.role}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    padding: 18,
+                    background: "#ffffff",
+                    boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: "#64748b",
+                          letterSpacing: 0.2,
+                        }}
+                      >
+                        {card.role}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 4,
+                          fontSize: 18,
+                          fontWeight: 900,
+                        }}
+                      >
+                        {card.title}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: statusBg(card.status),
+                        color: statusColor(card.status),
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {card.status}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 12,
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
+                    {card.verdict}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                      color: "#334155",
+                    }}
+                  >
+                    {card.headline}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 14,
+                      borderTop: "1px solid #f1f5f9",
+                      paddingTop: 14,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                        Recommendation
+                      </div>
+                      <div style={{ fontSize: 14, color: "#0f172a", lineHeight: 1.5, marginTop: 4 }}>
+                        {card.recommendation}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                        Expected Impact
+                      </div>
+                      <div style={{ fontSize: 14, color: "#0f172a", lineHeight: 1.5, marginTop: 4 }}>
+                        {card.impact}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={{ marginTop: 20, marginBottom: 20 }}>
+            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 12 }}>
+              Advisory Intelligence Layer
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(320px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {ADVISORY_INSIGHTS.map((item) => (
+                <div
+                  key={item.title}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 16,
+                    padding: 16,
+                    background: "#ffffff",
+                  }}
+                >
+                  <div style={{ fontSize: 16, fontWeight: 900 }}>{item.title}</div>
+
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                    {item.advisors.join(", ")}
+                  </div>
+
+                  <div style={{ marginTop: 10, fontSize: 14 }}>
+                    <strong>Insight:</strong> {item.insight}
+                  </div>
+
+                  <div style={{ marginTop: 8, fontSize: 14 }}>
+                    <strong>Challenge:</strong> {item.challenge}
+                  </div>
+
+                  <div style={{ marginTop: 8, fontSize: 14 }}>
+                    <strong>Implication:</strong> {item.implication}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
