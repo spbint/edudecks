@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import FlowStep from "@/app/components/FlowStep";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import {
@@ -1164,6 +1165,14 @@ function ReportsPageContent() {
     return "Build the basic report first, then keep the strongest parts in portfolio.";
   }, [draftId, studentEvidence.length]);
 
+  const stepOneBadge = selectedStudent ? `Focused on ${firstNameOf(selectedStudent)}` : "Start here";
+  const stepTwoBadge =
+    selectedEvidenceIds.length > 0
+      ? `${selectedEvidenceIds.length} moment${selectedEvidenceIds.length === 1 ? "" : "s"} selected`
+      : "Choose the strongest moments";
+  const stepThreeBadge = draftId ? "Draft saved" : builderStage.label;
+  const stepFourBadge = `${readiness.label} • ${readinessScore}%`;
+
   useEffect(() => {
     if (!selectedStudentId) return;
     if (!studentEvidence.length) return;
@@ -1658,6 +1667,147 @@ function ReportsPageContent() {
           </div>
         </section>
 
+        <div style={{ display: "grid", gap: 18, marginBottom: 18 }}>
+          <FlowStep
+            step={1}
+            title="Choose who the report is for"
+            description="Select your learner"
+            helperText="Start with the child you want to build a report for."
+            badge={stepOneBadge}
+          >
+            <section id="report-step-settings" style={cardStyle}>
+              <div style={smallStyle}>
+                Begin with one learner, then choose the report mode and period that fit what you want to explain.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Learner</div>
+                  <div style={h3Style}>{selectedStudent ? studentName(selectedStudent) : "Choose a learner"}</div>
+                </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Mode</div>
+                  <div style={h3Style}>{modeLabel(reportMode)}</div>
+                </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Period</div>
+                  <div style={h3Style}>{periodLabel(periodMode)}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button type="button" onClick={() => document.getElementById("report-step-settings")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={buttonStyle(true)}>
+                  Open learner and report settings
+                </button>
+              </div>
+            </section>
+          </FlowStep>
+
+          <FlowStep
+            step={2}
+            title="Gather the right learning"
+            description="Choose the moments that matter"
+            helperText="Use your strongest recent learning moments to build a report that feels clear and trustworthy."
+            badge={stepTwoBadge}
+          >
+            <section style={cardStyle}>
+              <div style={smallStyle}>
+                Strong learning moments give the report its shape. You can select them yourself or let EduDecks give you a strong first pass.
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Evidence selected</div>
+                  <div style={h3Style}>{selectedEvidenceIds.length}</div>
+                </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Core anchors</div>
+                  <div style={h3Style}>{selectedCoreCount}</div>
+                </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Areas in view</div>
+                  <div style={h3Style}>{selectedAreas.length}</div>
+                </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Coverage balance</div>
+                  <div style={h3Style}>
+                    {interpretation.weakAreas.length === 0
+                      ? "Balanced"
+                      : interpretation.weakAreas.length <= 2
+                      ? "Mostly balanced"
+                      : "Still building"}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button type="button" onClick={() => document.getElementById("report-step-evidence")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={buttonStyle(true)}>
+                  Choose evidence
+                </button>
+                <button type="button" onClick={autoSelectTopEvidence} style={buttonStyle(false)}>
+                  Auto-select a strong first pass
+                </button>
+              </div>
+            </section>
+          </FlowStep>
+
+          <FlowStep
+            step={3}
+            title="Build the report draft"
+            description="Create a clear first version"
+            helperText="EduDecks brings your selected learning together into a draft you can review and improve."
+            badge={stepThreeBadge}
+          >
+            <section id="report-step-evidence" style={cardStyle}>
+              <div style={bodyStyle}>{builderValueSignal.valueText}</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>{builderValueSignal.conversionText}</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(false)}
+                  style={buttonStyle(false)}
+                  data-journey-intent={builderValueSignal.primaryIntent}
+                >
+                  {saving ? "Savingâ€¦" : "Save draft"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("report-step-draft")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  style={buttonStyle(true)}
+                >
+                  Review draft controls
+                </button>
+              </div>
+            </section>
+          </FlowStep>
+
+          <FlowStep
+            step={4}
+            title="See how close you are"
+            description="Move toward Report Ready"
+            helperText="A stronger mix of learning moments makes your report easier to build and easier to share."
+            badge={stepFourBadge}
+          >
+            <section id="report-step-readiness" style={cardStyle}>
+              <div style={bodyStyle}>{readiness.message}</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>{readiness.action}</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(true)}
+                  style={buttonStyle(true)}
+                  data-journey-intent={builderValueSignal.secondaryIntent}
+                >
+                  {saving ? "Buildingâ€¦" : "Open output"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("report-step-readiness")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                  style={buttonStyle(false)}
+                >
+                  See readiness details
+                </button>
+              </div>
+            </section>
+          </FlowStep>
+        </div>
+
         <div
           style={{
             display: "grid",
@@ -1666,7 +1816,7 @@ function ReportsPageContent() {
           }}
         >
           <div style={{ display: "grid", gap: 18 }}>
-            <section style={cardStyle}>
+            <section id="report-step-draft" style={cardStyle}>
               <div style={h2Style}>Preset and report settings</div>
 
               <div

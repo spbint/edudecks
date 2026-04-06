@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import FlowStep from "@/app/components/FlowStep";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import UpgradeHint from "@/app/components/UpgradeHint";
@@ -1094,6 +1095,15 @@ function PortfolioPageContent() {
     }
   }
 
+  const stepOneBadge = student ? `Focused on ${firstNameOf(student)}` : "Start here";
+  const stepTwoBadge =
+    evidence.length > 0
+      ? `${evidence.length} learning moment${evidence.length === 1 ? "" : "s"} gathered`
+      : "A few moments are enough to begin";
+  const stepThreeBadge =
+    areaBreakdown.length > 0 ? `${areaBreakdown.length} learning area${areaBreakdown.length === 1 ? "" : "s"} visible` : "Coverage grows over time";
+  const stepFourBadge = readinessBand === "Ready to report" ? "Report Ready" : "Report path visible";
+
   return (
     <FamilyTopNavShell
       title="EduDecks Family"
@@ -1156,6 +1166,14 @@ function PortfolioPageContent() {
             </section>
           ) : null}
 
+          <div style={{ display: "grid", gap: 18 }}>
+          <FlowStep
+            step={1}
+            title="Choose your learner"
+            description="Select the child you want to review"
+            helperText="Start with one learner so your portfolio stays focused and easy to understand."
+            badge={stepOneBadge}
+          >
           <section
             style={{
               ...UI.card(),
@@ -1450,12 +1468,20 @@ function PortfolioPageContent() {
             ) : null}
 
           </section>
+          </FlowStep>
 
+          <FlowStep
+            step={4}
+            title="Get ready to use it"
+            description="Use this learning in reports"
+            helperText="A strong portfolio makes report writing calmer, clearer, and much easier when the time comes."
+            badge={stepFourBadge}
+          >
           <section
             style={{
               ...UI.card(),
               marginBottom: 18,
-              display: "none",
+              display: "grid",
               gridTemplateColumns: isMobile
                 ? "1fr"
                 : "minmax(0,1.2fr) minmax(260px,0.8fr)",
@@ -1478,8 +1504,14 @@ function PortfolioPageContent() {
                 }}
               >
                 <Link
-                  href={nextMove.href}
+                  href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
                   style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
+                >
+                  Use this in Reports
+                </Link>
+                <Link
+                  href={nextMove.href}
+                  style={{ ...UI.button(false), width: isMobile ? "100%" : undefined }}
                 >
                   {nextMove.cta}
                 </Link>
@@ -1513,7 +1545,15 @@ function PortfolioPageContent() {
               </div>
             </div>
           </section>
+          </FlowStep>
 
+          <FlowStep
+            step={2}
+            title="Review learning moments"
+            description="See what has been captured"
+            helperText="Photos, notes, uploads, and observations begin to form your child's learning story."
+            badge={stepTwoBadge}
+          >
           <details
             style={{
               ...UI.card(),
@@ -2018,6 +2058,79 @@ function PortfolioPageContent() {
           </section>
             </div>
           </details>
+          </FlowStep>
+
+          <FlowStep
+            step={3}
+            title="Notice learning coverage"
+            description="See where learning is building"
+            helperText="As moments build up, you can begin to spot the learning areas and experiences taking shape."
+            badge={stepThreeBadge}
+          >
+            <section style={{ ...UI.card(), marginBottom: 18 }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.1fr) minmax(260px,0.9fr)",
+                  gap: 16,
+                  alignItems: "start",
+                }}
+              >
+                <div>
+                  <div style={UI.label()}>Learning coverage</div>
+                  <div style={{ ...UI.h2(), fontSize: 28 }}>See where the picture is filling in</div>
+                  <div style={{ ...UI.body(), marginTop: 10 }}>
+                    Learning moments start to build a fuller picture over time. A few strong moments are enough to begin, and broader coverage will appear as the portfolio grows.
+                  </div>
+                </div>
+
+                <div style={{ ...UI.softCard(), display: "grid", gap: 10 }}>
+                  <div style={UI.miniStat()}>
+                    <span style={UI.miniLabel()}>Portfolio readiness</span>
+                    <strong>{readinessBand}</strong>
+                  </div>
+                  <div style={UI.miniStat()}>
+                    <span style={UI.miniLabel()}>Learning areas visible</span>
+                    <strong>{areaBreakdown.length}</strong>
+                  </div>
+                  <div style={UI.miniStat()}>
+                    <span style={UI.miniLabel()}>Recent moments</span>
+                    <strong>{recentCount}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 12,
+                  marginTop: 16,
+                }}
+              >
+                {areaBreakdown.length === 0 ? (
+                  <div style={UI.softCard()}>
+                    <div style={UI.body()}>
+                      No learning areas are visible yet. Add a few moments and this picture will start to fill in.
+                    </div>
+                  </div>
+                ) : (
+                  areaBreakdown.slice(0, 6).map((row) => (
+                    <div key={row.area} style={UI.softCard()}>
+                      <div style={UI.label()}>{row.area}</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", marginTop: 8 }}>
+                        {row.count}
+                      </div>
+                      <div style={{ ...UI.body(), fontSize: 13, marginTop: 8 }}>
+                        Learning moment{row.count === 1 ? "" : "s"} helping this area take shape.
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
+          </FlowStep>
+          </div>
 
           {showCustomize ? (
             <div
