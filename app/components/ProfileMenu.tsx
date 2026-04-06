@@ -99,9 +99,10 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
       ]
     : [];
 
+  const metadata = (user.user_metadata as Record<string, unknown> | null) ?? {};
   const displayName =
-    (user.user_metadata as Record<string, unknown>)?.full_name ||
-    (user.user_metadata as Record<string, unknown>)?.name ||
+    (typeof metadata.full_name === "string" && metadata.full_name) ||
+    (typeof metadata.name === "string" && metadata.name) ||
     user.email ||
     "Signed-in user";
   const email = user.email || "";
