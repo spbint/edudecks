@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
 import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
-import { useSearchParams } from "next/navigation";
 import {
   ChildOption,
   DEFAULT_FAMILY_SETTINGS,
@@ -99,17 +98,16 @@ export default function FamilySettingsPage() {
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [loadError, setLoadError] = useState<string>("");
   const [saveError, setSaveError] = useState<string>("");
-  const searchParams = useSearchParams();
-  const sectionKey = searchParams.get("section");
-
   useEffect(() => {
-    if (!hydrated || sectionKey !== "curriculum") return;
-    if (typeof document === "undefined") return;
+    if (!hydrated) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("section") !== "curriculum") return;
     const target = document.getElementById("curriculum-setup");
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, [hydrated, sectionKey]);
+  }, [hydrated]);
 
   useEffect(() => {
     let mounted = true;
