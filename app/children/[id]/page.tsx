@@ -2,636 +2,402 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import {
-  listSavedDrafts,
-  setActiveDraftId,
-  type SavedReportDraft,
-} from "@/lib/reporting/reportDraftStorage";
+import { formatDistanceToNowStrict, parseISO } from "date-fns";
+import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 
-type ChildRow = {
+type StudentRow = {
   id: string;
-  first_name?: string | null;
   preferred_name?: string | null;
+  first_name?: string | null;
   surname?: string | null;
   family_name?: string | null;
   year_level?: number | null;
-  created_at?: string | null;
-  [k: string]: any;
+  yearLabel?: string | null;
 };
 
 type EvidenceRow = {
   id: string;
-  student_id?: string | null;
   title?: string | null;
   summary?: string | null;
-  body?: string | null;
-  note?: string | null;
   learning_area?: string | null;
-  evidence_type?: string | null;
   occurred_on?: string | null;
   created_at?: string | null;
-  is_deleted?: boolean | null;
-  [k: string]: any;
+  note?: string | null;
 };
 
-type CoverageRow = {
-  area: string;
-  count: number;
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function studentDisplayName(student: StudentRow | null) {
+  if (!student) return "This learner";
+  const first = safe(student.preferred_name || student.first_name || "");
+  const last = safe(student.surname || student.family_name || "");
+  const combined = `${first} ${last}`.trim();
+  if (combined) return combined;
+  return "This learner";
+}
+
+const layoutStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f5f7fb",
+  padding: "32px 24px 64px",
 };
 
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+const contentStyle: React.CSSProperties = {
+  maxWidth: 1280,
+  margin: "0 auto",
+  display: "grid",
+  gap: 20,
+};
 
-function safe(v: any) {
-  return String(v ?? "").trim();
-}
+const cardStyle: React.CSSProperties = {
+  background: "#ffffff",
+  borderRadius: 20,
+  boxShadow: "0 15px 45px rgba(15,23,42,0.08)",
+  border: "1px solid #e5e7eb",
+  padding: 24,
+};
 
-function isMissingColumnError(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
-}
+const wideGrid: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 0.8fr)",
+  gap: 20,
+};
 
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("column") || msg.includes("relation"));
-}
+const miniStatStyle: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid #e5e7eb",
+  background: "#f8fafc",
+  fontSize: 14,
+};
 
-function childDisplayName(child: ChildRow | null | undefined) {
-  if (!child) return "Child";
-  const first = safe(child.preferred_name || child.first_name);
-  const sur = safe(child.surname || child.family_name);
-  return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Child";
-}
-
-function shortDate(v: string | null | undefined) {
-  const s = safe(v);
-  if (!s) return "—";
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return s;
-  return d.toLocaleDateString();
-}
-
-function daysSince(v: string | null | undefined) {
-  const s = safe(v);
-  if (!s) return null;
-  const d = new Date(s);
-  if (Number.isNaN(d.getTime())) return null;
-  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
-}
-
-function cardStyle(): React.CSSProperties {
-  return {
-    border: "1px solid #e5e7eb",
-    borderRadius: 20,
-    padding: 20,
-    background: "#ffffff",
-    boxShadow: "0 10px 30px rgba(15,23,42,0.05)",
+const chipStyle = (tone: "green" | "blue" | "amber"): React.CSSProperties => {
+  const map = {
+    green: { bg: "#ecfdf5", bd: "#bbf7d0", color: "#166534" },
+    blue: { bg: "#eff6ff", bd: "#bfdbfe", color: "#1d4ed8" },
+    amber: { bg: "#fffbeb", bd: "#fde68a", color: "#92400e" },
   };
-}
-
-function buttonStyle(primary = false): React.CSSProperties {
-  return {
-    padding: "12px 16px",
-    borderRadius: 12,
-    border: `1px solid ${primary ? "#2563eb" : "#e5e7eb"}`,
-    background: primary ? "#2563eb" : "#ffffff",
-    color: primary ? "#ffffff" : "#0f172a",
-    textDecoration: "none",
-    fontWeight: 800,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-  };
-}
-
-function pillStyle(bg: string, fg: string): React.CSSProperties {
+  const t = map[tone];
   return {
     display: "inline-flex",
     alignItems: "center",
+    gap: 6,
+    padding: "6px 12px",
     borderRadius: 999,
-    padding: "6px 10px",
+    border: `1px solid ${t.bd}`,
+    background: t.bg,
+    color: t.color,
+    fontWeight: 700,
     fontSize: 12,
-    fontWeight: 800,
-    background: bg,
-    color: fg,
-    border: `1px solid ${bg}`,
-    whiteSpace: "nowrap",
+    textTransform: "uppercase",
   };
-}
+};
 
-export default function ChildWorkspacePage() {
+const buttonStyle = (primary = false): React.CSSProperties => ({
+  padding: "10px 16px",
+  borderRadius: 12,
+  border: `1px solid ${primary ? "#2563eb" : "#d1d5db"}`,
+  background: primary ? "#2563eb" : "#ffffff",
+  color: primary ? "#ffffff" : "#0f172a",
+  fontWeight: 700,
+  fontSize: 14,
+  cursor: "pointer",
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+});
+
+const labelTextStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: 1.05,
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const bodyTextStyle: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.65,
+  color: "#475569",
+};
+
+const headingStyle: React.CSSProperties = {
+  fontSize: 18,
+  lineHeight: 1.25,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const softCardStyle: React.CSSProperties = {
+  borderRadius: 16,
+  border: "1px solid #e5e7eb",
+  background: "#f8fafc",
+  padding: 16,
+};
+
+export default function ChildProfilePage() {
   const params = useParams();
-  const router = useRouter();
-  const childId = safe(params?.id);
-
-  const [busy, setBusy] = useState(true);
-  const [err, setErr] = useState("");
-  const [child, setChild] = useState<ChildRow | null>(null);
+  const childId = params?.id;
+  const [student, setStudent] = useState<StudentRow | null>(null);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
-  const [savedDrafts, setSavedDrafts] = useState<SavedReportDraft[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  async function loadChild() {
-    const tries = [
-      "id,first_name,preferred_name,surname,family_name,year_level,created_at",
-      "id,first_name,preferred_name,surname,year_level,created_at",
-      "id,first_name,preferred_name,family_name,year_level,created_at",
-      "id,first_name,preferred_name,year_level,created_at",
-      "id,first_name,preferred_name,created_at",
-      "id,first_name,created_at",
-    ];
-
-    for (const sel of tries) {
-      const r = await supabase.from("students").select(sel).eq("id", childId).single();
-      if (!r.error) return ((r.data ?? null) as unknown) as ChildRow | null;
-      if (!isMissingColumnError(r.error)) throw r.error;
-    }
-
-    return null;
-  }
-
-  async function loadEvidence() {
-    const tries = [
-      "id,student_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,is_deleted",
-      "id,student_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
-      "id,student_id,title,summary,learning_area,occurred_on,created_at,is_deleted",
-      "id,student_id,title,occurred_on,created_at,is_deleted",
-    ];
-
-    for (const sel of tries) {
-      const r = await supabase
-        .from("evidence_entries")
-        .select(sel)
-        .eq("student_id", childId)
-        .order("occurred_on", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (!r.error) {
-        return (((r.data ?? []) as unknown) as EvidenceRow[]).filter((x) => !x.is_deleted);
-      }
-      if (!isMissingColumnError(r.error)) throw r.error;
-    }
-
-    return [];
-  }
-
-  async function loadAll() {
-    setBusy(true);
-    setErr("");
-
-    try {
-      if (!childId) {
-        setErr("Child ID is missing.");
-        setBusy(false);
-        return;
-      }
-
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
-
-      if (!userId) {
-        setErr("You must be signed in.");
-        setBusy(false);
-        return;
-      }
-
-      const linkResp = await supabase
-        .from("parent_student_links")
-        .select("student_id")
-        .eq("parent_user_id", userId)
-        .eq("student_id", childId)
-        .maybeSingle();
-
-      if (linkResp.error && !isMissingRelationOrColumn(linkResp.error)) {
-        throw linkResp.error;
-      }
-
-      if (!linkResp.data && !linkResp.error) {
-        setErr("This child is not linked to your household.");
-        setBusy(false);
-        return;
-      }
-
-      const [childRow, evidenceRows] = await Promise.all([loadChild(), loadEvidence()]);
-
-      setChild(childRow);
-      setEvidence(evidenceRows);
-      setSavedDrafts(listSavedDrafts().filter((d) => d.studentId === childId));
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { readinessReport } = useAssessmentInsights(
+    student?.id || childId,
+    studentDisplayName(student),
+    "parent_friendly"
+  );
 
   useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!childId) return;
+    setLoading(true);
+    setError("");
+    (async () => {
+      try {
+        const [studentResp, evidenceResp] = await Promise.all([
+          supabase
+            .from("students")
+            .select("id,preferred_name,first_name,surname,family_name,year_level,yearLabel")
+            .eq("id", childId)
+            .maybeSingle(),
+          supabase
+            .from("evidence_entries")
+            .select("id,title,summary,body,learning_area,occurred_on,created_at,note")
+            .eq("student_id", childId)
+            .order("occurred_on", { ascending: false, nullsLast: false })
+            .limit(6),
+        ]);
+
+        if (studentResp.error) throw studentResp.error;
+        if (evidenceResp.error) throw evidenceResp.error;
+
+        setStudent(studentResp.data || null);
+        setEvidence(
+          ((evidenceResp.data || []) as EvidenceRow[]).filter((row) => !row.is_deleted)
+        );
+      } catch (err: any) {
+        setError(String(err?.message || err || "We could not load this learner right now."));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [childId]);
 
-  const name = childDisplayName(child);
+  const heroYear = student?.yearLabel
+    ? student.yearLabel
+    : student?.year_level
+    ? `Year ${student.year_level}`
+    : null;
 
-  const latestEvidence = evidence[0] || null;
-  const latestEvidenceDays = daysSince(latestEvidence?.occurred_on || latestEvidence?.created_at);
+  const strongSubjects = readinessReport?.subjectReadiness
+    .filter((item) => item.status === "Ready")
+    .slice(0, 2);
+  const focusSubjects = readinessReport?.subjectReadiness
+    .filter((item) => item.status !== "Ready")
+    .slice(0, 2);
 
-  const coverageRows = useMemo<CoverageRow[]>(() => {
-    const map = new Map<string, number>();
-    evidence.forEach((item) => {
-      const area = safe(item.learning_area) || "General";
-      map.set(area, (map.get(area) || 0) + 1);
-    });
-    return Array.from(map.entries())
-      .map(([area, count]) => ({ area, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6);
-  }, [evidence]);
+  const recentEvidence = evidence.slice(0, 3);
+  const readinessTone =
+    readinessReport?.overallStatus === "Ready"
+      ? "green"
+      : readinessReport?.overallStatus === "Nearly Ready"
+      ? "blue"
+      : "amber";
 
-  const strongestArea = coverageRows[0]?.area || "General learning";
-  const weakestArea =
-    coverageRows.length >= 2 ? coverageRows[coverageRows.length - 1]?.area : "a broader spread of evidence";
-
-  const reportReadiness =
-    evidence.length >= 8 ? "Strong" : evidence.length >= 4 ? "Growing" : "Early";
-
-  const bestNextMove = useMemo(() => {
-    if (!evidence.length) {
-      return {
-        title: "Capture the first learning moment",
-        text: "One useful record is enough to bring this child’s workspace to life and start building the evidence trail.",
-        href: "/capture",
-        cta: "Open Quick Capture",
-      };
-    }
-
-    if (!savedDrafts.length) {
-      return {
-        title: "Shape the first report path",
-        text: "There is already enough evidence to start curating a stronger pack and preview how reporting will come together.",
-        href: "/reports",
-        cta: "Open Reports",
-      };
-    }
-
-    return {
-      title: "Deepen the learning record",
-      text: `The strongest evidence is currently around ${strongestArea}. The next opportunity is to strengthen ${weakestArea} or reopen the latest saved report draft.`,
-      href: "/portfolio",
-      cta: "Open Portfolio",
-    };
-  }, [evidence.length, savedDrafts.length, strongestArea, weakestArea]);
-
-  const latestDraft = savedDrafts[0] || null;
+  if (!childId) {
+    return (
+      <main style={layoutStyle}>
+        <div style={contentStyle}>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>No learner selected</div>
+            <p style={{ color: "#475569" }}>
+              Choose a child from the family page to view their learner profile.
+            </p>
+            <Link href="/family" style={buttonStyle(true)}>
+              Back to family
+            </Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <FamilyTopNavShell
-      title="EduDecks Family"
-      subtitle="Child Workspace"
-      heroTitle={child ? `${name} Workspace` : "Child Workspace"}
-      heroText="This is the learner’s home for capture, portfolio, planning, and reports. Use it to see where the record is strongest and what to do next."
-      heroAsideTitle="Current signal"
-      heroAsideText={
-        !evidence.length
-          ? "The workspace is ready to begin. One captured learning moment will bring it to life."
-          : latestDraft
-            ? `A saved report draft already exists for ${name}. You can reopen it or keep deepening the evidence base.`
-            : `The record is strongest in ${strongestArea} and would benefit from more depth in ${weakestArea}.`
-      }
-    >
-      <section
-        style={{
-          ...cardStyle(),
-          marginBottom: 18,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 10,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
-            Child workspace
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>
-            {child ? name : "Learner"}
-          </div>
-        </div>
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Link href="/capture" style={buttonStyle(true)}>
-            Quick Capture
-          </Link>
-          <Link href="/portfolio" style={buttonStyle(false)}>
-            Portfolio
-          </Link>
-          <Link href="/planner" style={buttonStyle(false)}>
-            Planner
-          </Link>
-          <Link href="/reports" style={buttonStyle(false)}>
-            Reports
-          </Link>
-        </div>
-      </section>
-
-      {busy ? (
-        <div style={{ ...cardStyle(), marginBottom: 18 }}>Loading child workspace…</div>
-      ) : err ? (
-        <div
-          style={{
-            ...cardStyle(),
-            marginBottom: 18,
-            border: "1px solid #fecaca",
-            background: "#fff1f2",
-            color: "#9f1239",
-            fontWeight: 800,
-          }}
-        >
-          {err}
-        </div>
-      ) : (
-        <>
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-              gap: 14,
-              marginBottom: 18,
-            }}
-          >
-            {[
-              ["Evidence items", String(evidence.length)],
-              ["Coverage areas", String(coverageRows.length)],
-              ["Saved drafts", String(savedDrafts.length)],
-              ["Report readiness", reportReadiness],
-            ].map(([label, value]) => (
-              <div key={label} style={cardStyle()}>
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 800 }}>{label}</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a", marginTop: 4 }}>
-                  {value}
-                </div>
+    <main style={layoutStyle}>
+      <div style={contentStyle}>
+        <div style={cardStyle}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 16, color: "#64748b", letterSpacing: 1.5, textTransform: "uppercase" }}>
+                Learner profile
               </div>
-            ))}
-          </section>
-
-          <section style={{ ...cardStyle(), marginBottom: 18 }}>
-            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>Best next move</div>
-
-            <div
-              style={{
-                border: "1px solid #dbeafe",
-                background: "#eff6ff",
-                borderRadius: 16,
-                padding: 16,
-              }}
-            >
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
-                {bestNextMove.title}
+              <div style={{ fontSize: 32, fontWeight: 900, color: "#0f172a" }}>
+                {studentDisplayName(student)}
               </div>
-
-              <div style={{ marginBottom: 12, color: "#334155", lineHeight: 1.6 }}>
-                {bestNextMove.text}
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href={bestNextMove.href} style={buttonStyle(true)}>
-                  {bestNextMove.cta}
-                </Link>
-
-                {latestDraft ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveDraftId(latestDraft.id);
-                      router.push(`/reports/output?draft=${encodeURIComponent(latestDraft.id)}`);
-                    }}
-                    style={buttonStyle(false)}
-                  >
-                    Open latest draft
-                  </button>
-                ) : null}
-              </div>
+              {heroYear ? (
+                <div style={{ fontSize: 14, color: "#475569", marginTop: 6 }}>{heroYear}</div>
+              ) : null}
             </div>
-          </section>
+            <div style={{ display: "inline-flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/portfolio" style={buttonStyle(false)}>
+                Open portfolio
+              </Link>
+              <Link href="/reports" style={buttonStyle(true)}>
+                Open reports
+              </Link>
+            </div>
+          </div>
+          <p style={{ color: "#475569", marginTop: 12 }}>
+            {studentDisplayName(student)}'s profile brings readiness, strengths, and actions together so you can
+            keep building with confidence.
+          </p>
+        </div>
 
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1.08fr) minmax(320px, 0.92fr)",
-              gap: 18,
-              marginBottom: 18,
-            }}
-          >
-            <div style={cardStyle()}>
-              <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>
-                Recent evidence
-              </div>
+        {error ? (
+          <div style={cardStyle}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#be123c" }}>Oops</div>
+            <p style={{ color: "#475569" }}>{error}</p>
+          </div>
+        ) : null}
 
-              {!evidence.length ? (
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 16,
-                    background: "#f8fafc",
-                    color: "#475569",
-                    lineHeight: 1.6,
-                    fontWeight: 700,
-                  }}
-                >
-                  No evidence has been captured yet for this learner.
-                </div>
-              ) : (
+        {loading ? (
+          <div style={cardStyle}>
+            <div style={{ fontSize: 18, fontWeight: 700 }}>Loading learner story…</div>
+            <p style={{ color: "#475569" }}>We are gathering readiness, evidence, and next actions for this child.</p>
+          </div>
+        ) : (
+          <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ ...labelTextStyle, color: "#0f172a" }}>Readiness snapshot</div>
                 <div style={{ display: "grid", gap: 12 }}>
-                  {evidence.slice(0, 5).map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 14,
-                        padding: 14,
-                        background: "#ffffff",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
-                          {safe(item.title) || "Untitled evidence"}
-                        </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <span style={pillStyle("#eff6ff", "#1d4ed8")}>
-                            {safe(item.learning_area) || "General"}
-                          </span>
-                          <span style={pillStyle("#f8fafc", "#475569")}>
-                            {shortDate(item.occurred_on || item.created_at)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 14,
-                          lineHeight: 1.65,
-                          color: "#334155",
-                        }}
-                      >
-                        {safe(item.summary || item.note || item.body) || "No summary provided for this evidence item."}
-                      </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 26, fontWeight: 900 }}>{readinessReport?.overallStatus || "Preparing"}</div>
+                      <p style={{ color: "#475569", marginTop: 4 }}>{readinessReport?.explanation}</p>
                     </div>
-                  ))}
+                    {readinessReport ? (
+                      <span style={chipStyle(readinessTone)}>
+                        {readinessReport.reportReady ? "Report ready" : "Still collecting"}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>
+                    <div style={miniStatStyle}>
+                      <span>Strong signal</span>
+                      <strong>{strongSubjects?.[0]?.subjectName || "Emerging"}</strong>
+                    </div>
+                    <div style={miniStatStyle}>
+                      <span>Needs attention</span>
+                      <strong>{focusSubjects?.[0]?.subjectName || "Adding depth"}</strong>
+                    </div>
+                  </div>
+                  {focusSubjects?.[0] ? (
+                    <div style={{ fontSize: 13, color: "#475569" }}>
+                      {focusSubjects[0].nextCapture}
+                    </div>
+                  ) : null}
                 </div>
-              )}
-            </div>
+              </div>
+            </section>
 
-            <div style={{ display: "grid", gap: 18 }}>
-              <section style={cardStyle()}>
-                <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
-                  Coverage snapshot
-                </div>
-
-                <div style={{ display: "grid", gap: 10 }}>
-                  {!coverageRows.length ? (
-                    <div
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 12,
-                        padding: 12,
-                        background: "#f8fafc",
-                        color: "#475569",
-                        fontWeight: 700,
-                      }}
-                    >
-                      Coverage will appear once evidence is captured.
+            <section style={cardStyle}>
+              <div style={wideGrid}>
+                <div>
+                <div style={{ ...labelTextStyle, color: "#0f172a" }}>Recent evidence</div>
+                  {recentEvidence.length ? (
+                    <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+                      {recentEvidence.map((item) => (
+                        <div key={item.id} style={softCardStyle}>
+                          <div style={{ fontWeight: 900, color: "#0f172a" }}>
+                            {safe(item.title) || "Untitled learning moment"}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#64748b" }}>
+                            {safe(item.learning_area) || "General"} •{" "}
+                            {formatDistanceToNowStrict(
+                              parseISO(safe(item.occurred_on) || safe(item.created_at) || new Date().toISOString()),
+                              { addSuffix: true }
+                            )}
+                          </div>
+                          <p style={{ color: "#475569", marginTop: 6 }}>
+                            {safe(item.summary) || safe(item.note) || "No additional summary yet."}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    coverageRows.map((row) => (
-                      <div
-                        key={row.area}
-                        style={{
-                          border: "1px solid #e5e7eb",
-                          borderRadius: 12,
-                          padding: 12,
-                          background: "#f8fafc",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            alignItems: "center",
-                          }}
-                        >
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
-                            {row.area}
-                          </div>
-                          <span style={pillStyle("#ecfdf5", "#166534")}>{row.count}</span>
-                        </div>
-                      </div>
-                    ))
+                    <p style={{ color: "#475569", marginTop: 12 }}>
+                      No evidence has been captured yet. Start with a quick capture to begin the story.
+                    </p>
                   )}
                 </div>
-              </section>
-
-              <section style={cardStyle()}>
-                <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
-                  Current status
-                </div>
-
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "#ffffff",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 4 }}>
-                      Latest evidence
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-                      {latestEvidence
-                        ? latestEvidenceDays != null
-                          ? `${latestEvidenceDays} day${latestEvidenceDays === 1 ? "" : "s"} ago`
-                          : shortDate(latestEvidence.occurred_on || latestEvidence.created_at)
-                        : "No evidence yet"}
+                <div style={{ display: "grid", gap: 12 }}>
+                  <div style={softCardStyle}>
+                    <div style={labelTextStyle}>Portfolio coverage</div>
+                    <div style={{ ...headingStyle, fontSize: 24, marginTop: 6 }}>Coverage grows with every capture</div>
+                    <p style={{ ...bodyTextStyle, marginTop: 6 }}>
+                      Review the portfolio to see how learning areas and subjects are represented.
+                    </p>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                      <Link href="/portfolio" style={buttonStyle(true)}>
+                        View portfolio
+                      </Link>
+                      <Link
+                        href={`/reports?studentId=${encodeURIComponent(student?.id || childId)}`}
+                        style={buttonStyle(false)}
+                      >
+                        View reports
+                      </Link>
                     </div>
                   </div>
-
-                  <div
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "#ffffff",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 4 }}>
-                      Strongest area
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-                      {strongestArea}
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "#ffffff",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 4 }}>
-                      Active child
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-                      {name}
-                    </div>
+                  <div style={softCardStyle}>
+                    <div style={labelTextStyle}>What to do next</div>
+                    <ul
+                      style={{
+                        margin: "8px 0 0 16px",
+                        padding: 0,
+                        listStyleType: "disc",
+                        color: "#475569",
+                        fontSize: 13,
+                      }}
+                    >
+                      {readinessReport?.evidenceGaps.length ? (
+                        readinessReport.evidenceGaps.slice(0, 3).map((gap) => (
+                          <li key={gap.standardId} style={{ marginBottom: 6 }}>
+                            {gap.officialCode} — {gap.reason}
+                          </li>
+                        ))
+                      ) : (
+                        <li style={{ marginBottom: 6 }}>Coverage is balanced; keep refreshing with new contexts.</li>
+                      )}
+                      {readinessReport?.captureGuidance.map((guidance, idx) => (
+                        <li key={guidance || idx} style={{ marginBottom: 6 }}>
+                          {guidance}
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href={`/capture?studentId=${encodeURIComponent(student?.id || childId)}`}
+                      style={{ ...buttonStyle(true), marginTop: 12 }}
+                    >
+                      Capture next
+                    </Link>
                   </div>
                 </div>
-              </section>
-            </div>
-          </section>
-
-          <section style={cardStyle()}>
-            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Fast lanes</div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/capture" style={buttonStyle(true)}>
-                Quick Capture
-              </Link>
-              <Link href="/portfolio" style={buttonStyle(false)}>
-                Portfolio
-              </Link>
-              <Link href="/planner" style={buttonStyle(false)}>
-                Planner
-              </Link>
-              <Link href="/reports" style={buttonStyle(false)}>
-                Reports
-              </Link>
-              <Link href="/children" style={buttonStyle(false)}>
-                All children
-              </Link>
-              <Link href="/authority/readiness" style={buttonStyle(false)}>
-                Authority Readiness
-              </Link>
-            </div>
-          </section>
-        </>
-      )}
-    </FamilyTopNavShell>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
   );
 }
