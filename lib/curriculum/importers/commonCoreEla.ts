@@ -328,7 +328,7 @@ async function ensureStrands(
   const strandMap: Record<string, { id: string; code: string }> = {};
 
   for (const seed of STRAND_SEEDS) {
-    const payload = {
+    const payload: Record<string, unknown> = {
       framework_id: frameworkId,
       code: seed.code,
       name: seed.name,
