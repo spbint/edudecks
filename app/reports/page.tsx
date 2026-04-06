@@ -8,6 +8,8 @@ import FlowStep from "@/app/components/FlowStep";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
+import ReportSignalsPanel from "@/app/components/ReportSignalsPanel";
+import { mapReportModeToReportingMode } from "@/lib/reporting/modeMapper";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
@@ -2076,6 +2078,29 @@ function ReportsPageContent() {
                   ))}
               </div>
             </section>
+            </section>
+
+            {selectedStudent && (
+              <section style={{ marginTop: 20 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#475569" }}>
+                      Confidence & guidance
+                    </div>
+                    <p style={{ margin: "6px 0 0", fontSize: 14, color: "#475569" }}>
+                      This view summarizes readiness, subject signals, gaps, and suggested captures tied to the selected mode.
+                    </p>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <ReportSignalsPanel
+                    studentId={selectedStudent.id}
+                    studentName={studentName(selectedStudent)}
+                    mode={mapReportModeToReportingMode(reportMode)}
+                  />
+                </div>
+              </section>
+            )}
 
             <section style={cardStyle}>
               <div style={h2Style}>What this report currently shows</div>

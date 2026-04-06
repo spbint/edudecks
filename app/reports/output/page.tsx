@@ -10,6 +10,8 @@ import {
   periodLabel,
   type ReportDraftRow,
 } from "@/lib/reportDrafts";
+import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
+import { mapReportModeToReportingMode } from "@/lib/reporting/modeMapper";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 
 function safe(v: unknown) {
@@ -35,6 +37,15 @@ function ReportsOutputPageContent() {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);
   const [message, setMessage] = useState("");
+  const reportingMode = useMemo(
+    () => mapReportModeToReportingMode(draft?.report_mode),
+    [draft?.report_mode]
+  );
+  const { narrative } = useAssessmentInsights(
+    draft?.student_id || draft?.child_id || "",
+    draft?.child_name || "Child",
+    reportingMode
+  );
 
   useEffect(() => {
     let active = true;
@@ -202,6 +213,7 @@ function ReportsOutputPageContent() {
               </div>
             </section>
 
+          {narrative ? (
             <section
               style={{
                 border: "1px solid #e5e7eb",
@@ -211,42 +223,236 @@ function ReportsOutputPageContent() {
                 boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
                 display: "grid",
                 gap: 14,
-                alignContent: "start",
               }}
             >
               <div>
-                <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b", marginBottom: 8 }}>
-                  Next Actions
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    color: "#64748b",
+                    marginBottom: 6,
+                  }}
+                >
+                  Reporting intelligence
                 </div>
-                <div style={{ fontSize: 22, lineHeight: 1.2, fontWeight: 900, color: "#0f172a" }}>
-                  Keep moving toward Report Ready
-                </div>
-              </div>
-
-              <div style={softCardStyle}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>Return to Reports</div>
-                <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.6, color: "#64748b" }}>
-                  Adjust the learner, evidence mix, note, or save settings if you want a stronger next version.
-                </div>
-              </div>
-
-              <div style={softCardStyle}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>Revisit Portfolio</div>
-                <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.6, color: "#64748b" }}>
-                  Keep the strongest learning moments visible so future report writing stays easier.
+                <div style={{ fontSize: 20, fontWeight: 950, color: "#0f172a" }}>
+                  Confidence-building language
                 </div>
               </div>
-
-              <div style={{ display: "grid", gap: 10 }}>
-                <Link href={`/reports?draftId=${encodeURIComponent(draft.id)}`} style={buttonStyle(true)}>
-                  Back to Reports
-                </Link>
-                <Link href="/portfolio" style={buttonStyle(false)}>
-                  Open Portfolio
-                </Link>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.75, color: "#475569" }}>
+                {narrative.overallSummary}
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.strengths.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.areasForGrowth.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.nextSteps.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
+              <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                Evidence note: {narrative.evidenceReadinessNote}
+              </p>
+              {narrative.subjectInsights.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {narrative.subjectInsights.slice(0, 2).map((insight) => (
+                    <div
+                      key={`${insight.subjectName}-${insight.summary}`}
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 14,
+                        padding: 14,
+                        background: "#fdfdfd",
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+                        {insight.subjectName}
+                      </div>
+                      <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
+          ) : null}
           </section>
+
+          {narrative ? (
+            <section
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 20,
+                background: "#ffffff",
+                padding: 22,
+                boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: 1,
+                    textTransform: "uppercase",
+                    color: "#64748b",
+                    marginBottom: 6,
+                  }}
+                >
+                  Reporting intelligence
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 950, color: "#0f172a" }}>
+                  Confidence-building language
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "#475569" }}>
+                {narrative.overallSummary}
+              </p>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.strengths.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.areasForGrowth.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
+                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                    {narrative.nextSteps.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                Evidence note: {narrative.evidenceReadinessNote}
+              </p>
+              {narrative.subjectInsights.length > 0 && (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {narrative.subjectInsights.slice(0, 2).map((insight) => (
+                    <div
+                      key={`${insight.subjectName}-${insight.summary}`}
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 14,
+                        padding: 14,
+                        background: "#fdfdfd",
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+                        {insight.subjectName}
+                      </div>
+                      <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
+                      <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
         </>
       )}
     </main>
