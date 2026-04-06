@@ -4,13 +4,16 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type FamilyTopNavShellProps = {
+export type FamilyTopNavShellProps = {
   title?: string;
   subtitle?: string;
   heroTitle?: string;
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
+  hideHeroAside?: boolean;
+  workflowCurrentHref?: string;
+  workflowHelperText?: string;
   children: React.ReactNode;
 };
 
@@ -118,6 +121,9 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
+  hideHeroAside = false,
+  workflowCurrentHref,
+  workflowHelperText,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
