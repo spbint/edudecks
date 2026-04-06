@@ -18,6 +18,7 @@ type FamilyTopNavShellProps = {
   hideHeroAside?: boolean;
   workflowCurrentHref?: string;
   workflowHelperText?: string;
+  hideHero?: boolean;
   children: React.ReactNode;
 };
 
@@ -131,6 +132,7 @@ export default function FamilyTopNavShell({
   hideHeroAside = false,
   workflowCurrentHref,
   workflowHelperText,
+  hideHero = false,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
@@ -296,7 +298,7 @@ export default function FamilyTopNavShell({
           />
         </section>
 
-        {!isMobile ? (
+        {!isMobile && !hideHero ? (
           <section
             style={{
               display: "grid",

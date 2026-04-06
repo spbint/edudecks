@@ -99,8 +99,9 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
       ]
     : [];
 
-  const metadata = (user.user_metadata as Record<string, unknown> | null) ?? {};
-  const displayName =
+  const metadata =
+    (user.user_metadata as { full_name?: string | null; name?: string | null } | null) ?? {};
+  const displayName: string =
     (typeof metadata.full_name === "string" && metadata.full_name) ||
     (typeof metadata.name === "string" && metadata.name) ||
     user.email ||
@@ -213,7 +214,7 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
 
           <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 10, display: "grid", gap: 6 }}>
             {[
-              { label: "My profile", href: "/family" },
+              { label: "My profile", href: "/profile" },
               { label: "Settings", href: "/settings" },
               { label: "Curriculum setup", href: "/settings?section=curriculum" },
             ].map((item) => (

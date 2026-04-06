@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
+import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import {
   ChildOption,
@@ -286,18 +287,26 @@ export default function FamilySettingsPage() {
     setSettings(fallback);
   }
 
-  if (!hydrated) {
-    return (
-      <main style={shellStyles.app}>
-        <div style={shellStyles.wrap}>
-          <div style={shellStyles.loadingCard}>Loading family settings…</div>
-        </div>
-      </main>
-    );
-  }
+    if (!hydrated) {
+      return (
+        <FamilyTopNavShell
+          hideHero
+          workflowCurrentHref="/settings"
+          workflowHelperText="Loading your family defaults and curriculum setup…"
+        >
+          <div style={shellStyles.wrap}>
+            <div style={shellStyles.loadingCard}>Loading family settings…</div>
+          </div>
+        </FamilyTopNavShell>
+      );
+    }
 
   return (
-    <main style={shellStyles.app}>
+    <FamilyTopNavShell
+      hideHero
+      workflowCurrentHref="/settings"
+      workflowHelperText="Guide your family defaults and curriculum controls."
+    >
       <div style={shellStyles.wrap}>
         <div style={shellStyles.topNav}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -765,7 +774,7 @@ export default function FamilySettingsPage() {
           </button>
         </div>
       </div>
-    </main>
+    </FamilyTopNavShell>
   );
 }
 
