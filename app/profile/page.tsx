@@ -434,29 +434,31 @@ async function loadLinkedChildren(userId: string): Promise<ProfileChild[]> {
     }
   });
 
-  return orderedIds
-    .map((id) => {
-      const student = studentMap.get(id);
-      if (!student) return null;
-      const name =
-        safeName(student.preferred_name) ||
-        [safeName(student.first_name), safeName(student.surname), safeName(student.family_name)]
-          .filter(Boolean)
-          .join(" ")
-          .trim() ||
-        "Unnamed child";
-      const yearLabel = Number.isFinite(Number(student.year_level))
-        ? `Year ${student.year_level}`
-        : "Year level";
-      const linkRow = links.find((row) => row.student_id === id);
-      return {
-        id,
-        name,
-        yearLabel,
-        connectedAt: linkRow?.created_at ?? null,
-      };
-    })
-    .filter((child): child is ProfileChild => Boolean(child));
+  return (
+    orderedIds
+      .map((id) => {
+        const student = studentMap.get(id);
+        if (!student) return null;
+        const name =
+          safeName(student.preferred_name) ||
+          [safeName(student.first_name), safeName(student.surname), safeName(student.family_name)]
+            .filter(Boolean)
+            .join(" ")
+            .trim() ||
+          "Unnamed child";
+        const yearLabel = Number.isFinite(Number(student.year_level))
+          ? `Year ${student.year_level}`
+          : "Year level";
+        const linkRow = links.find((row) => row.student_id === id);
+        return {
+          id,
+          name,
+          yearLabel,
+          connectedAt: linkRow?.created_at ?? null,
+        } as ProfileChild;
+      })
+      .filter((child): child is ProfileChild => Boolean(child))
+  );
 }
 
 async function fetchRecentEvidence(studentIds: string[]): Promise<EvidenceEntry[]> {
