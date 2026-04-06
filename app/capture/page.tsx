@@ -11,6 +11,7 @@ import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
+import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLAN_STORAGE_KEY = "edudecks_plan";
@@ -18,6 +19,13 @@ const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
 const PENDING_EVIDENCE_SAVE_KEY = "edudecks_pending_capture_save_v1";
+
+const QUICK_CAPTURE_CATEGORIES = [
+  { label: "Writing sample", area: "Literacy", type: "Work sample" as EvidenceType },
+  { label: "Reading response", area: "Literacy", type: "Work sample" as EvidenceType },
+  { label: "Numeracy task", area: "Numeracy", type: "Work sample" as EvidenceType },
+  { label: "Science observation", area: "Science", type: "Observation" as EvidenceType },
+];
 
 type ChildRow = {
   id: string;
@@ -1094,7 +1102,23 @@ function CapturePageContent() {
     [children, activeChildId]
   );
 
+  const { readinessReport } = useAssessmentInsights(
+    activeChild?.id,
+    childDisplayName(activeChild),
+    "parent_friendly"
+  );
+
+  const captureGaps = readinessReport?.evidenceGaps.slice(0, 3) ?? [];
+  const captureGuidance = readinessReport?.captureGuidance.slice(0, 3) ?? [];
+  const focusSubjects = readinessReport?.subjectReadiness ?? [];
+  const readinessFocusSignal = focusSubjects.length
+    ? `${focusSubjects[0].subjectName} is ${focusSubjects[0].status.toLowerCase()}`
+    : activeChild?.strongestArea
+    ? `${activeChild.strongestArea} remains steady`
+    : "Awaiting more evidence signals";
+
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
+  const recommendedCaptureArea = focusSubjects[0]?.subjectName || suggestedArea;
   const quality = useMemo(
     () => buildCaptureQuality(title, summary, learningArea),
     [title, summary, learningArea]
@@ -1513,6 +1537,82 @@ function CapturePageContent() {
                 </div>
               </div>
 
+              {readinessReport ? (
+                <div
+                  style={{
+                    ...softCard(),
+                    marginTop: 16,
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ ...eyebrowStyle(), color: "#0f172a" }}>Suggested focus</div>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "#0f172a",
+                    }}
+                  >
+                    {readinessReport.explanation}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
+                    {readinessFocusSignal}
+                  </div>
+
+                  {captureGaps.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Evidence gaps</div>
+                      <ul style={{ margin: "6px 0 0 16px", padding: 0, listStyleType: "disc", color: "#475569" }}>
+                        {captureGaps.map((gap) => (
+                          <li key={gap.standardId} style={{ marginBottom: 6, fontSize: 12 }}>
+                            <strong>{gap.officialCode}</strong> — {gap.title}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {captureGuidance.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Recommended captures</div>
+                      <ul style={{ margin: "6px 0 0 16px", padding: 0, listStyleType: "disc", color: "#475569" }}>
+                        {captureGuidance.map((guidance) => (
+                          <li key={guidance} style={{ marginBottom: 6, fontSize: 12 }}>
+                            {guidance}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Quick capture ideas</div>
+                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {QUICK_CAPTURE_CATEGORIES.map((option) => (
+                        <button
+                          key={option.label}
+                          type="button"
+                          onClick={() => {
+                            setLearningArea(option.area);
+                            setEvidenceType(option.type);
+                          }}
+                          style={{
+                            ...tinyButtonStyle(false),
+                            background: "#ffffff",
+                            border: "1px solid #dbeafe",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {plannerContext.isActive ? (
                 <div
                   style={{
@@ -1753,11 +1853,11 @@ function CapturePageContent() {
                         ))}
                       </datalist>
 
-                      {!safe(learningArea) && suggestedArea ? (
+                      {!safe(learningArea) && recommendedCaptureArea ? (
                         <div style={{ marginTop: 8 }}>
                           <button
                             type="button"
-                            onClick={() => setLearningArea(suggestedArea)}
+                            onClick={() => setLearningArea(recommendedCaptureArea)}
                             style={{
                               ...tinyButtonStyle(false),
                               background: "#eff6ff",
@@ -1765,7 +1865,7 @@ function CapturePageContent() {
                               color: "#1d4ed8",
                             }}
                           >
-                            Suggested: {suggestedArea}
+                            Suggested: {recommendedCaptureArea}
                           </button>
                         </div>
                       ) : null}
