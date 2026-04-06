@@ -12,7 +12,7 @@ import {
 type StandardSeed = {
   official_code: string;
   title: string;
-  description: string;
+  description?: string | null;
   short_code?: string;
   subject_code?: string;
   strand_code?: string;
@@ -83,9 +83,9 @@ const STRAND_SEEDS: StrandSeed[] = [
   { code: "ANCHOR-WRITING", name: "Writing Anchor Standards", description: "College and Career Readiness anchor standards for Writing." },
   { code: "ANCHOR-SPEAKING", name: "Speaking and Listening Anchor Standards", description: "College and Career Readiness anchor standards for Speaking and Listening." },
   { code: "ANCHOR-LANGUAGE", name: "Language Anchor Standards", description: "College and Career Readiness anchor standards for Language." },
-  { code: "READ-LITERATURE", name: "Reading: Literature", description: null, subject_code: "ela" },
-  { code: "READ-INFORMATION", name: "Reading: Informational Text", description: null, subject_code: "ela" },
-  { code: "READ-FOUNDATIONAL", name: "Reading: Foundational Skills", description: null, subject_code: "ela" },
+  { code: "READ-LITERATURE", name: "Reading: Literature", description: "", subject_code: "ela" },
+  { code: "READ-INFORMATION", name: "Reading: Informational Text", description: "", subject_code: "ela" },
+  { code: "READ-FOUNDATIONAL", name: "Reading: Foundational Skills", description: "", subject_code: "ela" },
   { code: "WRITING", name: "Writing", subject_code: "ela" },
   { code: "SPEAKING", name: "Speaking and Listening", subject_code: "ela" },
   { code: "LANGUAGE", name: "Language", subject_code: "ela" },
