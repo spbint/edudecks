@@ -14,6 +14,14 @@ export type DefaultChildLanding =
 export type EvidencePrivacy = "private" | "family" | "shared";
 export type WeekStart = "monday" | "sunday";
 
+export type CurriculumPreferences = {
+  country_id: string | null;
+  region_id: string | null;
+  framework_id: string | null;
+  level_id: string | null;
+  subject_ids: string[];
+};
+
 export type ChildOption = {
   id: string;
   label: string;
@@ -38,6 +46,7 @@ export type FamilySettings = {
   notifications_weekly_digest: boolean;
   notifications_readiness_alerts: boolean;
   notifications_planner_nudges: boolean;
+  curriculum_preferences: CurriculumPreferences;
 };
 
 export type FamilyProfileRow = FamilySettings & {
@@ -69,6 +78,13 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   notifications_weekly_digest: true,
   notifications_readiness_alerts: true,
   notifications_planner_nudges: true,
+  curriculum_preferences: {
+    country_id: null,
+    region_id: null,
+    framework_id: null,
+    level_id: null,
+    subject_ids: [],
+  },
 };
 
 export const DEFAULT_FAMILY_PROFILE: FamilyProfileRow = {
@@ -96,6 +112,70 @@ function canUseBrowserStorage() {
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function safeStringOrNull(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function safeStringArray(value: unknown): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => safeStringOrNull(item))
+      .filter((item): item is string => Boolean(item));
+  }
+  return [];
+}
+
+function asCurriculumPreferences(value: unknown): CurriculumPreferences {
+  if (!value) return DEFAULT_FAMILY_SETTINGS.curriculum_preferences;
+
+  if (typeof value === "string") {
+    try {
+      return asCurriculumPreferences(JSON.parse(value));
+    } catch {
+      return DEFAULT_FAMILY_SETTINGS.curriculum_preferences;
+    }
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const row = value as Record<string, unknown>;
+    const country_id =
+      safeStringOrNull(row.country_id ?? row.countryId ?? row.country) ??
+      DEFAULT_FAMILY_SETTINGS.curriculum_preferences.country_id;
+    const region_id =
+      safeStringOrNull(row.region_id ?? row.regionId ?? row.region) ??
+      DEFAULT_FAMILY_SETTINGS.curriculum_preferences.region_id;
+    const framework_id =
+      safeStringOrNull(row.framework_id ?? row.frameworkId ?? row.framework) ??
+      DEFAULT_FAMILY_SETTINGS.curriculum_preferences.framework_id;
+    const level_id =
+      safeStringOrNull(row.level_id ?? row.levelId ?? row.level) ??
+      DEFAULT_FAMILY_SETTINGS.curriculum_preferences.level_id;
+    const subject_ids =
+      safeStringArray(row.subject_ids ?? row.subjectIds ?? row.subjects) ||
+      DEFAULT_FAMILY_SETTINGS.curriculum_preferences.subject_ids;
+
+    return {
+      country_id,
+      region_id,
+      framework_id,
+      level_id,
+      subject_ids,
+    };
+  }
+
+  return DEFAULT_FAMILY_SETTINGS.curriculum_preferences;
 }
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
@@ -213,6 +293,7 @@ export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined)
       row.notifications_planner_nudges,
       DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges
     ),
+    curriculum_preferences: asCurriculumPreferences(row.curriculum_preferences),
   };
 }
 

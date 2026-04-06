@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
 import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import {
   ChildOption,
@@ -402,6 +403,11 @@ export default function FamilySettingsPage() {
 
         <div style={shellStyles.mainGrid}>
           <div style={{ display: "grid", gap: 18 }}>
+            <CurriculumSetupCard
+              value={settings.curriculum_preferences}
+              onChange={(curriculum) => update("curriculum_preferences", curriculum)}
+            />
+
             <section style={shellStyles.card}>
               <div style={shellStyles.sectionHeader}>
                 <div>
