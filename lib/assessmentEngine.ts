@@ -227,7 +227,7 @@ function itemDate(item: {
   created_at?: string | null;
 }) {
   return (
-    safe(item.occured_on) ||
+    safe(item.occurred_on) ||
     safe(item.occurred_on) ||
     safe(item.assessed_at) ||
     safe(item.created_at) ||
