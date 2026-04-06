@@ -86,15 +86,33 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/interventions", label: "Support Plans" },
     ],
   },
-  {
-    key: "assessment",
-    label: "Assessment & Results",
-    defaultOpen: false,
-    items: [
-      { href: "/admin/assessments", label: "Assessments" },
-      { href: "/admin/enter-results", label: "Enter Results" },
-    ],
-  },
+      {
+        key: "assessment",
+        label: "Assessment & Results",
+        defaultOpen: false,
+        items: [
+          { href: "/admin/assessments", label: "Assessments" },
+          {
+            href: "/admin/assessment-verification",
+            label: "Assessment verification",
+            description: "Inspect the judgement builder",
+            tone: "blue",
+          },
+          {
+            href: "/admin/reporting-intelligence-verification",
+            label: "Reporting intelligence",
+            description: "Translate outputs to report language",
+            tone: "green",
+          },
+          {
+            href: "/admin/report-ready-verification",
+            label: "Report-ready verification",
+            description: "Readiness, gaps, and next capture guidance",
+            tone: "violet",
+          },
+          { href: "/admin/enter-results", label: "Enter Results" },
+        ],
+      },
   {
     key: "admin",
     label: "Admin Setup",
