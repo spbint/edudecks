@@ -3,14 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import AuthModal from "@/app/components/AuthModal";
-import FlowStep from "@/app/components/FlowStep";
-import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
-import UpgradeHint from "@/app/components/UpgradeHint";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
-import useIsMobile from "@/app/components/useIsMobile";
-import { isPremiumActive } from "@/lib/premiumConfig";
-import CurriculumSummary from "@/app/components/CurriculumSummary";
+import { supabase } from "@/lib/supabaseClient";
 
 type ViewMode = "day" | "week" | "month";
 type BlockStatus = "planned" | "done";
@@ -44,19 +37,9 @@ type Learner = {
   label: string;
 };
 
-type PendingPlannerBlock = {
-  title: string;
-  learningArea: string;
-  plannedFor: string;
-  plannedTime: string;
-  note: string;
-  studentId: string;
-};
-
 const STORAGE_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
 const STORAGE_NOTES_KEY = "edudecks_calendar_notes_v1";
 const STORAGE_LEARNER_KEY = "edudecks_active_student_id";
-const PENDING_BLOCK_KEY = "edudecks_pending_calendar_block_v1";
 
 const LEARNING_AREAS = [
   "Literacy",
@@ -71,15 +54,6 @@ const LEARNING_AREAS = [
 
 function safeString(value: unknown): string {
   return String(value ?? "").trim();
-}
-
-function parseJson<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function isoDate(date: Date): string {
@@ -247,7 +221,6 @@ export default function CalendarPage() {
 function CalendarPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isMobile = useIsMobile();
 
   const [view, setView] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -269,16 +242,8 @@ function CalendarPageContent() {
   const [loading, setLoading] = useState(true);
   const [savingBlock, setSavingBlock] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatusState>("idle");
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [message, setMessage] = useState("");
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
-  const [showCalendarUpgradeHint, setShowCalendarUpgradeHint] = useState(false);
-
-  useEffect(() => {
-    setIsPremium(isPremiumActive());
-  }, []);
 
   useEffect(() => {
     const qView = safeString(searchParams.get("view")).toLowerCase();
@@ -342,20 +307,6 @@ function CalendarPageContent() {
     const key = buildNoteKey(userId, activeLearnerId || null, selectedIso);
     setNoteText(dayNotesMap[key]?.note || "");
   }, [selectedDate, activeLearnerId, userId, dayNotesMap]);
-
-  useEffect(() => {
-    if (!hasSupabaseEnv || !userId || typeof window === "undefined") return;
-
-    const pendingRaw = window.sessionStorage.getItem(PENDING_BLOCK_KEY);
-    if (!pendingRaw) return;
-
-    const pending = parseJson<PendingPlannerBlock | null>(pendingRaw, null);
-    if (!pending?.title) return;
-
-    window.sessionStorage.removeItem(PENDING_BLOCK_KEY);
-    setAuthModalOpen(false);
-    void executeAddBlock(pending, userId);
-  }, [userId]);
 
   async function loadLearners(): Promise<Learner[]> {
     try {
@@ -467,10 +418,6 @@ function CalendarPageContent() {
   }, [blocks]);
 
   const selectedIso = isoDate(selectedDate);
-  const authReturnPath = useMemo(() => {
-    const query = searchParams.toString();
-    return query ? `/calendar?${query}` : `/calendar`;
-  }, [searchParams]);
   const selectedWeekStart = useMemo(() => startOfWeekMonday(selectedDate), [selectedDate]);
   const selectedWeekEnd = useMemo(() => endOfWeekSunday(selectedDate), [selectedDate]);
   const selectedWeekDates = useMemo(
@@ -634,12 +581,17 @@ function CalendarPageContent() {
     return false;
   }
 
-  async function executeAddBlock(
-    pending: PendingPlannerBlock,
-    authenticatedUserId: string | null
-  ) {
+  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
+    const nextTitle = safeString(custom?.title ?? title);
+    const nextArea = safeString(custom?.area ?? learningArea) || "Literacy";
+    const nextDate = safeString(custom?.date ?? toolbarDate) || selectedIso;
+
+    if (!nextTitle) {
+      setMessage("Add a simple learning moment first.");
+      return;
+    }
+
     setSavingBlock(true);
-    setSaveStatus("saving");
     setMessage("");
 
     const block: PlannerBlock = {
@@ -647,13 +599,13 @@ function CalendarPageContent() {
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
           : `local-${Date.now()}`,
-      user_id: authenticatedUserId,
-      student_id: pending.studentId || null,
-      title: pending.title,
-      learning_area: pending.learningArea,
-      planned_for: pending.plannedFor,
-      planned_time: safeString(pending.plannedTime) || null,
-      note: safeString(pending.note) || null,
+      user_id: userId,
+      student_id: activeLearnerId || null,
+      title: nextTitle,
+      learning_area: nextArea,
+      planned_for: nextDate,
+      planned_time: safeString(plannedTime) || null,
+      note: safeString(toolbarNote) || null,
       status: "planned",
     };
 
@@ -661,49 +613,8 @@ function CalendarPageContent() {
 
     setTitle("");
     setToolbarNote("");
-    setSaveStatus("saved");
+    setMessage(savedToDatabase ? "Learning block added." : "Learning block added locally.");
     setSavingBlock(false);
-  }
-
-  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
-    if (!isPremium && weeklyBlocks.length >= 1) {
-      setShowCalendarUpgradeHint(true);
-    }
-
-    const pending: PendingPlannerBlock = {
-      title: safeString(custom?.title ?? title),
-      learningArea: safeString(custom?.area ?? learningArea) || "Literacy",
-      plannedFor: safeString(custom?.date ?? toolbarDate) || selectedIso,
-      plannedTime: safeString(plannedTime),
-      note: safeString(toolbarNote),
-      studentId: activeLearnerId || "",
-    };
-
-    if (!pending.title) {
-      setSaveStatus("idle");
-      setMessage("Add a simple learning moment first.");
-      return;
-    }
-
-    if (hasSupabaseEnv) {
-      const authResp = await supabase.auth.getUser();
-      const nextUserId = authResp.data.user?.id || null;
-
-      if (!nextUserId) {
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(PENDING_BLOCK_KEY, JSON.stringify(pending));
-        }
-        setAuthModalOpen(true);
-        setSaveStatus("idle");
-        setMessage("Save your progress to keep this plan.");
-        return;
-      }
-
-      await executeAddBlock(pending, nextUserId);
-      return;
-    }
-
-    await executeAddBlock(pending, userId);
   }
 
   async function handleSaveDayNote() {
@@ -711,7 +622,6 @@ function CalendarPageContent() {
     const noteDate = selectedIso;
 
     setSavingNote(true);
-    setSaveStatus("saving");
     setMessage("");
 
     const payload: PlannerDayNote = {
@@ -745,7 +655,7 @@ function CalendarPageContent() {
           next[existingKey] = res.data as PlannerDayNote;
           setDayNotesMap(next);
           setStorageMode("database");
-          setSaveStatus("saved");
+          setMessage("Day note saved.");
           setSavingNote(false);
           return;
         }
@@ -757,7 +667,7 @@ function CalendarPageContent() {
           const next = { ...dayNotesMap, [key]: res.data as PlannerDayNote };
           setDayNotesMap(next);
           setStorageMode("database");
-          setSaveStatus("saved");
+          setMessage("Day note saved.");
           setSavingNote(false);
           return;
         }
@@ -770,7 +680,7 @@ function CalendarPageContent() {
     setLocalNotes(existing);
     setDayNotesMap(existing);
     setStorageMode("local");
-    setSaveStatus("saved");
+    setMessage("Day note saved locally.");
     setSavingNote(false);
   }
 
@@ -801,9 +711,6 @@ function CalendarPageContent() {
   }
 
   function openDay(date: Date) {
-    if (!isPremium && weeklyBlocks.length > 0) {
-      setShowCalendarUpgradeHint(true);
-    }
     setSelectedDate(date);
     setView("day");
   }
@@ -842,52 +749,16 @@ function CalendarPageContent() {
       ? formatWeekLabel(selectedDate)
       : formatMonthYear(selectedDate);
 
-  const stepOneBadge = weeklyBlocks.length === 0 ? "Start here" : "Quick add ready";
-  const stepTwoBadge =
-    view === "week" ? "Main planning view" : view === "day" ? "Focused day view" : "Month overview";
-  const stepThreeBadge = weeklyBlocks.length > 0 ? "Ready when learning happens" : "Comes after planning";
-  const stepFourBadge =
-    weeklyBlocks.length > 0 ? `${weeklyBlocks.length} block${weeklyBlocks.length === 1 ? "" : "s"} helping the picture grow` : "Report confidence builds gently";
-
-  const captureFlowCopy =
-    weeklyBlocks.length > 0
-      ? "You already have learning blocks in motion. When one happens, capture a quick note, photo, or summary so the record grows naturally."
-      : "Once the first block happens, capture it quickly. A small note or photo is enough to begin building a useful learning record.";
-
-  const reportFlowCopy =
-    weeklyBlocks.length > 0
-      ? "Each block and capture adds another piece of the learning story. You do not need everything perfect before moving toward a clearer report."
-      : "Even one small planned block can become the start of a clearer report once the learning moment is captured.";
-
   return (
     <div style={styles.page}>
       <div style={styles.container}>
-        {!isPremium && weeklyBlocks.length >= 2 ? (
-          <section style={{ ...styles.toolbarCard, padding: isMobile ? 14 : 16 }}>
-            <UpgradeHint
-              title="You're building a strong learning record"
-              description="Want more flexibility as you grow?"
-              ctaLabel="Unlock more control"
-              ctaHref="/upgrade"
-              variant="subtle"
-            />
-          </section>
-        ) : null}
-
-        <section
-          style={{
-            ...styles.hero,
-            flexDirection: isMobile ? "column" : "row",
-            padding: isMobile ? 18 : styles.hero.padding,
-          }}
-        >
+        <section style={styles.hero}>
           <div>
             <div style={styles.kicker}>FAMILY CALENDAR</div>
             <h1 style={styles.h1}>Plan visually for your learner</h1>
             <p style={styles.sub}>
-              {isMobile
-                ? "Add one simple learning block, then keep the week moving gently."
-                : "Keep your rhythm visible across the day, week, and month. This calendar is designed to support learning gently, not pressure it."}
+              Keep your rhythm visible across the day, week, and month. This calendar is designed
+              to support learning gently, not pressure it.
             </p>
 
             <div style={styles.heroChips}>
@@ -902,69 +773,19 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div
-            style={{
-              ...styles.heroActions,
-              width: isMobile ? "100%" : undefined,
-              flexDirection: isMobile ? "column" : "row",
-            }}
-          >
-            <button
-              style={{ ...styles.primaryBtn, width: isMobile ? "100%" : undefined }}
-              onClick={() =>
-                handleAddBlock({
-                  date: toolbarDate,
-                  area: learningArea,
-                  title: title || "Learning block",
-                })
-              }
-            >
-              Add block
+          <div style={styles.heroActions}>
+            <Link href="/planner" style={styles.secondaryBtn}>
+              Back to Planner
+            </Link>
+            <button style={styles.primaryBtn} onClick={() => goToCapture()}>
+              Capture
             </button>
-            {weeklyBlocks.length > 0 ? (
-              <button
-                style={{ ...styles.secondaryBtn, width: isMobile ? "100%" : undefined }}
-                onClick={() => goToCapture()}
-              >
-                Capture
-              </button>
-            ) : null}
-            {!isMobile ? (
-              <Link href="/planner" style={{ ...styles.secondaryBtn, justifyContent: "center" }}>
-                Back to Planner
-              </Link>
-            ) : null}
           </div>
         </section>
 
-        <div style={styles.flowStack}>
-          <CurriculumSummary
-            variant="badge"
-            prefix="Planning aligned to your learning framework"
-            helperText="You can keep your week flexible while still working within your chosen setup."
-            includeCTA
-          />
-
-          <FlowStep
-          step={1}
-          title="Start your week"
-          description="Add your first learning block"
-          helperText="Start with one simple learning moment. You do not need a full week planned to begin."
-          badge={stepOneBadge}
-        >
-        <section style={{ ...styles.toolbarCard, padding: isMobile ? 14 : 16 }}>
-          <div
-            style={{
-              ...styles.topRow,
-              alignItems: isMobile ? "stretch" : "center",
-            }}
-          >
-            <div
-              style={{
-                ...styles.navLeft,
-                width: isMobile ? "100%" : undefined,
-              }}
-            >
+        <section style={styles.toolbarCard}>
+          <div style={styles.topRow}>
+            <div style={styles.navLeft}>
               <button style={styles.smallBtn} onClick={goToday}>
                 Today
               </button>
@@ -977,18 +798,11 @@ function CalendarPageContent() {
               <div style={styles.heading}>{heading}</div>
             </div>
 
-            <div
-              style={{
-                ...styles.navRight,
-                width: isMobile ? "100%" : undefined,
-                flexDirection: isMobile ? "column" : "row",
-                alignItems: isMobile ? "stretch" : "center",
-              }}
-            >
+            <div style={styles.navRight}>
               <select
                 value={activeLearnerId}
                 onChange={(e) => handleLearnerChange(e.target.value)}
-                style={{ ...styles.select, width: isMobile ? "100%" : undefined }}
+                style={styles.select}
               >
                 <option value="">Your learner</option>
                 {learners.map((learner) => (
@@ -998,13 +812,9 @@ function CalendarPageContent() {
                 ))}
               </select>
 
-              <div style={{ ...styles.viewToggle, width: isMobile ? "100%" : undefined }}>
+              <div style={styles.viewToggle}>
                 <button
-                  style={{
-                    ...styles.toggleBtn,
-                    ...(view === "day" ? styles.toggleBtnActive : {}),
-                    flex: isMobile ? 1 : undefined,
-                  }}
+                  style={{ ...styles.toggleBtn, ...(view === "day" ? styles.toggleBtnActive : {}) }}
                   onClick={() => setView("day")}
                 >
                   DAY
@@ -1013,7 +823,6 @@ function CalendarPageContent() {
                   style={{
                     ...styles.toggleBtn,
                     ...(view === "week" ? styles.toggleBtnActive : {}),
-                    flex: isMobile ? 1 : undefined,
                   }}
                   onClick={() => setView("week")}
                 >
@@ -1023,7 +832,6 @@ function CalendarPageContent() {
                   style={{
                     ...styles.toggleBtn,
                     ...(view === "month" ? styles.toggleBtnActive : {}),
-                    flex: isMobile ? 1 : undefined,
                   }}
                   onClick={() => setView("month")}
                 >
@@ -1033,12 +841,7 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div
-            style={{
-              ...styles.inputRow,
-              gridTemplateColumns: isMobile ? "1fr" : styles.inputRow.gridTemplateColumns,
-            }}
-          >
+          <div style={styles.inputRow}>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -1075,11 +878,7 @@ function CalendarPageContent() {
               style={styles.dateInput}
             />
 
-            <button
-              style={{ ...styles.addBtn, width: isMobile ? "100%" : undefined }}
-              onClick={() => handleAddBlock()}
-              disabled={savingBlock}
-            >
+            <button style={styles.addBtn} onClick={() => handleAddBlock()} disabled={savingBlock}>
               {savingBlock ? "..." : "Add"}
             </button>
           </div>
@@ -1091,37 +890,10 @@ function CalendarPageContent() {
             style={styles.noteInput}
           />
 
-          {(savingBlock || savingNote || saveStatus !== "idle") ? (
-            <SaveStatus
-              status={savingBlock || savingNote ? "saving" : saveStatus}
-              style={{ marginTop: 2 }}
-            />
-          ) : null}
           {message ? <div style={styles.message}>{message}</div> : null}
           <div style={styles.storageHint}>Storage mode: {storageMode}</div>
-
-          {!isPremium && showCalendarUpgradeHint ? (
-            <div style={{ marginTop: 12 }}>
-              <UpgradeHint
-                title="Upgrade to organise your full week visually"
-                description="Go further when you're ready with more control over placement, editing, and a fuller weekly view."
-                ctaLabel="Unlock Calendar"
-                ctaHref="/upgrade"
-                variant="inline"
-              />
-            </div>
-          ) : null}
         </section>
-        </FlowStep>
 
-        <FlowStep
-          step={2}
-          title="Build your week"
-          description="Spread learning gently across the week"
-          helperText="Place one to three learning blocks across the week to create a calm rhythm."
-          badge={stepTwoBadge}
-        >
-        <div style={styles.stepStack}>
         <section style={styles.intelligenceCard}>
           <div style={styles.intelligenceTop}>
             <div>
@@ -1140,12 +912,7 @@ function CalendarPageContent() {
             </div>
           </div>
 
-          <div
-            style={{
-              ...styles.intelligenceGrid,
-              gridTemplateColumns: isMobile ? "1fr" : styles.intelligenceGrid.gridTemplateColumns,
-            }}
-          >
+          <div style={styles.intelligenceGrid}>
             <div style={styles.intelligencePanel}>
               <div style={styles.intelligencePanelTitle}>Covered this week</div>
               <div style={styles.chipRow}>
@@ -1164,12 +931,9 @@ function CalendarPageContent() {
             <div style={styles.intelligencePanel}>
               <div style={styles.intelligencePanelTitle}>Suggested next block</div>
               <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
-              <div style={{ ...styles.helperText, marginTop: 8 }}>
-                Beginner path: plan first, then capture what happened, then build a report, then use portfolio for the best pieces.
-              </div>
-              <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+              <div style={styles.cardActions}>
                 <button
-                  style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
+                  style={styles.darkSmBtn}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -1190,9 +954,9 @@ function CalendarPageContent() {
               <div style={styles.intelligenceText}>
                 A simple Literacy or Numeracy block is enough to begin. You can round out the week once the first piece is in place.
               </div>
-              <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+              <div style={styles.cardActions}>
                 <button
-                  style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                  style={styles.outlineSmBtn}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -1204,7 +968,7 @@ function CalendarPageContent() {
                   Add Literacy block
                 </button>
                 <button
-                  style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
+                  style={styles.outlineSmBtn}
                   onClick={() =>
                     handleAddBlock({
                       date: suggestedDateIso,
@@ -1242,12 +1006,7 @@ function CalendarPageContent() {
         {loading ? (
           <section style={styles.loadingCard}>Loading calendar…</section>
         ) : view === "week" ? (
-          <section
-            style={{
-              ...styles.weekGrid,
-              gridTemplateColumns: isMobile ? "1fr" : styles.weekGrid.gridTemplateColumns,
-            }}
-          >
+          <section style={styles.weekGrid}>
             {visibleDates.map((date) => {
               const dayBlocks = blocksFor(date);
               const isToday = sameDay(date, new Date());
@@ -1333,20 +1092,27 @@ function CalendarPageContent() {
                     <div style={styles.emptyCard}>
                       <div style={styles.emptyTitle}>Start with one small learning moment</div>
                       <div style={styles.emptyText}>
-                        Keep it light. Place one learning block in the day, then capture what happened.
+                        Keep it light. Add one block, capture one moment, or place one focus for
+                        the day.
                       </div>
 
-                      <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
+                      <div style={styles.cardActions}>
                         <button
-                          style={{ ...styles.outlineSmBtn, width: isMobile ? "100%" : undefined }}
-                          onClick={() => openDay(date)}
+                          style={styles.outlineSmBtn}
+                          onClick={() =>
+                            handleAddBlock({
+                              date: isoDate(date),
+                              title: `Learning focus for ${formatShortDay(date)}`,
+                              area: "Literacy",
+                            })
+                          }
                         >
+                          + Add block
+                        </button>
+                        <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
                           Open day
                         </button>
-                        <button
-                          style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
-                          onClick={() => goToCapture(undefined, date)}
-                        >
+                        <button style={styles.darkSmBtn} onClick={() => goToCapture(undefined, date)}>
                           Capture
                         </button>
                       </div>
@@ -1376,11 +1142,11 @@ function CalendarPageContent() {
                           ) : null}
                           {block.note ? <div style={styles.blockMeta}>{block.note}</div> : null}
 
-                          <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
-                            <button
-                              style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
-                              onClick={() => goToCapture(block)}
-                            >
+                          <div style={styles.cardActions}>
+                            <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
+                              Open day
+                            </button>
+                            <button style={styles.darkSmBtn} onClick={() => goToCapture(block)}>
                               Capture
                             </button>
                           </div>
@@ -1389,18 +1155,30 @@ function CalendarPageContent() {
                     </div>
                   )}
 
-                  {null}
+                  <div style={styles.quickAddLabel}>QUICK ADD</div>
+                  <div style={styles.quickAddStack}>
+                    {["Literacy", "Numeracy", "Bible", "Inquiry", "Creative"].map((area) => (
+                      <button
+                        key={area}
+                        style={styles.quickChip}
+                        onClick={() =>
+                          handleAddBlock({
+                            date: isoDate(date),
+                            area,
+                            title: `${area} learning block`,
+                          })
+                        }
+                      >
+                        {area === "Inquiry" || area === "Creative" ? `+ ${area}` : area}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               );
             })}
           </section>
         ) : view === "day" ? (
-          <section
-            style={{
-              ...styles.dayLayout,
-              gridTemplateColumns: isMobile ? "1fr" : styles.dayLayout.gridTemplateColumns,
-            }}
-          >
+          <section style={styles.dayLayout}>
             <div style={styles.dayMain}>
               <div style={styles.dayCard}>
                 <div style={styles.kicker}>DAY VIEW</div>
@@ -1448,12 +1226,9 @@ function CalendarPageContent() {
 
                         {block.note ? <div style={styles.blockNoteWide}>{block.note}</div> : null}
 
-                        <div style={{ ...styles.cardActions, flexDirection: isMobile ? "column" : "row" }}>
-                          <button
-                            style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
-                            onClick={() => goToCapture(block)}
-                          >
-                            Capture
+                        <div style={styles.cardActions}>
+                          <button style={styles.outlineSmBtn} onClick={() => goToCapture(block)}>
+                            Capture from this block
                           </button>
                         </div>
                       </div>
@@ -1472,12 +1247,8 @@ function CalendarPageContent() {
                   placeholder="Type a note..."
                   style={styles.notesArea}
                 />
-                <button
-                  style={{ ...styles.darkSmBtn, width: isMobile ? "100%" : undefined }}
-                  onClick={handleSaveDayNote}
-                  disabled={savingNote}
-                >
-                  {savingNote ? "Saving…" : "Save note"}
+                <button style={styles.darkSmBtn} onClick={handleSaveDayNote} disabled={savingNote}>
+                  {savingNote ? "Saving..." : "Save note"}
                 </button>
               </div>
 
@@ -1495,12 +1266,7 @@ function CalendarPageContent() {
           </section>
         ) : (
           <section>
-            <div
-              style={{
-                ...styles.monthWeekdays,
-                gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.monthWeekdays.gridTemplateColumns,
-              }}
-            >
+            <div style={styles.monthWeekdays}>
               {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((w) => (
                 <div key={w} style={styles.monthWeekday}>
                   {w}
@@ -1508,12 +1274,7 @@ function CalendarPageContent() {
               ))}
             </div>
 
-            <div
-              style={{
-                ...styles.monthGrid,
-                gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : styles.monthGrid.gridTemplateColumns,
-              }}
-            >
+            <div style={styles.monthGrid}>
               {visibleDates.map((date) => {
                 const currentMonth = date.getMonth() === selectedDate.getMonth();
                 const selected = sameDay(date, selectedDate);
@@ -1551,78 +1312,32 @@ function CalendarPageContent() {
           </section>
         )}
 
-        </div>
-        </FlowStep>
-
-        <FlowStep
-          step={3}
-          title="Capture what happens"
-          description="Capture real learning moments"
-          helperText="When learning happens, record it quickly so your child's progress builds naturally over time."
-          badge={stepThreeBadge}
-        >
-          <section style={styles.footerStrip}>
-            <div>
-              <div style={styles.footerTitle}>Move naturally into capture</div>
-              <div style={styles.footerText}>{captureFlowCopy}</div>
+        <section style={styles.footerStrip}>
+          <div>
+            <div style={styles.footerTitle}>Continue your flow</div>
+            <div style={styles.footerText}>
+              Move between planning, capture, portfolio, and reporting without losing the thread.
             </div>
+          </div>
 
-            <div style={styles.footerLinks}>
-              <button
-                style={{ ...styles.primaryBtn, minHeight: 40, padding: "0 14px" }}
-                onClick={() => goToCapture()}
-              >
-                Open Capture
-              </button>
-              <Link href="/capture" style={styles.footerChip}>
-                Capture dashboard
-              </Link>
-              <Link href="/planner" style={styles.footerChip}>
-                Back to Planner
-              </Link>
-            </div>
-          </section>
-        </FlowStep>
-
-        <FlowStep
-          step={4}
-          title="Keep moving toward a report"
-          description="Build toward Report Ready"
-          helperText="Each block and capture helps you build a clearer picture of learning when it is time to report."
-          badge={stepFourBadge}
-        >
-          <section
-            style={{
-              ...styles.footerStrip,
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : "center",
-            }}
-          >
-            <div>
-              <div style={styles.footerTitle}>Each step builds toward a clearer report</div>
-              <div style={styles.footerText}>{reportFlowCopy}</div>
-            </div>
-
-            <div style={styles.footerLinks}>
-              <Link href="/reports" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
-                Open Reports
-              </Link>
-              <Link href="/reports/output" style={styles.footerChip}>
-                Report output
-              </Link>
-              <Link href="/portfolio" style={styles.footerChip}>
-                Keep the best pieces
-              </Link>
-            </div>
-          </section>
-        </FlowStep>
-        </div>
-
-        <AuthModal
-          open={authModalOpen}
-          onClose={() => setAuthModalOpen(false)}
-          returnPath={authReturnPath}
-        />
+          <div style={styles.footerLinks}>
+            <Link href="/planner" style={styles.footerChip}>
+              Planner
+            </Link>
+            <Link href="/calendar" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
+              Calendar
+            </Link>
+            <Link href="/capture" style={styles.footerChip}>
+              Capture
+            </Link>
+            <Link href="/portfolio" style={styles.footerChip}>
+              Portfolio
+            </Link>
+            <Link href="/reports" style={styles.footerChip}>
+              Reports
+            </Link>
+          </div>
+        </section>
       </div>
     </div>
   );
@@ -1683,14 +1398,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 16,
   },
-  flowStack: {
-    display: "grid",
-    gap: 18,
-  },
-  stepStack: {
-    display: "grid",
-    gap: 16,
-  },
   hero: {
     background: "#ffffff",
     border: "1px solid #e6e9f0",
@@ -1711,8 +1418,7 @@ const styles: Record<string, React.CSSProperties> = {
   h1: {
     margin: 0,
     fontSize: 34,
-    lineHeight: 1.08,
-    fontWeight: 900,
+    lineHeight: 1.05,
     color: "#0f172a",
   },
   sub: {
@@ -2470,4 +2176,3 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.7,
   },
 };
-

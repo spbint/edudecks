@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useEffect, useMemo, useState } from "react";
-import UpgradeHint from "@/app/components/UpgradeHint";
-import { isPremiumActive } from "@/lib/premiumConfig";
+import React, { useEffect, useMemo, useState } from "react";
 
 type ChildRecord = {
   id: string;
@@ -434,14 +432,6 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
 }
 
 export default function PlannerPage() {
-  return (
-    <Suspense fallback={null}>
-      <PlannerPageContent />
-    </Suspense>
-  );
-}
-
-function PlannerPageContent() {
   const searchParams = useSearchParams();
 
   const [children, setChildren] = useState<ChildRecord[]>([]);
@@ -455,18 +445,12 @@ function PlannerPageContent() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
-  const [showPlannerUpgradeHint, setShowPlannerUpgradeHint] = useState(false);
 
   const weekKey = useMemo(() => getWeekKey(), []);
   const todayLabel = useMemo(() => formatDate(), []);
 
   const goalFromQuery = safe(searchParams.get("goal"));
   const studentFromQuery = safe(searchParams.get("student"));
-
-  useEffect(() => {
-    setIsPremium(isPremiumActive());
-  }, []);
 
   useEffect(() => {
     const loadedChildren = normaliseChildren(
@@ -796,32 +780,7 @@ function PlannerPageContent() {
                     >
                       Suggest plan
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isPremium) {
-                          addCustomAction();
-                          return;
-                        }
-                        setShowPlannerUpgradeHint(true);
-                      }}
-                      style={styles.secondaryButton}
-                    >
-                      Create your own plan
-                    </button>
                   </div>
-
-                  {!isPremium && showPlannerUpgradeHint ? (
-                    <div style={{ marginTop: 12 }}>
-                      <UpgradeHint
-                        title="Want more control over your plans?"
-                        description="Create fully custom plans and structure your week your way."
-                        ctaLabel="Unlock Planner"
-                        ctaHref="/upgrade"
-                        variant="disabled"
-                      />
-                    </div>
-                  ) : null}
                 </div>
               </div>
 

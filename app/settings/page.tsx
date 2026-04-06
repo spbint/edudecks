@@ -2,9 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import SaveStatus, { type SaveStatusState } from "@/app/components/SaveStatus";
 import {
   ChildOption,
   DEFAULT_FAMILY_SETTINGS,
@@ -99,16 +96,6 @@ export default function FamilySettingsPage() {
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [loadError, setLoadError] = useState<string>("");
   const [saveError, setSaveError] = useState<string>("");
-  useEffect(() => {
-    if (!hydrated) return;
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("section") !== "curriculum") return;
-    const target = document.getElementById("curriculum-setup");
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [hydrated]);
 
   useEffect(() => {
     let mounted = true;
@@ -224,13 +211,6 @@ export default function FamilySettingsPage() {
     };
   }, [settings.show_authority_guidance, settings.experience_mode]);
 
-  const saveStatus = useMemo<SaveStatusState>(() => {
-    if (saving) return "saving";
-    if (JSON.stringify(settings) !== JSON.stringify(initialSettings)) return "unsaved";
-    if (savedAt) return "saved";
-    return "unsaved";
-  }, [initialSettings, savedAt, saving, settings]);
-
   function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
     setSettings((prev) => ({ ...prev, [key]: value }));
   }
@@ -287,26 +267,18 @@ export default function FamilySettingsPage() {
     setSettings(fallback);
   }
 
-    if (!hydrated) {
-      return (
-        <FamilyTopNavShell
-          hideHero
-          workflowCurrentHref="/settings"
-          workflowHelperText="Loading your family defaults and curriculum setup…"
-        >
-          <div style={shellStyles.wrap}>
-            <div style={shellStyles.loadingCard}>Loading family settings…</div>
-          </div>
-        </FamilyTopNavShell>
-      );
-    }
+  if (!hydrated) {
+    return (
+      <main style={shellStyles.app}>
+        <div style={shellStyles.wrap}>
+          <div style={shellStyles.loadingCard}>Loading family settings…</div>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <FamilyTopNavShell
-      hideHero
-      workflowCurrentHref="/settings"
-      workflowHelperText="Guide your family defaults and curriculum controls."
-    >
+    <main style={shellStyles.app}>
       <div style={shellStyles.wrap}>
         <div style={shellStyles.topNav}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -360,6 +332,7 @@ export default function FamilySettingsPage() {
             </div>
 
             {loadError ? <div style={shellStyles.warningBanner}>{loadError}</div> : null}
+            {saveError ? <div style={shellStyles.warningBanner}>{saveError}</div> : null}
           </div>
 
           <div style={shellStyles.heroAside}>
@@ -422,11 +395,6 @@ export default function FamilySettingsPage() {
 
         <div style={shellStyles.mainGrid}>
           <div style={{ display: "grid", gap: 18 }}>
-            <CurriculumSetupCard
-              value={settings.curriculum_preferences}
-              onChange={(curriculum) => update("curriculum_preferences", curriculum)}
-            />
-
             <section style={shellStyles.card}>
               <div style={shellStyles.sectionHeader}>
                 <div>
@@ -750,9 +718,15 @@ export default function FamilySettingsPage() {
 
       <div style={shellStyles.stickyBar}>
         <div style={{ display: "grid", gap: 4 }}>
-          <div style={shellStyles.stickyTitle}>Family settings</div>
+          <div style={shellStyles.stickyTitle}>
+            {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+          </div>
           <div style={shellStyles.stickySub}>
-            <SaveStatus status={saveStatus} />
+            {savedAt
+              ? `Last saved ${savedAt}`
+              : storageMode === "database"
+              ? "Save to persist these settings into the family profile."
+              : "Save will persist locally until signed-in database storage is available."}
           </div>
         </div>
 
@@ -770,11 +744,11 @@ export default function FamilySettingsPage() {
             }}
             disabled={saving}
           >
-            {saving ? "Saving…" : "Save family settings"}
+            {saving ? "Saving..." : "Save family settings"}
           </button>
         </div>
       </div>
-    </FamilyTopNavShell>
+    </main>
   );
 }
 

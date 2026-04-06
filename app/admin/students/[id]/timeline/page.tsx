@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentHubNav from "@/app/admin/components/StudentHubNav";
@@ -595,14 +595,6 @@ function SignalCard({ signal }: { signal: TimelineSignal }) {
    ────────────────────────────────────────────────────────────── */
 
 export default function StudentTimelinePage() {
-  return (
-    <Suspense fallback={null}>
-      <StudentTimelinePageContent />
-    </Suspense>
-  );
-}
-
-function StudentTimelinePageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();

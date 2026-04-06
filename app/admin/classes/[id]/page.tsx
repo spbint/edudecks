@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentQuickOpen from "@/app/admin/components/StudentQuickOpen";
@@ -409,14 +409,6 @@ function isMissingColumnError(err: any) {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function AdminClassHubPage() {
-  return (
-    <Suspense fallback={null}>
-      <AdminClassHubPageContent />
-    </Suspense>
-  );
-}
-
-function AdminClassHubPageContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const sp = useSearchParams();

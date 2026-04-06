@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -228,14 +228,6 @@ const S = {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function TeacherNotesEntryPage() {
-  return (
-    <Suspense fallback={null}>
-      <TeacherNotesEntryPageContent />
-    </Suspense>
-  );
-}
-
-function TeacherNotesEntryPageContent() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -514,7 +506,7 @@ function TeacherNotesEntryPageContent() {
       clearForm();
       router.push("/admin/teacher-notes");
     } catch (e: any) {
-      setErr("Not saved yet");
+      setErr(e?.message ?? "Save failed.");
     } finally {
       setBusy(false);
       setTimeout(() => setOkMsg(null), 1200);

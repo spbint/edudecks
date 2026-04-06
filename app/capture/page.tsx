@@ -1,31 +1,16 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import AuthModal from "@/app/components/AuthModal";
-import FlowStep from "@/app/components/FlowStep";
-import SaveStatus from "@/app/components/SaveStatus";
-import UpgradeHint from "@/app/components/UpgradeHint";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import useIsMobile from "@/app/components/useIsMobile";
-import CurriculumSummary from "@/app/components/CurriculumSummary";
-import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
+import UpgradeCard from "@/app/components/premium/UpgradeCard";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
-const PENDING_EVIDENCE_SAVE_KEY = "edudecks_pending_capture_save_v1";
-
-const QUICK_CAPTURE_CATEGORIES = [
-  { label: "Writing sample", area: "Literacy", type: "Work sample" as EvidenceType },
-  { label: "Reading response", area: "Literacy", type: "Work sample" as EvidenceType },
-  { label: "Numeracy task", area: "Numeracy", type: "Work sample" as EvidenceType },
-  { label: "Science observation", area: "Science", type: "Observation" as EvidenceType },
-];
 
 type ChildRow = {
   id: string;
@@ -86,24 +71,6 @@ type SearchableSelectProps = {
   placeholder: string;
   onChange: (value: string) => void;
   helperText?: string;
-};
-
-type PlannerCaptureContext = {
-  date: string;
-  learningArea: string;
-  title: string;
-  plannerBlockId: string;
-  isActive: boolean;
-};
-
-type PendingEvidenceDraft = {
-  activeChildId: string;
-  title: string;
-  summary: string;
-  learningArea: string;
-  evidenceType: EvidenceType;
-  occurredOn: string;
-  curriculum: PremiumCurriculumState;
 };
 
 function safe(v: any) {
@@ -865,25 +832,9 @@ function SearchableSelect({
   );
 }
 
-function isIsoDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
 export default function CapturePage() {
-  return (
-    <Suspense fallback={null}>
-      <CapturePageContent />
-    </Suspense>
-  );
-}
-
-function CapturePageContent() {
-  const searchParams = useSearchParams();
-  const isMobile = useIsMobile();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [activeChildId, setActiveChildId] = useState("");
 
@@ -897,11 +848,9 @@ function CapturePageContent() {
   const [feedback, setFeedback] = useState("");
   const [savedCount, setSavedCount] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
-  const [didApplyPlannerContext, setDidApplyPlannerContext] = useState(false);
 
   const [premiumMediaType, setPremiumMediaType] = useState<PremiumMediaType>(null);
   const [isPremium, setIsPremium] = useState(false);
-  const pendingResumeDraftRef = useRef<PendingEvidenceDraft | null>(null);
 
   const [curriculum, setCurriculum] = useState<PremiumCurriculumState>({
     country: "",
@@ -912,25 +861,6 @@ function CapturePageContent() {
     skill: "",
   });
 
-  const plannerContext = useMemo<PlannerCaptureContext>(() => {
-    const date = safe(searchParams.get("date"));
-    const learningArea = safe(searchParams.get("learning_area"));
-    const title = safe(searchParams.get("title"));
-    const plannerBlockId = safe(searchParams.get("planner_block_id"));
-
-    return {
-      date: isIsoDate(date) ? date : "",
-      learningArea,
-      title,
-      plannerBlockId,
-      isActive: Boolean(date || learningArea || title || plannerBlockId),
-    };
-  }, [searchParams]);
-  const authReturnPath = useMemo(() => {
-    const query = searchParams.toString();
-    return query ? `/capture?${query}` : "/capture";
-  }, [searchParams]);
-
   async function loadChildren() {
     setBusy(true);
     setErr("");
@@ -938,7 +868,6 @@ function CapturePageContent() {
     try {
       const authResp = await supabase.auth.getUser();
       const userId = authResp.data.user?.id;
-      setAuthUserId(userId || null);
       let merged: ChildRow[] = [];
 
       if (userId) {
@@ -1030,95 +959,17 @@ function CapturePageContent() {
   }, []);
 
   useEffect(() => {
-    if (didApplyPlannerContext) return;
-
-    if (!plannerContext.isActive) {
-      setDidApplyPlannerContext(true);
-      return;
-    }
-
-    if (plannerContext.date) {
-      setOccurredOn(plannerContext.date);
-    }
-    if (plannerContext.learningArea && !safe(learningArea)) {
-      setLearningArea(plannerContext.learningArea);
-    }
-    if (plannerContext.title && !safe(title)) {
-      setTitle(plannerContext.title);
-    }
-
-    setDidApplyPlannerContext(true);
-  }, [didApplyPlannerContext, learningArea, plannerContext, title]);
-
-  useEffect(() => {
     if (!saveFlash) return;
     const id = window.setTimeout(() => setSaveFlash(false), 900);
     return () => window.clearTimeout(id);
   }, [saveFlash]);
-
-  useEffect(() => {
-    if (!hasSupabaseEnv || !authUserId || typeof window === "undefined") return;
-
-    const pendingRaw = window.sessionStorage.getItem(PENDING_EVIDENCE_SAVE_KEY);
-    if (!pendingRaw) return;
-
-    const pending = parseJson<PendingEvidenceDraft | null>(pendingRaw, null);
-    if (!pending?.title || !pending?.summary || !pending?.activeChildId) return;
-
-    pendingResumeDraftRef.current = pending;
-    setAuthModalOpen(false);
-    setActiveChildId(pending.activeChildId);
-    setTitle(pending.title);
-    setSummary(pending.summary);
-    setLearningArea(pending.learningArea);
-    setEvidenceType(pending.evidenceType);
-    setOccurredOn(pending.occurredOn || new Date().toISOString().slice(0, 10));
-    setCurriculum(pending.curriculum);
-  }, [authUserId]);
-
-  useEffect(() => {
-    const pending = pendingResumeDraftRef.current;
-    if (!pending || !authUserId) return;
-
-    const matchesDraft =
-      safe(activeChildId) === safe(pending.activeChildId) &&
-      safe(title) === safe(pending.title) &&
-      safe(summary) === safe(pending.summary) &&
-      safe(learningArea) === safe(pending.learningArea) &&
-      evidenceType === pending.evidenceType &&
-      safe(occurredOn) === safe(pending.occurredOn);
-
-    if (!matchesDraft) return;
-
-    pendingResumeDraftRef.current = null;
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(PENDING_EVIDENCE_SAVE_KEY);
-    }
-    void saveEvidence();
-  }, [authUserId, activeChildId, title, summary, learningArea, evidenceType, occurredOn]);
 
   const activeChild = useMemo(
     () => children.find((c) => c.id === activeChildId) || null,
     [children, activeChildId]
   );
 
-  const { readinessReport } = useAssessmentInsights(
-    activeChild?.id,
-    childDisplayName(activeChild),
-    "parent_friendly"
-  );
-
-  const captureGaps = readinessReport?.evidenceGaps.slice(0, 3) ?? [];
-  const captureGuidance = readinessReport?.captureGuidance.slice(0, 3) ?? [];
-  const focusSubjects = readinessReport?.subjectReadiness ?? [];
-  const readinessFocusSignal = focusSubjects.length
-    ? `${focusSubjects[0].subjectName} is ${focusSubjects[0].status.toLowerCase()}`
-    : activeChild?.strongestArea
-    ? `${activeChild.strongestArea} remains steady`
-    : "Awaiting more evidence signals";
-
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
-  const recommendedCaptureArea = focusSubjects[0]?.subjectName || suggestedArea;
   const quality = useMemo(
     () => buildCaptureQuality(title, summary, learningArea),
     [title, summary, learningArea]
@@ -1131,16 +982,6 @@ function CapturePageContent() {
     () => buildSummaryPreview(childDisplayName(activeChild), summary, learningArea),
     [activeChild, summary, learningArea]
   );
-
-  const stepOneBadge = activeChild
-    ? `Focused on ${childDisplayName(activeChild)}`
-    : "Choose a learner";
-  const stepTwoBadge =
-    savedCount > 0
-      ? `${savedCount} capture${savedCount === 1 ? "" : "s"} saved`
-      : "Add your first capture";
-  const stepThreeBadge = quality.label;
-  const stepFourBadge = signals.length > 0 ? "Signals gathering" : "Ready to connect";
 
   const frameworks = useMemo(
     () => (curriculum.country ? COUNTRY_TO_FRAMEWORKS[curriculum.country] || [] : []),
@@ -1164,18 +1005,6 @@ function CapturePageContent() {
   );
 
   const canSave = !!safe(activeChildId) && !!safe(title) && !!safe(summary);
-
-  function buildPendingEvidenceDraft(): PendingEvidenceDraft {
-    return {
-      activeChildId: safe(activeChildId),
-      title: safe(title),
-      summary: safe(summary),
-      learningArea: safe(learningArea),
-      evidenceType,
-      occurredOn: safe(occurredOn),
-      curriculum: { ...curriculum },
-    };
-  }
 
   function resetDependentCurriculum(level: keyof PremiumCurriculumState, value: string) {
     setCurriculum((prev) => {
@@ -1206,23 +1035,9 @@ function CapturePageContent() {
   }
 
   async function saveEvidence() {
-    const pendingDraft = buildPendingEvidenceDraft();
-
     if (!canSave) {
       setSaveState("error");
       setFeedback("Please choose a learner, add a title, and include a short summary.");
-      return;
-    }
-
-    if (hasSupabaseEnv && !authUserId) {
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem(
-          PENDING_EVIDENCE_SAVE_KEY,
-          JSON.stringify(pendingDraft)
-        );
-      }
-      setAuthModalOpen(true);
-      setFeedback("Save your progress to keep this learning record.");
       return;
     }
 
@@ -1378,7 +1193,7 @@ function CapturePageContent() {
       await loadChildren();
     } catch (e: any) {
       setSaveState("error");
-      setFeedback("");
+      setFeedback(String(e?.message ?? e ?? "Something went wrong while saving."));
     }
   }
 
@@ -1412,7 +1227,8 @@ function CapturePageContent() {
       subtitle="Quick Capture"
       heroTitle="Capture one useful learning moment"
       heroText="Start with what happened, what it showed, and why it matters. That is enough to build a calm, trustworthy learning record over time."
-      hideHeroAside={true}
+      heroAsideTitle="Best family move"
+      heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
       {busy ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>
@@ -1443,256 +1259,74 @@ function CapturePageContent() {
         </div>
       ) : (
         <>
-          <CurriculumSummary
-            variant="badge"
-            prefix="Capturing for"
-            helperText="This keeps each learning moment connected to your wider plan and reports."
-            includeCTA
-          />
-
-          <FlowStep
-            step={1}
-            title="Choose your learner"
-            description="Capture for the child you want to record"
-            helperText="Focus on one learner so each moment stays calm and meaningful."
-            badge={stepOneBadge}
+          <section
+            style={{
+              ...mainCard(),
+              marginBottom: 18,
+              padding: 18,
+              background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+              border: "1px solid #dbeafe",
+            }}
           >
-            <section
+            <div
               style={{
-                ...mainCard(),
-                marginBottom: 18,
-                padding: 18,
-                background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-                border: "1px solid #dbeafe",
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 14,
+                alignItems: "center",
+                flexWrap: "wrap",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 14,
-                  alignItems: isMobile ? "stretch" : "center",
-                  flexWrap: "wrap",
-                  flexDirection: isMobile ? "column" : "row",
-                }}
-              >
-                <div>
-                  <div style={eyebrowStyle()}>Quick capture</div>
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontSize: 26,
-                      lineHeight: 1.15,
-                      fontWeight: 900,
-                      color: "#0f172a",
-                    }}
-                  >
-                    {activeChild ? `Capture for ${childDisplayName(activeChild)}` : "Capture learning"}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 8,
-                      fontSize: 14,
-                      lineHeight: 1.65,
-                      color: "#475569",
-                      maxWidth: 760,
-                    }}
-                  >
-                    You do not need to sound like a teacher. Just notice what happened, what it showed, and why it matters.
-                  </div>
-                </div>
-
+              <div>
+                <div style={eyebrowStyle()}>Quick capture</div>
                 <div
                   style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    width: isMobile ? "100%" : "auto",
-                    flexDirection: isMobile ? "column" : "row",
+                    marginTop: 4,
+                    fontSize: 26,
+                    lineHeight: 1.15,
+                    fontWeight: 900,
+                    color: "#0f172a",
                   }}
                 >
-                  {isMobile ? (
-                    <Link
-                      href={
-                        plannerContext.date
-                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                          : "/family"
-                      }
-                      style={{ ...buttonStyle(false), width: "100%" }}
-                    >
-                      {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
-                    </Link>
-                  ) : (
-                    <Link
-                      href={
-                        plannerContext.date
-                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                          : "/family"
-                      }
-                      style={buttonStyle(false)}
-                    >
-                      {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
-                    </Link>
-                  )}
+                  {activeChild ? `Capture for ${childDisplayName(activeChild)}` : "Capture learning"}
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 14,
+                    lineHeight: 1.65,
+                    color: "#475569",
+                    maxWidth: 760,
+                  }}
+                >
+                  You do not need to sound like a teacher. Just notice what happened, what it showed, and why it matters.
                 </div>
               </div>
 
-              {readinessReport ? (
-                <div
-                  style={{
-                    ...softCard(),
-                    marginTop: 16,
-                    border: "1px solid #e2e8f0",
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ ...eyebrowStyle(), color: "#0f172a" }}>Suggested focus</div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: "#0f172a",
-                    }}
-                  >
-                    {readinessReport.explanation}
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
-                    {readinessFocusSignal}
-                  </div>
-
-                  {captureGaps.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Evidence gaps</div>
-                      <ul style={{ margin: "6px 0 0 16px", padding: 0, listStyleType: "disc", color: "#475569" }}>
-                        {captureGaps.map((gap) => (
-                          <li key={gap.standardId} style={{ marginBottom: 6, fontSize: 12 }}>
-                            <strong>{gap.officialCode}</strong> — {gap.title}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {captureGuidance.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Recommended captures</div>
-                      <ul style={{ margin: "6px 0 0 16px", padding: 0, listStyleType: "disc", color: "#475569" }}>
-                        {captureGuidance.map((guidance) => (
-                          <li key={guidance} style={{ marginBottom: 6, fontSize: 12 }}>
-                            {guidance}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>Quick capture ideas</div>
-                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {QUICK_CAPTURE_CATEGORIES.map((option) => (
-                        <button
-                          key={option.label}
-                          type="button"
-                          onClick={() => {
-                            setLearningArea(option.area);
-                            setEvidenceType(option.type);
-                          }}
-                          style={{
-                            ...tinyButtonStyle(false),
-                            background: "#ffffff",
-                            border: "1px solid #dbeafe",
-                            color: "#0f172a",
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {plannerContext.isActive ? (
-                <div
-                  style={{
-                    ...softCard(),
-                    marginTop: 16,
-                    border: "1px solid #dbeafe",
-                    background: "#eff6ff",
-                  }}
-                >
-                  <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
-                    Capturing from your calendar plan
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 8,
-                      fontSize: 14,
-                      lineHeight: 1.65,
-                      color: "#1e3a8a",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Bring the planned learning moment into a real record. Adjust anything you need before saving.
-                  </div>
-
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-                    {plannerContext.date ? (
-                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                        Date {plannerContext.date}
-                      </span>
-                    ) : null}
-                    {plannerContext.learningArea ? (
-                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                        {plannerContext.learningArea}
-                      </span>
-                    ) : null}
-                    {plannerContext.title ? (
-                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                        {plannerContext.title}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                    <Link
-                      href={
-                        plannerContext.date
-                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                          : "/calendar"
-                      }
-                      style={buttonStyle(false)}
-                    >
-                      Back to Calendar
-                    </Link>
-                  </div>
-                </div>
-              ) : null}
-
-              {null}
-            </section>
-          </FlowStep>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Link href="/family" style={buttonStyle(false)}>
+                  Family Home
+                </Link>
+                <Link href="/portfolio" style={buttonStyle(false)}>
+                  Portfolio
+                </Link>
+                <Link href="/reports" style={buttonStyle(false)}>
+                  Reports
+                </Link>
+              </div>
+            </div>
+          </section>
 
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: isMobile
-                ? "1fr"
-                : "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
+              gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
               gap: 20,
               alignItems: "start",
             }}
           >
             <div style={{ display: "grid", gap: 18 }}>
-              <FlowStep
-                step={2}
-                title="Capture what happened"
-                description="Add the moment details calmly"
-                helperText="Use the summary, domain, and date fields together; the quality signal keeps it grounded."
-                badge={stepTwoBadge}
-              >
-                <section style={mainCard()}>
+              <section style={mainCard()}>
                 <div style={eyebrowStyle()}>Main capture</div>
                 <div
                   style={{
@@ -1832,9 +1466,7 @@ function CapturePageContent() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: isMobile
-                        ? "1fr"
-                        : "minmax(0,1fr) minmax(180px,220px)",
+                      gridTemplateColumns: "minmax(0,1fr) minmax(180px,220px)",
                       gap: 14,
                     }}
                   >
@@ -1853,11 +1485,11 @@ function CapturePageContent() {
                         ))}
                       </datalist>
 
-                      {!safe(learningArea) && recommendedCaptureArea ? (
+                      {!safe(learningArea) && suggestedArea ? (
                         <div style={{ marginTop: 8 }}>
                           <button
                             type="button"
-                            onClick={() => setLearningArea(recommendedCaptureArea)}
+                            onClick={() => setLearningArea(suggestedArea)}
                             style={{
                               ...tinyButtonStyle(false),
                               background: "#eff6ff",
@@ -1865,7 +1497,7 @@ function CapturePageContent() {
                               color: "#1d4ed8",
                             }}
                           >
-                            Suggested: {recommendedCaptureArea}
+                            Suggested: {suggestedArea}
                           </button>
                         </div>
                       ) : null}
@@ -2066,31 +1698,16 @@ function CapturePageContent() {
                       </button>
                     </div>
 
-                    {!isPremium && premiumMediaType ? (
+                    {!isPremium ? (
                       <div style={{ marginTop: 4 }}>
-                        <UpgradeHint
-                          title="Add richer evidence with photos, audio, and files"
-                          description={mediaExplanation(premiumMediaType)}
-                          ctaLabel="Unlock media capture"
-                          ctaHref="/upgrade"
-                          variant="inline"
+                        <UpgradeCard
+                          trigger="capture-media"
+                          variant="compact"
+                          onSecondaryClick={() => setPremiumMediaType(null)}
                         />
                       </div>
                     ) : null}
                   </div>
-
-                  {saveState !== "idle" ? (
-                    <SaveStatus
-                      status={
-                        saveState === "saving"
-                          ? "saving"
-                          : saveState === "success"
-                          ? "saved"
-                          : "unsaved"
-                      }
-                      style={{ marginBottom: 10 }}
-                    />
-                  ) : null}
 
                   {feedback ? (
                     <div
@@ -2141,10 +1758,9 @@ function CapturePageContent() {
                         cursor: !canSave || saveState === "saving" ? "not-allowed" : "pointer",
                         opacity: !canSave || saveState === "saving" ? 0.7 : 1,
                         minWidth: 190,
-                        width: isMobile ? "100%" : undefined,
                       }}
                     >
-                      {saveState === "saving" ? "Saving…" : "Save learning record"}
+                      {saveState === "saving" ? "Saving..." : "Save learning record"}
                     </button>
 
                     <button
@@ -2168,109 +1784,76 @@ function CapturePageContent() {
                           });
                         }
                       }}
-                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                      style={buttonStyle(false)}
                     >
                       Clear
                     </button>
                   </div>
                 </div>
               </section>
-              </FlowStep>
 
-              <FlowStep
-                step={3}
-                title="Notice the capture quality"
-                description="Keep track of momentum, upgrades, and next moves"
-                helperText="These reminders help you turn capture into portfolio-ready evidence."
-                badge={stepThreeBadge}
+              <section
+                style={{
+                  ...mainCard(),
+                  padding: 18,
+                  background:
+                    "linear-gradient(135deg, rgba(79,124,240,0.06) 0%, rgba(139,124,246,0.06) 100%)",
+                  border: "1px solid #bfdbfe",
+                }}
               >
-                <div style={{ display: "grid", gap: 18 }}>
-                  {!isPremium && savedCount >= 2 ? (
-                    <section style={{ ...mainCard(), marginBottom: 18, padding: 14 }}>
-                      <UpgradeHint
-                        title="You're building a strong learning record"
-                        description="Want more flexibility as you grow?"
-                        ctaLabel="Unlock more control"
-                        ctaHref="/upgrade"
-                        variant="subtle"
-                      />
-                    </section>
-                  ) : null}
-
-                  <section
-                    style={{
-                      ...softCard(),
-                      border: "1px solid #bfdbfe",
-                      background: "#f8fbff",
-                    }}
-                  >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
                     <div
                       style={{
-                        display: "grid",
-                        gap: 14,
+                        fontSize: 18,
+                        lineHeight: 1.25,
+                        fontWeight: 900,
+                        color: "#0f172a",
+                        marginBottom: 8,
                       }}
                     >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 18,
-                            lineHeight: 1.25,
-                            fontWeight: 900,
-                            color: "#0f172a",
-                            marginBottom: 8,
-                          }}
-                        >
-                          {savedCount > 0
-                            ? "You’re building momentum — next step: portfolio or reports"
-                            : "After capture, the next strongest move is usually portfolio or reports"}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: 14,
-                            lineHeight: 1.6,
-                            color: "#475569",
-                            maxWidth: 760,
-                          }}
-                        >
-                          {savedCount > 0
-                            ? `You’ve saved ${savedCount} learning ${
-                                savedCount === 1 ? "record" : "records"
-                              } in this session. These become much more powerful when viewed together in portfolio and reports.`
-                            : "Once a few meaningful records exist, the system becomes much more useful for curation, planning, and reporting."}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 12,
-                          flexWrap: "wrap",
-                          width: isMobile ? "100%" : "auto",
-                          flexDirection: isMobile ? "column" : "row",
-                        }}
-                      >
-                        <Link
-                          href="/portfolio"
-                          style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-                        >
-                          Open Portfolio
-                        </Link>
-                      </div>
+                      {savedCount > 0
+                        ? "You’re building momentum — next step: portfolio or reports"
+                        : "After capture, the next strongest move is usually portfolio or reports"}
                     </div>
-                  </section>
+
+                    <div
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                        color: "#475569",
+                        maxWidth: 760,
+                      }}
+                    >
+                      {savedCount > 0
+                        ? `You’ve saved ${savedCount} learning ${
+                            savedCount === 1 ? "record" : "records"
+                          } in this session. These become much more powerful when viewed together in portfolio and reports.`
+                        : "Once a few meaningful records exist, the system becomes much more useful for curation, planning, and reporting."}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <Link href="/portfolio" style={buttonStyle(false)}>
+                      Open Portfolio
+                    </Link>
+                    <Link href="/reports" style={buttonStyle(false)}>
+                      Open Reports
+                    </Link>
+                  </div>
                 </div>
-              </FlowStep>
+              </section>
             </div>
 
-            <FlowStep
-              step={4}
-              title="Keep moving toward reports"
-              description="Use the prompts and signals below"
-              helperText="These gentle reminders keep your next move obvious."
-              badge={stepFourBadge}
-            >
-              <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 18 }}>
               <section style={mainCard()}>
                 <div style={eyebrowStyle()}>Helpful guide</div>
                 <div
@@ -2360,16 +1943,80 @@ function CapturePageContent() {
                 </div>
               </section>
             </div>
-          </FlowStep>
           </section>
 
+          {premiumMediaType ? (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(15,23,42,0.45)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 50,
+                padding: 18,
+              }}
+            >
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 720,
+                  background: "#ffffff",
+                  borderRadius: 22,
+                  border: "1px solid #e5e7eb",
+                  boxShadow: "0 30px 80px rgba(15,23,42,0.18)",
+                  padding: 24,
+                  display: "grid",
+                  gap: 16,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                  <div>
+                    <div style={eyebrowStyle()}>Premium feature</div>
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: 24,
+                        lineHeight: 1.2,
+                        fontWeight: 900,
+                        color: "#0f172a",
+                      }}
+                    >
+                      {mediaTitle(premiumMediaType)} are part of EduDecks Plus
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 10,
+                        fontSize: 15,
+                        lineHeight: 1.7,
+                        color: "#475569",
+                        maxWidth: 560,
+                      }}
+                    >
+                      {mediaExplanation(premiumMediaType)}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setPremiumMediaType(null)}
+                    style={{ ...buttonStyle(false), padding: "8px 12px", alignSelf: "start" }}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <UpgradeCard
+                  trigger="capture-media"
+                  variant="full"
+                  onSecondaryClick={() => setPremiumMediaType(null)}
+                />
+              </div>
+            </div>
+          ) : null}
         </>
       )}
-      <AuthModal
-        open={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        returnPath={authReturnPath}
-      />
     </FamilyTopNavShell>
   );
 }

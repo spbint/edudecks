@@ -4,12 +4,6 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import FlowStep from "@/app/components/FlowStep";
-import UpgradeHint from "@/app/components/UpgradeHint";
-import useIsMobile from "@/app/components/useIsMobile";
-import CurriculumSummary from "@/app/components/CurriculumSummary";
-import ReportSignalsPanel from "@/app/components/ReportSignalsPanel";
-import { mapReportModeToReportingMode } from "@/lib/reporting/modeMapper";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
@@ -26,7 +20,6 @@ import {
   type ReportMode,
   type SelectionMetaMap,
 } from "@/lib/reportDrafts";
-import { isPremiumActive } from "@/lib/premiumConfig";
 import { getDisplayName, getEvidenceText, safeText } from "@/lib/system";
 
 type StudentRow = {
@@ -665,7 +658,6 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isMobile = useIsMobile();
   const autoSelectedStudentRef = useRef<string>("");
 
   const [profile, setProfile] = useState<FamilyProfileRow>(DEFAULT_FAMILY_PROFILE);
@@ -676,7 +668,6 @@ function ReportsPageContent() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
 
   const [draftId, setDraftId] = useState<string>("");
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -698,10 +689,6 @@ function ReportsPageContent() {
   const [selectionMeta, setSelectionMeta] = useState<ReportSelectionMeta>({});
   const [notes, setNotes] = useState("");
   const [highlightEvidenceId, setHighlightEvidenceId] = useState("");
-
-  useEffect(() => {
-    setIsPremium(isPremiumActive());
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -1056,126 +1043,6 @@ function ReportsPageContent() {
     [draftId, readinessScore, selectedEvidenceIds.length]
   );
 
-  const beginnerReportAreas = useMemo(() => {
-    if (selectedAreas.length > 0) return selectedAreas.slice(0, 4);
-
-    return Array.from(
-      new Set(
-        studentEvidence
-          .slice(0, 8)
-          .map((row) => guessArea(row.learning_area))
-          .filter((area) => area && area !== "Other")
-      )
-    ).slice(0, 4);
-  }, [selectedAreas, studentEvidence]);
-
-  const beginnerReadiness = useMemo(() => {
-    if (!selectedStudentId) {
-      return {
-        tone: "warning" as ReadinessTone,
-        label: "Choose a child to begin",
-        body: "Pick your child first so EduDecks can gather the right learning moments into a simple report.",
-        actionLabel: "Choose child below",
-        actionHref: "#advanced-reporting-tools",
-      };
-    }
-
-    if (studentEvidence.length === 0) {
-      return {
-        tone: "warning" as ReadinessTone,
-        label: "Capture one learning moment first",
-        body: `There is not enough captured learning for ${firstNameOf(
-          selectedStudent
-        )} yet. One small learning moment is enough to start a real report.`,
-        actionLabel: "Go to Capture",
-        actionHref: "/capture",
-      };
-    }
-
-    if (studentEvidence.length === 1) {
-      return {
-        tone: "info" as ReadinessTone,
-        label: "You can start now, but one more moment would help",
-        body: `You already have enough to try a simple first draft for ${firstNameOf(
-          selectedStudent
-        )}. Adding one more captured moment would make it feel stronger.`,
-        actionLabel: "Build my basic report",
-        actionHref: "",
-      };
-    }
-
-    if (draftId) {
-      return {
-        tone: "success" as ReadinessTone,
-        label: "You already have enough to build a clear basic report",
-        body: `A saved draft already exists for ${firstNameOf(
-          selectedStudent
-        )}. You can keep refining it, review the output, or move the strongest parts into portfolio.`,
-        actionLabel: "Build my basic report",
-        actionHref: "",
-      };
-    }
-
-    return {
-      tone: "success" as ReadinessTone,
-      label: "You're ready to build your first report",
-      body: `You already have enough captured learning to create a simple first draft for ${firstNameOf(
-        selectedStudent
-      )}.`,
-      actionLabel: "Build my basic report",
-      actionHref: "",
-    };
-  }, [draftId, selectedStudent, selectedStudentId, studentEvidence.length]);
-
-  const beginnerOverview = useMemo(() => {
-    if (!selectedStudentId) return "";
-
-    if (notes.trim()) return notes.trim();
-
-    const child = firstNameOf(selectedStudent);
-    const areaText = beginnerReportAreas.length
-      ? joinNatural(beginnerReportAreas.map((area) => area.toLowerCase()))
-      : "recent learning";
-
-    if (draftId) {
-      return `${child} is showing steady progress across ${areaText}. This draft pulls recent learning into one calm, reusable summary you can keep improving.`;
-    }
-
-    if (selectedEvidenceIds.length > 0 || studentEvidence.length > 0) {
-      return `${child} is building confidence through ${areaText}. This basic report brings those learning moments together into a clear first summary.`;
-    }
-
-    return `${child}'s captured learning will appear here as a simple first report once the first moments are added.`;
-  }, [
-    beginnerReportAreas,
-    draftId,
-    notes,
-    selectedEvidenceIds.length,
-    selectedStudent,
-    selectedStudentId,
-    studentEvidence.length,
-  ]);
-
-  const beginnerNextStep = useMemo(() => {
-    if (draftId) {
-      return "Keep the strongest parts of this report in portfolio so your child's learning story stays easy to revisit.";
-    }
-
-    if (studentEvidence.length === 0) {
-      return "Capture one learning moment, then come back here to turn it into a simple first report.";
-    }
-
-    return "Build the basic report first, then keep the strongest parts in portfolio.";
-  }, [draftId, studentEvidence.length]);
-
-  const stepOneBadge = selectedStudent ? `Focused on ${firstNameOf(selectedStudent)}` : "Start here";
-  const stepTwoBadge =
-    selectedEvidenceIds.length > 0
-      ? `${selectedEvidenceIds.length} moment${selectedEvidenceIds.length === 1 ? "" : "s"} selected`
-      : "Choose the strongest moments";
-  const stepThreeBadge = draftId ? "Draft saved" : builderStage.label;
-  const stepFourBadge = `${readiness.label} • ${readinessScore}%`;
-
   useEffect(() => {
     if (!selectedStudentId) return;
     if (!studentEvidence.length) return;
@@ -1305,7 +1172,11 @@ function ReportsPageContent() {
       });
 
       setDraftId(row.id);
-      setMessage("Saved");
+      setMessage(
+        `Draft saved with ${finalSelectedEvidenceIds.length} selected evidence item${
+          finalSelectedEvidenceIds.length === 1 ? "" : "s"
+        }. Next step: review the output before exporting or opening the authority pack.`
+      );
 
       if (openOutput) {
         router.push(`/reports/output?draftId=${row.id}`);
@@ -1313,7 +1184,7 @@ function ReportsPageContent() {
         router.replace(`/reports?draftId=${row.id}`);
       }
     } catch (err: any) {
-      setError("Not saved yet");
+      setError(String(err?.message || err || "Save failed."));
     } finally {
       setSaving(false);
     }
@@ -1405,46 +1276,44 @@ function ReportsPageContent() {
             <span style={{ color: "#0f172a", fontWeight: 900 }}>Reports</span>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
-              flexDirection: isMobile ? "column" : "row",
-              width: isMobile ? "100%" : "auto",
-            }}
-          >
-            <Link
-              href="/reports/library"
-              style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
-            >
-              Saved drafts
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Link href="/reports/library" style={buttonStyle(false)}>
+              Library
             </Link>
+            <button
+              type="button"
+              onClick={() => void handleSave(false)}
+              style={buttonStyle(false)}
+              data-journey-intent={builderValueSignal.primaryIntent}
+            >
+              {saving ? "Saving…" : "Save draft"}
+            </button>
+            <button
+              type="button"
+              onClick={handleQuickBuild}
+              style={{
+                ...buttonStyle(false),
+                borderColor: "#bfdbfe",
+                background: "#eff6ff",
+                color: "#2563eb",
+              }}
+              data-journey-intent="reports_quick_build"
+            >
+              {saving ? "Building…" : "Quick Build Report"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSave(true)}
+              style={buttonStyle(true)}
+              data-journey-intent={builderValueSignal.secondaryIntent}
+            >
+              {saving ? "Building…" : "Build report"}
+            </button>
           </div>
         </div>
       </div>
 
       <div style={innerStyle}>
-        {!isPremium && studentEvidence.length >= 2 ? (
-          <section
-            style={{
-              ...cardStyle,
-              marginBottom: 18,
-              padding: 14,
-              background: "#f8fbff",
-              borderColor: "#dbeafe",
-            }}
-          >
-            <UpgradeHint
-              title="You're building a strong learning record"
-              description="Want more flexibility as you grow?"
-              ctaLabel="Unlock more control"
-              ctaHref="/upgrade"
-              variant="subtle"
-            />
-          </section>
-        ) : null}
-
         {highlightedEvidence ? (
           <section
             style={{
@@ -1481,37 +1350,35 @@ function ReportsPageContent() {
           </section>
         ) : null}
 
-        <section style={{ ...cardStyle, marginBottom: 18, borderColor: "#bfdbfe", background: "linear-gradient(135deg, #ffffff 0%, #f8fbff 100%)" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
-              gap: 24,
-            }}
-          >
+        <section style={{ ...cardStyle, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
             <div>
-              <div style={labelStyle}>Beginner mode</div>
+              <div style={labelStyle}>Guided report builder</div>
               <div style={displayStyle}>
-                Turn captured learning into a calm, clear report
+                Build once, save once, and use evidence-led drafts that feel calm and trustworthy
               </div>
               <div style={bodyStyle}>
-                Start with a simple summary built from your child's learning moments. You can add more detail later.
+                This builder creates a durable report draft object with saved child, market, mode, areas, selected evidence, and report notes.
+                Quick Build can choose strong evidence automatically so the reporting flow feels faster and more guided.
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-                <span style={pillStyle(beginnerReadiness.tone)}>{beginnerReadiness.label}</span>
                 <span style={pillStyle("secondary")}>{builderStage.stepLabel}</span>
-                <span style={pillStyle("primary")}>{marketLabel(preferredMarket)}</span>
+                <span style={pillStyle(readiness.tone)}>{builderStage.label}</span>
+                <span style={pillStyle("primary")}>Market: {marketLabel(preferredMarket)}</span>
+                <span style={pillStyle("secondary")}>{modeLabel(reportMode)}</span>
+                <span style={pillStyle("info")}>{periodLabel(periodMode)}</span>
+                {draftId ? <span style={pillStyle("success")}>Saved draft active</span> : null}
                 {selectedStudent ? (
                   <span style={pillStyle("secondary")}>Child: {firstNameOf(selectedStudent)}</span>
                 ) : null}
               </div>
 
-              <div style={{ ...smallStyle, marginTop: 10 }}>{beginnerReadiness.body}</div>
+              <div style={{ ...smallStyle, marginTop: 10 }}>{builderStage.detail}</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
-                <strong>Why this matters:</strong> A basic report gives you something real to keep, review, and strengthen without needing to learn the deeper reporting tools first.
+                <strong>Why this matters:</strong> {builderValueSignal.valueText}
               </div>
-              <div style={{ ...smallStyle, marginTop: 6 }}>{beginnerNextStep}</div>
+              <div style={{ ...smallStyle, marginTop: 6 }}>{builderValueSignal.conversionText}</div>
 
               <div style={{ height: 18 }} />
 
@@ -1540,104 +1407,68 @@ function ReportsPageContent() {
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                   <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
                   <strong style={{ color: "#0f172a", fontSize: 15 }}>
-                    Beginner readiness: {readinessScore}%
+                    Report readiness: {readinessScore}%
                   </strong>
                 </div>
-                <div style={bodyStyle}>{beginnerReadiness.body}</div>
-                <div style={{ ...smallStyle, fontWeight: 800 }}>
-                  {studentEvidence.length === 0
-                    ? "Capture first, then come back here to build the report."
-                    : "You do not need to manage the advanced settings first. Start with the simple report path."}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  marginTop: 16,
-                  flexDirection: isMobile ? "column" : "row",
-                }}
-              >
-                {studentEvidence.length === 0 ? (
-                  <Link
-                    href="/capture"
-                    style={{ ...buttonStyle(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Capture a learning moment
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleQuickBuild}
-                    style={{ ...buttonStyle(true), width: isMobile ? "100%" : undefined }}
-                    data-journey-intent="reports_quick_build"
-                  >
-                    {saving ? "Building…" : "Build my basic report"}
-                  </button>
-                )}
-
-                {draftId ? (
-                  <Link
-                    href={`/reports/output?draftId=${draftId}`}
-                    style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Review current draft
-                  </Link>
-                ) : null}
-
-                <Link
-                  href="/portfolio"
-                  style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                >
-                  Open Portfolio
-                </Link>
+                <div style={bodyStyle}>{readiness.message}</div>
+                <div style={{ ...smallStyle, fontWeight: 800 }}>{readiness.action}</div>
               </div>
             </div>
 
             <div style={cardStyle}>
-              <div style={labelStyle}>Basic report preview</div>
-              <div style={h2Style}>{selectedStudent ? studentName(selectedStudent) : "Your child's first report"}</div>
-              <div style={{ ...bodyStyle, marginBottom: 12 }}>{beginnerOverview || "Choose a child and capture a few learning moments to see the first report preview take shape."}</div>
+              <div style={labelStyle}>Selection readiness</div>
+              <div style={displayStyle}>{readinessScore}%</div>
+              <div style={{ ...bodyStyle, marginBottom: 12 }}>{readiness.label}</div>
+
+              <div
+                style={{
+                  height: 10,
+                  borderRadius: 999,
+                  background: "#e2e8f0",
+                  overflow: "hidden",
+                  marginBottom: 14,
+                }}
+              >
+                <div
+                  style={{
+                    width: `${readinessScore}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    background:
+                      readiness.tone === "success"
+                        ? "linear-gradient(90deg, #22c55e 0%, #16a34a 100%)"
+                        : readiness.tone === "info"
+                        ? "linear-gradient(90deg, #60a5fa 0%, #2563eb 100%)"
+                        : readiness.tone === "warning"
+                        ? "linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%)"
+                        : "linear-gradient(90deg, #f87171 0%, #dc2626 100%)",
+                    transition: "width 160ms ease",
+                  }}
+                />
+              </div>
+
+              <div style={smallStyle}>{nextBestMove}</div>
+
+              <div style={{ height: 12 }} />
 
               <div style={{ display: "grid", gap: 10 }}>
                 <div style={miniStatStyle}>
-                  <span style={miniStatLabel}>Overview</span>
-                  <strong>{draftId ? "Saved draft ready" : "Basic draft path ready"}</strong>
+                  <span style={miniStatLabel}>Areas selected</span>
+                  <strong>{selectedAreas.length}</strong>
                 </div>
                 <div style={miniStatStyle}>
-                  <span style={miniStatLabel}>Key strength</span>
-                  <strong>{interpretation.strongestFocus || "Still emerging"}</strong>
+                  <span style={miniStatLabel}>Evidence chosen</span>
+                  <strong>{selectedEvidenceIds.length}</strong>
                 </div>
                 <div style={miniStatStyle}>
-                  <span style={miniStatLabel}>Next step</span>
-                  <strong>{interpretation.weakestFocus || "Keep building steadily"}</strong>
+                  <span style={miniStatLabel}>Core items</span>
+                  <strong>{selectedCoreCount}</strong>
                 </div>
                 <div style={miniStatStyle}>
-                  <span style={miniStatLabel}>Areas touched</span>
-                  <strong>{beginnerReportAreas.length ? joinNatural(beginnerReportAreas) : "Add evidence first"}</strong>
+                  <span style={miniStatLabel}>Coverage seen</span>
+                  <strong>{evidenceCoverageCount}</strong>
                 </div>
               </div>
-
-              <div style={{ ...softCardStyle, marginTop: 14 }}>
-                <div style={labelStyle}>Portfolio next</div>
-                <div style={smallStyle}>
-                  After the report is built, keep the strongest parts in portfolio so your child's learning story stays easy to revisit.
-                </div>
-              </div>
-
-              {!isPremium && (draftId || selectedEvidenceIds.length > 0) ? (
-                <div style={{ marginTop: 14 }}>
-                  <UpgradeHint
-                    title="Want to build full reports anytime?"
-                    description="Access your report library and generate reports whenever you need."
-                    ctaLabel="Unlock Reports"
-                    ctaHref="/upgrade"
-                    variant="subtle"
-                  />
-                </div>
-              ) : null}
             </div>
           </div>
         </section>
@@ -1654,188 +1485,15 @@ function ReportsPageContent() {
           </div>
         ) : null}
 
-        <section
-          id="advanced-reporting-tools"
-          style={{
-            ...cardStyle,
-            marginBottom: 18,
-            borderStyle: "dashed",
-            background: "#f8fafc",
-          }}
-        >
-          <div style={labelStyle}>Refine later</div>
-          <div style={h2Style}>Advanced reporting tools</div>
-          <div style={smallStyle}>
-            The controls below are still available when you want deeper drafting, evidence curation, and report settings. Beginner mode above is the simpler free path.
-          </div>
-        </section>
-
-        <CurriculumSummary
-          variant="card"
-          title="Your report framework"
-          description="This report is based on your selected learning framework"
-          helperText="You can change your setup anytime in Settings."
-          linkLabel="Review Settings"
-        />
-
-        <div style={{ display: "grid", gap: 18, marginBottom: 18 }}>
-          <FlowStep
-            step={1}
-            title="Choose who the report is for"
-            description="Select your learner"
-            helperText="Start with the child you want to build a report for."
-            badge={stepOneBadge}
-          >
-            <section id="report-step-settings" style={cardStyle}>
-              <div style={smallStyle}>
-                Begin with one learner, then choose the report mode and period that fit what you want to explain.
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Learner</div>
-                  <div style={h3Style}>{selectedStudent ? studentName(selectedStudent) : "Choose a learner"}</div>
-                </div>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Mode</div>
-                  <div style={h3Style}>{modeLabel(reportMode)}</div>
-                </div>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Period</div>
-                  <div style={h3Style}>{periodLabel(periodMode)}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button type="button" onClick={() => document.getElementById("report-step-settings")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={buttonStyle(true)}>
-                  Open learner and report settings
-                </button>
-              </div>
-            </section>
-          </FlowStep>
-
-          <FlowStep
-            step={2}
-            title="Gather the right learning"
-            description="Choose the moments that matter"
-            helperText="Use your strongest recent learning moments to build a report that feels clear and trustworthy."
-            badge={stepTwoBadge}
-          >
-            <section style={cardStyle}>
-              <div style={smallStyle}>
-                Strong learning moments give the report its shape. You can select them yourself or let EduDecks give you a strong first pass.
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0, 1fr))", gap: 12, marginTop: 14 }}>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Evidence selected</div>
-                  <div style={h3Style}>{selectedEvidenceIds.length}</div>
-                </div>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Core anchors</div>
-                  <div style={h3Style}>{selectedCoreCount}</div>
-                </div>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Areas in view</div>
-                  <div style={h3Style}>{selectedAreas.length}</div>
-                </div>
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Coverage balance</div>
-                  <div style={h3Style}>
-                    {interpretation.weakAreas.length === 0
-                      ? "Balanced"
-                      : interpretation.weakAreas.length <= 2
-                      ? "Mostly balanced"
-                      : "Still building"}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button type="button" onClick={() => document.getElementById("report-step-evidence")?.scrollIntoView({ behavior: "smooth", block: "start" })} style={buttonStyle(true)}>
-                  Choose evidence
-                </button>
-                <button type="button" onClick={autoSelectTopEvidence} style={buttonStyle(false)}>
-                  Auto-select a strong first pass
-                </button>
-              </div>
-            </section>
-          </FlowStep>
-
-          <FlowStep
-            step={3}
-            title="Build the report draft"
-            description="Create a clear first version"
-            helperText="EduDecks brings your selected learning together into a draft you can review and improve."
-            badge={stepThreeBadge}
-          >
-            <section id="report-step-evidence" style={cardStyle}>
-              <div style={bodyStyle}>{builderValueSignal.valueText}</div>
-              <div style={{ ...smallStyle, marginTop: 8 }}>{builderValueSignal.conversionText}</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(false)}
-                  style={buttonStyle(false)}
-                  data-journey-intent={builderValueSignal.primaryIntent}
-                >
-                  {saving ? "Savingâ€¦" : "Save draft"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById("report-step-draft")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  style={buttonStyle(true)}
-                >
-                  Review draft controls
-                </button>
-              </div>
-            </section>
-          </FlowStep>
-
-          <FlowStep
-            step={4}
-            title="See how close you are"
-            description="Move toward Report Ready"
-            helperText="A stronger mix of learning moments makes your report easier to build and easier to share."
-            badge={stepFourBadge}
-          >
-            <section id="report-step-readiness" style={cardStyle}>
-              <div style={bodyStyle}>{readiness.message}</div>
-              <div style={{ ...smallStyle, marginTop: 8 }}>{readiness.action}</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(true)}
-                  style={buttonStyle(true)}
-                  data-journey-intent={builderValueSignal.secondaryIntent}
-                >
-                  {saving ? "Buildingâ€¦" : "Open output"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => document.getElementById("report-step-readiness")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                  style={buttonStyle(false)}
-                >
-                  See readiness details
-                </button>
-              </div>
-            </section>
-          </FlowStep>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1.15fr 0.85fr",
-            gap: 18,
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 18 }}>
           <div style={{ display: "grid", gap: 18 }}>
-            <section id="report-step-draft" style={cardStyle}>
+            <section style={cardStyle}>
               <div style={h2Style}>Preset and report settings</div>
 
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile
-                    ? "1fr"
-                    : "repeat(3, minmax(0, 1fr))",
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
                   gap: 12,
                   marginTop: 16,
                 }}
@@ -1866,9 +1524,7 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile
-                    ? "1fr"
-                    : "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                   gap: 12,
                   marginTop: 18,
                 }}
@@ -1951,15 +1607,7 @@ function ReportsPageContent() {
 
               <div style={{ height: 14 }} />
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile
-                    ? "1fr"
-                    : "repeat(4, minmax(0, 1fr))",
-                  gap: 12,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
                 <label style={checkRowStyle}>
                   <input
                     type="checkbox"
@@ -2031,9 +1679,7 @@ function ReportsPageContent() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: isMobile
-                    ? "repeat(2, minmax(0, 1fr))"
-                    : "repeat(4, minmax(0, 1fr))",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                   gap: 12,
                 }}
               >
@@ -2079,118 +1725,40 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            {selectedStudent && (
-              <section style={{ marginTop: 20 }}>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 20,
-                    gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
-                    alignItems: "start",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 900,
-                            letterSpacing: 1,
-                            textTransform: "uppercase",
-                            color: "#475569",
-                          }}
-                        >
-                          Confidence & guidance
-                        </div>
-                        <p style={{ margin: "6px 0 0", fontSize: 14, color: "#475569" }}>
-                          This view summarizes readiness, subject signals, gaps, and suggested captures tied to the selected mode.
-                        </p>
-                      </div>
-                      <span style={pillStyle("primary")}>{modeLabel(reportMode)}</span>
-                    </div>
-                    <div style={{ marginTop: 12 }}>
-                      <ReportSignalsPanel
-                        studentId={selectedStudent.id}
-                        studentName={studentName(selectedStudent)}
-                        mode={mapReportModeToReportingMode(reportMode)}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: "grid", gap: 14 }}>
-                    <section style={cardStyle}>
-                      <div style={h2Style}>What this report currently shows</div>
-                      <div style={bodyStyle}>{interpretation.text}</div>
+            <section style={cardStyle}>
+              <div style={h2Style}>What this report currently shows</div>
+              <div style={bodyStyle}>{interpretation.text}</div>
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
-                          gap: 12,
-                          marginTop: 14,
-                        }}
-                      >
-                        <div style={softCardStyle}>
-                          <div style={labelStyle}>Strongest current focus</div>
-                          <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
-                        </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: 12,
+                  marginTop: 14,
+                }}
+              >
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Strongest current focus</div>
+                  <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
+                </div>
 
-                        <div style={softCardStyle}>
-                          <div style={labelStyle}>Weakest current area</div>
-                          <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
-                        </div>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Weakest current area</div>
+                  <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
+                </div>
 
-                        <div style={softCardStyle}>
-                          <div style={labelStyle}>Coverage balance</div>
-                          <div style={h3Style}>
-                            {interpretation.weakAreas.length === 0
-                              ? "Balanced"
-                              : interpretation.weakAreas.length <= 2
-                              ? "Mostly balanced"
-                              : "Unbalanced"}
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section style={cardStyle}>
-                      <div style={h2Style}>Next best move</div>
-                      <div style={bodyStyle}>{nextBestMove}</div>
-                      <div style={{ ...smallStyle, marginTop: 8 }}>
-                        The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
-                      </div>
-
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                        <button
-                          type="button"
-                          onClick={() => void handleSave(false)}
-                          style={buttonStyle(false)}
-                          data-journey-intent={builderValueSignal.primaryIntent}
-                        >
-                          {saving ? "Saving…" : "Save draft"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleSave(true)}
-                          style={buttonStyle(true)}
-                          data-journey-intent={builderValueSignal.secondaryIntent}
-                        >
-                          {saving ? "Building…" : "Open output"}
-                        </button>
-                      </div>
-                    </section>
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Coverage balance</div>
+                  <div style={h3Style}>
+                    {interpretation.weakAreas.length === 0
+                      ? "Balanced"
+                      : interpretation.weakAreas.length <= 2
+                      ? "Mostly balanced"
+                      : "Unbalanced"}
                   </div>
                 </div>
-              </section>
-            )}
+              </div>
+            </section>
 
             <section style={cardStyle}>
               <div
@@ -2268,9 +1836,7 @@ function ReportsPageContent() {
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: isMobile
-                                ? "auto 1fr"
-                                : "auto 1fr auto auto",
+                              gridTemplateColumns: "auto 1fr auto auto",
                               gap: 12,
                               alignItems: "start",
                             }}
@@ -2292,20 +1858,9 @@ function ReportsPageContent() {
                               </div>
                             </div>
 
-                            {!isMobile ? (
-                              <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
-                            ) : null}
+                            <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
 
-                            <div
-                              style={{
-                                display: "grid",
-                                gap: 8,
-                                gridColumn: isMobile ? "1 / -1" : undefined,
-                              }}
-                            >
-                              {isMobile ? (
-                                <span style={pillStyle(scoreTone(score))}>Strength {score}</span>
-                              ) : null}
+                            <div style={{ display: "grid", gap: 8 }}>
                               {chosen ? (
                                 <>
                                   <select
@@ -2405,6 +1960,33 @@ function ReportsPageContent() {
                 }}
                 placeholder="Write a short summary of what feels most important in this report..."
               />
+            </section>
+
+            <section style={cardStyle}>
+              <div style={h2Style}>Next best move</div>
+              <div style={bodyStyle}>{nextBestMove}</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>
+                The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(false)}
+                  style={buttonStyle(false)}
+                  data-journey-intent={builderValueSignal.primaryIntent}
+                >
+                  {saving ? "Saving…" : "Save draft"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSave(true)}
+                  style={buttonStyle(true)}
+                  data-journey-intent={builderValueSignal.secondaryIntent}
+                >
+                  {saving ? "Building…" : "Open output"}
+                </button>
+              </div>
             </section>
 
             <section style={cardStyle}>

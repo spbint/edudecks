@@ -1,11 +1,10 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import StudentHubNav from "@/app/admin/components/StudentHubNav";
-import { getSaveStatusLabel } from "@/app/components/SaveStatus";
 import { supabase } from "@/lib/supabaseClient";
 import {
   buildStudentListPath,
@@ -592,14 +591,6 @@ const S: Record<string, React.CSSProperties> = {
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function EvidenceEntryPage() {
-  return (
-    <Suspense fallback={null}>
-      <EvidenceEntryPageContent />
-    </Suspense>
-  );
-}
-
-function EvidenceEntryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -1298,11 +1289,7 @@ function EvidenceEntryPageContent() {
                 disabled={saveState === "saving"}
                 type="button"
               >
-                {saveState === "saving"
-                  ? getSaveStatusLabel("saving")
-                  : saveState === "saved"
-                  ? getSaveStatusLabel("saved")
-                  : "Save evidence"}
+                {saveState === "saving" ? "Saving..." : saveState === "saved" ? "Saved ✓" : "Save evidence"}
               </button>
 
               <button

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import SaveStatus from "@/app/components/SaveStatus";
 import { supabase } from "@/lib/supabaseClient";
 
 /* ───────────────────────── TYPES ───────────────────────── */
@@ -712,7 +711,7 @@ export default function FamilyDashboardScreen({
       }
 
       setSaveStatus("success");
-      setSaveMessage("");
+      setSaveMessage("Learning record saved.");
       setQuickAddOpen(false);
       setForm({
         studentId: selectedStudentId,
@@ -725,7 +724,7 @@ export default function FamilyDashboardScreen({
       await loadAll();
     } catch (err: any) {
       setSaveStatus("error");
-      setSaveMessage("");
+      setSaveMessage(String(err?.message || err || "Could not save learning entry."));
     }
   }
 
@@ -959,34 +958,27 @@ export default function FamilyDashboardScreen({
         </div>
       ) : null}
 
-      {saveStatus !== "idle" ? (
-        <div
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#f8fafc",
-            padding: 12,
-            borderRadius: 14,
-            marginBottom: 16,
-          }}
-        >
-          <SaveStatus
-            status={
-              saveStatus === "saving"
-                ? "saving"
-                : saveStatus === "success"
-                ? "saved"
-                : "unsaved"
-            }
-          />
-        </div>
-      ) : null}
-
       {saveMessage ? (
         <div
           style={{
-            background: "#fff7ed",
-            border: "1px solid #fed7aa",
-            color: "#9a3412",
+            background:
+              saveStatus === "error"
+                ? "#fff1f2"
+                : saveStatus === "success"
+                ? "#ecfdf5"
+                : "#eff6ff",
+            border:
+              saveStatus === "error"
+                ? "1px solid #fecdd3"
+                : saveStatus === "success"
+                ? "1px solid #a7f3d0"
+                : "1px solid #bfdbfe",
+            color:
+              saveStatus === "error"
+                ? "#be123c"
+                : saveStatus === "success"
+                ? "#166534"
+                : "#1d4ed8",
             padding: 14,
             borderRadius: 14,
             marginBottom: 16,
@@ -2030,7 +2022,7 @@ export default function FamilyDashboardScreen({
                   style={buttonStyle(true)}
                   disabled={saveStatus === "saving"}
                 >
-                  {saveStatus === "saving" ? "Saving…" : "Save Learning"}
+                  {saveStatus === "saving" ? "Saving..." : "Save Learning"}
                 </button>
               </div>
             </div>

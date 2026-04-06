@@ -9,7 +9,6 @@ import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
-import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 
 /* =========================
    TYPES
@@ -51,39 +50,6 @@ type FamilyGuidanceState = {
   progressNudge?: string;
 };
 
-type FamilyJourneyStepKey =
-  | "planning"
-  | "calendar"
-  | "capture"
-  | "reports"
-  | "portfolio";
-
-type FamilyJourneyStep = {
-  key: FamilyJourneyStepKey;
-  href: string;
-  ribbonLabel: string;
-  eyebrow: string;
-  title: string;
-  body: string;
-  primaryLabel: string;
-  primaryHref: string;
-  reassurance: string;
-};
-
-type FamilyJourneyState = {
-  current: FamilyJourneyStep;
-  next: FamilyJourneyStep | null;
-  progressText: string;
-  supportTitle: string;
-  supportBody: string;
-  supportTone: "success" | "info" | "warning";
-  secondaryTools: Array<{
-    label: string;
-    href: string;
-    tone?: "primary" | "secondary";
-  }>;
-};
-
 type LearningStep = {
   current: string;
   next: string;
@@ -113,23 +79,6 @@ type GuidedStartActivity = {
 type GuidedStartPlan = {
   focusAreas: string[];
   activities: GuidedStartActivity[];
-};
-
-type LinkedStudentRow = {
-  id: string;
-  preferred_name?: string | null;
-  first_name?: string | null;
-  surname?: string | null;
-  family_name?: string | null;
-  year_level?: number | null;
-  created_at?: string | null;
-};
-
-type LinkedEvidenceRow = {
-  student_id?: string | null;
-  learning_area?: string | null;
-  occurred_on?: string | null;
-  created_at?: string | null;
 };
 
 type PendingGuidedStartAction = {
@@ -365,150 +314,6 @@ function normalizeChild(raw: any, index: number): ChildRecord {
   };
 }
 
-function dedupeChildrenById(children: ChildRecord[]) {
-  const seen = new Set<string>();
-  return children.filter((child) => {
-    const id = safe(child.id);
-    if (!id || seen.has(id)) return false;
-    seen.add(id);
-    return true;
-  });
-}
-
-function buildLinkedChildRecord(
-  student: LinkedStudentRow,
-  evidence: LinkedEvidenceRow[],
-  index: number
-): ChildRecord {
-  const name =
-    [
-      safe(student.preferred_name || student.first_name),
-      safe(student.surname || student.family_name),
-    ]
-      .filter(Boolean)
-      .join(" ") || `Child ${index + 1}`;
-
-  const yearLevel = asNumber(student.year_level, NaN);
-  const yearLabel =
-    Number.isFinite(yearLevel) && yearLevel > 0 ? `Year ${yearLevel}` : "Year level";
-
-  const childEvidence = evidence.filter((item) => safe(item.student_id) === safe(student.id));
-  const recentCutoff = new Date();
-  recentCutoff.setDate(recentCutoff.getDate() - RECENT_EVIDENCE_DAYS);
-
-  const recentAreas = new Set<string>();
-  const areaCounts = new Map<string, number>();
-  let lastUpdated: string | null = asDateText(student.created_at);
-
-  childEvidence.forEach((item) => {
-    const area = safe(item.learning_area) || "General";
-    const occurred = asDateText(item.occurred_on) || asDateText(item.created_at);
-
-    areaCounts.set(area, (areaCounts.get(area) ?? 0) + 1);
-
-    if (!occurred) return;
-
-    const occurredDate = new Date(occurred);
-    if (!Number.isNaN(occurredDate.getTime()) && occurredDate >= recentCutoff) {
-      recentAreas.add(area);
-    }
-
-    if (!lastUpdated || occurredDate.getTime() > new Date(lastUpdated).getTime()) {
-      lastUpdated = occurred;
-    }
-  });
-
-  const strongestArea =
-    [...areaCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-  const nextFocusArea = strongestArea === "—" ? "Literacy" : strongestArea;
-  const evidenceCount = childEvidence.length;
-  const recentAreaCount = recentAreas.size;
-
-  let status: ChildRecord["status"] = "getting-started";
-  if (evidenceCount >= 4 && recentAreaCount >= 3) status = "ready";
-  else if (evidenceCount >= 1) status = "building";
-  if (lastUpdated && (daysSince(lastUpdated) ?? 0) > 30) status = "attention";
-
-  return {
-    id: safe(student.id) || `child-${index + 1}`,
-    name,
-    yearLabel,
-    evidenceCount,
-    recentAreaCount,
-    lastUpdated,
-    strongestArea,
-    nextFocusArea,
-    status,
-  };
-}
-
-async function loadLinkedFamilyChildren(): Promise<ChildRecord[] | null> {
-  if (!hasSupabaseEnv) return null;
-
-  const authResp = await supabase.auth.getUser();
-  const userId = authResp.data.user?.id;
-
-  if (!userId) return [];
-
-  const linksResp = await supabase
-    .from("parent_student_links")
-    .select("student_id,sort_order,created_at")
-    .eq("parent_user_id", userId)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
-  if (linksResp.error) {
-    console.error(linksResp.error);
-    return [];
-  }
-
-  const orderedIds: string[] = [];
-  const seenIds = new Set<string>();
-
-  ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
-    const studentId = safe(row.student_id);
-    if (!studentId || seenIds.has(studentId)) return;
-    seenIds.add(studentId);
-    orderedIds.push(studentId);
-  });
-
-  if (!orderedIds.length) return [];
-
-  const studentsResp = await supabase
-    .from("students")
-    .select("id,preferred_name,first_name,surname,family_name,year_level,created_at")
-    .in("id", orderedIds);
-
-  if (studentsResp.error) {
-    console.error(studentsResp.error);
-    return [];
-  }
-
-  const evidenceResp = await supabase
-    .from("evidence_entries")
-    .select("student_id,learning_area,occurred_on,created_at")
-    .in("student_id", orderedIds);
-
-  if (evidenceResp.error) {
-    console.error(evidenceResp.error);
-  }
-
-  const students = ((studentsResp.data ?? []) as LinkedStudentRow[]).filter((student) =>
-    safe(student.id)
-  );
-  const evidence = ((evidenceResp.data ?? []) as LinkedEvidenceRow[]).filter((item) =>
-    safe(item.student_id)
-  );
-
-  return orderedIds
-    .map((id, index) => {
-      const student = students.find((row) => safe(row.id) === id);
-      if (!student) return null;
-      return buildLinkedChildRecord(student, evidence, index);
-    })
-    .filter((child): child is ChildRecord => child !== null);
-}
-
 function inferLearningStep(area: string): LearningStep {
   const key = safe(area).toLowerCase();
   return AREA_SEQUENCE[key] || AREA_SEQUENCE.default;
@@ -638,8 +443,8 @@ function buildFamilyGuidanceState(
 ): FamilyGuidanceState {
   if (plannerBlockCount === 0) {
     return {
-    title: "You're on track",
-      body: "You've captured learning this week — keep going",
+      title: "You’re on track",
+      body: "You’ve captured learning this week — keep going",
       ctaLabel: "View Portfolio",
       ctaHref: "/portfolio",
     };
@@ -662,280 +467,15 @@ function buildFamilyGuidanceState(
   };
 }
 
-function buildBeginnerGuidanceState(
-  plannerBlockCount: number,
-  totalEvidenceCount: number,
-  hasReportDraft: boolean
-): FamilyGuidanceState {
-  if (plannerBlockCount === 0) {
-    return {
-      title: "Start here",
-      body: "Plan one small learning moment. One small step is enough to begin.",
-      ctaLabel: "Open Calendar",
-      ctaHref: "/calendar",
-    };
-  }
-
-  if (totalEvidenceCount === 0) {
-    return {
-      title: "Do this next",
-      body: "You have a plan. Next, capture what happened so the record starts to take shape.",
-      ctaLabel: "Capture",
-      ctaHref: "/capture",
-      secondaryLabel: "See planning",
-      secondaryHref: "/calendar",
-    };
-  }
-
-  if (!hasReportDraft) {
-    return {
-      title: "Next step",
-      body: "You have captured learning. Turn it into a simple report next, then keep the strongest pieces in portfolio later.",
-      ctaLabel: "Build Report",
-      ctaHref: "/reports",
-      secondaryLabel: "Capture again",
-      secondaryHref: "/capture",
-    };
-  }
-
-  return {
-    title: "You're on track",
-    body: "Your plan, capture, and report are moving well. Portfolio is there when you want to keep the strongest pieces together.",
-    ctaLabel: "Continue Report",
-    ctaHref: "/reports",
-    secondaryLabel: "Open Portfolio",
-    secondaryHref: "/portfolio",
-  };
-}
-
-function buildJourneyStep(
-  key: FamilyJourneyStepKey,
-  selectedChild: ChildRecord | null,
-  activeGuidedPlan: GuidedStartPlan,
-  hasRecentEvidence: boolean
-): FamilyJourneyStep {
-  const childName = selectedChild?.name || "your child";
-  const focusAreas = activeGuidedPlan.focusAreas.length
-    ? activeGuidedPlan.focusAreas.join(" and ").toLowerCase()
-    : "one gentle learning focus";
-
-  if (key === "planning") {
-    return {
-      key,
-      href: "/planner",
-      ribbonLabel: "Planning",
-      eyebrow: "Current step",
-      title: "Start with one small plan",
-      body: `Begin with a simple learning intention for ${childName}. A calm first step is often enough, and ${focusAreas} is a safe place to begin.`,
-      primaryLabel: "Start planning",
-      primaryHref: "/planner",
-      reassurance: "You do not need a full week mapped out today. One plan is enough to begin.",
-    };
-  }
-
-  if (key === "calendar") {
-    return {
-      key,
-      href: "/calendar",
-      ribbonLabel: "Calendar",
-      eyebrow: "Current step",
-      title: "Place the plan into your week",
-      body: `Your next move is to give the plan a gentle place in the week so the journey feels real, visible, and easy to follow.`,
-      primaryLabel: "Open calendar",
-      primaryHref: "/calendar",
-      reassurance: "A simple slot in the week is enough. You can adjust the rhythm later.",
-    };
-  }
-
-  if (key === "capture") {
-    return {
-      key,
-      href: "/capture",
-      ribbonLabel: "Capture",
-      eyebrow: "Current step",
-      title: "Capture one learning moment",
-      body: `Record what happened for ${childName} with one short note, photo, or work sample. This is where the journey starts to become meaningful.`,
-      primaryLabel: "Capture this moment",
-      primaryHref: "/capture",
-      reassurance: "One learning moment is enough to keep momentum moving.",
-    };
-  }
-
-  if (key === "reports") {
-    return {
-      key,
-      href: "/reports",
-      ribbonLabel: "Reports",
-      eyebrow: "Current step",
-      title: "Turn the moment into a calm summary",
-      body: `You already have learning captured. EduDecks can now help shape it into a simple, useful report draft without adding more admin pressure.`,
-      primaryLabel: "Build the report",
-      primaryHref: "/reports",
-      reassurance: "You have enough to move forward. The next step is about shaping, not starting again.",
-    };
-  }
-
-  return {
-    key,
-    href: "/portfolio",
-    ribbonLabel: "Portfolio",
-    eyebrow: "Current step",
-    title: "Keep the strongest work in the portfolio",
-    body: `Your learning record is taking shape. Save the strongest pieces so ${childName}'s story stays easy to revisit and share over time.`,
-    primaryLabel: "Open portfolio",
-    primaryHref: "/portfolio",
-    reassurance: hasRecentEvidence
-      ? "You’re on track. EduDecks is now helping you keep the strongest pieces together."
-      : "Your record is in a good place. Portfolio helps you keep the best parts visible.",
-  };
-}
-
-function buildFamilyJourneyState(params: {
-  plannerBlockCount: number;
-  totalEvidenceCount: number;
-  hasReportDraft: boolean;
-  selectedChild: ChildRecord | null;
-  activeGuidedPlan: GuidedStartPlan;
-  hasRecentEvidence: boolean;
-}): FamilyJourneyState {
-  const {
-    plannerBlockCount,
-    totalEvidenceCount,
-    hasReportDraft,
-    selectedChild,
-    activeGuidedPlan,
-    hasRecentEvidence,
-  } = params;
-
-  const currentKey: FamilyJourneyStepKey =
-    plannerBlockCount === 0
-      ? "planning"
-      : totalEvidenceCount === 0
-      ? "calendar"
-      : !hasRecentEvidence
-      ? "capture"
-      : !hasReportDraft
-      ? "reports"
-      : "portfolio";
-
-  const nextKey: Record<FamilyJourneyStepKey, FamilyJourneyStepKey | null> = {
-    planning: "calendar",
-    calendar: "capture",
-    capture: "reports",
-    reports: "portfolio",
-    portfolio: null,
-  };
-
-  const current = buildJourneyStep(
-    currentKey,
-    selectedChild,
-    activeGuidedPlan,
-    hasRecentEvidence
-  );
-  const next = nextKey[currentKey]
-    ? buildJourneyStep(
-        nextKey[currentKey] as FamilyJourneyStepKey,
-        selectedChild,
-        activeGuidedPlan,
-        hasRecentEvidence
-      )
-    : null;
-
-  if (currentKey === "planning") {
-    return {
-      current,
-      next,
-      progressText:
-        "Planning comes first. Once one small plan is in place, EduDecks will guide you into the week, then into capture and reports.",
-      supportTitle: "A calm start is enough",
-      supportBody:
-        "Begin with one learning intention, not a full system. The ribbon will open the next step when you are ready.",
-      supportTone: "info",
-      secondaryTools: [
-        { label: "Manage Family", href: "/children" },
-        { label: "Report library", href: "/reports/library" },
-      ],
-    };
-  }
-
-  if (currentKey === "calendar") {
-    return {
-      current,
-      next,
-      progressText:
-        "Your plan exists. The next gentle move is to place it in the week, then capture what happened when the moment arrives.",
-      supportTitle: "The week does not need to be full",
-      supportBody:
-        "A single scheduled learning moment keeps the journey visible and lowers the pressure on everything else.",
-      supportTone: "info",
-      secondaryTools: [
-        { label: "Manage Family", href: "/children" },
-        { label: "Report library", href: "/reports/library" },
-      ],
-    };
-  }
-
-  if (currentKey === "capture") {
-    return {
-      current,
-      next,
-      progressText:
-        "The week is taking shape. Your next best move is to record one real learning moment so the journey can continue into reports.",
-      supportTitle: "Capture keeps the journey real",
-      supportBody:
-        "You do not need a perfect write-up. One short note, photo, or work sample is enough to move forward.",
-      supportTone: "info",
-      secondaryTools: [
-        { label: "Manage Family", href: "/children" },
-        { label: "Report library", href: "/reports/library" },
-      ],
-    };
-  }
-
-  if (!hasReportDraft) {
-    return {
-      current,
-      next,
-      progressText:
-        "You have moved past setup. EduDecks can now turn what was captured into a calm, reusable report draft.",
-      supportTitle: "You already have enough to continue",
-      supportBody:
-        "This stage is about shaping the record you have, not doing more admin. One clear report draft creates confidence quickly.",
-      supportTone: "success",
-      secondaryTools: [
-        { label: "Manage Family", href: "/children" },
-        { label: "Report library", href: "/reports/library" },
-      ],
-    };
-  }
-
-  return {
-    current,
-    next,
-    progressText:
-      "You have reached the point where EduDecks is helping you keep the strongest learning together, ready to revisit and build on.",
-    supportTitle: "You’re on track",
-    supportBody:
-      "The plan, capture, and report steps are already doing their job. Portfolio is where that work starts to feel lasting.",
-    supportTone: "success",
-    secondaryTools: [
-      { label: "Manage Family", href: "/children" },
-      { label: "Report library", href: "/reports/library" },
-    ],
-  };
-}
-
 function childActionLabel(child: ChildRecord, childDraft: ReportDraftRow | null) {
   if (child.evidenceCount === 0) return "Start entry";
-  if (!childDraft) return "Build learning block";
-  if (child.evidenceCount < 3) return "Build learning block";
+  if (!childDraft) return "Build draft";
+  if (child.evidenceCount < 3) return "Build draft";
   return "Continue";
 }
 
-function childActionHref(child: ChildRecord, childDraft: ReportDraftRow | null) {
-  if (child.evidenceCount === 0) return "/calendar";
-  if (!childDraft) return "/calendar";
-  if (child.evidenceCount < 3) return "/calendar";
+function childActionHref(childDraft: ReportDraftRow | null) {
+  if (!childDraft) return "/reports";
   return `/reports?draftId=${childDraft.id}`;
 }
 
@@ -1086,8 +626,6 @@ function FamilyPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isMobile = useIsMobile();
-  const authMessage = safe(searchParams.get("authMessage"));
-  const isPostSignupArrival = Boolean(authMessage);
 
   const [children, setChildren] = useState<ChildRecord[]>([]);
   const [selectedChildId, setSelectedChildId] = useState("");
@@ -1114,104 +652,66 @@ function FamilyPageContent() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
+    const storedChildren = parseJson<any[]>(
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(CHILDREN_KEY)
+        : null,
+      []
+    );
 
-    async function hydrateFamilyHome() {
-      const storedSettings = parseJson<FamilySettings>(
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(SETTINGS_KEY)
-          : null,
-        {}
+    const normalizedChildren =
+      storedChildren.length > 0
+        ? storedChildren.map((child, i) => normalizeChild(child, i))
+        : FALLBACK_CHILDREN;
+
+    const storedSettings = parseJson<FamilySettings>(
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(SETTINGS_KEY)
+        : null,
+      {}
+    );
+    const storedGuidedProfile = readGuidedFamilyProfile();
+
+    setChildren(normalizedChildren);
+    setSettings(storedSettings);
+    setGuidedProfile(storedGuidedProfile);
+    setShowGuidedStart(!storedGuidedProfile);
+
+    if (storedGuidedProfile) {
+      setGuidedDraft(storedGuidedProfile);
+    }
+
+    const storedActive =
+      typeof window !== "undefined"
+        ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
+        : "";
+
+    const preferredId =
+      storedActive ||
+      safe(storedSettings.defaultChildId) ||
+      safe(normalizedChildren[0]?.id);
+
+    setSelectedChildId(preferredId);
+
+    const onboarded = Boolean(storedSettings.onboardingComplete);
+    const childName = safe(normalizedChildren[0]?.name);
+    const familyName = safe(storedSettings.familyDisplayName);
+
+    if (onboarded) {
+      setWelcomeMessage(
+        familyName && childName
+          ? `Welcome to EduDecks, ${familyName}. ${childName} is ready for the first learning capture.`
+          : childName
+          ? `${childName} is ready for the first learning capture.`
+          : "Your family space is ready."
       );
-      const storedGuidedProfile = readGuidedFamilyProfile();
-
-      let nextChildren = await loadLinkedFamilyChildren();
-
-      if (nextChildren === null) {
-        const storedChildren = parseJson<any[]>(
-          typeof window !== "undefined"
-            ? window.localStorage.getItem(CHILDREN_KEY)
-            : null,
-          []
-        );
-
-        nextChildren = dedupeChildrenById(
-          storedChildren.length > 0
-            ? storedChildren.map((child, i) => normalizeChild(child, i))
-            : FALLBACK_CHILDREN
-        );
-      } else {
-        nextChildren = dedupeChildrenById(nextChildren);
-      }
-
-      if (cancelled) return;
-
-      setChildren(nextChildren);
-      setSettings(storedSettings);
-      setGuidedProfile(storedGuidedProfile);
-      setShowGuidedStart(!storedGuidedProfile);
-
-      if (storedGuidedProfile) {
-        setGuidedDraft(storedGuidedProfile);
-      }
-
-      const storedActive =
-        typeof window !== "undefined"
-          ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
-          : "";
-
-      const preferredId =
-        nextChildren.find((child) => child.id === storedActive)?.id ||
-        nextChildren.find((child) => child.id === safe(storedSettings.defaultChildId))?.id ||
-        safe(nextChildren[0]?.id);
-
-      setSelectedChildId(preferredId);
-
-      const onboarded = Boolean(storedSettings.onboardingComplete);
-      const childName = safe(nextChildren[0]?.name);
-      const familyName = safe(storedSettings.familyDisplayName);
-
-      if (authMessage) {
-        setWelcomeMessage(authMessage);
-      } else if (onboarded) {
-        setWelcomeMessage(
-          familyName && childName
-            ? `Welcome to EduDecks, ${familyName}. ${childName} is ready for the first learning capture.`
-            : childName
-            ? `${childName} is ready for the first learning capture.`
-            : "Your family space is ready."
-        );
-      } else {
-        setWelcomeMessage("");
-      }
     }
 
-    void hydrateFamilyHome();
-
-    return () => {
-      cancelled = true;
-    };
+    const authMessage = safe(searchParams.get("authMessage"));
+    if (authMessage) {
+      setWelcomeMessage(authMessage);
+    }
   }, [searchParams]);
-
-  useEffect(() => {
-    const nextSelectedId =
-      children.find((child) => child.id === selectedChildId)?.id ||
-      children.find((child) => child.id === safe(settings.defaultChildId))?.id ||
-      children[0]?.id ||
-      "";
-
-    if (nextSelectedId === selectedChildId) return;
-
-    setSelectedChildId(nextSelectedId);
-
-    if (typeof window !== "undefined") {
-      if (nextSelectedId) {
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, nextSelectedId);
-      } else {
-        window.localStorage.removeItem(ACTIVE_STUDENT_ID_KEY);
-      }
-    }
-  }, [children, selectedChildId, settings.defaultChildId]);
 
   useEffect(() => {
     let mounted = true;
@@ -1304,21 +804,6 @@ function FamilyPageContent() {
     return children.find((child) => child.id === selectedChildId) || children[0] || null;
   }, [children, selectedChildId]);
 
-  const { readinessReport } = useAssessmentInsights(
-    selectedChild?.id,
-    selectedChild?.name,
-    "parent_friendly"
-  );
-
-  const compactGaps = readinessReport?.evidenceGaps.slice(0, 3) ?? [];
-  const compactGuidance = readinessReport?.captureGuidance.slice(0, 3) ?? [];
-  const topSubject = readinessReport?.subjectReadiness?.[0];
-  const positiveSignal = topSubject
-    ? `${topSubject.subjectName} is ${topSubject.status.toLowerCase()}`
-    : selectedChild?.strongestArea
-    ? `${selectedChild.strongestArea} remains steady`
-    : "Awaiting more evidence";
-
   const selectedChildDraft = useMemo(() => {
     if (!selectedChild) return null;
 
@@ -1339,6 +824,10 @@ function FamilyPageContent() {
     );
   }, [drafts, selectedChild]);
 
+  const familyGuidance = useMemo(
+    () => buildFamilyGuidanceState(plannerBlockCount, hasRecentEvidence),
+    [plannerBlockCount, hasRecentEvidence]
+  );
   const hasCompletedGuidedDraft =
     !!guidedDraft.age_band && !!guidedDraft.location && !!guidedDraft.learning_stage;
   const shouldShowGuidedStart =
@@ -1354,25 +843,6 @@ function FamilyPageContent() {
     () => buildGuidedStartPlan(guidedProfile?.learning_stage || guidedDraft.learning_stage),
     [guidedDraft.learning_stage, guidedProfile]
   );
-  const familyJourney = useMemo(
-    () =>
-      buildFamilyJourneyState({
-        plannerBlockCount,
-        totalEvidenceCount,
-        hasReportDraft: Boolean(selectedChildDraft),
-        selectedChild,
-        activeGuidedPlan,
-        hasRecentEvidence,
-      }),
-    [
-      activeGuidedPlan,
-      hasRecentEvidence,
-      plannerBlockCount,
-      selectedChild,
-      selectedChildDraft,
-      totalEvidenceCount,
-    ]
-  );
 
   const confidenceSummary = useMemo(() => {
     if (!selectedChild) return 0;
@@ -1384,6 +854,11 @@ function FamilyPageContent() {
     if (lastDays != null && lastDays <= 14) score += 10;
     return Math.min(score, 100);
   }, [selectedChild, selectedChildDraft]);
+
+  const learningStep = useMemo(() => {
+    if (!selectedChild) return AREA_SEQUENCE.default;
+    return inferLearningStep(selectedChild.nextFocusArea || selectedChild.strongestArea);
+  }, [selectedChild]);
 
   const timeSavedHours = useMemo(
     () => estimateTimeSaved(selectedChild, selectedChildDraft),
@@ -1556,122 +1031,44 @@ function FamilyPageContent() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Home"
-      heroTitle="A calmer way to move through family learning"
-      heroText="The Family Home now works as a guided journey. Start with the current step, glance at what comes next, and leave the deeper tools for later."
-      hideHeroAside={true}
-      workflowCurrentHref="/family"
-      workflowHelperText={
-        shouldShowGuidedStart
-          ? "Planning is the first step. Once one small plan is in place, the ribbon will guide you into calendar, capture, and portfolio."
-          : familyJourney.progressText
+      heroTitle="Your Family Learning Home"
+      heroText="Keep daily capture simple, stay on track with curriculum coverage, and grow a professional record of progress without the admin feel."
+      heroAsideTitle="Readiness snapshot"
+      heroAsideText={
+        selectedChild
+          ? `${selectedChild.name} is currently ${statusLabel(
+              selectedChild.status
+            ).toLowerCase()}. The system is watching evidence volume, coverage, draft state, and recency to guide the next move.`
+          : "Select a child to see the strongest next move."
       }
     >
-      <section style={{ ...S.card(), marginBottom: 18 }}>
-        <div
+      {!isMobile && welcomeMessage ? (
+        <section
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            gap: 18,
-            alignItems: "start",
+            ...S.card(),
+            marginBottom: 18,
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
           }}
         >
-          <div>
-            <div style={S.label()}>Family workspace</div>
-            <div style={S.h2()}>
-              Welcome back,{" "}
-              {parentName || familyDisplayName === "Your family"
-                ? parentName || selectedChild?.name || "friend"
-                : familyDisplayName}
-            </div>
-            <div style={S.small()}>
-              Use this page as your guided starting point. You do not need to
-              think like a teacher â€” EduDecks should keep nudging the next
-              sensible move.
-            </div>
-
-            <div style={{ height: 14 }} />
-
-            <div
-              style={{
-                border: "1px solid #bfdbfe",
-                background: "#eff6ff",
-                borderRadius: 16,
-                padding: 16,
-              }}
-            >
-              <div style={S.label()}>Next step preview</div>
-              <div style={S.h2()}>
-                {familyJourney.next
-                  ? `${familyJourney.next!.ribbonLabel} comes next`
-                  : "Portfolio keeps the strongest work together"}
-              </div>
-              <div style={S.body()}>
-                {familyJourney.next
-                  ? familyJourney.next!.body
-                  : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
-              </div>
-
-              <div style={{ ...S.small(), marginTop: 8 }}>
-                {familyJourney.progressText}
-              </div>
-
-              <div
-                style={{
-                  marginTop: 14,
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  flexDirection: isMobile ? "column" : "row",
-                }}
-              >
-                {familyJourney.next ? (
-                  <Link
-                    href={familyJourney.next!.primaryHref}
-                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Preview {familyJourney.next!.ribbonLabel}
-                  </Link>
-                ) : (
-                  <Link
-                    href="/portfolio"
-                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Open portfolio
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {!isMobile && welcomeMessage && isPostSignupArrival ? (
-        <WelcomeStatusCard
-          message={welcomeMessage}
-          postSignup={isPostSignupArrival}
-        />
+          <div style={S.label()}>Welcome</div>
+          <div style={{ ...S.body(), color: "#1e3a8a" }}>{welcomeMessage}</div>
+        </section>
       ) : null}
 
-      {shouldShowGuidedStart || shouldShowGuidedStartFallbackCard ? (
-      <section
-        style={{
-          ...S.hero(),
-          marginBottom: 18,
-          padding: isMobile ? "20px 18px" : "28px 24px",
-        }}
-      >
+      <section style={{ ...S.card(), marginBottom: 18 }}>
         {shouldShowGuidedStart ? (
           <>
-            <div style={S.label()}>Current step</div>
+            <div style={S.label()}>Guided start</div>
             {!guidedDraft.age_band ? (
               <>
-                <div style={S.h1()}>Start with one small plan</div>
+                <div style={S.h1()}>Letâ€™s get you started</div>
                 <div style={S.body()}>Your child is:</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
-                    { label: "Age 5–6", value: "5-6" },
-                    { label: "Age 7–8", value: "7-8" },
-                    { label: "Age 9–10", value: "9-10" },
+                    { label: "Age 5â€“6", value: "5-6" },
+                    { label: "Age 7â€“8", value: "7-8" },
+                    { label: "Age 9â€“10", value: "9-10" },
                     { label: "Age 11+", value: "11+" },
                   ].map((option) => (
                     <button
@@ -1693,9 +1090,9 @@ function FamilyPageContent() {
               </>
             ) : !guidedDraft.location ? (
               <>
-                <div style={S.h1()}>Keep the reporting guidance local</div>
+                <div style={S.h1()}>Where are you based?</div>
                 <div style={S.body()}>
-                  We'll use this later for gentle reporting guidance. You do not need to set anything complex now.
+                  Weâ€™ll use this later for gentle reporting guidance. You do not need to set anything complex now.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1723,9 +1120,9 @@ function FamilyPageContent() {
               </>
             ) : !guidedDraft.learning_stage ? (
               <>
-                <div style={S.h1()}>Choose the learning starting point</div>
+                <div style={S.h1()}>Right now your child is:</div>
                 <div style={S.body()}>
-                  You can change this anytime — this just helps us start gently.
+                  You can change this anytime â€” this just helps us start gently.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1768,10 +1165,10 @@ function FamilyPageContent() {
               </>
             ) : (
               <>
-                <div style={S.h1()}>Start with one calm plan</div>
+                <div style={S.h1()}>Great â€” hereâ€™s a calm place to begin</div>
                 <div style={S.body()}>
-                  You’re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
-                  {guidedStageLabel(guidedDraft.learning_stage)}. We’ll build this step by step.
+                  Youâ€™re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
+                  {guidedStageLabel(guidedDraft.learning_stage)}.
                 </div>
 
                 <div
@@ -1793,7 +1190,7 @@ function FamilyPageContent() {
                   </div>
                 </div>
 
-                <div style={{ ...S.label(), marginTop: 16 }}>One good way to begin</div>
+                <div style={{ ...S.label(), marginTop: 16 }}>Start with</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
                   {activeGuidedPlan.activities.map((activity) =>
                     activity.emphasis === "primary" ? (
@@ -1834,11 +1231,7 @@ function FamilyPageContent() {
                   <div style={{ ...S.small(), marginTop: 12, color: "#b91c1c" }}>
                     {guidedMessage}
                   </div>
-                ) : (
-                  <div style={{ ...S.small(), marginTop: 12, color: "#1d4ed8" }}>
-                    Planning is enough for now. Calendar comes next, then capture.
-                  </div>
-                )}
+                ) : null}
               </>
             )}
           </>
@@ -1900,141 +1293,86 @@ function FamilyPageContent() {
               </button>
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: isMobile ? "stretch" : "center",
+              flexWrap: "wrap",
+              flexDirection: isMobile ? "column" : "row",
+            }}
+          >
+            <div style={{ maxWidth: 760 }}>
+              <div style={S.label()}>Guidance</div>
+              <div style={S.h1()}>{familyGuidance.title}</div>
+              <div style={S.body()}>{familyGuidance.body}</div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", width: isMobile ? "100%" : "auto" }}>
+              <Link
+                href={familyGuidance.ctaHref || "/calendar"}
+                style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
+              >
+                {familyGuidance.ctaLabel || "Open Calendar"}
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
-      ) : null}
 
       {!shouldShowGuidedStart ? (
         <>
-      {isMobile && welcomeMessage && isPostSignupArrival ? (
-        <WelcomeStatusCard
-          message={welcomeMessage}
-          postSignup={isPostSignupArrival}
-        />
+      {isMobile && welcomeMessage ? (
+        <section
+          style={{
+            ...S.card(),
+            marginBottom: 18,
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
+          }}
+        >
+          <div style={S.label()}>Welcome</div>
+          <div style={{ ...S.body(), color: "#1e3a8a" }}>{welcomeMessage}</div>
+        </section>
       ) : null}
 
       <section style={{ ...S.card(), marginBottom: 18 }}>
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.25fr) minmax(220px,0.75fr)",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.15fr) minmax(280px,0.85fr)",
             gap: 18,
             alignItems: "start",
           }}
         >
           <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div style={S.label()}>What to do next</div>
-                <div style={S.h2()}>
-                  {selectedChild
-                    ? `${selectedChild.name} is ${statusLabel(selectedChild.status).toLowerCase()}`
-                    : "Select a child"}
-                </div>
-                <div style={S.body()}>
-                  {selectedChild
-                    ? readinessReport?.explanation ||
-                      "Gathering readiness signals to keep you calm."
-                    : "Choose a child to surface readiness insights."}
-                </div>
-              </div>
-              {readinessReport ? (
-                <span style={S.pill(readinessReport.reportReady ? "success" : "info")}>
-                  {readinessReport.overallStatus}
-                </span>
-              ) : null}
+            <div style={S.label()}>Calm check</div>
+            <div style={S.h2()}>
+              {selectedChild
+                ? `${selectedChild.name} is ${statusLabel(selectedChild.status).toLowerCase()}`
+                : "Select a child"}
+            </div>
+            <div style={S.body()}>
+              {selectedChild
+                ? calmCheckText(confidenceSummary, selectedChild.name)
+                : "Choose a child to see whether the system thinks you are on track."}
             </div>
 
-            <div style={{ marginTop: 12, fontSize: 13, color: "#475569" }}>{positiveSignal}</div>
-
-            {compactGaps.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={S.label()}>Top evidence gaps</div>
-                <ul
-                  style={{
-                    margin: "6px 0 0 16px",
-                    padding: 0,
-                    listStyleType: "disc",
-                    color: "#475569",
-                    fontSize: 13,
-                  }}
-                >
-                  {compactGaps.map((gap) => (
-                    <li key={gap.standardId} style={{ marginBottom: 4 }}>
-                      <strong>{gap.officialCode}</strong> — {gap.title}
-                      <div style={{ fontSize: 11, color: "#6b7280" }}>{gap.reason}</div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {compactGuidance.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={S.label()}>Recommended captures</div>
-                <ul
-                  style={{
-                    margin: "6px 0 0 16px",
-                    padding: 0,
-                    listStyleType: "disc",
-                    color: "#475569",
-                    fontSize: 13,
-                  }}
-                >
-                  {compactGuidance.map((guidance) => (
-                    <li key={guidance} style={{ marginBottom: 4 }}>
-                      {guidance}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             <div
               style={{
-                marginTop: 18,
+                marginTop: 14,
                 display: "flex",
                 gap: 10,
                 flexWrap: "wrap",
               }}
             >
-              <Link
-                href="/capture"
-                style={{
-                  ...S.button(true),
-                  width: isMobile ? "100%" : undefined,
-                  justifyContent: "center",
-                }}
-              >
-                Capture evidence
-              </Link>
-              <Link
-                href="/reports"
-                style={{
-                  ...S.button(false),
-                  width: isMobile ? "100%" : undefined,
-                  justifyContent: "center",
-                }}
-              >
-                Open reports
-              </Link>
-              <Link
-                href="/portfolio"
-                style={{
-                  ...S.button(false),
-                  width: isMobile ? "100%" : undefined,
-                  justifyContent: "center",
-                }}
-              >
-                View portfolio
-              </Link>
+              <span style={S.pill(calmCheckTone(confidenceSummary))}>
+                Calm check {confidenceSummary}%
+              </span>
+              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
+              <span style={S.pill("info")}>~{timeSavedHours.toFixed(1)} hrs saved</span>
             </div>
           </div>
 
@@ -2072,7 +1410,6 @@ function FamilyPageContent() {
         </div>
       </section>
 
-      {false ? (
       <section style={{ ...S.card(), marginBottom: 18 }}>
         <div
           style={{
@@ -2106,20 +1443,20 @@ function FamilyPageContent() {
                 padding: 16,
               }}
             >
-              <div style={S.label()}>Next step preview</div>
+              <div style={S.label()}>Smart suggested focus</div>
               <div style={S.h2()}>
-                {familyJourney.next
-                  ? `${familyJourney.next!.ribbonLabel} comes next`
-                  : "Portfolio keeps the strongest work together"}
+                Strengthen {selectedChild?.nextFocusArea || "Literacy"}
               </div>
               <div style={S.body()}>
-                {familyJourney.next
-                  ? familyJourney.next!.body
-                  : "Once a report exists, portfolio becomes the calm place where the strongest parts of the story stay visible."}
+                {selectedChild
+                  ? `${selectedChild.name} would benefit from one stronger ${
+                      selectedChild.nextFocusArea || "literacy"
+                    } learning moment. Add a short note, photo, or work sample that shows what they can now do.`
+                  : "Choose a child to unlock a suggested focus area."}
               </div>
 
               <div style={{ ...S.small(), marginTop: 8 }}>
-                {familyJourney.progressText}
+                Calendar is the best place to shape the week before you capture what actually happened.
               </div>
 
               <div
@@ -2131,29 +1468,47 @@ function FamilyPageContent() {
                   flexDirection: isMobile ? "column" : "row",
                 }}
               >
-                {familyJourney.next ? (
-                  <Link
-                    href={familyJourney.next!.primaryHref}
-                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Preview {familyJourney.next!.ribbonLabel}
-                  </Link>
+                <Link href="/calendar" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
+                  Plan this week
+                </Link>
+                {!isMobile ? (
+                  <>
+                    <Link href="/planner" style={S.button(false)}>
+                      Adjust plan
+                    </Link>
+                    <Link href="/capture" style={S.button(false)}>
+                      Capture learning
+                    </Link>
+                    <Link
+                      href={selectedChildDraft ? `/reports?draftId=${selectedChildDraft.id}` : "/reports"}
+                      style={S.button(false)}
+                    >
+                      Build report
+                    </Link>
+                  </>
                 ) : (
-                  <Link
-                    href="/portfolio"
-                    style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}
-                  >
-                    Open portfolio
-                  </Link>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link href="/capture" style={S.button(false)}>
+                      Capture
+                    </Link>
+                    <Link href="/planner" style={S.button(false)}>
+                      Planner
+                    </Link>
+                  </div>
                 )}
               </div>
             </div>
           </div>
 
           <div style={S.card()}>
-            <div style={S.label()}>Support and progress</div>
-            <div style={S.h2()}>{familyJourney.supportTitle}</div>
-            <div style={S.body()}>{familyJourney.supportBody}</div>
+            <div style={S.label()}>Learning journey</div>
+            <div style={S.h2()}>
+              {selectedChild?.name || "Your child"} is currently building{" "}
+              {learningStep.current}
+            </div>
+            <div style={S.body()}>
+              Next likely step: <strong>{learningStep.next}</strong>.
+            </div>
 
             <div style={{ height: 12 }} />
 
@@ -2177,20 +1532,15 @@ function FamilyPageContent() {
                 flexWrap: "wrap",
               }}
             >
-              <span style={S.pill(calmCheckTone(confidenceSummary))}>
-                Calm check {confidenceSummary}%
-              </span>
-              <span style={S.pill(familyJourney.supportTone)}>
-                {familyJourney.current.ribbonLabel} is current
-              </span>
-              <span style={S.pill("secondary")}>{learningStreak} day learning streak</span>
+              <Link href="/capture" style={{ ...S.button(true), width: isMobile ? "100%" : undefined, justifyContent: "center" }}>
+                Capture next step learning
+              </Link>
             </div>
           </div>
         </div>
       </section>
-      ) : null}
 
-      <section style={{ ...S.card(), opacity: 0.97 }}>
+      <section style={S.card()}>
         <div
           style={{
             display: "flex",
@@ -2202,19 +1552,20 @@ function FamilyPageContent() {
           }}
         >
           <div>
-            <div style={S.h2()}>Family progress</div>
+            <div style={S.h2()}>Child snapshots</div>
             <div style={S.small()}>
-              Keep this as a quieter reference. The guided step above is still
-              the main thing to do now.
+              A simple overview of each child so you can see who is ready and
+              who needs attention next.
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {familyJourney.secondaryTools.map((tool) => (
-              <Link key={`${tool.href}-${tool.label}`} href={tool.href} style={S.button(false)}>
-                {tool.label}
-              </Link>
-            ))}
+            <Link href="/children" style={S.button(false)}>
+              Manage children
+            </Link>
+            <Link href="/capture" style={S.button(true)}>
+              Add learning
+            </Link>
           </div>
         </div>
 
@@ -2301,19 +1652,13 @@ function FamilyPageContent() {
                   >
                     Select
                   </button>
-                  <Link href={childActionHref(child, childDraft)} style={S.button(true)}>
+                  <Link href={childActionHref(childDraft)} style={S.button(true)}>
                     {childActionLabel(child, childDraft)}
                   </Link>
                 </div>
               </div>
             );
           })}
-        </div>
-
-        <div style={{ ...S.small(), marginTop: 14, color: "#1d4ed8" }}>
-          {selectedChild
-            ? `${selectedChild.name} is moving through ${familyJourney.current.ribbonLabel.toLowerCase()} now. EduDecks will keep the next step visible so the journey stays calm.`
-            : "EduDecks will keep the next step visible so the family journey stays calm."}
         </div>
 
         {loadingDrafts ? (
@@ -2336,56 +1681,6 @@ function FamilyPageContent() {
 /* =========================
    SMALL COMPONENTS
 ========================= */
-
-function WelcomeStatusCard({
-  message,
-  postSignup,
-}: {
-  message: string;
-  postSignup: boolean;
-}) {
-  return (
-    <section
-      style={{
-        ...S.card(),
-        marginBottom: 18,
-        border: "1px solid #bfdbfe",
-        background: "#eff6ff",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 14,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ maxWidth: 760 }}>
-          <div style={S.label()}>{postSignup ? "Progress saved" : "Welcome"}</div>
-          <div style={S.h2()}>
-            {postSignup ? "Your first guided record is saved." : "You’re on track."}
-          </div>
-          <div style={{ ...S.body(), color: "#1e3a8a" }}>
-            {postSignup
-              ? "You’re on track. EduDecks has brought you back to the right place so you can keep building calmly."
-              : message}
-          </div>
-          {postSignup ? (
-            <div style={{ ...S.small(), marginTop: 8, color: "#1d4ed8" }}>{message}</div>
-          ) : null}
-        </div>
-
-        {postSignup ? (
-          <Link href="/reports" style={S.button(true)}>
-            Continue your record
-          </Link>
-        ) : null}
-      </div>
-    </section>
-  );
-}
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (

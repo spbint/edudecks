@@ -3,10 +3,6 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import ProfileMenu from "@/app/components/ProfileMenu";
-import useIsMobile from "@/app/components/useIsMobile";
-import BrandHomeLink from "@/app/components/BrandHomeLink";
 
 type FamilyTopNavShellProps = {
   title?: string;
@@ -15,19 +11,17 @@ type FamilyTopNavShellProps = {
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
-  hideHeroAside?: boolean;
-  workflowCurrentHref?: string;
-  workflowHelperText?: string;
-  hideHero?: boolean;
   children: React.ReactNode;
+};
+
+type NavItem = {
+  href: string;
+  label: string;
 };
 
 type NavSection = {
   title: string;
-  items: Array<{
-    href: string;
-    label: string;
-  }>;
+  items: NavItem[];
 };
 
 function isActive(pathname: string, href: string) {
@@ -82,29 +76,24 @@ function sectionLabel(): React.CSSProperties {
   };
 }
 
+const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
+
 const SECTIONS: NavSection[] = [
+  {
+    title: "Workflow",
+    items: [
+      { href: "/capture", label: "Capture" },
+      { href: "/portfolio", label: "Portfolio" },
+      { href: "/reports", label: "Reports" },
+      { href: "/reports/library", label: "Report Library" },
+      { href: "/reports/output", label: "Output" },
+    ],
+  },
   {
     title: "Planning",
     items: [
       { href: "/goals", label: "Goals" },
       { href: "/planner", label: "Planner" },
-      { href: "/calendar", label: "Calendar" },
-    ],
-  },
-  {
-    title: "Workflow",
-    items: [
-      { href: "/capture", label: "Capture" },
-      { href: "/reports", label: "Reports" },
-      { href: "/portfolio", label: "Portfolio" },
-    ],
-  },
-  {
-    title: "More",
-    items: [
-      { href: "/community", label: "Community" },
-      { href: "/reports/library", label: "Report Library" },
-      { href: "/reports/output", label: "Output" },
     ],
   },
   {
@@ -129,17 +118,9 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
-  hideHeroAside = false,
-  workflowCurrentHref,
-  workflowHelperText,
-  hideHero = false,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
-  const isMobile = useIsMobile();
-
-  void title;
-  void subtitle;
 
   return (
     <div
@@ -163,124 +144,92 @@ export default function FamilyTopNavShell({
           style={{
             maxWidth: 1280,
             margin: "0 auto",
-            padding: isMobile ? "14px 16px" : "16px 20px",
+            padding: "16px 20px",
             display: "grid",
-            gap: isMobile ? 12 : 14,
+            gap: 14,
           }}
         >
-          {isMobile ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <BrandHomeLink height={34} width={125} />
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Link href="/family" style={utilBtn(false)}>
-                  Home
-                </Link>
-                <Link href="/calendar" style={utilBtn(false)}>
-                  Calendar
-                </Link>
-                <Link href="/community" style={utilBtn(false)}>
-                  Community
-                </Link>
-                <ProfileMenu mobile />
-                <details
-                  style={{
-                    position: "relative",
-                  }}
-                >
-                  <summary
-                    style={{
-                      ...utilBtn(false),
-                      cursor: "pointer",
-                      listStyle: "none",
-                    }}
-                  >
-                    Menu
-                  </summary>
-                  <div
-                    style={{
-                      position: "absolute",
-                      right: 0,
-                      top: "calc(100% + 10px)",
-                      width: 280,
-                      maxWidth: "calc(100vw - 32px)",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 18,
-                      background: "#ffffff",
-                      boxShadow: "0 20px 50px rgba(15,23,42,0.12)",
-                      padding: 14,
-                      display: "grid",
-                      gap: 12,
-                      zIndex: 30,
-                    }}
-                  >
-                    <Link href="/family" style={navBtn(isActive(pathname, "/family"))}>
-                      Home
-                    </Link>
-                    <Link href="/calendar" style={navBtn(isActive(pathname, "/calendar"))}>
-                      Calendar
-                    </Link>
-                    <Link href="/community" style={navBtn(isActive(pathname, "/community"))}>
-                      Community
-                    </Link>
-                    {SECTIONS.map((section) => (
-                      <div key={section.title}>
-                        <div style={sectionLabel()}>{section.title}</div>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          {section.items.map((item) => (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              style={navBtn(isActive(pathname, item.href))}
-                            >
-                              {item.label}
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <BrandHomeLink height={38} width={140} />
-
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
               <div
                 style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 1.2,
+                  textTransform: "uppercase",
+                  color: "#64748b",
                 }}
               >
-                <Link href="/family" style={utilBtn(false)}>
-                  Home
-                </Link>
-                <Link href="/calendar" style={utilBtn(false)}>
-                  Calendar
-                </Link>
-                <Link href="/community" style={utilBtn(false)}>
-                  Community
-                </Link>
-                <ProfileMenu />
+                {title}
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "#475569",
+                  marginTop: 4,
+                }}
+              >
+                {subtitle}
               </div>
             </div>
-          )}
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/capture" style={utilBtn(true)}>
+                Quick Capture
+              </Link>
+              <Link href="/reports" style={utilBtn(false)}>
+                Build Report
+              </Link>
+              <Link href="/reports/library" style={utilBtn(false)}>
+                Report Library
+              </Link>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            {PRIMARY_NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={navBtn(isActive(pathname, item.href))}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {SECTIONS.map((section) => (
+              <div key={section.title}>
+                <div style={sectionLabel()}>{section.title}</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  {section.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      style={navBtn(isActive(pathname, item.href))}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -288,129 +237,110 @@ export default function FamilyTopNavShell({
         style={{
           maxWidth: 1280,
           margin: "0 auto",
-          padding: isMobile ? 16 : 20,
+          padding: 20,
         }}
       >
-        <section style={{ marginBottom: 18 }}>
-          <FamilyWorkflowStrip
-            currentHref={workflowCurrentHref}
-            helperText={workflowHelperText}
-          />
-        </section>
-
-        {!isMobile && !hideHero ? (
-          <section
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+            gap: 20,
+            marginBottom: 20,
+          }}
+        >
+          <div
             style={{
-              display: "grid",
-              gridTemplateColumns: hideHeroAside
-                ? "minmax(0, 1fr)"
-                : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
-              gap: 20,
-              marginBottom: 20,
+              border: "1px solid #dbeafe",
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
+              borderRadius: 24,
+              padding: 24,
+              boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
             }}
           >
             <div
               style={{
-                border: "1px solid #dbeafe",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
-                borderRadius: 24,
-                padding: 24,
-                boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
               }}
             >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.1,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                  marginBottom: 10,
-                }}
-              >
-                Family workspace
-              </div>
-              <div
-                style={{
-                  fontSize: 34,
-                  lineHeight: 1.08,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: 12,
-                }}
-              >
-                {heroTitle}
-              </div>
-              <div
-                style={{
-                  fontSize: 15,
-                  lineHeight: 1.7,
-                  color: "#334155",
-                  maxWidth: 820,
-                }}
-              >
-                {heroText}
-              </div>
+              Family workspace
+            </div>
+            <div
+              style={{
+                fontSize: 34,
+                lineHeight: 1.08,
+                fontWeight: 900,
+                color: "#0f172a",
+                marginBottom: 12,
+              }}
+            >
+              {heroTitle}
+            </div>
+            <div
+              style={{
+                fontSize: 15,
+                lineHeight: 1.7,
+                color: "#334155",
+                maxWidth: 820,
+              }}
+            >
+              {heroText}
+            </div>
+          </div>
+
+          <aside
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#ffffff",
+              borderRadius: 24,
+              padding: 20,
+              boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
+              }}
+            >
+              {heroAsideTitle}
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: "#475569",
+              }}
+            >
+              {heroAsideText}
             </div>
 
-            {!hideHeroAside ? (
-              <aside
-                style={{
-                  border: "1px solid #e5e7eb",
-                  background: "#ffffff",
-                  borderRadius: 24,
-                  padding: 20,
-                  boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    color: "#64748b",
-                    marginBottom: 10,
-                  }}
-                >
-                  {heroAsideTitle}
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    color: "#475569",
-                  }}
-                >
-                  {heroAsideText}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    marginTop: 16,
-                  }}
-                >
-                  <Link href="/goals" style={utilBtn(false)}>
-                    Goals
-                  </Link>
-                  <Link href="/planner" style={utilBtn(false)}>
-                    Planner
-                  </Link>
-                  <Link href="/calendar" style={utilBtn(false)}>
-                    Calendar
-                  </Link>
-                  <Link href="/portfolio" style={utilBtn(false)}>
-                    Portfolio
-                  </Link>
-                </div>
-              </aside>
-            ) : null}
-          </section>
-        ) : null}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginTop: 16,
+              }}
+            >
+              <Link href="/portfolio" style={utilBtn(false)}>
+                Portfolio
+              </Link>
+              <Link href="/planner" style={utilBtn(false)}>
+                Planner
+              </Link>
+            </div>
+          </aside>
+        </section>
 
         {children}
       </main>

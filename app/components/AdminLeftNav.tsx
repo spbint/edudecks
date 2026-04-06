@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import BrandHomeLink from "@/app/components/BrandHomeLink";
 import { buildClassListPath } from "@/lib/classRoutes";
 import {
   buildLeadershipHeatmapPath,
@@ -86,33 +85,15 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/admin/interventions", label: "Support Plans" },
     ],
   },
-      {
-        key: "assessment",
-        label: "Assessment & Results",
-        defaultOpen: false,
-        items: [
-          { href: "/admin/assessments", label: "Assessments" },
-          {
-            href: "/admin/assessment-verification",
-            label: "Assessment verification",
-            description: "Inspect the judgement builder",
-            tone: "blue",
-          },
-          {
-            href: "/admin/reporting-intelligence-verification",
-            label: "Reporting intelligence",
-            description: "Translate outputs to report language",
-            tone: "green",
-          },
-          {
-            href: "/admin/report-ready-verification",
-            label: "Report-ready verification",
-            description: "Readiness, gaps, and next capture guidance",
-            tone: "violet",
-          },
-          { href: "/admin/enter-results", label: "Enter Results" },
-        ],
-      },
+  {
+    key: "assessment",
+    label: "Assessment & Results",
+    defaultOpen: false,
+    items: [
+      { href: "/admin/assessments", label: "Assessments" },
+      { href: "/admin/enter-results", label: "Enter Results" },
+    ],
+  },
   {
     key: "admin",
     label: "Admin Setup",
@@ -350,11 +331,14 @@ export default function AdminLeftNav() {
       }}
     >
       <div style={S.brandWrap}>
-        <BrandHomeLink
-          height={collapsed ? 28 : 34}
-          width={collapsed ? 103 : 125}
-          style={{ justifyContent: collapsed ? "center" : "flex-start" }}
-        />
+        <div>
+          <div style={S.brand}>EduDecks</div>
+          {!collapsed ? (
+            <div style={S.subtitle}>
+              Human development operating system
+            </div>
+          ) : null}
+        </div>
 
         <button
           type="button"
@@ -509,6 +493,24 @@ const S: Record<string, React.CSSProperties> = {
     alignItems: "flex-start",
     gap: 10,
   },
+
+  brand: {
+    fontSize: 24,
+    fontWeight: 1000,
+    color: "#ffffff",
+    lineHeight: 1.05,
+    letterSpacing: -0.3,
+  },
+
+  subtitle: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#94a3b8",
+    lineHeight: 1.4,
+    maxWidth: 220,
+  },
+
   collapseBtn: {
     border: "1px solid #334155",
     background: "#111827",

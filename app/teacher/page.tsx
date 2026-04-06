@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SupportSignalsEvidence from "../components/SupportSignalsEvidence";
-import TeacherShellHeader from "@/app/components/TeacherShellHeader";
 import TeacherStudentTable from "./components/TeacherStudentTable";
 
 /* ───────────────────────────── TYPES ───────────────────────────── */
@@ -32,7 +31,7 @@ function safeClassName(name: string | null) {
 }
 
 function fmtYear(y: number | null) {
-  if (y == null) return "-";
+  if (y == null) return "—";
   if (y === 0) return "Kinder/Prep";
   return `Year ${y}`;
 }
@@ -219,9 +218,8 @@ export default function TeacherPage() {
   const rosterCount = useMemo(() => (classId ? classCounts.get(classId)?.total ?? 0 : 0), [classCounts, classId]);
 
   const ilpCount = useMemo(() => (classId ? classCounts.get(classId)?.ilp ?? 0 : 0), [classCounts, classId]);
-  const totalStudentCount = students.length;
 
-  // filter students before passing to the table (so TeacherStudentTable doesn't need changes)
+  // filter students before passing to the table (so TeacherStudentTable doesn’t need changes)
   const filteredStudents = useMemo(() => {
     if (!studentQ.trim()) return students;
 
@@ -241,7 +239,7 @@ export default function TeacherPage() {
         <div className="mx-auto max-w-[1200px] px-6 py-8">
           <div className="dash-card p-6">
             <div className="text-[12px] font-semibold tracking-widest text-slate-500">TEACHER</div>
-            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Loading...</div>
+            <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">Loading…</div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <div className="h-[160px] rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50" />
               <div className="h-[160px] rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-50 via-slate-100 to-slate-50" />
@@ -253,86 +251,10 @@ export default function TeacherPage() {
   }
 
   const hasClasses = classes.length > 0;
-  const hasAnyStudents = totalStudentCount > 0;
-  const teacherStart = !hasClasses
-    ? {
-        title: "Check your classes first",
-        body: "Start by making sure your classes are ready. Once classes exist, the rest of the teacher workflow becomes much easier to follow.",
-        primaryLabel: "Create or review classes",
-        primaryHref: "/admin/class-entry",
-        secondaryLabel: "Open admin",
-        secondaryHref: "/admin",
-      }
-    : !hasAnyStudents
-    ? {
-        title: "Confirm students in class",
-        body: "Your classes are in place. The next sensible step is to assign or check students so this workspace becomes useful straight away.",
-        primaryLabel: "Assign students",
-        primaryHref: "/admin/student-class",
-        secondaryLabel: "Review classes",
-        secondaryHref: "/admin/classes",
-      }
-    : {
-        title: "Capture the first useful signal",
-        body: "Your classes and students are ready. Start with one concrete action today so this workspace begins with real evidence instead of noise.",
-        primaryLabel: "Enter first result",
-        primaryHref: "/admin/enter-results",
-        secondaryLabel: "Open full workspace",
-        secondaryHref: "/teacher",
-      };
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-[1200px] px-6 py-8 space-y-4">
-        <TeacherShellHeader
-          title="Class Overview"
-          subtitle="You're signed in, your class workspace is ready, and the next actions are kept close by."
-        >
-          <Link href="/students" className="dash-btn dash-btn-muted">
-            Open Students
-          </Link>
-          <button className="dash-btn dash-btn-muted" onClick={loadAll} type="button">
-            Refresh
-          </button>
-        </TeacherShellHeader>
-
-        <section className="dash-card p-5">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] md:items-start">
-            <div>
-              <div className="text-[12px] font-semibold tracking-widest text-slate-500">
-                WHERE TO START
-              </div>
-              <div className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
-                {teacherStart.title}
-              </div>
-              <div className="mt-2 text-sm leading-6 text-slate-600">
-                {teacherStart.body}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-[12px] font-semibold tracking-widest text-slate-500">
-                TODAY'S PATH
-              </div>
-              <div className="mt-3 grid gap-2 text-sm text-slate-700">
-                <div>1. Check your classes</div>
-                <div>2. Confirm students in class</div>
-                <div>3. Capture first evidence or enter first result</div>
-                <div>4. Continue into the full teacher workspace</div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link href={teacherStart.primaryHref} className="dash-btn dash-btn-primary">
-                  {teacherStart.primaryLabel}
-                </Link>
-                <Link href={teacherStart.secondaryHref} className="dash-btn dash-btn-muted">
-                  {teacherStart.secondaryLabel}
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* HERO */}
         <section className="dash-card overflow-hidden">
           <div className="bg-gradient-to-br from-slate-50 to-sky-50 p-6">
@@ -352,8 +274,16 @@ export default function TeacherPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <Link href="/students" className="dash-btn dash-btn-muted">
+                  Open Students
+                </Link>
+
+                <button className="dash-btn dash-btn-muted" onClick={loadAll} type="button">
+                  Refresh
+                </button>
+
                 <Link href="/admin" className="dash-btn dash-btn-primary">
-                  Admin &rarr;
+                  Admin →
                 </Link>
               </div>
             </div>
@@ -372,18 +302,14 @@ export default function TeacherPage() {
 
             <div className="flex flex-wrap gap-2">
               <Link href="/admin/enter-results" className="dash-btn dash-btn-primary">
-                Enter Results &rarr;
+                Enter Results →
               </Link>
             </div>
           </div>
 
           {!hasClasses ? (
             <div className="mt-4 dash-alert">
-              No classes found. Create one in{" "}
-              <Link className="font-semibold underline" href="/admin/class-entry">
-                Admin &rarr; Class Entry
-              </Link>
-              .
+              No classes found. Create one in <Link className="font-semibold underline" href="/admin/class-entry">Admin → Class Entry</Link>.
             </div>
           ) : (
             <>
@@ -408,7 +334,7 @@ export default function TeacherPage() {
                     >
                       <div className="text-base font-semibold text-slate-900 leading-tight">{safeClassName(c.name)}</div>
                       <div className="mt-2 text-sm text-slate-600">
-                        {fmtYear(c.year_level)} - {counts.total} student{counts.total === 1 ? "" : "s"}
+                        {fmtYear(c.year_level)} • {counts.total} student{counts.total === 1 ? "" : "s"}
                       </div>
                       <div className="mt-1 text-sm text-slate-600">ILP: {counts.ilp}</div>
 
@@ -436,7 +362,7 @@ export default function TeacherPage() {
                       const counts = classCounts.get(c.id) ?? { total: 0, ilp: 0 };
                       return (
                         <option key={c.id} value={c.id}>
-                          {safeClassName(c.name)} ({fmtYear(c.year_level)}) - {counts.total} students - ILP {counts.ilp}
+                          {safeClassName(c.name)} ({fmtYear(c.year_level)}) · {counts.total} students · ILP {counts.ilp}
                         </option>
                       );
                     })}
@@ -474,7 +400,7 @@ export default function TeacherPage() {
               <div className="min-w-[260px]">
                 <input
                   className="dash-input"
-                  placeholder="Quick search students... (Esc to clear)"
+                  placeholder="Quick search students… (Esc to clear)"
                   value={studentQ}
                   onChange={(e) => setStudentQ(e.target.value)}
                   onKeyDown={(e) => {
@@ -489,7 +415,7 @@ export default function TeacherPage() {
               <div className="mt-3 text-sm text-slate-600">
                 No students are assigned to this class yet. Assign in{" "}
                 <Link href="/admin/student-class" className="font-semibold text-slate-900 underline">
-                  Admin &rarr; Assign Students &rarr; Classes
+                  Admin → Assign Students → Classes
                 </Link>
                 .
               </div>
