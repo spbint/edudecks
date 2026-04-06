@@ -71,12 +71,6 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
     };
   }, []);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setDraft(value);
-    }
-  }, [isEditing, value]);
-
   const hasSetup = Boolean(value.country_id || value.framework_id || value.level_id);
   const headerButtonLabel = hasSetup ? "Edit curriculum setup" : "Set up curriculum";
   const selectedCountry = countries.find((country) => country.id === value.country_id);

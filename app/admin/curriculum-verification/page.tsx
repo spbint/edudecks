@@ -17,12 +17,6 @@ export default async function CurriculumVerificationPage() {
   const subjects = framework ? await listCurriculumSubjects(framework.id) : [];
   const levels = framework ? await listCurriculumLevels(framework.id) : [];
   const strands = framework ? await listCurriculumStrands(framework.id) : [];
-  const anchors = framework
-    ? await listCurriculumStandards({
-        frameworkCode: "common-core",
-        isAnchor: true,
-      })
-    : [];
   const grade9Standards = await getStandardsForNormalizedGrade("common-core", "Grade 9");
   const grade10Standards = await getStandardsForNormalizedGrade("common-core", "Grade 10");
   const anchorMap = grade9Standards[0]
