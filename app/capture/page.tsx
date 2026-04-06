@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import FlowStep from "@/app/components/FlowStep";
 import SaveStatus from "@/app/components/SaveStatus";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
@@ -1106,6 +1107,16 @@ function CapturePageContent() {
     [activeChild, summary, learningArea]
   );
 
+  const stepOneBadge = activeChild
+    ? `Focused on ${childDisplayName(activeChild)}`
+    : "Choose a learner";
+  const stepTwoBadge =
+    savedCount > 0
+      ? `${savedCount} capture${savedCount === 1 ? "" : "s"} saved`
+      : "Add your first capture";
+  const stepThreeBadge = quality.label;
+  const stepFourBadge = signals.length > 0 ? "Signals gathering" : "Ready to connect";
+
   const frameworks = useMemo(
     () => (curriculum.country ? COUNTRY_TO_FRAMEWORKS[curriculum.country] || [] : []),
     [curriculum.country]
@@ -1407,146 +1418,153 @@ function CapturePageContent() {
         </div>
       ) : (
         <>
-          <section
-            style={{
-              ...mainCard(),
-              marginBottom: 18,
-              padding: 18,
-              background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-              border: "1px solid #dbeafe",
-            }}
+          <FlowStep
+            step={1}
+            title="Choose your learner"
+            description="Capture for the child you want to record"
+            helperText="Focus on one learner so each moment stays calm and meaningful."
+            badge={stepOneBadge}
           >
-            <div
+            <section
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 14,
-                alignItems: isMobile ? "stretch" : "center",
-                flexWrap: "wrap",
-                flexDirection: isMobile ? "column" : "row",
+                ...mainCard(),
+                marginBottom: 18,
+                padding: 18,
+                background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+                border: "1px solid #dbeafe",
               }}
             >
-              <div>
-                <div style={eyebrowStyle()}>Quick capture</div>
-                <div
-                  style={{
-                    marginTop: 4,
-                    fontSize: 26,
-                    lineHeight: 1.15,
-                    fontWeight: 900,
-                    color: "#0f172a",
-                  }}
-                >
-                  {activeChild ? `Capture for ${childDisplayName(activeChild)}` : "Capture learning"}
-                </div>
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    color: "#475569",
-                    maxWidth: 760,
-                  }}
-                >
-                  You do not need to sound like a teacher. Just notice what happened, what it showed, and why it matters.
-                </div>
-              </div>
-
               <div
                 style={{
                   display: "flex",
-                  gap: 10,
+                  justifyContent: "space-between",
+                  gap: 14,
+                  alignItems: isMobile ? "stretch" : "center",
                   flexWrap: "wrap",
-                  width: isMobile ? "100%" : "auto",
                   flexDirection: isMobile ? "column" : "row",
                 }}
               >
-                {isMobile ? (
-                  <Link
-                    href={
-                      plannerContext.date
-                        ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                        : "/family"
-                    }
-                    style={{ ...buttonStyle(false), width: "100%" }}
+                <div>
+                  <div style={eyebrowStyle()}>Quick capture</div>
+                  <div
+                    style={{
+                      marginTop: 4,
+                      fontSize: 26,
+                      lineHeight: 1.15,
+                      fontWeight: 900,
+                      color: "#0f172a",
+                    }}
                   >
-                    {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
-                  </Link>
-                ) : (
-                  <Link
-                    href={
-                      plannerContext.date
-                        ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                        : "/family"
-                    }
-                    style={buttonStyle(false)}
+                    {activeChild ? `Capture for ${childDisplayName(activeChild)}` : "Capture learning"}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 14,
+                      lineHeight: 1.65,
+                      color: "#475569",
+                      maxWidth: 760,
+                    }}
                   >
-                    {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
-                  </Link>
-                )}
-              </div>
-            </div>
-
-            {plannerContext.isActive ? (
-              <div
-                style={{
-                  ...softCard(),
-                  marginTop: 16,
-                  border: "1px solid #dbeafe",
-                  background: "#eff6ff",
-                }}
-              >
-                <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
-                  Capturing from your calendar plan
+                    You do not need to sound like a teacher. Just notice what happened, what it showed, and why it matters.
+                  </div>
                 </div>
+
                 <div
                   style={{
-                    marginTop: 8,
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    color: "#1e3a8a",
-                    fontWeight: 700,
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    width: isMobile ? "100%" : "auto",
+                    flexDirection: isMobile ? "column" : "row",
                   }}
                 >
-                  Bring the planned learning moment into a real record. Adjust anything you need
-                  before saving.
-                </div>
-
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-                  {plannerContext.date ? (
-                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                      Date {plannerContext.date}
-                    </span>
-                  ) : null}
-                  {plannerContext.learningArea ? (
-                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                      {plannerContext.learningArea}
-                    </span>
-                  ) : null}
-                  {plannerContext.title ? (
-                    <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
-                      {plannerContext.title}
-                    </span>
-                  ) : null}
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                  <Link
-                    href={
-                      plannerContext.date
-                        ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
-                        : "/calendar"
-                    }
-                    style={buttonStyle(false)}
-                  >
-                    Back to Calendar
-                  </Link>
+                  {isMobile ? (
+                    <Link
+                      href={
+                        plannerContext.date
+                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
+                          : "/family"
+                      }
+                      style={{ ...buttonStyle(false), width: "100%" }}
+                    >
+                      {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={
+                        plannerContext.date
+                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
+                          : "/family"
+                      }
+                      style={buttonStyle(false)}
+                    >
+                      {plannerContext.isActive ? "Back to Calendar" : "Family Home"}
+                    </Link>
+                  )}
                 </div>
               </div>
-            ) : null}
 
-            {null}
-          </section>
+              {plannerContext.isActive ? (
+                <div
+                  style={{
+                    ...softCard(),
+                    marginTop: 16,
+                    border: "1px solid #dbeafe",
+                    background: "#eff6ff",
+                  }}
+                >
+                  <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
+                    Capturing from your calendar plan
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 14,
+                      lineHeight: 1.65,
+                      color: "#1e3a8a",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Bring the planned learning moment into a real record. Adjust anything you need before saving.
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                    {plannerContext.date ? (
+                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                        Date {plannerContext.date}
+                      </span>
+                    ) : null}
+                    {plannerContext.learningArea ? (
+                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                        {plannerContext.learningArea}
+                      </span>
+                    ) : null}
+                    {plannerContext.title ? (
+                      <span style={pillStyle("#ffffff", "#1e3a8a", "#bfdbfe")}>
+                        {plannerContext.title}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                    <Link
+                      href={
+                        plannerContext.date
+                          ? `/calendar?view=day&date=${encodeURIComponent(plannerContext.date)}`
+                          : "/calendar"
+                      }
+                      style={buttonStyle(false)}
+                    >
+                      Back to Calendar
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+
+              {null}
+            </section>
+          </FlowStep>
 
           <section
             style={{
@@ -1559,7 +1577,14 @@ function CapturePageContent() {
             }}
           >
             <div style={{ display: "grid", gap: 18 }}>
-              <section style={mainCard()}>
+              <FlowStep
+                step={2}
+                title="Capture what happened"
+                description="Add the moment details calmly"
+                helperText="Use the summary, domain, and date fields together; the quality signal keeps it grounded."
+                badge={stepTwoBadge}
+              >
+                <section style={mainCard()}>
                 <div style={eyebrowStyle()}>Main capture</div>
                 <div
                   style={{
@@ -2042,84 +2067,102 @@ function CapturePageContent() {
                   </div>
                 </div>
               </section>
+              </FlowStep>
 
-              {!isPremium && savedCount >= 2 ? (
-                <section style={{ ...mainCard(), marginBottom: 18, padding: 14 }}>
-                  <UpgradeHint
-                    title="You're building a strong learning record"
-                    description="Want more flexibility as you grow?"
-                    ctaLabel="Unlock more control"
-                    ctaHref="/upgrade"
-                    variant="subtle"
-                  />
-                </section>
-              ) : null}
-
-              <section
-                style={{
-                  ...softCard(),
-                  border: "1px solid #bfdbfe",
-                  background: "#f8fbff",
-                }}
+              <FlowStep
+                step={3}
+                title="Notice the capture quality"
+                description="Keep track of momentum, upgrades, and next moves"
+                helperText="These reminders help you turn capture into portfolio-ready evidence."
+                badge={stepThreeBadge}
               >
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 14,
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 18,
-                        lineHeight: 1.25,
-                        fontWeight: 900,
-                        color: "#0f172a",
-                        marginBottom: 8,
-                      }}
-                    >
-                      {savedCount > 0
-                        ? "You’re building momentum — next step: portfolio or reports"
-                        : "After capture, the next strongest move is usually portfolio or reports"}
-                    </div>
+                <div style={{ display: "grid", gap: 18 }}>
+                  {!isPremium && savedCount >= 2 ? (
+                    <section style={{ ...mainCard(), marginBottom: 18, padding: 14 }}>
+                      <UpgradeHint
+                        title="You're building a strong learning record"
+                        description="Want more flexibility as you grow?"
+                        ctaLabel="Unlock more control"
+                        ctaHref="/upgrade"
+                        variant="subtle"
+                      />
+                    </section>
+                  ) : null}
 
-                    <div
-                      style={{
-                        fontSize: 14,
-                        lineHeight: 1.6,
-                        color: "#475569",
-                        maxWidth: 760,
-                      }}
-                    >
-                      {savedCount > 0
-                        ? `You’ve saved ${savedCount} learning ${
-                            savedCount === 1 ? "record" : "records"
-                          } in this session. These become much more powerful when viewed together in portfolio and reports.`
-                        : "Once a few meaningful records exist, the system becomes much more useful for curation, planning, and reporting."}
-                    </div>
-                  </div>
-
-                  <div
+                  <section
                     style={{
-                      display: "flex",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      width: isMobile ? "100%" : "auto",
-                      flexDirection: isMobile ? "column" : "row",
+                      ...softCard(),
+                      border: "1px solid #bfdbfe",
+                      background: "#f8fbff",
                     }}
                   >
-                    <Link
-                      href="/portfolio"
-                      style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 14,
+                      }}
                     >
-                      Open Portfolio
-                    </Link>
-                  </div>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            lineHeight: 1.25,
+                            fontWeight: 900,
+                            color: "#0f172a",
+                            marginBottom: 8,
+                          }}
+                        >
+                          {savedCount > 0
+                            ? "You’re building momentum — next step: portfolio or reports"
+                            : "After capture, the next strongest move is usually portfolio or reports"}
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: 14,
+                            lineHeight: 1.6,
+                            color: "#475569",
+                            maxWidth: 760,
+                          }}
+                        >
+                          {savedCount > 0
+                            ? `You’ve saved ${savedCount} learning ${
+                                savedCount === 1 ? "record" : "records"
+                              } in this session. These become much more powerful when viewed together in portfolio and reports.`
+                            : "Once a few meaningful records exist, the system becomes much more useful for curation, planning, and reporting."}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 12,
+                          flexWrap: "wrap",
+                          width: isMobile ? "100%" : "auto",
+                          flexDirection: isMobile ? "column" : "row",
+                        }}
+                      >
+                        <Link
+                          href="/portfolio"
+                          style={{ ...buttonStyle(false), width: isMobile ? "100%" : undefined }}
+                        >
+                          Open Portfolio
+                        </Link>
+                      </div>
+                    </div>
+                  </section>
                 </div>
-              </section>
+              </FlowStep>
             </div>
 
-            <div style={{ display: "grid", gap: 18 }}>
+            <FlowStep
+              step={4}
+              title="Keep moving toward reports"
+              description="Use the prompts and signals below"
+              helperText="These gentle reminders keep your next move obvious."
+              badge={stepFourBadge}
+            >
+              <div style={{ display: "grid", gap: 18 }}>
               <section style={mainCard()}>
                 <div style={eyebrowStyle()}>Helpful guide</div>
                 <div
@@ -2209,6 +2252,7 @@ function CapturePageContent() {
                 </div>
               </section>
             </div>
+          </FlowStep>
           </section>
 
         </>
