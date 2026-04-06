@@ -1,211 +1,177 @@
-/* eslint-disable max-lines */
-/* ============================================================
-   Curriculum mapping utilities (lightweight seed data)
-============================================================ */
+"use server";
 
-export type CurriculumCountry = {
-  id: string;
-  name: string;
-  region_label: string;
-  recommended_framework_id?: string;
+import { supabase } from "@/lib/supabaseClient";
+import {
+  CurriculumStandard,
+  CurriculumStrand,
+  CurriculumSubject,
+  CurriculumLevel,
+  CurriculumFramework,
+} from "@/lib/curriculum/types";
+
+type StandardFilter = {
+  frameworkCode?: string;
+  subjectCode?: string;
+  strandCode?: string;
+  officialLevelLabel?: string;
+  normalizedGradeLabel?: string;
+  normalizedGradeSort?: number;
+  disciplineContext?: string;
+  isAnchor?: boolean;
+  codeSearch?: string;
+  keywordSearch?: string;
 };
 
-export type CurriculumRegion = {
-  id: string;
-  country_id: string;
-  name: string;
-};
-
-export type CurriculumFramework = {
-  id: string;
-  country_id: string;
-  region_id?: string;
-  name: string;
-  description: string;
-  recommended_for_country?: boolean;
-  recommended_for_region?: boolean;
-  recommended_level_id?: string;
-  subject_ids: string[];
-};
-
-export type CurriculumLevel = {
-  id: string;
-  label: string;
-  sort: number;
-};
-
-export type CurriculumSubject = {
-  id: string;
-  label: string;
-  framework_ids: string[];
-};
-
-const DEMO_COUNTRIES: CurriculumCountry[] = [
-  {
-    id: "us",
-    name: "United States",
-    region_label: "State / region",
-    recommended_framework_id: "common-core",
-  },
-];
-
-const DEMO_REGIONS: CurriculumRegion[] = [
-  { id: "us-ca", country_id: "us", name: "California" },
-  { id: "us-tx", country_id: "us", name: "Texas" },
-  { id: "us-fl", country_id: "us", name: "Florida" },
-  { id: "us-va", country_id: "us", name: "Virginia" },
-];
-
-const DEMO_FRAMEWORKS: CurriculumFramework[] = [
-  {
-    id: "common-core",
-    country_id: "us",
-    name: "Common Core State Standards",
-    description: "Widely adopted ELA and Mathematics standards for the United States.",
-    recommended_for_country: true,
-    recommended_level_id: "grade-3",
-    subject_ids: ["ela", "math", "science", "humanities"],
-  },
-  {
-    id: "texas-teks",
-    country_id: "us",
-    region_id: "us-tx",
-    name: "Texas Essential Knowledge and Skills (TEKS)",
-    description: "Texas-specific standards for Math and ELA.",
-    recommended_for_region: true,
-    recommended_level_id: "grade-3",
-    subject_ids: ["ela", "math"],
-  },
-  {
-    id: "florida-best",
-    country_id: "us",
-    region_id: "us-fl",
-    name: "Florida B.E.S.T.",
-    description: "Florida’s benchmark for learning progress.",
-    subject_ids: ["ela", "math"],
-  },
-  {
-    id: "virginia-sol",
-    country_id: "us",
-    region_id: "us-va",
-    name: "Virginia Standards of Learning (SOL)",
-    description: "Virginia’s learning standards for core subjects.",
-    subject_ids: ["ela", "math"],
-  },
-];
-
-const GRADE_LEVELS: CurriculumLevel[] = [
-  { id: "kindergarten", label: "Kindergarten", sort: 0 },
-  { id: "grade-1", label: "Grade 1", sort: 1 },
-  { id: "grade-2", label: "Grade 2", sort: 2 },
-  { id: "grade-3", label: "Grade 3", sort: 3 },
-  { id: "grade-4", label: "Grade 4", sort: 4 },
-  { id: "grade-5", label: "Grade 5", sort: 5 },
-  { id: "grade-6", label: "Grade 6", sort: 6 },
-  { id: "grade-7", label: "Grade 7", sort: 7 },
-  { id: "grade-8", label: "Grade 8", sort: 8 },
-  { id: "grade-9", label: "Grade 9", sort: 9 },
-  { id: "grade-10", label: "Grade 10", sort: 10 },
-];
-
-const DEMO_SUBJECTS: CurriculumSubject[] = [
-  { id: "ela", label: "English Language Arts", framework_ids: ["common-core", "texas-teks", "florida-best", "virginia-sol"] },
-  { id: "math", label: "Mathematics", framework_ids: ["common-core", "texas-teks", "florida-best", "virginia-sol"] },
-  { id: "science", label: "Science", framework_ids: ["common-core"] },
-  { id: "humanities", label: "Humanities / Social Studies", framework_ids: ["common-core"] },
-];
-
-export async function loadCurriculumCountries(): Promise<CurriculumCountry[]> {
-  return DEMO_COUNTRIES;
+export async function getCurriculumFrameworkByCode(code: string) {
+  const { data } = await supabase
+    .from("curriculum_frameworks")
+    .select("*")
+    .eq("code", code)
+    .maybeSingle();
+  return data as CurriculumFramework | null;
 }
 
-export async function loadCurriculumRegions(countryId?: string): Promise<CurriculumRegion[]> {
-  if (!countryId) return DEMO_REGIONS;
-  return DEMO_REGIONS.filter((region) => region.country_id === countryId);
+export async function listCurriculumSubjects(frameworkId: string) {
+  const { data } = await supabase
+    .from("curriculum_subjects")
+    .select("*")
+    .eq("framework_id", frameworkId)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as CurriculumSubject[];
 }
 
-export async function loadCurriculumFrameworks(
-  countryId?: string,
-  regionId?: string
-): Promise<CurriculumFramework[]> {
-  if (!countryId) return DEMO_FRAMEWORKS;
-  return DEMO_FRAMEWORKS.filter((framework) => {
-    const matchesCountry = framework.country_id === countryId;
-    if (!matchesCountry) return false;
-    if (regionId && framework.region_id) {
-      return framework.region_id === regionId;
-    }
-    if (regionId && !framework.region_id) {
-      return framework.recommended_for_country ?? true;
-    }
-    return true;
+export async function listCurriculumLevels(frameworkId: string) {
+  const { data } = await supabase
+    .from("curriculum_levels")
+    .select("*")
+    .eq("framework_id", frameworkId)
+    .order("normalized_sort_order", { ascending: true });
+  return (data ?? []) as CurriculumLevel[];
+}
+
+export async function listCurriculumStrands(frameworkId: string, subjectCode?: string) {
+  const query = supabase
+    .from("curriculum_strands")
+    .select("*, subject:curriculum_subjects(code)")
+    .eq("framework_id", frameworkId)
+    .order("sort_order", { ascending: true });
+  if (subjectCode) {
+    query.eq("subject:curriculum_subjects.code", subjectCode);
+  }
+  const { data } = await query;
+  return (data ?? []) as CurriculumStrand[];
+}
+
+export async function listCurriculumStandards(filter: StandardFilter = {}) {
+  const query = supabase
+    .from("curriculum_standards")
+    .select(`
+      *,
+      subject:curriculum_subjects(code,name),
+      strand:curriculum_strands(code,name),
+      level:curriculum_levels(normalized_level_label,official_level_label)
+    `)
+    .order("normalized_grade_sort", { ascending: true })
+    .order("source_order", { ascending: true });
+
+  if (filter.frameworkCode) {
+    const framework = await getCurriculumFrameworkByCode(filter.frameworkCode);
+    if (!framework) return [];
+    query.eq("framework_id", framework.id);
+  }
+
+  if (filter.subjectCode) {
+    query.eq("subject:curriculum_subjects.code", filter.subjectCode);
+  }
+
+  if (filter.strandCode) {
+    query.eq("strand:curriculum_strands.code", filter.strandCode);
+  }
+
+  if (filter.officialLevelLabel) {
+    query.eq("official_grade_label", filter.officialLevelLabel);
+  }
+
+  if (filter.normalizedGradeLabel) {
+    query.eq("normalized_grade_label", filter.normalizedGradeLabel);
+  }
+
+  if (filter.normalizedGradeSort !== undefined) {
+    query.eq("normalized_grade_sort", filter.normalizedGradeSort);
+  }
+
+  if (filter.disciplineContext) {
+    query.eq("discipline_context", filter.disciplineContext);
+  }
+
+  if (typeof filter.isAnchor === "boolean") {
+    query.eq("is_anchor", filter.isAnchor);
+  }
+
+  if (filter.codeSearch) {
+    query.ilike("official_code", `%${filter.codeSearch}%`);
+  }
+
+  if (filter.keywordSearch) {
+    query.or(`title.ilike.%${filter.keywordSearch}%,description.ilike.%${filter.keywordSearch}%`);
+  }
+
+  const { data } = await query;
+  return (data ?? []) as CurriculumStandard[];
+}
+
+export async function getCurriculumStandardByCode(code: string) {
+  const { data } = await supabase
+    .from("curriculum_standards")
+    .select("*")
+    .eq("official_code", code)
+    .maybeSingle();
+  return data as CurriculumStandard | null;
+}
+
+export async function getAnchorStandardsForStandard(standardId: string) {
+  const { data } = await supabase
+    .from("curriculum_standard_relationships")
+    .select("*, source:curriculum_standards(*)")
+    .eq("target_standard_id", standardId)
+    .eq("relationship_type", "anchor-to-grade");
+  return (data ?? []).map((relation) => relation.source as CurriculumStandard);
+}
+
+export async function getStandardsForNormalizedGrade(frameworkCode: string, normalizedGradeLabel: string) {
+  return listCurriculumStandards({
+    frameworkCode,
+    normalizedGradeLabel,
   });
 }
 
-export async function loadCurriculumLevels(): Promise<CurriculumLevel[]> {
-  return GRADE_LEVELS;
+export async function getStandardsForOfficialLevel(frameworkCode: string, officialLevelLabel: string) {
+  return listCurriculumStandards({
+    frameworkCode,
+    officialLevelLabel,
+  });
 }
 
-export async function loadCurriculumSubjects(): Promise<CurriculumSubject[]> {
-  return DEMO_SUBJECTS;
+export async function getStandardsGroupedByStrand(frameworkCode: string, normalizedGradeLabel: string) {
+  const standards = await getStandardsForNormalizedGrade(frameworkCode, normalizedGradeLabel);
+  const grouped: Record<string, CurriculumStandard[]> = {};
+  standards.forEach((standard) => {
+    const key = standard.strand_id || "uncategorized";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(standard);
+  });
+  return grouped;
 }
 
-export function getRecommendedFrameworkId(
-  countryId?: string | null,
-  regionId?: string | null
-): string | null {
-  if (!countryId) return null;
-
-  if (regionId) {
-    const regionFramework = DEMO_FRAMEWORKS.find(
-      (framework) =>
-        framework.region_id === regionId && framework.recommended_for_region
-    );
-    if (regionFramework) return regionFramework.id;
-  }
-
-  const countryFramework = DEMO_FRAMEWORKS.find(
-    (framework) =>
-      framework.country_id === countryId && framework.recommended_for_country
-  );
-  return countryFramework?.id ?? null;
-}
-
-export function getRecommendedLevelId(frameworkId?: string | null): string | null {
-  if (!frameworkId) return null;
-  const framework = DEMO_FRAMEWORKS.find((candidate) => candidate.id === frameworkId);
-  return framework?.recommended_level_id ?? null;
-}
-
-export function findFrameworkById(id?: string | null): CurriculumFramework | undefined {
-  if (!id) return undefined;
-  return DEMO_FRAMEWORKS.find((framework) => framework.id === id);
-}
-
-export function findLevelLabel(levelId?: string | null): string | undefined {
-  if (!levelId) return undefined;
-  return GRADE_LEVELS.find((level) => level.id === levelId)?.label;
-}
-
-export function findSubjectLabel(subjectId?: string | null): string | undefined {
-  if (!subjectId) return undefined;
-  return DEMO_SUBJECTS.find((subject) => subject.id === subjectId)?.label;
-}
-
-export function findCountryById(countryId?: string | null): CurriculumCountry | undefined {
-  if (!countryId) return undefined;
-  return DEMO_COUNTRIES.find((country) => country.id === countryId);
-}
-
-export function findRegionById(regionId?: string | null): CurriculumRegion | undefined {
-  if (!regionId) return undefined;
-  return DEMO_REGIONS.find((region) => region.id === regionId);
-}
-
-export function findCountryLabel(countryId?: string | null): string | undefined {
-  return findCountryById(countryId)?.name;
-}
-
-export function findRegionLabel(regionId?: string | null): string | undefined {
-  return findRegionById(regionId)?.name;
+export function buildFriendlyLabel(params: {
+  frameworkName?: string;
+  subjectName?: string;
+  levelLabel?: string;
+}) {
+  const pieces = [
+    params.frameworkName,
+    params.subjectName,
+    params.levelLabel,
+  ].filter(Boolean);
+  return pieces.join(" • ");
 }
