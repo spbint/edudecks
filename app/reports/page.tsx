@@ -2081,60 +2081,116 @@ function ReportsPageContent() {
 
             {selectedStudent && (
               <section style={{ marginTop: 20 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 20,
+                    gridTemplateColumns: isMobile ? "1fr" : "1.2fr 0.8fr",
+                    alignItems: "start",
+                  }}
+                >
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#475569" }}>
-                      Confidence & guidance
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 900,
+                            letterSpacing: 1,
+                            textTransform: "uppercase",
+                            color: "#475569",
+                          }}
+                        >
+                          Confidence & guidance
+                        </div>
+                        <p style={{ margin: "6px 0 0", fontSize: 14, color: "#475569" }}>
+                          This view summarizes readiness, subject signals, gaps, and suggested captures tied to the selected mode.
+                        </p>
+                      </div>
+                      <span style={pillStyle("primary")}>{modeLabel(reportMode)}</span>
                     </div>
-                    <p style={{ margin: "6px 0 0", fontSize: 14, color: "#475569" }}>
-                      This view summarizes readiness, subject signals, gaps, and suggested captures tied to the selected mode.
-                    </p>
+                    <div style={{ marginTop: 12 }}>
+                      <ReportSignalsPanel
+                        studentId={selectedStudent.id}
+                        studentName={studentName(selectedStudent)}
+                        mode={mapReportModeToReportingMode(reportMode)}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div style={{ marginTop: 12 }}>
-                  <ReportSignalsPanel
-                    studentId={selectedStudent.id}
-                    studentName={studentName(selectedStudent)}
-                    mode={mapReportModeToReportingMode(reportMode)}
-                  />
+                  <div style={{ display: "grid", gap: 14 }}>
+                    <section style={cardStyle}>
+                      <div style={h2Style}>What this report currently shows</div>
+                      <div style={bodyStyle}>{interpretation.text}</div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
+                          gap: 12,
+                          marginTop: 14,
+                        }}
+                      >
+                        <div style={softCardStyle}>
+                          <div style={labelStyle}>Strongest current focus</div>
+                          <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
+                        </div>
+
+                        <div style={softCardStyle}>
+                          <div style={labelStyle}>Weakest current area</div>
+                          <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
+                        </div>
+
+                        <div style={softCardStyle}>
+                          <div style={labelStyle}>Coverage balance</div>
+                          <div style={h3Style}>
+                            {interpretation.weakAreas.length === 0
+                              ? "Balanced"
+                              : interpretation.weakAreas.length <= 2
+                              ? "Mostly balanced"
+                              : "Unbalanced"}
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section style={cardStyle}>
+                      <div style={h2Style}>Next best move</div>
+                      <div style={bodyStyle}>{nextBestMove}</div>
+                      <div style={{ ...smallStyle, marginTop: 8 }}>
+                        The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+                        <button
+                          type="button"
+                          onClick={() => void handleSave(false)}
+                          style={buttonStyle(false)}
+                          data-journey-intent={builderValueSignal.primaryIntent}
+                        >
+                          {saving ? "Saving…" : "Save draft"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleSave(true)}
+                          style={buttonStyle(true)}
+                          data-journey-intent={builderValueSignal.secondaryIntent}
+                        >
+                          {saving ? "Building…" : "Open output"}
+                        </button>
+                      </div>
+                    </section>
+                  </div>
                 </div>
               </section>
             )}
-
-            <section style={cardStyle}>
-              <div style={h2Style}>What this report currently shows</div>
-              <div style={bodyStyle}>{interpretation.text}</div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr",
-                  gap: 12,
-                  marginTop: 14,
-                }}
-              >
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Strongest current focus</div>
-                  <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
-                </div>
-
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Weakest current area</div>
-                  <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
-                </div>
-
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Coverage balance</div>
-                  <div style={h3Style}>
-                    {interpretation.weakAreas.length === 0
-                      ? "Balanced"
-                      : interpretation.weakAreas.length <= 2
-                      ? "Mostly balanced"
-                      : "Unbalanced"}
-                  </div>
-                </div>
-              </div>
-            </section>
 
             <section style={cardStyle}>
               <div
@@ -2349,33 +2405,6 @@ function ReportsPageContent() {
                 }}
                 placeholder="Write a short summary of what feels most important in this report..."
               />
-            </section>
-
-            <section style={cardStyle}>
-              <div style={h2Style}>Next best move</div>
-              <div style={bodyStyle}>{nextBestMove}</div>
-              <div style={{ ...smallStyle, marginTop: 8 }}>
-                The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(false)}
-                  style={buttonStyle(false)}
-                  data-journey-intent={builderValueSignal.primaryIntent}
-                >
-                  {saving ? "Saving…" : "Save draft"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave(true)}
-                  style={buttonStyle(true)}
-                  data-journey-intent={builderValueSignal.secondaryIntent}
-                >
-                  {saving ? "Building…" : "Open output"}
-                </button>
-              </div>
             </section>
 
             <section style={cardStyle}>

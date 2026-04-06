@@ -174,8 +174,9 @@ function ReportsOutputPageContent() {
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
+              gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)",
               gap: 18,
+              alignItems: "start",
             }}
           >
             <section
@@ -213,246 +214,130 @@ function ReportsOutputPageContent() {
               </div>
             </section>
 
-          {narrative ? (
-            <section
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 20,
-                background: "#ffffff",
-                padding: 22,
-                boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-                display: "grid",
-                gap: 14,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    color: "#64748b",
-                    marginBottom: 6,
-                  }}
-                >
-                  Reporting intelligence
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 950, color: "#0f172a" }}>
-                  Confidence-building language
-                </div>
-              </div>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.75, color: "#475569" }}>
-                {narrative.overallSummary}
-              </p>
-              <div
+            {narrative ? (
+              <section
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 12,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 20,
+                  background: "#ffffff",
+                  padding: 22,
+                  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
                 }}
               >
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.strengths.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 900,
+                      letterSpacing: 1,
+                      textTransform: "uppercase",
+                      color: "#64748b",
+                      marginBottom: 6,
+                    }}
+                  >
+                    Reporting intelligence
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 950, color: "#0f172a" }}>
+                    Confidence-building language
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+                    Tone: {modeLabel(draft.report_mode)}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.areasForGrowth.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.nextSteps.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
-                Evidence note: {narrative.evidenceReadinessNote}
-              </p>
-              {narrative.subjectInsights.length > 0 && (
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.75, color: "#475569" }}>
+                  {narrative.overallSummary}
+                </p>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                     gap: 12,
                   }}
                 >
-                  {narrative.subjectInsights.slice(0, 2).map((insight) => (
-                    <div
-                      key={`${insight.subjectName}-${insight.summary}`}
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 14,
-                        padding: 14,
-                        background: "#fdfdfd",
-                      }}
-                    >
-                      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
-                        {insight.subjectName}
-                      </div>
-                      <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
-                    </div>
-                  ))}
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      padding: 14,
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
+                    <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                      {narrative.strengths.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      padding: 14,
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
+                    <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                      {narrative.areasForGrowth.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      padding: 14,
+                      background: "#f8fafc",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
+                    <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
+                      {narrative.nextSteps.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-              )}
-            </section>
-          ) : null}
+                <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+                  Evidence note: {narrative.evidenceReadinessNote}
+                </p>
+                {narrative.subjectInsights.length > 0 && (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    {narrative.subjectInsights.slice(0, 2).map((insight) => (
+                      <div
+                        key={`${insight.subjectName}-${insight.summary}`}
+                        style={{
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 14,
+                          padding: 14,
+                          background: "#fdfdfd",
+                        }}
+                      >
+                        <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+                          {insight.subjectName}
+                        </div>
+                        <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
+                        <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
+                        <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
+                        <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ) : null}
           </section>
-
-          {narrative ? (
-            <section
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 20,
-                background: "#ffffff",
-                padding: 22,
-                boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-                display: "grid",
-                gap: 14,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    color: "#64748b",
-                    marginBottom: 6,
-                  }}
-                >
-                  Reporting intelligence
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 950, color: "#0f172a" }}>
-                  Confidence-building language
-                </div>
-              </div>
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.8, color: "#475569" }}>
-                {narrative.overallSummary}
-              </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                  gap: 12,
-                }}
-              >
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.strengths.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.areasForGrowth.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div
-                  style={{
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 14,
-                    padding: 14,
-                    background: "#f8fafc",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
-                  <ul style={{ margin: "10px 0 0 16px", padding: 0, color: "#475569" }}>
-                    {narrative.nextSteps.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
-                Evidence note: {narrative.evidenceReadinessNote}
-              </p>
-              {narrative.subjectInsights.length > 0 && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {narrative.subjectInsights.slice(0, 2).map((insight) => (
-                    <div
-                      key={`${insight.subjectName}-${insight.summary}`}
-                      style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 14,
-                        padding: 14,
-                        background: "#fdfdfd",
-                      }}
-                    >
-                      <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
-                        {insight.subjectName}
-                      </div>
-                      <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
-                      <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          ) : null}
         </>
       )}
     </main>

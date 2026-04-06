@@ -55,21 +55,58 @@ export function useAssessmentInsights(
 }
 
 const panelStyle: React.CSSProperties = {
-  border: "1px solid #e5e7eb",
+  border: "1px solid #e2e8f0",
   borderRadius: 24,
   background: "#ffffff",
   padding: 24,
-  boxShadow: "0 20px 40px rgba(15,23,42,0.06)",
+  boxShadow: "0 15px 32px rgba(15,23,42,0.08)",
   display: "flex",
   flexDirection: "column",
   gap: 18,
 };
 
+const previewSectionStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 18,
+  background: "#f8fafc",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
+const previewGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: 10,
+};
+
+const previewItemStyle: React.CSSProperties = {
+  borderRadius: 12,
+  border: "1px solid #e5e7f0",
+  padding: 10,
+  background: "#ffffff",
+  minHeight: 70,
+};
+
+const previewLabelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 900,
+  letterSpacing: 0.5,
+  textTransform: "uppercase",
+  color: "#475569",
+};
+
+const previewValueStyle: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: 1.5,
+  color: "#0f172a",
+};
+
 const subjectCardStyle: React.CSSProperties = {
   border: "1px solid #edf2f7",
   borderRadius: 16,
-  padding: 12,
-  background: "#f8fafc",
+  padding: 14,
+  background: "#fdfdff",
 };
 
 const listStyle: React.CSSProperties = {
@@ -137,6 +174,17 @@ export default function ReportSignalsPanel({
   const modeMeta = toneMap[mode];
   const subjectsToShow = readinessReport?.subjectReadiness.slice(0, 4) ?? [];
   const gaps = readinessReport?.evidenceGaps ?? [];
+  const limitedGaps = gaps.slice(0, 3);
+  const moreGaps = gaps.length > limitedGaps.length;
+  const captureGuidance = readinessReport?.captureGuidance ?? [];
+  const limitedGuidance = captureGuidance.slice(0, 4);
+  const previewHighlights = narrative
+    ? [
+        { label: "Strength", value: narrative.strengths[0] },
+        { label: "Growth", value: narrative.areasForGrowth[0] },
+        { label: "Next step", value: narrative.nextSteps[0] },
+      ].filter((item) => Boolean(item.value))
+    : [];
 
   return (
     <section style={panelStyle}>
@@ -169,6 +217,36 @@ export default function ReportSignalsPanel({
           : "Select a child to surface readiness signals."}
       </p>
 
+      {narrative && (
+        <div style={previewSectionStyle}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: "#475569",
+            }}
+          >
+            Report preview
+          </div>
+          <p style={{ margin: 0, fontSize: 14, color: "#0f172a" }}>{narrative.overallSummary}</p>
+          {previewHighlights.length > 0 && (
+            <div style={previewGridStyle}>
+              {previewHighlights.map((point) => (
+                <div key={point.label} style={previewItemStyle}>
+                  <div style={previewLabelStyle}>{point.label}</div>
+                  <div style={previewValueStyle}>{point.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "#64748b" }}>
+            Evidence note: {narrative.evidenceReadinessNote}
+          </div>
+        </div>
+      )}
+
       {subjectsToShow.length > 0 && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.6, color: "#475569", textTransform: "uppercase" }}>
@@ -199,81 +277,72 @@ export default function ReportSignalsPanel({
         </div>
       )}
 
-      {gaps.length > 0 && (
+      {limitedGaps.length > 0 && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.6, color: "#475569", textTransform: "uppercase" }}>
             Evidence gaps
           </div>
           <ul style={listStyle}>
-            {gaps.map((gap) => (
+            {limitedGaps.map((gap) => (
               <li key={gap.standardId}>
                 <strong>{gap.officialCode}</strong> · {gap.title} <em>({gap.subjectName})</em>
                 <div style={{ fontSize: 12, color: "#6b7280" }}>{gap.reason}</div>
               </li>
             ))}
+            {moreGaps ? (
+              <li style={{ fontSize: 12, color: "#6b7280" }}>
+                And {gaps.length - limitedGaps.length} more evidence gaps remain.
+              </li>
+            ) : null}
           </ul>
         </div>
       )}
 
-      {readinessReport && readinessReport.captureGuidance.length > 0 && (
+      {limitedGuidance.length > 0 && (
         <div>
           <div style={{ fontSize: 13, fontWeight: 900, letterSpacing: 0.6, color: "#475569", textTransform: "uppercase" }}>
             Next capture guidance
           </div>
           <ul style={listStyle}>
-            {readinessReport.captureGuidance.map((guidance) => (
+            {limitedGuidance.map((guidance) => (
               <li key={guidance}>{guidance}</li>
             ))}
+            {captureGuidance.length > limitedGuidance.length ? (
+              <li style={{ fontSize: 12, color: "#6b7280" }}>
+                More capture ideas are available in the assessment intelligence view.
+              </li>
+            ) : null}
           </ul>
         </div>
       )}
 
-      {narrative && (
+      {narrative && narrative.subjectInsights.length > 0 && (
         <div
           style={{
-            border: "1px solid #edf2f7",
-            borderRadius: 16,
-            padding: 16,
-            background: "#f8fafc",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 900, color: "#0f172a" }}>Report preview</div>
-          <p style={{ marginTop: 8, fontSize: 14, color: "#0f172a" }}>{narrative.overallSummary}</p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: 10,
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 900, color: "#0f172a" }}>Strengths</div>
-              <ul style={{ ...listStyle, marginTop: 6 }}>
-                {narrative.strengths.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
+          {narrative.subjectInsights.slice(0, 2).map((insight) => (
+            <div
+              key={`${insight.subjectName}-${insight.summary}`}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 14,
+                padding: 14,
+                background: "#fdfdfd",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 900, color: "#0f172a" }}>
+                {insight.subjectName}
+              </div>
+              <p style={{ fontSize: 13, color: "#475569" }}>{insight.summary}</p>
+              <p style={{ fontSize: 11, color: "#6b7280" }}>Strengths: {insight.strengths}</p>
+              <p style={{ fontSize: 11, color: "#6b7280" }}>Growth: {insight.growth}</p>
+              <p style={{ fontSize: 11, color: "#6b7280" }}>Next steps: {insight.nextSteps}</p>
             </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 900, color: "#0f172a" }}>Areas for growth</div>
-              <ul style={{ ...listStyle, marginTop: 6 }}>
-                {narrative.areasForGrowth.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 900, color: "#0f172a" }}>Next steps</div>
-              <ul style={{ ...listStyle, marginTop: 6 }}>
-                {narrative.nextSteps.map((line) => (
-                  <li key={line}>{line}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <p style={{ margin: "12px 0 0", fontSize: 12, color: "#475569" }}>
-            Evidence note: {narrative.evidenceReadinessNote}
-          </p>
+          ))}
         </div>
       )}
     </section>
