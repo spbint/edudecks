@@ -1601,3 +1601,612 @@ export default function AdminExecutivePage() {
               ))}
             </div>
           </section>
+          <section
+            style={{
+              ...sectionCardStyle(),
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900 }}>Live Product Signals</div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: "#475569",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Lightweight product counts informing the board about workflow health,
+                  readiness, and next build direction.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                {signalsLoading ? (
+                  <div
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      background: "#f8fafc",
+                      border: "1px solid #e5e7eb",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#475569",
+                    }}
+                  >
+                    Loading signals
+                  </div>
+                ) : null}
+                {productSignals.usingFallbackData ? (
+                  <div
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      background: "#fffbeb",
+                      border: "1px solid #fde68a",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#92400e",
+                    }}
+                  >
+                    Using fallback/demo product signals
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 999,
+                      background: "#ecfdf5",
+                      border: "1px solid #bbf7d0",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: "#166534",
+                    }}
+                  >
+                    Live product counts loaded
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(180px, 1fr))",
+                gap: 12,
+                marginBottom: 16,
+              }}
+            >
+              {[
+                { label: "Children tracked", value: String(productSignals.childrenCount) },
+                { label: "Evidence entries", value: String(productSignals.evidenceCount) },
+                { label: "Report drafts", value: String(productSignals.reportDraftCount) },
+                { label: "Portfolio items", value: String(productSignals.portfolioItemsCount) },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 16,
+                    padding: 16,
+                    background: "#fafafa",
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    {item.label}
+                  </div>
+                  <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(4, minmax(180px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {[
+                { label: "Capture health", value: productSignals.captureHealth, color: "#2563eb" },
+                { label: "Report health", value: productSignals.reportHealth, color: "#f59e0b" },
+                { label: "Portfolio health", value: productSignals.portfolioHealth, color: "#10b981" },
+                { label: "Readiness score", value: productSignals.readinessScore, color: "#4f46e5" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 16,
+                    padding: 16,
+                    background: "#ffffff",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 10,
+                      marginBottom: 10,
+                      fontSize: 12,
+                      color: "#64748b",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    <span>{item.value}%</span>
+                  </div>
+                  <MiniBar value={item.value} color={item.color} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section
+            style={{
+              ...sectionCardStyle(true),
+              marginBottom: 20,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 14,
+                flexWrap: "wrap",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900 }}>
+                  Synthesis Engine v2
+                </div>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 14,
+                    color: "#475569",
+                  }}
+                >
+                  Executive logic, advisory logic, and live product signals combined into one deterministic board decision system.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                {FOCUS_OPTIONS.map((option) => {
+                  const active = selectedFocus === option.key;
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setSelectedFocus(option.key)}
+                      style={{
+                        border: active ? "1px solid #4f46e5" : "1px solid #e5e7eb",
+                        background: active ? "#eef2ff" : "#ffffff",
+                        color: active ? "#3730a3" : "#334155",
+                        borderRadius: 999,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.05fr 0.95fr",
+                gap: 16,
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid #c7d2fe",
+                  borderRadius: 18,
+                  padding: 18,
+                  background: "#f8faff",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#6366f1",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  {synthesis.title}
+                </div>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 24,
+                    lineHeight: 1.25,
+                    fontWeight: 900,
+                    color: "#0f172a",
+                  }}
+                >
+                  {synthesis.boardCall}
+                </div>
+                <div
+                  style={{
+                    marginTop: 14,
+                    fontSize: 15,
+                    lineHeight: 1.7,
+                    color: "#334155",
+                  }}
+                >
+                  {synthesis.product}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 18,
+                  padding: 18,
+                  background: "#ffffff",
+                  display: "grid",
+                  gap: 14,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                    Executive View
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: "#0f172a", marginTop: 6 }}>
+                    {synthesis.exec}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                    Advisory View
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: "#0f172a", marginTop: 6 }}>
+                    {synthesis.advisory}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                    Risk
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: "#0f172a", marginTop: 6 }}>
+                    {synthesis.risk}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
+                    Next Move
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.6, color: "#0f172a", marginTop: 6 }}>
+                    {synthesis.next}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.2fr 0.8fr",
+              gap: 20,
+              marginBottom: 20,
+            }}
+          >
+            <div style={sectionCardStyle()}>
+              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 14 }}>
+                Build Priority Stack
+              </div>
+
+              <div style={{ display: "grid", gap: 12 }}>
+                {sortedBuildPriorities.map((item, index) => (
+                  <div
+                    key={item.name}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#ffffff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: "#64748b",
+                            fontWeight: 800,
+                          }}
+                        >
+                          PRIORITY {index + 1}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 900,
+                            marginTop: 4,
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: "#f8fafc",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: 999,
+                            padding: "6px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                            color: "#334155",
+                          }}
+                        >
+                          Owner: {item.owner}
+                        </div>
+
+                        <div
+                          style={{
+                            background: statusBg(item.status),
+                            color: statusColor(item.status),
+                            borderRadius: 999,
+                            padding: "6px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.status}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 12 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 10,
+                          marginBottom: 6,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <span>Priority Score</span>
+                        <span>{item.score}</span>
+                      </div>
+                      <MiniBar
+                        value={item.score}
+                        color={
+                          item.status === "critical"
+                            ? "#ef4444"
+                            : item.status === "high"
+                              ? "#f59e0b"
+                              : "#3b82f6"
+                        }
+                      />
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 12,
+                        fontSize: 14,
+                        color: "#334155",
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {item.why}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={sectionCardStyle()}>
+              <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 14 }}>
+                Region Opportunity Radar
+              </div>
+
+              <div style={{ display: "grid", gap: 14 }}>
+                {REGION_ROWS.map((row) => (
+                  <div
+                    key={row.region}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#ffffff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: 15, fontWeight: 900 }}>{row.region}</div>
+                      <div style={{ fontSize: 14, fontWeight: 900 }}>{row.readiness}%</div>
+                    </div>
+
+                    <div style={{ marginTop: 10 }}>
+                      <MiniBar value={row.readiness} color="#4f46e5" />
+                    </div>
+
+                    <div
+                      style={{
+                        marginTop: 10,
+                        fontSize: 13,
+                        color: "#475569",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {row.note}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+          <section style={sectionCardStyle(true)}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.15fr 0.85fr",
+                gap: 20,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 900, marginBottom: 10 }}>
+                  Board Call
+                </div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 900,
+                    lineHeight: 1.2,
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {synthesis.boardCall}
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 14,
+                    fontSize: 15,
+                    color: "#334155",
+                    lineHeight: 1.7,
+                    maxWidth: 880,
+                  }}
+                >
+                  {synthesis.product} {synthesis.exec} {synthesis.advisory}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 18,
+                  padding: 18,
+                  background: "#ffffff",
+                }}
+              >
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 800 }}>
+                  NEXT BEST PRODUCT MOVE
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 900, marginTop: 8 }}>
+                  {synthesis.title}
+                </div>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: "#334155",
+                  }}
+                >
+                  {synthesis.next}
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 16,
+                  }}
+                >
+                  <Link
+                    href="/authority"
+                    style={{
+                      textDecoration: "none",
+                      background: "#4f46e5",
+                      color: "#ffffff",
+                      fontWeight: 800,
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      fontSize: 14,
+                    }}
+                  >
+                    Open Authority Hub
+                  </Link>
+
+                  <Link
+                    href="/reports/output"
+                    style={{
+                      textDecoration: "none",
+                      background: "#ffffff",
+                      color: "#0f172a",
+                      border: "1px solid #e5e7eb",
+                      fontWeight: 800,
+                      padding: "10px 14px",
+                      borderRadius: 12,
+                      fontSize: 14,
+                    }}
+                  >
+                    Open Report Output
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  );
+}
