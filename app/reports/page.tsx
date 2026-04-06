@@ -2078,7 +2078,6 @@ function ReportsPageContent() {
                   ))}
               </div>
             </section>
-            </section>
 
             {selectedStudent && (
               <section style={{ marginTop: 20 }}>
