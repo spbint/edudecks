@@ -11,6 +11,7 @@ import {
   listCurriculumSubjects,
   getStandardsForNormalizedGrade,
 } from "@/lib/curriculum";
+import type { CurriculumStandard } from "@/lib/curriculum/types";
 
 export default async function CurriculumVerificationPage() {
   const framework = await getCurriculumFrameworkByCode("common-core");
