@@ -206,7 +206,7 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
   }
 
   return (
-    <section style={cardStyles.card}>
+    <section id="curriculum-setup" style={cardStyles.card}>
       <div style={cardStyles.header}>
         <div>
           <div style={cardStyles.eyebrow}>Curriculum setup</div>

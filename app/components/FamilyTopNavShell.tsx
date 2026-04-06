@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
-import SignOutButton from "@/app/components/SignOutButton";
+import ProfileMenu from "@/app/components/ProfileMenu";
 import useIsMobile from "@/app/components/useIsMobile";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 
@@ -186,7 +186,7 @@ export default function FamilyTopNavShell({
                 <Link href="/community" style={utilBtn(false)}>
                   Community
                 </Link>
-                <SignOutButton style={utilBtn(false)} />
+                <ProfileMenu mobile />
                 <details
                   style={{
                     position: "relative",
@@ -227,7 +227,6 @@ export default function FamilyTopNavShell({
                     <Link href="/community" style={navBtn(isActive(pathname, "/community"))}>
                       Community
                     </Link>
-                    <SignOutButton style={{ ...utilBtn(false), width: "100%", justifyContent: "center" }} />
                     {SECTIONS.map((section) => (
                       <div key={section.title}>
                         <div style={sectionLabel()}>{section.title}</div>
@@ -276,7 +275,7 @@ export default function FamilyTopNavShell({
                 <Link href="/community" style={utilBtn(false)}>
                   Community
                 </Link>
-                <SignOutButton style={utilBtn(false)} />
+                <ProfileMenu />
               </div>
             </div>
           )}
