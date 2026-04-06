@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import FlowStep from "@/app/components/FlowStep";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
+import CurriculumSummary from "@/app/components/CurriculumSummary";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
@@ -1666,6 +1667,14 @@ function ReportsPageContent() {
             The controls below are still available when you want deeper drafting, evidence curation, and report settings. Beginner mode above is the simpler free path.
           </div>
         </section>
+
+        <CurriculumSummary
+          variant="card"
+          title="Your report framework"
+          description="This report is based on your selected learning framework"
+          helperText="You can change your setup anytime in Settings."
+          linkLabel="Review Settings"
+        />
 
         <div style={{ display: "grid", gap: 18, marginBottom: 18 }}>
           <FlowStep

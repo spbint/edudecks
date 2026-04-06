@@ -191,3 +191,21 @@ export function findSubjectLabel(subjectId?: string | null): string | undefined 
   if (!subjectId) return undefined;
   return DEMO_SUBJECTS.find((subject) => subject.id === subjectId)?.label;
 }
+
+export function findCountryById(countryId?: string | null): CurriculumCountry | undefined {
+  if (!countryId) return undefined;
+  return DEMO_COUNTRIES.find((country) => country.id === countryId);
+}
+
+export function findRegionById(regionId?: string | null): CurriculumRegion | undefined {
+  if (!regionId) return undefined;
+  return DEMO_REGIONS.find((region) => region.id === regionId);
+}
+
+export function findCountryLabel(countryId?: string | null): string | undefined {
+  return findCountryById(countryId)?.name;
+}
+
+export function findRegionLabel(regionId?: string | null): string | undefined {
+  return findRegionById(regionId)?.name;
+}

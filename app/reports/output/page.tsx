@@ -10,6 +10,7 @@ import {
   periodLabel,
   type ReportDraftRow,
 } from "@/lib/reportDrafts";
+import CurriculumSummary from "@/app/components/CurriculumSummary";
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
@@ -97,6 +98,13 @@ function ReportsOutputPageContent() {
           This is where your selected learning becomes a clearer, usable report draft. Review it, adjust it in Reports if needed, and keep the strongest learning visible in Portfolio.
         </div>
       </section>
+
+      <CurriculumSummary
+        variant="badge"
+        prefix="Based on"
+        helperText="You can change this anytime in Settings."
+        includeCTA={false}
+      />
 
       {loading ? (
         <section

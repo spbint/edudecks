@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import FlowStep from "@/app/components/FlowStep";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import CurriculumSummary from "@/app/components/CurriculumSummary";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
@@ -1167,9 +1168,16 @@ function PortfolioPageContent() {
           ) : null}
 
           <div style={{ display: "grid", gap: 18 }}>
-          <FlowStep
-            step={1}
-            title="Choose your learner"
+            <CurriculumSummary
+              variant="card"
+              title="Your learning framework"
+              description="This portfolio stays aligned to the curriculum you chose so planning, capture, and reports stay connected."
+              helperText="Captured moments will reflect the framework and grade you selected in Settings."
+              linkLabel="Change in Settings"
+            />
+            <FlowStep
+              step={1}
+              title="Choose your learner"
             description="Select the child you want to review"
             helperText="Start with one learner so your portfolio stays focused and easy to understand."
             badge={stepOneBadge}

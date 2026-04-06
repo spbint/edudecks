@@ -10,6 +10,7 @@ import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import useIsMobile from "@/app/components/useIsMobile";
 import { isPremiumActive } from "@/lib/premiumConfig";
+import CurriculumSummary from "@/app/components/CurriculumSummary";
 
 type ViewMode = "day" | "week" | "month";
 type BlockStatus = "planned" | "done";
@@ -937,8 +938,14 @@ function CalendarPageContent() {
         </section>
 
         <div style={styles.flowStack}>
+          <CurriculumSummary
+            variant="badge"
+            prefix="Planning aligned to your learning framework"
+            helperText="You can keep your week flexible while still working within your chosen setup."
+            includeCTA
+          />
 
-        <FlowStep
+          <FlowStep
           step={1}
           title="Start your week"
           description="Add your first learning block"

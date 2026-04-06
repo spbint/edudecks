@@ -10,6 +10,7 @@ import UpgradeHint from "@/app/components/UpgradeHint";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
+import CurriculumSummary from "@/app/components/CurriculumSummary";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLAN_STORAGE_KEY = "edudecks_plan";
@@ -1418,6 +1419,13 @@ function CapturePageContent() {
         </div>
       ) : (
         <>
+          <CurriculumSummary
+            variant="badge"
+            prefix="Capturing for"
+            helperText="This keeps each learning moment connected to your wider plan and reports."
+            includeCTA
+          />
+
           <FlowStep
             step={1}
             title="Choose your learner"
