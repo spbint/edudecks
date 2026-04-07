@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
   title?: string;
@@ -186,7 +187,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <Link href="/capture" style={utilBtn(true)}>
               Quick Capture
             </Link>
@@ -196,6 +197,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
             <Link href="/reports/library" style={utilBtn(false)}>
               Report Library
             </Link>
+            <ProfileMenu />
           </div>
         </div>
 
