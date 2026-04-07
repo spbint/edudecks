@@ -12,6 +12,10 @@ type FamilyTopNavShellProps = {
   heroAsideTitle?: string;
   heroAsideText?: string;
   children: React.ReactNode;
+  hideHeroAside?: boolean;
+  workflowHelperText?: string;
+  workflowCurrentHref?: string;
+  hideHero?: boolean;
 };
 
 type NavItem = {
@@ -118,6 +122,10 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
+  hideHeroAside = false,
+  hideHero = false,
+  workflowHelperText,
+  workflowCurrentHref,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
@@ -240,107 +248,141 @@ export default function FamilyTopNavShell({
           padding: 20,
         }}
       >
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
-            gap: 20,
-            marginBottom: 20,
-          }}
-        >
-          <div
+        {!hideHero ? (
+          <section
             style={{
-              border: "1px solid #dbeafe",
-              background:
-                "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
-              borderRadius: 24,
-              padding: 24,
-              boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
+              display: "grid",
+              gridTemplateColumns: hideHeroAside
+                ? "1fr"
+                : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+              gap: 20,
+              marginBottom: 20,
             }}
           >
             <div
               style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 10,
+                border: "1px solid #dbeafe",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
               }}
             >
-              Family workspace
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 1.1,
+                  textTransform: "uppercase",
+                  color: "#64748b",
+                  marginBottom: 10,
+                }}
+              >
+                Family workspace
+              </div>
+              <div
+                style={{
+                  fontSize: 34,
+                  lineHeight: 1.08,
+                  fontWeight: 900,
+                  color: "#0f172a",
+                  marginBottom: 12,
+                }}
+              >
+                {heroTitle}
+              </div>
+              <div
+                style={{
+                  fontSize: 15,
+                  lineHeight: 1.7,
+                  color: "#334155",
+                  maxWidth: 820,
+                }}
+              >
+                {heroText}
+              </div>
+              {workflowHelperText ? (
+                <div
+                  style={{
+                    marginTop: 18,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    alignItems: "center",
+                    fontSize: 13,
+                    color: "#475569",
+                  }}
+                >
+                  <span style={{ maxWidth: 680 }}>{workflowHelperText}</span>
+                  {workflowCurrentHref ? (
+                    <Link
+                      href={workflowCurrentHref}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: "#1d4ed8",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Go to workflow
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
-            <div
-              style={{
-                fontSize: 34,
-                lineHeight: 1.08,
-                fontWeight: 900,
-                color: "#0f172a",
-                marginBottom: 12,
-              }}
-            >
-              {heroTitle}
-            </div>
-            <div
-              style={{
-                fontSize: 15,
-                lineHeight: 1.7,
-                color: "#334155",
-                maxWidth: 820,
-              }}
-            >
-              {heroText}
-            </div>
-          </div>
 
-          <aside
-            style={{
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
-              borderRadius: 24,
-              padding: 20,
-              boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 10,
-              }}
-            >
-              {heroAsideTitle}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              {heroAsideText}
-            </div>
+            {!hideHeroAside ? (
+              <aside
+                style={{
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  borderRadius: 24,
+                  padding: 20,
+                  boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 900,
+                    letterSpacing: 1.1,
+                    textTransform: "uppercase",
+                    color: "#64748b",
+                    marginBottom: 10,
+                  }}
+                >
+                  {heroAsideTitle}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "#475569",
+                  }}
+                >
+                  {heroAsideText}
+                </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                flexWrap: "wrap",
-                marginTop: 16,
-              }}
-            >
-              <Link href="/portfolio" style={utilBtn(false)}>
-                Portfolio
-              </Link>
-              <Link href="/planner" style={utilBtn(false)}>
-                Planner
-              </Link>
-            </div>
-          </aside>
-        </section>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    marginTop: 16,
+                  }}
+                >
+                  <Link href="/portfolio" style={utilBtn(false)}>
+                    Portfolio
+                  </Link>
+                  <Link href="/planner" style={utilBtn(false)}>
+                    Planner
+                  </Link>
+                </div>
+              </aside>
+            ) : null}
+          </section>
+        ) : null}
 
         {children}
       </main>

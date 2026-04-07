@@ -825,8 +825,13 @@ function FamilyPageContent() {
   }, [drafts, selectedChild]);
 
   const familyGuidance = useMemo(
-    () => buildFamilyGuidanceState(plannerBlockCount, hasRecentEvidence),
-    [plannerBlockCount, hasRecentEvidence]
+    () =>
+      buildFamilyGuidanceState(
+        plannerBlockCount,
+        totalEvidenceCount,
+        drafts.length > 0
+      ),
+    [plannerBlockCount, totalEvidenceCount, drafts.length]
   );
   const hasCompletedGuidedDraft =
     !!guidedDraft.age_band && !!guidedDraft.location && !!guidedDraft.learning_stage;
