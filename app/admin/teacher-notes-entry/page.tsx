@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -39,34 +39,6 @@ type TeacherNoteRow = {
 
 function safe(v: any) {
   return String(v ?? "").trim();
-}
-
-function TeacherNotesEntryLoadingFallback() {
-  return (
-    <div style={{ minHeight: "100vh", background: "#f6f7fb", display: "grid", placeItems: "center" }}>
-      <section
-        style={{
-          border: "1px solid #e8eaf0",
-          borderRadius: 18,
-          padding: 24,
-          background: "#fff",
-          width: 360,
-          textAlign: "center",
-        }}
-      >
-        <div style={{ fontSize: 26, fontWeight: 950, color: "#0f172a" }}>Teacher notes</div>
-        <div style={{ marginTop: 6, color: "#475569" }}>Loading notes editor…</div>
-      </section>
-    </div>
-  );
-}
-
-export default function TeacherNotesEntryPage() {
-  return (
-    <Suspense fallback={<TeacherNotesEntryLoadingFallback />}>
-      <TeacherNotesEntryContent />
-    </Suspense>
-  );
 }
 
 function studentName(s: StudentRow | undefined) {
@@ -255,7 +227,7 @@ const S = {
 
 /* ───────────────────────── PAGE ───────────────────────── */
 
-function TeacherNotesEntryContent() {
+export default function TeacherNotesEntryPage() {
   const router = useRouter();
   const params = useSearchParams();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -226,7 +226,7 @@ const S = {
 
 /* ───────────────────────── PAGE ───────────────────────── */
 
-function StudentEntryContent() {
+export default function StudentEntryPage() {
   const router = useRouter();
   const sp = useSearchParams();
 
@@ -714,27 +714,5 @@ function StudentEntryContent() {
         </section>
       </main>
     </div>
-  );
-}
-
-function StudentEntryLoadingFallback() {
-  return (
-    <div style={S.shell}>
-      <AdminLeftNav />
-      <main style={S.main}>
-        <section style={S.hero}>
-          <div style={S.h1}>Student entry</div>
-          <div style={S.sub}>Loading the entry tools…</div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-export default function StudentEntryPage() {
-  return (
-    <Suspense fallback={<StudentEntryLoadingFallback />}>
-      <StudentEntryContent />
-    </Suspense>
   );
 }

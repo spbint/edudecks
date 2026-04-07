@@ -120,18 +120,6 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-const surfaceStyle: React.CSSProperties = {
-  minHeight: "100vh",
-  background: "linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)",
-  color: "#0f172a",
-};
-
-const mainStyle: React.CSSProperties = {
-  maxWidth: 1280,
-  margin: "0 auto",
-  padding: 20,
-};
-
 function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
   const pathname = usePathname();
 
@@ -376,6 +364,18 @@ function FamilyHero({
     </section>
   );
 }
+
+const surfaceStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)",
+  color: "#0f172a",
+};
+
+const mainStyle: React.CSSProperties = {
+  maxWidth: 1280,
+  margin: "0 auto",
+  padding: 20,
+};
 
 export function FamilyShellSurface({ children }: { children: React.ReactNode }) {
   return (

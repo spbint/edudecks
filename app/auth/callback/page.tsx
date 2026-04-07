@@ -23,6 +23,17 @@ function cardStyle(): React.CSSProperties {
   };
 }
 
+function parseHashParams() {
+  if (typeof window === "undefined") return new URLSearchParams();
+  return new URLSearchParams(window.location.hash.replace(/^#/, ""));
+}
+
+function parseNumber(value?: string | null) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={null}>
@@ -37,10 +48,11 @@ function AuthCallbackPageContent() {
   const [message, setMessage] = useState("Signing you in and returning you to EduDecks...");
   const [error, setError] = useState("");
 
-  const nextPath = useMemo(
-    () => normalizeNextPath(searchParams.get("next") || "/family"),
-    [searchParams]
-  );
+  const nextPath = useMemo(() => {
+    const fallback = normalizeNextPath("/family");
+    const candidate = searchParams.get("next");
+    return normalizeNextPath(candidate || fallback);
+  }, [searchParams]);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +67,17 @@ function AuthCallbackPageContent() {
         }
 
         const code = safe(searchParams.get("code"));
+        const hashParams = parseHashParams();
+        const hashAccessToken = safe(hashParams.get("access_token"));
+        const hashRefreshToken = safe(hashParams.get("refresh_token"));
+        const hashExposes = parseNumber(hashParams.get("expires_in"));
+        const hashExpiresAt = parseNumber(hashParams.get("expires_at"));
+        const hashTokenType = safe(hashParams.get("token_type"));
+        const hashProviderToken = safe(hashParams.get("provider_token"));
+        const hashProviderRefresh = safe(hashParams.get("provider_refresh_token"));
+
+        const existingAccessToken = safe(searchParams.get("access_token"));
+        const existingRefreshToken = safe(searchParams.get("refresh_token"));
 
         if (code) {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -62,9 +85,39 @@ function AuthCallbackPageContent() {
             throw exchangeError;
           }
         } else {
-          const { data } = await supabase.auth.getSession();
-          if (!data.session) {
-            throw new Error("We could not complete sign-in from that link. Please try again.");
+          const accessToken = hashAccessToken || existingAccessToken;
+          const refreshToken = hashRefreshToken || existingRefreshToken;
+
+          if (accessToken && refreshToken) {
+            const sessionPayload: Record<string, unknown> = {
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            };
+            if (hashExposes !== undefined) {
+              sessionPayload.expires_in = hashExposes;
+            }
+            if (hashExpiresAt !== undefined) {
+              sessionPayload.expires_at = hashExpiresAt;
+            }
+            if (hashTokenType) {
+              sessionPayload.token_type = hashTokenType;
+            }
+            if (hashProviderToken) {
+              sessionPayload.provider_token = hashProviderToken;
+            }
+            if (hashProviderRefresh) {
+              sessionPayload.provider_refresh_token = hashProviderRefresh;
+            }
+
+            const { error: sessionError } = await supabase.auth.setSession(sessionPayload as any);
+            if (sessionError) {
+              throw sessionError;
+            }
+          } else {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) {
+              throw new Error("We could not complete sign-in from that link. Please try again.");
+            }
           }
         }
 
