@@ -279,9 +279,8 @@ export default function FamilySettingsPage() {
 
   return (
     <main style={shellStyles.app}>
-      <>
       <div style={shellStyles.wrap}>
-      <div style={shellStyles.topNav}>
+        <div style={shellStyles.topNav}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <Link href="/family" style={shellStyles.brand}>
               EduDecks Family
@@ -716,40 +715,38 @@ export default function FamilySettingsPage() {
           </aside>
         </div>
       </div>
-    </div>
-    <div style={shellStyles.stickyBar}>
-      <div style={{ display: "grid", gap: 4 }}>
-        <div style={shellStyles.stickyTitle}>
-          {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+      <div style={shellStyles.stickyBar}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <div style={shellStyles.stickyTitle}>
+            {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+          </div>
+          <div style={shellStyles.stickySub}>
+            {savedAt
+              ? `Last saved ${savedAt}`
+              : storageMode === "database"
+              ? "Save to persist these settings into the family profile."
+              : "Save will persist locally until signed-in database storage is available."}
+          </div>
         </div>
-        <div style={shellStyles.stickySub}>
-          {savedAt
-            ? `Last saved ${savedAt}`
-            : storageMode === "database"
-            ? "Save to persist these settings into the family profile."
-            : "Save will persist locally until signed-in database storage is available."}
-        </div>
-      </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button type="button" onClick={handleReset} style={shellStyles.secondaryButton}>
-          Reset to defaults
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          style={{
-            ...shellStyles.primaryButton,
-            opacity: saving ? 0.7 : 1,
-            cursor: saving ? "wait" : "pointer",
-          }}
-          disabled={saving}
-        >
-          {saving ? "Saving..." : "Save family settings"}
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" onClick={handleReset} style={shellStyles.secondaryButton}>
+            Reset to defaults
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            style={{
+              ...shellStyles.primaryButton,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? "wait" : "pointer",
+            }}
+            disabled={saving}
+          >
+            {saving ? "Saving..." : "Save family settings"}
+          </button>
+        </div>
       </div>
-      </div>
-    </>
     </main>
   );
 }
