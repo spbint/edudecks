@@ -301,6 +301,46 @@ function CalendarPageContent() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function syncActiveLearner(detailId?: string) {
+      const nextId =
+        detailId || safeString(window.localStorage.getItem(STORAGE_LEARNER_KEY)) || "";
+      if (!nextId) return;
+      if (learners.some((learner) => learner.id === nextId)) {
+        setActiveLearnerId((prev) => (prev === nextId ? prev : nextId));
+        return;
+      }
+      if (learners.length) {
+        const fallback = learners[0].id;
+        setActiveLearnerId(fallback);
+        window.localStorage.setItem(STORAGE_LEARNER_KEY, fallback);
+      }
+    }
+
+    function handleCustomEvent(event: Event) {
+      const detail = (event as CustomEvent<{ childId?: string }>).detail;
+      syncActiveLearner(detail?.childId);
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== STORAGE_LEARNER_KEY) return;
+      syncActiveLearner(event.newValue || undefined);
+    }
+
+    syncActiveLearner();
+    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(
+        "edudecksActiveChildChanged",
+        handleCustomEvent as EventListener
+      );
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [learners]);
+
+  useEffect(() => {
     const selectedIso = isoDate(selectedDate);
     setToolbarDate(selectedIso);
 

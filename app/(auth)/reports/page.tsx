@@ -820,6 +820,43 @@ function ReportsPageContent() {
     } catch {}
   }, [selectedStudentId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function syncActiveStudent(detailId?: string) {
+      const nextId =
+        detailId || safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) || "";
+      if (!nextId) return;
+      if (students.some((student) => student.id === nextId)) {
+        setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
+        return;
+      }
+      if (students.length) {
+        const fallback = students[0].id;
+        setSelectedStudentId(fallback);
+        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, fallback);
+      }
+    }
+
+    function handleCustomEvent(event: Event) {
+      const detail = (event as CustomEvent<{ childId?: string }>).detail;
+      syncActiveStudent(detail?.childId);
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== ACTIVE_STUDENT_ID_KEY) return;
+      syncActiveStudent(event.newValue || undefined);
+    }
+
+    syncActiveStudent();
+    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [students]);
+
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || null,
     [students, selectedStudentId]

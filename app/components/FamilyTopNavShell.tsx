@@ -35,6 +35,7 @@ type NavSection = {
 };
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -236,7 +237,7 @@ function ChildSwitcher() {
     const matched = children.find((child) => child.id === storedId);
     const chosen = matched ?? children[0];
     setActiveChildId(chosen.id);
-    localStorage.setItem(ACTIVE_STUDENT_ID_KEY, chosen.id);
+    broadcastActiveChild(chosen.id);
   }, [children]);
 
   useEffect(() => {
@@ -273,17 +274,23 @@ function ChildSwitcher() {
     };
   }, [open]);
 
-  const currentChild = children.find((child) => child.id === activeChildId) ?? children[0];
+    const currentChild = children.find((child) => child.id === activeChildId) ?? children[0];
 
   if (!currentChild) return null;
 
   function handleSelect(child: FamilyChild) {
     setActiveChildId(child.id);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, child.id);
-    }
+    broadcastActiveChild(child.id);
     setOpen(false);
     router.push(`/children/${child.id}`);
+  }
+
+  function broadcastActiveChild(childId: string) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
+    window.dispatchEvent(
+      new CustomEvent(ACTIVE_CHILD_EVENT, { detail: { childId } })
+    );
   }
 
   return (

@@ -959,6 +959,43 @@ export default function CapturePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function syncActiveChild(detailId?: string) {
+      const nextId =
+        detailId || safe(localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) || "";
+      if (!nextId) return;
+      if (children.some((child) => child.id === nextId)) {
+        setActiveChildId((prev) => (prev === nextId ? prev : nextId));
+        return;
+      }
+      if (children.length) {
+        const fallback = children[0].id;
+        setActiveChildId(fallback);
+        localStorage.setItem(ACTIVE_STUDENT_ID_KEY, fallback);
+      }
+    }
+
+    function handleCustomEvent(event: Event) {
+      const detail = (event as CustomEvent<{ childId?: string }>).detail;
+      syncActiveChild(detail?.childId);
+    }
+
+    function handleStorage(event: StorageEvent) {
+      if (event.key !== ACTIVE_STUDENT_ID_KEY) return;
+      syncActiveChild(event.newValue || undefined);
+    }
+
+    syncActiveChild();
+    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [children]);
+
+  useEffect(() => {
     if (!saveFlash) return;
     const id = window.setTimeout(() => setSaveFlash(false), 900);
     return () => window.clearTimeout(id);
