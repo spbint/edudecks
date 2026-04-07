@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeNextPath } from "@/lib/authRedirect";
@@ -49,6 +49,7 @@ function AuthCallbackPageContent() {
   const [error, setError] = useState("");
   const [manualRetryVisible, setManualRetryVisible] = useState(false);
   const [manualLinking, setManualLinking] = useState(false);
+  const redirectInProgress = useRef(false);
 
   const nextPath = useMemo(() => {
     const fallback = normalizeNextPath("/family");
@@ -73,6 +74,17 @@ function AuthCallbackPageContent() {
     };
   }, []);
 
+  const navigateToNextPath = useCallback(() => {
+    if (redirectInProgress.current) return;
+    redirectInProgress.current = true;
+    router.replace(nextPath);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        window.location.replace(nextPath);
+      }, 800);
+    }
+  }, [nextPath, router]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -81,6 +93,8 @@ function AuthCallbackPageContent() {
         if (errorParam) {
           throw new Error(errorDescription || errorParam);
         }
+
+        setMessage("Completing your EduDecks session...");
 
         const hashParams = parseHashParams();
         const hashAccessToken = safe(hashParams.get("access_token"));
@@ -141,9 +155,7 @@ function AuthCallbackPageContent() {
             : "You're signed in. Taking you back to EduDecks..."
         );
 
-        window.setTimeout(() => {
-          router.replace(nextPath);
-        }, 350);
+        navigateToNextPath();
       } catch (err: any) {
         console.error("Auth callback failed", err);
         if (!mounted) return;
@@ -170,11 +182,12 @@ function AuthCallbackPageContent() {
     codeParam,
     accessTokenParam,
     refreshTokenParam,
+    navigateToNextPath,
   ]);
 
   function handleManualContinue() {
     setManualLinking(true);
-    router.replace(nextPath);
+    navigateToNextPath();
   }
 
   return (
