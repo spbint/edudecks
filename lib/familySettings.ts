@@ -40,6 +40,14 @@ export type FamilySettings = {
   notifications_planner_nudges: boolean;
 };
 
+export type CurriculumPreferences = {
+  country_id: string | null;
+  region_id: string | null;
+  framework_id: string | null;
+  level_id: string | null;
+  subject_ids: string[];
+};
+
 export type FamilyProfileRow = FamilySettings & {
   id: string;
   created_at?: string;
