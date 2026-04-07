@@ -25,7 +25,7 @@ function mapAuthError(error: unknown) {
   if (!normalized) return "";
 
   if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
-    return "We’re sending too many magic links right now. Please wait a couple of minutes before trying again.";
+    return "You\u2019ve requested a couple of login links already. Give it a few minutes before trying again so the next one arrives reliably.";
   }
 
   return raw;
