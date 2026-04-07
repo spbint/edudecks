@@ -183,6 +183,7 @@ export default function OnboardingPage() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [stagedChildren, setStagedChildren] = useState<ChildSeed[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -222,11 +223,13 @@ export default function OnboardingPage() {
   const formReady = useMemo(() => {
     return (
       safe(form.parentName).length >= 2 &&
-      safe(form.childName).length >= 2 &&
-      safe(form.childYearLabel).length >= 2 &&
       safe(form.familyDisplayName).length >= 2
     );
-  }, [form]);
+  }, [form.parentName, form.familyDisplayName]);
+
+  const childEntryReady = useMemo(() => {
+    return safe(form.childName).length >= 2 && safe(form.childYearLabel).length >= 2;
+  }, [form.childName, form.childYearLabel]);
 
   const previewChild = useMemo(
     () =>
@@ -238,6 +241,28 @@ export default function OnboardingPage() {
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleAddChild() {
+    if (!childEntryReady) {
+      setSaveState("error");
+      setMessage("Add your child’s name and year level first.");
+      setStep(2);
+      return;
+    }
+
+    const child = buildChildSeed(form.childName, form.childYearLabel);
+    setStagedChildren((prev) => [...prev, child]);
+    setForm((prev) => ({ ...prev, childName: "", childYearLabel: "" }));
+    setSaveState("success");
+    setMessage(`Saved ${child.name}. Add another child or finish the setup.`);
+    setStep(2);
+  }
+
+  function removeStagedChild(id: string) {
+    setStagedChildren((prev) => prev.filter((child) => child.id !== id));
+    setMessage("Child removed. Add another or finish when ready.");
+    setSaveState("idle");
   }
 
   async function persistProfile() {
@@ -283,21 +308,27 @@ export default function OnboardingPage() {
       return;
     }
 
+    if (!stagedChildren.length) {
+      setSaveState("error");
+      setMessage("Add at least one child before completing the setup.");
+      setStep(2);
+      return;
+    }
+
     try {
       setSaveState("saving");
       setMessage("");
 
-      const child = buildChildSeed(form.childName, form.childYearLabel);
+      const children = stagedChildren;
 
       if (typeof window !== "undefined") {
-        const children: ChildSeed[] = [child];
         window.localStorage.setItem(CHILDREN_KEY, JSON.stringify(children));
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, child.id);
+        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, children[0]?.id || "");
 
         window.localStorage.setItem(
           SETTINGS_KEY,
           JSON.stringify({
-            defaultChildId: child.id,
+            defaultChildId: children[0]?.id || "",
             autoOpenLastChild: true,
             showAuthorityGuidance: true,
             familyDisplayName: safe(form.familyDisplayName),
@@ -552,23 +583,100 @@ export default function OnboardingPage() {
                   />
                 </div>
 
-                <div>
-                  <label style={labelStyle()}>Why this is enough</label>
-                  <textarea
-                    value={
-                      "One child and one year label are enough to get your dashboard, capture flow, and first reporting journey started."
-                    }
-                    readOnly
-                    rows={3}
-                    style={{
-                      ...textareaStyle(),
-                      background: "#f8fafc",
-                      color: "#475569",
-                    }}
-                  />
+                  <div>
+                    <label style={labelStyle()}>Why this is enough</label>
+                    <textarea
+                      value={
+                        "One child and one year label are enough to get your dashboard, capture flow, and first reporting journey started."
+                      }
+                      readOnly
+                      rows={3}
+                      style={{
+                        ...textareaStyle(),
+                        background: "#f8fafc",
+                        color: "#475569",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                    <button
+                      type="button"
+                      onClick={handleAddChild}
+                      disabled={saveState === "saving"}
+                      style={primaryButtonStyle(saveState === "saving" || !childEntryReady)}
+                    >
+                      {saveState === "saving" ? "Saving child…" : "Save child"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+
+            {stagedChildren.length > 0 && (
+              <div
+                style={{
+                  borderRadius: 18,
+                  border: "1px solid #e5e7eb",
+                  background: "#ffffff",
+                  padding: 18,
+                  display: "grid",
+                  gap: 12,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: "#0f172a",
+                  }}
+                >
+                  Children added so far
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {stagedChildren.map((child) => (
+                    <div
+                      key={child.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid #e5e7eb",
+                        background: "#f8fafc",
+                        gap: 12,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15 }}>{child.name}</div>
+                        <div style={{ fontSize: 13, color: "#475569" }}>{child.yearLabel}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeStagedChild(child.id)}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#b91c1c",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#475569",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  You can add another child or continue once youâ€™ve saved everyone you want to include right now.
+                </div>
+              </div>
+            )}
 
             <div
               style={{
