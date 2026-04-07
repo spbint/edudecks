@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
@@ -32,6 +33,22 @@ type NavSection = {
   title: string;
   items: NavItem[];
 };
+
+const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function isMissingColumnError(err: any) {
+  const msg = String(err?.message ?? "").toLowerCase();
+  return msg.includes("does not exist") && msg.includes("column");
+}
+
+function isMissingRelationOrColumn(err: any) {
+  const msg = String(err?.message ?? "").toLowerCase();
+  return msg.includes("does not exist") && (msg.includes("column") || msg.includes("relation"));
+}
 
 function isActive(pathname: string, href: string) {
   if (href === "/family") return pathname === "/family";
@@ -83,6 +100,217 @@ function sectionLabel(): React.CSSProperties {
     color: "#64748b",
     marginBottom: 8,
   };
+}
+
+type FamilyChild = {
+  id: string;
+  preferred_name?: string | null;
+  first_name?: string | null;
+  surname?: string | null;
+  family_name?: string | null;
+  year_level?: number | null;
+};
+
+function childDisplayName(child: FamilyChild) {
+  const first = safe(child.preferred_name || child.first_name);
+  const sur = safe(child.surname || child.family_name);
+  return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Child";
+}
+
+function ChildSwitcher() {
+  const [children, setChildren] = useState<FamilyChild[]>([]);
+  const [activeChildId, setActiveChildId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const switcherRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchChildren() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const linkResp = await supabase
+          .from("parent_student_links")
+          .select("student_id")
+          .eq("parent_user_id", user.id);
+
+        if (linkResp.error && !isMissingRelationOrColumn(linkResp.error)) {
+          throw linkResp.error;
+        }
+
+        const studentIds = (linkResp.data ?? [])
+          .map((row) => safe(row.student_id))
+          .filter(Boolean);
+
+        if (!studentIds.length) {
+          return;
+        }
+
+        const selects = [
+          "id,preferred_name,first_name,surname,family_name,year_level",
+          "id,preferred_name,first_name,surname,family_name",
+          "id,preferred_name,first_name,year_level",
+          "id,preferred_name,first_name",
+        ];
+
+        let studentRows: FamilyChild[] = [];
+
+        for (const fields of selects) {
+          const resp = (await supabase
+            .from("students")
+            .select(fields)
+            .in("id", studentIds)) as { data: FamilyChild[] | null; error: { message: string } | null };
+          if (!resp.error) {
+            studentRows = (resp.data ?? []) as FamilyChild[];
+            break;
+          }
+          if (!isMissingColumnError(resp.error)) {
+            throw resp.error;
+          }
+        }
+
+        if (mounted && studentRows.length) {
+          setChildren(studentRows);
+        }
+      } catch (error) {
+        console.error("Child switcher load failed", error);
+      }
+    }
+
+    fetchChildren();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!children.length) return;
+    if (typeof window === "undefined") return;
+
+    const storedId = localStorage.getItem(ACTIVE_STUDENT_ID_KEY);
+    const matched = children.find((child) => child.id === storedId);
+    const chosen = matched ?? children[0];
+    setActiveChildId(chosen.id);
+    localStorage.setItem(ACTIVE_STUDENT_ID_KEY, chosen.id);
+  }, [children]);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (!open) return;
+      if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [open]);
+
+  const currentChild = children.find((child) => child.id === activeChildId) ?? children[0];
+
+  if (!currentChild) return null;
+
+  function handleSelect(child: FamilyChild) {
+    setActiveChildId(child.id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, child.id);
+    }
+    setOpen(false);
+    router.push(`/children/${child.id}`);
+  }
+
+  return (
+    <div ref={switcherRef} style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          borderRadius: 999,
+          border: "1px solid #d1d5db",
+          background: "#ffffff",
+          padding: "8px 14px",
+          fontWeight: 700,
+          fontSize: 13,
+          color: "#0f172a",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          cursor: "pointer",
+          boxShadow: open ? "0 12px 30px rgba(15,23,42,0.18)" : "none",
+        }}
+      >
+        <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2 }}>
+          <span style={{ fontSize: 14 }}>{childDisplayName(currentChild)}</span>
+          {currentChild.year_level ? (
+            <span style={{ fontSize: 11, color: "#475569" }}>Year {currentChild.year_level}</span>
+          ) : null}
+        </span>
+        <span aria-hidden style={{ fontSize: 12 }}>
+          ▾
+        </span>
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: 46,
+            right: 0,
+            width: 220,
+            borderRadius: 16,
+            border: "1px solid #e5e7eb",
+            background: "#ffffff",
+            boxShadow: "0 15px 40px rgba(15,23,42,0.15)",
+            padding: 10,
+            display: "grid",
+            gap: 6,
+            zIndex: 30,
+          }}
+        >
+          {children.map((child) => (
+            <button
+              key={child.id}
+              type="button"
+              onClick={() => handleSelect(child)}
+              style={{
+                background: child.id === currentChild.id ? "#eff6ff" : "#ffffff",
+                border: "none",
+                borderRadius: 12,
+                padding: "10px 12px",
+                textAlign: "left",
+                cursor: "pointer",
+                display: "grid",
+                gap: 2,
+              }}
+            >
+              <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
+                {childDisplayName(child)}
+              </span>
+              <span style={{ fontSize: 12, color: "#475569" }}>
+                {child.year_level ? `Year ${child.year_level}` : "Learning record"}
+              </span>
+            </button>
+          ))}
+          <Link
+            href="/children"
+            style={{
+              fontSize: 12,
+              color: "#0f172a",
+              fontWeight: 700,
+              textDecoration: "none",
+              padding: "8px 12px",
+              borderTop: "1px solid #e5e7eb",
+            }}
+          >
+            All children
+          </Link>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
@@ -153,41 +381,42 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
           }}
         >
           <div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.2,
-                textTransform: "uppercase",
-                color: "#64748b",
-              }}
-            >
-              {title}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                color: "#475569",
-                marginTop: 4,
-              }}
-            >
-              {subtitle}
-            </div>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 1.2,
+              textTransform: "uppercase",
+              color: "#64748b",
+            }}
+          >
+            {title}
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/capture" style={utilBtn(true)}>
-              Quick Capture
-            </Link>
-            <Link href="/reports" style={utilBtn(false)}>
-              Build Report
-            </Link>
-            <Link href="/reports/library" style={utilBtn(false)}>
-              Report Library
-            </Link>
-            <ProfileMenu />
+          <div
+            style={{
+              fontSize: 14,
+              color: "#475569",
+              marginTop: 4,
+            }}
+          >
+            {subtitle}
           </div>
         </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <Link href="/capture" style={utilBtn(true)}>
+            Quick Capture
+          </Link>
+          <Link href="/reports" style={utilBtn(false)}>
+            Build Report
+          </Link>
+          <Link href="/reports/library" style={utilBtn(false)}>
+            Report Library
+          </Link>
+          <ChildSwitcher />
+          <ProfileMenu />
+        </div>
+      </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {PRIMARY_NAV.map((item) => (
