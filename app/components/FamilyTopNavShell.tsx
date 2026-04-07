@@ -109,12 +109,54 @@ type FamilyChild = {
   surname?: string | null;
   family_name?: string | null;
   year_level?: number | null;
+  photo_url?: string | null;
 };
 
 function childDisplayName(child: FamilyChild) {
   const first = safe(child.preferred_name || child.first_name);
   const sur = safe(child.surname || child.family_name);
   return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Child";
+}
+
+function renderChildAvatar(child: FamilyChild, size: number = 32) {
+  if (child.photo_url) {
+    return (
+      <img
+        src={child.photo_url}
+        alt={`${childDisplayName(child)} photo`}
+        width={size}
+        height={size}
+        style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover" }}
+      />
+    );
+  }
+
+  const initials = childDisplayName(child)
+    .split(" ")
+    .map((part) => part[0])
+    .filter(Boolean)
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "#eef2ff",
+        color: "#1d4ed8",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        fontSize: size / 2.5,
+      }}
+    >
+      {initials}
+    </span>
+  );
 }
 
 function ChildSwitcher() {
@@ -150,7 +192,7 @@ function ChildSwitcher() {
         }
 
         const selects = [
-          "id,preferred_name,first_name,surname,family_name,year_level",
+          "id,preferred_name,first_name,surname,family_name,year_level,photo_url",
           "id,preferred_name,first_name,surname,family_name",
           "id,preferred_name,first_name,year_level",
           "id,preferred_name,first_name",
@@ -198,6 +240,27 @@ function ChildSwitcher() {
   }, [children]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handlePhotoUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ childId: string; photoUrl?: string }>).detail;
+      if (!detail?.childId) return;
+      setChildren((prev) =>
+        prev.map((child) =>
+          child.id === detail.childId
+            ? { ...child, photo_url: detail.photoUrl ?? child.photo_url }
+            : child
+        )
+      );
+    };
+
+    window.addEventListener("childPhotoUpdated", handlePhotoUpdate as EventListener);
+    return () => {
+      window.removeEventListener("childPhotoUpdated", handlePhotoUpdate as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
     function handleClick(event: MouseEvent) {
       if (!open) return;
       if (switcherRef.current && !switcherRef.current.contains(event.target as Node)) {
@@ -238,16 +301,19 @@ function ChildSwitcher() {
           color: "#0f172a",
           display: "inline-flex",
           alignItems: "center",
-          gap: 6,
+          gap: 8,
           cursor: "pointer",
           boxShadow: open ? "0 12px 30px rgba(15,23,42,0.18)" : "none",
         }}
       >
-        <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2 }}>
+        {renderChildAvatar(currentChild, 28)}
+        <span style={{ display: "inline-flex", flexDirection: "column", lineHeight: 1.2, textAlign: "left" }}>
           <span style={{ fontSize: 14 }}>{childDisplayName(currentChild)}</span>
           {currentChild.year_level ? (
             <span style={{ fontSize: 11, color: "#475569" }}>Year {currentChild.year_level}</span>
-          ) : null}
+          ) : (
+            <span style={{ fontSize: 11, color: "#475569" }}>All children</span>
+          )}
         </span>
         <span aria-hidden style={{ fontSize: 12 }}>
           ▾
@@ -282,15 +348,17 @@ function ChildSwitcher() {
                 padding: "10px 12px",
                 textAlign: "left",
                 cursor: "pointer",
-                display: "grid",
-                gap: 2,
+                display: "flex",
+                gap: 10,
+                alignItems: "center",
               }}
             >
-              <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>
-                {childDisplayName(child)}
-              </span>
-              <span style={{ fontSize: 12, color: "#475569" }}>
-                {child.year_level ? `Year ${child.year_level}` : "Learning record"}
+              {renderChildAvatar(child, 26)}
+              <span style={{ display: "inline-flex", flexDirection: "column", gap: 2 }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{childDisplayName(child)}</span>
+                <span style={{ fontSize: 12, color: "#475569" }}>
+                  {child.year_level ? `Year ${child.year_level}` : "Learning record"}
+                </span>
               </span>
             </button>
           ))}

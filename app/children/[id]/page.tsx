@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -19,6 +19,7 @@ type ChildRow = {
   family_name?: string | null;
   year_level?: number | null;
   created_at?: string | null;
+  photo_url?: string | null;
   [k: string]: any;
 };
 
@@ -132,11 +133,17 @@ export default function ChildWorkspacePage() {
   const [child, setChild] = useState<ChildRow | null>(null);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
   const [savedDrafts, setSavedDrafts] = useState<SavedReportDraft[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const STORAGE_BUCKET = "child-photos";
+  const MAX_PHOTO_SIZE = 4 * 1024 * 1024;
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
   async function loadChild() {
     const tries = [
-      "id,first_name,preferred_name,surname,family_name,year_level,created_at",
-      "id,first_name,preferred_name,surname,year_level,created_at",
+      "id,first_name,preferred_name,surname,family_name,year_level,created_at,photo_url",
+      "id,first_name,preferred_name,surname,year_level,created_at,photo_url",
       "id,first_name,preferred_name,family_name,year_level,created_at",
       "id,first_name,preferred_name,year_level,created_at",
       "id,first_name,preferred_name,created_at",
@@ -232,11 +239,78 @@ export default function ChildWorkspacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [childId]);
 
+  async function handlePhotoUpload(file: File) {
+    if (!childId) return;
+    setPhotoError("");
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setPhotoError("Please upload a PNG, JPG, or WebP image.");
+      return;
+    }
+
+    if (file.size > MAX_PHOTO_SIZE) {
+      setPhotoError("Keep photos under 4MB so they load quickly.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+      const path = `${childId}/${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
+        upsert: true,
+      });
+      if (uploadError) throw uploadError;
+
+      const { data: publicData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      if (!publicData?.publicUrl) throw new Error("We couldn’t create a photo link.");
+
+      const { error: updateError } = await supabase
+        .from("students")
+        .update({ photo_url: publicData.publicUrl })
+        .eq("id", childId);
+      if (updateError) throw updateError;
+
+      setChild((prev) => (prev ? { ...prev, photo_url: publicData.publicUrl } : prev));
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("childPhotoUpdated", {
+            detail: { childId, photoUrl: publicData.publicUrl },
+          })
+        );
+      }
+    } catch (error: any) {
+      setPhotoError(String(error?.message ?? "We couldn’t upload that photo. Try again."));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  function handlePhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    void handlePhotoUpload(file);
+    event.target.value = "";
+  }
+
+  function openPhotoDialog() {
+    fileInputRef.current?.click();
+  }
+
   const name = childDisplayName(child);
   const yearLabelText = child?.year_level ? `Year ${child.year_level}` : "Learning record";
-  const workspaceSummary = child
-    ? `This workspace keeps ${name}’s evidence trail calm, clear, and ready for the next step.`
-    : "This workspace keeps the learner’s evidence trail calm, clear, and ready for the next step.";
+    const workspaceSummary = child
+      ? `This workspace keeps ${name}’s evidence trail calm, clear, and ready for the next step.`
+      : "This workspace keeps the learner’s evidence trail calm, clear, and ready for the next step.";
+    const childPhotoUrl = child?.photo_url ?? "";
+    const childInitials = childDisplayName(child)
+      .split(" ")
+      .map((part) => part[0])
+      .filter(Boolean)
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   const latestEvidence = evidence[0] || null;
   const latestEvidenceDays = daysSince(latestEvidence?.occurred_on || latestEvidence?.created_at);
@@ -335,20 +409,72 @@ export default function ChildWorkspacePage() {
           ...cardStyle(),
           marginBottom: 18,
           display: "grid",
-          gap: 10,
+          gap: 12,
         }}
       >
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
-            Learner profile
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: "50%",
+              background: "#eef2ff",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 28,
+              fontWeight: 800,
+              color: "#1d4ed8",
+              overflow: "hidden",
+            }}
+          >
+            {childPhotoUrl ? (
+              <img
+                src={childPhotoUrl}
+                alt={`${name} photo`}
+                style={{ width: 72, height: 72, objectFit: "cover" }}
+              />
+            ) : (
+              childInitials
+            )}
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>
-            {child ? name : "Learner"}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>Learner profile</div>
+            <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>
+              {child ? name : "Learner"}
+            </div>
+            <div style={{ fontSize: 13, color: "#475569", marginTop: 4 }}>
+              {yearLabelText} · {workspaceSummary}
+            </div>
           </div>
-          <div style={{ fontSize: 14, color: "#475569", marginTop: 2 }}>
-            {yearLabelText} · {workspaceSummary}
+          <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+            <button
+              type="button"
+              onClick={openPhotoDialog}
+              style={{
+                ...buttonStyle(false),
+                border: "1px solid #d1d5db",
+                background: "#ffffff",
+                padding: "8px 12px",
+                fontSize: 13,
+              }}
+              disabled={!child || uploadingPhoto}
+            >
+              {childPhotoUrl ? (uploadingPhoto ? "Updating photo…" : "Change photo") : "Upload photo"}
+            </button>
+            {photoError ? (
+              <span style={{ fontSize: 12, color: "#9f1239" }}>{photoError}</span>
+            ) : null}
           </div>
         </div>
+
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          onChange={handlePhotoChange}
+        />
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <Link href="/capture" style={buttonStyle(true)}>
