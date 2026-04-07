@@ -4,16 +4,13 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type FamilyTopNavShellProps = {
+type FamilyTopNavShellProps = {
   title?: string;
   subtitle?: string;
   heroTitle?: string;
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
-  hideHeroAside?: boolean;
-  workflowCurrentHref?: string;
-  workflowHelperText?: string;
   children: React.ReactNode;
 };
 
@@ -121,9 +118,6 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
-  hideHeroAside = false,
-  workflowCurrentHref,
-  workflowHelperText,
   children,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
@@ -249,7 +243,7 @@ export default function FamilyTopNavShell({
         <section
           style={{
             display: "grid",
-            gridTemplateColumns: hideHeroAside ? "1fr" : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+            gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
             gap: 20,
             marginBottom: 20,
           }}
@@ -262,9 +256,6 @@ export default function FamilyTopNavShell({
               borderRadius: 24,
               padding: 24,
               boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 14,
             }}
           >
             <div
@@ -274,6 +265,7 @@ export default function FamilyTopNavShell({
                 letterSpacing: 1.1,
                 textTransform: "uppercase",
                 color: "#64748b",
+                marginBottom: 10,
               }}
             >
               Family workspace
@@ -284,6 +276,7 @@ export default function FamilyTopNavShell({
                 lineHeight: 1.08,
                 fontWeight: 900,
                 color: "#0f172a",
+                marginBottom: 12,
               }}
             >
               {heroTitle}
@@ -298,75 +291,55 @@ export default function FamilyTopNavShell({
             >
               {heroText}
             </div>
-            {workflowCurrentHref ? (
-              <div
-                style={{
-                  marginTop: 8,
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                }}
-              >
-                <Link href={workflowCurrentHref} style={utilBtn(true)}>
-                  Current step
-                </Link>
-                {workflowHelperText ? (
-                  <span style={{ color: "#475569", fontSize: 13 }}>{workflowHelperText}</span>
-                ) : null}
-              </div>
-            ) : null}
           </div>
 
-          {!hideHeroAside ? (
-            <aside
+          <aside
+            style={{
+              border: "1px solid #e5e7eb",
+              background: "#ffffff",
+              borderRadius: 24,
+              padding: 20,
+              boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+            }}
+          >
+            <div
               style={{
-                border: "1px solid #e5e7eb",
-                background: "#ffffff",
-                borderRadius: 24,
-                padding: 20,
-                boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.1,
+                textTransform: "uppercase",
+                color: "#64748b",
+                marginBottom: 10,
               }}
             >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.1,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                  marginBottom: 10,
-                }}
-              >
-                {heroAsideTitle}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "#475569",
-                }}
-              >
-                {heroAsideText}
-              </div>
+              {heroAsideTitle}
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: "#475569",
+              }}
+            >
+              {heroAsideText}
+            </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  flexWrap: "wrap",
-                  marginTop: 16,
-                }}
-              >
-                <Link href="/portfolio" style={utilBtn(false)}>
-                  Portfolio
-                </Link>
-                <Link href="/planner" style={utilBtn(false)}>
-                  Planner
-                </Link>
-              </div>
-            </aside>
-          ) : null}
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginTop: 16,
+              }}
+            >
+              <Link href="/portfolio" style={utilBtn(false)}>
+                Portfolio
+              </Link>
+              <Link href="/planner" style={utilBtn(false)}>
+                Planner
+              </Link>
+            </div>
+          </aside>
         </section>
 
         {children}

@@ -19,6 +19,14 @@ export type ChildOption = {
   label: string;
 };
 
+export type CurriculumPreferences = {
+  country_id: string | null;
+  region_id: string | null;
+  framework_id: string | null;
+  level_id: string | null;
+  subject_ids: string[];
+};
+
 export type FamilySettings = {
   family_display_name: string;
   preferred_market: MarketKey;
@@ -38,14 +46,7 @@ export type FamilySettings = {
   notifications_weekly_digest: boolean;
   notifications_readiness_alerts: boolean;
   notifications_planner_nudges: boolean;
-};
-
-export type CurriculumPreferences = {
-  country_id: string | null;
-  region_id: string | null;
-  framework_id: string | null;
-  level_id: string | null;
-  subject_ids: string[];
+  curriculum_preferences: CurriculumPreferences;
 };
 
 export type FamilyProfileRow = FamilySettings & {
@@ -77,6 +78,13 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   notifications_weekly_digest: true,
   notifications_readiness_alerts: true,
   notifications_planner_nudges: true,
+  curriculum_preferences: {
+    country_id: null,
+    region_id: null,
+    framework_id: null,
+    level_id: null,
+    subject_ids: [],
+  },
 };
 
 export const DEFAULT_FAMILY_PROFILE: FamilyProfileRow = {
@@ -150,6 +158,25 @@ function asReportTone(
   return "family-summary";
 }
 
+function asCurriculumPreferences(value: unknown): CurriculumPreferences {
+  const row =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+
+  const subjectIdsRaw = Array.isArray(row.subject_ids) ? row.subject_ids : [];
+
+  return {
+    country_id: safeString(row.country_id) || null,
+    region_id: safeString(row.region_id) || null,
+    framework_id: safeString(row.framework_id) || null,
+    level_id: safeString(row.level_id) || null,
+    subject_ids: subjectIdsRaw
+      .map((item) => safeString(item))
+      .filter(Boolean),
+  };
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (!canUseBrowserStorage()) return fallback;
   try {
@@ -174,7 +201,9 @@ function writeJson<T>(key: string, value: T) {
    MAPPERS
    ============================================================ */
 
-export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined): FamilySettings {
+export function rowToSettings(
+  row: Partial<FamilyProfileRow> | null | undefined
+): FamilySettings {
   if (!row) return { ...DEFAULT_FAMILY_SETTINGS };
 
   return {
@@ -220,6 +249,9 @@ export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined)
     notifications_planner_nudges: asBoolean(
       row.notifications_planner_nudges,
       DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges
+    ),
+    curriculum_preferences: asCurriculumPreferences(
+      row.curriculum_preferences
     ),
   };
 }
