@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Provider } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 import { buildAuthCallbackUrl } from "@/lib/authRedirect";
@@ -13,6 +14,7 @@ type FormState = {
 };
 
 type SaveState = "idle" | "saving" | "success" | "error";
+type OAuthProvider = Extract<Provider, "google" | "azure">;
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
@@ -30,6 +32,11 @@ function mapAuthError(error: unknown) {
 
   return raw;
 }
+
+const OAUTH_PROVIDER_OPTIONS: { provider: OAuthProvider; label: string }[] = [
+  { provider: "google", label: "Google" },
+  { provider: "azure", label: "Microsoft" },
+];
 
 function cardStyle(): React.CSSProperties {
   return {
@@ -107,6 +114,24 @@ function secondaryButtonStyle(): React.CSSProperties {
   };
 }
 
+function oauthButtonStyle(): React.CSSProperties {
+  return {
+    width: "100%",
+    minHeight: 48,
+    borderRadius: 14,
+    border: "1px solid #d1d5db",
+    background: "#ffffff",
+    color: "#0f172a",
+    fontSize: 15,
+    fontWeight: 700,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  };
+}
+
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -127,8 +152,9 @@ function LoginPageContent() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [oauthBusy, setOauthBusy] = useState<OAuthProvider | "">("");
 
-  const otpRedirectTo = useMemo(() => buildAuthCallbackUrl("/family"), []);
+  const authRedirectTo = useMemo(() => buildAuthCallbackUrl("/family"), []);
 
   useEffect(() => {
     const authError = safe(searchParams.get("authError"));
@@ -154,6 +180,8 @@ function LoginPageContent() {
   const formReady = useMemo(() => {
     return emailValid && safe(form.password).length >= 1;
   }, [emailValid, form.password]);
+
+  const providerDisabled = saveState === "saving" || oauthBusy !== "";
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -220,7 +248,7 @@ function LoginPageContent() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: otpRedirectTo,
+          emailRedirectTo: authRedirectTo,
         },
       });
 
@@ -234,6 +262,38 @@ function LoginPageContent() {
       console.error("OTP sign-in failed", err);
       setSaveState("error");
       setMessage(mapAuthError(err) || "We couldn't send your login link just yet. Please try again.");
+    }
+  }
+
+  async function handleProviderSignIn(provider: OAuthProvider, label: string) {
+
+    try {
+      setSaveState("saving");
+      setOauthBusy(provider);
+      setMessage("");
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: authRedirectTo,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setSaveState("success");
+      setMessage(`Opening ${label} so you can finish signing in.`);
+    } catch (err: any) {
+      console.error(`OAuth sign-in failed (${label})`, err);
+      setSaveState("error");
+      setMessage(
+        mapAuthError(err) ||
+          "We couldn't launch that sign-in option just yet. Please try again."
+      );
+    } finally {
+      setOauthBusy("");
     }
   }
 
@@ -346,6 +406,55 @@ function LoginPageContent() {
               }}
             >
               Password-free sign in. We'll send a secure link that returns you to your family space.
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                borderRadius: 14,
+                border: "1px solid #e5e7eb",
+                padding: 14,
+                background: "#f8fafc",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: "#475569",
+                  letterSpacing: 0.5,
+                }}
+              >
+                Also available
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {OAUTH_PROVIDER_OPTIONS.map(({ provider, label }) => (
+                  <button
+                    key={provider}
+                    type="button"
+                    disabled={providerDisabled}
+                    onClick={() => void handleProviderSignIn(provider, label)}
+                    style={{
+                      ...oauthButtonStyle(),
+                      opacity: providerDisabled ? 0.7 : 1,
+                    }}
+                  >
+                    {oauthBusy === provider ? `Opening ${label}…` : `Continue with ${label}`}
+                  </button>
+                ))}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  color: "#64748b",
+                  fontWeight: 700,
+                }}
+              >
+                These routes keep you in the same family workspace once the provider confirms your identity.
+              </div>
             </div>
 
             <div
