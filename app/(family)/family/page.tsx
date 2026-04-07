@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import { FamilyHero } from "@/app/components/FamilyTopNavShell";
 import useIsMobile from "@/app/components/useIsMobile";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
@@ -1033,20 +1033,17 @@ function FamilyPageContent() {
   }, []);
 
   return (
-    <FamilyTopNavShell
-      title="EduDecks Family"
-      subtitle="Home"
-      heroTitle="Your Family Learning Home"
-      heroText="Keep daily capture simple, stay on track with curriculum coverage, and grow a professional record of progress without the admin feel."
-      heroAsideTitle="Readiness snapshot"
-      heroAsideText={
-        selectedChild
-          ? `${selectedChild.name} is currently ${statusLabel(
-              selectedChild.status
-            ).toLowerCase()}. The system is watching evidence volume, coverage, draft state, and recency to guide the next move.`
-          : "Select a child to see the strongest next move."
-      }
-    >
+    <>
+      <FamilyHero
+        heroTitle="Your Family Learning Home"
+        heroText="Keep daily capture simple, stay on track with curriculum coverage, and grow a professional record of progress without the admin feel."
+        heroAsideTitle="Readiness snapshot"
+        heroAsideText={
+          selectedChild
+            ? `${selectedChild.name} is currently ${statusLabel(selectedChild.status).toLowerCase()}. The system is watching evidence volume, coverage, draft state, and recency to guide the next move.`
+            : "Select a child to see the strongest next move."
+        }
+      />
       {!isMobile && welcomeMessage ? (
         <section
           style={{
@@ -1679,7 +1676,7 @@ function FamilyPageContent() {
         onClose={() => setAuthModalOpen(false)}
         returnPath="/family"
       />
-    </FamilyTopNavShell>
+    </>
   );
 }
 

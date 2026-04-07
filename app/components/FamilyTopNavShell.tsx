@@ -4,19 +4,23 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type FamilyTopNavShellProps = {
+type FamilyShellHeaderProps = {
   title?: string;
   subtitle?: string;
+};
+
+export type FamilyHeroProps = {
   heroTitle?: string;
   heroText?: string;
   heroAsideTitle?: string;
   heroAsideText?: string;
-  children: React.ReactNode;
-  hideHero?: boolean;
-  hideHeroAside?: boolean;
   workflowHelperText?: string;
   workflowCurrentHref?: string;
+  hideHero?: boolean;
+  hideHeroAside?: boolean;
 };
+
+type FamilyTopNavShellProps = FamilyShellHeaderProps & FamilyHeroProps;
 
 type NavItem = {
   href: string;
@@ -115,277 +119,282 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-export default function FamilyTopNavShell({
-  title = "EduDecks Family",
-  subtitle = "Homeschool-first learning flow",
-  heroTitle = "Build confidence from everyday learning",
-  heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
-  heroAsideTitle = "Family Snapshot",
-  heroAsideText = "A calm, clear command view for family learning.",
-  hideHero = false,
-  hideHeroAside = false,
-  workflowHelperText,
-  workflowCurrentHref,
-  children,
-}: FamilyTopNavShellProps) {
+const surfaceStyle: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)",
+  color: "#0f172a",
+};
+
+const mainStyle: React.CSSProperties = {
+  maxWidth: 1280,
+  margin: "0 auto",
+  padding: 20,
+};
+
+function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
   const pathname = usePathname();
 
   return (
-    <div
+    <header
       style={{
-        minHeight: "100vh",
-        background: "linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%)",
-        color: "#0f172a",
+        position: "sticky",
+        top: 0,
+        background: "rgba(255,255,255,0.9)",
+        backdropFilter: "blur(8px)",
+        borderBottom: "1px solid #e5e7eb",
+        zIndex: 20,
       }}
     >
-      <header
+      <div
         style={{
-          position: "sticky",
-          top: 0,
-          background: "rgba(255,255,255,0.9)",
-          backdropFilter: "blur(8px)",
-          borderBottom: "1px solid #e5e7eb",
-          zIndex: 20,
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: "16px 20px",
+          display: "grid",
+          gap: 14,
         }}
       >
         <div
           style={{
-            maxWidth: 1280,
-            margin: "0 auto",
-            padding: "16px 20px",
-            display: "grid",
-            gap: 14,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.2,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                }}
-              >
-                {title}
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  color: "#475569",
-                  marginTop: 4,
-                }}
-              >
-                {subtitle}
-              </div>
+          <div>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.2,
+                textTransform: "uppercase",
+                color: "#64748b",
+              }}
+            >
+              {title}
             </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/capture" style={utilBtn(true)}>
-                Quick Capture
-              </Link>
-              <Link href="/reports" style={utilBtn(false)}>
-                Build Report
-              </Link>
-              <Link href="/reports/library" style={utilBtn(false)}>
-                Report Library
-              </Link>
+            <div
+              style={{
+                fontSize: 14,
+                color: "#475569",
+                marginTop: 4,
+              }}
+            >
+              {subtitle}
             </div>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {PRIMARY_NAV.map((item) => (
+            <Link href="/capture" style={utilBtn(true)}>
+              Quick Capture
+            </Link>
+            <Link href="/reports" style={utilBtn(false)}>
+              Build Report
+            </Link>
+            <Link href="/reports/library" style={utilBtn(false)}>
+              Report Library
+            </Link>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {PRIMARY_NAV.map((item) => (
+            <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {SECTIONS.map((section) => (
+            <div key={section.title}>
+              <div style={sectionLabel()}>{section.title}</div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {section.items.map((item) => (
+                  <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function FamilyHero({
+  heroTitle = "Build confidence from everyday learning",
+  heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
+  heroAsideTitle = "Family Snapshot",
+  heroAsideText = "A calm, clear command view for family learning.",
+  workflowHelperText,
+  workflowCurrentHref,
+  hideHeroAside = false,
+}: FamilyHeroProps) {
+  return (
+    <section
+      style={{
+        display: "grid",
+        gridTemplateColumns: hideHeroAside ? "1fr" : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
+        gap: 20,
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          border: "1px solid #dbeafe",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
+          borderRadius: 24,
+          padding: 24,
+          boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 900,
+            letterSpacing: 1.1,
+            textTransform: "uppercase",
+            color: "#64748b",
+            marginBottom: 10,
+          }}
+        >
+          Family workspace
+        </div>
+        <div
+          style={{
+            fontSize: 34,
+            lineHeight: 1.08,
+            fontWeight: 900,
+            color: "#0f172a",
+            marginBottom: 12,
+          }}
+        >
+          {heroTitle}
+        </div>
+        <div
+          style={{
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: "#334155",
+            maxWidth: 820,
+          }}
+        >
+          {heroText}
+        </div>
+        {workflowHelperText ? (
+          <div
+            style={{
+              marginTop: 18,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              alignItems: "center",
+              fontSize: 13,
+              color: "#475569",
+            }}
+          >
+            <span style={{ maxWidth: 680 }}>{workflowHelperText}</span>
+            {workflowCurrentHref ? (
               <Link
-                key={item.href}
-                href={item.href}
-                style={navBtn(isActive(pathname, item.href))}
+                href={workflowCurrentHref}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#1d4ed8",
+                  textDecoration: "none",
+                }}
               >
-                {item.label}
+                Go to workflow
               </Link>
-            ))}
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      {!hideHeroAside ? (
+        <aside
+          style={{
+            border: "1px solid #e5e7eb",
+            background: "#ffffff",
+            borderRadius: 24,
+            padding: 20,
+            boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 1.1,
+              textTransform: "uppercase",
+              color: "#64748b",
+              marginBottom: 10,
+            }}
+          >
+            {heroAsideTitle}
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              lineHeight: 1.7,
+              color: "#475569",
+            }}
+          >
+            {heroAsideText}
           </div>
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 14,
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              marginTop: 16,
             }}
           >
-            {SECTIONS.map((section) => (
-              <div key={section.title}>
-                <div style={sectionLabel()}>{section.title}</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {section.items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      style={navBtn(isActive(pathname, item.href))}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
+            <Link href="/portfolio" style={utilBtn(false)}>
+              Portfolio
+            </Link>
+            <Link href="/planner" style={utilBtn(false)}>
+              Planner
+            </Link>
           </div>
-        </div>
-      </header>
+        </aside>
+      ) : null}
+    </section>
+  );
+}
 
-      <main
-        style={{
-          maxWidth: 1280,
-          margin: "0 auto",
-          padding: 20,
-        }}
-      >
-        {!hideHero ? (
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: hideHeroAside
-                ? "1fr"
-                : "minmax(0, 1.3fr) minmax(280px, 0.7fr)",
-              gap: 20,
-              marginBottom: 20,
-            }}
-          >
-            <div
-              style={{
-                border: "1px solid #dbeafe",
-                background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(239,246,255,0.96) 100%)",
-                borderRadius: 24,
-                padding: 24,
-                boxShadow: "0 20px 50px rgba(15,23,42,0.06)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 900,
-                  letterSpacing: 1.1,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                  marginBottom: 10,
-                }}
-              >
-                Family workspace
-              </div>
-              <div
-                style={{
-                  fontSize: 34,
-                  lineHeight: 1.08,
-                  fontWeight: 900,
-                  color: "#0f172a",
-                  marginBottom: 12,
-                }}
-              >
-                {heroTitle}
-              </div>
-              <div
-                style={{
-                  fontSize: 15,
-                  lineHeight: 1.7,
-                  color: "#334155",
-                  maxWidth: 820,
-                }}
-              >
-                {heroText}
-              </div>
-              {workflowHelperText ? (
-                <div
-                  style={{
-                    marginTop: 18,
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 12,
-                    alignItems: "center",
-                    fontSize: 13,
-                    color: "#475569",
-                  }}
-                >
-                  <span style={{ maxWidth: 680 }}>{workflowHelperText}</span>
-                  {workflowCurrentHref ? (
-                    <Link
-                      href={workflowCurrentHref}
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "#1d4ed8",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Go to workflow
-                    </Link>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-
-            {!hideHeroAside ? (
-              <aside
-                style={{
-                  border: "1px solid #e5e7eb",
-                  background: "#ffffff",
-                  borderRadius: 24,
-                  padding: 20,
-                  boxShadow: "0 20px 50px rgba(15,23,42,0.05)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 900,
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    color: "#64748b",
-                    marginBottom: 10,
-                  }}
-                >
-                  {heroAsideTitle}
-                </div>
-                <div
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    color: "#475569",
-                  }}
-                >
-                  {heroAsideText}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    flexWrap: "wrap",
-                    marginTop: 16,
-                  }}
-                >
-                  <Link href="/portfolio" style={utilBtn(false)}>
-                    Portfolio
-                  </Link>
-                  <Link href="/planner" style={utilBtn(false)}>
-                    Planner
-                  </Link>
-                </div>
-              </aside>
-            ) : null}
-          </section>
-        ) : null}
-
-        {children}
-      </main>
+export function FamilyShellSurface({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={surfaceStyle}>
+      <FamilyShellHeader />
+      <main style={mainStyle}>{children}</main>
     </div>
   );
 }
+
+export default function FamilyTopNavShell({
+  children,
+  ...heroProps
+}: FamilyTopNavShellProps & { children: React.ReactNode }) {
+  const shouldRenderHero = !heroProps.hideHero;
+  return (
+    <FamilyShellSurface>
+      {shouldRenderHero ? <FamilyHero {...heroProps} /> : null}
+      {children}
+    </FamilyShellSurface>
+  );
+}
+
+export { FamilyHero };

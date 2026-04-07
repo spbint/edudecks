@@ -3,7 +3,6 @@
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import SignOutButton from "@/app/components/SignOutButton";
 import { PremiumPlan, getPremiumPlanFromStorage } from "@/lib/premiumUpgradeEngine";
 import { FamilyProfileRow, loadFamilyProfile } from "@/lib/familySettings";
@@ -167,12 +166,7 @@ export default function ProfilePage() {
       : "Stay calm with the free plan. Upgrade anytime for richer reporting together.";
 
   return (
-    <FamilyTopNavShell
-      hideHero
-      workflowCurrentHref="/profile"
-      workflowHelperText="View your identity, family links, and account status."
-    >
-      <div style={profileStyles.page}>
+    <div style={profileStyles.page}>
         <section style={profileStyles.headerCard}>
           <div>
             <div style={profileStyles.sectionEyebrow}>My profile</div>
@@ -370,8 +364,7 @@ export default function ProfilePage() {
             This setup quietly organises planning, captured learning, and reporting across EduDecks.
           </div>
         </section>
-      </div>
-    </FamilyTopNavShell>
+    </div>
   );
 }
 
