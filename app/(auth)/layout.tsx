@@ -1,12 +1,7 @@
-"use client";
+import type { ReactNode } from "react";
 
-import React from "react";
 import { FamilyShellSurface } from "@/app/components/FamilyTopNavShell";
 
-export default function FamilyLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return <FamilyShellSurface>{children}</FamilyShellSurface>;
 }
