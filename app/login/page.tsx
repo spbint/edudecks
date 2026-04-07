@@ -18,6 +18,19 @@ function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
+function mapAuthError(error: unknown) {
+  const raw = safe(error && typeof error === "object" ? (error as any).message : error);
+  const normalized = raw.toLowerCase();
+
+  if (!normalized) return "";
+
+  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
+    return "We’re sending too many magic links right now. Please wait a couple of minutes before trying again.";
+  }
+
+  return raw;
+}
+
 function cardStyle(): React.CSSProperties {
   return {
     border: "1px solid #e5e7eb",
@@ -183,7 +196,7 @@ function LoginPageContent() {
       setSaveState("error");
       setMessage(
         String(
-          err?.message ||
+          mapAuthError(err) ||
             err ||
             "We couldn’t sign you in just yet — please check your details and try again."
         )
@@ -220,13 +233,7 @@ function LoginPageContent() {
     } catch (err: any) {
       console.error("OTP sign-in failed", err);
       setSaveState("error");
-      setMessage(
-        String(
-          err?.message ||
-            err ||
-            "We couldn't send your login link just yet. Please try again."
-        )
-      );
+      setMessage(mapAuthError(err) || "We couldn't send your login link just yet. Please try again.");
     }
   }
 
