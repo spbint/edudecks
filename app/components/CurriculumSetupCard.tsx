@@ -41,27 +41,34 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
 
     async function loadData() {
       setLoading(true);
-      const [
-        countryData,
-        regionData,
-        frameworkData,
-        levelData,
-        subjectData,
-      ] = await Promise.all([
-        loadCurriculumCountries(),
-        loadCurriculumRegions(),
-        loadCurriculumFrameworks(),
-        loadCurriculumLevels(),
-        loadCurriculumSubjects(),
-      ]);
+      try {
+        const [
+          countryData,
+          regionData,
+          frameworkData,
+          levelData,
+          subjectData,
+        ] = await Promise.all([
+          loadCurriculumCountries(),
+          loadCurriculumRegions(),
+          loadCurriculumFrameworks(),
+          loadCurriculumLevels(),
+          loadCurriculumSubjects(),
+        ]);
 
-      if (!active) return;
-      setCountries(countryData);
-      setRegions(regionData);
-      setFrameworks(frameworkData);
-      setLevels(levelData);
-      setSubjects(subjectData);
-      setLoading(false);
+        if (!active) return;
+        setCountries(countryData);
+        setRegions(regionData);
+        setFrameworks(frameworkData);
+        setLevels(levelData);
+        setSubjects(subjectData);
+      } catch (error) {
+        if (!active) return;
+        console.error("Curriculum setup load failed", error);
+      } finally {
+        if (!active) return;
+        setLoading(false);
+      }
     }
 
     loadData();

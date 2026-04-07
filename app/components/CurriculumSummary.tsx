@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import React, { useMemo } from "react";
@@ -207,3 +207,4 @@ const styles: Record<string, React.CSSProperties> = {
     textDecoration: "none",
   },
 };
+

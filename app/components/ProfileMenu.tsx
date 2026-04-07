@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
@@ -289,3 +289,4 @@ async function fetchProfile(userId: string) {
     .maybeSingle();
   return data ?? null;
 }
+

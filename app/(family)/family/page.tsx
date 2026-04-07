@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -106,7 +106,7 @@ const FALLBACK_CHILDREN: ChildRecord[] = [
     evidenceCount: 0,
     recentAreaCount: 0,
     lastUpdated: null,
-    strongestArea: "—",
+    strongestArea: "â€”",
     nextFocusArea: "Literacy",
     status: "getting-started",
   },
@@ -188,7 +188,7 @@ function asDateText(v: unknown): string | null {
 
 function shortDate(value?: string | null) {
   const s = safe(value);
-  if (!s) return "—";
+  if (!s) return "â€”";
   try {
     const d = new Date(s);
     if (Number.isNaN(d.getTime())) return s.slice(0, 10);
@@ -246,7 +246,7 @@ function calmCheckText(score: number, childName: string) {
   if (score >= 45) {
     return `${childName} is nearly there. One or two stronger learning moments would build confidence quickly.`;
   }
-  return `${childName} needs a little more captured learning before this feels fully reassuring. Start small — one entry counts.`;
+  return `${childName} needs a little more captured learning before this feels fully reassuring. Start small â€” one entry counts.`;
 }
 
 function normalizeChild(raw: any, index: number): ChildRecord {
@@ -294,7 +294,7 @@ function normalizeChild(raw: any, index: number): ChildRecord {
   const nextFocusArea =
     safe(raw?.nextFocusArea) ||
     safe(raw?.next_focus_area) ||
-    (strongestArea === "—" ? "Literacy" : strongestArea);
+    (strongestArea === "â€”" ? "Literacy" : strongestArea);
 
   let status: ChildRecord["status"] = "getting-started";
   if (evidenceCount >= 4 && recentAreaCount >= 3) status = "ready";
@@ -354,7 +354,7 @@ function buildGuideState(
       tone: "warning",
       reason: "No evidence has been captured yet.",
       progressNudge:
-        "You’re building a real learning record — one step at a time.",
+        "Youâ€™re building a real learning record â€” one step at a time.",
     };
   }
 
@@ -369,7 +369,7 @@ function buildGuideState(
       tone: "info",
       reason: "Evidence exists, but no saved report draft is linked yet.",
       progressNudge:
-        "You’re one step away from a reusable report draft.",
+        "Youâ€™re one step away from a reusable report draft.",
     };
   }
 
@@ -384,7 +384,7 @@ function buildGuideState(
       tone: "warning",
       reason: "Draft exists, but coverage and evidence volume are still limited.",
       progressNudge:
-        "One more strong piece could move this into ‘ready to report’.",
+        "One more strong piece could move this into â€˜ready to reportâ€™.",
     };
   }
 
@@ -443,8 +443,8 @@ function buildFamilyGuidanceState(
 ): FamilyGuidanceState {
   if (plannerBlockCount === 0) {
     return {
-      title: "You’re on track",
-      body: "You’ve captured learning this week — keep going",
+      title: "Youâ€™re on track",
+      body: "Youâ€™ve captured learning this week â€” keep going",
       ctaLabel: "View Portfolio",
       ctaHref: "/portfolio",
     };
@@ -453,7 +453,7 @@ function buildFamilyGuidanceState(
   if (plannerBlockCount > 0) {
     return {
       title: "Do this next",
-      body: "You planned learning — capture what happened",
+      body: "You planned learning â€” capture what happened",
       ctaLabel: "Capture",
       ctaHref: "/capture",
     };
@@ -510,7 +510,7 @@ function evidenceQualityHint(
   if (!childDraft) {
     return "Strong evidence usually includes a clear example plus a short human note about what was understood.";
   }
-  return "At this stage, stronger evidence shows progress, confidence, and the likely next step — not just completion.";
+  return "At this stage, stronger evidence shows progress, confidence, and the likely next step â€” not just completion.";
 }
 
 function todayIso() {
@@ -1064,13 +1064,13 @@ function FamilyPageContent() {
             <div style={S.label()}>Guided start</div>
             {!guidedDraft.age_band ? (
               <>
-                <div style={S.h1()}>Letâ€™s get you started</div>
+                <div style={S.h1()}>Let's get you started</div>
                 <div style={S.body()}>Your child is:</div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
-                    { label: "Age 5â€“6", value: "5-6" },
-                    { label: "Age 7â€“8", value: "7-8" },
-                    { label: "Age 9â€“10", value: "9-10" },
+                    { label: "Age 5–6", value: "5-6" },
+                    { label: "Age 7–8", value: "7-8" },
+                    { label: "Age 9–10", value: "9-10" },
                     { label: "Age 11+", value: "11+" },
                   ].map((option) => (
                     <button
@@ -1094,7 +1094,7 @@ function FamilyPageContent() {
               <>
                 <div style={S.h1()}>Where are you based?</div>
                 <div style={S.body()}>
-                  Weâ€™ll use this later for gentle reporting guidance. You do not need to set anything complex now.
+                  We'll use this later for gentle reporting guidance. You do not need to set anything complex now.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1124,7 +1124,7 @@ function FamilyPageContent() {
               <>
                 <div style={S.h1()}>Right now your child is:</div>
                 <div style={S.body()}>
-                  You can change this anytime â€” this just helps us start gently.
+                  You can change this anytime — this just helps us start gently.
                 </div>
                 <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
                   {[
@@ -1167,9 +1167,9 @@ function FamilyPageContent() {
               </>
             ) : (
               <>
-                <div style={S.h1()}>Great â€” hereâ€™s a calm place to begin</div>
+                <div style={S.h1()}>Great — here's a calm place to begin</div>
                 <div style={S.body()}>
-                  Youâ€™re set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
+                  You're set for {guidedLocationLabel(guidedDraft.location)} and starting from{" "}
                   {guidedStageLabel(guidedDraft.learning_stage)}.
                 </div>
 
@@ -1394,7 +1394,7 @@ function FamilyPageContent() {
               >
                 {children.map((child) => (
                   <option key={child.id} value={child.id}>
-                    {child.name} — {child.yearLabel}
+                    {child.name} â€” {child.yearLabel}
                   </option>
                 ))}
               </select>
@@ -1405,7 +1405,7 @@ function FamilyPageContent() {
                 label="Status"
                 value={statusLabel(selectedChild?.status || "getting-started")}
               />
-              <MiniStat label="Strongest area" value={selectedChild?.strongestArea || "—"} />
+              <MiniStat label="Strongest area" value={selectedChild?.strongestArea || "â€”"} />
               <MiniStat label="Next focus" value={selectedChild?.nextFocusArea || "Literacy"} />
             </div>
           </div>
@@ -1431,7 +1431,7 @@ function FamilyPageContent() {
             </div>
             <div style={S.small()}>
               Use this page as your guided starting point. You do not need to
-              think like a teacher — EduDecks should keep nudging the next
+              think like a teacher â€” EduDecks should keep nudging the next
               sensible move.
             </div>
 
@@ -1617,7 +1617,7 @@ function FamilyPageContent() {
                 <div style={{ display: "grid", gap: 6 }}>
                   <SummaryRow label="Evidence" value={String(child.evidenceCount)} />
                   <SummaryRow label="Coverage" value={String(child.recentAreaCount)} />
-                  <SummaryRow label="Strongest" value={child.strongestArea || "—"} />
+                  <SummaryRow label="Strongest" value={child.strongestArea || "â€”"} />
                   <SummaryRow label="Last update" value={shortDate(child.lastUpdated)} />
                 </div>
 
@@ -1665,7 +1665,7 @@ function FamilyPageContent() {
 
         {loadingDrafts ? (
           <div style={{ marginTop: 14 }}>
-            <div style={S.small()}>Loading saved report signals…</div>
+            <div style={S.small()}>Loading saved report signalsâ€¦</div>
           </div>
         ) : null}
       </section>
@@ -1733,7 +1733,7 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
           wordBreak: "break-word",
         }}
       >
-        {value || "—"}
+        {value || "â€”"}
       </div>
     </div>
   );
