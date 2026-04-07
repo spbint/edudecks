@@ -233,6 +233,10 @@ export default function ChildWorkspacePage() {
   }, [childId]);
 
   const name = childDisplayName(child);
+  const yearLabelText = child?.year_level ? `Year ${child.year_level}` : "Learning record";
+  const workspaceSummary = child
+    ? `This workspace keeps ${name}’s evidence trail calm, clear, and ready for the next step.`
+    : "This workspace keeps the learner’s evidence trail calm, clear, and ready for the next step.";
 
   const latestEvidence = evidence[0] || null;
   const latestEvidenceDays = daysSince(latestEvidence?.occurred_on || latestEvidence?.created_at);
@@ -256,11 +260,37 @@ export default function ChildWorkspacePage() {
   const reportReadiness =
     evidence.length >= 8 ? "Strong" : evidence.length >= 4 ? "Growing" : "Early";
 
+  const metricCards = useMemo(
+    () => [
+      {
+        label: "Evidence captured",
+        value: String(evidence.length),
+        caption: "Learning moments saved so far",
+      },
+      {
+        label: "Learning areas",
+        value: String(coverageRows.length),
+        caption: "Different pathways with evidence",
+      },
+      {
+        label: "Saved drafts",
+        value: String(savedDrafts.length),
+        caption: "Reports waiting for review",
+      },
+      {
+        label: "Record readiness",
+        value: reportReadiness,
+        caption: "Where this workspace is holding steady",
+      },
+    ],
+    [coverageRows, evidence.length, reportReadiness, savedDrafts.length]
+  );
+
   const bestNextMove = useMemo(() => {
     if (!evidence.length) {
       return {
         title: "Capture the first learning moment",
-        text: "One useful record is enough to bring this child’s workspace to life and start building the evidence trail.",
+        text: "One calm snapshot gives this workspace a thread the whole family can follow.",
         href: "/capture",
         cta: "Open Quick Capture",
       };
@@ -269,7 +299,7 @@ export default function ChildWorkspacePage() {
     if (!savedDrafts.length) {
       return {
         title: "Shape the first report path",
-        text: "There is already enough evidence to start curating a stronger pack and preview how reporting will come together.",
+        text: "There is already enough evidence to start curating a calm report draft and see what the next step feels like.",
         href: "/reports",
         cta: "Open Reports",
       };
@@ -277,7 +307,7 @@ export default function ChildWorkspacePage() {
 
     return {
       title: "Deepen the learning record",
-      text: `The strongest evidence is currently around ${strongestArea}. The next opportunity is to strengthen ${weakestArea} or reopen the latest saved report draft.`,
+      text: `The strongest evidence is around ${strongestArea}. Consider adding one more piece in ${weakestArea} or reopening the latest draft so the story stays fresh.`,
       href: "/portfolio",
       cta: "Open Portfolio",
     };
@@ -304,19 +334,19 @@ export default function ChildWorkspacePage() {
         style={{
           ...cardStyle(),
           marginBottom: 18,
-          display: "flex",
-          flexWrap: "wrap",
+          display: "grid",
           gap: 10,
-          alignItems: "center",
-          justifyContent: "space-between",
         }}
       >
         <div>
           <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b" }}>
-            Child workspace
+            Learner profile
           </div>
           <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a" }}>
             {child ? name : "Learner"}
+          </div>
+          <div style={{ fontSize: 14, color: "#475569", marginTop: 2 }}>
+            {yearLabelText} · {workspaceSummary}
           </div>
         </div>
 
@@ -361,17 +391,13 @@ export default function ChildWorkspacePage() {
               marginBottom: 18,
             }}
           >
-            {[
-              ["Evidence items", String(evidence.length)],
-              ["Coverage areas", String(coverageRows.length)],
-              ["Saved drafts", String(savedDrafts.length)],
-              ["Report readiness", reportReadiness],
-            ].map(([label, value]) => (
-              <div key={label} style={cardStyle()}>
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 800 }}>{label}</div>
+            {metricCards.map((metric) => (
+              <div key={metric.label} style={cardStyle()}>
+                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 800 }}>{metric.label}</div>
                 <div style={{ fontSize: 28, fontWeight: 900, color: "#0f172a", marginTop: 4 }}>
-                  {value}
+                  {metric.value}
                 </div>
+                <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>{metric.caption}</div>
               </div>
             ))}
           </section>
@@ -446,49 +472,65 @@ export default function ChildWorkspacePage() {
               ) : (
                 <div style={{ display: "grid", gap: 12 }}>
                   {evidence.slice(0, 5).map((item) => (
-                    <div
-                      key={item.id}
+                <div
+                  key={item.id}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: 16,
+                    background: "#ffffff",
+                    boxShadow: "0 6px 20px rgba(15,23,42,0.05)",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "#0f172a" }}>
+                      {safe(item.title) || "Untitled evidence"}
+                    </div>
+                    <span
                       style={{
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 14,
-                        padding: 14,
-                        background: "#ffffff",
+                        fontSize: 12,
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        background: "#f0f9ff",
+                        color: "#0f172a",
+                        fontWeight: 700,
+                        border: "1px solid #dbeafe",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
-                          {safe(item.title) || "Untitled evidence"}
-                        </div>
-
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <span style={pillStyle("#eff6ff", "#1d4ed8")}>
-                            {safe(item.learning_area) || "General"}
-                          </span>
-                          <span style={pillStyle("#f8fafc", "#475569")}>
-                            {shortDate(item.occurred_on || item.created_at)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 14,
-                          lineHeight: 1.65,
-                          color: "#334155",
-                        }}
-                      >
-                        {safe(item.summary || item.note || item.body) || "No summary provided for this evidence item."}
-                      </div>
-                    </div>
+                      {safe(item.learning_area) || "General"}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#475569",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {safe(item.summary || item.note || item.body) || "A short note about what happened will appear here."}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "#94a3b8",
+                      fontWeight: 700,
+                      display: "flex",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    {shortDate(item.occurred_on || item.created_at)}
+                  </div>
+                </div>
                   ))}
                 </div>
               )}
@@ -496,9 +538,9 @@ export default function ChildWorkspacePage() {
 
             <div style={{ display: "grid", gap: 18 }}>
               <section style={cardStyle()}>
-                <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
-                  Coverage snapshot
-                </div>
+              <div style={{ fontSize: 18, fontWeight: 900, marginBottom: 10 }}>
+                Coverage snapshot
+              </div>
 
                 <div style={{ display: "grid", gap: 10 }}>
                   {!coverageRows.length ? (
@@ -512,7 +554,7 @@ export default function ChildWorkspacePage() {
                         fontWeight: 700,
                       }}
                     >
-                      Coverage will appear once evidence is captured.
+                      Coverage grows with each new learning moment. Capture one to see it here.
                     </div>
                   ) : (
                     coverageRows.map((row) => (
@@ -522,21 +564,17 @@ export default function ChildWorkspacePage() {
                           border: "1px solid #e5e7eb",
                           borderRadius: 12,
                           padding: 12,
-                          background: "#f8fafc",
+                          background: "#ffffff",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            alignItems: "center",
-                          }}
-                        >
-                          <div style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>
-                            {row.area}
-                          </div>
-                          <span style={pillStyle("#ecfdf5", "#166534")}>{row.count}</span>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+                          {row.area}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#475569" }}>
+                          {row.count} evidence entr{row.count === 1 ? "y" : "ies"}
                         </div>
                       </div>
                     ))
@@ -595,10 +633,12 @@ export default function ChildWorkspacePage() {
                     }}
                   >
                     <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 4 }}>
-                      Active child
+                      Saved drafts
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-                      {name}
+                      {savedDrafts.length
+                        ? `${savedDrafts.length} draft${savedDrafts.length === 1 ? "" : "s"} waiting for review`
+                        : "No drafts yet"}
                     </div>
                   </div>
                 </div>
@@ -607,26 +647,30 @@ export default function ChildWorkspacePage() {
           </section>
 
           <section style={cardStyle()}>
-            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 10 }}>Fast lanes</div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 6 }}>Fast lanes</div>
+            <div style={{ fontSize: 13, color: "#475569", marginBottom: 12 }}>
+              Steps you return to regularly for capture, planning, and reports.
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
               <Link href="/capture" style={buttonStyle(true)}>
                 Quick Capture
               </Link>
               <Link href="/portfolio" style={buttonStyle(false)}>
                 Portfolio
               </Link>
-              <Link href="/planner" style={buttonStyle(false)}>
-                Planner
-              </Link>
               <Link href="/reports" style={buttonStyle(false)}>
                 Reports
+              </Link>
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href="/planner" style={buttonStyle(false)}>
+                Planner
               </Link>
               <Link href="/children" style={buttonStyle(false)}>
                 All children
               </Link>
               <Link href="/authority/readiness" style={buttonStyle(false)}>
-                Authority Readiness
+                Authority readiness
               </Link>
             </div>
           </section>
