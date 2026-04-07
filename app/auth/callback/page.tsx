@@ -47,6 +47,8 @@ function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Signing you in and returning you to EduDecks...");
   const [error, setError] = useState("");
+  const [manualRetryVisible, setManualRetryVisible] = useState(false);
+  const [manualLinking, setManualLinking] = useState(false);
 
   const nextPath = useMemo(() => {
     const fallback = normalizeNextPath("/family");
@@ -54,47 +56,57 @@ function AuthCallbackPageContent() {
     return normalizeNextPath(candidate || fallback);
   }, [searchParams]);
 
+  const errorParam = useMemo(() => safe(searchParams.get("error")), [searchParams]);
+  const errorDescription = useMemo(
+    () => safe(searchParams.get("error_description")),
+    [searchParams]
+  );
+  const codeParam = useMemo(() => safe(searchParams.get("code")), [searchParams]);
+  const accessTokenParam = useMemo(() => safe(searchParams.get("access_token")), [searchParams]);
+  const refreshTokenParam = useMemo(() => safe(searchParams.get("refresh_token")), [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const timer = window.setTimeout(() => setManualRetryVisible(true), 7000);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
     async function completeAuth() {
       try {
-        const errorParam = safe(searchParams.get("error"));
-        const errorDescription = safe(searchParams.get("error_description"));
-
         if (errorParam) {
           throw new Error(errorDescription || errorParam);
         }
 
-        const code = safe(searchParams.get("code"));
         const hashParams = parseHashParams();
         const hashAccessToken = safe(hashParams.get("access_token"));
         const hashRefreshToken = safe(hashParams.get("refresh_token"));
-        const hashExposes = parseNumber(hashParams.get("expires_in"));
+        const hashExpiresIn = parseNumber(hashParams.get("expires_in"));
         const hashExpiresAt = parseNumber(hashParams.get("expires_at"));
         const hashTokenType = safe(hashParams.get("token_type"));
         const hashProviderToken = safe(hashParams.get("provider_token"));
         const hashProviderRefresh = safe(hashParams.get("provider_refresh_token"));
 
-        const existingAccessToken = safe(searchParams.get("access_token"));
-        const existingRefreshToken = safe(searchParams.get("refresh_token"));
-
-        if (code) {
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (codeParam) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(codeParam);
           if (exchangeError) {
             throw exchangeError;
           }
         } else {
-          const accessToken = hashAccessToken || existingAccessToken;
-          const refreshToken = hashRefreshToken || existingRefreshToken;
+          const accessToken = hashAccessToken || accessTokenParam;
+          const refreshToken = hashRefreshToken || refreshTokenParam;
 
           if (accessToken && refreshToken) {
             const sessionPayload: Record<string, unknown> = {
               access_token: accessToken,
               refresh_token: refreshToken,
             };
-            if (hashExposes !== undefined) {
-              sessionPayload.expires_in = hashExposes;
+            if (hashExpiresIn !== undefined) {
+              sessionPayload.expires_in = hashExpiresIn;
             }
             if (hashExpiresAt !== undefined) {
               sessionPayload.expires_at = hashExpiresAt;
@@ -140,9 +152,7 @@ function AuthCallbackPageContent() {
         setError(safeMessage);
 
         window.setTimeout(() => {
-          router.replace(
-            `/login?authError=${encodeURIComponent(safeMessage)}`
-          );
+          router.replace(`/login?authError=${encodeURIComponent(safeMessage)}`);
         }, 900);
       }
     }
@@ -152,7 +162,20 @@ function AuthCallbackPageContent() {
     return () => {
       mounted = false;
     };
-  }, [nextPath, router, searchParams]);
+  }, [
+    nextPath,
+    router,
+    errorParam,
+    errorDescription,
+    codeParam,
+    accessTokenParam,
+    refreshTokenParam,
+  ]);
+
+  function handleManualContinue() {
+    setManualLinking(true);
+    router.replace(nextPath);
+  }
 
   return (
     <main
@@ -221,6 +244,26 @@ function AuthCallbackPageContent() {
               ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
               : "You'll be returned to the right EduDecks page automatically."}
           </div>
+          {!error && manualRetryVisible ? (
+            <button
+              type="button"
+              onClick={handleManualContinue}
+              disabled={manualLinking}
+              style={{
+                marginTop: 12,
+                width: "100%",
+                borderRadius: 12,
+                border: "1px solid #2563eb",
+                background: "#2563eb",
+                color: "#fff",
+                fontWeight: 700,
+                padding: "10px",
+                cursor: manualLinking ? "wait" : "pointer",
+              }}
+            >
+              {manualLinking ? "Returning..." : "Continue to EduDecks"}
+            </button>
+          ) : null}
         </div>
       </section>
     </main>
