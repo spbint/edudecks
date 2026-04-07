@@ -650,6 +650,7 @@ function FamilyPageContent() {
   const [guidedMessage, setGuidedMessage] = useState("");
   const [showGuidedStart, setShowGuidedStart] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const authMessage = safe(searchParams.get("authMessage"));
 
   useEffect(() => {
     const storedChildren = parseJson<any[]>(
@@ -707,11 +708,10 @@ function FamilyPageContent() {
       );
     }
 
-    const authMessage = safe(searchParams.get("authMessage"));
     if (authMessage) {
       setWelcomeMessage(authMessage);
     }
-  }, [searchParams]);
+  }, [authMessage]);
 
   useEffect(() => {
     let mounted = true;
