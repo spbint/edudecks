@@ -4,6 +4,37 @@ import { fetchAdminStudents } from "@/lib/admin/studentRoster";
 import { loadAssessmentEngine } from "@/lib/assessmentEngine";
 import { buildReadinessReport, ReadinessStatus } from "@/lib/reporting/readiness";
 
+function isMissingCurriculumStandardsError(err: unknown) {
+  const code = (err as any)?.code;
+  const message = String((err as any)?.message ?? err ?? "").toLowerCase();
+  return (
+    (typeof code === "string" && code === "PGRST205") ||
+    message.includes("curriculum_standards")
+  );
+}
+
+function MissingStandardsFallback({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex min-h-screen">
+      <AdminLeftNav />
+      <div className="flex-1">
+        <AdminShell title={title} subtitle={subtitle} backHref="/admin">
+          <div className="dash-alert">
+            Needed curriculum metadata is missing. Create the <code>curriculum_standards</code>{" "}
+            table before using this report readiness view.
+          </div>
+        </AdminShell>
+      </div>
+    </div>
+  );
+}
+
 type SearchParams = {
   student?: string;
   frameworkId?: string;
@@ -52,10 +83,23 @@ export default async function ReportReadyVerificationPage({
       : students[0].id;
   const fallbackUsed = Boolean(requestedStudentId && requestedStudentId !== validStudentId);
 
-  const assessment = await loadAssessmentEngine({
-    studentId: validStudentId,
-    frameworkId: searchParams?.frameworkId,
-  });
+  let assessment;
+  try {
+    assessment = await loadAssessmentEngine({
+      studentId: validStudentId,
+      frameworkId: searchParams?.frameworkId,
+    });
+  } catch (err) {
+    if (isMissingCurriculumStandardsError(err)) {
+      return (
+        <MissingStandardsFallback
+          title="Report ready verification"
+          subtitle="Curriculum standards schema missing"
+        />
+      );
+    }
+    throw err;
+  }
 
   const selectedStudent = students.find((student) => student.id === validStudentId);
   const readiness = buildReadinessReport(assessment);

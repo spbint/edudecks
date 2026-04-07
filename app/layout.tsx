@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -18,7 +19,7 @@ export default function RootLayout({
           fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
         }}
       >
-        {children}
+        <Suspense fallback={<div />}>{children}</Suspense>
       </body>
     </html>
   );

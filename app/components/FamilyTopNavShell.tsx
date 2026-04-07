@@ -12,10 +12,10 @@ type FamilyTopNavShellProps = {
   heroAsideTitle?: string;
   heroAsideText?: string;
   children: React.ReactNode;
+  hideHero?: boolean;
   hideHeroAside?: boolean;
   workflowHelperText?: string;
   workflowCurrentHref?: string;
-  hideHero?: boolean;
 };
 
 type NavItem = {
@@ -122,8 +122,8 @@ export default function FamilyTopNavShell({
   heroText = "Capture learning simply, stay aware of coverage, and move from evidence to reporting without the school-dashboard feel.",
   heroAsideTitle = "Family Snapshot",
   heroAsideText = "A calm, clear command view for family learning.",
-  hideHeroAside = false,
   hideHero = false,
+  hideHeroAside = false,
   workflowHelperText,
   workflowCurrentHref,
   children,

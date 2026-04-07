@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -335,7 +335,7 @@ function signalTone(passed: boolean) {
   return passed ? "success" : "warning";
 }
 
-export default function AuthorityReadinessPage() {
+function AuthorityReadinessContent() {
   const searchParams = useSearchParams();
 
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);
@@ -1304,5 +1304,26 @@ function MetricCard({
         {text}
       </div>
     </div>
+  );
+}
+
+function AuthorityReadinessLoadingFallback() {
+  return (
+    <main style={S.page()}>
+      <div style={S.pageInner()}>
+        <section style={S.card()}>
+          <div style={S.h1()}>Authority Mission Control</div>
+          <div style={S.body()}>Loading readiness review…</div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+export default function AuthorityReadinessPage() {
+  return (
+    <Suspense fallback={<AuthorityReadinessLoadingFallback />}>
+      <AuthorityReadinessContent />
+    </Suspense>
   );
 }

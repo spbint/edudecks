@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AdminLeftNav from "@/app/components/AdminLeftNav";
 import { supabase } from "@/lib/supabaseClient";
@@ -32,9 +32,37 @@ function studentDisplayName(student: StudentRow | null) {
   return `${first}${last ? ` ${last}` : ""}`.trim() || "Open student";
 }
 
-/* ───────────────────────── PAGE ───────────────────────── */
+function NotesEntryLoadingFallback() {
+  return (
+    <div style={{ minHeight: "100vh", background: "#f6f7fb", display: "grid", placeItems: "center" }}>
+      <section
+        style={{
+          border: "1px solid #e8eaf0",
+          borderRadius: 18,
+          padding: 24,
+          background: "#fff",
+          width: 340,
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 26, fontWeight: 900, color: "#0f172a" }}>Notes entry</div>
+        <div style={{ marginTop: 6, color: "#475569" }}>Loading notes…</div>
+      </section>
+    </div>
+  );
+}
 
 export default function NotesEntryPage() {
+  return (
+    <Suspense fallback={<NotesEntryLoadingFallback />}>
+      <NotesEntryContent />
+    </Suspense>
+  );
+}
+
+/* ───────────────────────── PAGE ───────────────────────── */
+
+function NotesEntryContent() {
   const searchParams = useSearchParams();
 
   const studentId = searchParams?.get("studentId") || "";

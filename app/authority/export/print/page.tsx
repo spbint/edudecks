@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   loadLatestReportDraft,
@@ -124,7 +124,7 @@ function confidenceLabel(band: string) {
   return "Needs Attention";
 }
 
-export default function AuthorityPrintPage() {
+function AuthorityPrintContent() {
   const searchParams = useSearchParams();
 
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);
@@ -246,3 +246,22 @@ const styles: any = {
   meta: { display: "grid", gap: 6 },
   loading: { padding: 40 },
 };
+
+function AuthorityPrintLoadingFallback() {
+  return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ padding: 32, borderRadius: 16, background: "#fff", border: "1px solid #e5e7eb" }}>
+        <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 6 }}>Preparing print export…</div>
+        <div style={{ color: "#475569" }}>Loading the latest authority pack snapshot.</div>
+      </div>
+    </div>
+  );
+}
+
+export default function AuthorityPrintPage() {
+  return (
+    <Suspense fallback={<AuthorityPrintLoadingFallback />}>
+      <AuthorityPrintContent />
+    </Suspense>
+  );
+}

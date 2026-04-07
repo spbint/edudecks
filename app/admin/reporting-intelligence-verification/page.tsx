@@ -4,6 +4,37 @@ import { loadAssessmentEngine } from "@/lib/assessmentEngine";
 import { fetchAdminStudents } from "@/lib/admin/studentRoster";
 import { generateReportingIntelligence, ReportingMode } from "@/lib/reporting/intelligence";
 
+function isMissingCurriculumStandardsError(err: unknown) {
+  const code = (err as any)?.code;
+  const message = String((err as any)?.message ?? err ?? "").toLowerCase();
+  return (
+    (typeof code === "string" && code === "PGRST205") ||
+    message.includes("curriculum_standards")
+  );
+}
+
+function MissingStandardsFallback({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex min-h-screen">
+      <AdminLeftNav />
+      <div className="flex-1">
+        <AdminShell title={title} subtitle={subtitle} backHref="/admin">
+          <div className="dash-alert">
+            Required curriculum metadata is missing. Create the <code>curriculum_standards</code>{" "}
+            table or import the schema before using this page.
+          </div>
+        </AdminShell>
+      </div>
+    </div>
+  );
+}
+
 type SearchParams = {
   student?: string;
   mode?: ReportingMode;
@@ -51,10 +82,23 @@ export default async function ReportingIntelligenceVerificationPage({
     ? requestedMode
     : "parent_friendly";
 
-  const assessment = await loadAssessmentEngine({
-    studentId: validStudentId,
-    frameworkId: searchParams?.frameworkId,
-  });
+  let assessment;
+  try {
+    assessment = await loadAssessmentEngine({
+      studentId: validStudentId,
+      frameworkId: searchParams?.frameworkId,
+    });
+  } catch (err) {
+    if (isMissingCurriculumStandardsError(err)) {
+      return (
+        <MissingStandardsFallback
+          title="Reporting intelligence verification"
+          subtitle="Curriculum standards schema missing"
+        />
+      );
+    }
+    throw err;
+  }
 
   const selectedStudent = students.find((student) => student.id === validStudentId);
   const narrative = generateReportingIntelligence(

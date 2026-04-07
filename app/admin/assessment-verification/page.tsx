@@ -3,6 +3,37 @@ import AdminShell from "../components/AdminShell";
 import { loadAssessmentEngine } from "@/lib/assessmentEngine";
 import { AdminStudentInfo, fetchAdminStudents } from "@/lib/admin/studentRoster";
 
+function isMissingCurriculumStandardsError(err: unknown) {
+  const code = (err as any)?.code;
+  const message = String((err as any)?.message ?? err ?? "").toLowerCase();
+  return (
+    (typeof code === "string" && code === "PGRST205") ||
+    message.includes("curriculum_standards")
+  );
+}
+
+function MissingStandardsFallback({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex min-h-screen">
+      <AdminLeftNav />
+      <div className="flex-1">
+        <AdminShell title={title} subtitle={subtitle} backHref="/admin">
+          <div className="dash-alert">
+            The <code>curriculum_standards</code> table is unavailable in Supabase, so this
+            verification view cannot load. Add the table or disable this page until it exists.
+          </div>
+        </AdminShell>
+      </div>
+    </div>
+  );
+}
+
 type SearchParams = {
   student?: string;
   frameworkId?: string;
@@ -50,10 +81,23 @@ export default async function AssessmentVerificationPage({
       : students[0].id;
   const fallbackUsed = Boolean(requestedStudentId && requestedStudentId !== validStudentId);
 
-  const assessment = await loadAssessmentEngine({
-    studentId: validStudentId,
-    frameworkId: searchParams?.frameworkId,
-  });
+  let assessment;
+  try {
+    assessment = await loadAssessmentEngine({
+      studentId: validStudentId,
+      frameworkId: searchParams?.frameworkId,
+    });
+  } catch (err) {
+    if (isMissingCurriculumStandardsError(err)) {
+      return (
+        <MissingStandardsFallback
+          title="Assessment verification"
+          subtitle="Curriculum standards schema missing"
+        />
+      );
+    }
+    throw err;
+  }
 
   const selectedStudent = students.find((student) => student.id === validStudentId);
   const studentClass = assessment.classes.find((cls) => cls.id === selectedStudent?.classId);
