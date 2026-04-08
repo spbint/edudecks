@@ -25,17 +25,26 @@ function splitName(fullName: string) {
 /* ================= DATABASE ================= */
 
 async function createStudentRecord(userId: string, childName: string, yearLevel: string) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  console.log("AUTH USER:", user);
+  if (!user?.id) {
+    throw new Error("User not authenticated - cannot create student");
+  }
+
   const nameBits = splitName(childName);
   const yearNum = Number(safe(yearLevel));
   const usableYear = Number.isFinite(yearNum) ? yearNum : null;
 
   const payload = {
-    user_id: userId,
+    user_id: user?.id,
     first_name: nameBits.first_name || safe(childName),
     preferred_name: nameBits.first_name || safe(childName),
     surname: nameBits.surname || null,
     year_level: usableYear,
   };
+  console.log("STUDENT INSERT PAYLOAD:", payload);
 
   const r = await supabase.from("students").insert(payload).select("id").single();
   if (r.error) throw r.error;
