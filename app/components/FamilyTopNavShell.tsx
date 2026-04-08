@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -23,6 +23,17 @@ export type FamilyHeroProps = {
 };
 
 type FamilyTopNavShellProps = FamilyShellHeaderProps & FamilyHeroProps;
+
+const DEFAULT_SHELL_CONFIG: FamilyTopNavShellProps = {
+  title: "EduDecks Family",
+  subtitle: "Homeschool-first learning flow",
+};
+
+type FamilyShellConfigContextValue = {
+  setConfig: (config: FamilyTopNavShellProps | null) => void;
+};
+
+const FamilyShellConfigContext = createContext<FamilyShellConfigContextValue | null>(null);
 
 type NavItem = {
   href: string;
@@ -691,9 +702,18 @@ const mainStyle: React.CSSProperties = {
   padding: 20,
 };
 
-export function FamilyShellSurface({ children }: { children: React.ReactNode }) {
+export function FamilyShellSurface({
+  children,
+  shellConfig,
+}: {
+  children: React.ReactNode;
+  shellConfig?: FamilyTopNavShellProps;
+}) {
   const pathname = usePathname();
   const shellId = React.useRef(Math.random().toString(36).slice(2, 8));
+  const [registeredConfig, setRegisteredConfig] = useState<FamilyTopNavShellProps | null>(null);
+  const activeConfig = registeredConfig ?? shellConfig ?? DEFAULT_SHELL_CONFIG;
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const name = "FamilyShellSurface";
@@ -702,22 +722,27 @@ export function FamilyShellSurface({ children }: { children: React.ReactNode }) 
   }, [pathname]);
 
   return (
-    <div style={surfaceStyle}>
-      <div
-        style={{
-          background: "#fefefe",
-          borderBottom: "1px solid #fde68a",
-          padding: "2px 8px",
-          fontSize: 12,
-          color: "#92400e",
-          textAlign: "center",
-        }}
-      >
-        Debug: shell {shellId.current} {process.env.NODE_ENV}
+    <FamilyShellConfigContext.Provider value={{ setConfig: setRegisteredConfig }}>
+      <div style={surfaceStyle}>
+        <div
+          style={{
+            background: "#fefefe",
+            borderBottom: "1px solid #fde68a",
+            padding: "2px 8px",
+            fontSize: 12,
+            color: "#92400e",
+            textAlign: "center",
+          }}
+        >
+          Debug: shell {shellId.current} {process.env.NODE_ENV}
+        </div>
+        <FamilyShellHeader title={activeConfig.title} subtitle={activeConfig.subtitle} />
+        <main style={mainStyle}>
+          {!activeConfig.hideHero ? <FamilyHero {...activeConfig} /> : null}
+          {children}
+        </main>
       </div>
-      <FamilyShellHeader />
-      <main style={mainStyle}>{children}</main>
-    </div>
+    </FamilyShellConfigContext.Provider>
   );
 }
 
@@ -725,7 +750,9 @@ export default function FamilyTopNavShell({
   children,
   ...heroProps
 }: FamilyTopNavShellProps & { children: React.ReactNode }) {
+  const shellContext = useContext(FamilyShellConfigContext);
   const shouldRenderHero = !heroProps.hideHero;
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       console.log(
@@ -733,9 +760,19 @@ export default function FamilyTopNavShell({
       );
     }
   }, [shouldRenderHero]);
+
+  useEffect(() => {
+    if (!shellContext) return;
+    shellContext.setConfig(heroProps);
+    return () => shellContext.setConfig(null);
+  }, [heroProps, shellContext]);
+
+  if (shellContext) {
+    return <>{children}</>;
+  }
+
   return (
-    <FamilyShellSurface>
-      {shouldRenderHero ? <FamilyHero {...heroProps} /> : null}
+    <FamilyShellSurface shellConfig={heroProps}>
       {children}
     </FamilyShellSurface>
   );
