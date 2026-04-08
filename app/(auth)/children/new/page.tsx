@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 
@@ -21,29 +20,6 @@ function splitName(fullName: string) {
     first_name: parts[0] || "",
     surname: parts.slice(1).join(" "),
   };
-}
-
-async function withStepTimeout<T>(promise: Promise<T>, label: string, ms = 12000): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | null = null;
-
-  try {
-    return await Promise.race([
-      promise,
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => {
-          reject(new Error(`${label} timed out. Please try again.`));
-        }, ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
-
-function stageErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message) return error.message;
-  const text = String(error ?? "").trim();
-  return text || fallback;
 }
 
 /* ================= DATABASE ================= */
@@ -83,21 +59,10 @@ async function linkStudent(userId: string, studentId: string) {
 /* ================= PAGE ================= */
 
 export default function AddChildPage() {
-  const router = useRouter();
-
   const [childName, setChildName] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
-  const [saveStep, setSaveStep] = useState("");
-  const [saveTrace, setSaveTrace] = useState<string[]>([]);
-
-  async function reportStep(message: string) {
-    console.log(`[AddChildPage] ${message}`);
-    setSaveStep(message);
-    setSaveTrace((prev) => [...prev, message]);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  }
 
   async function saveChild() {
     if (!safe(childName)) {
@@ -107,46 +72,21 @@ export default function AddChildPage() {
 
     setSaving(true);
     setErr("");
-    setSaveStep("");
-    setSaveTrace([]);
 
     try {
-      await reportStep("submit started");
-
-      const authResp = await withStepTimeout(supabase.auth.getUser(), "Fetching signed-in user");
+      const authResp = await supabase.auth.getUser();
       const user = authResp.data.user;
       if (!user) throw new Error("You must be signed in.");
-      await reportStep("auth user fetched");
 
-      await reportStep("student insert started");
-      const id = await withStepTimeout(
-        createStudentRecord(user.id, childName, yearLevel),
-        "Creating child record"
-      );
-      await reportStep(`student insert finished (${id})`);
+      const id = await createStudentRecord(user.id, childName, yearLevel);
 
-      await reportStep("parent_student_links insert started");
-      await withStepTimeout(
-        linkStudent(user.id, id),
-        "Linking child to your family"
-      );
-      await reportStep("parent_student_links insert finished");
+      await linkStudent(user.id, id);
 
-      await reportStep("navigation started");
       localStorage.setItem(ACTIVE_STUDENT_ID_KEY, id);
-      router.replace("/family");
-      setTimeout(() => {
-        if (typeof window !== "undefined" && window.location.pathname === "/children/new") {
-          console.log("[AddChildPage] navigation fallback started");
-          setSaveTrace((prev) => [...prev, "navigation fallback started"]);
-          setSaveStep("navigation fallback started");
-          window.location.assign("/family");
-        }
-      }, 800);
+      window.location.href = "/family";
+      return;
     } catch (e: any) {
-      const message = stageErrorMessage(e, "Add child failed.");
-      console.error("[AddChildPage] submit failed", e);
-      setErr(message);
+      setErr(String(e?.message ?? e ?? "Add child failed."));
     } finally {
       setSaving(false);
     }
@@ -218,43 +158,11 @@ export default function AddChildPage() {
           </div>
         )}
 
-        {saving && saveStep ? (
-          <div
-            style={{
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              padding: 10,
-              borderRadius: 12,
-              color: "#1d4ed8",
-              fontWeight: 700,
-              marginBottom: 12,
-            }}
-          >
-            {saveStep}
-          </div>
-        ) : null}
-
-        {(saving || saveTrace.length) && (
-          <div
-            style={{
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              padding: 12,
-              borderRadius: 12,
-              color: "#334155",
-              fontSize: 13,
-              lineHeight: 1.5,
-              marginBottom: 12,
-              whiteSpace: "pre-wrap",
-            }}
-          >
-            {saveTrace.length ? saveTrace.join("\n") : "Waiting to start..."}
-          </div>
-        )}
-
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={() => router.push("/children")}
+            onClick={() => {
+              window.location.href = "/children";
+            }}
             style={{
               padding: "12px 16px",
               borderRadius: 12,
