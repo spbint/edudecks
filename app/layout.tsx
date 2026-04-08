@@ -2,6 +2,8 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import "./globals.css";
 
+import { AuthUserProvider } from "@/app/components/AuthUserProvider";
+
 export const metadata: Metadata = {
   title: "Edu Dashboard",
   description: "Football Manager-style student and class insights for schools.",
@@ -19,7 +21,9 @@ export default function RootLayout({
           fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
         }}
       >
-        <Suspense fallback={<div />}>{children}</Suspense>
+        <AuthUserProvider>
+          <Suspense fallback={<div />}>{children}</Suspense>
+        </AuthUserProvider>
       </body>
     </html>
   );

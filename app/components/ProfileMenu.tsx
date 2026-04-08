@@ -1,69 +1,19 @@
-﻿"use client";
+"use client";
 
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 
 type ProfileMenuProps = {
   mobile?: boolean;
 };
 
-type ProfileRow = {
-  is_admin?: boolean | null;
-};
-
 export default function ProfileMenu({ mobile }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!hasSupabaseEnv) {
-      return;
-    }
-
-    let mounted = true;
-    let subscription: { unsubscribe: () => void } | null = null;
-
-    async function hydrate() {
-      const { data } = await supabase.auth.getUser();
-      if (!mounted) return;
-      setUser(data.user || null);
-      if (data.user) {
-        const profileRow = await fetchProfile(data.user.id);
-        if (!mounted) return;
-        setProfile(profileRow);
-      } else {
-        setProfile(null);
-      }
-    }
-
-    void hydrate();
-
-      const {
-        data: { subscription: authSub },
-      } = supabase.auth.onAuthStateChange(async (_, session) => {
-      if (!mounted) return;
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const profileRow = await fetchProfile(session.user.id);
-        if (!mounted) return;
-        setProfile(profileRow);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    subscription = authSub;
-
-    return () => {
-      mounted = false;
-      subscription?.unsubscribe();
-    };
-  }, []);
+  const { user, profile, loading } = useAuthUser();
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {
@@ -88,7 +38,7 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
     };
   }, [open]);
 
-  if (!user) {
+  if (loading || !user) {
     return null;
   }
 
@@ -280,13 +230,3 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
     </div>
   );
 }
-
-async function fetchProfile(userId: string) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", userId)
-    .maybeSingle();
-  return data ?? null;
-}
-
