@@ -23,6 +23,23 @@ function splitName(fullName: string) {
   };
 }
 
+async function withStepTimeout<T>(promise: Promise<T>, label: string, ms = 12000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out. Please try again.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /* ================= DATABASE ================= */
 
 async function createStudentRecord(childName: string, yearLevel: string) {
@@ -74,6 +91,7 @@ export default function AddChildPage() {
   const [yearLevel, setYearLevel] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [saveStep, setSaveStep] = useState("");
 
   async function saveChild() {
     if (!safe(childName)) {
@@ -83,17 +101,30 @@ export default function AddChildPage() {
 
     setSaving(true);
     setErr("");
+    setSaveStep("Creating child record...");
 
     try {
-      const id = await createStudentRecord(childName, yearLevel);
-      await linkStudent(id);
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, id);
+      const id = await withStepTimeout(
+        createStudentRecord(childName, yearLevel),
+        "Creating child record"
+      );
 
-      router.push("/family");
+      setSaveStep("Linking child to your family...");
+      await withStepTimeout(linkStudent(id), "Linking child to your family");
+
+      setSaveStep("Opening your family dashboard...");
+      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, id);
+      router.replace("/family");
+      setTimeout(() => {
+        if (typeof window !== "undefined" && window.location.pathname === "/children/new") {
+          window.location.assign("/family");
+        }
+      }, 800);
     } catch (e: any) {
       setErr(String(e?.message ?? e));
     } finally {
       setSaving(false);
+      setSaveStep("");
     }
   }
 
@@ -162,6 +193,22 @@ export default function AddChildPage() {
             {err}
           </div>
         )}
+
+        {saving && saveStep ? (
+          <div
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              padding: 10,
+              borderRadius: 12,
+              color: "#1d4ed8",
+              fontWeight: 700,
+              marginBottom: 12,
+            }}
+          >
+            {saveStep}
+          </div>
+        ) : null}
 
         <div style={{ display: "flex", gap: 10 }}>
           <button
