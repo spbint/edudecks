@@ -229,8 +229,13 @@ function ChildSwitcher() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!children.length) return;
+    useEffect(() => {
+      if (typeof window !== "undefined") {
+        console.log(
+          `[ChildSwitcher] render on ${window.location.pathname} | children=${children.length} | active=${activeChildId}`
+        );
+      }
+      if (!children.length) return;
     if (typeof window === "undefined") return;
 
     const storedId = localStorage.getItem(ACTIVE_STUDENT_ID_KEY);
@@ -425,6 +430,11 @@ const SECTIONS: NavSection[] = [
 
 function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
   const pathname = usePathname();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log(`[FamilyShellHeader] active on ${pathname}`);
+    }
+  }, [pathname]);
 
   return (
     <header
@@ -682,8 +692,29 @@ const mainStyle: React.CSSProperties = {
 };
 
 export function FamilyShellSurface({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const shellId = React.useRef(Math.random().toString(36).slice(2, 8));
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const name = "FamilyShellSurface";
+      console.log(`[${name}] ${shellId.current} active on ${pathname}`);
+    }
+  }, [pathname]);
+
   return (
     <div style={surfaceStyle}>
+      <div
+        style={{
+          background: "#fefefe",
+          borderBottom: "1px solid #fde68a",
+          padding: "2px 8px",
+          fontSize: 12,
+          color: "#92400e",
+          textAlign: "center",
+        }}
+      >
+        Debug: shell {shellId.current} {process.env.NODE_ENV}
+      </div>
       <FamilyShellHeader />
       <main style={mainStyle}>{children}</main>
     </div>
@@ -695,6 +726,13 @@ export default function FamilyTopNavShell({
   ...heroProps
 }: FamilyTopNavShellProps & { children: React.ReactNode }) {
   const shouldRenderHero = !heroProps.hideHero;
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log(
+        `[FamilyTopNavShell] mounted on ${window.location.pathname} | hero=${shouldRenderHero}`
+      );
+    }
+  }, [shouldRenderHero]);
   return (
     <FamilyShellSurface>
       {shouldRenderHero ? <FamilyHero {...heroProps} /> : null}

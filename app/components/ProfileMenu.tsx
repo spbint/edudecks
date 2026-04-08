@@ -14,6 +14,13 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
   const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const { user, profile, loading } = useAuthUser();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const name = "ProfileMenu";
+    console.log(
+      `[${name}] render on ${window.location.pathname} | user=${!!user} | profile=${!!profile}`
+    );
+  }, [user, profile]);
 
   useEffect(() => {
     function handleClick(event: MouseEvent) {

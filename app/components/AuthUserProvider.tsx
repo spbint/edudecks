@@ -34,6 +34,14 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const name = "AuthUserProvider";
+      console.log(`[${name}] mounted on ${window.location.pathname}`);
+      return () => console.log(`[${name}] unmounted`);
+    }
+    return () => {};
+  }, []);
 
   useEffect(() => {
     if (!hasSupabaseEnv) {
@@ -102,4 +110,3 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 export function useAuthUser() {
   return useContext(AuthUserContext);
 }
-
