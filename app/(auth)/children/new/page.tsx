@@ -40,19 +40,21 @@ async function withStepTimeout<T>(promise: Promise<T>, label: string, ms = 12000
   }
 }
 
+function stageErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  const text = String(error ?? "").trim();
+  return text || fallback;
+}
+
 /* ================= DATABASE ================= */
 
-async function createStudentRecord(childName: string, yearLevel: string) {
-  const authResp = await supabase.auth.getUser();
-  const user = authResp.data.user;
-  if (!user) throw new Error("You must be signed in.");
-
+async function createStudentRecord(userId: string, childName: string, yearLevel: string) {
   const nameBits = splitName(childName);
   const yearNum = Number(safe(yearLevel));
   const usableYear = Number.isFinite(yearNum) ? yearNum : null;
 
   const payload = {
-    user_id: user.id,
+    user_id: userId,
     first_name: nameBits.first_name || safe(childName),
     preferred_name: nameBits.first_name || safe(childName),
     surname: nameBits.surname || null,
@@ -64,11 +66,7 @@ async function createStudentRecord(childName: string, yearLevel: string) {
   return r.data.id as string;
 }
 
-async function linkStudent(studentId: string) {
-  const authResp = await supabase.auth.getUser();
-  const userId = authResp.data.user?.id;
-  if (!userId) throw new Error("You must be signed in.");
-
+async function linkStudent(userId: string, studentId: string) {
   const r = await supabase.from("parent_student_links").upsert(
     {
       parent_user_id: userId,
@@ -92,6 +90,14 @@ export default function AddChildPage() {
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
   const [saveStep, setSaveStep] = useState("");
+  const [saveTrace, setSaveTrace] = useState<string[]>([]);
+
+  async function reportStep(message: string) {
+    console.log(`[AddChildPage] ${message}`);
+    setSaveStep(message);
+    setSaveTrace((prev) => [...prev, message]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
 
   async function saveChild() {
     if (!safe(childName)) {
@@ -101,30 +107,48 @@ export default function AddChildPage() {
 
     setSaving(true);
     setErr("");
-    setSaveStep("Creating child record...");
+    setSaveStep("");
+    setSaveTrace([]);
 
     try {
+      await reportStep("submit started");
+
+      const authResp = await withStepTimeout(supabase.auth.getUser(), "Fetching signed-in user");
+      const user = authResp.data.user;
+      if (!user) throw new Error("You must be signed in.");
+      await reportStep("auth user fetched");
+
+      await reportStep("student insert started");
       const id = await withStepTimeout(
-        createStudentRecord(childName, yearLevel),
+        createStudentRecord(user.id, childName, yearLevel),
         "Creating child record"
       );
+      await reportStep(`student insert finished (${id})`);
 
-      setSaveStep("Linking child to your family...");
-      await withStepTimeout(linkStudent(id), "Linking child to your family");
+      await reportStep("parent_student_links insert started");
+      await withStepTimeout(
+        linkStudent(user.id, id),
+        "Linking child to your family"
+      );
+      await reportStep("parent_student_links insert finished");
 
-      setSaveStep("Opening your family dashboard...");
+      await reportStep("navigation started");
       localStorage.setItem(ACTIVE_STUDENT_ID_KEY, id);
       router.replace("/family");
       setTimeout(() => {
         if (typeof window !== "undefined" && window.location.pathname === "/children/new") {
+          console.log("[AddChildPage] navigation fallback started");
+          setSaveTrace((prev) => [...prev, "navigation fallback started"]);
+          setSaveStep("navigation fallback started");
           window.location.assign("/family");
         }
       }, 800);
     } catch (e: any) {
-      setErr(String(e?.message ?? e));
+      const message = stageErrorMessage(e, "Add child failed.");
+      console.error("[AddChildPage] submit failed", e);
+      setErr(message);
     } finally {
       setSaving(false);
-      setSaveStep("");
     }
   }
 
@@ -209,6 +233,24 @@ export default function AddChildPage() {
             {saveStep}
           </div>
         ) : null}
+
+        {(saving || saveTrace.length) && (
+          <div
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              padding: 12,
+              borderRadius: 12,
+              color: "#334155",
+              fontSize: 13,
+              lineHeight: 1.5,
+              marginBottom: 12,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {saveTrace.length ? saveTrace.join("\n") : "Waiting to start..."}
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 10 }}>
           <button
