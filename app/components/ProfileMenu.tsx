@@ -12,6 +12,9 @@ type ProfileMenuProps = {
 export default function ProfileMenu({ mobile }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutStep, setSignOutStep] = useState("");
+  const [signOutTrace, setSignOutTrace] = useState<string[]>([]);
+  const [signOutError, setSignOutError] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
   const { user, profile, loading } = useAuthUser();
   useEffect(() => {
@@ -72,16 +75,69 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
     .slice(0, 2)
     .toUpperCase();
 
+  async function reportSignOutStep(message: string) {
+    console.log(`[ProfileMenu] ${message}`);
+    setSignOutStep(message);
+    setSignOutTrace((prev) => [...prev, message]);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  async function withStepTimeout<T>(promise: Promise<T>, label: string, ms = 10000) {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} timed out.`)), ms);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  function clearLocalSessionState() {
+    if (typeof window === "undefined") return;
+    const keys = [
+      "edudecks_active_student_id",
+      "edudecks_pending_guided_start_action_v1",
+    ];
+    for (const key of keys) {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    }
+  }
+
   async function handleSignOut() {
     if (signingOut) return;
     setSigningOut(true);
+    setSignOutError("");
+    setSignOutStep("");
+    setSignOutTrace([]);
+
     try {
-      await supabase.auth.signOut();
+      await reportSignOutStep("sign out clicked");
+      await reportSignOutStep("signOut started");
+      await withStepTimeout(supabase.auth.signOut(), "Sign out");
+      await reportSignOutStep("signOut finished");
+
+      await reportSignOutStep("local cleanup started");
+      clearLocalSessionState();
+      await reportSignOutStep("local cleanup finished");
+
+      await reportSignOutStep("navigation started");
     } catch (error) {
       console.error("ProfileMenu sign out failed", error);
+      setSignOutError(error instanceof Error ? error.message : String(error));
     } finally {
       setSigningOut(false);
-      window.location.assign("/");
+      if (typeof window !== "undefined") {
+        console.log("[ProfileMenu] navigation fallback started");
+        setSignOutTrace((prev) => [...prev, "navigation fallback started"]);
+        setSignOutStep("navigation fallback started");
+        window.location.assign("/");
+      }
     }
   }
 
@@ -212,6 +268,59 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
                   {item.label}
                 </Link>
               ))}
+            </div>
+          ) : null}
+
+          {(signingOut || signOutTrace.length || signOutError) ? (
+            <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 10, display: "grid", gap: 8 }}>
+              {signOutStep ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: "#1d4ed8",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                  }}
+                >
+                  {signOutStep}
+                </div>
+              ) : null}
+
+              {signOutTrace.length ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    color: "#334155",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {signOutTrace.join("\n")}
+                </div>
+              ) : null}
+
+              {signOutError ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#9f1239",
+                    background: "#fff1f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                  }}
+                >
+                  {signOutError}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
