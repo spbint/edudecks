@@ -485,7 +485,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
           >
           <div
             style={{
-              fontSize: 30,
+              fontSize: 60,
               fontWeight: 900,
               letterSpacing: 0.6,
               textTransform: "uppercase",
