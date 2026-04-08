@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 /* ============================================================
    TYPES
@@ -306,6 +306,9 @@ export function loadChildrenFromLocalStorage(): ChildOption[] {
    ============================================================ */
 
 export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
+  if (!hasSupabaseEnv) {
+    return { ...DEFAULT_FAMILY_PROFILE };
+  }
   const { data, error } = await supabase
     .from("family_profiles")
     .select("*")
@@ -336,6 +339,13 @@ export async function upsertFamilyProfile(
     ...settings,
     updated_at: new Date().toISOString(),
   };
+
+  if (!hasSupabaseEnv) {
+    return {
+      ...DEFAULT_FAMILY_PROFILE,
+      ...payload,
+    };
+  }
 
   const { data, error } = await supabase
     .from("family_profiles")

@@ -19,6 +19,7 @@ import {
   rowToSettings,
   upsertFamilyProfile,
 } from "@/lib/familySettings";
+import { hasSupabaseEnv } from "@/lib/supabaseClient";
 
 function marketLabel(key: MarketKey) {
   if (key === "au") return "Australia";
@@ -101,67 +102,72 @@ export default function FamilySettingsPage() {
     let mounted = true;
 
     async function hydrate() {
-      const seededChildren = loadChildrenFromLocalStorage();
-      const localSettings = loadSettingsFromLocalStorage();
-
-      const localMerged: FamilySettings = {
-        ...DEFAULT_FAMILY_SETTINGS,
-        ...localSettings,
-        default_child_id: localSettings.default_child_id || seededChildren[0]?.id || null,
-      };
-
-      if (!mounted) return;
-
-      setChildren(seededChildren);
-      setSettings(localMerged);
-      setInitialSettings(localMerged);
-
-      const currentUserId = await getCurrentUserId();
-
-      if (!mounted) return;
-
-      setUserId(currentUserId);
-
-      if (!currentUserId) {
-        setStorageMode("local");
-        setHydrated(true);
-        return;
-      }
-
-      let data: any = null;
-
       try {
-        data = await loadFamilyProfile();
-      } catch {
+        const seededChildren = loadChildrenFromLocalStorage();
+        const localSettings = loadSettingsFromLocalStorage();
+
+        const localMerged: FamilySettings = {
+          ...DEFAULT_FAMILY_SETTINGS,
+          ...localSettings,
+          default_child_id: localSettings.default_child_id || seededChildren[0]?.id || null,
+        };
+
         if (!mounted) return;
-        setStorageMode("local");
-        setLoadError(
-          "Database profile could not be loaded, so local settings are being used."
-        );
-        setHydrated(true);
-        return;
-      }
 
-      if (!mounted) return;
+        setChildren(seededChildren);
+        setSettings(localMerged);
+        setInitialSettings(localMerged);
 
-      if (!data) {
+        const currentUserId = await getCurrentUserId();
+
+        if (!mounted) return;
+
+        setUserId(currentUserId);
+
+        if (!currentUserId || !hasSupabaseEnv) {
+          setStorageMode("local");
+          return;
+        }
+
+        let data: any = null;
+
+        try {
+          data = await loadFamilyProfile();
+        } catch {
+          if (!mounted) return;
+          setStorageMode("local");
+          setLoadError(
+            "Database profile could not be loaded, so local settings are being used."
+          );
+          return;
+        }
+
+        if (!mounted) return;
+
+        if (!data) {
+          setStorageMode("database");
+          return;
+        }
+
+        const dbSettings: FamilySettings = {
+          ...DEFAULT_FAMILY_SETTINGS,
+          ...rowToSettings(data),
+          default_child_id:
+            data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || null,
+        };
+
         setStorageMode("database");
+        setSettings(dbSettings);
+        setInitialSettings(dbSettings);
+        persistSettingsToLocalStorage(dbSettings);
+      } catch (err) {
+        console.error("Family settings hydrate failed", err);
+        if (!mounted) return;
+        setLoadError("We could not load your family defaults just yet. Please try again.");
+      } finally {
+        if (!mounted) return;
         setHydrated(true);
-        return;
       }
-
-      const dbSettings: FamilySettings = {
-        ...DEFAULT_FAMILY_SETTINGS,
-        ...rowToSettings(data),
-        default_child_id:
-          data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || null,
-      };
-
-      setStorageMode("database");
-      setSettings(dbSettings);
-      setInitialSettings(dbSettings);
-      persistSettingsToLocalStorage(dbSettings);
-      setHydrated(true);
     }
 
     hydrate();
