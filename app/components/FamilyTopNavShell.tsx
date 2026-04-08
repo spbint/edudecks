@@ -455,7 +455,8 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         background: "rgba(255,255,255,0.9)",
         backdropFilter: "blur(8px)",
         borderBottom: "1px solid #e5e7eb",
-        zIndex: 20,
+        zIndex: 40,
+        overflow: "visible",
       }}
     >
       <div
@@ -474,6 +475,8 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
             alignItems: "center",
             gap: 12,
             flexWrap: "wrap",
+            position: "relative",
+            zIndex: 20,
           }}
         >
           <div
@@ -521,7 +524,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         </div>
       </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
           {PRIMARY_NAV.map((item) => (
             <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
               {item.label}
@@ -534,6 +537,8 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 14,
+            position: "relative",
+            zIndex: 10,
           }}
         >
           {SECTIONS.map((section) => (

@@ -223,6 +223,10 @@ export default function OneRosterImportPage() {
 
     setBusy(true);
     try {
+      const authResp = await supabase.auth.getUser();
+      const user = authResp.data.user;
+      if (!user) throw new Error("You must be signed in.");
+
       // Identify OneRoster columns (best-effort)
       const u0 = users[0];
       const c0 = classes[0];
@@ -327,6 +331,7 @@ export default function OneRosterImportPage() {
         const existingId = colStudentSis ? studentSisToId.get(sisKey) : null;
 
         const payload: any = {
+          user_id: user.id,
           first_name: given || null,
           preferred_name: given || null,
           is_ilp: false,

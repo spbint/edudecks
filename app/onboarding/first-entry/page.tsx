@@ -316,10 +316,15 @@ function isMissingColumnError(err: any) {
 }
 
 async function createStudentRecord(child: ChildForm) {
+  const authResp = await supabase.auth.getUser();
+  const user = authResp.data.user;
+  if (!user) throw new Error("You must be signed in.");
+
   const nameBits = splitName(child.childName);
 
   const payloadVariants: Array<Record<string, any>> = [
     {
+      user_id: user.id,
       first_name: nameBits.first_name || safe(child.childName),
       preferred_name: nameBits.first_name || safe(child.childName),
       surname: nameBits.surname || null,
@@ -327,6 +332,7 @@ async function createStudentRecord(child: ChildForm) {
       is_ilp: false,
     },
     {
+      user_id: user.id,
       first_name: nameBits.first_name || safe(child.childName),
       preferred_name: nameBits.first_name || safe(child.childName),
       family_name: nameBits.surname || null,
@@ -334,12 +340,14 @@ async function createStudentRecord(child: ChildForm) {
       is_ilp: false,
     },
     {
+      user_id: user.id,
       first_name: nameBits.first_name || safe(child.childName),
       preferred_name: nameBits.first_name || safe(child.childName),
       class_id: null,
       is_ilp: false,
     },
     {
+      user_id: user.id,
       first_name: nameBits.first_name || safe(child.childName),
       preferred_name: nameBits.first_name || safe(child.childName),
     },

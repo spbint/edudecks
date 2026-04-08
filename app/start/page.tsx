@@ -207,11 +207,16 @@ function stepIndex(step: GuidedStep) {
 }
 
 async function createStudentRecord(childName: string, yearLevel: string) {
+  const authResp = await supabase.auth.getUser();
+  const user = authResp.data.user;
+  if (!user) throw new Error("Please sign in to save your progress.");
+
   const nameBits = splitName(childName);
   const yearNum = Number(safe(yearLevel));
   const usableYear = Number.isFinite(yearNum) ? yearNum : null;
 
   const payload = {
+    user_id: user.id,
     first_name: nameBits.first_name || safe(childName),
     preferred_name: nameBits.first_name || safe(childName),
     surname: nameBits.surname || null,

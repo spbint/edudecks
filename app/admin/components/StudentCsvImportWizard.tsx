@@ -439,6 +439,10 @@ export default function StudentCsvImportWizard({ open, onClose, classes, detecte
     const failures: Array<{ row_number: number; reason: string }> = [];
 
     try {
+      const authResp = await supabase.auth.getUser();
+      const user = authResp.data.user;
+      if (!user) throw new Error("You must be signed in.");
+
       // Only import valid payloads
       const valid = prepared.filter((p) => p.payload);
 
@@ -446,7 +450,7 @@ export default function StudentCsvImportWizard({ open, onClose, classes, detecte
       const CHUNK = 500;
       for (let i = 0; i < valid.length; i += CHUNK) {
         const chunk = valid.slice(i, i + CHUNK);
-        const payloads = chunk.map((c) => c.payload);
+        const payloads = chunk.map((c) => ({ ...c.payload, user_id: user.id }));
 
         // eslint-disable-next-line no-await-in-loop
         const { error } = await supabase.from("students").insert(payloads);

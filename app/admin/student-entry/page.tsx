@@ -392,7 +392,12 @@ export default function StudentEntryPage() {
       if (!classId) throw new Error("Please choose a class.");
       if (!safe(firstName)) throw new Error("Please enter a first name.");
 
+      const authResp = await supabase.auth.getUser();
+      const user = authResp.data.user;
+      if (!user) throw new Error("You must be signed in.");
+
       const basePayload: any = {
+        user_id: user.id,
         class_id: classId,
         first_name: safe(firstName) || null,
         preferred_name: safe(preferredName) || null,

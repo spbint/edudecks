@@ -92,6 +92,7 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
         position: "relative",
         display: "inline-flex",
         alignItems: "center",
+        zIndex: open ? 120 : 40,
       }}
     >
       <button
@@ -159,7 +160,7 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
             padding: 16,
             display: "grid",
             gap: 10,
-            zIndex: 50,
+            zIndex: 120,
           }}
         >
           <div style={{ display: "grid", gap: 4 }}>
