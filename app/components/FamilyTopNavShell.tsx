@@ -476,23 +476,30 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
             flexWrap: "wrap",
           }}
         >
-          <div>
           <div
             style={{
-              fontSize: 12,
+              marginRight: 24,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+          <div
+            style={{
+              fontSize: 30,
               fontWeight: 900,
-              letterSpacing: 1.2,
+              letterSpacing: 0.6,
               textTransform: "uppercase",
-              color: "#64748b",
+              color: "#0f172a",
+              lineHeight: 1,
             }}
           >
             {title}
           </div>
           <div
             style={{
-              fontSize: 14,
-              color: "#475569",
-              marginTop: 4,
+              fontSize: 15,
+              color: "#334155",
+              fontWeight: 600,
             }}
           >
             {subtitle}
