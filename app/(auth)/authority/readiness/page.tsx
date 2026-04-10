@@ -23,6 +23,10 @@ import {
 } from "@/lib/authorityPackData";
 import { buildAuthorityConfidence } from "@/lib/authorityConfidence";
 import { familyStyles as S } from "@/lib/theme/familyStyles";
+import {
+  FAMILY_SHELL_HANDOFF_QUERY_PARAM,
+  resolveFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
@@ -337,6 +341,14 @@ function signalTone(passed: boolean) {
 
 export default function AuthorityReadinessPage() {
   const searchParams = useSearchParams();
+  const shellHandoff = useMemo(
+    () =>
+      resolveFamilyShellHandoff(
+        searchParams?.get(FAMILY_SHELL_HANDOFF_QUERY_PARAM),
+        "/authority/readiness"
+      ),
+    [searchParams]
+  );
 
   const [draft, setDraft] = useState<ReportDraftRow | null>(null);
   const [config, setConfig] = useState<AuthorityPackConfig | null>(null);
@@ -542,6 +554,31 @@ export default function AuthorityReadinessPage() {
           <div style={{ ...S.statCard("danger"), marginBottom: 18 }}>
             <div style={S.small()}>{error}</div>
           </div>
+        ) : null}
+        {shellHandoff ? (
+          <section
+            style={{
+              ...S.card(),
+              marginBottom: 18,
+              border: "1px solid #dbeafe",
+              background: "#eff6ff",
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 900,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                color: "#64748b",
+              }}
+            >
+              {shellHandoff.title}
+            </div>
+            <div style={{ ...S.body(), marginTop: 6, color: "#334155" }}>
+              {shellHandoff.detail}
+            </div>
+          </section>
         ) : null}
 
         <section

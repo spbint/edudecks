@@ -11,6 +11,10 @@ import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
 import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
+import {
+  FAMILY_SHELL_HANDOFF_QUERY_PARAM,
+  resolveFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -631,6 +635,14 @@ export default function PortfolioPage() {
 
 function PortfolioPageContent() {
   const searchParams = useSearchParams();
+  const shellHandoff = useMemo(
+    () =>
+      resolveFamilyShellHandoff(
+        searchParams?.get(FAMILY_SHELL_HANDOFF_QUERY_PARAM),
+        "/portfolio"
+      ),
+    [searchParams]
+  );
   const isMobile = useIsMobile();
   const queryStudentId = safe(searchParams?.get("studentId"));
   const queryHighlightId = safe(searchParams?.get("highlightEvidenceId"));
@@ -1173,6 +1185,19 @@ function PortfolioPageContent() {
       heroText="A growing record of learning, reflection, and progress — built from everyday moments."
       hideHeroAside={true}
     >
+      {shellHandoff ? (
+        <section
+          style={{
+            ...UI.card(),
+            marginBottom: 18,
+            border: "1px solid #dbeafe",
+            background: "#eff6ff",
+          }}
+        >
+          <div style={UI.label()}>{shellHandoff.title}</div>
+          <div style={{ ...UI.body(), marginTop: 6, color: "#334155" }}>{shellHandoff.detail}</div>
+        </section>
+      ) : null}
       {err ? (
         <section
           style={{

@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import {
+  FAMILY_SHELL_HANDOFF_QUERY_PARAM,
+  resolveFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 
 type ChildRecord = {
   id: string;
@@ -433,6 +437,14 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
 
 export default function PlannerPage() {
   const searchParams = useSearchParams();
+  const shellHandoff = useMemo(
+    () =>
+      resolveFamilyShellHandoff(
+        searchParams?.get(FAMILY_SHELL_HANDOFF_QUERY_PARAM),
+        "/planner"
+      ),
+    [searchParams]
+  );
 
   const [children, setChildren] = useState<ChildRecord[]>([]);
   const [activeStudentId, setActiveStudentId] = useState("");
@@ -711,6 +723,23 @@ export default function PlannerPage() {
               <div style={styles.heroMetaSub}>{todayLabel}</div>
             </div>
           </div>
+
+          {shellHandoff ? (
+            <div
+              style={{
+                marginTop: 18,
+                border: "1px solid #dbeafe",
+                background: "#eff6ff",
+                borderRadius: 16,
+                padding: "14px 16px",
+              }}
+            >
+              <div style={styles.eyebrow}>{shellHandoff.title}</div>
+              <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+                {shellHandoff.detail}
+              </div>
+            </div>
+          ) : null}
 
           <div style={styles.heroStatsRow}>
             <div style={styles.statPill}>

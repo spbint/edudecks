@@ -21,6 +21,10 @@ import {
   type SelectionMetaMap,
 } from "@/lib/reportDrafts";
 import { getDisplayName, getEvidenceText, safeText } from "@/lib/system";
+import {
+  FAMILY_SHELL_HANDOFF_QUERY_PARAM,
+  resolveFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 
 type StudentRow = {
   id: string;
@@ -638,6 +642,14 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const shellHandoff = useMemo(
+    () =>
+      resolveFamilyShellHandoff(
+        searchParams?.get(FAMILY_SHELL_HANDOFF_QUERY_PARAM),
+        "/reports"
+      ),
+    [searchParams]
+  );
   const autoSelectedStudentRef = useRef<string>("");
 
   const [profile, setProfile] = useState<FamilyProfileRow>(DEFAULT_FAMILY_PROFILE);
@@ -1284,6 +1296,23 @@ function ReportsPageContent() {
   return (
     <main style={pageStyle}>
       <div style={innerStyle}>
+        {shellHandoff ? (
+          <section
+            style={{
+              ...cardStyle,
+              marginBottom: 18,
+              border: "1px solid #dbeafe",
+              background: "#eff6ff",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" }}>
+              {shellHandoff.title}
+            </div>
+            <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+              {shellHandoff.detail}
+            </div>
+          </section>
+        ) : null}
         {highlightedEvidence ? (
           <section
             style={{

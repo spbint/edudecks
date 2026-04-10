@@ -6,6 +6,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { loadFamilyProfile } from "@/lib/familySettings";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
+import {
+  buildFamilyShellHandoff,
+  withFamilyShellHandoffQuery,
+  writeFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
@@ -1619,6 +1624,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
   const recommendedItem = COMMAND_ITEMS.find((item) => item.href === recommendedHref) ?? null;
   const recommendedSignal = recommendedHref ? signals[recommendedHref] : null;
+  const recommendedHandoff = recommendedItem
+    ? buildFamilyShellHandoff(recommendedItem.href, recommendedSignal)
+    : null;
   const recommendedActionLabel = recommendedItem
     ? recommendedItem.href === "/capture"
       ? "Do this now"
@@ -1950,10 +1958,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           const active = isActive(pathname, item.href);
           const signal = signals[item.href];
           const recommended = item.href === recommendedHref;
+          const commandHref =
+            recommended && recommendedHandoff
+              ? withFamilyShellHandoffQuery(item.href, recommendedHandoff)
+              : item.href;
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={commandHref}
+              onClick={() => {
+                if (recommended) {
+                  writeFamilyShellHandoff(recommendedHandoff);
+                }
+              }}
               style={{
                 border: recommended
                   ? "1px solid #1d4ed8"

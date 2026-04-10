@@ -2,9 +2,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
+import {
+  FAMILY_SHELL_HANDOFF_QUERY_PARAM,
+  resolveFamilyShellHandoff,
+} from "@/lib/familyCommandHandoff";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const PLAN_STORAGE_KEY = "edudecks_plan";
@@ -833,6 +838,7 @@ function SearchableSelect({
 }
 
 export default function CapturePage() {
+  const searchParams = useSearchParams();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -1004,6 +1010,14 @@ export default function CapturePage() {
   const activeChild = useMemo(
     () => children.find((c) => c.id === activeChildId) || null,
     [children, activeChildId]
+  );
+  const shellHandoff = useMemo(
+    () =>
+      resolveFamilyShellHandoff(
+        searchParams?.get(FAMILY_SHELL_HANDOFF_QUERY_PARAM),
+        "/capture"
+      ),
+    [searchParams]
   );
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1267,6 +1281,21 @@ export default function CapturePage() {
       heroAsideTitle="Best family move"
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
+      {shellHandoff ? (
+        <section
+          style={{
+            ...softCard(),
+            marginBottom: 18,
+            borderColor: "#dbeafe",
+            background: "#eff6ff",
+          }}
+        >
+          <div style={eyebrowStyle()}>{shellHandoff.title}</div>
+          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+            {shellHandoff.detail}
+          </div>
+        </section>
+      ) : null}
       {busy ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>
       ) : err ? (
