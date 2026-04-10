@@ -76,6 +76,18 @@ type ReadinessConfidenceState = {
   tone: CommandTone;
 };
 
+type WorkspaceFocus =
+  | "build-weekly-record"
+  | "round-out-portfolio"
+  | "prepare-report"
+  | "prepare-authority";
+
+type FocusState = {
+  key: WorkspaceFocus;
+  label: string;
+  detail: string;
+};
+
 type RecentActionMap = Partial<Record<"capture" | "planner" | "portfolio" | "reports" | "authority", number>>;
 
 type EvidenceSignalRow = {
@@ -90,6 +102,7 @@ const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 const COMMAND_MEMORY_KEY = "edudecks_family_command_memory_v1";
 const COMMAND_COOLDOWN_MS = 1000 * 60 * 30;
+const WORKSPACE_FOCUS_KEY = "edudecks_family_workspace_focus_v1";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -217,6 +230,33 @@ function writeRecentActionMemory(next: RecentActionMap) {
 function wasRecentAction(timestamp?: number) {
   if (!timestamp) return false;
   return Date.now() - timestamp < COMMAND_COOLDOWN_MS;
+}
+
+function focusFromPathname(pathname: string): WorkspaceFocus | null {
+  if (pathname.startsWith("/capture") || pathname.startsWith("/planner")) return "build-weekly-record";
+  if (pathname.startsWith("/portfolio")) return "round-out-portfolio";
+  if (pathname.startsWith("/reports")) return "prepare-report";
+  if (pathname.startsWith("/authority")) return "prepare-authority";
+  return null;
+}
+
+function readWorkspaceFocus(): WorkspaceFocus | null {
+  if (typeof window === "undefined") return null;
+  const raw = safe(window.localStorage.getItem(WORKSPACE_FOCUS_KEY));
+  if (
+    raw === "build-weekly-record" ||
+    raw === "round-out-portfolio" ||
+    raw === "prepare-report" ||
+    raw === "prepare-authority"
+  ) {
+    return raw;
+  }
+  return null;
+}
+
+function writeWorkspaceFocus(focus: WorkspaceFocus) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(WORKSPACE_FOCUS_KEY, focus);
 }
 
 function isMissingColumnError(err: any) {
@@ -579,6 +619,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [signals, setSignals] = useState<Record<string, CommandSignal>>({});
   const [momentum, setMomentum] = useState<MomentumState | null>(null);
   const [confidence, setConfidence] = useState<ReadinessConfidenceState | null>(null);
+  const [focus, setFocus] = useState<FocusState | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
 
   useEffect(() => {
@@ -588,6 +629,10 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     const memory = readRecentActionMemory();
     memory[commandKey] = Date.now();
     writeRecentActionMemory(memory);
+    const focusKey = focusFromPathname(pathname);
+    if (focusKey) {
+      writeWorkspaceFocus(focusKey);
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -754,6 +799,20 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           (daysSince(latestDraft?.updated_at) ?? 999) === 0;
         const recentAuthorityAction = wasRecentAction(recentActionMemory.authority);
         const readinessGuidanceOn = familyProfile?.show_authority_guidance !== false;
+        const storedFocus = readWorkspaceFocus();
+        const inferredFocus: WorkspaceFocus =
+          storedFocus ||
+          (readinessGuidanceOn &&
+          latestDraft &&
+          selectedEvidenceCount >= 3 &&
+          recentAreas.size >= 2 &&
+          (steadyWeeklyPattern || weeklyRows.length >= 1)
+            ? "prepare-authority"
+            : latestDraft
+            ? "prepare-report"
+            : narrowRecentBalance || recentAreas.size < 2
+            ? "round-out-portfolio"
+            : "build-weekly-record");
 
         let nextMomentum: MomentumState = {
           label: "Getting started",
@@ -765,6 +824,12 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           label: "Not ready yet",
           detail: "Your evidence base is still taking shape.",
           tone: "neutral",
+        };
+
+        let nextFocus: FocusState = {
+          key: inferredFocus,
+          label: "Build weekly record",
+          detail: "Keep the weekly learning record calm and current.",
         };
 
         if (!rows.length) {
@@ -874,6 +939,32 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           };
         }
 
+        if (inferredFocus === "build-weekly-record") {
+          nextFocus = {
+            key: inferredFocus,
+            label: "Build weekly record",
+            detail: "Keep the weekly learning record calm and current.",
+          };
+        } else if (inferredFocus === "round-out-portfolio") {
+          nextFocus = {
+            key: inferredFocus,
+            label: "Round out portfolio",
+            detail: "Broader recent coverage will make the learning story stronger.",
+          };
+        } else if (inferredFocus === "prepare-report") {
+          nextFocus = {
+            key: inferredFocus,
+            label: "Prepare report",
+            detail: "Shape the evidence base into something usable for reporting.",
+          };
+        } else {
+          nextFocus = {
+            key: inferredFocus,
+            label: "Prepare readiness",
+            detail: "Steady the evidence base for a calmer readiness review.",
+          };
+        }
+
         const nextSignals: Record<string, CommandSignal> = {};
 
         if (!rows.length) {
@@ -895,7 +986,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker: quietAfterBurst
               ? "A steadier weekly rhythm will make later planning and reporting feel easier."
               : undefined,
-            priority: recentCaptureAction ? 50 : quietAfterBurst ? 88 : 82,
+            priority:
+              (recentCaptureAction ? 50 : quietAfterBurst ? 88 : 82) +
+              (inferredFocus === "build-weekly-record" ? 8 : 0),
           };
         } else if (narrowWeeklyBalance && weeklyMissingArea) {
           nextSignals["/capture"] = {
@@ -907,7 +1000,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 ? `Recent learning is concentrated in ${titleCaseArea(weeklyDominant.area)}.`
                 : "Recent learning is concentrated in one area.",
             blocker: "A broader mix will make later reporting and portfolio review feel stronger.",
-            priority: recentCaptureAction ? 38 : 74,
+            priority: (recentCaptureAction ? 38 : 74) + (inferredFocus === "round-out-portfolio" ? 8 : 0),
           };
         } else if (burstyRecentPattern) {
           nextSignals["/capture"] = {
@@ -1035,7 +1128,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               ? `Recent learning is concentrated in ${titleCaseArea(recentDominant.area)}.`
               : "Recent learning is concentrated in one area.",
             blocker: "A broader mix will strengthen the portfolio story before deeper review.",
-            priority: recentPortfolioAction ? 22 : 60,
+            priority: (recentPortfolioAction ? 22 : 60) + (inferredFocus === "round-out-portfolio" ? 10 : 0),
           };
         } else {
           nextSignals["/portfolio"] = {
@@ -1063,7 +1156,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 : narrowRecentBalance
                 ? "Reports will feel stronger once recent evidence covers more than one area."
                 : undefined,
-            priority: recentReportAction ? 26 : narrowRecentBalance ? 58 : rows.length >= 3 ? 74 : 42,
+            priority:
+              (recentReportAction ? 26 : narrowRecentBalance ? 58 : rows.length >= 3 ? 74 : 42) +
+              (inferredFocus === "prepare-report" ? 10 : 0),
           };
         } else if (selectedEvidenceCount < 3 || narrowRecentBalance) {
           nextSignals["/reports"] = {
@@ -1082,7 +1177,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker: narrowRecentBalance
               ? "Reporting is still blocked by narrow recent coverage."
               : "Report building is still blocked by thin evidence selection.",
-            priority: recentReportAction ? 48 : narrowRecentBalance ? 70 : 72,
+            priority:
+              (recentReportAction ? 48 : narrowRecentBalance ? 70 : 72) +
+              (inferredFocus === "prepare-report" ? 8 : 0),
           };
         } else if (!weeklyRows.length) {
           nextSignals["/reports"] = {
@@ -1119,7 +1216,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               nextConfidence.label === "Ready to review"
                 ? "This looks ready for a review pass."
                 : "The draft and evidence set are both in a steady place now.",
-            priority: nextConfidence.label === "Ready to review" ? 52 : 46,
+            priority:
+              (nextConfidence.label === "Ready to review" ? 52 : 46) +
+              (inferredFocus === "prepare-report" ? 8 : 0),
           };
         }
 
@@ -1159,7 +1258,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 : narrowRecentBalance
                 ? "Authority readiness is blocked until recent evidence is broader."
                 : "Authority readiness is blocked until evidence breadth is stronger.",
-            priority: recentAuthorityAction ? 24 : narrowRecentBalance ? 36 : 40,
+            priority:
+              (recentAuthorityAction ? 24 : narrowRecentBalance ? 36 : 40) +
+              (inferredFocus === "prepare-authority" ? 10 : 0),
           };
         } else {
           nextSignals["/authority/readiness"] = {
@@ -1173,12 +1274,15 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               : nextConfidence.label === "Ready to review"
               ? "This evidence base looks ready for a review pass."
               : "Draft quality and evidence breadth are strong enough to review readiness.",
-            priority: recentAuthorityAction ? 20 : nextConfidence.label === "Ready to review" ? 48 : 44,
+            priority:
+              (recentAuthorityAction ? 20 : nextConfidence.label === "Ready to review" ? 48 : 44) +
+              (inferredFocus === "prepare-authority" ? 10 : 0),
           };
         }
 
         setMomentum(nextMomentum);
         setConfidence(nextConfidence);
+        setFocus(nextFocus);
         setSignals(nextSignals);
       } catch (error) {
         console.error("Family command guidance failed", error);
@@ -1186,6 +1290,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           setSignals({});
           setMomentum(null);
           setConfidence(null);
+          setFocus(null);
         }
       }
     }
@@ -1339,6 +1444,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 }}
               >
                 {confidence.detail}
+              </span>
+            </div>
+          ) : null}
+          {focus ? (
+            <div
+              style={{
+                marginTop: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  ...toneStyle("neutral"),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {focus.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "#64748b",
+                }}
+              >
+                {focus.detail}
               </span>
             </div>
           ) : null}
