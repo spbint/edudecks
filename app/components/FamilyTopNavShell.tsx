@@ -1630,6 +1630,50 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
       ? "Build from here"
       : "Check this next"
     : "";
+  const showConfidence =
+    Boolean(confidence) &&
+    !(
+      confidence?.label === momentum?.label ||
+      (confidence?.label === "Ready to review" && momentum?.label === "Healthy place")
+    );
+  const showFocus =
+    Boolean(focus) &&
+    !(recommendedItem && focus?.label.toLowerCase().includes(recommendedItem.label.toLowerCase())) &&
+    !(
+      focus?.key === "build-weekly-record" &&
+      recommendedHref === "/capture"
+    ) &&
+    !(
+      focus?.key === "prepare-report" &&
+      recommendedHref === "/reports"
+    ) &&
+    !(
+      focus?.key === "prepare-authority" &&
+      recommendedHref === "/authority/readiness"
+    );
+  const showCrossChildNote =
+    Boolean(crossChildNote) &&
+    !(momentum?.tone === "warning" && recommendedSignal?.tone === "warning");
+  const showReassurance =
+    Boolean(reassuranceNote) &&
+    !(momentum?.tone === "warning" || recommendedSignal?.tone === "warning") &&
+    !(
+      reassuranceNote?.label === "Healthy place" &&
+      momentum?.label === "Healthy place"
+    ) &&
+    !(
+      reassuranceNote?.detail &&
+      confidence?.detail &&
+      reassuranceNote.detail === confidence.detail
+    );
+  const showRecommendationWhy =
+    Boolean(recommendedSignal?.why) &&
+    recommendedSignal?.why !== momentum?.detail &&
+    recommendedSignal?.why !== confidence?.detail &&
+    recommendedSignal?.why !== reassuranceNote?.detail;
+  const showRecommendationBlocker =
+    Boolean(recommendedSignal?.blocker) &&
+    recommendedSignal?.blocker !== recommendedSignal?.why;
 
   return (
     <section
@@ -1711,7 +1755,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               </span>
             </div>
           ) : null}
-          {confidence ? (
+          {showConfidence && confidence ? (
             <div
               style={{
                 marginTop: 8,
@@ -1745,7 +1789,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               </span>
             </div>
           ) : null}
-          {focus ? (
+          {showFocus && focus ? (
             <div
               style={{
                 marginTop: 8,
@@ -1779,7 +1823,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               </span>
             </div>
           ) : null}
-          {crossChildNote ? (
+          {showCrossChildNote && crossChildNote ? (
             <div
               style={{
                 marginTop: 8,
@@ -1813,7 +1857,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               </span>
             </div>
           ) : null}
-          {reassuranceNote ? (
+          {showReassurance && reassuranceNote ? (
             <div
               style={{
                 marginTop: 8,
@@ -1865,7 +1909,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 <span style={{ fontWeight: 800, color: "#0f172a" }}>Best next move:</span>{" "}
                 {recommendedItem.label}. {recommendedSignal.suggestion}
               </div>
-              {recommendedSignal.why ? (
+              {showRecommendationWhy && recommendedSignal.why ? (
                 <div
                   style={{
                     fontSize: 12,
@@ -1876,7 +1920,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                   Why this now: {recommendedSignal.why}
                 </div>
               ) : null}
-              {recommendedSignal.blocker ? (
+              {showRecommendationBlocker && recommendedSignal.blocker ? (
                 <div
                   style={{
                     fontSize: 12,
