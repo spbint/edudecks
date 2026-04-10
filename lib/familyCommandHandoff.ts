@@ -26,6 +26,7 @@ export type FamilyShellHandoffPayload = {
   href: string;
   title: string;
   detail: string;
+  firstAction: string;
   createdAt: number;
 };
 
@@ -50,72 +51,86 @@ function handoffCopy(intent: FamilyShellHandoffIntent) {
       return {
         title: "Suggested next move",
         detail: "Start with one simple learning moment so the weekly record has a clear first anchor.",
+        firstAction: "Begin with a short title, one clear summary, and the learning area that fits best.",
       };
     case "refresh-week":
       return {
         title: "Suggested next move",
         detail: "Add one fresh learning moment here so the weekly record feels current again.",
+        firstAction: "Capture one recent example from this week before it slips out of view.",
       };
     case "widen-subject-mix":
       return {
         title: "Suggested next move",
         detail: "Use this capture to add a different subject and round out the week a little more.",
+        firstAction: "Choose one quieter subject area and add a single example from it.",
       };
     case "steady-rhythm":
       return {
         title: "Suggested next move",
         detail: "A small capture here will help steady the rhythm after a quieter patch.",
+        firstAction: "Add one recent moment now, even if it is small, to get the rhythm moving again.",
       };
     case "reset-after-quiet-patch":
       return {
         title: "Suggested next move",
         detail: "Use the planner to reset the next calm step after a quieter stretch.",
+        firstAction: "Choose one gentle focus for the week and set the next session in motion.",
       };
     case "plan-broader-next-step":
       return {
         title: "Suggested next move",
         detail: "Shape the next session around a learning area that has been quieter recently.",
+        firstAction: "Plan the next session around a subject that has had less attention lately.",
       };
     case "round-out-story":
       return {
         title: "Suggested next move",
         detail: "Review the portfolio with breadth in mind and round out the story where it still feels thin.",
+        firstAction: "Scan the recent story and check whether one important learning area still feels missing.",
       };
     case "refresh-story":
       return {
         title: "Suggested next move",
         detail: "A quick portfolio review here should help refresh the story before it feels dated.",
+        firstAction: "Start by checking whether the most recent evidence still reflects what is happening now.",
       };
     case "start-report-draft":
       return {
         title: "Suggested next move",
         detail: "Open the report builder and shape a first draft from the evidence already in place.",
+        firstAction: "Begin by selecting the clearest evidence anchors that already represent the learning well.",
       };
     case "strengthen-draft":
       return {
         title: "Suggested next move",
         detail: "Use this report pass to strengthen the draft with a broader, calmer evidence base.",
+        firstAction: "Check whether the draft draws on enough varied evidence before refining the wording.",
       };
     case "refresh-before-report":
       return {
         title: "Suggested next move",
         detail: "Check the report draft with freshness in mind before you lean on it too heavily.",
+        firstAction: "Look first for any stale or missing recent evidence that should be reflected in the draft.",
       };
     case "enable-readiness-guidance":
       return {
         title: "Suggested next move",
         detail: "Open readiness to confirm the posture and turn guidance back on before relying on later steps.",
+        firstAction: "Start by checking the current readiness posture and whether guidance support is switched on.",
       };
     case "strengthen-before-readiness":
       return {
         title: "Suggested next move",
         detail: "Use readiness as a quick posture check, then strengthen the evidence base where it still looks light.",
+        firstAction: "Check freshness, breadth, and draft support first so you can see what still needs strengthening.",
       };
     case "check-readiness":
     default:
       return {
         title: "Suggested next move",
         detail: "Use readiness to check whether the current evidence base is calm and usable enough for review.",
+        firstAction: "Start with freshness, breadth, and draft support to see whether the record is ready for review.",
       };
   }
 }
@@ -242,6 +257,7 @@ export function resolveFamilyShellHandoff(
       href: expectedHref,
       title: safe(parsed.title) || fallback.title,
       detail: safe(parsed.detail) || fallback.detail,
+      firstAction: safe(parsed.firstAction) || fallback.firstAction,
       createdAt,
     } satisfies FamilyShellHandoffPayload;
   } catch {

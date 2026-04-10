@@ -1311,6 +1311,10 @@ function ReportsPageContent() {
             <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
               {shellHandoff.detail}
             </div>
+            <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
+              {shellHandoff.firstAction}
+            </div>
           </section>
         ) : null}
         {highlightedEvidence ? (

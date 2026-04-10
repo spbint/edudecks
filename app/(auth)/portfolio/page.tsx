@@ -1196,6 +1196,10 @@ function PortfolioPageContent() {
         >
           <div style={UI.label()}>{shellHandoff.title}</div>
           <div style={{ ...UI.body(), marginTop: 6, color: "#334155" }}>{shellHandoff.detail}</div>
+          <div style={{ ...UI.body(), marginTop: 8, fontSize: 13, color: "#475569" }}>
+            <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
+            {shellHandoff.firstAction}
+          </div>
         </section>
       ) : null}
       {err ? (
