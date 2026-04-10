@@ -69,6 +69,8 @@ type MomentumState = {
   tone: CommandTone;
 };
 
+type RecentActionMap = Partial<Record<"capture" | "planner" | "portfolio" | "reports" | "authority", number>>;
+
 type EvidenceSignalRow = {
   id: string;
   student_id?: string | null;
@@ -79,6 +81,8 @@ type EvidenceSignalRow = {
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
+const COMMAND_MEMORY_KEY = "edudecks_family_command_memory_v1";
+const COMMAND_COOLDOWN_MS = 1000 * 60 * 30;
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -129,6 +133,44 @@ function priorityWeight(tone: CommandTone) {
   if (tone === "info") return 2;
   if (tone === "success") return 1;
   return 0;
+}
+
+function getCommandKeyForHref(href: string): keyof RecentActionMap | null {
+  if (href.startsWith("/capture")) return "capture";
+  if (href.startsWith("/planner")) return "planner";
+  if (href.startsWith("/portfolio")) return "portfolio";
+  if (href.startsWith("/reports")) return "reports";
+  if (href.startsWith("/authority")) return "authority";
+  return null;
+}
+
+function readRecentActionMemory(): RecentActionMap {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(COMMAND_MEMORY_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const next: RecentActionMap = {};
+    for (const key of ["capture", "planner", "portfolio", "reports", "authority"] as const) {
+      const value = parsed[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        next[key] = value;
+      }
+    }
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+function writeRecentActionMemory(next: RecentActionMap) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(COMMAND_MEMORY_KEY, JSON.stringify(next));
+}
+
+function wasRecentAction(timestamp?: number) {
+  if (!timestamp) return false;
+  return Date.now() - timestamp < COMMAND_COOLDOWN_MS;
 }
 
 function isMissingColumnError(err: any) {
@@ -494,6 +536,15 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const commandKey = getCommandKeyForHref(pathname);
+    if (!commandKey) return;
+    const memory = readRecentActionMemory();
+    memory[commandKey] = Date.now();
+    writeRecentActionMemory(memory);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
     function handleActiveChildChanged() {
       setActiveChildVersion((value) => value + 1);
@@ -619,6 +670,16 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         );
         const latestDraft = childDrafts[0] ?? null;
         const selectedEvidenceCount = latestDraft?.selected_evidence_ids?.length ?? 0;
+        const recentActionMemory = readRecentActionMemory();
+        const recentCaptureAction =
+          wasRecentAction(recentActionMemory.capture) ||
+          (daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999) === 0;
+        const recentPlannerAction = wasRecentAction(recentActionMemory.planner);
+        const recentPortfolioAction = wasRecentAction(recentActionMemory.portfolio);
+        const recentReportAction =
+          wasRecentAction(recentActionMemory.reports) ||
+          (daysSince(latestDraft?.updated_at) ?? 999) === 0;
+        const recentAuthorityAction = wasRecentAction(recentActionMemory.authority);
 
         let nextMomentum: MomentumState = {
           label: "Getting started",
@@ -674,15 +735,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Quiet this week",
             suggestion: `Add one fresh moment for ${childName} this week.`,
             why: "Nothing has been captured this week yet.",
-            priority: 82,
+            priority: recentCaptureAction ? 50 : 82,
           };
         } else if (!weeklyAreas.has("science")) {
           nextSignals["/capture"] = {
             tone: "info",
-            label: "No science yet",
-            suggestion: `Add one science example while the week is still open.`,
-            why: "There is no recent science evidence yet.",
-            priority: 68,
+            label: recentCaptureAction ? "Fresh step taken" : "No science yet",
+            suggestion: recentCaptureAction
+              ? "You just captured something. The next step can widen the spread when it feels natural."
+              : `Add one science example while the week is still open.`,
+            why: recentCaptureAction
+              ? "Recent capture activity already improved momentum."
+              : "There is no recent science evidence yet.",
+            priority: recentCaptureAction ? 34 : 68,
           };
         } else {
           nextSignals["/capture"] = {
@@ -705,17 +770,25 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/planner"] = {
             tone: "info",
             label: "Coverage is light",
-            suggestion: `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
-            why: "Recent evidence is still concentrated in too few areas.",
-            priority: 76,
+            suggestion: recentPlannerAction
+              ? "You have already looked ahead recently. Return when you are ready to widen the next step."
+              : `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
+            why: recentPlannerAction
+              ? "Planner was opened recently, so the shell is easing off repeated prompts."
+              : "Recent evidence is still concentrated in too few areas.",
+            priority: recentPlannerAction ? 44 : 76,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/planner"] = {
             tone: "info",
             label: "Next step needed",
-            suggestion: `Open planner and choose one simple session for ${childName}.`,
-            why: "There has not been a recent learning update to guide the next stretch.",
-            priority: 64,
+            suggestion: recentPlannerAction
+              ? "You have already checked the planner recently. Let the current plan settle first."
+              : `Open planner and choose one simple session for ${childName}.`,
+            why: recentPlannerAction
+              ? "Recent planner activity suggests this step has already been considered."
+              : "There has not been a recent learning update to guide the next stretch.",
+            priority: recentPlannerAction ? 32 : 64,
           };
         } else {
           nextSignals["/planner"] = {
@@ -738,17 +811,25 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/portfolio"] = {
             tone: "info",
             label: "Story feels dated",
-            suggestion: `Add one fresh piece so the portfolio stays current.`,
-            why: "The latest portfolio evidence is getting old.",
-            priority: 58,
+            suggestion: recentPortfolioAction
+              ? "You reviewed the portfolio recently. A fresh entry can wait until the next learning moment appears."
+              : `Add one fresh piece so the portfolio stays current.`,
+            why: recentPortfolioAction
+              ? "Portfolio was just reviewed, so the shell is not pushing it again."
+              : "The latest portfolio evidence is getting old.",
+            priority: recentPortfolioAction ? 24 : 58,
           };
         } else if (recentAreas.size < 2) {
           nextSignals["/portfolio"] = {
             tone: "info",
             label: "Thin spread",
-            suggestion: `One more area would make ${childName}'s learning story feel broader.`,
-            why: "The portfolio story is still narrow across learning areas.",
-            priority: 52,
+            suggestion: recentPortfolioAction
+              ? "The portfolio was just reviewed. Broader coverage can build gradually from the next few captures."
+              : `One more area would make ${childName}'s learning story feel broader.`,
+            why: recentPortfolioAction
+              ? "Recent portfolio review means this prompt can soften for now."
+              : "The portfolio story is still narrow across learning areas.",
+            priority: recentPortfolioAction ? 22 : 52,
           };
         } else {
           nextSignals["/portfolio"] = {
@@ -764,25 +845,37 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/reports"] = {
             tone: "info",
             label: "No draft yet",
-            suggestion: `Turn ${childName}'s evidence into a first report draft.`,
-            why: "Evidence exists, but there is no saved report draft yet.",
-            priority: rows.length >= 3 ? 74 : 42,
+            suggestion: recentReportAction
+              ? "You have been in reports recently. Give the latest changes a moment before returning."
+              : `Turn ${childName}'s evidence into a first report draft.`,
+            why: recentReportAction
+              ? "Recent report activity suggests you have already started this step."
+              : "Evidence exists, but there is no saved report draft yet.",
+            priority: recentReportAction ? 26 : rows.length >= 3 ? 74 : 42,
           };
         } else if (selectedEvidenceCount < 3) {
           nextSignals["/reports"] = {
             tone: "warning",
             label: "Draft is still light",
-            suggestion: "Add one or two stronger examples before building the report.",
-            why: "Your report draft needs a little more evidence first.",
-            priority: 72,
+            suggestion: recentReportAction
+              ? "Your draft was updated recently. The next move is to let evidence catch up."
+              : "Add one or two stronger examples before building the report.",
+            why: recentReportAction
+              ? "A draft already exists and was touched recently, so the shell is shifting away from repeating report setup."
+              : "Your report draft needs a little more evidence first.",
+            priority: recentReportAction ? 48 : 72,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/reports"] = {
             tone: "info",
             label: "Refresh before building",
-            suggestion: "A fresh entry would make the report feel more current.",
-            why: "The report can be stronger with one recent learning moment.",
-            priority: 60,
+            suggestion: recentReportAction
+              ? "The report was just reviewed. A fresh capture is the calmer next move now."
+              : "A fresh entry would make the report feel more current.",
+            why: recentReportAction
+              ? "Recent report work means capture may now be the better follow-through step."
+              : "The report can be stronger with one recent learning moment.",
+            priority: recentReportAction ? 30 : 60,
           };
         } else {
           nextSignals["/reports"] = {
@@ -814,17 +907,25 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/authority/readiness"] = {
             tone: "warning",
             label: "Not ready yet",
-            suggestion: "Strengthen evidence breadth before moving into authority readiness.",
-            why: "Evidence breadth is still too light for a confident readiness check.",
-            priority: 40,
+            suggestion: recentAuthorityAction
+              ? "You checked readiness recently. The best move now is to strengthen evidence first."
+              : "Strengthen evidence breadth before moving into authority readiness.",
+            why: recentAuthorityAction
+              ? "Recent readiness review means the shell is easing off repeated authority prompts."
+              : "Evidence breadth is still too light for a confident readiness check.",
+            priority: recentAuthorityAction ? 24 : 40,
           };
         } else {
           nextSignals["/authority/readiness"] = {
             tone: "success",
             label: "Building readiness",
-            suggestion: "You can review readiness calmly and decide whether to prepare an authority pack.",
-            why: "Draft quality and evidence breadth are strong enough to review readiness.",
-            priority: 44,
+            suggestion: recentAuthorityAction
+              ? "You reviewed readiness recently. Return when you want to prepare the formal pack."
+              : "You can review readiness calmly and decide whether to prepare an authority pack.",
+            why: recentAuthorityAction
+              ? "Recent readiness activity means there is no need to repeat the same prompt immediately."
+              : "Draft quality and evidence breadth are strong enough to review readiness.",
+            priority: recentAuthorityAction ? 20 : 44,
           };
         }
 
