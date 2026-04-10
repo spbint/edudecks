@@ -498,26 +498,6 @@ const innerStyle: React.CSSProperties = {
   padding: "24px 20px 48px",
 };
 
-const stickyStyle: React.CSSProperties = {
-  position: "sticky",
-  top: 0,
-  zIndex: 20,
-  background: "rgba(246,248,252,0.96)",
-  backdropFilter: "blur(10px)",
-  borderBottom: "1px solid #e5e7eb",
-};
-
-const topBarStyle: React.CSSProperties = {
-  maxWidth: 1380,
-  margin: "0 auto",
-  padding: "14px 20px",
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  alignItems: "center",
-  flexWrap: "wrap",
-};
-
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e5e7eb",
   borderRadius: 18,
@@ -1293,8 +1273,8 @@ function ReportsPageContent() {
 
   if (loading) {
     return (
-      <main style={pageStyle}>
-        <div style={innerStyle}>
+    <main style={pageStyle}>
+      <div style={innerStyle}>
           <div style={cardStyle}>Loading reports builder…</div>
         </div>
       </main>
@@ -1303,53 +1283,6 @@ function ReportsPageContent() {
 
   return (
     <main style={pageStyle}>
-      <div style={stickyStyle}>
-        <div style={topBarStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/family" style={{ color: "#0f172a", fontWeight: 900, textDecoration: "none" }}>
-              EduDecks Family
-            </Link>
-            <span style={{ color: "#94a3b8" }}>/</span>
-            <span style={{ color: "#0f172a", fontWeight: 900 }}>Reports</span>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/reports/library" style={buttonStyle(false)}>
-              Library
-            </Link>
-            <button
-              type="button"
-              onClick={() => void handleSave(false)}
-              style={buttonStyle(false)}
-              data-journey-intent={builderValueSignal.primaryIntent}
-            >
-              {saving ? "Saving…" : "Save draft"}
-            </button>
-            <button
-              type="button"
-              onClick={handleQuickBuild}
-              style={{
-                ...buttonStyle(false),
-                borderColor: "#bfdbfe",
-                background: "#eff6ff",
-                color: "#2563eb",
-              }}
-              data-journey-intent="reports_quick_build"
-            >
-              {saving ? "Building…" : "Quick Build Report"}
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSave(true)}
-              style={buttonStyle(true)}
-              data-journey-intent={builderValueSignal.secondaryIntent}
-            >
-              {saving ? "Building…" : "Build report"}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div style={innerStyle}>
         {highlightedEvidence ? (
           <section
@@ -2049,3 +1982,5 @@ function ReportsPageContent() {
     </main>
   );
 }
+
+

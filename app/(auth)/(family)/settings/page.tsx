@@ -844,41 +844,6 @@ const shellStyles: Record<string, React.CSSProperties> = {
     color: "#64748b",
   },
 
-  topNav: {
-    position: "sticky",
-    top: 12,
-    zIndex: 20,
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 12,
-    flexWrap: "wrap",
-    background: "rgba(255,255,255,0.88)",
-    backdropFilter: "blur(14px)",
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    padding: "12px 14px",
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-  },
-
-  brand: {
-    color: "#2563eb",
-    fontWeight: 900,
-    fontSize: 14,
-    textDecoration: "none",
-  },
-
-  navDivider: {
-    color: "#94a3b8",
-    fontSize: 14,
-  },
-
-  navCurrent: {
-    color: "#64748b",
-    fontSize: 14,
-    fontWeight: 700,
-  },
-
   hero: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1.7fr) minmax(300px, 0.9fr)",
