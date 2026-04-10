@@ -45,6 +45,12 @@ type NavSection = {
   items: NavItem[];
 };
 
+type CommandItem = {
+  href: string;
+  label: string;
+  detail: string;
+};
+
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 
@@ -406,6 +412,34 @@ function ChildSwitcher() {
 
 const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
 
+const COMMAND_ITEMS: CommandItem[] = [
+  {
+    href: "/capture",
+    label: "Capture Evidence",
+    detail: "Save a learning moment while it is still fresh.",
+  },
+  {
+    href: "/planner",
+    label: "Open Planner",
+    detail: "See what is coming up and shape the next learning step.",
+  },
+  {
+    href: "/portfolio",
+    label: "Go to Portfolio",
+    detail: "Review the story your evidence is building over time.",
+  },
+  {
+    href: "/reports",
+    label: "Build Report",
+    detail: "Turn captured evidence into a clear family report.",
+  },
+  {
+    href: "/authority/readiness",
+    label: "Check Readiness",
+    detail: "Confirm what is ready for authority review and export.",
+  },
+];
+
 const SECTIONS: NavSection[] = [
   {
     title: "Workflow",
@@ -510,19 +544,111 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <Link href="/capture" style={utilBtn(true)}>
-            Quick Capture
-          </Link>
-          <Link href="/reports" style={utilBtn(false)}>
-            Build Report
-          </Link>
-          <Link href="/reports/library" style={utilBtn(false)}>
-            Report Library
-          </Link>
           <ChildSwitcher />
           <ProfileMenu />
         </div>
       </div>
+
+        <section
+          aria-label="Family command bar"
+          style={{
+            border: "1px solid #dbeafe",
+            background: "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
+            borderRadius: 20,
+            padding: 16,
+            display: "grid",
+            gap: 14,
+            position: "relative",
+            zIndex: 15,
+            boxShadow: "0 18px 40px rgba(15,23,42,0.06)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              flexWrap: "wrap",
+              alignItems: "baseline",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 900,
+                  letterSpacing: 1.1,
+                  textTransform: "uppercase",
+                  color: "#64748b",
+                  marginBottom: 6,
+                }}
+              >
+                Family command layer
+              </div>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                }}
+              >
+                Move from capture to planning, portfolio, reports, and readiness without losing context.
+              </div>
+            </div>
+            <Link href="/family" style={utilBtn(false)}>
+              Workspace Home
+            </Link>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {COMMAND_ITEMS.map((item) => {
+              const active = isActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
+                    background: active ? "#dbeafe" : "rgba(255,255,255,0.94)",
+                    borderRadius: 16,
+                    padding: "14px 16px",
+                    textDecoration: "none",
+                    color: "#0f172a",
+                    display: "grid",
+                    gap: 6,
+                    minHeight: 96,
+                    boxShadow: active ? "0 14px 30px rgba(37,99,235,0.15)" : "none",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: active ? "#1d4ed8" : "#0f172a",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      lineHeight: 1.5,
+                      color: "#475569",
+                    }}
+                  >
+                    {item.detail}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
           {PRIMARY_NAV.map((item) => (
