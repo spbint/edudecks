@@ -557,7 +557,7 @@ export default function AuthorityReadinessPage() {
             <div style={S.small()}>{error}</div>
           </div>
         ) : null}
-        <FamilyHandoffNote handoff={shellHandoff} acted={readinessStepTaken} />
+        <FamilyHandoffNote handoff={shellHandoff} acted={readinessStepTaken} marginBottom={20} />
 
         <section
           style={{
@@ -579,7 +579,7 @@ export default function AuthorityReadinessPage() {
                 gap: 14,
               }}
             >
-              <div style={S.label()}>Authority Mission Control</div>
+              <div style={S.label()}>Authority readiness</div>
 
               <div
                 style={{
@@ -797,7 +797,7 @@ export default function AuthorityReadinessPage() {
                   <div>
                     <div style={S.h2()}>Readiness checklist</div>
                     <div style={S.small()}>
-                      The decision engine below shows what is already supporting the pack and what still needs work.
+                      This shows what is already supporting the pack and what still needs a little more work.
                     </div>
 
                     <div style={{ height: 12 }} />
@@ -1153,14 +1153,14 @@ export default function AuthorityReadinessPage() {
             </section>
 
             <section style={S.card()}>
-              <div style={S.h2()}>What this page is for</div>
+              <div style={S.h2()}>What you are checking</div>
               <div style={S.body()}>
-                Authority Mission Control is the calmer diagnostic layer. It helps you decide whether the current pack is strong enough to move into export, what still needs work, and which improvements are most worth making first.
+                This page is the calm review layer before export. It helps you judge whether the current pack is strong enough to move forward, what still needs work, and which improvements matter most.
               </div>
             </section>
 
             <section style={S.card()}>
-              <div style={S.h2()}>Best next move</div>
+              <div style={S.h2()}>What to do next</div>
               <div style={S.body()}>
                 {confidence
                   ? confidence.score >= 80

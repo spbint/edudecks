@@ -1298,7 +1298,7 @@ function ReportsPageContent() {
   return (
     <main style={pageStyle}>
       <div style={innerStyle}>
-        <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} />
+        <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
         {highlightedEvidence ? (
           <section
             style={{
@@ -1756,9 +1756,9 @@ function ReportsPageContent() {
                 }}
               >
                 <div>
-                  <div style={h2Style}>Curate evidence</div>
+                  <div style={h2Style}>Choose the evidence base</div>
                   <div style={smallStyle}>
-                    Strong evidence is now the centre of the report flow. You can select manually, or let the system choose a strong first pass for you.
+                    Start with a small, trustworthy set of evidence. You can choose it yourself or let the page suggest a strong first pass.
                   </div>
                 </div>
 
@@ -1892,7 +1892,7 @@ function ReportsPageContent() {
 
           <aside style={{ display: "grid", gap: 18 }}>
             <section style={cardStyle}>
-              <div style={h2Style}>Draft readiness</div>
+              <div style={h2Style}>Draft position</div>
 
               <div style={{ height: 12 }} />
 
@@ -1925,9 +1925,9 @@ function ReportsPageContent() {
             </section>
 
             <section style={cardStyle}>
-              <div style={h2Style}>Parent note</div>
+              <div style={h2Style}>Family note</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
-                Add a short note so the saved report object feels more human and intentional.
+                Add a short note so the draft feels clear, human, and easy to return to later.
               </div>
               <textarea
                 value={notes}
@@ -1948,7 +1948,7 @@ function ReportsPageContent() {
             </section>
 
             <section style={cardStyle}>
-              <div style={h2Style}>Next best move</div>
+              <div style={h2Style}>What to do next</div>
               <div style={bodyStyle}>{nextBestMove}</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.

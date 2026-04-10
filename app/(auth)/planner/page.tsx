@@ -969,7 +969,7 @@ export default function PlannerPage() {
             </section>
 
             <section style={styles.sideCard}>
-              <div style={styles.sideEyebrow}>Move through the flow</div>
+              <div style={styles.sideEyebrow}>Keep the week moving</div>
               <div style={styles.linkStack}>
                 <Link href="/calendar" style={styles.flowLink}>
                   Go to Calendar
