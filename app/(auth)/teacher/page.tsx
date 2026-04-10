@@ -15,6 +15,7 @@ import {
   readLastTeacherClassId,
   shortDate,
   studentName,
+  teacherStudentHref,
 } from "@/lib/teacherWorkspace";
 
 const pageStyles = {
@@ -223,7 +224,7 @@ export default function TeacherDashboardPage() {
           {priorityStudents.map((student) => (
             <Link
               key={student.student_id}
-              href={`/students/${student.student_id}`}
+              href={teacherStudentHref(student.student_id)}
               style={{
                 ...pageStyles.softCard,
                 textDecoration: "none",
@@ -324,7 +325,7 @@ export default function TeacherDashboardPage() {
             {supportQueue.map((item) => (
               <Link
                 key={item.id}
-                href={`/students/${item.id}`}
+                href={teacherStudentHref(item.id)}
                 style={{
                   ...pageStyles.softCard,
                   textDecoration: "none",

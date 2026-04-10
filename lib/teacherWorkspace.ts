@@ -23,6 +23,11 @@ export type TeacherSupportQueueItem = {
   due: string;
 };
 
+export function teacherStudentHref(studentId: string) {
+  const id = safe(studentId);
+  return id ? `/teacher/students/${id}` : "/teacher";
+}
+
 export function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -174,7 +179,7 @@ export function buildTeacherFocusNext(analytics: ClassAnalytics | null): Teacher
       label: `Review ${studentName(topStudent)}`,
       reason: issueForStudent(topStudent),
       chip: "Open learner",
-      href: `/students/${topStudent.student_id}`,
+      href: teacherStudentHref(topStudent.student_id),
     };
   }
 
@@ -183,7 +188,7 @@ export function buildTeacherFocusNext(analytics: ClassAnalytics | null): Teacher
       label: `Check ${studentName(topStudent)}`,
       reason: issueForStudent(topStudent),
       chip: "Open learner",
-      href: `/students/${topStudent.student_id}`,
+      href: teacherStudentHref(topStudent.student_id),
     };
   }
 
