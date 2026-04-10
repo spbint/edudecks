@@ -1,6 +1,9 @@
 "use client";
 
-import type { FamilyShellHandoffIntent } from "@/lib/familyCommandHandoff";
+import type {
+  FamilyShellHandoffIntent,
+  FamilyShellHandoffPayload,
+} from "@/lib/familyCommandHandoff";
 
 export type FamilyGuidanceEventName =
   | "recommended_card_clicked"
@@ -22,9 +25,19 @@ export type FamilyGuidanceEvent = {
 export type FamilyGuidanceDebugSnapshot = {
   pathname?: string;
   bestNextMove?: string;
+  bestNextSuggestion?: string;
+  bestNextActionLabel?: string;
+  bestNextWhy?: string;
+  bestNextBlocker?: string;
+  bestNextHref?: string;
+  bestNextHandoff?: FamilyShellHandoffPayload;
   momentumLabel?: string;
   readinessConfidenceLabel?: string;
   focusLabel?: string;
+  reassuranceLabel?: string;
+  reassuranceDetail?: string;
+  crossChildLabel?: string;
+  crossChildDetail?: string;
   helperMode?: "start" | "followup";
   helperIntent?: FamilyShellHandoffIntent;
   updatedAt: number;

@@ -1684,16 +1684,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     recommendedSignal?.blocker !== recommendedSignal?.why;
 
   useEffect(() => {
-    if (process.env.NODE_ENV === "production") return;
-
     publishFamilyGuidanceSnapshot({
       pathname,
       bestNextMove: recommendedItem?.label,
+      bestNextSuggestion: recommendedSignal?.suggestion,
+      bestNextActionLabel: recommendedActionLabel,
+      bestNextWhy: recommendedSignal?.why,
+      bestNextBlocker: recommendedSignal?.blocker,
+      bestNextHref: recommendedItem?.href,
+      bestNextHandoff: recommendedHandoff || undefined,
       momentumLabel: momentum?.label,
       readinessConfidenceLabel: confidence?.label,
       focusLabel: focus?.label,
+      reassuranceLabel: reassuranceNote?.label,
+      reassuranceDetail: reassuranceNote?.detail,
+      crossChildLabel: crossChildNote?.label,
+      crossChildDetail: crossChildNote?.detail,
     });
-  }, [confidence?.label, focus?.label, momentum?.label, pathname, recommendedItem?.label]);
+  }, [
+    confidence?.label,
+    crossChildNote?.detail,
+    crossChildNote?.label,
+    focus?.label,
+    momentum?.label,
+    pathname,
+    recommendedActionLabel,
+    recommendedHandoff,
+    recommendedItem?.href,
+    recommendedItem?.label,
+    recommendedSignal?.blocker,
+    recommendedSignal?.suggestion,
+    recommendedSignal?.why,
+    reassuranceNote?.detail,
+    reassuranceNote?.label,
+  ]);
 
   return (
     <section
