@@ -11,7 +11,11 @@ import {
   withFamilyShellHandoffQuery,
   writeFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
-import { trackFamilyGuidanceEvent } from "@/lib/familyGuidanceEvents";
+import {
+  publishFamilyGuidanceSnapshot,
+  trackFamilyGuidanceEvent,
+} from "@/lib/familyGuidanceEvents";
+import FamilyGuidanceDebugPanel from "./FamilyGuidanceDebugPanel";
 import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
@@ -1684,6 +1688,18 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     Boolean(recommendedSignal?.blocker) &&
     recommendedSignal?.blocker !== recommendedSignal?.why;
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+
+    publishFamilyGuidanceSnapshot({
+      pathname,
+      bestNextMove: recommendedItem?.label,
+      momentumLabel: momentum?.label,
+      readinessConfidenceLabel: confidence?.label,
+      focusLabel: focus?.label,
+    });
+  }, [confidence?.label, focus?.label, momentum?.label, pathname, recommendedItem?.label]);
+
   return (
     <section
       aria-label="Family command bar"
@@ -2265,6 +2281,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
       </div>
 
         <FamilyCommandLayer pathname={pathname} />
+        <FamilyGuidanceDebugPanel />
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
           {PRIMARY_NAV.map((item) => (

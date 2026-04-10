@@ -3,7 +3,10 @@
 import React, { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import type { FamilyShellHandoffPayload } from "@/lib/familyCommandHandoff";
-import { trackFamilyGuidanceEvent } from "@/lib/familyGuidanceEvents";
+import {
+  publishFamilyGuidanceSnapshot,
+  trackFamilyGuidanceEvent,
+} from "@/lib/familyGuidanceEvents";
 
 type FamilyHandoffNoteProps = {
   handoff: FamilyShellHandoffPayload | null;
@@ -47,6 +50,16 @@ export default function FamilyHandoffNote({
       });
       lastRenderedRef.current = renderKey;
     }
+  }, [acted, handoff, pathname]);
+
+  useEffect(() => {
+    if (!handoff || process.env.NODE_ENV === "production") return;
+
+    publishFamilyGuidanceSnapshot({
+      pathname,
+      helperMode: acted ? "followup" : "start",
+      helperIntent: handoff.intent,
+    });
   }, [acted, handoff, pathname]);
 
   useEffect(() => {
