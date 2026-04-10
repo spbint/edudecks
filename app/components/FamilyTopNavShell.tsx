@@ -129,6 +129,30 @@ function titleCaseArea(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function firstMissingPriorityArea(areaSet: Set<string>) {
+  return ["science", "numeracy", "literacy", "humanities"].find((area) => !areaSet.has(area)) || "";
+}
+
+function dominantArea(rows: EvidenceSignalRow[]) {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const area = normalizeArea(row.learning_area);
+    if (!area) continue;
+    counts.set(area, (counts.get(area) ?? 0) + 1);
+  }
+
+  let chosen = "";
+  let chosenCount = 0;
+  for (const [area, count] of counts.entries()) {
+    if (count > chosenCount) {
+      chosen = area;
+      chosenCount = count;
+    }
+  }
+
+  return { area: chosen, count: chosenCount, distinct: counts.size };
+}
+
 function priorityWeight(tone: CommandTone) {
   if (tone === "warning") return 3;
   if (tone === "info") return 2;
@@ -669,6 +693,12 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         const missingFocusArea = ["science", "numeracy", "literacy", "humanities"].find(
           (area) => !recentAreas.has(area)
         );
+        const weeklyMissingArea = firstMissingPriorityArea(weeklyAreas);
+        const recentMissingArea = firstMissingPriorityArea(recentAreas);
+        const weeklyDominant = dominantArea(weeklyRows);
+        const recentDominant = dominantArea(recentRows);
+        const narrowRecentBalance = recentRows.length >= 3 && recentAreas.size <= 1;
+        const narrowWeeklyBalance = weeklyRows.length >= 2 && weeklyAreas.size <= 1;
         const childDrafts = drafts.filter(
           (draft) => safe(draft.student_id || draft.child_id) === activeChild.id
         );
@@ -741,6 +771,18 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: "Nothing has been captured this week yet.",
             priority: recentCaptureAction ? 50 : 82,
           };
+        } else if (narrowWeeklyBalance && weeklyMissingArea) {
+          nextSignals["/capture"] = {
+            tone: "info",
+            label: "Try a wider mix",
+            suggestion: `Add one ${titleCaseArea(weeklyMissingArea)} example so this week feels more rounded.`,
+            why:
+              weeklyDominant.area && weeklyDominant.count > 1
+                ? `Recent learning is concentrated in ${titleCaseArea(weeklyDominant.area)}.`
+                : "Recent learning is concentrated in one area.",
+            blocker: "A broader mix will make later reporting and portfolio review feel stronger.",
+            priority: recentCaptureAction ? 38 : 74,
+          };
         } else if (!weeklyAreas.has("science")) {
           nextSignals["/capture"] = {
             tone: "info",
@@ -777,7 +819,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Coverage is light",
             suggestion: recentPlannerAction
               ? "You have already looked ahead recently. Return when you are ready to widen the next step."
-              : `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
+              : `Plan one ${titleCaseArea(recentMissingArea || missingFocusArea || "science")} learning moment next.`,
             why: recentPlannerAction
               ? "Planner was opened recently, so the shell is easing off repeated prompts."
               : "Recent evidence is still concentrated in too few areas.",
@@ -826,18 +868,20 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker: "Portfolio review is less useful until there is a fresher learning moment.",
             priority: recentPortfolioAction ? 24 : 58,
           };
-        } else if (recentAreas.size < 2) {
+        } else if (narrowRecentBalance || recentAreas.size < 2) {
           nextSignals["/portfolio"] = {
             tone: "info",
-            label: "Thin spread",
+            label: "Breadth is still light",
             suggestion: recentPortfolioAction
               ? "The portfolio was just reviewed. Broader coverage can build gradually from the next few captures."
-              : `One more area would make ${childName}'s learning story feel broader.`,
+              : `Try one ${titleCaseArea(recentMissingArea || "different")} subject this week to round out the record.`,
             why: recentPortfolioAction
               ? "Recent portfolio review means this prompt can soften for now."
-              : "The portfolio story is still narrow across learning areas.",
-            blocker: "Portfolio breadth is still narrow, so more evidence will help first.",
-            priority: recentPortfolioAction ? 22 : 52,
+              : recentDominant.area && recentDominant.count > 1
+              ? `Recent learning is concentrated in ${titleCaseArea(recentDominant.area)}.`
+              : "Recent learning is concentrated in one area.",
+            blocker: "A broader mix will strengthen the portfolio story before deeper review.",
+            priority: recentPortfolioAction ? 22 : 60,
           };
         } else {
           nextSignals["/portfolio"] = {
@@ -862,21 +906,29 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker:
               rows.length < 2
                 ? "Reports will feel stronger once a little more evidence is captured."
+                : narrowRecentBalance
+                ? "Reports will feel stronger once recent evidence covers more than one area."
                 : undefined,
-            priority: recentReportAction ? 26 : rows.length >= 3 ? 74 : 42,
+            priority: recentReportAction ? 26 : narrowRecentBalance ? 58 : rows.length >= 3 ? 74 : 42,
           };
-        } else if (selectedEvidenceCount < 3) {
+        } else if (selectedEvidenceCount < 3 || narrowRecentBalance) {
           nextSignals["/reports"] = {
             tone: "warning",
-            label: "Draft is still light",
+            label: narrowRecentBalance ? "Draft needs wider evidence" : "Draft is still light",
             suggestion: recentReportAction
               ? "Your draft was updated recently. The next move is to let evidence catch up."
+              : narrowRecentBalance
+              ? `Add one ${titleCaseArea(recentMissingArea || "different")} subject before building the report.`
               : "Add one or two stronger examples before building the report.",
             why: recentReportAction
               ? "A draft already exists and was touched recently, so the shell is shifting away from repeating report setup."
+              : narrowRecentBalance
+              ? "A broader mix will strengthen reporting."
               : "Your report draft needs a little more evidence first.",
-            blocker: "Report building is still blocked by thin evidence selection.",
-            priority: recentReportAction ? 48 : 72,
+            blocker: narrowRecentBalance
+              ? "Reporting is still blocked by narrow recent coverage."
+              : "Report building is still blocked by thin evidence selection.",
+            priority: recentReportAction ? 48 : narrowRecentBalance ? 70 : 72,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/reports"] = {
@@ -932,8 +984,10 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker:
               selectedEvidenceCount < 3
                 ? "Authority readiness is blocked until the draft has stronger evidence behind it."
+                : narrowRecentBalance
+                ? "Authority readiness is blocked until recent evidence is broader."
                 : "Authority readiness is blocked until evidence breadth is stronger.",
-            priority: recentAuthorityAction ? 24 : 40,
+            priority: recentAuthorityAction ? 24 : narrowRecentBalance ? 36 : 40,
           };
         } else {
           nextSignals["/authority/readiness"] = {
