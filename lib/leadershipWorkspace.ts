@@ -39,6 +39,10 @@ export type LeadershipFocusNext = {
   href: string;
 };
 
+export function leadershipClassHref(classId: string) {
+  return classId ? `/leadership/classes/${classId}` : "/leadership";
+}
+
 export async function loadLeadershipDashboard() {
   const { data, error } = await supabase.rpc("get_school_leadership_dashboard");
   if (error) throw error;
@@ -100,7 +104,7 @@ export function buildLeadershipFocusNext(
           ? `${topClass.reviews_due} review${topClass.reviews_due === 1 ? "" : "s"} are due in this class, so support pressure may drift first here.`
           : "Overdue review pressure is building, and this class is the clearest place to settle it first.",
       chip: "Open class",
-      href: `/classes/${topClass.class_id}/leadership`,
+      href: leadershipClassHref(topClass.class_id),
     };
   }
 
@@ -109,7 +113,7 @@ export function buildLeadershipFocusNext(
       label: `Restore visibility in ${topClass.class_name}`,
       reason: `Only ${topClass.evidence_30d} evidence item${topClass.evidence_30d === 1 ? "" : "s"} landed in the last 30 days for ${topClass.students} learners.`,
       chip: "Open class",
-      href: `/classes/${topClass.class_id}/leadership`,
+      href: leadershipClassHref(topClass.class_id),
     };
   }
 
@@ -118,7 +122,7 @@ export function buildLeadershipFocusNext(
       label: "Review support pressure",
       reason: "Active intervention load is visible across the school, so leadership time is best spent where support weight is building.",
       chip: "Open class",
-      href: `/classes/${topClass.class_id}/leadership`,
+      href: leadershipClassHref(topClass.class_id),
     };
   }
 
@@ -126,7 +130,7 @@ export function buildLeadershipFocusNext(
     label: `Keep ${topClass.class_name} steady`,
     reason: "The school view is calmer right now, so one class-level check-in is enough to keep leadership visibility grounded.",
     chip: "Open class",
-    href: `/classes/${topClass.class_id}/leadership`,
+    href: leadershipClassHref(topClass.class_id),
   };
 }
 

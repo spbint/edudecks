@@ -8,6 +8,7 @@ import {
   buildLeadershipSupportPressure,
   classAction,
   classIssue,
+  leadershipClassHref,
   loadLeadershipDashboard,
 } from "@/lib/leadershipWorkspace";
 import type { LeadershipDashboard } from "@/lib/leadershipWorkspace";
@@ -123,7 +124,7 @@ export default function LeadershipCommandCentrePage() {
           {priorityClasses.map((row) => (
             <Link
               key={row.class_id}
-              href={`/classes/${row.class_id}/leadership`}
+              href={leadershipClassHref(row.class_id)}
               style={{
                 ...styles.softCard,
                 textDecoration: "none",
