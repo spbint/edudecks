@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   loadLatestReportDraft,
   loadReportDraftById,
@@ -414,10 +415,6 @@ export default function AuthorityReadinessPage() {
     return getAuthorityFilteredEvidenceIds(draft, config);
   }, [draft, config]);
   const readinessStepTaken = filteredEvidenceIds.length > 0;
-  const handoffActionLabel = readinessStepTaken ? "From here:" : "Start here:";
-  const handoffActionText = readinessStepTaken
-    ? shellHandoff?.followUpAction || ""
-    : shellHandoff?.firstAction || "";
 
   const includedSections = useMemo(() => {
     if (!config) return [];
@@ -560,35 +557,7 @@ export default function AuthorityReadinessPage() {
             <div style={S.small()}>{error}</div>
           </div>
         ) : null}
-        {shellHandoff ? (
-          <section
-            style={{
-              ...S.card(),
-              marginBottom: 18,
-              border: "1px solid #dbeafe",
-              background: "#eff6ff",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 900,
-                letterSpacing: 1,
-                textTransform: "uppercase",
-                color: "#64748b",
-              }}
-            >
-              {shellHandoff.title}
-            </div>
-            <div style={{ ...S.body(), marginTop: 6, color: "#334155" }}>
-              {shellHandoff.detail}
-            </div>
-            <div style={{ ...S.body(), marginTop: 8, fontSize: 13, color: "#475569" }}>
-              <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
-              {handoffActionText}
-            </div>
-          </section>
-        ) : null}
+        <FamilyHandoffNote handoff={shellHandoff} acted={readinessStepTaken} />
 
         <section
           style={{

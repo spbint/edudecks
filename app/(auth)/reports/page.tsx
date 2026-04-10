@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   DEFAULT_FAMILY_PROFILE,
   loadFamilyProfile,
@@ -875,10 +876,6 @@ function ReportsPageContent() {
     [selectionMeta]
   );
   const reportsStepTaken = Boolean(draftId) || selectedEvidenceIds.length >= 3;
-  const handoffActionLabel = reportsStepTaken ? "From here:" : "Start here:";
-  const handoffActionText = reportsStepTaken
-    ? shellHandoff?.followUpAction || ""
-    : shellHandoff?.firstAction || "";
 
   const selectedEvidenceRows = useMemo(() => {
     const selected = new Set(selectedEvidenceIds);
@@ -1301,27 +1298,7 @@ function ReportsPageContent() {
   return (
     <main style={pageStyle}>
       <div style={innerStyle}>
-        {shellHandoff ? (
-          <section
-            style={{
-              ...cardStyle,
-              marginBottom: 18,
-              border: "1px solid #dbeafe",
-              background: "#eff6ff",
-            }}
-          >
-            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" }}>
-              {shellHandoff.title}
-            </div>
-            <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
-              {shellHandoff.detail}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-              <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
-              {handoffActionText}
-            </div>
-          </section>
-        ) : null}
+        <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} />
         {highlightedEvidence ? (
           <section
             style={{

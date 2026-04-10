@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
   resolveFamilyShellHandoff,
@@ -703,10 +704,6 @@ export default function PlannerPage() {
 
   const heroStudentName = getChildDisplayName(activeChild);
   const plannerStepTaken = actions.some((action) => action.completed) || Boolean(saveMessage) || Boolean(syncMessage);
-  const handoffActionLabel = plannerStepTaken ? "From here:" : "Start here:";
-  const handoffActionText = plannerStepTaken
-    ? shellHandoff?.followUpAction || ""
-    : shellHandoff?.firstAction || "";
 
   return (
     <main style={styles.page}>
@@ -729,26 +726,7 @@ export default function PlannerPage() {
             </div>
           </div>
 
-          {shellHandoff ? (
-            <div
-              style={{
-                marginTop: 18,
-                border: "1px solid #dbeafe",
-                background: "#eff6ff",
-                borderRadius: 16,
-                padding: "14px 16px",
-              }}
-            >
-              <div style={styles.eyebrow}>{shellHandoff.title}</div>
-              <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
-                {shellHandoff.detail}
-              </div>
-              <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-                <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
-                {handoffActionText}
-              </div>
-            </div>
-          ) : null}
+          <FamilyHandoffNote handoff={shellHandoff} acted={plannerStepTaken} marginTop={18} marginBottom={0} />
 
           <div style={styles.heroStatsRow}>
             <div style={styles.statPill}>

@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import FlowStep from "@/app/components/FlowStep";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
@@ -922,10 +923,6 @@ function PortfolioPageContent() {
   );
   const portfolioStepTaken =
     Boolean(highlightedEvidence) || Object.values(tagMap).some((tags) => tags.length > 0);
-  const handoffActionLabel = portfolioStepTaken ? "From here:" : "Start here:";
-  const handoffActionText = portfolioStepTaken
-    ? shellHandoff?.followUpAction || ""
-    : shellHandoff?.firstAction || "";
 
   const groupedEvidence = useMemo(() => {
     const groups = new Map<string, EvidenceRow[]>();
@@ -1191,23 +1188,7 @@ function PortfolioPageContent() {
       heroText="A growing record of learning, reflection, and progress — built from everyday moments."
       hideHeroAside={true}
     >
-      {shellHandoff ? (
-        <section
-          style={{
-            ...UI.card(),
-            marginBottom: 18,
-            border: "1px solid #dbeafe",
-            background: "#eff6ff",
-          }}
-        >
-          <div style={UI.label()}>{shellHandoff.title}</div>
-          <div style={{ ...UI.body(), marginTop: 6, color: "#334155" }}>{shellHandoff.detail}</div>
-          <div style={{ ...UI.body(), marginTop: 8, fontSize: 13, color: "#475569" }}>
-            <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
-            {handoffActionText}
-          </div>
-        </section>
-      ) : null}
+      <FamilyHandoffNote handoff={shellHandoff} acted={portfolioStepTaken} />
       {err ? (
         <section
           style={{

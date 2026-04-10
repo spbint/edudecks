@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
 import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
@@ -1019,11 +1020,7 @@ export default function CapturePage() {
       ),
     [searchParams]
   );
-  const handoffActionLabel = saveState === "success" || savedCount > 0 ? "From here:" : "Start here:";
-  const handoffActionText =
-    saveState === "success" || savedCount > 0
-      ? shellHandoff?.followUpAction || ""
-      : shellHandoff?.firstAction || "";
+  const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
   const quality = useMemo(
@@ -1286,25 +1283,7 @@ export default function CapturePage() {
       heroAsideTitle="Best family move"
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
-      {shellHandoff ? (
-        <section
-          style={{
-            ...softCard(),
-            marginBottom: 18,
-            borderColor: "#dbeafe",
-            background: "#eff6ff",
-          }}
-        >
-          <div style={eyebrowStyle()}>{shellHandoff.title}</div>
-          <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
-            {shellHandoff.detail}
-          </div>
-          <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-            <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
-            {handoffActionText}
-          </div>
-        </section>
-      ) : null}
+      <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
       {busy ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>
       ) : err ? (

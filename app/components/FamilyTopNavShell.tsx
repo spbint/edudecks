@@ -11,6 +11,7 @@ import {
   withFamilyShellHandoffQuery,
   writeFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
+import { trackFamilyGuidanceEvent } from "@/lib/familyGuidanceEvents";
 import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
@@ -1968,6 +1969,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               href={commandHref}
               onClick={() => {
                 if (recommended) {
+                  trackFamilyGuidanceEvent({
+                    name: "recommended_card_clicked",
+                    intent: recommendedHandoff?.intent,
+                    sourceHref: pathname,
+                    destinationHref: recommendedHandoff?.href || item.href,
+                    pathname,
+                  });
                   writeFamilyShellHandoff(recommendedHandoff);
                 }
               }}
