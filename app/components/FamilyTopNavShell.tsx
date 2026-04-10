@@ -1473,6 +1473,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
   const recommendedItem = COMMAND_ITEMS.find((item) => item.href === recommendedHref) ?? null;
   const recommendedSignal = recommendedHref ? signals[recommendedHref] : null;
+  const recommendedActionLabel = recommendedItem
+    ? recommendedItem.href === "/capture"
+      ? "Do this now"
+      : recommendedItem.href === "/planner"
+      ? "Open this next"
+      : recommendedItem.href === "/portfolio"
+      ? "Review this next"
+      : recommendedItem.href === "/reports"
+      ? "Build from here"
+      : "Check this next"
+    : "";
 
   return (
     <section
@@ -1778,44 +1789,72 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                   : "none",
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
-                <div style={{ display: "grid", gap: 6 }}>
-                  <span
-                    style={{
-                      fontSize: 15,
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <span
+                      style={{
+                        fontSize: 15,
                       fontWeight: 800,
                       color: active || recommended ? "#1d4ed8" : "#0f172a",
                     }}
-                  >
-                    {item.label}
-                  </span>
-                  {recommended ? (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        letterSpacing: 0.4,
-                        textTransform: "uppercase",
-                        color: "#1d4ed8",
-                      }}
                     >
-                      <span
-                        aria-hidden
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: "#1d4ed8",
-                          display: "inline-block",
-                        }}
-                      />
-                      Recommended now
+                      {item.label}
                     </span>
-                  ) : null}
-                </div>
+                    {recommended ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 11,
+                            fontWeight: 800,
+                            letterSpacing: 0.4,
+                            textTransform: "uppercase",
+                            color: "#1d4ed8",
+                          }}
+                        >
+                          <span
+                            aria-hidden
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: "#1d4ed8",
+                              display: "inline-block",
+                            }}
+                          />
+                          Recommended now
+                        </span>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            minHeight: 28,
+                            padding: "0 10px",
+                            borderRadius: 999,
+                            background: "#1d4ed8",
+                            color: "#ffffff",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            letterSpacing: 0.3,
+                            textTransform: "uppercase",
+                            boxShadow: "0 10px 22px rgba(29,78,216,0.22)",
+                          }}
+                        >
+                          {recommendedActionLabel}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
                 {signal?.label ? (
                   <span
                     style={{
