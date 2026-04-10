@@ -45,7 +45,47 @@ export default function ProfileMenu({ mobile }: ProfileMenuProps) {
     };
   }, [open]);
 
-  if (loading || !user) {
+  if (loading) {
+    return (
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          borderRadius: 999,
+          border: "1px solid #d1d5db",
+          padding: mobile ? "6px 10px" : "8px 12px",
+          background: "#ffffff",
+          minWidth: mobile ? 0 : 130,
+          opacity: 0.72,
+        }}
+      >
+        <span
+          style={{
+            width: mobile ? 32 : 36,
+            height: mobile ? 32 : 36,
+            borderRadius: "50%",
+            background: "#e2e8f0",
+            display: "inline-flex",
+            flexShrink: 0,
+          }}
+        />
+        {!mobile ? (
+          <span
+            style={{
+              width: 74,
+              height: 12,
+              borderRadius: 999,
+              background: "#e2e8f0",
+              display: "inline-flex",
+            }}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
+  if (!user) {
     return null;
   }
 

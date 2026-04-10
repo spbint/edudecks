@@ -286,25 +286,6 @@ export default function FamilySettingsPage() {
   return (
     <main style={shellStyles.app}>
       <div style={shellStyles.wrap}>
-        <div style={shellStyles.topNav}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/family" style={shellStyles.brand}>
-              EduDecks Family
-            </Link>
-            <span style={shellStyles.navDivider}>/</span>
-            <span style={shellStyles.navCurrent}>Settings</span>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/family" style={shellStyles.secondaryButton}>
-              Back to dashboard
-            </Link>
-            <Link href={preferredAuthorityHref} style={shellStyles.secondaryButton}>
-              Market authority view
-            </Link>
-          </div>
-        </div>
-
         <section style={shellStyles.hero}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={shellStyles.eyebrow}>Family settings</div>

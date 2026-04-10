@@ -3,7 +3,6 @@
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
-import SignOutButton from "@/app/components/SignOutButton";
 import { PremiumPlan, getPremiumPlanFromStorage } from "@/lib/premiumUpgradeEngine";
 import { FamilyProfileRow, loadFamilyProfile } from "@/lib/familySettings";
 import { ReportDraftStatus } from "@/lib/reportDrafts";
@@ -342,7 +341,7 @@ export default function ProfilePage() {
             <div>
               <div style={profileStyles.sectionTitle}>Quick actions</div>
               <div style={profileStyles.sectionText}>
-                Access the areas where you change your profile, curriculum, or sign out.
+                Access the areas where you change your profile, curriculum, or family workspace defaults.
               </div>
             </div>
           </div>
@@ -357,11 +356,10 @@ export default function ProfilePage() {
             <Link href="/family" style={profileStyles.quickLink}>
               Family snapshot
             </Link>
-            <SignOutButton label="Sign out" />
           </div>
 
           <div style={profileStyles.usedNote}>
-            This setup quietly organises planning, captured learning, and reporting across EduDecks.
+            The profile control in the shell stays available everywhere in the signed-in family workspace.
           </div>
         </section>
     </div>
