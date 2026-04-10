@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { loadFamilyProfile } from "@/lib/familySettings";
+import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 import ProfileMenu from "./ProfileMenu";
 
 type FamilyShellHeaderProps = {
@@ -51,11 +53,67 @@ type CommandItem = {
   detail: string;
 };
 
+type CommandTone = "neutral" | "info" | "warning" | "success";
+
+type CommandSignal = {
+  tone: CommandTone;
+  label?: string;
+  suggestion?: string;
+};
+
+type EvidenceSignalRow = {
+  id: string;
+  student_id?: string | null;
+  learning_area?: string | null;
+  created_at?: string | null;
+  occurred_on?: string | null;
+};
+
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function asDateValue(value: string | null | undefined) {
+  const raw = safe(value);
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function daysSince(value: string | null | undefined) {
+  const parsed = asDateValue(value);
+  if (!parsed) return null;
+  const diff = Date.now() - parsed.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
+}
+
+function normalizeArea(value: string | null | undefined) {
+  const raw = safe(value).toLowerCase();
+  if (!raw) return "";
+  if (
+    raw.includes("liter") ||
+    raw.includes("reading") ||
+    raw.includes("writing") ||
+    raw.includes("english")
+  ) {
+    return "literacy";
+  }
+  if (raw.includes("math") || raw.includes("numer")) return "numeracy";
+  if (raw.includes("science")) return "science";
+  if (raw.includes("history") || raw.includes("geography") || raw.includes("human")) return "humanities";
+  if (raw.includes("art") || raw.includes("music") || raw.includes("drama")) return "arts";
+  if (raw.includes("health") || raw.includes("pe") || raw.includes("sport")) return "health";
+  if (raw.includes("technolog")) return "technologies";
+  if (raw.includes("language")) return "languages";
+  return raw;
+}
+
+function titleCaseArea(value: string) {
+  if (!value) return "another area";
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function isMissingColumnError(err: any) {
@@ -177,6 +235,49 @@ function renderChildAvatar(child: FamilyChild, size: number = 32) {
   );
 }
 
+async function loadLinkedChildrenForUser(userId: string): Promise<FamilyChild[]> {
+  const linkResp = await supabase
+    .from("parent_student_links")
+    .select("student_id")
+    .eq("parent_user_id", userId);
+
+  if (linkResp.error && !isMissingRelationOrColumn(linkResp.error)) {
+    throw linkResp.error;
+  }
+
+  const studentIds = (linkResp.data ?? [])
+    .map((row) => safe(row.student_id))
+    .filter(Boolean);
+
+  if (!studentIds.length) {
+    return [];
+  }
+
+  const selects = [
+    "id,preferred_name,first_name,surname,family_name,year_level,photo_url",
+    "id,preferred_name,first_name,surname,family_name",
+    "id,preferred_name,first_name,year_level",
+    "id,preferred_name,first_name",
+  ];
+
+  for (const fields of selects) {
+    const resp = (await supabase
+      .from("students")
+      .select(fields)
+      .in("id", studentIds)) as { data: FamilyChild[] | null; error: { message: string } | null };
+
+    if (!resp.error) {
+      return (resp.data ?? []) as FamilyChild[];
+    }
+
+    if (!isMissingColumnError(resp.error)) {
+      throw resp.error;
+    }
+  }
+
+  return [];
+}
+
 function ChildSwitcher() {
   const [children, setChildren] = useState<FamilyChild[]>([]);
   const [activeChildId, setActiveChildId] = useState<string | null>(null);
@@ -191,46 +292,7 @@ function ChildSwitcher() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        const linkResp = await supabase
-          .from("parent_student_links")
-          .select("student_id")
-          .eq("parent_user_id", user.id);
-
-        if (linkResp.error && !isMissingRelationOrColumn(linkResp.error)) {
-          throw linkResp.error;
-        }
-
-        const studentIds = (linkResp.data ?? [])
-          .map((row) => safe(row.student_id))
-          .filter(Boolean);
-
-        if (!studentIds.length) {
-          return;
-        }
-
-        const selects = [
-          "id,preferred_name,first_name,surname,family_name,year_level,photo_url",
-          "id,preferred_name,first_name,surname,family_name",
-          "id,preferred_name,first_name,year_level",
-          "id,preferred_name,first_name",
-        ];
-
-        let studentRows: FamilyChild[] = [];
-
-        for (const fields of selects) {
-          const resp = (await supabase
-            .from("students")
-            .select(fields)
-            .in("id", studentIds)) as { data: FamilyChild[] | null; error: { message: string } | null };
-          if (!resp.error) {
-            studentRows = (resp.data ?? []) as FamilyChild[];
-            break;
-          }
-          if (!isMissingColumnError(resp.error)) {
-            throw resp.error;
-          }
-        }
+        const studentRows = await loadLinkedChildrenForUser(user.id);
 
         if (mounted && studentRows.length) {
           setChildren(studentRows);
@@ -410,6 +472,387 @@ function ChildSwitcher() {
   );
 }
 
+function FamilyCommandLayer({ pathname }: { pathname: string }) {
+  const [signals, setSignals] = useState<Record<string, CommandSignal>>({});
+  const [activeChildVersion, setActiveChildVersion] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    function handleActiveChildChanged() {
+      setActiveChildVersion((value) => value + 1);
+    }
+
+    window.addEventListener(ACTIVE_CHILD_EVENT, handleActiveChildChanged as EventListener);
+    window.addEventListener("storage", handleActiveChildChanged);
+    return () => {
+      window.removeEventListener(ACTIVE_CHILD_EVENT, handleActiveChildChanged as EventListener);
+      window.removeEventListener("storage", handleActiveChildChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateSignals() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (mounted) setSignals({});
+          return;
+        }
+
+        const [familyProfile, children, drafts] = await Promise.all([
+          loadFamilyProfile().catch(() => null),
+          loadLinkedChildrenForUser(user.id).catch(() => [] as FamilyChild[]),
+          listReportDrafts().catch(() => [] as ReportDraftRow[]),
+        ]);
+
+        if (!mounted) return;
+
+        const storedChildId =
+          typeof window !== "undefined" ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) : "";
+        const activeChild =
+          children.find((child) => child.id === storedChildId) ||
+          children.find((child) => child.id === safe(familyProfile?.default_child_id)) ||
+          children[0] ||
+          null;
+
+        if (!activeChild) {
+          setSignals({
+            "/capture": {
+              tone: "warning",
+              label: "No child selected",
+              suggestion: "Add a child first so EduDecks can guide the next step.",
+            },
+            "/planner": {
+              tone: "info",
+              label: "Start with setup",
+              suggestion: "Create a child profile before planning the next learning step.",
+            },
+            "/portfolio": {
+              tone: "neutral",
+              label: "Waiting for learning",
+            },
+            "/reports": {
+              tone: "neutral",
+              label: "Nothing to report yet",
+            },
+            "/authority/readiness": {
+              tone: "neutral",
+              label: "Readiness comes later",
+            },
+          });
+          return;
+        }
+
+        const { data: evidenceRows, error: evidenceError } = await supabase
+          .from("evidence")
+          .select("id,student_id,learning_area,created_at,occurred_on")
+          .eq("student_id", activeChild.id)
+          .order("created_at", { ascending: false })
+          .limit(120);
+
+        if (evidenceError && !isMissingRelationOrColumn(evidenceError)) {
+          throw evidenceError;
+        }
+
+        if (!mounted) return;
+
+        const childName = safe(activeChild.preferred_name || activeChild.first_name) || "Your child";
+        const rows = (evidenceRows ?? []) as EvidenceSignalRow[];
+        const weeklyRows = rows.filter((row) => (daysSince(row.occurred_on || row.created_at) ?? 999) <= 7);
+        const recentRows = rows.filter((row) => (daysSince(row.occurred_on || row.created_at) ?? 999) <= 21);
+        const recentAreas = new Set(
+          recentRows
+            .map((row) => normalizeArea(row.learning_area))
+            .filter(Boolean)
+        );
+        const weeklyAreas = new Set(
+          weeklyRows
+            .map((row) => normalizeArea(row.learning_area))
+            .filter(Boolean)
+        );
+        const missingFocusArea = ["science", "numeracy", "literacy", "humanities"].find(
+          (area) => !recentAreas.has(area)
+        );
+        const childDrafts = drafts.filter(
+          (draft) => safe(draft.student_id || draft.child_id) === activeChild.id
+        );
+        const latestDraft = childDrafts[0] ?? null;
+        const selectedEvidenceCount = latestDraft?.selected_evidence_ids?.length ?? 0;
+
+        const nextSignals: Record<string, CommandSignal> = {};
+
+        if (!rows.length) {
+          nextSignals["/capture"] = {
+            tone: "warning",
+            label: "Needs a first entry",
+            suggestion: `Capture one small learning moment for ${childName}.`,
+          };
+        } else if (!weeklyRows.length) {
+          nextSignals["/capture"] = {
+            tone: "info",
+            label: "Quiet this week",
+            suggestion: `Add one fresh moment for ${childName} this week.`,
+          };
+        } else if (!weeklyAreas.has("science")) {
+          nextSignals["/capture"] = {
+            tone: "info",
+            label: "No science yet",
+            suggestion: `Add one science example while the week is still open.`,
+          };
+        } else {
+          nextSignals["/capture"] = {
+            tone: "success",
+            label: "Fresh evidence",
+            suggestion: `${childName} has current evidence flowing this week.`,
+          };
+        }
+
+        if (!rows.length) {
+          nextSignals["/planner"] = {
+            tone: "neutral",
+            label: "Plan after first capture",
+          };
+        } else if (recentAreas.size < 2) {
+          nextSignals["/planner"] = {
+            tone: "info",
+            label: "Coverage is light",
+            suggestion: `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
+          };
+        } else if (!weeklyRows.length) {
+          nextSignals["/planner"] = {
+            tone: "info",
+            label: "Next step needed",
+            suggestion: `Open planner and choose one simple session for ${childName}.`,
+          };
+        }
+
+        if (!rows.length) {
+          nextSignals["/portfolio"] = {
+            tone: "neutral",
+            label: "Portfolio is waiting",
+          };
+        } else if ((daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999) > 21) {
+          nextSignals["/portfolio"] = {
+            tone: "info",
+            label: "Story feels dated",
+            suggestion: `Add one fresh piece so the portfolio stays current.`,
+          };
+        } else if (recentAreas.size < 2) {
+          nextSignals["/portfolio"] = {
+            tone: "info",
+            label: "Thin spread",
+            suggestion: `One more area would make ${childName}'s learning story feel broader.`,
+          };
+        }
+
+        if (!latestDraft) {
+          nextSignals["/reports"] = {
+            tone: "info",
+            label: "No draft yet",
+            suggestion: `Turn ${childName}'s evidence into a first report draft.`,
+          };
+        } else if (selectedEvidenceCount < 3) {
+          nextSignals["/reports"] = {
+            tone: "warning",
+            label: "Draft is still light",
+            suggestion: "Add one or two stronger examples before building the report.",
+          };
+        } else if (!weeklyRows.length) {
+          nextSignals["/reports"] = {
+            tone: "info",
+            label: "Refresh before building",
+            suggestion: "A fresh entry would make the report feel more current.",
+          };
+        } else {
+          nextSignals["/reports"] = {
+            tone: "success",
+            label: "Ready to build",
+            suggestion: "Enough current evidence is in place to move into reporting.",
+          };
+        }
+
+        if (familyProfile?.show_authority_guidance === false) {
+          nextSignals["/authority/readiness"] = {
+            tone: "neutral",
+            label: "Guidance is off",
+            suggestion: "Turn readiness guidance on in settings when you want a calmer submission view.",
+          };
+        } else if (!latestDraft) {
+          nextSignals["/authority/readiness"] = {
+            tone: "neutral",
+            label: "Early stage",
+            suggestion: "Create a report draft before checking authority readiness.",
+          };
+        } else if (selectedEvidenceCount < 3 || recentAreas.size < 2) {
+          nextSignals["/authority/readiness"] = {
+            tone: "warning",
+            label: "Not ready yet",
+            suggestion: "Strengthen evidence breadth before moving into authority readiness.",
+          };
+        } else {
+          nextSignals["/authority/readiness"] = {
+            tone: "success",
+            label: "Building readiness",
+            suggestion: "You can review readiness calmly and decide whether to prepare an authority pack.",
+          };
+        }
+
+        setSignals(nextSignals);
+      } catch (error) {
+        console.error("Family command guidance failed", error);
+        if (mounted) {
+          setSignals({});
+        }
+      }
+    }
+
+    hydrateSignals();
+    return () => {
+      mounted = false;
+    };
+  }, [activeChildVersion]);
+
+  function toneStyle(tone: CommandTone): React.CSSProperties {
+    if (tone === "warning") {
+      return { background: "#fff7ed", color: "#c2410c", border: "1px solid #fdba74" };
+    }
+    if (tone === "success") {
+      return { background: "#ecfdf5", color: "#047857", border: "1px solid #86efac" };
+    }
+    if (tone === "info") {
+      return { background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" };
+    }
+    return { background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0" };
+  }
+
+  return (
+    <section
+      aria-label="Family command bar"
+      style={{
+        border: "1px solid #dbeafe",
+        background: "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
+        borderRadius: 20,
+        padding: 16,
+        display: "grid",
+        gap: 14,
+        position: "relative",
+        zIndex: 15,
+        boxShadow: "0 18px 40px rgba(15,23,42,0.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "baseline",
+        }}
+      >
+        <div>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 900,
+              letterSpacing: 1.1,
+              textTransform: "uppercase",
+              color: "#64748b",
+              marginBottom: 6,
+            }}
+          >
+            Family command layer
+          </div>
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 800,
+              color: "#0f172a",
+            }}
+          >
+            Move from capture to planning, portfolio, reports, and readiness without losing context.
+          </div>
+        </div>
+        <Link href="/family" style={utilBtn(false)}>
+          Workspace Home
+        </Link>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {COMMAND_ITEMS.map((item) => {
+          const active = isActive(pathname, item.href);
+          const signal = signals[item.href];
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              style={{
+                border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
+                background: active ? "#dbeafe" : "rgba(255,255,255,0.94)",
+                borderRadius: 16,
+                padding: "14px 16px",
+                textDecoration: "none",
+                color: "#0f172a",
+                display: "grid",
+                gap: 8,
+                minHeight: 112,
+                boxShadow: active ? "0 14px 30px rgba(37,99,235,0.15)" : "none",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: active ? "#1d4ed8" : "#0f172a",
+                  }}
+                >
+                  {item.label}
+                </span>
+                {signal?.label ? (
+                  <span
+                    style={{
+                      ...toneStyle(signal.tone),
+                      borderRadius: 999,
+                      padding: "4px 8px",
+                      fontSize: 11,
+                      fontWeight: 800,
+                      lineHeight: 1.2,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {signal.label}
+                  </span>
+                ) : null}
+              </div>
+              <span
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "#475569",
+                }}
+              >
+                {signal?.suggestion || item.detail}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
 
 const COMMAND_ITEMS: CommandItem[] = [
@@ -549,106 +992,7 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         </div>
       </div>
 
-        <section
-          aria-label="Family command bar"
-          style={{
-            border: "1px solid #dbeafe",
-            background: "linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)",
-            borderRadius: 20,
-            padding: 16,
-            display: "grid",
-            gap: 14,
-            position: "relative",
-            zIndex: 15,
-            boxShadow: "0 18px 40px rgba(15,23,42,0.06)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              flexWrap: "wrap",
-              alignItems: "baseline",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 900,
-                  letterSpacing: 1.1,
-                  textTransform: "uppercase",
-                  color: "#64748b",
-                  marginBottom: 6,
-                }}
-              >
-                Family command layer
-              </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 800,
-                  color: "#0f172a",
-                }}
-              >
-                Move from capture to planning, portfolio, reports, and readiness without losing context.
-              </div>
-            </div>
-            <Link href="/family" style={utilBtn(false)}>
-              Workspace Home
-            </Link>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {COMMAND_ITEMS.map((item) => {
-              const active = isActive(pathname, item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
-                    background: active ? "#dbeafe" : "rgba(255,255,255,0.94)",
-                    borderRadius: 16,
-                    padding: "14px 16px",
-                    textDecoration: "none",
-                    color: "#0f172a",
-                    display: "grid",
-                    gap: 6,
-                    minHeight: 96,
-                    boxShadow: active ? "0 14px 30px rgba(37,99,235,0.15)" : "none",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 800,
-                      color: active ? "#1d4ed8" : "#0f172a",
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      lineHeight: 1.5,
-                      color: "#475569",
-                    }}
-                  >
-                    {item.detail}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
+        <FamilyCommandLayer pathname={pathname} />
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
           {PRIMARY_NAV.map((item) => (
