@@ -82,6 +82,12 @@ type CrossChildNote = {
   tone: CommandTone;
 };
 
+type ReassuranceNote = {
+  label: string;
+  detail: string;
+  tone: CommandTone;
+};
+
 type WorkspaceFocus =
   | "build-weekly-record"
   | "round-out-portfolio"
@@ -627,6 +633,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [confidence, setConfidence] = useState<ReadinessConfidenceState | null>(null);
   const [focus, setFocus] = useState<FocusState | null>(null);
   const [crossChildNote, setCrossChildNote] = useState<CrossChildNote | null>(null);
+  const [reassuranceNote, setReassuranceNote] = useState<ReassuranceNote | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
 
   useEffect(() => {
@@ -680,6 +687,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               tone: "neutral",
             });
             setCrossChildNote(null);
+            setReassuranceNote(null);
           }
           return;
         }
@@ -712,6 +720,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
           });
           setCrossChildNote(null);
+          setReassuranceNote(null);
           setSignals({
             "/capture": {
               tone: "warning",
@@ -866,6 +875,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           detail: "Keep the weekly learning record calm and current.",
         };
         let nextCrossChildNote: CrossChildNote | null = null;
+        let nextReassuranceNote: ReassuranceNote | null = null;
 
         if (!rows.length) {
           nextMomentum = {
@@ -997,6 +1007,33 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             key: inferredFocus,
             label: "Prepare readiness",
             detail: "Steady the evidence base for a calmer readiness review.",
+          };
+        }
+
+        const activeChildFeelsHealthy =
+          nextConfidence.label === "Ready to review" ||
+          (nextConfidence.label === "Close to usable" && steadyWeeklyPattern && !narrowRecentBalance);
+
+        if (activeChildFeelsHealthy && !nextCrossChildNote) {
+          nextReassuranceNote = {
+            label: "Healthy place",
+            detail:
+              nextConfidence.label === "Ready to review"
+                ? `${childName}'s record looks ready for a calm review pass.`
+                : `${childName}'s record is settling into a healthy place for now.`,
+            tone: "success",
+          };
+        } else if (pickingUpAgain && !quietAfterBurst) {
+          nextReassuranceNote = {
+            label: "Good to see",
+            detail: `You have picked things up again this week. That movement matters.`,
+            tone: "success",
+          };
+        } else if (steadyWeeklyPattern && recentAreas.size >= 2) {
+          nextReassuranceNote = {
+            label: "Steady progress",
+            detail: `Recent evidence is both current and reasonably rounded.`,
+            tone: "success",
           };
         }
 
@@ -1384,6 +1421,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         setConfidence(nextConfidence);
         setFocus(nextFocus);
         setCrossChildNote(nextCrossChildNote);
+        setReassuranceNote(nextReassuranceNote);
         setSignals(nextSignals);
       } catch (error) {
         console.error("Family command guidance failed", error);
@@ -1393,6 +1431,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           setConfidence(null);
           setFocus(null);
           setCrossChildNote(null);
+          setReassuranceNote(null);
         }
       }
     }
@@ -1614,6 +1653,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 }}
               >
                 {crossChildNote.detail}
+              </span>
+            </div>
+          ) : null}
+          {reassuranceNote ? (
+            <div
+              style={{
+                marginTop: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  ...toneStyle(reassuranceNote.tone),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {reassuranceNote.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "#64748b",
+                }}
+              >
+                {reassuranceNote.detail}
               </span>
             </div>
           ) : null}
