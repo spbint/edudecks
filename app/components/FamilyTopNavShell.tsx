@@ -512,13 +512,8 @@ function ChildSwitcher() {
     };
   }, []);
 
-    useEffect(() => {
-      if (typeof window !== "undefined") {
-        console.log(
-          `[ChildSwitcher] render on ${window.location.pathname} | children=${children.length} | active=${activeChildId}`
-        );
-      }
-      if (!children.length) return;
+  useEffect(() => {
+    if (!children.length) return;
     if (typeof window === "undefined") return;
 
     const storedId = localStorage.getItem(ACTIVE_STUDENT_ID_KEY);
@@ -2206,11 +2201,6 @@ const SECTIONS: NavSection[] = [
 
 function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
   const pathname = usePathname();
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      console.log(`[FamilyShellHeader] active on ${pathname}`);
-    }
-  }, [pathname]);
 
   return (
     <header
@@ -2485,13 +2475,6 @@ export function FamilyShellSurface({
   const [registeredConfig, setRegisteredConfig] = useState<FamilyTopNavShellProps | null>(null);
   const activeConfig = registeredConfig ?? shellConfig ?? DEFAULT_SHELL_CONFIG;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const name = "FamilyShellSurface";
-      console.log(`[${name}] ${shellId.current} active on ${pathname}`);
-    }
-  }, [pathname]);
-
   return (
     <FamilyShellConfigContext.Provider value={{ setConfig: setRegisteredConfig }}>
       <div style={surfaceStyle}>
@@ -2523,14 +2506,6 @@ export default function FamilyTopNavShell({
 }: FamilyTopNavShellProps & { children: React.ReactNode }) {
   const shellContext = useContext(FamilyShellConfigContext);
   const shouldRenderHero = !heroProps.hideHero;
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      console.log(
-        `[FamilyTopNavShell] mounted on ${window.location.pathname} | hero=${shouldRenderHero}`
-      );
-    }
-  }, [shouldRenderHero]);
 
   useEffect(() => {
     if (!shellContext) return;

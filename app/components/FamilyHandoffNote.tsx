@@ -53,7 +53,16 @@ export default function FamilyHandoffNote({
   }, [acted, handoff, pathname]);
 
   useEffect(() => {
-    if (!handoff || process.env.NODE_ENV === "production") return;
+    if (process.env.NODE_ENV === "production") return;
+
+    if (!handoff) {
+      publishFamilyGuidanceSnapshot({
+        pathname,
+        helperMode: undefined,
+        helperIntent: undefined,
+      });
+      return;
+    }
 
     publishFamilyGuidanceSnapshot({
       pathname,

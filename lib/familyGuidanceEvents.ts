@@ -76,10 +76,25 @@ export function publishFamilyGuidanceSnapshot(
 ) {
   if (typeof window === "undefined") return;
 
+  const current: Partial<FamilyGuidanceDebugSnapshot> =
+    window.__EDUDECKS_FAMILY_GUIDANCE_SNAPSHOT__ || {};
   const next: FamilyGuidanceDebugSnapshot = {
+    ...current,
     ...snapshot,
     updatedAt: Date.now(),
   };
+
+  if (
+    current.pathname === next.pathname &&
+    current.bestNextMove === next.bestNextMove &&
+    current.momentumLabel === next.momentumLabel &&
+    current.readinessConfidenceLabel === next.readinessConfidenceLabel &&
+    current.focusLabel === next.focusLabel &&
+    current.helperMode === next.helperMode &&
+    current.helperIntent === next.helperIntent
+  ) {
+    return;
+  }
 
   try {
     window.__EDUDECKS_FAMILY_GUIDANCE_SNAPSHOT__ = next;

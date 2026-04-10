@@ -27,6 +27,10 @@ function formatTime(timestamp: number) {
   }
 }
 
+function clean(value?: string) {
+  return value && value.trim() ? value : "—";
+}
+
 export default function FamilyGuidanceDebugPanel() {
   const [open, setOpen] = useState(false);
   const [events, setEvents] = useState<FamilyGuidanceEvent[]>([]);
@@ -130,25 +134,25 @@ export default function FamilyGuidanceDebugPanel() {
               Current state
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              bestNextMove={snapshot?.bestNextMove || "—"}
+              bestNextMove={clean(snapshot?.bestNextMove)}
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              momentum={snapshot?.momentumLabel || "—"}
+              momentum={clean(snapshot?.momentumLabel)}
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              confidence={snapshot?.readinessConfidenceLabel || "—"}
+              confidence={clean(snapshot?.readinessConfidenceLabel)}
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              focus={snapshot?.focusLabel || "—"}
+              focus={clean(snapshot?.focusLabel)}
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              helperMode={snapshot?.helperMode || "—"}
+              helperMode={clean(snapshot?.helperMode)}
             </div>
             <div style={{ fontSize: 11, color: "#475569" }}>
-              helperIntent={snapshot?.helperIntent || "—"}
+              helperIntent={clean(snapshot?.helperIntent)}
             </div>
             <div style={{ fontSize: 11, color: "#94a3b8" }}>
-              path={snapshot?.pathname || "—"}
+              path={clean(snapshot?.pathname)}
             </div>
           </div>
           <div

@@ -4,22 +4,24 @@ export const FAMILY_SHELL_HANDOFF_QUERY_PARAM = "shellIntent";
 
 const FAMILY_SHELL_HANDOFF_KEY = "edudecks_family_shell_handoff_v1";
 const FAMILY_SHELL_HANDOFF_TTL_MS = 1000 * 60 * 45;
+const FAMILY_SHELL_HANDOFF_INTENTS = [
+  "start-record",
+  "refresh-week",
+  "widen-subject-mix",
+  "steady-rhythm",
+  "reset-after-quiet-patch",
+  "plan-broader-next-step",
+  "round-out-story",
+  "refresh-story",
+  "start-report-draft",
+  "strengthen-draft",
+  "refresh-before-report",
+  "enable-readiness-guidance",
+  "strengthen-before-readiness",
+  "check-readiness",
+] as const;
 
-export type FamilyShellHandoffIntent =
-  | "start-record"
-  | "refresh-week"
-  | "widen-subject-mix"
-  | "steady-rhythm"
-  | "reset-after-quiet-patch"
-  | "plan-broader-next-step"
-  | "round-out-story"
-  | "refresh-story"
-  | "start-report-draft"
-  | "strengthen-draft"
-  | "refresh-before-report"
-  | "enable-readiness-guidance"
-  | "strengthen-before-readiness"
-  | "check-readiness";
+export type FamilyShellHandoffIntent = (typeof FAMILY_SHELL_HANDOFF_INTENTS)[number];
 
 export type FamilyShellHandoffPayload = {
   intent: FamilyShellHandoffIntent;
@@ -44,6 +46,10 @@ function safe(value: unknown) {
 
 function includesAny(text: string, needles: string[]) {
   return needles.some((needle) => text.includes(needle));
+}
+
+function isFamilyShellHandoffIntent(value: string): value is FamilyShellHandoffIntent {
+  return (FAMILY_SHELL_HANDOFF_INTENTS as readonly string[]).includes(value);
 }
 
 function handoffCopy(intent: FamilyShellHandoffIntent) {
@@ -238,8 +244,9 @@ export function resolveFamilyShellHandoff(
   intentValue: string | null | undefined,
   expectedHref: string
 ) {
-  const normalizedIntent = safe(intentValue) as FamilyShellHandoffIntent;
-  if (!normalizedIntent) return null;
+  const rawIntent = safe(intentValue);
+  if (!rawIntent || !isFamilyShellHandoffIntent(rawIntent)) return null;
+  const normalizedIntent = rawIntent as FamilyShellHandoffIntent;
 
   const fallback = {
     intent: normalizedIntent,
@@ -261,11 +268,14 @@ export function resolveFamilyShellHandoff(
 
     if (!createdAt || Date.now() - createdAt > FAMILY_SHELL_HANDOFF_TTL_MS) {
       window.localStorage.removeItem(FAMILY_SHELL_HANDOFF_KEY);
-      return fallback;
+      return null;
     }
 
     if (parsed.intent !== normalizedIntent) return fallback;
-    if (safe(parsed.href) && safe(parsed.href) !== expectedHref) return fallback;
+    if (safe(parsed.href) && safe(parsed.href) !== expectedHref) {
+      window.localStorage.removeItem(FAMILY_SHELL_HANDOFF_KEY);
+      return fallback;
+    }
 
     return {
       intent: normalizedIntent,
