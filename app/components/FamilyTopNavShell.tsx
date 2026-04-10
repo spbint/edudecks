@@ -76,6 +76,12 @@ type ReadinessConfidenceState = {
   tone: CommandTone;
 };
 
+type CrossChildNote = {
+  label: string;
+  detail: string;
+  tone: CommandTone;
+};
+
 type WorkspaceFocus =
   | "build-weekly-record"
   | "round-out-portfolio"
@@ -620,6 +626,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [momentum, setMomentum] = useState<MomentumState | null>(null);
   const [confidence, setConfidence] = useState<ReadinessConfidenceState | null>(null);
   const [focus, setFocus] = useState<FocusState | null>(null);
+  const [crossChildNote, setCrossChildNote] = useState<CrossChildNote | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
 
   useEffect(() => {
@@ -672,6 +679,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               detail: "A usable evidence base begins once a child is active and learning is captured.",
               tone: "neutral",
             });
+            setCrossChildNote(null);
           }
           return;
         }
@@ -703,6 +711,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             detail: "Add a child first so the evidence base can begin taking shape.",
             tone: "warning",
           });
+          setCrossChildNote(null);
           setSignals({
             "/capture": {
               tone: "warning",
@@ -749,6 +758,23 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
         if (evidenceError && !isMissingRelationOrColumn(evidenceError)) {
           throw evidenceError;
+        }
+
+        const siblingEvidenceRows =
+          children.length > 1
+            ? await supabase
+                .from("evidence")
+                .select("id,student_id,learning_area,created_at,occurred_on")
+                .in(
+                  "student_id",
+                  children.map((child) => child.id)
+                )
+                .order("created_at", { ascending: false })
+                .limit(320)
+            : { data: [] as EvidenceSignalRow[], error: null as any };
+
+        if (siblingEvidenceRows.error && !isMissingRelationOrColumn(siblingEvidenceRows.error)) {
+          throw siblingEvidenceRows.error;
         }
 
         if (!mounted) return;
@@ -799,6 +825,14 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           (daysSince(latestDraft?.updated_at) ?? 999) === 0;
         const recentAuthorityAction = wasRecentAction(recentActionMemory.authority);
         const readinessGuidanceOn = familyProfile?.show_authority_guidance !== false;
+        const groupedEvidence = new Map<string, EvidenceSignalRow[]>();
+        ((siblingEvidenceRows.data ?? []) as EvidenceSignalRow[]).forEach((row) => {
+          const studentId = safe(row.student_id);
+          if (!studentId) return;
+          const existing = groupedEvidence.get(studentId) ?? [];
+          existing.push(row);
+          groupedEvidence.set(studentId, existing);
+        });
         const storedFocus = readWorkspaceFocus();
         const inferredFocus: WorkspaceFocus =
           storedFocus ||
@@ -831,6 +865,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           label: "Build weekly record",
           detail: "Keep the weekly learning record calm and current.",
         };
+        let nextCrossChildNote: CrossChildNote | null = null;
 
         if (!rows.length) {
           nextMomentum = {
@@ -963,6 +998,71 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Prepare readiness",
             detail: "Steady the evidence base for a calmer readiness review.",
           };
+        }
+
+        if (children.length > 1) {
+          const siblingSummaries = children
+            .filter((child) => child.id !== activeChild.id)
+            .map((child) => {
+              const childRows = groupedEvidence.get(child.id) ?? [];
+              const childRecentRows = childRows.filter(
+                (row) => (daysSince(row.occurred_on || row.created_at) ?? 999) <= 21
+              );
+              const childWeeklyRows = childRows.filter(
+                (row) => (daysSince(row.occurred_on || row.created_at) ?? 999) <= 7
+              );
+              const childRecentAreas = new Set(
+                childRecentRows.map((row) => normalizeArea(row.learning_area)).filter(Boolean)
+              );
+              const childDraft = drafts.find(
+                (draft) => safe(draft.student_id || draft.child_id) === child.id
+              );
+              return {
+                child,
+                lastDays: daysSince(childRows[0]?.occurred_on || childRows[0]?.created_at) ?? 999,
+                weeklyCount: childWeeklyRows.length,
+                recentCount: childRecentRows.length,
+                recentAreaCount: childRecentAreas.size,
+                draftEvidenceCount: childDraft?.selected_evidence_ids?.length ?? 0,
+              };
+            });
+
+          const staleSibling = siblingSummaries.find(
+            (item) => item.recentCount === 0 || item.lastDays > 21
+          );
+          const quietSibling = siblingSummaries.find(
+            (item) => item.weeklyCount === 0 && item.lastDays <= 21
+          );
+          const reviewSibling = siblingSummaries.find(
+            (item) =>
+              item.draftEvidenceCount >= 3 &&
+              item.recentAreaCount >= 2 &&
+              item.weeklyCount >= 1
+          );
+
+          if (
+            reviewSibling &&
+            nextConfidence.label !== "Ready to review" &&
+            inferredFocus !== "prepare-authority"
+          ) {
+            nextCrossChildNote = {
+              label: "Another child is closer",
+              detail: `${childDisplayName(reviewSibling.child)} may be closer to a review pass.`,
+              tone: "info",
+            };
+          } else if (staleSibling && nextMomentum.tone === "success") {
+            nextCrossChildNote = {
+              label: "Another child may need a check-in",
+              detail: `${childDisplayName(staleSibling.child)} looks quieter right now.`,
+              tone: "info",
+            };
+          } else if (quietSibling && nextMomentum.tone !== "warning") {
+            nextCrossChildNote = {
+              label: "One sibling's record is quieter",
+              detail: `${childDisplayName(quietSibling.child)} has not had a recent check-in this week.`,
+              tone: "neutral",
+            };
+          }
         }
 
         const nextSignals: Record<string, CommandSignal> = {};
@@ -1283,6 +1383,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         setMomentum(nextMomentum);
         setConfidence(nextConfidence);
         setFocus(nextFocus);
+        setCrossChildNote(nextCrossChildNote);
         setSignals(nextSignals);
       } catch (error) {
         console.error("Family command guidance failed", error);
@@ -1291,6 +1392,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           setMomentum(null);
           setConfidence(null);
           setFocus(null);
+          setCrossChildNote(null);
         }
       }
     }
@@ -1478,6 +1580,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 }}
               >
                 {focus.detail}
+              </span>
+            </div>
+          ) : null}
+          {crossChildNote ? (
+            <div
+              style={{
+                marginTop: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  ...toneStyle(crossChildNote.tone),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {crossChildNote.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "#64748b",
+                }}
+              >
+                {crossChildNote.detail}
               </span>
             </div>
           ) : null}
