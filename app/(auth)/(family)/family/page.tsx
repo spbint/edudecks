@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -76,7 +76,7 @@ function childYearLabel(child?: ChildRow | null) {
 
 function shortDate(value?: string | null) {
   const s = safe(value);
-  if (!s) return "—";
+  if (!s) return "â€”";
   try {
     const d = new Date(s);
     if (Number.isNaN(d.getTime())) return s.slice(0, 10);
@@ -324,6 +324,14 @@ export default function FamilyPage() {
         ? "Latest capture was yesterday."
         : `Latest capture was ${latestEvidenceDays} days ago.`;
 
+    if (!weeklyEvidence.length) {
+      return `${childName(activeChild)} already has ${evidence.length} saved learning ${evidence.length === 1 ? "moment" : "moments"}, but nothing has been captured this week yet. ${freshnessText}`;
+    }
+
+    if (areaBreadth <= 1) {
+      return `${weeklyEvidence.length} learning ${weeklyEvidence.length === 1 ? "moment" : "moments"} captured this week, with the mix still fairly focused in one area. ${freshnessText}`;
+    }
+
     return `${weeklyEvidence.length} learning ${weeklyEvidence.length === 1 ? "moment" : "moments"} this week across ${areaBreadth} ${areaBreadth === 1 ? "area" : "areas"}. ${freshnessText}`;
   }, [activeChild, areaBreadth, evidence.length, latestEvidenceDays, weeklyEvidence.length]);
 
@@ -347,14 +355,16 @@ export default function FamilyPage() {
   const gentleNudge = useMemo(() => {
     const text = safe(snapshot?.reassuranceDetail);
     if (!text) return "";
+    const reason = safe(snapshot?.bestNextWhy).toLowerCase();
+    if (reason && reason.includes(text.toLowerCase())) return "";
     return text;
-  }, [snapshot?.reassuranceDetail]);
+  }, [snapshot?.bestNextWhy, snapshot?.reassuranceDetail]);
 
   const crossChildNote = useMemo(() => {
     const text = safe(snapshot?.crossChildDetail);
-    if (!text) return "";
+    if (!text || children.length < 2) return "";
     return text;
-  }, [snapshot?.crossChildDetail]);
+  }, [children.length, snapshot?.crossChildDetail]);
 
   return (
     <FamilyTopNavShell
@@ -384,31 +394,10 @@ export default function FamilyPage() {
               </div>
               <div style={{ fontSize: 15, lineHeight: 1.6, color: "#475569", maxWidth: 760 }}>
                 {activeChild
-                  ? `${childYearLabel(activeChild) || "Year level"} in view. The shell is already tracking the next calm move across capture, planning, portfolio, reporting, and readiness.`
+                  ? `${childYearLabel(activeChild) || "Year level"} in view. This home page keeps the next calm move, recent learning, and weekly rhythm easy to scan.`
                   : "Select a child from the shell switcher to see the clearest next move and recent learning."}
               </div>
             </div>
-            {continueCard ? (
-              <Link
-                href={continueCard.href}
-                onClick={continueCard.onClick}
-                style={{
-                  minHeight: 46,
-                  padding: "12px 16px",
-                  borderRadius: 14,
-                  border: "1px solid #dbeafe",
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  textDecoration: "none",
-                  fontWeight: 800,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                Continue next
-              </Link>
-            ) : null}
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -484,7 +473,7 @@ export default function FamilyPage() {
             Weekly snapshot
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#334155" }}>
-            {loading ? "Building this week's snapshot…" : weeklySnapshot}
+            {loading ? "Building this week's snapshotâ€¦" : weeklySnapshot}
           </div>
         </section>
 
@@ -598,3 +587,4 @@ export default function FamilyPage() {
     </FamilyTopNavShell>
   );
 }
+
