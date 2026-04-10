@@ -61,21 +61,21 @@ function confidenceTone(score: number) {
 function learnerIssue(analytics: StudentAnalytics) {
   if (analytics.overdueReviews.length > 0) {
     return analytics.overdueReviews.length === 1
-      ? "One support review is overdue and worth checking now."
-      : `${analytics.overdueReviews.length} support reviews are overdue and worth checking now.`;
+      ? "One support review is overdue, so this learner needs a quick check before that plan drifts."
+      : `${analytics.overdueReviews.length} support reviews are overdue, so this learner needs a quick check before those plans drift.`;
   }
   if ((analytics.lastEvidenceDays ?? 999) > 21) {
-    return "Recent evidence has gone quiet, so classroom visibility is starting to thin out.";
+    return `The last evidence is ${analytics.lastEvidenceDays} days old, so this learner has gone quiet in the class view.`;
   }
   if (analytics.openInterventions.length > 0) {
     return analytics.openInterventions.length === 1
-      ? "There is one active support plan that would benefit from a quick teacher check."
-      : `${analytics.openInterventions.length} active support plans would benefit from a quick teacher check.`;
+      ? "There is one active support plan open, and it is worth checking whether the current support still fits."
+      : `${analytics.openInterventions.length} active support plans are open, and it is worth checking whether the current support still fits.`;
   }
   if (analytics.statusLabel === "Watch") {
-    return "This learner is not urgent, but a calm check-in would help keep the class picture steady.";
+    return "Nothing looks urgent, but this learner still needs one clearer example to keep the class picture steady.";
   }
-  return "This learner is in a steadier place right now, with enough visibility to review calmly.";
+  return "This learner is in a steadier place right now, with enough current visibility for a calm review.";
 }
 
 function visibilitySummary(analytics: StudentAnalytics) {
@@ -105,8 +105,18 @@ function visibilitySummary(analytics: StudentAnalytics) {
 function nextTeacherActions(analytics: StudentAnalytics) {
   const actions: Array<{ label: string; href: string; tone: "primary" | "secondary" }> = [];
 
-  if ((analytics.lastEvidenceDays ?? 999) > 21 || analytics.evidence.length === 0) {
-    actions.push({ label: "Capture fresh evidence", href: "/capture", tone: "primary" });
+  if (analytics.evidence.length === 0) {
+    actions.push({
+      label: "Add the first evidence example",
+      href: "/capture",
+      tone: "primary",
+    });
+  } else if ((analytics.lastEvidenceDays ?? 999) > 21) {
+    actions.push({
+      label: "Add one fresh classroom example",
+      href: "/capture",
+      tone: "primary",
+    });
   }
 
   if (analytics.student?.class_id) {
@@ -114,15 +124,19 @@ function nextTeacherActions(analytics: StudentAnalytics) {
     actions.push({
       label:
         analytics.overdueReviews.length > 0 || analytics.openInterventions.length > 0
-          ? "Review support context"
-          : "Open class interventions",
+          ? "Check the current support plan"
+          : "Open this learner in class interventions",
       href: `/classes/${analytics.student.class_id}/interventions?search=${q}`,
       tone: actions.length ? "secondary" : "primary",
     });
   }
 
   if (!actions.length) {
-    actions.push({ label: "Return to teacher triage", href: "/teacher", tone: "primary" });
+    actions.push({
+      label: "Return to class triage",
+      href: "/teacher",
+      tone: "primary",
+    });
   }
 
   return actions.slice(0, 2);
@@ -433,7 +447,7 @@ export default function TeacherStudentDetailPage() {
           What to do next
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
-          Keep the next move small. One fresh evidence example or one quick support review is often enough to steady the learner picture.
+          Keep the next move small and concrete. One fresh example or one quick support check is usually enough to steady this learner view.
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {actions.map((action) => (
