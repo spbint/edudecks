@@ -726,7 +726,7 @@ export default function PlannerPage() {
             </div>
           </div>
 
-          <FamilyHandoffNote handoff={shellHandoff} acted={plannerStepTaken} marginTop={18} marginBottom={0} />
+          <FamilyHandoffNote handoff={shellHandoff} acted={plannerStepTaken} marginTop={18} marginBottom={14} />
 
           <div style={styles.heroStatsRow}>
             <div style={styles.statPill}>

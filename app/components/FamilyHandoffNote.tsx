@@ -96,9 +96,11 @@ export default function FamilyHandoffNote({
         marginTop,
         marginBottom,
         border: "1px solid #dbeafe",
-        background: "#eff6ff",
+        background: "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)",
         borderRadius: 16,
         padding: "14px 16px",
+        maxWidth: 820,
+        boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
       }}
     >
       <div
@@ -112,10 +114,10 @@ export default function FamilyHandoffNote({
       >
         {handoff.title}
       </div>
-      <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
+      <div style={{ marginTop: 7, fontSize: 14, lineHeight: 1.6, color: "#334155" }}>
         {handoff.detail}
       </div>
-      <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
+      <div style={{ marginTop: 9, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
         <span style={{ fontWeight: 800, color: "#0f172a" }}>
           {acted ? "From here:" : "Start here:"}
         </span>{" "}

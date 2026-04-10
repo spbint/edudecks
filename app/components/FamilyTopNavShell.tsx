@@ -1737,6 +1737,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               fontSize: 18,
               fontWeight: 800,
               color: "#0f172a",
+              maxWidth: 760,
+              lineHeight: 1.35,
             }}
           >
             Move from capture to planning, portfolio, reporting, and readiness without losing the thread.
@@ -1917,6 +1919,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 marginTop: 8,
                 display: "grid",
                 gap: 4,
+                maxWidth: 760,
               }}
             >
               <div
