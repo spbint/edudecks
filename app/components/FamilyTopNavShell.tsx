@@ -153,6 +153,21 @@ function dominantArea(rows: EvidenceSignalRow[]) {
   return { area: chosen, count: chosenCount, distinct: counts.size };
 }
 
+function evidenceDayKey(row: EvidenceSignalRow) {
+  const parsed = asDateValue(row.occurred_on || row.created_at);
+  if (!parsed) return "";
+  return parsed.toISOString().slice(0, 10);
+}
+
+function recentDayBuckets(rows: EvidenceSignalRow[]) {
+  const buckets = new Set<string>();
+  for (const row of rows) {
+    const key = evidenceDayKey(row);
+    if (key) buckets.add(key);
+  }
+  return buckets;
+}
+
 function priorityWeight(tone: CommandTone) {
   if (tone === "warning") return 3;
   if (tone === "info") return 2;
@@ -699,6 +714,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         const recentDominant = dominantArea(recentRows);
         const narrowRecentBalance = recentRows.length >= 3 && recentAreas.size <= 1;
         const narrowWeeklyBalance = weeklyRows.length >= 2 && weeklyAreas.size <= 1;
+        const weeklyActiveDays = recentDayBuckets(weeklyRows).size;
+        const recentActiveDays = recentDayBuckets(recentRows).size;
+        const lastEvidenceDays = daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999;
+        const quietAfterBurst = rows.length >= 4 && weeklyRows.length === 0 && lastEvidenceDays > 7;
+        const burstyRecentPattern = recentRows.length >= 4 && recentActiveDays <= 2;
+        const steadyWeeklyPattern = weeklyRows.length >= 2 && weeklyActiveDays >= 2;
+        const pickingUpAgain = weeklyRows.length >= 1 && lastEvidenceDays <= 3 && !steadyWeeklyPattern;
         const childDrafts = drafts.filter(
           (draft) => safe(draft.student_id || draft.child_id) === activeChild.id
         );
@@ -726,6 +748,24 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Getting started",
             detail: `${childName} needs a first captured learning moment.`,
             tone: "warning",
+          };
+        } else if (quietAfterBurst) {
+          nextMomentum = {
+            label: "Regaining rhythm",
+            detail: "There was an earlier burst of activity. A steadier weekly rhythm will help now.",
+            tone: "info",
+          };
+        } else if (burstyRecentPattern) {
+          nextMomentum = {
+            label: "Building consistency",
+            detail: "Learning is being captured, but it is still arriving in clumps rather than a steady rhythm.",
+            tone: "info",
+          };
+        } else if (pickingUpAgain) {
+          nextMomentum = {
+            label: "Picking up again",
+            detail: "You have started moving again this week. A little consistency now will strengthen the record.",
+            tone: "success",
           };
         } else if (!latestDraft || recentAreas.size < 2 || !weeklyRows.length) {
           nextMomentum = {
@@ -768,8 +808,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Quiet this week",
             suggestion: `Add one fresh moment for ${childName} this week.`,
-            why: "Nothing has been captured this week yet.",
-            priority: recentCaptureAction ? 50 : 82,
+            why: quietAfterBurst
+              ? "There was earlier activity, but the recent rhythm has gone quiet."
+              : "Nothing has been captured this week yet.",
+            blocker: quietAfterBurst
+              ? "A steadier weekly rhythm will make later planning and reporting feel easier."
+              : undefined,
+            priority: recentCaptureAction ? 50 : quietAfterBurst ? 88 : 82,
           };
         } else if (narrowWeeklyBalance && weeklyMissingArea) {
           nextSignals["/capture"] = {
@@ -782,6 +827,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 : "Recent learning is concentrated in one area.",
             blocker: "A broader mix will make later reporting and portfolio review feel stronger.",
             priority: recentCaptureAction ? 38 : 74,
+          };
+        } else if (burstyRecentPattern) {
+          nextSignals["/capture"] = {
+            tone: "info",
+            label: "Steady the rhythm",
+            suggestion: steadyWeeklyPattern
+              ? "You have started to steady things. Keep one or two calm captures flowing this week."
+              : "Add one small learning moment on a different day this week to build consistency.",
+            why: "Recent evidence is arriving in clumps rather than a steady rhythm.",
+            blocker: "A little consistency now will strengthen reporting later.",
+            priority: recentCaptureAction ? 28 : 66,
           };
         } else if (!weeklyAreas.has("science")) {
           nextSignals["/capture"] = {
@@ -798,10 +854,14 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else {
           nextSignals["/capture"] = {
             tone: "success",
-            label: "Fresh evidence",
-            suggestion: `${childName} has current evidence flowing this week.`,
-            why: "Recent learning has already been captured.",
-            priority: 18,
+            label: steadyWeeklyPattern ? "Steady rhythm" : "Fresh evidence",
+            suggestion: steadyWeeklyPattern
+              ? `${childName} has a healthy capture rhythm building this week.`
+              : `${childName} has current evidence flowing this week.`,
+            why: steadyWeeklyPattern
+              ? "Recent learning is landing across more than one day this week."
+              : "Recent learning has already been captured.",
+            priority: steadyWeeklyPattern ? 22 : 18,
           };
         }
 
@@ -832,7 +892,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             suggestion: recentPlannerAction
               ? "You have already checked the planner recently. Let the current plan settle first."
               : `Open planner and choose one simple session for ${childName}.`,
-            why: recentPlannerAction
+            why: quietAfterBurst
+              ? "A quiet patch after earlier activity is a good time to reset the rhythm."
+              : recentPlannerAction
               ? "Recent planner activity suggests this step has already been considered."
               : "There has not been a recent learning update to guide the next stretch.",
             priority: recentPlannerAction ? 32 : 64,
@@ -867,6 +929,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               : "The latest portfolio evidence is getting old.",
             blocker: "Portfolio review is less useful until there is a fresher learning moment.",
             priority: recentPortfolioAction ? 24 : 58,
+          };
+        } else if (burstyRecentPattern) {
+          nextSignals["/portfolio"] = {
+            tone: "info",
+            label: "Consistency will help",
+            suggestion: recentPortfolioAction
+              ? "You reviewed the portfolio recently. Let the next few captures build a steadier record."
+              : "A steadier weekly rhythm will make the portfolio story feel more convincing.",
+            why: "The evidence record is active, but still uneven across recent days.",
+            blocker: "Portfolio review will feel stronger once the recent rhythm is steadier.",
+            priority: recentPortfolioAction ? 18 : 40,
           };
         } else if (narrowRecentBalance || recentAreas.size < 2) {
           nextSignals["/portfolio"] = {
@@ -937,11 +1010,24 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             suggestion: recentReportAction
               ? "The report was just reviewed. A fresh capture is the calmer next move now."
               : "A fresh entry would make the report feel more current.",
-            why: recentReportAction
+            why: quietAfterBurst
+              ? "A quieter patch has opened after earlier activity."
+              : recentReportAction
               ? "Recent report work means capture may now be the better follow-through step."
               : "The report can be stronger with one recent learning moment.",
             blocker: "Reporting will feel more trustworthy after one fresh capture.",
-            priority: recentReportAction ? 30 : 60,
+            priority: recentReportAction ? 30 : quietAfterBurst ? 68 : 60,
+          };
+        } else if (burstyRecentPattern) {
+          nextSignals["/reports"] = {
+            tone: "info",
+            label: "Consistency before reporting",
+            suggestion: recentReportAction
+              ? "You have already been in reports. Let a steadier capture rhythm build before returning."
+              : "A little consistency now will strengthen reporting later.",
+            why: "Evidence exists, but recent activity is still uneven.",
+            blocker: "Reporting will feel more grounded once the capture rhythm is steadier.",
+            priority: recentReportAction ? 22 : 54,
           };
         } else {
           nextSignals["/reports"] = {
@@ -984,6 +1070,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             blocker:
               selectedEvidenceCount < 3
                 ? "Authority readiness is blocked until the draft has stronger evidence behind it."
+                : burstyRecentPattern
+                ? "Authority readiness is blocked until the evidence rhythm feels steadier."
                 : narrowRecentBalance
                 ? "Authority readiness is blocked until recent evidence is broader."
                 : "Authority readiness is blocked until evidence breadth is stronger.",
