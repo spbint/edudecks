@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { FamilyShellHandoffPayload } from "@/lib/familyCommandHandoff";
 import {
@@ -22,13 +22,28 @@ export default function FamilyHandoffNote({
   marginTop = 0,
 }: FamilyHandoffNoteProps) {
   const pathname = usePathname();
+  const handoffKey = useMemo(
+    () =>
+      handoff
+        ? `${pathname}:${handoff.intent}:${handoff.href}:${handoff.createdAt}`
+        : "",
+    [handoff, pathname]
+  );
   const lastRenderedRef = useRef<string>("");
-  const previousActedRef = useRef<boolean>(acted);
+  const previousActedRef = useRef<boolean>(false);
+  const [arrivalActed, setArrivalActed] = useState(acted);
+  const effectiveActed = Boolean(handoff) && acted && !arrivalActed;
+
+  useEffect(() => {
+    setArrivalActed(acted);
+    previousActedRef.current = false;
+    lastRenderedRef.current = "";
+  }, [acted, handoffKey]);
 
   useEffect(() => {
     if (!handoff) return;
 
-    const mode = acted ? "followup" : "start";
+    const mode = effectiveActed ? "followup" : "start";
     const renderKey = `${pathname}:${handoff.intent}:${mode}`;
 
     if (lastRenderedRef.current !== renderKey) {
@@ -41,7 +56,7 @@ export default function FamilyHandoffNote({
         mode,
       });
       trackFamilyGuidanceEvent({
-        name: acted ? "handoff_helper_followup_mode" : "handoff_helper_start_mode",
+        name: effectiveActed ? "handoff_helper_followup_mode" : "handoff_helper_start_mode",
         intent: handoff.intent,
         sourceHref: handoff.href,
         destinationHref: handoff.href,
@@ -50,7 +65,7 @@ export default function FamilyHandoffNote({
       });
       lastRenderedRef.current = renderKey;
     }
-  }, [acted, handoff, pathname]);
+  }, [effectiveActed, handoff, pathname]);
 
   useEffect(() => {
     if (!handoff) {
@@ -64,15 +79,15 @@ export default function FamilyHandoffNote({
 
     publishFamilyGuidanceSnapshot({
       pathname,
-      helperMode: acted ? "followup" : "start",
+      helperMode: effectiveActed ? "followup" : "start",
       helperIntent: handoff.intent,
     });
-  }, [acted, handoff, pathname]);
+  }, [effectiveActed, handoff, pathname]);
 
   useEffect(() => {
     if (!handoff) return;
 
-    if (!previousActedRef.current && acted) {
+    if (!previousActedRef.current && effectiveActed) {
       trackFamilyGuidanceEvent({
         name: "handoff_progressed_after_arrival",
         intent: handoff.intent,
@@ -83,8 +98,8 @@ export default function FamilyHandoffNote({
       });
     }
 
-    previousActedRef.current = acted;
-  }, [acted, handoff, pathname]);
+    previousActedRef.current = effectiveActed;
+  }, [effectiveActed, handoff, pathname]);
 
   if (!handoff) return null;
 
@@ -117,9 +132,9 @@ export default function FamilyHandoffNote({
       </div>
       <div style={{ marginTop: 9, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
         <span style={{ fontWeight: 800, color: "#0f172a" }}>
-          {acted ? "From here:" : "Start here:"}
+          {effectiveActed ? "From here:" : "Start here:"}
         </span>{" "}
-        {acted ? handoff.followUpAction : handoff.firstAction}
+        {effectiveActed ? handoff.followUpAction : handoff.firstAction}
       </div>
     </section>
   );
