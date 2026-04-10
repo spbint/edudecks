@@ -59,6 +59,7 @@ type CommandSignal = {
   tone: CommandTone;
   label?: string;
   suggestion?: string;
+  priority?: number;
 };
 
 type EvidenceSignalRow = {
@@ -114,6 +115,13 @@ function normalizeArea(value: string | null | undefined) {
 function titleCaseArea(value: string) {
   if (!value) return "another area";
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function priorityWeight(tone: CommandTone) {
+  if (tone === "warning") return 3;
+  if (tone === "info") return 2;
+  if (tone === "success") return 1;
+  return 0;
 }
 
 function isMissingColumnError(err: any) {
@@ -527,23 +535,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               tone: "warning",
               label: "No child selected",
               suggestion: "Add a child first so EduDecks can guide the next step.",
+              priority: 100,
             },
             "/planner": {
               tone: "info",
               label: "Start with setup",
               suggestion: "Create a child profile before planning the next learning step.",
+              priority: 70,
             },
             "/portfolio": {
               tone: "neutral",
               label: "Waiting for learning",
+              priority: 10,
             },
             "/reports": {
               tone: "neutral",
               label: "Nothing to report yet",
+              priority: 10,
             },
             "/authority/readiness": {
               tone: "neutral",
               label: "Readiness comes later",
+              priority: 10,
             },
           });
           return;
@@ -592,24 +605,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: "Needs a first entry",
             suggestion: `Capture one small learning moment for ${childName}.`,
+            priority: 100,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/capture"] = {
             tone: "info",
             label: "Quiet this week",
             suggestion: `Add one fresh moment for ${childName} this week.`,
+            priority: 82,
           };
         } else if (!weeklyAreas.has("science")) {
           nextSignals["/capture"] = {
             tone: "info",
             label: "No science yet",
             suggestion: `Add one science example while the week is still open.`,
+            priority: 68,
           };
         } else {
           nextSignals["/capture"] = {
             tone: "success",
             label: "Fresh evidence",
             suggestion: `${childName} has current evidence flowing this week.`,
+            priority: 18,
           };
         }
 
@@ -617,18 +634,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/planner"] = {
             tone: "neutral",
             label: "Plan after first capture",
+            priority: 12,
           };
         } else if (recentAreas.size < 2) {
           nextSignals["/planner"] = {
             tone: "info",
             label: "Coverage is light",
             suggestion: `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
+            priority: 76,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/planner"] = {
             tone: "info",
             label: "Next step needed",
             suggestion: `Open planner and choose one simple session for ${childName}.`,
+            priority: 64,
+          };
+        } else {
+          nextSignals["/planner"] = {
+            tone: "success",
+            label: "Plan is moving",
+            suggestion: "Use planner when you want to shape the next stretch of learning.",
+            priority: 16,
           };
         }
 
@@ -636,18 +663,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/portfolio"] = {
             tone: "neutral",
             label: "Portfolio is waiting",
+            priority: 10,
           };
         } else if ((daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999) > 21) {
           nextSignals["/portfolio"] = {
             tone: "info",
             label: "Story feels dated",
             suggestion: `Add one fresh piece so the portfolio stays current.`,
+            priority: 58,
           };
         } else if (recentAreas.size < 2) {
           nextSignals["/portfolio"] = {
             tone: "info",
             label: "Thin spread",
             suggestion: `One more area would make ${childName}'s learning story feel broader.`,
+            priority: 52,
+          };
+        } else {
+          nextSignals["/portfolio"] = {
+            tone: "success",
+            label: "Story is building",
+            suggestion: "Portfolio is ready when you want to review the learning journey.",
+            priority: 14,
           };
         }
 
@@ -656,24 +693,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "No draft yet",
             suggestion: `Turn ${childName}'s evidence into a first report draft.`,
+            priority: rows.length >= 3 ? 74 : 42,
           };
         } else if (selectedEvidenceCount < 3) {
           nextSignals["/reports"] = {
             tone: "warning",
             label: "Draft is still light",
             suggestion: "Add one or two stronger examples before building the report.",
+            priority: 72,
           };
         } else if (!weeklyRows.length) {
           nextSignals["/reports"] = {
             tone: "info",
             label: "Refresh before building",
             suggestion: "A fresh entry would make the report feel more current.",
+            priority: 60,
           };
         } else {
           nextSignals["/reports"] = {
             tone: "success",
             label: "Ready to build",
             suggestion: "Enough current evidence is in place to move into reporting.",
+            priority: 46,
           };
         }
 
@@ -682,24 +723,28 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "neutral",
             label: "Guidance is off",
             suggestion: "Turn readiness guidance on in settings when you want a calmer submission view.",
+            priority: 20,
           };
         } else if (!latestDraft) {
           nextSignals["/authority/readiness"] = {
             tone: "neutral",
             label: "Early stage",
             suggestion: "Create a report draft before checking authority readiness.",
+            priority: 15,
           };
         } else if (selectedEvidenceCount < 3 || recentAreas.size < 2) {
           nextSignals["/authority/readiness"] = {
             tone: "warning",
             label: "Not ready yet",
             suggestion: "Strengthen evidence breadth before moving into authority readiness.",
+            priority: 40,
           };
         } else {
           nextSignals["/authority/readiness"] = {
             tone: "success",
             label: "Building readiness",
             suggestion: "You can review readiness calmly and decide whether to prepare an authority pack.",
+            priority: 44,
           };
         }
 
@@ -730,6 +775,21 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     }
     return { background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0" };
   }
+
+  const recommendedHref = useMemo(() => {
+    const ranked = COMMAND_ITEMS.map((item) => {
+      const signal = signals[item.href];
+      return {
+        href: item.href,
+        score: (signal?.priority ?? 0) + priorityWeight(signal?.tone ?? "neutral"),
+      };
+    }).sort((left, right) => right.score - left.score);
+
+    return ranked[0]?.score ? ranked[0].href : null;
+  }, [signals]);
+
+  const recommendedItem = COMMAND_ITEMS.find((item) => item.href === recommendedHref) ?? null;
+  const recommendedSignal = recommendedHref ? signals[recommendedHref] : null;
 
   return (
     <section
@@ -777,6 +837,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           >
             Move from capture to planning, portfolio, reports, and readiness without losing context.
           </div>
+          {recommendedItem && recommendedSignal?.suggestion ? (
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: "#334155",
+              }}
+            >
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>Next best step:</span>{" "}
+              {recommendedItem.label}. {recommendedSignal.suggestion}
+            </div>
+          ) : null}
         </div>
         <Link href="/family" style={utilBtn(false)}>
           Workspace Home
@@ -793,13 +866,22 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         {COMMAND_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           const signal = signals[item.href];
+          const recommended = item.href === recommendedHref;
           return (
             <Link
               key={item.href}
               href={item.href}
               style={{
-                border: active ? "1px solid #2563eb" : "1px solid #dbeafe",
-                background: active ? "#dbeafe" : "rgba(255,255,255,0.94)",
+                border: recommended
+                  ? "1px solid #1d4ed8"
+                  : active
+                  ? "1px solid #2563eb"
+                  : "1px solid #dbeafe",
+                background: recommended
+                  ? "linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%)"
+                  : active
+                  ? "#dbeafe"
+                  : "rgba(255,255,255,0.94)",
                 borderRadius: 16,
                 padding: "14px 16px",
                 textDecoration: "none",
@@ -807,19 +889,51 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 display: "grid",
                 gap: 8,
                 minHeight: 112,
-                boxShadow: active ? "0 14px 30px rgba(37,99,235,0.15)" : "none",
+                boxShadow: recommended
+                  ? "0 16px 32px rgba(29,78,216,0.18)"
+                  : active
+                  ? "0 14px 30px rgba(37,99,235,0.15)"
+                  : "none",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "start" }}>
-                <span
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 800,
-                    color: active ? "#1d4ed8" : "#0f172a",
-                  }}
-                >
-                  {item.label}
-                </span>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 800,
+                      color: active || recommended ? "#1d4ed8" : "#0f172a",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                  {recommended ? (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: 0.4,
+                        textTransform: "uppercase",
+                        color: "#1d4ed8",
+                      }}
+                    >
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: "#1d4ed8",
+                          display: "inline-block",
+                        }}
+                      />
+                      Recommended now
+                    </span>
+                  ) : null}
+                </div>
                 {signal?.label ? (
                   <span
                     style={{
