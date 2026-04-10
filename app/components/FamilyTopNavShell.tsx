@@ -63,6 +63,12 @@ type CommandSignal = {
   priority?: number;
 };
 
+type MomentumState = {
+  label: string;
+  detail: string;
+  tone: CommandTone;
+};
+
 type EvidenceSignalRow = {
   id: string;
   student_id?: string | null;
@@ -483,6 +489,7 @@ function ChildSwitcher() {
 
 function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [signals, setSignals] = useState<Record<string, CommandSignal>>({});
+  const [momentum, setMomentum] = useState<MomentumState | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
 
   useEffect(() => {
@@ -511,6 +518,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
         if (!user) {
           if (mounted) setSignals({});
+          if (mounted) {
+            setMomentum({
+              label: "Getting started",
+              detail: "The workspace will build momentum once a child is active.",
+              tone: "neutral",
+            });
+          }
           return;
         }
 
@@ -531,6 +545,11 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           null;
 
         if (!activeChild) {
+          setMomentum({
+            label: "Getting started",
+            detail: "Add a child to begin building a steady learning record.",
+            tone: "warning",
+          });
           setSignals({
             "/capture": {
               tone: "warning",
@@ -600,6 +619,44 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         );
         const latestDraft = childDrafts[0] ?? null;
         const selectedEvidenceCount = latestDraft?.selected_evidence_ids?.length ?? 0;
+
+        let nextMomentum: MomentumState = {
+          label: "Getting started",
+          detail: `${childName} is at the start of the learning record.`,
+          tone: "neutral",
+        };
+
+        if (!rows.length) {
+          nextMomentum = {
+            label: "Getting started",
+            detail: `${childName} needs a first captured learning moment.`,
+            tone: "warning",
+          };
+        } else if (!latestDraft || recentAreas.size < 2 || !weeklyRows.length) {
+          nextMomentum = {
+            label: "Building momentum",
+            detail: `Evidence is forming. One or two more strong steps will steady the workflow.`,
+            tone: "info",
+          };
+        } else if (selectedEvidenceCount < 3 || !weeklyAreas.size) {
+          nextMomentum = {
+            label: "Nearly ready",
+            detail: `The story is taking shape. A little more evidence will strengthen reporting confidence.`,
+            tone: "info",
+          };
+        } else if (familyProfile?.show_authority_guidance === false) {
+          nextMomentum = {
+            label: "Healthy place",
+            detail: `Evidence and reporting are strong. You can enable readiness guidance when you want it.`,
+            tone: "success",
+          };
+        } else {
+          nextMomentum = {
+            label: "Healthy place",
+            detail: `Evidence, draft quality, and readiness posture are all in a steady place.`,
+            tone: "success",
+          };
+        }
 
         const nextSignals: Record<string, CommandSignal> = {};
 
@@ -771,11 +828,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           };
         }
 
+        setMomentum(nextMomentum);
         setSignals(nextSignals);
       } catch (error) {
         console.error("Family command guidance failed", error);
         if (mounted) {
           setSignals({});
+          setMomentum(null);
         }
       }
     }
@@ -860,6 +919,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           >
             Move from capture to planning, portfolio, reports, and readiness without losing context.
           </div>
+          {momentum ? (
+            <div
+              style={{
+                marginTop: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  ...toneStyle(momentum.tone),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {momentum.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "#64748b",
+                }}
+              >
+                {momentum.detail}
+              </span>
+            </div>
+          ) : null}
           {recommendedItem && recommendedSignal?.suggestion ? (
             <div
               style={{
