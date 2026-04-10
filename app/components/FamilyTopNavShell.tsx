@@ -677,13 +677,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           if (mounted) setSignals({});
           if (mounted) {
             setMomentum({
-              label: "Getting started",
-              detail: "The workspace will build momentum once a child is active.",
+              label: "Starting point",
+              detail: "The workspace becomes more useful once a child is active.",
               tone: "neutral",
             });
             setConfidence({
               label: "Not ready yet",
-              detail: "A usable evidence base begins once a child is active and learning is captured.",
+              detail: "A usable evidence base starts once a child is active and learning is captured.",
               tone: "neutral",
             });
             setCrossChildNote(null);
@@ -710,13 +710,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
         if (!activeChild) {
           setMomentum({
-            label: "Getting started",
+            label: "Starting point",
             detail: "Add a child to begin building a steady learning record.",
             tone: "warning",
           });
           setConfidence({
             label: "Not ready yet",
-            detail: "Add a child first so the evidence base can begin taking shape.",
+            detail: "Add a child first so the evidence base can begin to take shape.",
             tone: "warning",
           });
           setCrossChildNote(null);
@@ -725,20 +725,20 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             "/capture": {
               tone: "warning",
               label: "No child selected",
-              suggestion: "Add a child first so EduDecks can guide the next step.",
+              suggestion: "Add a child first so the next step has somewhere to land.",
               why: "There is no active child in the workspace yet.",
               priority: 100,
             },
             "/planner": {
               tone: "info",
-              label: "Start with setup",
-              suggestion: "Create a child profile before planning the next learning step.",
+              label: "Begin with setup",
+              suggestion: "Create a child profile before planning the next step.",
               why: "Planning works best once a child profile exists.",
               priority: 70,
             },
             "/portfolio": {
               tone: "neutral",
-              label: "Waiting for learning",
+              label: "Waiting for evidence",
               blocker: "Portfolio becomes useful after the first captured learning moment.",
               priority: 10,
             },
@@ -858,8 +858,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             : "build-weekly-record");
 
         let nextMomentum: MomentumState = {
-          label: "Getting started",
-          detail: `${childName} is at the start of the learning record.`,
+          label: "Starting point",
+          detail: `${childName}'s learning record is just getting started.`,
           tone: "neutral",
         };
 
@@ -879,50 +879,50 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
         if (!rows.length) {
           nextMomentum = {
-            label: "Getting started",
+            label: "Starting point",
             detail: `${childName} needs a first captured learning moment.`,
             tone: "warning",
           };
         } else if (quietAfterBurst) {
           nextMomentum = {
-            label: "Regaining rhythm",
-            detail: "There was an earlier burst of activity. A steadier weekly rhythm will help now.",
+            label: "Finding rhythm",
+            detail: "There was an earlier burst of activity. A steadier weekly rhythm would help now.",
             tone: "info",
           };
         } else if (burstyRecentPattern) {
           nextMomentum = {
-            label: "Building consistency",
+            label: "Building rhythm",
             detail: "Learning is being captured, but it is still arriving in clumps rather than a steady rhythm.",
             tone: "info",
           };
         } else if (pickingUpAgain) {
           nextMomentum = {
             label: "Picking up again",
-            detail: "You have started moving again this week. A little consistency now will strengthen the record.",
+            detail: "Things are moving again this week. A little consistency now will strengthen the record.",
             tone: "success",
           };
         } else if (!latestDraft || recentAreas.size < 2 || !weeklyRows.length) {
           nextMomentum = {
             label: "Building momentum",
-            detail: `Evidence is forming. One or two more strong steps will steady the workflow.`,
+            detail: "Evidence is forming. One or two well-placed next steps will steady the workflow.",
             tone: "info",
           };
         } else if (selectedEvidenceCount < 3 || !weeklyAreas.size) {
           nextMomentum = {
-            label: "Nearly ready",
-            detail: `The story is taking shape. A little more evidence will strengthen reporting confidence.`,
+            label: "Taking shape",
+            detail: "The story is taking shape. A little more evidence will strengthen reporting confidence.",
             tone: "info",
           };
         } else if (familyProfile?.show_authority_guidance === false) {
           nextMomentum = {
             label: "Healthy place",
-            detail: `Evidence and reporting are strong. You can enable readiness guidance when you want it.`,
+            detail: "Evidence and reporting are in a good place. Turn readiness guidance on when you want it.",
             tone: "success",
           };
         } else {
           nextMomentum = {
             label: "Healthy place",
-            detail: `Evidence, draft quality, and readiness posture are all in a steady place.`,
+            detail: "Evidence, draft quality, and readiness posture are all in a steady place.",
             tone: "success",
           };
         }
@@ -951,7 +951,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextConfidence = {
             label: "Close to usable",
             detail: quietAfterBurst
-              ? "A fresh capture would make this feel more reliable for reporting."
+              ? "One fresh capture would make this feel more reliable for reporting."
               : narrowRecentBalance
               ? "A little more breadth will make this stronger."
               : "This is close to usable for reporting.",
@@ -988,19 +988,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextFocus = {
             key: inferredFocus,
             label: "Build weekly record",
-            detail: "Keep the weekly learning record calm and current.",
+            detail: "Keep the weekly learning record calm, current, and easy to maintain.",
           };
         } else if (inferredFocus === "round-out-portfolio") {
           nextFocus = {
             key: inferredFocus,
             label: "Round out portfolio",
-            detail: "Broader recent coverage will make the learning story stronger.",
+            detail: "A broader recent mix will make the learning story stronger.",
           };
         } else if (inferredFocus === "prepare-report") {
           nextFocus = {
             key: inferredFocus,
             label: "Prepare report",
-            detail: "Shape the evidence base into something usable for reporting.",
+            detail: "Shape the evidence base into something ready to use in reporting.",
           };
         } else {
           nextFocus = {
@@ -1020,19 +1020,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             detail:
               nextConfidence.label === "Ready to review"
                 ? `${childName}'s record looks ready for a calm review pass.`
-                : `${childName}'s record is settling into a healthy place for now.`,
+                : `${childName}'s record is sitting in a healthy place for now.`,
             tone: "success",
           };
         } else if (pickingUpAgain && !quietAfterBurst) {
           nextReassuranceNote = {
             label: "Good to see",
-            detail: `You have picked things up again this week. That movement matters.`,
+            detail: "Things have picked up again this week. That movement matters.",
             tone: "success",
           };
         } else if (steadyWeeklyPattern && recentAreas.size >= 2) {
           nextReassuranceNote = {
             label: "Steady progress",
-            detail: `Recent evidence is both current and reasonably rounded.`,
+            detail: "Recent evidence is both current and reasonably rounded.",
             tone: "success",
           };
         }
@@ -1083,7 +1083,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             inferredFocus !== "prepare-authority"
           ) {
             nextCrossChildNote = {
-              label: "Another child is closer",
+              label: "Another child may be closer",
               detail: `${childDisplayName(reviewSibling.child)} may be closer to a review pass.`,
               tone: "info",
             };
@@ -1095,7 +1095,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             };
           } else if (quietSibling && nextMomentum.tone !== "warning") {
             nextCrossChildNote = {
-              label: "One sibling's record is quieter",
+              label: "Another record is quieter",
               detail: `${childDisplayName(quietSibling.child)} has not had a recent check-in this week.`,
               tone: "neutral",
             };
@@ -1107,7 +1107,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         if (!rows.length) {
           nextSignals["/capture"] = {
             tone: "warning",
-            label: "Needs a first entry",
+            label: "Start the record",
             suggestion: `Capture one small learning moment for ${childName}.`,
             why: `There is no saved evidence for ${childName} yet.`,
             priority: 100,
@@ -1144,7 +1144,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Steady the rhythm",
             suggestion: steadyWeeklyPattern
-              ? "You have started to steady things. Keep one or two calm captures flowing this week."
+              ? "Things are starting to settle. Keep one or two calm captures flowing this week."
               : "Add one small learning moment on a different day this week to build consistency.",
             why: "Recent evidence is arriving in clumps rather than a steady rhythm.",
             blocker: "A little consistency now will strengthen reporting later.",
@@ -1187,9 +1187,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (recentAreas.size < 2) {
           nextSignals["/planner"] = {
             tone: "info",
-            label: "Coverage is light",
+            label: "Coverage is still light",
             suggestion: recentPlannerAction
-              ? "You have already looked ahead recently. Return when you are ready to widen the next step."
+              ? "You have already looked ahead recently. Come back when you are ready to widen the next step."
               : `Plan one ${titleCaseArea(recentMissingArea || missingFocusArea || "science")} learning moment next.`,
             why: recentPlannerAction
               ? "Planner was opened recently, so the shell is easing off repeated prompts."
@@ -1199,7 +1199,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (!weeklyRows.length) {
           nextSignals["/planner"] = {
             tone: "info",
-            label: "Next step needed",
+            label: "Reset the next step",
             suggestion: recentPlannerAction
               ? "You have already checked the planner recently. Let the current plan settle first."
               : `Open planner and choose one simple session for ${childName}.`,
@@ -1223,7 +1223,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         if (!rows.length) {
           nextSignals["/portfolio"] = {
             tone: "neutral",
-            label: "Portfolio is waiting",
+            label: "Portfolio can wait",
             why: "Portfolio becomes useful after the first captured evidence.",
             blocker: "There is not enough evidence yet for a useful portfolio review.",
             priority: 10,
@@ -1244,7 +1244,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (burstyRecentPattern) {
           nextSignals["/portfolio"] = {
             tone: "info",
-            label: "Consistency will help",
+            label: "A steadier rhythm will help",
             suggestion: recentPortfolioAction
               ? "You reviewed the portfolio recently. Let the next few captures build a steadier record."
               : "A steadier weekly rhythm will make the portfolio story feel more convincing.",
@@ -1302,7 +1302,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: narrowRecentBalance ? "Draft needs wider evidence" : "Draft is still light",
             suggestion: recentReportAction
-              ? "Your draft was updated recently. The next move is to let evidence catch up."
+              ? "Your draft was updated recently. The next move is to let the evidence catch up."
               : narrowRecentBalance
               ? `Add one ${titleCaseArea(recentMissingArea || "different")} subject before building the report.`
               : "Add one or two stronger examples before building the report.",
@@ -1336,7 +1336,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (burstyRecentPattern) {
           nextSignals["/reports"] = {
             tone: "info",
-            label: "Consistency before reporting",
+            label: "Steady things before reporting",
             suggestion: recentReportAction
               ? "You have already been in reports. Let a steadier capture rhythm build before returning."
               : "A little consistency now will strengthen reporting later.",
@@ -1363,7 +1363,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/authority/readiness"] = {
             tone: "neutral",
             label: "Guidance is off",
-            suggestion: "Turn readiness guidance on in settings when you want a calmer submission view.",
+            suggestion: "Turn readiness guidance on in settings when you want a calmer review view.",
             why: "Authority guidance is currently switched off in settings.",
             blocker: "Turn readiness guidance on before using authority readiness as a next step.",
             priority: 20,
@@ -1382,7 +1382,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: "Not ready yet",
             suggestion: recentAuthorityAction
-              ? "You checked readiness recently. The best move now is to strengthen evidence first."
+              ? "You checked readiness recently. The next move is still to strengthen the evidence first."
               : "Strengthen evidence breadth before moving into authority readiness.",
             why: recentAuthorityAction
               ? "Recent readiness review means the shell is easing off repeated authority prompts."
@@ -1402,7 +1402,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else {
           nextSignals["/authority/readiness"] = {
             tone: "success",
-            label: "Building readiness",
+            label: "Ready for a check",
             suggestion: recentAuthorityAction
               ? "You reviewed readiness recently. Return when you want to prepare the formal pack."
               : "You can review readiness calmly and decide whether to prepare an authority pack.",
@@ -1529,7 +1529,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               color: "#0f172a",
             }}
           >
-            Move from capture to planning, portfolio, reports, and readiness without losing context.
+            Move from capture to planning, portfolio, reporting, and readiness without losing the thread.
           </div>
           {momentum ? (
             <div
@@ -1716,7 +1716,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                   color: "#334155",
                 }}
               >
-                <span style={{ fontWeight: 800, color: "#0f172a" }}>Next best step:</span>{" "}
+                <span style={{ fontWeight: 800, color: "#0f172a" }}>Best next move:</span>{" "}
                 {recommendedItem.label}. {recommendedSignal.suggestion}
               </div>
               {recommendedSignal.why ? (
@@ -1727,7 +1727,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                     color: "#64748b",
                   }}
                 >
-                  Why: {recommendedSignal.why}
+                  Why this now: {recommendedSignal.why}
                 </div>
               ) : null}
               {recommendedSignal.blocker ? (
