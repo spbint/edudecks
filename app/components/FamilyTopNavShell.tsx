@@ -100,6 +100,15 @@ type FocusState = {
   detail: string;
 };
 
+type ContinuitySnapshot = {
+  childId: string;
+  capturedAt: number;
+  weeklyCount: number;
+  recentAreaCount: number;
+  draftEvidenceCount: number;
+  lastEvidenceDays: number;
+};
+
 type RecentActionMap = Partial<Record<"capture" | "planner" | "portfolio" | "reports" | "authority", number>>;
 
 type EvidenceSignalRow = {
@@ -115,6 +124,7 @@ const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 const COMMAND_MEMORY_KEY = "edudecks_family_command_memory_v1";
 const COMMAND_COOLDOWN_MS = 1000 * 60 * 30;
 const WORKSPACE_FOCUS_KEY = "edudecks_family_workspace_focus_v1";
+const CONTINUITY_MEMORY_KEY = "edudecks_family_continuity_v1";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -269,6 +279,35 @@ function readWorkspaceFocus(): WorkspaceFocus | null {
 function writeWorkspaceFocus(focus: WorkspaceFocus) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(WORKSPACE_FOCUS_KEY, focus);
+}
+
+function readContinuitySnapshots(): ContinuitySnapshot[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CONTINUITY_MEMORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => ({
+        childId: safe(item?.childId),
+        capturedAt: typeof item?.capturedAt === "number" ? item.capturedAt : 0,
+        weeklyCount: typeof item?.weeklyCount === "number" ? item.weeklyCount : 0,
+        recentAreaCount: typeof item?.recentAreaCount === "number" ? item.recentAreaCount : 0,
+        draftEvidenceCount: typeof item?.draftEvidenceCount === "number" ? item.draftEvidenceCount : 0,
+        lastEvidenceDays: typeof item?.lastEvidenceDays === "number" ? item.lastEvidenceDays : 999,
+      }))
+      .filter((item) => item.childId);
+  } catch {
+    return [];
+  }
+}
+
+function writeContinuitySnapshot(snapshot: ContinuitySnapshot) {
+  if (typeof window === "undefined") return;
+  const existing = readContinuitySnapshots().filter((item) => item.childId !== snapshot.childId);
+  const next = [snapshot, ...existing].slice(0, 12);
+  window.localStorage.setItem(CONTINUITY_MEMORY_KEY, JSON.stringify(next));
 }
 
 function isMissingColumnError(err: any) {
@@ -854,6 +893,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         const readinessGuidanceOn = familyProfile?.show_authority_guidance !== false;
         const immediateActionPulse =
           recentCaptureAction || recentPlannerAction || recentPortfolioAction || recentReportAction || recentAuthorityAction;
+        const previousSnapshot = readContinuitySnapshots().find((item) => item.childId === activeChild.id) ?? null;
         const groupedEvidence = new Map<string, EvidenceSignalRow[]>();
         ((siblingEvidenceRows.data ?? []) as EvidenceSignalRow[]).forEach((row) => {
           const studentId = safe(row.student_id);
@@ -896,6 +936,16 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         };
         let nextCrossChildNote: CrossChildNote | null = null;
         let nextReassuranceNote: ReassuranceNote | null = null;
+        const continuityImproved =
+          previousSnapshot &&
+          (weeklyRows.length > previousSnapshot.weeklyCount ||
+            recentAreas.size > previousSnapshot.recentAreaCount ||
+            selectedEvidenceCount > previousSnapshot.draftEvidenceCount ||
+            lastEvidenceDays < previousSnapshot.lastEvidenceDays);
+        const continuityStrengthenedBreadth =
+          previousSnapshot && recentAreas.size > previousSnapshot.recentAreaCount;
+        const continuityStrengthenedDraft =
+          previousSnapshot && selectedEvidenceCount > previousSnapshot.draftEvidenceCount;
 
         if (!rows.length) {
           nextMomentum = {
@@ -930,13 +980,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (pickingUpAgain) {
           nextMomentum = {
             label: "Picking up again",
-            detail: "Things are moving again this week. A little consistency now will strengthen the record.",
+            detail: continuityImproved
+              ? "Things are moving again this week, and the record is already looking steadier."
+              : "Things are moving again this week. A little consistency now will strengthen the record.",
             tone: "success",
           };
         } else if (!latestDraft || recentAreas.size < 2 || !weeklyRows.length) {
           nextMomentum = {
             label: "Building momentum",
-            detail: "Evidence is forming. One or two well-placed next steps will steady the workflow.",
+            detail: continuityImproved
+              ? "Evidence is building in a stronger direction now. A couple of steady next steps will help it hold."
+              : "Evidence is forming. One or two well-placed next steps will steady the workflow.",
             tone: "info",
           };
         } else if (selectedEvidenceCount < 3 || !weeklyAreas.size) {
@@ -968,13 +1022,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         } else if (recentReportAction && latestDraft && selectedEvidenceCount >= 2) {
           nextConfidence = {
             label: "Taking shape",
-            detail: "Recent report work has moved this forward. One more steady step will clarify the next move.",
+            detail: continuityStrengthenedDraft
+              ? "Recent report work has moved this forward in a meaningful way."
+              : "Recent report work has moved this forward. One more steady step will clarify the next move.",
             tone: "success",
           };
         } else if (!latestDraft || selectedEvidenceCount < 2) {
           nextConfidence = {
             label: "Taking shape",
-            detail: narrowRecentBalance
+            detail: continuityStrengthenedBreadth
+              ? "This is broadening into a more usable record."
+              : narrowRecentBalance
               ? "You have activity, but a little more breadth will make this stronger."
               : burstyRecentPattern
               ? "You have evidence building, and a steadier rhythm will make it more usable."
@@ -1078,31 +1136,41 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             detail:
               nextConfidence.label === "Ready to review"
                 ? `${childName}'s record looks ready for a calm review pass.`
+                : continuityImproved
+                ? `${childName}'s record is in a healthier place than it was recently.`
                 : `${childName}'s record is sitting in a healthy place for now.`,
             tone: "success",
           };
         } else if (recentCaptureAction && weeklyRows.length > 0) {
           nextReassuranceNote = {
             label: "Fresh progress",
-            detail: "That recent capture has already moved the record forward.",
+            detail: continuityImproved
+              ? "That recent capture has already built on the progress from earlier."
+              : "That recent capture has already moved the record forward.",
             tone: "success",
           };
         } else if (recentReportAction && latestDraft) {
           nextReassuranceNote = {
             label: "Recent progress",
-            detail: "Your latest report changes are already helping the story take shape.",
+            detail: continuityStrengthenedDraft
+              ? "Your latest report changes have made the draft meaningfully stronger."
+              : "Your latest report changes are already helping the story take shape.",
             tone: "success",
           };
         } else if (pickingUpAgain && !quietAfterBurst) {
           nextReassuranceNote = {
             label: "Good to see",
-            detail: "Things have picked up again this week. That movement matters.",
+            detail: continuityImproved
+              ? "Things have picked up again this week, and that improvement is already visible."
+              : "Things have picked up again this week. That movement matters.",
             tone: "success",
           };
         } else if (steadyWeeklyPattern && recentAreas.size >= 2) {
           nextReassuranceNote = {
             label: "Steady progress",
-            detail: "Recent evidence is both current and reasonably rounded.",
+            detail: continuityStrengthenedBreadth
+              ? "Recent evidence is looking broader and more settled now."
+              : "Recent evidence is both current and reasonably rounded.",
             tone: "success",
           };
         }
@@ -1493,6 +1561,14 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
         setCrossChildNote(nextCrossChildNote);
         setReassuranceNote(nextReassuranceNote);
         setSignals(nextSignals);
+        writeContinuitySnapshot({
+          childId: activeChild.id,
+          capturedAt: Date.now(),
+          weeklyCount: weeklyRows.length,
+          recentAreaCount: recentAreas.size,
+          draftEvidenceCount: selectedEvidenceCount,
+          lastEvidenceDays,
+        });
       } catch (error) {
         console.error("Family command guidance failed", error);
         if (mounted) {
