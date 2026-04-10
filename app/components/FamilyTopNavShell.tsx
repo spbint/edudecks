@@ -70,6 +70,12 @@ type MomentumState = {
   tone: CommandTone;
 };
 
+type ReadinessConfidenceState = {
+  label: string;
+  detail: string;
+  tone: CommandTone;
+};
+
 type RecentActionMap = Partial<Record<"capture" | "planner" | "portfolio" | "reports" | "authority", number>>;
 
 type EvidenceSignalRow = {
@@ -572,6 +578,7 @@ function ChildSwitcher() {
 function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [signals, setSignals] = useState<Record<string, CommandSignal>>({});
   const [momentum, setMomentum] = useState<MomentumState | null>(null);
+  const [confidence, setConfidence] = useState<ReadinessConfidenceState | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
 
   useEffect(() => {
@@ -615,6 +622,11 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               detail: "The workspace will build momentum once a child is active.",
               tone: "neutral",
             });
+            setConfidence({
+              label: "Not ready yet",
+              detail: "A usable evidence base begins once a child is active and learning is captured.",
+              tone: "neutral",
+            });
           }
           return;
         }
@@ -639,6 +651,11 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           setMomentum({
             label: "Getting started",
             detail: "Add a child to begin building a steady learning record.",
+            tone: "warning",
+          });
+          setConfidence({
+            label: "Not ready yet",
+            detail: "Add a child first so the evidence base can begin taking shape.",
             tone: "warning",
           });
           setSignals({
@@ -736,10 +753,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           wasRecentAction(recentActionMemory.reports) ||
           (daysSince(latestDraft?.updated_at) ?? 999) === 0;
         const recentAuthorityAction = wasRecentAction(recentActionMemory.authority);
+        const readinessGuidanceOn = familyProfile?.show_authority_guidance !== false;
 
         let nextMomentum: MomentumState = {
           label: "Getting started",
           detail: `${childName} is at the start of the learning record.`,
+          tone: "neutral",
+        };
+
+        let nextConfidence: ReadinessConfidenceState = {
+          label: "Not ready yet",
+          detail: "Your evidence base is still taking shape.",
           tone: "neutral",
         };
 
@@ -789,6 +813,63 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextMomentum = {
             label: "Healthy place",
             detail: `Evidence, draft quality, and readiness posture are all in a steady place.`,
+            tone: "success",
+          };
+        }
+
+        if (!rows.length) {
+          nextConfidence = {
+            label: "Not ready yet",
+            detail: "Your evidence base is still taking shape.",
+            tone: "warning",
+          };
+        } else if (!latestDraft || selectedEvidenceCount < 2) {
+          nextConfidence = {
+            label: "Taking shape",
+            detail: narrowRecentBalance
+              ? "You have activity, but a little more breadth will make this stronger."
+              : burstyRecentPattern
+              ? "You have evidence building, and a steadier rhythm will make it more usable."
+              : "You have evidence building, but the reporting base is still forming.",
+            tone: "info",
+          };
+        } else if (
+          selectedEvidenceCount >= 2 &&
+          recentAreas.size >= 2 &&
+          (weeklyRows.length > 0 || lastEvidenceDays <= 10)
+        ) {
+          nextConfidence = {
+            label: "Close to usable",
+            detail: quietAfterBurst
+              ? "A fresh capture would make this feel more reliable for reporting."
+              : narrowRecentBalance
+              ? "A little more breadth will make this stronger."
+              : "This is close to usable for reporting.",
+            tone: "info",
+          };
+        }
+
+        if (
+          latestDraft &&
+          selectedEvidenceCount >= 3 &&
+          recentAreas.size >= 2 &&
+          (steadyWeeklyPattern || weeklyRows.length >= 1) &&
+          readinessGuidanceOn
+        ) {
+          nextConfidence = {
+            label: "Ready to review",
+            detail: "This looks ready for a calm review pass.",
+            tone: "success",
+          };
+        } else if (
+          latestDraft &&
+          selectedEvidenceCount >= 3 &&
+          recentAreas.size >= 2 &&
+          (steadyWeeklyPattern || weeklyRows.length >= 1)
+        ) {
+          nextConfidence = {
+            label: "Close to usable",
+            detail: "Reporting looks usable now. Turn readiness guidance on when you want a review posture.",
             tone: "success",
           };
         }
@@ -1034,8 +1115,11 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Ready to build",
             suggestion: "Enough current evidence is in place to move into reporting.",
-            why: "The draft and evidence set are both in a steady place now.",
-            priority: 46,
+            why:
+              nextConfidence.label === "Ready to review"
+                ? "This looks ready for a review pass."
+                : "The draft and evidence set are both in a steady place now.",
+            priority: nextConfidence.label === "Ready to review" ? 52 : 46,
           };
         }
 
@@ -1086,18 +1170,22 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               : "You can review readiness calmly and decide whether to prepare an authority pack.",
             why: recentAuthorityAction
               ? "Recent readiness activity means there is no need to repeat the same prompt immediately."
+              : nextConfidence.label === "Ready to review"
+              ? "This evidence base looks ready for a review pass."
               : "Draft quality and evidence breadth are strong enough to review readiness.",
-            priority: recentAuthorityAction ? 20 : 44,
+            priority: recentAuthorityAction ? 20 : nextConfidence.label === "Ready to review" ? 48 : 44,
           };
         }
 
         setMomentum(nextMomentum);
+        setConfidence(nextConfidence);
         setSignals(nextSignals);
       } catch (error) {
         console.error("Family command guidance failed", error);
         if (mounted) {
           setSignals({});
           setMomentum(null);
+          setConfidence(null);
         }
       }
     }
@@ -1217,6 +1305,40 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                 }}
               >
                 {momentum.detail}
+              </span>
+            </div>
+          ) : null}
+          {confidence ? (
+            <div
+              style={{
+                marginTop: 8,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              <span
+                style={{
+                  ...toneStyle(confidence.tone),
+                  borderRadius: 999,
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {confidence.label}
+              </span>
+              <span
+                style={{
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                  color: "#64748b",
+                }}
+              >
+                {confidence.detail}
               </span>
             </div>
           ) : null}
