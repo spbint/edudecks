@@ -59,6 +59,7 @@ type CommandSignal = {
   tone: CommandTone;
   label?: string;
   suggestion?: string;
+  why?: string;
   priority?: number;
 };
 
@@ -535,12 +536,14 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               tone: "warning",
               label: "No child selected",
               suggestion: "Add a child first so EduDecks can guide the next step.",
+              why: "There is no active child in the workspace yet.",
               priority: 100,
             },
             "/planner": {
               tone: "info",
               label: "Start with setup",
               suggestion: "Create a child profile before planning the next learning step.",
+              why: "Planning works best once a child profile exists.",
               priority: 70,
             },
             "/portfolio": {
@@ -605,6 +608,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: "Needs a first entry",
             suggestion: `Capture one small learning moment for ${childName}.`,
+            why: `There is no saved evidence for ${childName} yet.`,
             priority: 100,
           };
         } else if (!weeklyRows.length) {
@@ -612,6 +616,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Quiet this week",
             suggestion: `Add one fresh moment for ${childName} this week.`,
+            why: "Nothing has been captured this week yet.",
             priority: 82,
           };
         } else if (!weeklyAreas.has("science")) {
@@ -619,6 +624,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "No science yet",
             suggestion: `Add one science example while the week is still open.`,
+            why: "There is no recent science evidence yet.",
             priority: 68,
           };
         } else {
@@ -626,6 +632,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Fresh evidence",
             suggestion: `${childName} has current evidence flowing this week.`,
+            why: "Recent learning has already been captured.",
             priority: 18,
           };
         }
@@ -634,6 +641,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/planner"] = {
             tone: "neutral",
             label: "Plan after first capture",
+            why: "A plan will be more useful once some learning is captured.",
             priority: 12,
           };
         } else if (recentAreas.size < 2) {
@@ -641,6 +649,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Coverage is light",
             suggestion: `Plan one ${titleCaseArea(missingFocusArea || "science")} learning moment next.`,
+            why: "Recent evidence is still concentrated in too few areas.",
             priority: 76,
           };
         } else if (!weeklyRows.length) {
@@ -648,6 +657,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Next step needed",
             suggestion: `Open planner and choose one simple session for ${childName}.`,
+            why: "There has not been a recent learning update to guide the next stretch.",
             priority: 64,
           };
         } else {
@@ -655,6 +665,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Plan is moving",
             suggestion: "Use planner when you want to shape the next stretch of learning.",
+            why: "Current evidence already gives you enough context to plan calmly.",
             priority: 16,
           };
         }
@@ -663,6 +674,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextSignals["/portfolio"] = {
             tone: "neutral",
             label: "Portfolio is waiting",
+            why: "Portfolio becomes useful after the first captured evidence.",
             priority: 10,
           };
         } else if ((daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999) > 21) {
@@ -670,6 +682,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Story feels dated",
             suggestion: `Add one fresh piece so the portfolio stays current.`,
+            why: "The latest portfolio evidence is getting old.",
             priority: 58,
           };
         } else if (recentAreas.size < 2) {
@@ -677,6 +690,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Thin spread",
             suggestion: `One more area would make ${childName}'s learning story feel broader.`,
+            why: "The portfolio story is still narrow across learning areas.",
             priority: 52,
           };
         } else {
@@ -684,6 +698,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Story is building",
             suggestion: "Portfolio is ready when you want to review the learning journey.",
+            why: "There is enough current evidence to review the story so far.",
             priority: 14,
           };
         }
@@ -693,6 +708,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "No draft yet",
             suggestion: `Turn ${childName}'s evidence into a first report draft.`,
+            why: "Evidence exists, but there is no saved report draft yet.",
             priority: rows.length >= 3 ? 74 : 42,
           };
         } else if (selectedEvidenceCount < 3) {
@@ -700,6 +716,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: "Draft is still light",
             suggestion: "Add one or two stronger examples before building the report.",
+            why: "Your report draft needs a little more evidence first.",
             priority: 72,
           };
         } else if (!weeklyRows.length) {
@@ -707,6 +724,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "info",
             label: "Refresh before building",
             suggestion: "A fresh entry would make the report feel more current.",
+            why: "The report can be stronger with one recent learning moment.",
             priority: 60,
           };
         } else {
@@ -714,6 +732,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Ready to build",
             suggestion: "Enough current evidence is in place to move into reporting.",
+            why: "The draft and evidence set are both in a steady place now.",
             priority: 46,
           };
         }
@@ -723,6 +742,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "neutral",
             label: "Guidance is off",
             suggestion: "Turn readiness guidance on in settings when you want a calmer submission view.",
+            why: "Authority guidance is currently switched off in settings.",
             priority: 20,
           };
         } else if (!latestDraft) {
@@ -730,6 +750,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "neutral",
             label: "Early stage",
             suggestion: "Create a report draft before checking authority readiness.",
+            why: "Readiness becomes useful once a report draft exists.",
             priority: 15,
           };
         } else if (selectedEvidenceCount < 3 || recentAreas.size < 2) {
@@ -737,6 +758,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "warning",
             label: "Not ready yet",
             suggestion: "Strengthen evidence breadth before moving into authority readiness.",
+            why: "Evidence breadth is still too light for a confident readiness check.",
             priority: 40,
           };
         } else {
@@ -744,6 +766,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "success",
             label: "Building readiness",
             suggestion: "You can review readiness calmly and decide whether to prepare an authority pack.",
+            why: "Draft quality and evidence breadth are strong enough to review readiness.",
             priority: 44,
           };
         }
@@ -841,13 +864,31 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             <div
               style={{
                 marginTop: 8,
-                fontSize: 13,
-                lineHeight: 1.5,
-                color: "#334155",
+                display: "grid",
+                gap: 4,
               }}
             >
-              <span style={{ fontWeight: 800, color: "#0f172a" }}>Next best step:</span>{" "}
-              {recommendedItem.label}. {recommendedSignal.suggestion}
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "#334155",
+                }}
+              >
+                <span style={{ fontWeight: 800, color: "#0f172a" }}>Next best step:</span>{" "}
+                {recommendedItem.label}. {recommendedSignal.suggestion}
+              </div>
+              {recommendedSignal.why ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#64748b",
+                  }}
+                >
+                  Why: {recommendedSignal.why}
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -959,6 +1000,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               >
                 {signal?.suggestion || item.detail}
               </span>
+              {recommended && signal?.why ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#64748b",
+                  }}
+                >
+                  {signal.why}
+                </span>
+              ) : null}
             </Link>
           );
         })}
