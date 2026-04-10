@@ -635,6 +635,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [crossChildNote, setCrossChildNote] = useState<CrossChildNote | null>(null);
   const [reassuranceNote, setReassuranceNote] = useState<ReassuranceNote | null>(null);
   const [activeChildVersion, setActiveChildVersion] = useState(0);
+  const [feedbackVersion, setFeedbackVersion] = useState(0);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -647,6 +648,15 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     if (focusKey) {
       writeWorkspaceFocus(focusKey);
     }
+    setFeedbackVersion((value) => value + 1);
+
+    const settleTimer = window.setTimeout(() => {
+      setFeedbackVersion((value) => value + 1);
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(settleTimer);
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -656,11 +666,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
       setActiveChildVersion((value) => value + 1);
     }
 
+    function handleVisibilityRefresh() {
+      setFeedbackVersion((value) => value + 1);
+    }
+
     window.addEventListener(ACTIVE_CHILD_EVENT, handleActiveChildChanged as EventListener);
     window.addEventListener("storage", handleActiveChildChanged);
+    window.addEventListener("focus", handleVisibilityRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityRefresh);
     return () => {
       window.removeEventListener(ACTIVE_CHILD_EVENT, handleActiveChildChanged as EventListener);
       window.removeEventListener("storage", handleActiveChildChanged);
+      window.removeEventListener("focus", handleVisibilityRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityRefresh);
     };
   }, []);
 
@@ -834,6 +852,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           (daysSince(latestDraft?.updated_at) ?? 999) === 0;
         const recentAuthorityAction = wasRecentAction(recentActionMemory.authority);
         const readinessGuidanceOn = familyProfile?.show_authority_guidance !== false;
+        const immediateActionPulse =
+          recentCaptureAction || recentPlannerAction || recentPortfolioAction || recentReportAction || recentAuthorityAction;
         const groupedEvidence = new Map<string, EvidenceSignalRow[]>();
         ((siblingEvidenceRows.data ?? []) as EvidenceSignalRow[]).forEach((row) => {
           const studentId = safe(row.student_id);
@@ -882,6 +902,18 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Starting point",
             detail: `${childName} needs a first captured learning moment.`,
             tone: "warning",
+          };
+        } else if (recentCaptureAction && weeklyRows.length > 0 && !quietAfterBurst) {
+          nextMomentum = {
+            label: "Fresh step taken",
+            detail: "A new learning moment has just moved the record forward.",
+            tone: "success",
+          };
+        } else if (recentReportAction && latestDraft) {
+          nextMomentum = {
+            label: "Recent progress",
+            detail: "Your latest report changes are in place. Let them settle, then decide what comes next.",
+            tone: "success",
           };
         } else if (quietAfterBurst) {
           nextMomentum = {
@@ -932,6 +964,12 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Not ready yet",
             detail: "Your evidence base is still taking shape.",
             tone: "warning",
+          };
+        } else if (recentReportAction && latestDraft && selectedEvidenceCount >= 2) {
+          nextConfidence = {
+            label: "Taking shape",
+            detail: "Recent report work has moved this forward. One more steady step will clarify the next move.",
+            tone: "success",
           };
         } else if (!latestDraft || selectedEvidenceCount < 2) {
           nextConfidence = {
@@ -1010,6 +1048,26 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           };
         }
 
+        if (recentCaptureAction && inferredFocus !== "prepare-authority") {
+          nextFocus = {
+            key: "build-weekly-record",
+            label: "Build weekly record",
+            detail: "A fresh capture is already in place. Let it lead the next calm step.",
+          };
+        } else if (recentReportAction && latestDraft) {
+          nextFocus = {
+            key: "prepare-report",
+            label: "Prepare report",
+            detail: "Recent report work is already in motion. The next step can build from there.",
+          };
+        } else if (recentAuthorityAction && readinessGuidanceOn) {
+          nextFocus = {
+            key: "prepare-authority",
+            label: "Prepare readiness",
+            detail: "Recent readiness work is already in motion. Return when you want the next formal step.",
+          };
+        }
+
         const activeChildFeelsHealthy =
           nextConfidence.label === "Ready to review" ||
           (nextConfidence.label === "Close to usable" && steadyWeeklyPattern && !narrowRecentBalance);
@@ -1021,6 +1079,18 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               nextConfidence.label === "Ready to review"
                 ? `${childName}'s record looks ready for a calm review pass.`
                 : `${childName}'s record is sitting in a healthy place for now.`,
+            tone: "success",
+          };
+        } else if (recentCaptureAction && weeklyRows.length > 0) {
+          nextReassuranceNote = {
+            label: "Fresh progress",
+            detail: "That recent capture has already moved the record forward.",
+            tone: "success",
+          };
+        } else if (recentReportAction && latestDraft) {
+          nextReassuranceNote = {
+            label: "Recent progress",
+            detail: "Your latest report changes are already helping the story take shape.",
             tone: "success",
           };
         } else if (pickingUpAgain && !quietAfterBurst) {
@@ -1440,7 +1510,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
     return () => {
       mounted = false;
     };
-  }, [activeChildVersion]);
+  }, [activeChildVersion, pathname, feedbackVersion]);
 
   function toneStyle(tone: CommandTone): React.CSSProperties {
     if (tone === "warning") {
