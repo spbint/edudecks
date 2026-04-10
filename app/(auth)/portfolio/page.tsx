@@ -920,6 +920,12 @@ function PortfolioPageContent() {
     () => evidence.filter((e) => daysSince(e.occurred_on || e.created_at) <= 30).length,
     [evidence]
   );
+  const portfolioStepTaken =
+    Boolean(highlightedEvidence) || Object.values(tagMap).some((tags) => tags.length > 0);
+  const handoffActionLabel = portfolioStepTaken ? "From here:" : "Start here:";
+  const handoffActionText = portfolioStepTaken
+    ? shellHandoff?.followUpAction || ""
+    : shellHandoff?.firstAction || "";
 
   const groupedEvidence = useMemo(() => {
     const groups = new Map<string, EvidenceRow[]>();
@@ -1197,8 +1203,8 @@ function PortfolioPageContent() {
           <div style={UI.label()}>{shellHandoff.title}</div>
           <div style={{ ...UI.body(), marginTop: 6, color: "#334155" }}>{shellHandoff.detail}</div>
           <div style={{ ...UI.body(), marginTop: 8, fontSize: 13, color: "#475569" }}>
-            <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
-            {shellHandoff.firstAction}
+            <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
+            {handoffActionText}
           </div>
         </section>
       ) : null}

@@ -874,6 +874,11 @@ function ReportsPageContent() {
     () => buildSelectedEvidenceIds(selectionMeta),
     [selectionMeta]
   );
+  const reportsStepTaken = Boolean(draftId) || selectedEvidenceIds.length >= 3;
+  const handoffActionLabel = reportsStepTaken ? "From here:" : "Start here:";
+  const handoffActionText = reportsStepTaken
+    ? shellHandoff?.followUpAction || ""
+    : shellHandoff?.firstAction || "";
 
   const selectedEvidenceRows = useMemo(() => {
     const selected = new Set(selectedEvidenceIds);
@@ -1312,8 +1317,8 @@ function ReportsPageContent() {
               {shellHandoff.detail}
             </div>
             <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-              <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
-              {shellHandoff.firstAction}
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
+              {handoffActionText}
             </div>
           </section>
         ) : null}

@@ -413,6 +413,11 @@ export default function AuthorityReadinessPage() {
     if (!draft || !config) return [];
     return getAuthorityFilteredEvidenceIds(draft, config);
   }, [draft, config]);
+  const readinessStepTaken = filteredEvidenceIds.length > 0;
+  const handoffActionLabel = readinessStepTaken ? "From here:" : "Start here:";
+  const handoffActionText = readinessStepTaken
+    ? shellHandoff?.followUpAction || ""
+    : shellHandoff?.firstAction || "";
 
   const includedSections = useMemo(() => {
     if (!config) return [];
@@ -579,8 +584,8 @@ export default function AuthorityReadinessPage() {
               {shellHandoff.detail}
             </div>
             <div style={{ ...S.body(), marginTop: 8, fontSize: 13, color: "#475569" }}>
-              <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
-              {shellHandoff.firstAction}
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
+              {handoffActionText}
             </div>
           </section>
         ) : null}

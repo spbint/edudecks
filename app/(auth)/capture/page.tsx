@@ -1019,6 +1019,11 @@ export default function CapturePage() {
       ),
     [searchParams]
   );
+  const handoffActionLabel = saveState === "success" || savedCount > 0 ? "From here:" : "Start here:";
+  const handoffActionText =
+    saveState === "success" || savedCount > 0
+      ? shellHandoff?.followUpAction || ""
+      : shellHandoff?.firstAction || "";
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
   const quality = useMemo(
@@ -1295,8 +1300,8 @@ export default function CapturePage() {
             {shellHandoff.detail}
           </div>
           <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-            <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
-            {shellHandoff.firstAction}
+            <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
+            {handoffActionText}
           </div>
         </section>
       ) : null}

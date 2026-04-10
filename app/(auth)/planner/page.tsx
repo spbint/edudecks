@@ -702,6 +702,11 @@ export default function PlannerPage() {
   }
 
   const heroStudentName = getChildDisplayName(activeChild);
+  const plannerStepTaken = actions.some((action) => action.completed) || Boolean(saveMessage) || Boolean(syncMessage);
+  const handoffActionLabel = plannerStepTaken ? "From here:" : "Start here:";
+  const handoffActionText = plannerStepTaken
+    ? shellHandoff?.followUpAction || ""
+    : shellHandoff?.firstAction || "";
 
   return (
     <main style={styles.page}>
@@ -739,8 +744,8 @@ export default function PlannerPage() {
                 {shellHandoff.detail}
               </div>
               <div style={{ marginTop: 8, fontSize: 13, lineHeight: 1.55, color: "#475569" }}>
-                <span style={{ fontWeight: 800, color: "#0f172a" }}>Start here:</span>{" "}
-                {shellHandoff.firstAction}
+                <span style={{ fontWeight: 800, color: "#0f172a" }}>{handoffActionLabel}</span>{" "}
+                {handoffActionText}
               </div>
             </div>
           ) : null}
