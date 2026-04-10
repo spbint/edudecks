@@ -919,7 +919,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
 
         let nextMomentum: MomentumState = {
           label: "Starting point",
-          detail: `${childName}'s learning record is just getting started.`,
+          detail: `${childName}'s learning record is just beginning to take shape.`,
           tone: "neutral",
         };
 
@@ -982,33 +982,33 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Picking up again",
             detail: continuityImproved
               ? "Things are moving again this week, and the record is already looking steadier."
-              : "Things are moving again this week. A little consistency now will strengthen the record.",
+              : "Things are moving again this week. A little consistency now will help the record settle.",
             tone: "success",
           };
         } else if (!latestDraft || recentAreas.size < 2 || !weeklyRows.length) {
           nextMomentum = {
             label: "Building momentum",
             detail: continuityImproved
-              ? "Evidence is building in a stronger direction now. A couple of steady next steps will help it hold."
-              : "Evidence is forming. One or two well-placed next steps will steady the workflow.",
+              ? "Evidence is building in a stronger direction now. A couple of steady next steps should help it hold."
+              : "Evidence is forming. One or two well-placed next steps should help it settle.",
             tone: "info",
           };
         } else if (selectedEvidenceCount < 3 || !weeklyAreas.size) {
           nextMomentum = {
             label: "Taking shape",
-            detail: "The story is taking shape. A little more evidence will strengthen reporting confidence.",
+            detail: "The story is taking shape. A little more evidence should strengthen reporting confidence.",
             tone: "info",
           };
         } else if (familyProfile?.show_authority_guidance === false) {
           nextMomentum = {
             label: "Healthy place",
-            detail: "Evidence and reporting are in a good place. Turn readiness guidance on when you want it.",
+            detail: "Evidence and reporting appear to be in a good place. Turn readiness guidance on when you want it.",
             tone: "success",
           };
         } else {
           nextMomentum = {
             label: "Healthy place",
-            detail: "Evidence, draft quality, and readiness posture are all in a steady place.",
+            detail: "Evidence, draft quality, and readiness posture appear to be in a steady place.",
             tone: "success",
           };
         }
@@ -1023,8 +1023,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextConfidence = {
             label: "Taking shape",
             detail: continuityStrengthenedDraft
-              ? "Recent report work has moved this forward in a meaningful way."
-              : "Recent report work has moved this forward. One more steady step will clarify the next move.",
+              ? "Recent report work has moved this forward in a noticeable way."
+              : "Recent report work has moved this forward. One more steady step should clarify the next move.",
             tone: "success",
           };
         } else if (!latestDraft || selectedEvidenceCount < 2) {
@@ -1033,9 +1033,9 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             detail: continuityStrengthenedBreadth
               ? "This is broadening into a more usable record."
               : narrowRecentBalance
-              ? "You have activity, but a little more breadth will make this stronger."
+              ? "You have activity, but a little more breadth would make this stronger."
               : burstyRecentPattern
-              ? "You have evidence building, and a steadier rhythm will make it more usable."
+              ? "You have evidence building, and a steadier rhythm would make it more usable."
               : "You have evidence building, but the reporting base is still forming.",
             tone: "info",
           };
@@ -1049,8 +1049,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             detail: quietAfterBurst
               ? "One fresh capture would make this feel more reliable for reporting."
               : narrowRecentBalance
-              ? "A little more breadth will make this stronger."
-              : "This is close to usable for reporting.",
+              ? "A little more breadth would make this stronger."
+              : "This is looking close to usable for reporting.",
             tone: "info",
           };
         }
@@ -1137,8 +1137,8 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
               nextConfidence.label === "Ready to review"
                 ? `${childName}'s record looks ready for a calm review pass.`
                 : continuityImproved
-                ? `${childName}'s record is in a healthier place than it was recently.`
-                : `${childName}'s record is sitting in a healthy place for now.`,
+                ? `${childName}'s record looks stronger than it did recently.`
+                : `${childName}'s record appears to be in a healthy place for now.`,
             tone: "success",
           };
         } else if (recentCaptureAction && weeklyRows.length > 0) {
@@ -1153,7 +1153,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
           nextReassuranceNote = {
             label: "Recent progress",
             detail: continuityStrengthenedDraft
-              ? "Your latest report changes have made the draft meaningfully stronger."
+              ? "Your latest report changes have made the draft noticeably stronger."
               : "Your latest report changes are already helping the story take shape.",
             tone: "success",
           };
@@ -1170,7 +1170,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Steady progress",
             detail: continuityStrengthenedBreadth
               ? "Recent evidence is looking broader and more settled now."
-              : "Recent evidence is both current and reasonably rounded.",
+              : "Recent evidence is current and reasonably rounded.",
             tone: "success",
           };
         }
