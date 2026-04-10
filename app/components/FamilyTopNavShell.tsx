@@ -60,6 +60,7 @@ type CommandSignal = {
   label?: string;
   suggestion?: string;
   why?: string;
+  blocker?: string;
   priority?: number;
 };
 
@@ -619,16 +620,19 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             "/portfolio": {
               tone: "neutral",
               label: "Waiting for learning",
+              blocker: "Portfolio becomes useful after the first captured learning moment.",
               priority: 10,
             },
             "/reports": {
               tone: "neutral",
               label: "Nothing to report yet",
+              blocker: "Reports need real evidence before they become worthwhile.",
               priority: 10,
             },
             "/authority/readiness": {
               tone: "neutral",
               label: "Readiness comes later",
+              blocker: "Authority readiness only makes sense once evidence and a draft exist.",
               priority: 10,
             },
           });
@@ -764,6 +768,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "neutral",
             label: "Plan after first capture",
             why: "A plan will be more useful once some learning is captured.",
+            blocker: "Planner is more useful after the first real learning moment is captured.",
             priority: 12,
           };
         } else if (recentAreas.size < 2) {
@@ -805,6 +810,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             tone: "neutral",
             label: "Portfolio is waiting",
             why: "Portfolio becomes useful after the first captured evidence.",
+            blocker: "There is not enough evidence yet for a useful portfolio review.",
             priority: 10,
           };
         } else if ((daysSince(rows[0]?.occurred_on || rows[0]?.created_at) ?? 999) > 21) {
@@ -817,6 +823,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentPortfolioAction
               ? "Portfolio was just reviewed, so the shell is not pushing it again."
               : "The latest portfolio evidence is getting old.",
+            blocker: "Portfolio review is less useful until there is a fresher learning moment.",
             priority: recentPortfolioAction ? 24 : 58,
           };
         } else if (recentAreas.size < 2) {
@@ -829,6 +836,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentPortfolioAction
               ? "Recent portfolio review means this prompt can soften for now."
               : "The portfolio story is still narrow across learning areas.",
+            blocker: "Portfolio breadth is still narrow, so more evidence will help first.",
             priority: recentPortfolioAction ? 22 : 52,
           };
         } else {
@@ -851,6 +859,10 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentReportAction
               ? "Recent report activity suggests you have already started this step."
               : "Evidence exists, but there is no saved report draft yet.",
+            blocker:
+              rows.length < 2
+                ? "Reports will feel stronger once a little more evidence is captured."
+                : undefined,
             priority: recentReportAction ? 26 : rows.length >= 3 ? 74 : 42,
           };
         } else if (selectedEvidenceCount < 3) {
@@ -863,6 +875,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentReportAction
               ? "A draft already exists and was touched recently, so the shell is shifting away from repeating report setup."
               : "Your report draft needs a little more evidence first.",
+            blocker: "Report building is still blocked by thin evidence selection.",
             priority: recentReportAction ? 48 : 72,
           };
         } else if (!weeklyRows.length) {
@@ -875,6 +888,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentReportAction
               ? "Recent report work means capture may now be the better follow-through step."
               : "The report can be stronger with one recent learning moment.",
+            blocker: "Reporting will feel more trustworthy after one fresh capture.",
             priority: recentReportAction ? 30 : 60,
           };
         } else {
@@ -893,6 +907,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Guidance is off",
             suggestion: "Turn readiness guidance on in settings when you want a calmer submission view.",
             why: "Authority guidance is currently switched off in settings.",
+            blocker: "Turn readiness guidance on before using authority readiness as a next step.",
             priority: 20,
           };
         } else if (!latestDraft) {
@@ -901,6 +916,7 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             label: "Early stage",
             suggestion: "Create a report draft before checking authority readiness.",
             why: "Readiness becomes useful once a report draft exists.",
+            blocker: "Authority readiness is blocked until a report draft exists.",
             priority: 15,
           };
         } else if (selectedEvidenceCount < 3 || recentAreas.size < 2) {
@@ -913,6 +929,10 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
             why: recentAuthorityAction
               ? "Recent readiness review means the shell is easing off repeated authority prompts."
               : "Evidence breadth is still too light for a confident readiness check.",
+            blocker:
+              selectedEvidenceCount < 3
+                ? "Authority readiness is blocked until the draft has stronger evidence behind it."
+                : "Authority readiness is blocked until evidence breadth is stronger.",
             priority: recentAuthorityAction ? 24 : 40,
           };
         } else {
@@ -962,9 +982,13 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const recommendedHref = useMemo(() => {
     const ranked = COMMAND_ITEMS.map((item) => {
       const signal = signals[item.href];
+      const blockerPenalty = signal?.blocker ? 18 : 0;
       return {
         href: item.href,
-        score: (signal?.priority ?? 0) + priorityWeight(signal?.tone ?? "neutral"),
+        score:
+          (signal?.priority ?? 0) +
+          priorityWeight(signal?.tone ?? "neutral") -
+          blockerPenalty,
       };
     }).sort((left, right) => right.score - left.score);
 
@@ -1081,6 +1105,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                   }}
                 >
                   Why: {recommendedSignal.why}
+                </div>
+              ) : null}
+              {recommendedSignal.blocker ? (
+                <div
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#64748b",
+                  }}
+                >
+                  Before that: {recommendedSignal.blocker}
                 </div>
               ) : null}
             </div>
@@ -1203,6 +1238,17 @@ function FamilyCommandLayer({ pathname }: { pathname: string }) {
                   }}
                 >
                   {signal.why}
+                </span>
+              ) : null}
+              {recommended && signal?.blocker ? (
+                <span
+                  style={{
+                    fontSize: 12,
+                    lineHeight: 1.45,
+                    color: "#64748b",
+                  }}
+                >
+                  {signal.blocker}
                 </span>
               ) : null}
             </Link>
