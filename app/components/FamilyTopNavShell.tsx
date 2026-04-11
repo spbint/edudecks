@@ -53,11 +53,6 @@ type NavItem = {
   label: string;
 };
 
-type NavSection = {
-  title: string;
-  items: NavItem[];
-};
-
 type CommandItem = {
   href: string;
   label: string;
@@ -369,17 +364,6 @@ function utilBtn(primary = false): React.CSSProperties {
     gap: 8,
     whiteSpace: "nowrap",
     boxShadow: primary ? "0 10px 24px rgba(37,99,235,0.18)" : "none",
-  };
-}
-
-function sectionLabel(): React.CSSProperties {
-  return {
-    fontSize: 11,
-    fontWeight: 900,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-    color: "#64748b",
-    marginBottom: 8,
   };
 }
 
@@ -2164,7 +2148,18 @@ export function FamilyCommandLayer({ pathname }: { pathname: string }) {
   );
 }
 
-const PRIMARY_NAV: NavItem[] = [{ href: "/family", label: "Home" }];
+const PRIMARY_NAV: NavItem[] = [
+  { href: "/family", label: "Home" },
+  { href: "/calendar", label: "Calendar" },
+  { href: "/capture", label: "Capture" },
+  { href: "/planner", label: "Planner" },
+  { href: "/portfolio", label: "Portfolio" },
+  { href: "/reports", label: "Reports" },
+  { href: "/authority/readiness", label: "Readiness" },
+  { href: "/community", label: "Community" },
+  { href: "/profile", label: "Profile" },
+  { href: "/settings", label: "Settings" },
+];
 
 const COMMAND_ITEMS: CommandItem[] = [
   {
@@ -2194,39 +2189,6 @@ const COMMAND_ITEMS: CommandItem[] = [
   },
 ];
 
-const SECTIONS: NavSection[] = [
-  {
-    title: "Workflow",
-    items: [
-      { href: "/capture", label: "Capture" },
-      { href: "/portfolio", label: "Portfolio" },
-      { href: "/reports", label: "Reports" },
-      { href: "/reports/library", label: "Report Library" },
-      { href: "/reports/output", label: "Output" },
-    ],
-  },
-  {
-    title: "Planning",
-    items: [
-      { href: "/goals", label: "Goals" },
-      { href: "/planner", label: "Planner" },
-    ],
-  },
-  {
-    title: "Authority",
-    items: [
-      { href: "/authority", label: "Authority Hub" },
-      { href: "/authority/readiness", label: "Readiness" },
-      { href: "/authority/builder", label: "Pack Builder" },
-      { href: "/authority/export", label: "Pack Export" },
-    ],
-  },
-  {
-    title: "System",
-    items: [{ href: "/settings", label: "Settings" }],
-  },
-];
-
 function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
   const pathname = usePathname();
 
@@ -2246,9 +2208,9 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         style={{
           maxWidth: 1280,
           margin: "0 auto",
-          padding: "16px 20px",
+          padding: "12px 20px 14px",
           display: "grid",
-          gap: 14,
+          gap: 12,
         }}
       >
         <div
@@ -2264,70 +2226,59 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         >
           <div
             style={{
-              marginRight: 24,
+              marginRight: 16,
               display: "grid",
-              gap: 6,
+              gap: 2,
             }}
           >
-          <div
-            style={{
-              fontSize: 90,
-              fontWeight: 900,
-              letterSpacing: 0.6,
-              textTransform: "uppercase",
-              color: "#0f172a",
-              lineHeight: 1,
-            }}
-          >
-            {title}
+            <Link
+              href="/family"
+              style={{
+                fontSize: 22,
+                fontWeight: 900,
+                letterSpacing: 0.1,
+                color: "#0f172a",
+                lineHeight: 1.1,
+                textDecoration: "none",
+              }}
+            >
+              {title}
+            </Link>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#64748b",
+                fontWeight: 700,
+                lineHeight: 1.3,
+              }}
+            >
+              {subtitle}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: 15,
-              color: "#334155",
-              fontWeight: 600,
-            }}
-          >
-            {subtitle}
-          </div>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <ChildSwitcher />
-          <ProfileMenu />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <ChildSwitcher />
+            <ProfileMenu />
+          </div>
         </div>
-      </div>
 
         <FamilyGuidanceDebugPanel />
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
-          {PRIMARY_NAV.map((item) => (
-            <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 14,
+            display: "flex",
+            gap: 8,
+            flexWrap: "nowrap",
+            overflowX: "auto",
+            paddingBottom: 2,
             position: "relative",
             zIndex: 10,
           }}
         >
-          {SECTIONS.map((section) => (
-            <div key={section.title}>
-              <div style={sectionLabel()}>{section.title}</div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {section.items.map((item) => (
-                  <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
+          {PRIMARY_NAV.map((item) => (
+            <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
+              {item.label}
+            </Link>
           ))}
         </div>
       </div>
