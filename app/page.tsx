@@ -269,7 +269,7 @@ export default function HomePage() {
         id="families"
         style={{
           ...publicCardStyle(),
-          marginBottom: 24,
+          marginBottom: isMobile ? 20 : 24,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
           scrollMarginTop: 116,
@@ -339,7 +339,7 @@ export default function HomePage() {
         id="schools"
         style={{
           ...publicCardStyle(),
-          marginBottom: 24,
+          marginBottom: isMobile ? 20 : 24,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
           scrollMarginTop: 116,
@@ -408,7 +408,7 @@ export default function HomePage() {
       <section
         style={{
           ...publicCardStyle(),
-          marginBottom: 24,
+          marginBottom: isMobile ? 20 : 24,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
         }}
       >
@@ -474,7 +474,7 @@ export default function HomePage() {
       <section
         style={{
           ...publicCardStyle(),
-          marginBottom: 24,
+          marginBottom: isMobile ? 20 : 24,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         }}
@@ -490,7 +490,7 @@ export default function HomePage() {
         style={{
           borderRadius: 28,
           padding: isMobile ? 20 : isTablet ? 24 : 32,
-          marginBottom: 12,
+          marginBottom: isMobile ? 4 : 12,
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           color: "#ffffff",
           boxShadow: "0 18px 50px rgba(15,23,42,0.14)",

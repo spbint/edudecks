@@ -128,6 +128,14 @@ function shellSoftCardStyle(): React.CSSProperties {
   };
 }
 
+function mobileAsideCardStyle(): React.CSSProperties {
+  return {
+    ...shellCardStyle(),
+    padding: 16,
+    marginTop: 8,
+  };
+}
+
 function shellPillStyle(
   background: string,
   color: string,
@@ -264,7 +272,7 @@ export default function PublicSiteShell({
 
       <main
         style={{
-          padding: isMobile ? "16px 16px 32px" : "24px 24px 48px",
+          padding: isMobile ? "14px 16px 36px" : "24px 24px 48px",
           position: "relative",
         }}
       >
@@ -294,19 +302,21 @@ export default function PublicSiteShell({
               }}
             >
               <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    lineHeight: 1.2,
-                    fontWeight: 800,
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    color: C.textMuted,
-                    marginBottom: 8,
-                  }}
-                >
-                  {eyebrow}
-                </div>
+                {!isMobile ? (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.2,
+                      fontWeight: 800,
+                      letterSpacing: 1.1,
+                      textTransform: "uppercase",
+                      color: C.textMuted,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {eyebrow}
+                  </div>
+                ) : null}
 
                 <div
                   style={{
@@ -314,7 +324,7 @@ export default function PublicSiteShell({
                     lineHeight: isMobile ? 1.08 : 1.1,
                     fontWeight: 900,
                     color: C.textStrong,
-                    marginBottom: 12,
+                    marginBottom: isMobile ? 10 : 12,
                     maxWidth: 820,
                   }}
                 >
@@ -324,16 +334,16 @@ export default function PublicSiteShell({
                 <div
                   style={{
                     fontSize: isMobile ? 15 : 14,
-                    lineHeight: 1.6,
+                    lineHeight: isMobile ? 1.72 : 1.6,
                     color: C.textMain,
-                    maxWidth: 860,
-                    marginBottom: 18,
+                    maxWidth: isMobile ? 520 : 860,
+                    marginBottom: isMobile ? 20 : 18,
                   }}
                 >
                   {heroText}
                 </div>
 
-                {heroBadges.length > 0 ? (
+                {!isMobile && heroBadges.length > 0 ? (
                   <div
                     style={{
                       display: "flex",
@@ -367,8 +377,11 @@ export default function PublicSiteShell({
                     href={primaryCta.href}
                     style={{
                       ...shellButtonStyle(true),
-                      fontSize: isMobile ? 15 : 14,
-                      padding: isMobile ? "12px 16px" : "10px 14px",
+                      fontSize: isMobile ? 16 : 14,
+                      padding: isMobile ? "14px 18px" : "10px 14px",
+                      boxShadow: isMobile
+                        ? "0 16px 28px rgba(37,99,235,0.18)"
+                        : "0 12px 24px rgba(37,99,235,0.14)",
                       width: isMobile ? "100%" : undefined,
                     }}
                   >
@@ -391,11 +404,12 @@ export default function PublicSiteShell({
                 {heroMicrocopy ? (
                   <div
                     style={{
-                      marginTop: 10,
+                      marginTop: isMobile ? 0 : 10,
                       fontSize: 13,
                       lineHeight: 1.55,
                       color: C.textMuted,
                       fontWeight: 600,
+                      display: isMobile ? "none" : "block",
                     }}
                   >
                     {heroMicrocopy}
@@ -403,76 +417,147 @@ export default function PublicSiteShell({
                 ) : null}
 
                 {isMobile ? workflowRibbon : null}
-              </div>
 
-              <div style={shellCardStyle()}>
-                <div
-                  style={{
-                    fontSize: 12,
-                    lineHeight: 1.2,
-                    fontWeight: 800,
-                    letterSpacing: 1.1,
-                    textTransform: "uppercase",
-                    color: C.textMuted,
-                    marginBottom: 8,
-                  }}
-                >
-                  {asideTitle}
-                </div>
-
-                <div
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    color: C.textMain,
-                    marginBottom: 14,
-                  }}
-                >
-                  {asideText}
-                </div>
-
-                <div style={{ display: "grid", gap: 10 }}>
-                  {asideItems.map((item, i) => (
+                {isMobile ? (
+                  <div style={mobileAsideCardStyle()}>
                     <div
-                      key={item}
                       style={{
-                        ...shellSoftCardStyle(),
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "12px 14px",
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        fontWeight: 800,
+                        letterSpacing: 1.1,
+                        textTransform: "uppercase",
+                        color: C.textMuted,
+                        marginBottom: 8,
                       }}
                     >
+                      {asideTitle}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 1.7,
+                        color: C.textMain,
+                        marginBottom: 12,
+                      }}
+                    >
+                      {asideText}
+                    </div>
+
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {asideItems.slice(0, 3).map((item, i) => (
+                        <div
+                          key={item}
+                          style={{
+                            ...shellSoftCardStyle(),
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            padding: "10px 12px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 999,
+                              background:
+                                i === 0
+                                  ? C.brandPrimaryStrong
+                                  : i === 1
+                                    ? "#6d28d9"
+                                    : C.successText,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <div
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: C.textMain,
+                              lineHeight: 1.5,
+                            }}
+                          >
+                            {item}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {!isMobile ? (
+                <div style={shellCardStyle()}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.2,
+                      fontWeight: 800,
+                      letterSpacing: 1.1,
+                      textTransform: "uppercase",
+                      color: C.textMuted,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {asideTitle}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      color: C.textMain,
+                      marginBottom: 14,
+                    }}
+                  >
+                    {asideText}
+                  </div>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {asideItems.map((item, i) => (
                       <div
+                        key={item}
                         style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 999,
-                          background:
-                            i === 0
-                              ? C.brandPrimaryStrong
-                              : i === 1
-                                ? "#6d28d9"
-                                : i === 2
-                                  ? C.successText
-                                  : C.warningText,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <div
-                        style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: C.textMain,
-                          lineHeight: 1.45,
+                          ...shellSoftCardStyle(),
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "12px 14px",
                         }}
                       >
-                        {item}
+                        <div
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 999,
+                            background:
+                              i === 0
+                                ? C.brandPrimaryStrong
+                                : i === 1
+                                  ? "#6d28d9"
+                                  : i === 2
+                                    ? C.successText
+                                    : C.warningText,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <div
+                          style={{
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: C.textMain,
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {item}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           </section>
 

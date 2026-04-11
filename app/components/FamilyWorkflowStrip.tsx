@@ -29,16 +29,16 @@ function stepStyle(active: boolean): React.CSSProperties {
     alignItems: "center",
     gap: 8,
     padding: "8px 12px",
-    borderRadius: 999,
-    border: `1px solid ${active ? "#2563eb" : "#dbe3ef"}`,
-    background: active ? "#eff6ff" : "#ffffff",
-    color: active ? "#1d4ed8" : "#64748b",
+    borderRadius: 14,
+    border: `1px solid ${active ? "#bfdbfe" : "#e5e7eb"}`,
+    background: active ? "#f8fbff" : "#f8fafc",
+    color: active ? "#1d4ed8" : "#475569",
     textDecoration: "none",
     fontSize: 13,
-    fontWeight: active ? 900 : 700,
+    fontWeight: active ? 800 : 700,
     whiteSpace: "nowrap",
-    boxShadow: active ? "0 8px 20px rgba(37,99,235,0.12)" : "none",
-    opacity: active ? 1 : 0.85,
+    boxShadow: active ? "0 6px 16px rgba(37,99,235,0.08)" : "none",
+    opacity: 1,
   };
 }
 
@@ -60,10 +60,10 @@ export default function FamilyWorkflowStrip({
     <div
       style={{
         border: "1px solid #e5e7eb",
-        background: "#ffffff",
+        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         borderRadius: 16,
         padding: isMobile ? 12 : 14,
-        boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+        boxShadow: "0 10px 30px rgba(15,23,42,0.03)",
       }}
     >
       <div
@@ -76,7 +76,7 @@ export default function FamilyWorkflowStrip({
           marginBottom: 10,
         }}
       >
-        Workflow ribbon
+        How it flows
       </div>
 
       {helperText ? (
@@ -97,7 +97,7 @@ export default function FamilyWorkflowStrip({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
+          gap: isMobile ? 6 : 8,
           flexWrap: isMobile ? "nowrap" : "wrap",
           overflowX: isMobile ? "auto" : "visible",
           paddingBottom: isMobile ? 4 : 0,
@@ -119,9 +119,9 @@ export default function FamilyWorkflowStrip({
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: active ? "#2563eb" : "#f8fafc",
+                    background: active ? "#2563eb" : "#ffffff",
                     color: active ? "#ffffff" : "#64748b",
-                    border: `1px solid ${active ? "#2563eb" : "#d1d5db"}`,
+                    border: `1px solid ${active ? "#2563eb" : "#dbe3ef"}`,
                     fontSize: 11,
                     fontWeight: 900,
                     flexShrink: 0,
@@ -137,8 +137,8 @@ export default function FamilyWorkflowStrip({
                   aria-hidden="true"
                   style={{
                     color: "#94a3b8",
-                    fontSize: 14,
-                    fontWeight: 900,
+                    fontSize: 13,
+                    fontWeight: 800,
                     flexShrink: 0,
                   }}
                 >
