@@ -17,6 +17,21 @@ type FamilyTopNavShellProps = {
   curriculum?: string;
 };
 
+type FamilyCommandItem = {
+  title: string;
+  description: string;
+  href?: string;
+};
+
+type FamilyCommandLayerProps = {
+  eyebrow?: string;
+  title?: string;
+  primaryActionLabel?: string;
+  primaryActionHref?: string;
+  items?: FamilyCommandItem[];
+  className?: string;
+};
+
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
@@ -35,20 +50,6 @@ function routeSubtitle(pathname: string) {
 }
 
 function routeTitle(pathname: string) {
-  if (
-    pathname === "/family" ||
-    pathname === "/calendar" ||
-    pathname === "/capture" ||
-    pathname === "/planner" ||
-    pathname === "/portfolio" ||
-    pathname === "/reports" ||
-    pathname === "/profile" ||
-    pathname === "/settings" ||
-    pathname === "/community"
-  ) {
-    return "EduDecks Family";
-  }
-
   return "EduDecks Family";
 }
 
@@ -105,6 +106,93 @@ export default function FamilyTopNavShell({
   );
 }
 
+export function FamilyCommandLayer({
+  eyebrow = "Family Command Layer",
+  title = "Move from capture to planning, portfolio, reporting, and readiness without losing the thread.",
+  primaryActionLabel = "Workspace Home",
+  primaryActionHref = "/family",
+  items = [
+    {
+      title: "Capture Evidence",
+      description: "Save a learning moment while it is still fresh.",
+      href: "/capture",
+    },
+    {
+      title: "Open Planner",
+      description: "See what is coming up and shape the next learning step.",
+      href: "/planner",
+    },
+    {
+      title: "Go to Portfolio",
+      description: "Review the story your evidence is building over time.",
+      href: "/portfolio",
+    },
+    {
+      title: "Build Report",
+      description: "Turn captured evidence into a clear family report.",
+      href: "/reports",
+    },
+    {
+      title: "Check Readiness",
+      description: "Confirm what is ready for authority review and export.",
+      href: "/authority",
+    },
+  ],
+  className,
+}: FamilyCommandLayerProps) {
+  return (
+    <section
+      className={cx(
+        "rounded-[24px] border border-slate-200 bg-slate-50/70 px-6 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.04)]",
+        className,
+      )}
+    >
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-[820px]">
+          <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+            {eyebrow}
+          </div>
+          <h2 className="text-[20px] font-black leading-tight text-slate-950 md:text-[24px]">
+            {title}
+          </h2>
+        </div>
+
+        <Link
+          href={primaryActionHref}
+          className="inline-flex items-center justify-center rounded-[18px] border border-slate-200 bg-white px-5 py-3 text-base font-bold text-slate-900 transition hover:bg-slate-100"
+        >
+          {primaryActionLabel}
+        </Link>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {items.map((item) => {
+          const content = (
+            <div className="rounded-[20px] border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-slate-50">
+              <div className="text-[16px] font-black text-slate-950">
+                {item.title}
+              </div>
+              <div className="mt-3 text-sm leading-7 text-slate-600">
+                {item.description}
+              </div>
+            </div>
+          );
+
+          if (item.href) {
+            return (
+              <Link key={item.title} href={item.href}>
+                {content}
+              </Link>
+            );
+          }
+
+          return <div key={item.title}>{content}</div>;
+        })}
+      </div>
+    </section>
+  );
+}
+
 type FamilyProfileMenuProps = {
   familyName: string;
   email: string;
@@ -130,7 +218,9 @@ function FamilyProfileMenu({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -156,9 +246,7 @@ function FamilyProfileMenu({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={cx(
-          "inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:bg-slate-50"
-        )}
+        className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-[0_8px_20px_rgba(15,23,42,0.05)] transition hover:bg-slate-50"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Open family profile menu"
@@ -175,7 +263,7 @@ function FamilyProfileMenu({
         <svg
           className={cx(
             "h-4 w-4 text-slate-500 transition-transform",
-            open && "rotate-180"
+            open && "rotate-180",
           )}
           viewBox="0 0 20 20"
           fill="currentColor"
