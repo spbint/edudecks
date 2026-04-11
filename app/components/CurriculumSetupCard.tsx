@@ -25,15 +25,6 @@ type CurriculumSetupCardProps = {
   onChange: (curriculum: CurriculumPreferences) => void;
 };
 
-function traceCurriculumCard(step: string, detail?: unknown) {
-  if (typeof console === "undefined") return;
-  if (detail === undefined) {
-    console.info(`[CurriculumSetupCard] ${step}`);
-    return;
-  }
-  console.info(`[CurriculumSetupCard] ${step}`, detail);
-}
-
 async function withTimeout<T>(
   promise: Promise<T>,
   label: string,
@@ -55,6 +46,37 @@ async function withTimeout<T>(
   }
 }
 
+function safe(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalize(value: unknown) {
+  return safe(value).toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function inferCountryKey(value: unknown) {
+  const v = normalize(value);
+
+  if (
+    v === "us" ||
+    v === "usa" ||
+    v === "unitedstates" ||
+    v === "unitedstatesofamerica"
+  ) {
+    return "us";
+  }
+
+  if (v === "au" || v === "australia") return "au";
+  if (v === "uk" || v === "unitedkingdom" || v === "england") return "uk";
+  if (v === "nz" || v === "newzealand") return "nz";
+  if (v === "ca" || v === "canada") return "ca";
+  if (v === "za" || v === "southafrica") return "za";
+  if (v === "sg" || v === "singapore") return "sg";
+  if (v === "ib" || v === "internationalbaccalaureate") return "ib";
+
+  return "";
+}
+
 const FALLBACK_COUNTRIES = [
   { id: "us", name: "United States" },
   { id: "au", name: "Australia" },
@@ -66,7 +88,59 @@ const FALLBACK_COUNTRIES = [
   { id: "ib", name: "International Baccalaureate" },
 ] as unknown as CurriculumCountry[];
 
-const FALLBACK_REGIONS = [] as unknown as CurriculumRegion[];
+const FALLBACK_REGIONS = [
+  { id: "al", name: "Alabama", country_id: "us" },
+  { id: "ak", name: "Alaska", country_id: "us" },
+  { id: "az", name: "Arizona", country_id: "us" },
+  { id: "ar", name: "Arkansas", country_id: "us" },
+  { id: "ca-state", name: "California", country_id: "us" },
+  { id: "co", name: "Colorado", country_id: "us" },
+  { id: "ct", name: "Connecticut", country_id: "us" },
+  { id: "de", name: "Delaware", country_id: "us" },
+  { id: "dc", name: "District of Columbia", country_id: "us" },
+  { id: "fl", name: "Florida", country_id: "us" },
+  { id: "ga", name: "Georgia", country_id: "us" },
+  { id: "hi", name: "Hawaii", country_id: "us" },
+  { id: "id", name: "Idaho", country_id: "us" },
+  { id: "il", name: "Illinois", country_id: "us" },
+  { id: "in", name: "Indiana", country_id: "us" },
+  { id: "ia", name: "Iowa", country_id: "us" },
+  { id: "ks", name: "Kansas", country_id: "us" },
+  { id: "ky", name: "Kentucky", country_id: "us" },
+  { id: "la", name: "Louisiana", country_id: "us" },
+  { id: "me", name: "Maine", country_id: "us" },
+  { id: "md", name: "Maryland", country_id: "us" },
+  { id: "ma", name: "Massachusetts", country_id: "us" },
+  { id: "mi", name: "Michigan", country_id: "us" },
+  { id: "mn", name: "Minnesota", country_id: "us" },
+  { id: "ms", name: "Mississippi", country_id: "us" },
+  { id: "mo", name: "Missouri", country_id: "us" },
+  { id: "mt", name: "Montana", country_id: "us" },
+  { id: "ne", name: "Nebraska", country_id: "us" },
+  { id: "nv", name: "Nevada", country_id: "us" },
+  { id: "nh", name: "New Hampshire", country_id: "us" },
+  { id: "nj", name: "New Jersey", country_id: "us" },
+  { id: "nm", name: "New Mexico", country_id: "us" },
+  { id: "ny", name: "New York", country_id: "us" },
+  { id: "nc", name: "North Carolina", country_id: "us" },
+  { id: "nd", name: "North Dakota", country_id: "us" },
+  { id: "oh", name: "Ohio", country_id: "us" },
+  { id: "ok", name: "Oklahoma", country_id: "us" },
+  { id: "or", name: "Oregon", country_id: "us" },
+  { id: "pa", name: "Pennsylvania", country_id: "us" },
+  { id: "ri", name: "Rhode Island", country_id: "us" },
+  { id: "sc", name: "South Carolina", country_id: "us" },
+  { id: "sd", name: "South Dakota", country_id: "us" },
+  { id: "tn", name: "Tennessee", country_id: "us" },
+  { id: "tx", name: "Texas", country_id: "us" },
+  { id: "ut", name: "Utah", country_id: "us" },
+  { id: "vt", name: "Vermont", country_id: "us" },
+  { id: "va", name: "Virginia", country_id: "us" },
+  { id: "wa", name: "Washington", country_id: "us" },
+  { id: "wv", name: "West Virginia", country_id: "us" },
+  { id: "wi", name: "Wisconsin", country_id: "us" },
+  { id: "wy", name: "Wyoming", country_id: "us" },
+] as unknown as CurriculumRegion[];
 
 const FALLBACK_FRAMEWORKS = [
   {
@@ -132,112 +206,112 @@ const FALLBACK_LEVELS = [
     id: "k",
     label: "Kindergarten / Prep",
     sort: 0,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-1",
     label: "Year 1 / Grade 1",
     sort: 1,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-2",
     label: "Year 2 / Grade 2",
     sort: 2,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-3",
     label: "Year 3 / Grade 3",
     sort: 3,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-4",
     label: "Year 4 / Grade 4",
     sort: 4,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-5",
     label: "Year 5 / Grade 5",
     sort: 5,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-6",
     label: "Year 6 / Grade 6",
     sort: 6,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-7",
     label: "Year 7 / Grade 7",
     sort: 7,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-8",
     label: "Year 8 / Grade 8",
     sort: 8,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-9",
     label: "Year 9 / Grade 9",
     sort: 9,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-10",
     label: "Year 10 / Grade 10",
     sort: 10,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-11",
     label: "Year 11 / Grade 11",
     sort: 11,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "year-12",
     label: "Year 12 / Grade 12",
     sort: 12,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
 ] as unknown as CurriculumLevel[];
 
 const FALLBACK_SUBJECTS = [
   {
     id: "english",
-    label: "English / Language Arts",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    label: "English Language Arts",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "math",
     label: "Mathematics",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "science",
     label: "Science",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "humanities",
     label: "Humanities",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "arts",
     label: "Arts",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
   {
     id: "health",
     label: "Health & PE",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
   },
 ] as unknown as CurriculumSubject[];
 
@@ -258,43 +332,18 @@ export default function CurriculumSetupCard({
 
   useEffect(() => {
     let active = true;
-    let watchdog: ReturnType<typeof setTimeout> | undefined;
 
     async function loadData() {
-      traceCurriculumCard("loadData:start");
       setLoading(true);
       setLoadMessage("");
-      watchdog = setTimeout(() => {
-        if (!active) return;
-        traceCurriculumCard("loadData:watchdog");
-        setCountries(FALLBACK_COUNTRIES);
-        setRegions(FALLBACK_REGIONS);
-        setFrameworks(FALLBACK_FRAMEWORKS);
-        setLevels(FALLBACK_LEVELS);
-        setSubjects(FALLBACK_SUBJECTS);
-        setLoadMessage(
-          "Curriculum data took too long to respond, so built-in fallback options are being shown.",
-        );
-        setLoading(false);
-      }, 6500);
 
       try {
         const settled = await Promise.allSettled([
-          traceLoader("countries", () =>
-            withTimeout(loadCurriculumCountries(), "load curriculum countries"),
-          ),
-          traceLoader("regions", () =>
-            withTimeout(loadCurriculumRegions(), "load curriculum regions"),
-          ),
-          traceLoader("frameworks", () =>
-            withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
-          ),
-          traceLoader("levels", () =>
-            withTimeout(loadCurriculumLevels(), "load curriculum levels"),
-          ),
-          traceLoader("subjects", () =>
-            withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
-          ),
+          withTimeout(loadCurriculumCountries(), "load curriculum countries"),
+          withTimeout(loadCurriculumRegions(), "load curriculum regions"),
+          withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
+          withTimeout(loadCurriculumLevels(), "load curriculum levels"),
+          withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
         ]);
 
         if (!active) return;
@@ -321,7 +370,11 @@ export default function CurriculumSetupCard({
         setCountries(
           loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES,
         );
-        setRegions(loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS);
+        setRegions(
+          loadedRegions.length > 0
+            ? loadedRegions
+            : FALLBACK_REGIONS,
+        );
         setFrameworks(
           loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS,
         );
@@ -356,8 +409,6 @@ export default function CurriculumSetupCard({
         );
       } finally {
         if (!active) return;
-        if (watchdog) clearTimeout(watchdog);
-        traceCurriculumCard("loadData:end", { loading: false });
         setLoading(false);
       }
     }
@@ -366,13 +417,119 @@ export default function CurriculumSetupCard({
 
     return () => {
       active = false;
-      if (watchdog) clearTimeout(watchdog);
     };
   }, []);
 
   useEffect(() => {
     setDraft(value);
   }, [value]);
+
+  const selectedCountry = countries.find(
+    (country) => String(country.id) === String(draft.country_id ?? ""),
+  );
+
+  const selectedCountryKey = useMemo(() => {
+    return inferCountryKey(selectedCountry?.name || draft.country_id);
+  }, [selectedCountry?.name, draft.country_id]);
+
+  const fallbackRegionOptions = useMemo(() => {
+    return FALLBACK_REGIONS.filter(
+      (region) => inferCountryKey(region.country_id) === selectedCountryKey,
+    );
+  }, [selectedCountryKey]);
+
+  const liveRegionOptions = useMemo(() => {
+    return regions.filter((region) => {
+      if (!draft.country_id) return false;
+      return String(region.country_id) === String(draft.country_id);
+    });
+  }, [draft.country_id, regions]);
+
+  const regionOptions =
+    liveRegionOptions.length > 0 ? liveRegionOptions : fallbackRegionOptions;
+
+  const fallbackFrameworkOptions = useMemo(() => {
+    return FALLBACK_FRAMEWORKS.filter(
+      (framework) =>
+        inferCountryKey(framework.country_id) === selectedCountryKey,
+    );
+  }, [selectedCountryKey]);
+
+  const liveFrameworkOptions = useMemo(() => {
+    return frameworks.filter((framework) => {
+      if (!draft.country_id) return true;
+
+      if (String(framework.country_id) === String(draft.country_id)) {
+        if (draft.region_id && framework.region_id) {
+          return String(framework.region_id) === String(draft.region_id);
+        }
+        return true;
+      }
+
+      return false;
+    });
+  }, [draft.country_id, draft.region_id, frameworks]);
+
+  const frameworkOptions = useMemo(() => {
+    if (!draft.country_id) {
+      return frameworks.length > 0 ? frameworks : FALLBACK_FRAMEWORKS;
+    }
+
+    if (liveFrameworkOptions.length > 0) {
+      return liveFrameworkOptions;
+    }
+
+    return fallbackFrameworkOptions;
+  }, [
+    draft.country_id,
+    frameworks,
+    liveFrameworkOptions,
+    fallbackFrameworkOptions,
+  ]);
+
+  const levelOptions = useMemo(() => {
+    const activeLevels = levels.length > 0 ? levels : FALLBACK_LEVELS;
+    return activeLevels
+      .filter(
+        (level) =>
+          !draft.framework_id ||
+          (level.framework_ids || []).includes(String(draft.framework_id)),
+      )
+      .slice()
+      .sort((a, b) => Number(a.sort) - Number(b.sort));
+  }, [draft.framework_id, levels]);
+
+  const subjectOptions = useMemo(() => {
+    const activeSubjects = subjects.length > 0 ? subjects : FALLBACK_SUBJECTS;
+    return activeSubjects.filter(
+      (subject) =>
+        (subject.framework_ids || []).length === 0 ||
+        !draft.framework_id ||
+        (subject.framework_ids || []).includes(String(draft.framework_id)),
+    );
+  }, [draft.framework_id, subjects]);
+
+  const selectedRegion = regionOptions.find(
+    (region) => String(region.id) === String(value.region_id ?? ""),
+  );
+
+  const selectedFramework =
+    frameworkOptions.find(
+      (framework) => String(framework.id) === String(value.framework_id ?? ""),
+    ) || findFrameworkById(value.framework_id);
+
+  const selectedLevelLabel =
+    levelOptions.find((level) => String(level.id) === String(value.level_id ?? ""))
+      ?.label || findLevelLabel(value.level_id);
+
+  const selectedSubjectNames = value.subject_ids
+    .map((id) => {
+      const found = subjectOptions.find(
+        (subject) => String(subject.id) === String(id),
+      );
+      return found?.label || findSubjectLabel(id);
+    })
+    .filter(Boolean);
 
   const hasSetup = Boolean(
     value.country_id || value.framework_id || value.level_id,
@@ -382,84 +539,41 @@ export default function CurriculumSetupCard({
     ? "Edit curriculum setup"
     : "Set up curriculum";
 
-  const selectedCountry = countries.find(
-    (country) => country.id === value.country_id,
-  );
-  const selectedRegion = regions.find((region) => region.id === value.region_id);
-  const selectedFramework =
-    frameworks.find((framework) => framework.id === value.framework_id) ||
-    findFrameworkById(value.framework_id);
-  const selectedLevelLabel =
-    levels.find((level) => level.id === value.level_id)?.label ||
-    findLevelLabel(value.level_id);
-  const selectedSubjectNames = value.subject_ids
-    .map((id) => {
-      const found = subjects.find((subject) => subject.id === id);
-      return found?.label || findSubjectLabel(id);
-    })
-    .filter(Boolean);
-
-  const regionOptions = useMemo(
-    () => regions.filter((region) => region.country_id === draft.country_id),
-    [draft.country_id, regions],
-  );
-
-  const frameworkOptions = useMemo(() => {
-    return frameworks.filter((framework) => {
-      if (!draft.country_id) return true;
-      if (framework.country_id !== draft.country_id) return false;
-      if (draft.region_id && framework.region_id) {
-        return framework.region_id === draft.region_id;
-      }
-      return draft.region_id ? framework.region_id === undefined : true;
-    });
-  }, [draft.country_id, draft.region_id, frameworks]);
-
-  const levelOptions = useMemo(() => {
-    return levels
-      .filter(
-        (level) =>
-          !draft.framework_id || level.framework_ids.includes(draft.framework_id),
-      )
-      .slice()
-      .sort((a, b) => a.sort - b.sort);
-  }, [draft.framework_id, levels]);
-
-  const subjectOptions = useMemo(() => {
-    return subjects.filter(
-      (subject) =>
-        (subject.framework_ids || []).length === 0 ||
-        !draft.framework_id ||
-        subject.framework_ids.includes(draft.framework_id),
-    );
-  }, [draft.framework_id, subjects]);
-
   const recommendedFrameworkId = useMemo(() => {
     const recommended = getRecommendedFrameworkId(
       draft.country_id,
       draft.region_id,
     );
     if (recommended) return recommended;
+    if (selectedCountryKey === "us") return "common-core";
     return frameworkOptions[0]?.id ?? null;
-  }, [draft.country_id, draft.region_id, frameworkOptions]);
+  }, [
+    draft.country_id,
+    draft.region_id,
+    frameworkOptions,
+    selectedCountryKey,
+  ]);
 
   const recommendedFramework = useMemo(() => {
     return (
-      frameworks.find((framework) => framework.id === recommendedFrameworkId) ||
-      frameworkOptions[0] ||
-      null
+      frameworkOptions.find(
+        (framework) => String(framework.id) === String(recommendedFrameworkId),
+      ) || null
     );
-  }, [frameworkOptions, frameworks, recommendedFrameworkId]);
+  }, [frameworkOptions, recommendedFrameworkId]);
 
   const recommendedLevelId = useMemo(() => {
-    const recommended = getRecommendedLevelId(recommendedFramework?.id ?? null);
+    const recommended = getRecommendedLevelId(
+      recommendedFramework?.id ?? null,
+    );
     if (recommended) return recommended;
     return levelOptions[0]?.id ?? null;
   }, [levelOptions, recommendedFramework]);
 
   const recommendedLevelLabel =
-    levels.find((level) => level.id === recommendedLevelId)?.label ||
-    findLevelLabel(recommendedLevelId);
+    levelOptions.find(
+      (level) => String(level.id) === String(recommendedLevelId ?? ""),
+    )?.label || findLevelLabel(recommendedLevelId);
 
   function updateDraft<K extends keyof CurriculumPreferences>(
     key: K,
@@ -472,24 +586,34 @@ export default function CurriculumSetupCard({
   }
 
   function handleCountryChange(id: string) {
-    updateDraft("country_id", id || null);
-    updateDraft("region_id", null);
-    updateDraft("framework_id", null);
-    updateDraft("level_id", null);
-    updateDraft("subject_ids", []);
-  }
+    const country =
+      countries.find((item) => String(item.id) === String(id)) ||
+      FALLBACK_COUNTRIES.find((item) => String(item.id) === String(id));
 
-  function handleRegionChange(id: string) {
-    updateDraft("region_id", id || null);
-    updateDraft("framework_id", null);
+    const countryKey = inferCountryKey(country?.name || id);
+    const defaultFrameworkId =
+      countryKey === "us"
+        ? "common-core"
+        : FALLBACK_FRAMEWORKS.find(
+            (framework) => inferCountryKey(framework.country_id) === countryKey,
+          )?.id ?? null;
+
+    updateDraft("country_id", id || null);
+    updateDraft("framework_id", defaultFrameworkId);
+    updateDraft("region_id", null);
     updateDraft("level_id", null);
     updateDraft("subject_ids", []);
   }
 
   function handleFrameworkChange(id: string) {
     updateDraft("framework_id", id || null);
+    updateDraft("region_id", null);
     updateDraft("level_id", null);
     updateDraft("subject_ids", []);
+  }
+
+  function handleRegionChange(id: string) {
+    updateDraft("region_id", id || null);
   }
 
   function handleLevelChange(id: string) {
@@ -525,8 +649,8 @@ export default function CurriculumSetupCard({
     setDraft((prev) => ({
       ...prev,
       country_id: prev.country_id || recommendedFramework.country_id,
-      region_id: recommendedFramework.region_id ?? prev.region_id,
       framework_id: recommendedFramework.id,
+      region_id: prev.region_id,
       level_id: recommendedLevelId ?? prev.level_id,
       subject_ids:
         recommendedFramework.subject_ids?.length > 0
@@ -585,14 +709,55 @@ export default function CurriculumSetupCard({
                 >
                   <option value="">Select a country</option>
                   {countries.map((country) => (
-                    <option key={country.id} value={country.id}>
+                    <option key={String(country.id)} value={String(country.id)}>
                       {country.name}
                     </option>
                   ))}
                 </select>
               </Field>
 
-              {regionOptions.length > 0 ? (
+              <Field
+                label="Framework"
+                help="For the United States, this will default to Common Core."
+              >
+                <select
+                  value={draft.framework_id ?? ""}
+                  onChange={(event) => handleFrameworkChange(event.target.value)}
+                  style={cardStyles.input}
+                  disabled={!draft.country_id}
+                >
+                  <option value="">Select a framework</option>
+                  {frameworkOptions.map((framework) => (
+                    <option
+                      key={String(framework.id)}
+                      value={String(framework.id)}
+                    >
+                      {framework.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {selectedCountryKey === "us" ? (
+                <Field
+                  label="State curriculum (optional)"
+                  help="If your homeschool reporting aligns more closely to a particular US state, choose it here."
+                >
+                  <select
+                    value={draft.region_id ?? ""}
+                    onChange={(event) => handleRegionChange(event.target.value)}
+                    style={cardStyles.input}
+                    disabled={!draft.framework_id}
+                  >
+                    <option value="">No specific state selected</option>
+                    {regionOptions.map((region) => (
+                      <option key={String(region.id)} value={String(region.id)}>
+                        {region.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : regionOptions.length > 0 ? (
                 <Field
                   label="State / region"
                   help="Some countries use state or regional frameworks. If you are unsure, you can skip this for now."
@@ -604,32 +769,13 @@ export default function CurriculumSetupCard({
                   >
                     <option value="">Skip for now</option>
                     {regionOptions.map((region) => (
-                      <option key={region.id} value={region.id}>
+                      <option key={String(region.id)} value={String(region.id)}>
                         {region.name}
                       </option>
                     ))}
                   </select>
                 </Field>
               ) : null}
-
-              <Field
-                label="Framework"
-                help="We’ll suggest the simplest starting framework for your setup."
-              >
-                <select
-                  value={draft.framework_id ?? ""}
-                  onChange={(event) => handleFrameworkChange(event.target.value)}
-                  style={cardStyles.input}
-                  disabled={!draft.country_id}
-                >
-                  <option value="">Select a framework</option>
-                  {frameworkOptions.map((framework) => (
-                    <option key={framework.id} value={framework.id}>
-                      {framework.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
 
               <Field
                 label="Year level / grade band"
@@ -643,7 +789,7 @@ export default function CurriculumSetupCard({
                 >
                   <option value="">Select a level</option>
                   {levelOptions.map((level) => (
-                    <option key={level.id} value={level.id}>
+                    <option key={String(level.id)} value={String(level.id)}>
                       {level.label}
                     </option>
                   ))}
@@ -657,10 +803,10 @@ export default function CurriculumSetupCard({
                 >
                   <div style={cardStyles.subjectGrid}>
                     {subjectOptions.map((subject) => {
-                      const selected = draft.subject_ids.includes(subject.id);
+                      const selected = draft.subject_ids.includes(String(subject.id));
                       return (
                         <label
-                          key={subject.id}
+                          key={String(subject.id)}
                           style={{
                             ...cardStyles.subjectChip,
                             ...(selected ? cardStyles.subjectChipActive : {}),
@@ -669,7 +815,7 @@ export default function CurriculumSetupCard({
                           <input
                             type="checkbox"
                             checked={selected}
-                            onChange={() => handleSubjectToggle(subject.id)}
+                            onChange={() => handleSubjectToggle(String(subject.id))}
                             style={cardStyles.checkbox}
                           />
                           {subject.label}
@@ -727,11 +873,14 @@ export default function CurriculumSetupCard({
           {hasSetup ? (
             <div style={cardStyles.summary}>
               <Row label="Country" value={selectedCountry?.name ?? "Not set yet"} />
-              {selectedRegion ? (
-                <Row label="State / region" value={selectedRegion.name} />
-              ) : null}
               {selectedFramework ? (
                 <Row label="Framework" value={selectedFramework.name} />
+              ) : null}
+              {selectedRegion ? (
+                <Row
+                  label={selectedCountryKey === "us" ? "State curriculum" : "State / region"}
+                  value={selectedRegion.name}
+                />
               ) : null}
               {selectedLevelLabel ? (
                 <Row label="Year level" value={selectedLevelLabel} />
@@ -770,23 +919,6 @@ export default function CurriculumSetupCard({
       </div>
     </section>
   );
-}
-
-async function traceLoader<T>(label: string, loader: () => Promise<T>) {
-  traceCurriculumCard(`loader:${label}:start`);
-  try {
-    const result = await loader();
-    traceCurriculumCard(`loader:${label}:end`, {
-      size: Array.isArray(result) ? result.length : undefined,
-    });
-    return result;
-  } catch (error) {
-    traceCurriculumCard(`loader:${label}:error`, {
-      message:
-        error instanceof Error ? error.message : String(error ?? "Unknown error"),
-    });
-    throw error;
-  }
 }
 
 function Row({ label, value }: { label: string; value: string }) {
