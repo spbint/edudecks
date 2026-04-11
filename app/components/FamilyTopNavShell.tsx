@@ -15,7 +15,14 @@ type FamilyTopNavShellProps = {
   email?: string;
   defaultLearner?: string;
   curriculum?: string;
+  heroTitle?: string;
+  heroText?: string;
+  heroAsideTitle?: string;
+  heroAsideText?: string;
+  workflowHelperText?: string;
+  workflowCurrentHref?: string;
   hideHero?: boolean;
+  hideHeroAside?: boolean;
 };
 
 type FamilyCommandItem = {
@@ -55,6 +62,42 @@ function routeTitle(_pathname: string) {
   return "EduDecks Family";
 }
 
+function routeHeroTitle(pathname: string, subtitle: string) {
+  if (pathname === "/family") return "Keep the family rhythm calm and connected";
+  if (pathname === "/calendar") return "See the week clearly before it fills up";
+  if (pathname === "/capture") return "Capture the learning while it is still fresh";
+  if (pathname === "/planner") return "Shape the next week with confidence";
+  if (pathname === "/portfolio") return "Curate the learning story as it grows";
+  if (pathname === "/reports") return "Turn captured moments into clear family reporting";
+  if (pathname === "/community") return "A calm place to ask, share, and encourage";
+  return subtitle;
+}
+
+function routeHeroText(pathname: string) {
+  if (pathname === "/family") {
+    return "Keep the next step visible across capture, planning, portfolio, and reporting without losing the wider family picture.";
+  }
+  if (pathname === "/calendar") {
+    return "Place learning moments into the week gently so the family workflow stays practical rather than overwhelming.";
+  }
+  if (pathname === "/capture") {
+    return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
+  }
+  if (pathname === "/planner") {
+    return "A light, clear weekly plan helps the whole family move forward without pressure.";
+  }
+  if (pathname === "/portfolio") {
+    return "Review the moments that matter and keep the story of progress easy to see and share.";
+  }
+  if (pathname === "/reports") {
+    return "Bring together evidence, reflection, and structure so reporting feels calmer and more trustworthy.";
+  }
+  if (pathname === "/community") {
+    return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
+  }
+  return "Keep the family workspace calm, connected, and ready for the next meaningful step.";
+}
+
 export default function FamilyTopNavShell({
   children,
   title,
@@ -65,15 +108,24 @@ export default function FamilyTopNavShell({
   email = "seanbint@live.com",
   defaultLearner = "Ava",
   curriculum = "Australian Curriculum v9",
+  heroTitle,
+  heroText,
+  heroAsideTitle = "Family Snapshot",
+  heroAsideText = "A calm, clear view of the current family workspace and the next connected step.",
+  workflowHelperText,
+  workflowCurrentHref,
   hideHero = false,
+  hideHeroAside = false,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
 
   const resolvedTitle = title ?? routeTitle(pathname);
   const resolvedSubtitle = subtitle ?? routeSubtitle(pathname);
+  const resolvedHeroTitle = heroTitle ?? routeHeroTitle(pathname, resolvedSubtitle);
+  const resolvedHeroText = heroText ?? routeHeroText(pathname);
 
   return (
-    <div className={cx("w-full", className)}>
+    <div className={cx("w-full bg-slate-50", className)}>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-6 py-5">
           <div className="flex min-w-0 items-center gap-4">
@@ -81,16 +133,14 @@ export default function FamilyTopNavShell({
               <BrandHomeLink href="/family" />
             </div>
 
-            {!hideHero && (
-              <div className="min-w-0">
-                <div className="truncate text-[16px] font-black text-slate-950">
-                  {resolvedTitle}
-                </div>
-                <div className="truncate text-sm font-semibold text-slate-500">
-                  {resolvedSubtitle}
-                </div>
+            <div className="min-w-0">
+              <div className="truncate text-[16px] font-black text-slate-950">
+                {resolvedTitle}
               </div>
-            )}
+              <div className="truncate text-sm font-semibold text-slate-500">
+                {resolvedSubtitle}
+              </div>
+            </div>
           </div>
 
           <div className="shrink-0">
@@ -104,11 +154,52 @@ export default function FamilyTopNavShell({
         </div>
       </header>
 
-      <div className={cx("mx-auto w-full max-w-[1440px]", contentClassName)}>
+      <div className={cx("mx-auto w-full max-w-[1440px] px-6 py-6", contentClassName)}>
+        {!hideHero ? (
+          <section className="mb-6 grid gap-5 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-6 py-7 shadow-[0_16px_44px_rgba(15,23,42,0.05)] md:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.75fr)]">
+            <div className="max-w-[860px]">
+              <div className="mb-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+                Family workspace
+              </div>
+              <h1 className="text-[28px] font-black leading-tight text-slate-950 md:text-[36px]">
+                {resolvedHeroTitle}
+              </h1>
+              <p className="mt-3 max-w-[760px] text-[15px] leading-8 text-slate-600">
+                {resolvedHeroText}
+              </p>
+              {workflowHelperText ? (
+                <div className="mt-5 rounded-[18px] border border-slate-200 bg-white/80 px-4 py-4 text-sm leading-7 text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+                  {workflowCurrentHref ? (
+                    <div className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      Current step: {workflowCurrentHref.replace("/", "") || "family"}
+                    </div>
+                  ) : null}
+                  {workflowHelperText}
+                </div>
+              ) : null}
+            </div>
+
+            {!hideHeroAside ? (
+              <aside className="rounded-[22px] border border-slate-200 bg-white/85 px-5 py-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  {heroAsideTitle}
+                </div>
+                <div className="mt-3 text-sm leading-7 text-slate-600">
+                  {heroAsideText}
+                </div>
+              </aside>
+            ) : null}
+          </section>
+        ) : null}
+
         {children}
       </div>
     </div>
   );
+}
+
+export function FamilyShellSurface({ children }: { children: React.ReactNode }) {
+  return <div className="min-h-screen bg-slate-50 text-slate-900">{children}</div>;
 }
 
 export function FamilyCommandLayer({
