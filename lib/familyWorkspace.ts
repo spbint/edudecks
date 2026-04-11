@@ -29,6 +29,11 @@ export type FamilyWorkspaceState = {
   storageMode: "database" | "local";
 };
 
+type QueryResponse<T> = {
+  data: T | null;
+  error: { message?: string | null } | null;
+};
+
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -81,7 +86,7 @@ export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
       ),
     );
   } catch {
-    // ignore local cache failures
+      // ignore local cache failures
   }
 }
 
@@ -115,10 +120,9 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
     return sessionResp.data.session.user.id;
   }
 
-  const {
-    data: { user },
-    error,
-  } = await withTimeout(supabase.auth.getUser(), "getUser");
+  const userResp = await withTimeout(supabase.auth.getUser(), "getUser");
+  const user = userResp.data.user;
+  const error = userResp.error;
 
   if (error) {
     console.error("getCurrentFamilyUserId error", error);
@@ -131,7 +135,7 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
 export async function loadLinkedLearners(
   userId: string,
 ): Promise<FamilyLearner[]> {
-  const { data: links, error: linksError } = await withTimeout(
+  const linksResponse = (await withTimeout(
     supabase
       .from("parent_student_links")
       .select("student_id,created_at,sort_order")
@@ -139,13 +143,22 @@ export async function loadLinkedLearners(
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),
     "load learner links",
-  );
+  )) as QueryResponse<
+    Array<{
+      student_id?: string | null;
+      created_at?: string | null;
+      sort_order?: number | null;
+    }>
+  >;
+
+  const links = linksResponse.data ?? [];
+  const linksError = linksResponse.error;
 
   if (linksError) {
     throw linksError;
   }
 
-  if (!links?.length) return [];
+  if (!links.length) return [];
 
   const orderedIds = Array.from(
     new Set(links.map((link) => safe(link.student_id)).filter(Boolean)),
@@ -164,15 +177,13 @@ export async function loadLinkedLearners(
   let lastStudentsError: unknown = null;
 
   for (const select of studentSelectVariants) {
-    const response = await withTimeout(
+    const response = (await withTimeout(
       supabase.from("students").select(select).in("id", orderedIds),
       "load students",
-    );
+    )) as QueryResponse<Array<Record<string, unknown>>>;
 
     if (!response.error) {
-      students = ((response.data ?? []) as unknown) as Array<
-        Record<string, unknown>
-      >;
+      students = response.data ?? [];
       lastStudentsError = null;
       break;
     }
@@ -353,10 +364,10 @@ export async function createLinkedLearner(
   let lastInsertError: unknown = null;
 
   for (const payload of studentPayloadVariants) {
-    const response = await withTimeout(
+    const response = (await withTimeout(
       supabase.from("students").insert(payload).select("id").single(),
       "create student",
-    );
+    )) as QueryResponse<{ id?: string | number | null }>;
 
     if (!response.error && response.data?.id) {
       studentId = String(response.data.id);
@@ -375,7 +386,7 @@ export async function createLinkedLearner(
     throw lastInsertError ?? new Error("Could not create learner record.");
   }
 
-  const linkInsert = await withTimeout(
+  const linkInsert = (await withTimeout(
     supabase.from("parent_student_links").upsert(
       {
         parent_user_id: userId,
@@ -386,7 +397,7 @@ export async function createLinkedLearner(
       { onConflict: "parent_user_id,student_id" },
     ),
     "link learner",
-  );
+  )) as QueryResponse<unknown>;
 
   if (linkInsert.error) {
     throw linkInsert.error;
@@ -396,14 +407,14 @@ export async function createLinkedLearner(
 }
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
-  const res = await withTimeout(
+  const res = (await withTimeout(
     supabase
       .from("parent_student_links")
       .delete()
       .eq("parent_user_id", userId)
       .eq("student_id", learnerId),
     "remove linked learner",
-  );
+  )) as QueryResponse<unknown>;
 
   if (res.error) {
     throw res.error;
