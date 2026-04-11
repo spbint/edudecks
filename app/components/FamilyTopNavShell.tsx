@@ -17,7 +17,7 @@ import {
 } from "@/lib/familyGuidanceEvents";
 import BrandHomeLink from "./BrandHomeLink";
 import FamilyGuidanceDebugPanel from "./FamilyGuidanceDebugPanel";
-import ProfileMenu from "./ProfileMenu";
+import FamilyProfileMenu from "./FamilyProfileMenu";
 
 type FamilyShellHeaderProps = {
   title?: string;
@@ -2235,7 +2235,12 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <ChildSwitcher />
-            <ProfileMenu />
+            <FamilyProfileMenu
+              familyName="EduDecks Family"
+              email="seanbint@live.com"
+              defaultLearner="Ava"
+              curriculum="Australian Curriculum v9"
+            />
           </div>
         </div>
 
