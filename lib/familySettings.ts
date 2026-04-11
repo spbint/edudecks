@@ -269,15 +269,27 @@ export function persistSettingsToLocalStorage(settings: FamilySettings) {
   writeJson(STORAGE_KEYS.SETTINGS, settings);
 }
 
-export function getCurrentUserId(): string {
-  return "local-user";
+export async function getCurrentUserId(): Promise<string | null> {
+  if (!hasSupabaseEnv) return null;
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("getCurrentUserId error:", error);
+    return null;
+  }
+
+  return user?.id ?? null;
 }
 
 export function loadChildrenFromLocalStorage(): ChildOption[] {
   const raw = readJson<unknown[]>(STORAGE_KEYS.CHILDREN, []);
   if (!Array.isArray(raw)) return [];
 
-  return raw
+  const items = raw
     .map((item) => {
       const row = item as Record<string, unknown>;
       const id = safeString(row.id);
@@ -294,11 +306,19 @@ export function loadChildrenFromLocalStorage(): ChildOption[] {
         safeString(row.familyName);
       const explicitName = safeString(row.name);
       const label = explicitName || [firstName, lastName].filter(Boolean).join(" ");
+      const yearLabel = safeString(row.yearLabel) || safeString(row.year_label);
+      const yearLevel = safeString(row.year_level);
 
       if (!id || !label) return null;
-      return { id, label };
-    })
-    .filter((value): value is ChildOption => value !== null);
+      return {
+        id,
+        label,
+        yearLabel: yearLabel || undefined,
+        year_level: yearLevel || undefined,
+      };
+    });
+
+  return items.filter(Boolean) as ChildOption[];
 }
 
 /* ============================================================

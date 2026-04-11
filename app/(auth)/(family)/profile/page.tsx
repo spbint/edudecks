@@ -7,12 +7,16 @@ import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   DEFAULT_FAMILY_SETTINGS,
-  loadChildrenFromLocalStorage,
-  loadFamilyProfile,
-  loadSettingsFromLocalStorage,
-  persistSettingsToLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
+import {
+  createLinkedLearner,
+  loadFamilyWorkspace,
+  removeLinkedLearner,
+  saveFamilyWorkspaceSettings,
+  setActiveLearnerId,
+  setDefaultLearner,
+} from "@/lib/familyWorkspace";
 import { type ReportDraftStatus } from "@/lib/reportDrafts";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
@@ -23,8 +27,6 @@ type ReportActivity = { id: string; title: string; childName: string; status: Re
 type SavedPlan = { studentId: string; weekKey: string; focusTitle: string; focusSummary: string; updatedAt: string };
 
 const LOCAL_PLAN_KEY = "edudecks_plan";
-const LOCAL_CHILDREN_KEY = "edudecks_children_seed_v1";
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
@@ -45,46 +47,40 @@ export default function ProfilePage() {
   useEffect(() => {
     let mounted = true;
     async function hydrate() {
-      const localSettings = loadSettingsFromLocalStorage();
-      const localChildren = loadChildrenFromLocalStorage().map((child) => ({
-        id: child.id,
-        name: child.label,
-        yearLabel: "",
-        connectedAt: null,
-      }));
-      if (!mounted) return;
-      setSettings(localSettings);
-      setChildren(localChildren);
       setPlans(loadPlannerActivity());
-
-      if (!hasSupabaseEnv) {
-        setError("Supabase is not configured for this preview environment.");
-        return;
-      }
 
       try {
         const auth = await supabase.auth.getUser();
         const currentUser = auth.data.user;
+        const workspace = await loadFamilyWorkspace();
         if (!mounted) return;
+
+        setUser(currentUser ?? null);
+        setSettings(workspace.profile);
+        setChildren(
+          workspace.learners.map((child) => ({
+            id: child.id,
+            name: child.label,
+            yearLabel: child.yearLabel || "",
+            connectedAt: child.connectedAt ?? null,
+          })),
+        );
+
+        if (!hasSupabaseEnv) {
+          setError("Supabase is not configured for this preview environment.");
+          return;
+        }
+
         if (!currentUser) {
           setError("Sign in to view your family profile.");
           return;
         }
-        setUser(currentUser);
 
-        const [profileRow, familyProfile, linkedChildren] = await Promise.all([
-          fetchProfileRow(currentUser.id),
-          loadFamilyProfile(),
-          loadLinkedChildren(currentUser.id),
-        ]);
+        const profileRow = await fetchProfileRow(currentUser.id);
         if (!mounted) return;
         setProfile(profileRow);
-        setSettings(familyProfile);
-        setChildren(linkedChildren);
-        persistSettingsToLocalStorage(familyProfile);
-        persistSeedChildren(linkedChildren);
 
-        const ids = linkedChildren.map((child) => child.id);
+        const ids = workspace.learners.map((child) => child.id);
         const [captureRows, reportRows] = await Promise.all([
           ids.length ? fetchRecentEvidence(ids) : Promise.resolve([]),
           fetchRecentReports(currentUser.id),
@@ -150,13 +146,8 @@ export default function ProfilePage() {
     setSavingCurriculum(true);
     setStatus("");
     try {
-      const next = { ...settings };
-      persistSettingsToLocalStorage(next);
-      if (hasSupabaseEnv && user) {
-        const saved = await saveFamilySettings(next);
-        setSettings(saved);
-        persistSettingsToLocalStorage(saved);
-      }
+      const saved = await saveFamilyWorkspaceSettings({ ...settings });
+      setSettings(saved);
       setStatus("Curriculum setup saved.");
     } catch (err) {
       console.error("Curriculum save failed", err);
@@ -170,15 +161,8 @@ export default function ProfilePage() {
     setBusyChildId(childId);
     setStatus("");
     try {
-      const next = { ...settings, default_child_id: childId };
-      setSettings(next);
-      persistSettingsToLocalStorage(next);
-      if (hasSupabaseEnv && user) {
-        const saved = await saveFamilySettings(next);
-        setSettings(saved);
-        persistSettingsToLocalStorage(saved);
-      }
-      if (typeof window !== "undefined") window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
+      const saved = await setDefaultLearner(settings, childId);
+      setSettings(saved);
       setStatus("Default learner updated.");
     } catch (err) {
       console.error("Default child update failed", err);
@@ -193,22 +177,15 @@ export default function ProfilePage() {
     setBusyChildId(child.id);
     setStatus("");
     try {
-      if (hasSupabaseEnv && user) {
-        const res = await supabase.from("parent_student_links").delete().eq("parent_user_id", user.id).eq("student_id", child.id);
-        if (res.error) throw res.error;
-      }
+      if (!user) throw new Error("You must be signed in.");
+      await removeLinkedLearner(user.id, child.id);
       const nextChildren = children.filter((item) => item.id !== child.id);
       setChildren(nextChildren);
-      persistSeedChildren(nextChildren);
       if (settings.default_child_id === child.id) {
-        const next = { ...settings, default_child_id: nextChildren[0]?.id ?? null };
-        setSettings(next);
-        persistSettingsToLocalStorage(next);
-        if (hasSupabaseEnv && user) {
-          const saved = await saveFamilySettings(next);
-          setSettings(saved);
-          persistSettingsToLocalStorage(saved);
-        }
+        const saved = await setDefaultLearner(settings, nextChildren[0]?.id ?? null);
+        setSettings(saved);
+      } else if (children.length) {
+        setActiveLearnerId(nextChildren[0]?.id ?? null);
       }
       setStatus("Learner removed from family links.");
     } catch (err) {
@@ -231,21 +208,20 @@ export default function ProfilePage() {
     setAdding(true);
     setStatus("");
     try {
-      const studentId = await createStudent(user.id, addName, addYear);
-      const link = await supabase.from("parent_student_links").upsert(
-        { parent_user_id: user.id, student_id: studentId, relationship_label: "child", sort_order: 0 },
-        { onConflict: "parent_user_id,student_id" }
-      );
-      if (link.error) throw link.error;
-      const linkedChildren = await loadLinkedChildren(user.id);
+      const studentId = await createLinkedLearner(user.id, addName, addYear);
+      const workspace = await loadFamilyWorkspace();
+      const linkedChildren = workspace.learners.map((child) => ({
+        id: child.id,
+        name: child.label,
+        yearLabel: child.yearLabel || "",
+        connectedAt: child.connectedAt ?? null,
+      }));
       setChildren(linkedChildren);
-      persistSeedChildren(linkedChildren);
       if (!settings.default_child_id) {
-        const next = { ...settings, default_child_id: studentId };
-        setSettings(next);
-        const saved = await saveFamilySettings(next);
+        const saved = await setDefaultLearner(settings, studentId);
         setSettings(saved);
-        persistSettingsToLocalStorage(saved);
+      } else {
+        setActiveLearnerId(studentId);
       }
       setAddName("");
       setAddYear("");
@@ -410,10 +386,6 @@ function formatDate(value?: string | null) {
   if (Number.isNaN(date.getTime())) return value.slice(0, 10);
   return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
-function persistSeedChildren(children: ProfileChild[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(LOCAL_CHILDREN_KEY, JSON.stringify(children.map((child) => ({ id: child.id, name: child.name }))));
-}
 function loadPlannerActivity(): SavedPlan[] {
   if (typeof window === "undefined") return [];
   try {
@@ -431,20 +403,6 @@ async function fetchProfileRow(userId: string): Promise<ProfileRow | null> {
   const res = await supabase.from("profiles").select("is_admin,full_name,name").eq("id", userId).maybeSingle();
   return res.data ?? null;
 }
-async function loadLinkedChildren(userId: string): Promise<ProfileChild[]> {
-  const links = await supabase.from("parent_student_links").select("student_id,created_at").eq("parent_user_id", userId).order("created_at", { ascending: true });
-  if (!links.data?.length) return [];
-  const ids = Array.from(new Set(links.data.map((row) => safe(row.student_id)).filter(Boolean)));
-  const students = await supabase.from("students").select("id,preferred_name,first_name,surname,family_name,year_level").in("id", ids);
-  const studentMap = new Map((students.data ?? []).map((row) => [row.id, row]));
-  return ids.map((id) => {
-    const row = studentMap.get(id);
-    const link = links.data?.find((item) => safe(item.student_id) === id);
-    const name = safe(row?.preferred_name) || [safe(row?.first_name), safe(row?.surname), safe(row?.family_name)].filter(Boolean).join(" ") || "Unnamed learner";
-    const yearLabel = Number.isFinite(Number(row?.year_level)) ? `Year ${row?.year_level}` : "Year level";
-    return { id, name, yearLabel, connectedAt: link?.created_at ?? null };
-  });
-}
 async function fetchRecentEvidence(studentIds: string[]): Promise<EvidenceEntry[]> {
   const res = await supabase.from("evidence_entries").select("id,student_id,learning_area,created_at,note,title").in("student_id", studentIds).order("created_at", { ascending: false }).limit(4);
   return res.data ?? [];
@@ -452,28 +410,6 @@ async function fetchRecentEvidence(studentIds: string[]): Promise<EvidenceEntry[
 async function fetchRecentReports(userId: string): Promise<ReportActivity[]> {
   const res = await supabase.from("report_drafts").select("id,title,status,child_name,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(3);
   return (res.data ?? []).map((row) => ({ id: row.id, title: row.title || "Report draft", childName: row.child_name || "Child", status: (row.status as ReportDraftStatus) ?? "draft", updatedAt: row.updated_at }));
-}
-async function saveFamilySettings(next: FamilySettings): Promise<FamilySettings> {
-  const current = await loadFamilyProfile();
-  const payload = { ...current, ...next, updated_at: new Date().toISOString() };
-  const res = await supabase.from("family_profiles").upsert(payload, { onConflict: "id" }).select().single();
-  if (res.error) throw res.error;
-  return { ...DEFAULT_FAMILY_SETTINGS, ...res.data };
-}
-async function createStudent(userId: string, childName: string, yearLevel: string) {
-  const parts = safe(childName).split(/\s+/).filter(Boolean);
-  const first = parts[0] || safe(childName);
-  const surname = parts.slice(1).join(" ") || null;
-  const year = Number(safe(yearLevel));
-  const res = await supabase.from("students").insert({
-    user_id: userId,
-    first_name: first,
-    preferred_name: first,
-    surname,
-    year_level: Number.isFinite(year) ? year : null,
-  }).select("id").single();
-  if (res.error) throw res.error;
-  return res.data.id as string;
 }
 
 const styles: Record<string, React.CSSProperties> = {
