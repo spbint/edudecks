@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import FamilyProgressRail from "@/app/components/FamilyProgressRail";
 
 type ViewMode = "day" | "week" | "month";
 type Subject =
@@ -27,6 +26,8 @@ const SUBJECTS: Subject[] = [
   "Inquiry",
   "Creative",
 ];
+
+const STORAGE_KEY = "edudecks.calendar.v2";
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -125,10 +126,24 @@ const buttonPrimary =
   `${buttonBase} bg-slate-950 text-white hover:bg-slate-800`;
 const buttonSecondary =
   `${buttonBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`;
+const buttonSoft =
+  `${buttonBase} bg-blue-50 text-blue-700 hover:bg-blue-100`;
 const inputClass =
   "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
 const textareaClass =
   "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
+
+type SavedState = {
+  view: ViewMode;
+  selectedDate: string;
+  learner: string;
+  subject: Subject;
+  momentTitle: string;
+  momentNote: string;
+  optionalTime: string;
+  dayNotes: Record<string, string>;
+  blocks: Record<string, CalendarBlock[]>;
+};
 
 export default function CalendarPage() {
   const router = useRouter();
@@ -143,9 +158,74 @@ export default function CalendarPage() {
 
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
   const [blocks, setBlocks] = useState<Record<string, CalendarBlock[]>>({});
+  const [saveMessage, setSaveMessage] = useState("Draft autosaves locally");
+  const [hasHydrated, setHasHydrated] = useState(false);
 
   const weekDays = useMemo(() => getBusinessWeek(selectedDate), [selectedDate]);
   const monthDays = useMemo(() => getBusinessMonthGrid(selectedDate), [selectedDate]);
+
+  const selectedDayKey = ymd(selectedDate);
+  const selectedDayBlocks = blocks[selectedDayKey] ?? [];
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        setHasHydrated(true);
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as SavedState;
+      setView(parsed.view ?? "week");
+      setSelectedDate(parsed.selectedDate ? parseYmd(parsed.selectedDate) : new Date("2026-04-11"));
+      setLearner(parsed.learner ?? "Your learner");
+      setSubject(parsed.subject ?? "Literacy");
+      setMomentTitle(parsed.momentTitle ?? "");
+      setMomentNote(parsed.momentNote ?? "");
+      setOptionalTime(parsed.optionalTime ?? "");
+      setDayNotes(parsed.dayNotes ?? {});
+      setBlocks(parsed.blocks ?? {});
+      setSaveMessage("Draft restored");
+    } catch {
+      setSaveMessage("Could not restore saved draft");
+    } finally {
+      setHasHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    const payload: SavedState = {
+      view,
+      selectedDate: ymd(selectedDate),
+      learner,
+      subject,
+      momentTitle,
+      momentNote,
+      optionalTime,
+      dayNotes,
+      blocks,
+    };
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setSaveMessage("Draft autosaved");
+    } catch {
+      setSaveMessage("Autosave unavailable");
+    }
+  }, [
+    hasHydrated,
+    view,
+    selectedDate,
+    learner,
+    subject,
+    momentTitle,
+    momentNote,
+    optionalTime,
+    dayNotes,
+    blocks,
+  ]);
 
   function addBlockForDate(date: Date, title?: string, forcedSubject?: Subject) {
     const key = ymd(date);
@@ -168,6 +248,7 @@ export default function CalendarPage() {
     setMomentTitle("");
     setMomentNote("");
     setOptionalTime("");
+    setSaveMessage("Block added and draft autosaved");
   }
 
   function updateDayNote(date: Date, value: string) {
@@ -207,6 +288,32 @@ export default function CalendarPage() {
     setSelectedDate(new Date());
   }
 
+  function handleSavePlan() {
+    const payload: SavedState = {
+      view,
+      selectedDate: ymd(selectedDate),
+      learner,
+      subject,
+      momentTitle,
+      momentNote,
+      optionalTime,
+      dayNotes,
+      blocks,
+    };
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      setSaveMessage("Plan saved");
+    } catch {
+      setSaveMessage("Save unavailable");
+    }
+  }
+
+  function handleSaveAndContinue() {
+    handleSavePlan();
+    router.push("/capture");
+  }
+
   const topTitle =
     view === "day"
       ? formatDayHeading(selectedDate)
@@ -214,17 +321,68 @@ export default function CalendarPage() {
         ? formatWeekRange(weekDays)
         : formatMonthYear(selectedDate);
 
-  const selectedDayKey = ymd(selectedDate);
-  const selectedDayBlocks = blocks[selectedDayKey] ?? [];
+  const processSteps = [
+    { n: 1, label: "Plan", target: "#calendar-hero" },
+    { n: 2, label: "Guide", target: "#weekly-guidance" },
+    { n: 3, label: "Build", target: "#calendar-builder" },
+    { n: 4, label: "Save", target: "#save-plan" },
+    { n: 5, label: "Capture", target: "/capture" },
+  ];
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-6 py-6">
       <div className="flex gap-6">
-        <FamilyProgressRail current="calendar" />
+        <aside className="hidden xl:block xl:w-[74px] xl:shrink-0">
+          <div className="sticky top-6 flex justify-center">
+            <div className="relative flex min-h-[640px] flex-col items-center py-3">
+              <div className="absolute top-6 bottom-6 w-px bg-slate-200" />
+              {processSteps.map((step, index) => {
+                const isActive = index === 0;
+                const isLast = index === processSteps.length - 1;
+
+                const node = (
+                  <div className="relative z-10 flex flex-col items-center gap-2">
+                    <div
+                      className={cx(
+                        "flex h-9 w-9 items-center justify-center rounded-full border text-sm font-black",
+                        isActive
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-slate-200 bg-white text-slate-500",
+                      )}
+                    >
+                      {step.n}
+                    </div>
+                    <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">
+                      {step.label}
+                    </div>
+                  </div>
+                );
+
+                return isLast ? (
+                  <Link
+                    key={`${step.n}-${step.label}`}
+                    href={step.target}
+                    className="mb-8 mt-3 flex flex-col items-center no-underline"
+                  >
+                    {node}
+                  </Link>
+                ) : (
+                  <a
+                    key={`${step.n}-${step.label}`}
+                    href={step.target}
+                    className="mb-8 mt-3 flex flex-col items-center no-underline"
+                  >
+                    {node}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-6">
-            <section className={cx(surface, "px-8 py-7")}>
+            <section id="calendar-hero" className={cx(surface, "px-8 py-7")}>
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="max-w-[760px]">
                   <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
@@ -264,16 +422,16 @@ export default function CalendarPage() {
                   <strong className="text-slate-800">{view.toUpperCase()}</strong>
                 </span>
                 <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
-                  This week’s focus&nbsp;
-                  <strong className="text-slate-800">
-                    Use the calendar to place gentle learning blocks across the
-                    week without turning home into school.
-                  </strong>
+                  Learner&nbsp;
+                  <strong className="text-slate-800">{learner}</strong>
+                </span>
+                <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+                  {saveMessage}
                 </span>
               </div>
             </section>
 
-            <section className={cx(surface, "px-7 py-7")}>
+            <section id="weekly-guidance" className={cx(surface, "px-7 py-7")}>
               <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
                 Weekly guidance
               </div>
@@ -360,7 +518,7 @@ export default function CalendarPage() {
               </div>
             </section>
 
-            <section className={cx(surface, "px-5 py-5")}>
+            <section id="calendar-builder" className={cx(surface, "px-5 py-5")}>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
@@ -397,6 +555,7 @@ export default function CalendarPage() {
                       onChange={(e) => setLearner(e.target.value)}
                     >
                       <option>Your learner</option>
+                      <option>Ava</option>
                     </select>
 
                     <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1">
@@ -463,8 +622,6 @@ export default function CalendarPage() {
                   value={momentNote}
                   onChange={(e) => setMomentNote(e.target.value)}
                 />
-
-                <div className="text-xs text-slate-500">Storage mode: local</div>
               </div>
             </section>
 
@@ -707,7 +864,7 @@ export default function CalendarPage() {
             )}
 
             {view === "month" && (
-              <section>
+              <section className="grid gap-4">
                 <div className="mb-3 grid grid-cols-5 gap-4 px-2 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500">
                   {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
                     <div key={d}>{d}</div>
@@ -747,51 +904,33 @@ export default function CalendarPage() {
               </section>
             )}
 
-            <section
-              className={cx(
-                surface,
-                "flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between",
-              )}
-            >
-              <div>
-                <div className="text-lg font-bold text-slate-950">
-                  Continue your flow
+            <section id="save-plan" className={cx(surface, "px-6 py-5")}>
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="text-lg font-bold text-slate-950">
+                    Save this plan
+                  </div>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Keep your week safe, then move into capture when the learning happens.
+                  </p>
                 </div>
-                <p className="mt-1 text-sm text-slate-500">
-                  Move between planning, capture, portfolio, and reporting without
-                  losing the thread.
-                </p>
-              </div>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={buttonSecondary}
-                  onClick={() => router.push("/planner")}
-                >
-                  Planner
-                </button>
-                <button
-                  type="button"
-                  className={buttonSecondary}
-                  onClick={() => router.push("/capture")}
-                >
-                  Capture
-                </button>
-                <button
-                  type="button"
-                  className={buttonSecondary}
-                  onClick={() => router.push("/portfolio")}
-                >
-                  Portfolio
-                </button>
-                <button
-                  type="button"
-                  className={buttonSecondary}
-                  onClick={() => router.push("/reports")}
-                >
-                  Reports
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    className={buttonSoft}
+                    onClick={handleSavePlan}
+                  >
+                    Save plan
+                  </button>
+                  <button
+                    type="button"
+                    className={buttonPrimary}
+                    onClick={handleSaveAndContinue}
+                  >
+                    Save & move to Capture
+                  </button>
+                </div>
               </div>
             </section>
           </div>
