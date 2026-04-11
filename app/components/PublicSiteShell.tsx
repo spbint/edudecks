@@ -172,6 +172,11 @@ export default function PublicSiteShell({
   const pathname = usePathname();
   const isTablet = useIsMobile(1080);
   const isMobile = useIsMobile(720);
+  const workflowRibbon = showWorkflowStrip ? (
+    <section style={{ marginBottom: isMobile ? 18 : 20 }}>
+      <FamilyWorkflowStrip />
+    </section>
+  ) : null;
 
   void title;
 
@@ -234,26 +239,26 @@ export default function PublicSiteShell({
             </div>
           </div>
 
-          <nav
-            style={{
-              display: "flex",
-              gap: 8,
-              flexWrap: isMobile ? "nowrap" : "wrap",
-              alignItems: "center",
-              overflowX: isMobile ? "auto" : "visible",
-              paddingBottom: isMobile ? 2 : 0,
-            }}
-          >
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={shellNavStyle(isActive(pathname, item.href))}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          {!isMobile ? (
+            <nav
+              style={{
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={shellNavStyle(isActive(pathname, item.href))}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
         </div>
       </header>
 
@@ -264,11 +269,7 @@ export default function PublicSiteShell({
         }}
       >
         <div style={{ maxWidth: 1320, margin: "0 auto" }}>
-          {showWorkflowStrip ? (
-            <section style={{ marginBottom: 20 }}>
-              <FamilyWorkflowStrip />
-            </section>
-          ) : null}
+          {!isMobile ? workflowRibbon : null}
 
           <section
             style={{
@@ -366,6 +367,8 @@ export default function PublicSiteShell({
                     href={primaryCta.href}
                     style={{
                       ...shellButtonStyle(true),
+                      fontSize: isMobile ? 15 : 14,
+                      padding: isMobile ? "12px 16px" : "10px 14px",
                       width: isMobile ? "100%" : undefined,
                     }}
                   >
@@ -377,6 +380,7 @@ export default function PublicSiteShell({
                       style={{
                         ...shellButtonStyle(false),
                         width: isMobile ? "100%" : undefined,
+                        display: isMobile ? "none" : "inline-flex",
                       }}
                     >
                       {secondaryCta.label}
@@ -397,6 +401,8 @@ export default function PublicSiteShell({
                     {heroMicrocopy}
                   </div>
                 ) : null}
+
+                {isMobile ? workflowRibbon : null}
               </div>
 
               <div style={shellCardStyle()}>
