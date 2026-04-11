@@ -46,7 +46,7 @@ function isMissingColumnError(error: unknown) {
 }
 
 async function withTimeout<T>(
-  promise: Promise<T>,
+  promise: PromiseLike<T> | Promise<T>,
   label: string,
   ms = 8000,
 ): Promise<T> {
@@ -54,7 +54,7 @@ async function withTimeout<T>(
 
   try {
     return await Promise.race([
-      promise,
+      Promise.resolve(promise),
       new Promise<T>((_, reject) => {
         timer = setTimeout(() => {
           reject(new Error(`${label} timed out after ${ms}ms.`));
@@ -86,7 +86,7 @@ export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
       ),
     );
   } catch {
-      // ignore local cache failures
+    // ignore local cache failures
   }
 }
 
