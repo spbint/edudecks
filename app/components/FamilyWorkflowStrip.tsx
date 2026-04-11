@@ -12,6 +12,7 @@ type WorkflowStep = {
 };
 
 type FamilyWorkflowStripProps = {
+  current?: string;
   currentHref?: string;
   helperText?: string;
 };
@@ -50,11 +51,13 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
 ];
 
 export default function FamilyWorkflowStrip({
+  current,
   currentHref,
   helperText,
 }: FamilyWorkflowStripProps) {
   const pathname = usePathname();
   const isMobile = useIsMobile();
+  const normalizedCurrentHref = currentHref ?? (current ? `/${current}` : undefined);
 
   return (
     <div
@@ -105,8 +108,8 @@ export default function FamilyWorkflowStrip({
       >
         {WORKFLOW_STEPS.map((step, index) => {
           const active =
-            currentHref === step.href ||
-            (!currentHref && isStepActive(pathname, step));
+            normalizedCurrentHref === step.href ||
+            (!normalizedCurrentHref && isStepActive(pathname, step));
 
           return (
             <React.Fragment key={step.href}>
