@@ -34,8 +34,31 @@ function safe(value: unknown) {
 }
 
 function isMissingColumnError(error: unknown) {
-  const message = String((error as { message?: unknown })?.message ?? "").toLowerCase();
+  const message = String(
+    (error as { message?: unknown })?.message ?? "",
+  ).toLowerCase();
   return message.includes("does not exist") && message.includes("column");
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 8000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
@@ -44,6 +67,7 @@ export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
 
 export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
   if (typeof window === "undefined") return;
+
   try {
     window.localStorage.setItem(
       FAMILY_CHILDREN_CACHE_KEY,
@@ -70,7 +94,9 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
       (safe((child as { year_level?: string | number | null }).year_level)
         ? `Year ${safe((child as { year_level?: string | number | null }).year_level)}`
         : ""),
-    year_level: Number.isFinite(Number((child as { year_level?: string | number | null }).year_level))
+    year_level: Number.isFinite(
+      Number((child as { year_level?: string | number | null }).year_level),
+    )
       ? Number((child as { year_level?: string | number | null }).year_level)
       : null,
     connectedAt: null,
@@ -80,7 +106,11 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
 export async function getCurrentFamilyUserId(): Promise<string | null> {
   if (!hasSupabaseEnv) return null;
 
-  const sessionResp = await supabase.auth.getSession();
+  const sessionResp = await withTimeout(
+    supabase.auth.getSession(),
+    "getSession",
+  );
+
   if (sessionResp.data.session?.user?.id) {
     return sessionResp.data.session.user.id;
   }
@@ -88,7 +118,7 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser();
+  } = await withTimeout(supabase.auth.getUser(), "getUser");
 
   if (error) {
     console.error("getCurrentFamilyUserId error", error);
@@ -98,13 +128,18 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
-export async function loadLinkedLearners(userId: string): Promise<FamilyLearner[]> {
-  const { data: links, error: linksError } = await supabase
-    .from("parent_student_links")
-    .select("student_id,created_at,sort_order")
-    .eq("parent_user_id", userId)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+export async function loadLinkedLearners(
+  userId: string,
+): Promise<FamilyLearner[]> {
+  const { data: links, error: linksError } = await withTimeout(
+    supabase
+      .from("parent_student_links")
+      .select("student_id,created_at,sort_order")
+      .eq("parent_user_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    "load learner links",
+  );
 
   if (linksError) {
     throw linksError;
@@ -129,14 +164,21 @@ export async function loadLinkedLearners(userId: string): Promise<FamilyLearner[
   let lastStudentsError: unknown = null;
 
   for (const select of studentSelectVariants) {
-    const response = await supabase.from("students").select(select).in("id", orderedIds);
+    const response = await withTimeout(
+      supabase.from("students").select(select).in("id", orderedIds),
+      "load students",
+    );
+
     if (!response.error) {
-      students = ((response.data ?? []) as unknown) as Array<Record<string, unknown>>;
+      students = ((response.data ?? []) as unknown) as Array<
+        Record<string, unknown>
+      >;
       lastStudentsError = null;
       break;
     }
 
     lastStudentsError = response.error;
+
     if (!isMissingColumnError(response.error)) {
       throw response.error;
     }
@@ -146,35 +188,38 @@ export async function loadLinkedLearners(userId: string): Promise<FamilyLearner[
     throw lastStudentsError;
   }
 
-  const studentMap = new Map((students ?? []).map((student) => [student.id, student]));
+  const studentMap = new Map(
+    (students ?? []).map((student) => [student.id, student]),
+  );
 
-  const learners = orderedIds
-    .map((id) => {
-      const student = studentMap.get(id);
-      if (!student) return null;
+  const learners = orderedIds.map((id) => {
+    const student = studentMap.get(id);
+    if (!student) return null;
 
-      const label =
-        safe(student.preferred_name) ||
-        [safe(student.first_name), safe(student.surname), safe(student.family_name)]
-          .filter(Boolean)
-          .join(" ")
-          .trim() ||
-        "Unnamed learner";
+    const label =
+      safe(student.preferred_name) ||
+      [safe(student.first_name), safe(student.surname), safe(student.family_name)]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      "Unnamed learner";
 
-      const yearLabel = Number.isFinite(Number(student.year_level))
-        ? `Year ${student.year_level}`
-        : "";
+    const yearLabel = Number.isFinite(Number(student.year_level))
+      ? `Year ${student.year_level}`
+      : "";
 
-      const linkRow = links.find((row) => safe(row.student_id) === id);
+    const linkRow = links.find((row) => safe(row.student_id) === id);
 
-      return {
-        id,
-        label,
-        yearLabel,
-        year_level: Number.isFinite(Number(student.year_level)) ? Number(student.year_level) : null,
-        connectedAt: linkRow?.created_at ?? null,
-      } satisfies FamilyLearner;
-    });
+    return {
+      id,
+      label,
+      yearLabel,
+      year_level: Number.isFinite(Number(student.year_level))
+        ? Number(student.year_level)
+        : null,
+      connectedAt: linkRow?.created_at ?? null,
+    } satisfies FamilyLearner;
+  });
 
   return learners.filter(Boolean) as FamilyLearner[];
 }
@@ -182,10 +227,12 @@ export async function loadLinkedLearners(userId: string): Promise<FamilyLearner[
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   const localSettings = loadSettingsFromLocalStorage();
   const localLearners = loadLearnersFromLocalCache();
+
   const localProfile = {
     ...DEFAULT_FAMILY_SETTINGS,
     ...localSettings,
-    default_child_id: localSettings.default_child_id || localLearners[0]?.id || null,
+    default_child_id:
+      localSettings.default_child_id || localLearners[0]?.id || null,
   };
 
   const userId = await getCurrentFamilyUserId();
@@ -202,15 +249,18 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     };
   }
 
-  const [profile, learners] = await Promise.all([
-    loadFamilyProfile(),
-    loadLinkedLearners(userId),
-  ]);
+  const [profile, learners] = await withTimeout(
+    Promise.all([loadFamilyProfile(), loadLinkedLearners(userId)]),
+    "load family workspace",
+  );
 
   const mergedProfile: FamilyProfileRow = {
     ...profile,
     default_child_id:
-      profile.default_child_id || localProfile.default_child_id || learners[0]?.id || null,
+      profile.default_child_id ||
+      localProfile.default_child_id ||
+      learners[0]?.id ||
+      null,
   };
 
   persistSettingsToLocalStorage(mergedProfile);
@@ -228,7 +278,10 @@ export async function saveFamilyWorkspaceSettings(
   settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
   persistSettingsToLocalStorage(settings);
-  return upsertFamilyProfile(settings);
+  return withTimeout(
+    upsertFamilyProfile(settings),
+    "save family workspace settings",
+  );
 }
 
 export async function setDefaultLearner(
@@ -300,7 +353,11 @@ export async function createLinkedLearner(
   let lastInsertError: unknown = null;
 
   for (const payload of studentPayloadVariants) {
-    const response = await supabase.from("students").insert(payload).select("id").single();
+    const response = await withTimeout(
+      supabase.from("students").insert(payload).select("id").single(),
+      "create student",
+    );
+
     if (!response.error && response.data?.id) {
       studentId = String(response.data.id);
       lastInsertError = null;
@@ -308,6 +365,7 @@ export async function createLinkedLearner(
     }
 
     lastInsertError = response.error;
+
     if (!isMissingColumnError(response.error)) {
       throw response.error;
     }
@@ -317,14 +375,17 @@ export async function createLinkedLearner(
     throw lastInsertError ?? new Error("Could not create learner record.");
   }
 
-  const linkInsert = await supabase.from("parent_student_links").upsert(
-    {
-      parent_user_id: userId,
-      student_id: studentId,
-      relationship_label: "child",
-      sort_order: 0,
-    },
-    { onConflict: "parent_user_id,student_id" },
+  const linkInsert = await withTimeout(
+    supabase.from("parent_student_links").upsert(
+      {
+        parent_user_id: userId,
+        student_id: studentId,
+        relationship_label: "child",
+        sort_order: 0,
+      },
+      { onConflict: "parent_user_id,student_id" },
+    ),
+    "link learner",
   );
 
   if (linkInsert.error) {
@@ -335,11 +396,14 @@ export async function createLinkedLearner(
 }
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
-  const res = await supabase
-    .from("parent_student_links")
-    .delete()
-    .eq("parent_user_id", userId)
-    .eq("student_id", learnerId);
+  const res = await withTimeout(
+    supabase
+      .from("parent_student_links")
+      .delete()
+      .eq("parent_user_id", userId)
+      .eq("student_id", learnerId),
+    "remove linked learner",
+  );
 
   if (res.error) {
     throw res.error;
@@ -353,6 +417,7 @@ export function getStoredActiveLearnerId() {
 
 export function setActiveLearnerId(learnerId: string | null | undefined) {
   if (typeof window === "undefined") return;
+
   const clean = safe(learnerId);
 
   if (clean) {
@@ -362,7 +427,9 @@ export function setActiveLearnerId(learnerId: string | null | undefined) {
   }
 
   window.dispatchEvent(
-    new CustomEvent(ACTIVE_CHILD_EVENT, { detail: { childId: clean || undefined } }),
+    new CustomEvent(ACTIVE_CHILD_EVENT, {
+      detail: { childId: clean || undefined },
+    }),
   );
 }
 
@@ -374,7 +441,8 @@ export function resolveEffectiveActiveLearnerId(
 
   return (
     learners.find((learner) => learner.id === stored)?.id ||
-    learners.find((learner) => learner.id === safe(profile?.default_child_id))?.id ||
+    learners.find((learner) => learner.id === safe(profile?.default_child_id))
+      ?.id ||
     learners[0]?.id ||
     ""
   );

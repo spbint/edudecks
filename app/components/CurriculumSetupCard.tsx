@@ -25,6 +25,27 @@ type CurriculumSetupCardProps = {
   onChange: (curriculum: CurriculumPreferences) => void;
 };
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 5000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const FALLBACK_COUNTRIES = [
   { id: "us", name: "United States" },
   { id: "au", name: "Australia" },
@@ -235,11 +256,11 @@ export default function CurriculumSetupCard({
 
       try {
         const settled = await Promise.allSettled([
-          loadCurriculumCountries(),
-          loadCurriculumRegions(),
-          loadCurriculumFrameworks(),
-          loadCurriculumLevels(),
-          loadCurriculumSubjects(),
+          withTimeout(loadCurriculumCountries(), "load curriculum countries"),
+          withTimeout(loadCurriculumRegions(), "load curriculum regions"),
+          withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
+          withTimeout(loadCurriculumLevels(), "load curriculum levels"),
+          withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
         ]);
 
         if (!active) return;
@@ -263,22 +284,17 @@ export default function CurriculumSetupCard({
         const loadedSubjects =
           subjectResult.status === "fulfilled" ? subjectResult.value : [];
 
-        const nextCountries =
-          loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES;
-        const nextRegions =
-          loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS;
-        const nextFrameworks =
-          loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS;
-        const nextLevels =
-          loadedLevels.length > 0 ? loadedLevels : FALLBACK_LEVELS;
-        const nextSubjects =
-          loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS;
-
-        setCountries(nextCountries);
-        setRegions(nextRegions);
-        setFrameworks(nextFrameworks);
-        setLevels(nextLevels);
-        setSubjects(nextSubjects);
+        setCountries(
+          loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES,
+        );
+        setRegions(loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS);
+        setFrameworks(
+          loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS,
+        );
+        setLevels(loadedLevels.length > 0 ? loadedLevels : FALLBACK_LEVELS);
+        setSubjects(
+          loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS,
+        );
 
         if (
           loadedCountries.length === 0 ||
