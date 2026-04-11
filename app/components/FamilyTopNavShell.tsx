@@ -15,6 +15,7 @@ type FamilyTopNavShellProps = {
   email?: string;
   defaultLearner?: string;
   curriculum?: string;
+  hideHero?: boolean;
 };
 
 type FamilyCommandItem = {
@@ -30,6 +31,7 @@ type FamilyCommandLayerProps = {
   primaryActionHref?: string;
   items?: FamilyCommandItem[];
   className?: string;
+  pathname?: string;
 };
 
 function cx(...parts: Array<string | false | null | undefined>) {
@@ -49,7 +51,7 @@ function routeSubtitle(pathname: string) {
   return "Homeschool-first learning flow";
 }
 
-function routeTitle(pathname: string) {
+function routeTitle(_pathname: string) {
   return "EduDecks Family";
 }
 
@@ -63,6 +65,7 @@ export default function FamilyTopNavShell({
   email = "seanbint@live.com",
   defaultLearner = "Ava",
   curriculum = "Australian Curriculum v9",
+  hideHero = false,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
 
@@ -78,14 +81,16 @@ export default function FamilyTopNavShell({
               <BrandHomeLink href="/family" />
             </div>
 
-            <div className="min-w-0">
-              <div className="truncate text-[16px] font-black text-slate-950">
-                {resolvedTitle}
+            {!hideHero && (
+              <div className="min-w-0">
+                <div className="truncate text-[16px] font-black text-slate-950">
+                  {resolvedTitle}
+                </div>
+                <div className="truncate text-sm font-semibold text-slate-500">
+                  {resolvedSubtitle}
+                </div>
               </div>
-              <div className="truncate text-sm font-semibold text-slate-500">
-                {resolvedSubtitle}
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="shrink-0">
@@ -111,35 +116,40 @@ export function FamilyCommandLayer({
   title = "Move from capture to planning, portfolio, reporting, and readiness without losing the thread.",
   primaryActionLabel = "Workspace Home",
   primaryActionHref = "/family",
-  items = [
-    {
-      title: "Capture Evidence",
-      description: "Save a learning moment while it is still fresh.",
-      href: "/capture",
-    },
-    {
-      title: "Open Planner",
-      description: "See what is coming up and shape the next learning step.",
-      href: "/planner",
-    },
-    {
-      title: "Go to Portfolio",
-      description: "Review the story your evidence is building over time.",
-      href: "/portfolio",
-    },
-    {
-      title: "Build Report",
-      description: "Turn captured evidence into a clear family report.",
-      href: "/reports",
-    },
-    {
-      title: "Check Readiness",
-      description: "Confirm what is ready for authority review and export.",
-      href: "/authority",
-    },
-  ],
+  items,
   className,
+  pathname,
 }: FamilyCommandLayerProps) {
+  const resolvedItems: FamilyCommandItem[] =
+    items ??
+    [
+      {
+        title: "Capture Evidence",
+        description: "Save a learning moment while it is still fresh.",
+        href: "/capture",
+      },
+      {
+        title: "Open Planner",
+        description: "See what is coming up and shape the next learning step.",
+        href: "/planner",
+      },
+      {
+        title: "Go to Portfolio",
+        description: "Review the story your evidence is building over time.",
+        href: "/portfolio",
+      },
+      {
+        title: "Build Report",
+        description: "Turn captured evidence into a clear family report.",
+        href: "/reports",
+      },
+      {
+        title: "Check Readiness",
+        description: "Confirm what is ready for authority review and export.",
+        href: pathname?.startsWith("/authority") ? pathname : "/authority",
+      },
+    ];
+
   return (
     <section
       className={cx(
@@ -166,7 +176,7 @@ export function FamilyCommandLayer({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {items.map((item) => {
+        {resolvedItems.map((item) => {
           const content = (
             <div className="rounded-[20px] border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-slate-50">
               <div className="text-[16px] font-black text-slate-950">
