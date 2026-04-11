@@ -25,6 +25,15 @@ type CurriculumSetupCardProps = {
   onChange: (curriculum: CurriculumPreferences) => void;
 };
 
+function traceCurriculumCard(step: string, detail?: unknown) {
+  if (typeof console === "undefined") return;
+  if (detail === undefined) {
+    console.info(`[CurriculumSetupCard] ${step}`);
+    return;
+  }
+  console.info(`[CurriculumSetupCard] ${step}`, detail);
+}
+
 async function withTimeout<T>(
   promise: Promise<T>,
   label: string,
@@ -249,18 +258,43 @@ export default function CurriculumSetupCard({
 
   useEffect(() => {
     let active = true;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
 
     async function loadData() {
+      traceCurriculumCard("loadData:start");
       setLoading(true);
       setLoadMessage("");
+      watchdog = setTimeout(() => {
+        if (!active) return;
+        traceCurriculumCard("loadData:watchdog");
+        setCountries(FALLBACK_COUNTRIES);
+        setRegions(FALLBACK_REGIONS);
+        setFrameworks(FALLBACK_FRAMEWORKS);
+        setLevels(FALLBACK_LEVELS);
+        setSubjects(FALLBACK_SUBJECTS);
+        setLoadMessage(
+          "Curriculum data took too long to respond, so built-in fallback options are being shown.",
+        );
+        setLoading(false);
+      }, 6500);
 
       try {
         const settled = await Promise.allSettled([
-          withTimeout(loadCurriculumCountries(), "load curriculum countries"),
-          withTimeout(loadCurriculumRegions(), "load curriculum regions"),
-          withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
-          withTimeout(loadCurriculumLevels(), "load curriculum levels"),
-          withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
+          traceLoader("countries", () =>
+            withTimeout(loadCurriculumCountries(), "load curriculum countries"),
+          ),
+          traceLoader("regions", () =>
+            withTimeout(loadCurriculumRegions(), "load curriculum regions"),
+          ),
+          traceLoader("frameworks", () =>
+            withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
+          ),
+          traceLoader("levels", () =>
+            withTimeout(loadCurriculumLevels(), "load curriculum levels"),
+          ),
+          traceLoader("subjects", () =>
+            withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
+          ),
         ]);
 
         if (!active) return;
@@ -322,6 +356,8 @@ export default function CurriculumSetupCard({
         );
       } finally {
         if (!active) return;
+        if (watchdog) clearTimeout(watchdog);
+        traceCurriculumCard("loadData:end", { loading: false });
         setLoading(false);
       }
     }
@@ -330,6 +366,7 @@ export default function CurriculumSetupCard({
 
     return () => {
       active = false;
+      if (watchdog) clearTimeout(watchdog);
     };
   }, []);
 
@@ -733,6 +770,23 @@ export default function CurriculumSetupCard({
       </div>
     </section>
   );
+}
+
+async function traceLoader<T>(label: string, loader: () => Promise<T>) {
+  traceCurriculumCard(`loader:${label}:start`);
+  try {
+    const result = await loader();
+    traceCurriculumCard(`loader:${label}:end`, {
+      size: Array.isArray(result) ? result.length : undefined,
+    });
+    return result;
+  } catch (error) {
+    traceCurriculumCard(`loader:${label}:error`, {
+      message:
+        error instanceof Error ? error.message : String(error ?? "Unknown error"),
+    });
+    throw error;
+  }
 }
 
 function Row({ label, value }: { label: string; value: string }) {

@@ -254,6 +254,35 @@ let cachedFrameworks: CurriculumFramework[] = FALLBACK_FRAMEWORKS;
 let cachedLevels: CurriculumLevel[] = FALLBACK_LEVELS;
 let cachedSubjects: CurriculumSubject[] = FALLBACK_SUBJECTS;
 
+function traceCurriculum(step: string, detail?: unknown) {
+  if (typeof console === "undefined") return;
+  if (detail === undefined) {
+    console.info(`[curriculum] ${step}`);
+    return;
+  }
+  console.info(`[curriculum] ${step}`, detail);
+}
+
+async function withCurriculumTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 5000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -307,7 +336,16 @@ async function selectRows<T>(table: string, select: string) {
   if (!hasSupabaseEnv) {
     return [] as T[];
   }
-  const { data, error } = await supabase.from(table).select(select);
+  traceCurriculum("selectRows:start", { table, select });
+  const { data, error } = (await withCurriculumTimeout(
+    Promise.resolve(supabase.from(table).select(select)),
+    `curriculum query ${table}`,
+  )) as { data: T[] | null; error: unknown };
+  traceCurriculum("selectRows:end", {
+    table,
+    count: data?.length ?? 0,
+    hasError: Boolean(error),
+  });
   if (error) throw error;
   return ((data ?? []) as unknown) as T[];
 }
@@ -322,6 +360,7 @@ async function safeLoad<T>(loader: () => Promise<T[]>, fallback: T[]) {
 }
 
 export async function loadCurriculumCountries() {
+  traceCurriculum("loadCurriculumCountries:start");
   const rows = await safeLoad(
     async () =>
       (await selectRows<CoreCurriculumCountry>(
@@ -335,10 +374,12 @@ export async function loadCurriculumCountries() {
   );
 
   cachedCountries = mergeById(rows, FALLBACK_COUNTRIES);
+  traceCurriculum("loadCurriculumCountries:end", { count: cachedCountries.length });
   return cachedCountries;
 }
 
 export async function loadCurriculumRegions() {
+  traceCurriculum("loadCurriculumRegions:start");
   const rows = await safeLoad(
     async () =>
       (await selectRows<CoreCurriculumRegion>(
@@ -352,10 +393,12 @@ export async function loadCurriculumRegions() {
   );
 
   cachedRegions = mergeById(rows, FALLBACK_REGIONS);
+  traceCurriculum("loadCurriculumRegions:end", { count: cachedRegions.length });
   return cachedRegions;
 }
 
 export async function loadCurriculumSubjects() {
+  traceCurriculum("loadCurriculumSubjects:start");
   const rows = await safeLoad(
     async () =>
       (await selectRows<CoreCurriculumSubject>(
@@ -369,10 +412,12 @@ export async function loadCurriculumSubjects() {
   );
 
   cachedSubjects = mergeById(rows, FALLBACK_SUBJECTS);
+  traceCurriculum("loadCurriculumSubjects:end", { count: cachedSubjects.length });
   return cachedSubjects;
 }
 
 export async function loadCurriculumLevels() {
+  traceCurriculum("loadCurriculumLevels:start");
   const rows = await safeLoad(
     async () =>
       (await selectRows<CoreCurriculumLevel>(
@@ -385,10 +430,12 @@ export async function loadCurriculumLevels() {
   );
 
   cachedLevels = mergeById(rows, FALLBACK_LEVELS);
+  traceCurriculum("loadCurriculumLevels:end", { count: cachedLevels.length });
   return cachedLevels;
 }
 
 export async function loadCurriculumFrameworks() {
+  traceCurriculum("loadCurriculumFrameworks:start");
   const subjects = await loadCurriculumSubjects();
   const rows = await safeLoad(
     async () =>
@@ -403,6 +450,7 @@ export async function loadCurriculumFrameworks() {
   );
 
   cachedFrameworks = mergeById(rows, FALLBACK_FRAMEWORKS);
+  traceCurriculum("loadCurriculumFrameworks:end", { count: cachedFrameworks.length });
   return cachedFrameworks;
 }
 

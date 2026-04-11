@@ -33,6 +33,15 @@ function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function traceFamilyWorkspace(step: string, detail?: unknown) {
+  if (typeof console === "undefined") return;
+  if (detail === undefined) {
+    console.info(`[familyWorkspace] ${step}`);
+    return;
+  }
+  console.info(`[familyWorkspace] ${step}`, detail);
+}
+
 function isMissingColumnError(error: unknown) {
   const message = String(
     (error as { message?: unknown })?.message ?? "",
@@ -106,10 +115,14 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
 export async function getCurrentFamilyUserId(): Promise<string | null> {
   if (!hasSupabaseEnv) return null;
 
+  traceFamilyWorkspace("getCurrentFamilyUserId:start");
   const sessionResp = await withTimeout(
     supabase.auth.getSession(),
     "getSession",
   );
+  traceFamilyWorkspace("getCurrentFamilyUserId:getSession:end", {
+    hasSessionUser: Boolean(sessionResp.data.session?.user?.id),
+  });
 
   if (sessionResp.data.session?.user?.id) {
     return sessionResp.data.session.user.id;
@@ -119,6 +132,10 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
     data: { user },
     error,
   } = await withTimeout(supabase.auth.getUser(), "getUser");
+  traceFamilyWorkspace("getCurrentFamilyUserId:getUser:end", {
+    hasUser: Boolean(user?.id),
+    hasError: Boolean(error),
+  });
 
   if (error) {
     console.error("getCurrentFamilyUserId error", error);
@@ -131,15 +148,22 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
 export async function loadLinkedLearners(
   userId: string,
 ): Promise<FamilyLearner[]> {
-  const { data: links, error: linksError } = await withTimeout(
-    supabase
+  traceFamilyWorkspace("loadLinkedLearners:start", { userId });
+  const { data: links, error: linksError } = (await withTimeout(
+    Promise.resolve(
+      supabase
       .from("parent_student_links")
       .select("student_id,created_at,sort_order")
       .eq("parent_user_id", userId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),
+    ),
     "load learner links",
-  );
+  )) as { data: Array<{ student_id?: string | null; created_at?: string | null; sort_order?: number | null }> | null; error: unknown };
+  traceFamilyWorkspace("loadLinkedLearners:links:end", {
+    count: links?.length ?? 0,
+    hasError: Boolean(linksError),
+  });
 
   if (linksError) {
     throw linksError;
@@ -164,10 +188,16 @@ export async function loadLinkedLearners(
   let lastStudentsError: unknown = null;
 
   for (const select of studentSelectVariants) {
-    const response = await withTimeout(
-      supabase.from("students").select(select).in("id", orderedIds),
-      "load students",
-    );
+    traceFamilyWorkspace("loadLinkedLearners:students:start", { select });
+    const response = (await withTimeout(
+      Promise.resolve(supabase.from("students").select(select).in("id", orderedIds)),
+      `load students (${select})`,
+    )) as { data: Array<Record<string, unknown>> | null; error: unknown };
+    traceFamilyWorkspace("loadLinkedLearners:students:end", {
+      select,
+      count: response.data?.length ?? 0,
+      hasError: Boolean(response.error),
+    });
 
     if (!response.error) {
       students = ((response.data ?? []) as unknown) as Array<
@@ -302,6 +332,11 @@ export async function createLinkedLearner(
   learnerName: string,
   yearLevel: string,
 ): Promise<string> {
+  traceFamilyWorkspace("createLinkedLearner:start", {
+    userId,
+    learnerName,
+    yearLevel,
+  });
   const cleanName = safe(learnerName);
   const parts = cleanName.split(/\s+/).filter(Boolean);
   const firstName = parts[0] || cleanName;
@@ -353,10 +388,18 @@ export async function createLinkedLearner(
   let lastInsertError: unknown = null;
 
   for (const payload of studentPayloadVariants) {
-    const response = await withTimeout(
-      supabase.from("students").insert(payload).select("id").single(),
+    traceFamilyWorkspace("createLinkedLearner:studentInsert:start", {
+      keys: Object.keys(payload),
+    });
+    const response = (await withTimeout(
+      Promise.resolve(supabase.from("students").insert(payload).select("id").single()),
       "create student",
-    );
+    )) as { data: { id?: string | null } | null; error: unknown };
+    traceFamilyWorkspace("createLinkedLearner:studentInsert:end", {
+      keys: Object.keys(payload),
+      hasId: Boolean(response.data?.id),
+      hasError: Boolean(response.error),
+    });
 
     if (!response.error && response.data?.id) {
       studentId = String(response.data.id);
@@ -375,35 +418,45 @@ export async function createLinkedLearner(
     throw lastInsertError ?? new Error("Could not create learner record.");
   }
 
-  const linkInsert = await withTimeout(
-    supabase.from("parent_student_links").upsert(
-      {
-        parent_user_id: userId,
-        student_id: studentId,
-        relationship_label: "child",
-        sort_order: 0,
-      },
-      { onConflict: "parent_user_id,student_id" },
+  traceFamilyWorkspace("createLinkedLearner:linkInsert:start", { studentId });
+  const linkInsert = (await withTimeout(
+    Promise.resolve(
+      supabase.from("parent_student_links").upsert(
+        {
+          parent_user_id: userId,
+          student_id: studentId,
+          relationship_label: "child",
+          sort_order: 0,
+        },
+        { onConflict: "parent_user_id,student_id" },
+      ),
     ),
     "link learner",
-  );
+  )) as { error: unknown };
+  traceFamilyWorkspace("createLinkedLearner:linkInsert:end", {
+    studentId,
+    hasError: Boolean(linkInsert.error),
+  });
 
   if (linkInsert.error) {
     throw linkInsert.error;
   }
 
+  traceFamilyWorkspace("createLinkedLearner:done", { studentId });
   return studentId;
 }
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
-  const res = await withTimeout(
-    supabase
+  const res = (await withTimeout(
+    Promise.resolve(
+      supabase
       .from("parent_student_links")
       .delete()
       .eq("parent_user_id", userId)
       .eq("student_id", learnerId),
+    ),
     "remove linked learner",
-  );
+  )) as { error: unknown };
 
   if (res.error) {
     throw res.error;

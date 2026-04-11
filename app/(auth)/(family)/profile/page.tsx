@@ -62,6 +62,35 @@ type SavedPlan = {
 
 const LOCAL_PLAN_KEY = "edudecks_plan";
 
+function traceProfile(step: string, detail?: unknown) {
+  if (typeof console === "undefined") return;
+  if (detail === undefined) {
+    console.info(`[ProfilePage] ${step}`);
+    return;
+  }
+  console.info(`[ProfilePage] ${step}`, detail);
+}
+
+async function withProfileTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 12000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuthUser();
 
@@ -306,6 +335,7 @@ export default function ProfilePage() {
   }
 
   async function addLearner() {
+    traceProfile("addLearner:enter", { addName, addYear });
     if (!safe(addName)) {
       setStatus("Enter a learner name before adding.");
       return;
@@ -314,38 +344,72 @@ export default function ProfilePage() {
     setAdding(true);
     setStatus("");
     setError("");
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
 
     try {
+      watchdog = setTimeout(() => {
+        traceProfile("addLearner:watchdog");
+        setAdding(false);
+        setStatus(
+          "Add learner took too long to complete. Please try again. If this keeps happening, check the browser console for the exact stalled step.",
+        );
+      }, 15000);
+
       if (!hasSupabaseEnv) {
         throw new Error("Supabase is not configured.");
       }
 
       let resolvedUserId = userId || user?.id || null;
+      traceProfile("addLearner:resolveUser:start", {
+        hasLocalUserId: Boolean(userId),
+        hasAuthUser: Boolean(user?.id),
+      });
 
       if (!resolvedUserId) {
-        const sessionRes = await supabase.auth.getSession();
+        const sessionRes = await withProfileTimeout(
+          supabase.auth.getSession(),
+          "profile add learner getSession",
+        );
         resolvedUserId = sessionRes.data.session?.user?.id ?? null;
+        traceProfile("addLearner:getSession:end", {
+          hasSessionUser: Boolean(resolvedUserId),
+        });
       }
 
       if (!resolvedUserId) {
-        const userRes = await supabase.auth.getUser();
+        const userRes = await withProfileTimeout(
+          supabase.auth.getUser(),
+          "profile add learner getUser",
+        );
         resolvedUserId = userRes.data.user?.id ?? null;
+        traceProfile("addLearner:getUser:end", {
+          hasUser: Boolean(resolvedUserId),
+        });
       }
 
       if (!resolvedUserId) {
         throw new Error("A signed-in Supabase session is required to add a learner");
       }
 
+      traceProfile("addLearner:resolveUser:end", { resolvedUserId });
       setUserId(resolvedUserId);
 
       const learnerName = safe(addName);
-      const studentId = await createLinkedLearner(
-        resolvedUserId,
-        learnerName,
-        addYear,
+      traceProfile("addLearner:createLinkedLearner:start", { learnerName });
+      const studentId = await withProfileTimeout(
+        createLinkedLearner(resolvedUserId, learnerName, addYear),
+        "profile add learner createLinkedLearner",
       );
+      traceProfile("addLearner:createLinkedLearner:end", { studentId });
 
-      const refreshedLearners = await loadLinkedLearners(resolvedUserId);
+      traceProfile("addLearner:loadLinkedLearners:start", { resolvedUserId });
+      const refreshedLearners = await withProfileTimeout(
+        loadLinkedLearners(resolvedUserId),
+        "profile add learner loadLinkedLearners",
+      );
+      traceProfile("addLearner:loadLinkedLearners:end", {
+        count: refreshedLearners.length,
+      });
 
       const linkedChildren = refreshedLearners.map((child) => ({
         id: child.id,
@@ -367,6 +431,7 @@ export default function ProfilePage() {
           ];
 
       setChildren(nextChildren);
+      traceProfile("addLearner:setChildren:end", { count: nextChildren.length });
 
       persistLearnersToLocalCache(
         nextChildren.map((child) => ({
@@ -388,11 +453,18 @@ export default function ProfilePage() {
       setAddName("");
       setAddYear("");
       setStatus(`${learnerName} was added to the family workspace.`);
+      traceProfile("addLearner:done", { studentId });
     } catch (err) {
       console.error("Add learner failed", err);
+      traceProfile("addLearner:error", {
+        message:
+          err instanceof Error ? err.message : String(err ?? "Unknown error"),
+      });
       setStatus(`Learner could not be added: ${describeError(err)}`);
     } finally {
+      if (watchdog) clearTimeout(watchdog);
       setAdding(false);
+      traceProfile("addLearner:finally");
     }
   }
 
