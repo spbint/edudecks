@@ -38,6 +38,16 @@ const schoolBlocks = [
   },
 ];
 
+const familyProof = [
+  "Capture moments in a few seconds, then let the record build calmly over time.",
+  "See portfolio, reporting, and readiness form from real evidence instead of last-minute catch-up.",
+];
+
+const schoolProof = [
+  "Move from learner follow-up to class triage and leadership visibility without changing systems.",
+  "Keep attention on stale evidence, review pressure, and support needs without a chart wall.",
+];
+
 const bridgeBlocks = [
   {
     title: "Family",
@@ -128,6 +138,105 @@ function blockGrid(items: { title: string; text: string }[]) {
   );
 }
 
+function proofPanel(
+  label: string,
+  title: string,
+  detail: string,
+  points: string[],
+  tone: "family" | "schools"
+) {
+  const background =
+    tone === "family"
+      ? "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)"
+      : "linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)";
+  const border = tone === "family" ? "#e5e7eb" : "#bfdbfe";
+  const accent = tone === "family" ? "#2563eb" : "#6d28d9";
+
+  return (
+    <div
+      style={{
+        border: `1px solid ${border}`,
+        borderRadius: 20,
+        padding: 20,
+        background,
+        boxShadow: "0 12px 30px rgba(15,23,42,0.05)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: 1,
+          textTransform: "uppercase",
+          color: "#64748b",
+          marginBottom: 8,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 20,
+          lineHeight: 1.2,
+          fontWeight: 900,
+          color: "#0f172a",
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          lineHeight: 1.7,
+          color: "#475569",
+          marginBottom: 14,
+        }}
+      >
+        {detail}
+      </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        {points.map((point, index) => (
+          <div
+            key={point}
+            style={{
+              border: "1px solid rgba(148,163,184,0.18)",
+              borderRadius: 14,
+              padding: "12px 14px",
+              background: "#ffffff",
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                marginTop: 4,
+                flexShrink: 0,
+                background:
+                  index === 0 ? accent : tone === "family" ? "#0f766e" : "#2563eb",
+              }}
+            />
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "#334155",
+                fontWeight: 700,
+              }}
+            >
+              {point}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
     <PublicSiteShell
@@ -159,18 +268,42 @@ export default function HomePage() {
           marginBottom: 24,
           padding: 28,
           background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+          scrollMarginTop: 116,
         }}
       >
-        {sectionTitle(
-          "Families / Homeschool",
-          "Built for families and homeschool learning",
-          "Capture learning simply, build a rich record of progress, and stay confident as reporting and reflection come together."
-        )}
-        {blockGrid(familyBlocks)}
-        <div style={{ marginTop: 18 }}>
-          <Link href="/start" style={publicButtonStyle(true)}>
-            Start as a family
-          </Link>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
+            gap: 22,
+            alignItems: "start",
+          }}
+        >
+          <div>
+            {sectionTitle(
+              "Families / Homeschool",
+              "Built for families and homeschool learning",
+              "Capture learning simply, build a rich record of progress, and stay confident as reporting and reflection come together."
+            )}
+            {blockGrid(familyBlocks)}
+            <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <Link href="/start" style={publicButtonStyle(true)}>
+                Start as a family
+              </Link>
+              <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
+                Start with one learning moment, then let the record build.
+              </div>
+            </div>
+          </div>
+          <div>
+            {proofPanel(
+              "Family proof",
+              "A calmer path from learning moment to trusted record",
+              "The family flow is designed to feel guided from the start, not like a reporting system dropped into the home.",
+              familyProof,
+              "family"
+            )}
+          </div>
         </div>
       </section>
 
@@ -181,18 +314,42 @@ export default function HomePage() {
           marginBottom: 24,
           padding: 28,
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+          scrollMarginTop: 116,
         }}
       >
-        {sectionTitle(
-          "Schools / Teachers",
-          "Built for classrooms and schools",
-          "From learner follow-up to class triage and leadership visibility, EduDecks helps schools focus attention where it matters most without the dashboard overload."
-        )}
-        {blockGrid(schoolBlocks)}
-        <div style={{ marginTop: 18 }}>
-          <Link href="/contact" style={publicButtonStyle(false)}>
-            Explore the school view
-          </Link>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.05fr) minmax(300px, 0.95fr)",
+            gap: 22,
+            alignItems: "start",
+          }}
+        >
+          <div>
+            {sectionTitle(
+              "Schools / Teachers",
+              "Built for classrooms and schools",
+              "From learner follow-up to class triage and leadership visibility, EduDecks helps schools focus attention where it matters most without the dashboard overload."
+            )}
+            {blockGrid(schoolBlocks)}
+            <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+              <Link href="/contact" style={publicButtonStyle(false)}>
+                Explore the school view
+              </Link>
+              <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
+                A good next step for school teams exploring a calmer rollout.
+              </div>
+            </div>
+          </div>
+          <div>
+            {proofPanel(
+              "School proof",
+              "One connected operating layer across teaching and leadership",
+              "EduDecks is built to keep learner follow-up, class attention, and school visibility connected rather than split across separate tools.",
+              schoolProof,
+              "schools"
+            )}
+          </div>
         </div>
       </section>
 

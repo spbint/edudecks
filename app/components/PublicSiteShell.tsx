@@ -227,7 +227,7 @@ export default function PublicSiteShell({
           top: 0,
           zIndex: 30,
           backdropFilter: "blur(10px)",
-          background: "rgba(255,255,255,0.9)",
+          background: "rgba(255,255,255,0.94)",
           borderBottom: `1px solid ${C.borderSoft}`,
         }}
       >
@@ -235,21 +235,28 @@ export default function PublicSiteShell({
           style={{
             maxWidth: 1320,
             margin: "0 auto",
-            padding: "16px 24px",
+            padding: "18px 24px 16px",
             display: "grid",
-            gap: 14,
+            gap: 16,
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              gap: 16,
+              gap: 22,
               alignItems: "center",
               flexWrap: "wrap",
             }}
           >
-            <BrandHomeLink height={38} width={140} />
+            <BrandHomeLink
+              height={50}
+              width={184}
+              style={{
+                flexShrink: 0,
+                paddingRight: 6,
+              }}
+            />
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               {isAuthenticated ? (
@@ -269,6 +276,7 @@ export default function PublicSiteShell({
               display: "flex",
               gap: 10,
               flexWrap: "wrap",
+              alignItems: "center",
             }}
           >
             {NAV_ITEMS.map((item) => (
@@ -308,7 +316,7 @@ export default function PublicSiteShell({
                 padding: "28px 24px",
                 display: "grid",
                 gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.9fr)",
-                gap: 24,
+                gap: 28,
                 alignItems: "center",
               }}
             >
