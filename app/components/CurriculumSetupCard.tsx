@@ -30,6 +30,7 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadMessage, setLoadMessage] = useState("");
   const [countries, setCountries] = useState<CurriculumCountry[]>([]);
   const [regions, setRegions] = useState<CurriculumRegion[]>([]);
   const [frameworks, setFrameworks] = useState<CurriculumFramework[]>([]);
@@ -41,30 +42,49 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
 
     async function loadData() {
       setLoading(true);
+      setLoadMessage("");
       try {
-        const [
-          countryData,
-          regionData,
-          frameworkData,
-          levelData,
-          subjectData,
-        ] = await Promise.all([
-          loadCurriculumCountries(),
-          loadCurriculumRegions(),
-          loadCurriculumFrameworks(),
-          loadCurriculumLevels(),
-          loadCurriculumSubjects(),
-        ]);
+        const timeout = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Curriculum data load timed out."));
+          }, 12000);
+        });
+
+        const settled = (await Promise.race([
+          Promise.allSettled([
+            loadCurriculumCountries(),
+            loadCurriculumRegions(),
+            loadCurriculumFrameworks(),
+            loadCurriculumLevels(),
+            loadCurriculumSubjects(),
+          ]),
+          timeout,
+        ])) as PromiseSettledResult<unknown[]>[];
 
         if (!active) return;
-        setCountries(countryData);
-        setRegions(regionData);
-        setFrameworks(frameworkData);
-        setLevels(levelData);
-        setSubjects(subjectData);
+
+        const [countryResult, regionResult, frameworkResult, levelResult, subjectResult] = settled;
+
+        setCountries(countryResult.status === "fulfilled" ? (countryResult.value as CurriculumCountry[]) : []);
+        setRegions(regionResult.status === "fulfilled" ? (regionResult.value as CurriculumRegion[]) : []);
+        setFrameworks(
+          frameworkResult.status === "fulfilled" ? (frameworkResult.value as CurriculumFramework[]) : []
+        );
+        setLevels(levelResult.status === "fulfilled" ? (levelResult.value as CurriculumLevel[]) : []);
+        setSubjects(subjectResult.status === "fulfilled" ? (subjectResult.value as CurriculumSubject[]) : []);
+
+        if (settled.some((result) => result.status === "rejected")) {
+          setLoadMessage("Some curriculum lists could not be loaded, so fallback options are being shown.");
+        }
       } catch (error) {
         if (!active) return;
         console.error("Curriculum setup load failed", error);
+        setCountries([]);
+        setRegions([]);
+        setFrameworks([]);
+        setLevels([]);
+        setSubjects([]);
+        setLoadMessage("Curriculum data could not be loaded right now. You can still reopen this later.");
       } finally {
         if (!active) return;
         setLoading(false);
@@ -236,6 +256,7 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
       </div>
 
       {statusMessage ? <div style={cardStyles.status}>{statusMessage}</div> : null}
+      {loadMessage ? <div style={cardStyles.loading}>{loadMessage}</div> : null}
 
       {isEditing ? (
         <div>

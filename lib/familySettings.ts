@@ -272,6 +272,11 @@ export function persistSettingsToLocalStorage(settings: FamilySettings) {
 export async function getCurrentUserId(): Promise<string | null> {
   if (!hasSupabaseEnv) return null;
 
+  const sessionResp = await supabase.auth.getSession();
+  if (sessionResp.data.session?.user?.id) {
+    return sessionResp.data.session.user.id;
+  }
+
   const {
     data: { user },
     error,

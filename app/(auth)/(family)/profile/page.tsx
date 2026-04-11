@@ -1,8 +1,8 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
@@ -29,7 +29,8 @@ type SavedPlan = { studentId: string; weekKey: string; focusTitle: string; focus
 const LOCAL_PLAN_KEY = "edudecks_plan";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading: authLoading } = useAuthUser();
+  const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [children, setChildren] = useState<ProfileChild[]>([]);
@@ -50,12 +51,10 @@ export default function ProfilePage() {
       setPlans(loadPlannerActivity());
 
       try {
-        const auth = await supabase.auth.getUser();
-        const currentUser = auth.data.user;
         const workspace = await loadFamilyWorkspace();
         if (!mounted) return;
 
-        setUser(currentUser ?? null);
+        setUserId(workspace.userId);
         setSettings(workspace.profile);
         setChildren(
           workspace.learners.map((child) => ({
@@ -71,19 +70,25 @@ export default function ProfilePage() {
           return;
         }
 
-        if (!currentUser) {
+        const currentUserId = workspace.userId || user?.id || null;
+        if (!currentUserId) {
+          if (authLoading) {
+            setStatus("Resolving your signed-in session…");
+            return;
+          }
           setError("Sign in to view your family profile.");
           return;
         }
 
-        const profileRow = await fetchProfileRow(currentUser.id);
+        setError("");
+        const profileRow = await fetchProfileRow(currentUserId);
         if (!mounted) return;
         setProfile(profileRow);
 
         const ids = workspace.learners.map((child) => child.id);
         const [captureRows, reportRows] = await Promise.all([
           ids.length ? fetchRecentEvidence(ids) : Promise.resolve([]),
-          fetchRecentReports(currentUser.id),
+          fetchRecentReports(currentUserId),
         ]);
         if (!mounted) return;
         setCaptures(captureRows);
@@ -98,7 +103,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [authLoading, user?.id]);
 
   const displayName = useMemo(() => {
     const fromProfile = profile?.full_name || profile?.name;
@@ -177,8 +182,8 @@ export default function ProfilePage() {
     setBusyChildId(child.id);
     setStatus("");
     try {
-      if (!user) throw new Error("You must be signed in.");
-      await removeLinkedLearner(user.id, child.id);
+      if (!userId) throw new Error("You must be signed in.");
+      await removeLinkedLearner(userId, child.id);
       const nextChildren = children.filter((item) => item.id !== child.id);
       setChildren(nextChildren);
       if (settings.default_child_id === child.id) {
@@ -201,14 +206,14 @@ export default function ProfilePage() {
       setStatus("Enter a learner name before adding.");
       return;
     }
-    if (!hasSupabaseEnv || !user) {
+    if (!hasSupabaseEnv || !userId) {
       setStatus("A signed-in Supabase session is required to add a learner.");
       return;
     }
     setAdding(true);
     setStatus("");
     try {
-      const studentId = await createLinkedLearner(user.id, addName, addYear);
+      const studentId = await createLinkedLearner(userId, addName, addYear);
       const workspace = await loadFamilyWorkspace();
       const linkedChildren = workspace.learners.map((child) => ({
         id: child.id,

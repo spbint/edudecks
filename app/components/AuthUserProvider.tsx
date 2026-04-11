@@ -54,7 +54,11 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 
     async function hydrate() {
       try {
-        const { data } = await supabase.auth.getUser();
+        const sessionResp = await supabase.auth.getSession();
+        const sessionUser = sessionResp.data.session?.user ?? null;
+        const data = sessionUser
+          ? { user: sessionUser }
+          : (await supabase.auth.getUser()).data;
         if (!active) return;
         setUser(data.user ?? null);
         if (data.user) {

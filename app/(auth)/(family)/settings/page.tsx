@@ -112,7 +112,14 @@ export default function FamilySettingsPage() {
 
     async function hydrate() {
       try {
-        const workspace = await loadFamilyWorkspace();
+        const workspace = await Promise.race([
+          loadFamilyWorkspace(),
+          new Promise<never>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error("Family settings load timed out."));
+            }, 12000);
+          }),
+        ]);
         if (!mounted) return;
 
         const realChildren = workspace.learners.map((child) => learnerToOption(child));
@@ -137,6 +144,11 @@ export default function FamilySettingsPage() {
       } catch (err) {
         console.error("Family settings hydrate failed", err);
         if (!mounted) return;
+        setChildren([]);
+        setSettings(DEFAULT_FAMILY_SETTINGS);
+        setInitialSettings(DEFAULT_FAMILY_SETTINGS);
+        setUserId(null);
+        setStorageMode("local");
         setLoadError("We could not load your family defaults just yet. Please try again.");
       } finally {
         if (!mounted) return;

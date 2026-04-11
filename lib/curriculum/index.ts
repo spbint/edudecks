@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import type {
   CurriculumCountry as CoreCurriculumCountry,
   CurriculumCrosswalk,
@@ -304,6 +304,9 @@ function mergeById<T extends { id: string }>(primary: T[], fallback: T[]) {
 }
 
 async function selectRows<T>(table: string, select: string) {
+  if (!hasSupabaseEnv) {
+    return [] as T[];
+  }
   const { data, error } = await supabase.from(table).select(select);
   if (error) throw error;
   return ((data ?? []) as unknown) as T[];
