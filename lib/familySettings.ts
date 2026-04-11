@@ -17,6 +17,9 @@ export type WeekStart = "monday" | "sunday";
 export type ChildOption = {
   id: string;
   label: string;
+  yearLabel?: string;
+  year_level?: string | number | null;
+  connectedAt?: string | null;
 };
 
 export type CurriculumPreferences = {
@@ -127,11 +130,7 @@ function asExperienceMode(value: unknown): ExperienceMode {
 }
 
 function asDefaultChildLanding(value: unknown): DefaultChildLanding {
-  if (
-    value === "portfolio" ||
-    value === "planner" ||
-    value === "reports"
-  ) {
+  if (value === "portfolio" || value === "planner" || value === "reports") {
     return value;
   }
   return "dashboard";
@@ -195,6 +194,70 @@ function writeJson<T>(key: string, value: T) {
   } catch {
     // ignore storage errors
   }
+}
+
+function normalizeYearLevel(value: unknown): string | null {
+  const clean = safeString(value);
+  if (!clean) return null;
+
+  const stripped = clean.replace(/^year\s+/i, "").trim();
+  return stripped || null;
+}
+
+function normalizeYearLabel(
+  yearLabel: unknown,
+  yearLevel: unknown
+): string | undefined {
+  const explicit = safeString(yearLabel);
+  if (explicit) return explicit;
+
+  const cleanLevel = normalizeYearLevel(yearLevel);
+  return cleanLevel ? `Year ${cleanLevel}` : undefined;
+}
+
+function normalizeChildOption(value: unknown): ChildOption | null {
+  if (!value || typeof value !== "object") return null;
+
+  const row = value as Record<string, unknown>;
+
+  const id = safeString(row.id);
+  const explicitLabel =
+    safeString(row.label) || safeString(row.name) || safeString(row.title);
+  const firstName =
+    safeString(row.first_name) ||
+    safeString(row.firstName) ||
+    safeString(row.given_name) ||
+    safeString(row.givenName) ||
+    safeString(row.preferred_name) ||
+    safeString(row.preferredName);
+  const lastName =
+    safeString(row.last_name) ||
+    safeString(row.lastName) ||
+    safeString(row.surname) ||
+    safeString(row.family_name) ||
+    safeString(row.familyName);
+
+  const label = explicitLabel || [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  if (!id || !label) return null;
+
+  const year_level =
+    normalizeYearLevel(row.year_level) ||
+    normalizeYearLevel(row.yearLevel) ||
+    null;
+
+  const yearLabel = normalizeYearLabel(
+    row.yearLabel ?? row.year_label,
+    year_level
+  );
+
+  return {
+    id,
+    label,
+    yearLabel,
+    year_level,
+    connectedAt: safeString(row.connectedAt ?? row.connected_at) || null,
+  };
 }
 
 /* ============================================================
@@ -269,6 +332,22 @@ export function persistSettingsToLocalStorage(settings: FamilySettings) {
   writeJson(STORAGE_KEYS.SETTINGS, settings);
 }
 
+export function getStoredActiveStudentId(): string {
+  if (!canUseBrowserStorage()) return "";
+  return safeString(window.localStorage.getItem(STORAGE_KEYS.ACTIVE_STUDENT));
+}
+
+export function persistActiveStudentId(studentId: string | null | undefined) {
+  if (!canUseBrowserStorage()) return;
+
+  const clean = safeString(studentId);
+  if (clean) {
+    window.localStorage.setItem(STORAGE_KEYS.ACTIVE_STUDENT, clean);
+  } else {
+    window.localStorage.removeItem(STORAGE_KEYS.ACTIVE_STUDENT);
+  }
+}
+
 export async function getCurrentUserId(): Promise<string | null> {
   if (!hasSupabaseEnv) return null;
 
@@ -291,39 +370,36 @@ export async function getCurrentUserId(): Promise<string | null> {
 }
 
 export function loadChildrenFromLocalStorage(): ChildOption[] {
-  const raw = readJson<unknown[]>(STORAGE_KEYS.CHILDREN, []);
-  if (!Array.isArray(raw)) return [];
+  const raw = readJson<unknown>(STORAGE_KEYS.CHILDREN, []);
 
-  const items = raw
-    .map((item) => {
-      const row = item as Record<string, unknown>;
-      const id = safeString(row.id);
-      const firstName =
-        safeString(row.first_name) ||
-        safeString(row.firstName) ||
-        safeString(row.given_name) ||
-        safeString(row.givenName);
-      const lastName =
-        safeString(row.last_name) ||
-        safeString(row.lastName) ||
-        safeString(row.surname) ||
-        safeString(row.family_name) ||
-        safeString(row.familyName);
-      const explicitName = safeString(row.name);
-      const label = explicitName || [firstName, lastName].filter(Boolean).join(" ");
-      const yearLabel = safeString(row.yearLabel) || safeString(row.year_label);
-      const yearLevel = safeString(row.year_level);
+  const rows = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === "object"
+      ? Object.values(raw as Record<string, unknown>)
+      : [];
 
-      if (!id || !label) return null;
-      return {
-        id,
-        label,
-        yearLabel: yearLabel || undefined,
-        year_level: yearLevel || undefined,
-      };
-    });
+  const items = rows
+    .map((item) => normalizeChildOption(item))
+    .filter(Boolean) as ChildOption[];
 
-  return items.filter(Boolean) as ChildOption[];
+  const seen = new Set<string>();
+  const deduped: ChildOption[] = [];
+
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    deduped.push(item);
+  }
+
+  return deduped;
+}
+
+export function persistChildrenToLocalStorage(children: ChildOption[]) {
+  const normalized = children
+    .map((child) => normalizeChildOption(child))
+    .filter(Boolean) as ChildOption[];
+
+  writeJson(STORAGE_KEYS.CHILDREN, normalized);
 }
 
 /* ============================================================
@@ -334,6 +410,7 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
   if (!hasSupabaseEnv) {
     return { ...DEFAULT_FAMILY_PROFILE };
   }
+
   const { data, error } = await supabase
     .from("family_profiles")
     .select("*")
