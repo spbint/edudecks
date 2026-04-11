@@ -33,37 +33,18 @@ function userFacingAuthError(error: any) {
 
 export default function AuthModal({ open, onClose, returnPath }: AuthModalProps) {
   const [email, setEmail] = useState("");
-  const [sendingGoogle, setSendingGoogle] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
 
   const resolvedCallbackUrl = useMemo(
-    () => buildAuthCallbackUrl(returnPath || (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")),
+    () =>
+      buildAuthCallbackUrl(
+        returnPath ||
+          (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")
+      ),
     [returnPath]
   );
-
-  async function continueWithGoogle() {
-    setError("");
-    setSendingGoogle(true);
-
-    try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: resolvedCallbackUrl,
-        },
-      });
-
-      if (authError) {
-        throw authError;
-      }
-    } catch (error: any) {
-      console.error("Google sign-in failed", error);
-      setError(userFacingAuthError(error));
-      setSendingGoogle(false);
-    }
-  }
 
   async function continueWithEmail() {
     const nextEmail = safe(email).toLowerCase();
@@ -81,6 +62,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
         email: nextEmail,
         options: {
           emailRedirectTo: resolvedCallbackUrl,
+          shouldCreateUser: true,
         },
       });
 
@@ -147,17 +129,17 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
                 color: "#0f172a",
               }}
             >
-              Save your progress
+              Continue with your email
             </div>
             <div
               style={{
                 marginTop: 8,
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "#475569",
-            }}
-          >
-              Create a free account to keep your learning plan and return safely to where you left off.
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "#475569",
+              }}
+            >
+              We’ll send one secure link so you can return safely to where you left off.
             </div>
           </div>
 
@@ -182,26 +164,6 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
           </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void continueWithGoogle()}
-          disabled={sendingGoogle || sendingEmail}
-          style={{
-            width: "100%",
-            minHeight: 52,
-            borderRadius: 14,
-            border: "1px solid #2563eb",
-            background: "#2563eb",
-            color: "#ffffff",
-            fontSize: 15,
-            fontWeight: 900,
-            cursor: sendingGoogle || sendingEmail ? "not-allowed" : "pointer",
-            opacity: sendingGoogle || sendingEmail ? 0.7 : 1,
-          }}
-        >
-          {sendingGoogle ? "Continuing..." : "Continue with Google"}
-        </button>
-
         <div
           style={{
             display: "grid",
@@ -219,7 +181,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
               color: "#475569",
             }}
           >
-            Email me a code
+            Email address
           </label>
 
           <input
@@ -245,21 +207,21 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
           <button
             type="button"
             onClick={() => void continueWithEmail()}
-            disabled={sendingGoogle || sendingEmail}
+            disabled={sendingEmail}
             style={{
               width: "100%",
               minHeight: 48,
               borderRadius: 12,
-              border: "1px solid #d1d5db",
-              background: "#ffffff",
-              color: "#0f172a",
+              border: "1px solid #2563eb",
+              background: "#2563eb",
+              color: "#ffffff",
               fontSize: 14,
               fontWeight: 800,
-              cursor: sendingGoogle || sendingEmail ? "not-allowed" : "pointer",
-              opacity: sendingGoogle || sendingEmail ? 0.7 : 1,
+              cursor: sendingEmail ? "not-allowed" : "pointer",
+              opacity: sendingEmail ? 0.7 : 1,
             }}
           >
-            {sendingEmail ? "Sending..." : "Email me a code"}
+            {sendingEmail ? "Sending..." : "Continue"}
           </button>
 
           {sentEmail ? (
@@ -271,11 +233,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
                 fontWeight: 700,
               }}
             >
-              Check your email for a secure sign-in link.
-              {` `}
-              We sent it to {sentEmail}.
-              {` `}
-              It will bring you back to EduDecks to continue saving your progress.
+              Check your email. We sent a secure link to {sentEmail}.
             </div>
           ) : null}
         </div>

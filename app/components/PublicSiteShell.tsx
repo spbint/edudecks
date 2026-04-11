@@ -17,7 +17,7 @@ type PublicSiteShellProps = {
   heroMicrocopy?: React.ReactNode;
   heroBadges?: string[];
   asideItems?: string[];
-  primaryCta?: CtaLink;
+  primaryCta?: CtaLink | null;
   secondaryCta?: CtaLink | null;
   headerAction?: CtaLink | null;
   footerPrimaryCta?: CtaLink | null;
@@ -373,20 +373,22 @@ export default function PublicSiteShell({
                 ) : null}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Link
-                    href={primaryCta.href}
-                    style={{
-                      ...shellButtonStyle(true),
-                      fontSize: isMobile ? 16 : 14,
-                      padding: isMobile ? "14px 18px" : "10px 14px",
-                      boxShadow: isMobile
-                        ? "0 16px 28px rgba(37,99,235,0.18)"
-                        : "0 12px 24px rgba(37,99,235,0.14)",
-                      width: isMobile ? "100%" : undefined,
-                    }}
-                  >
-                    {primaryCta.label}
-                  </Link>
+                  {primaryCta ? (
+                    <Link
+                      href={primaryCta.href}
+                      style={{
+                        ...shellButtonStyle(true),
+                        fontSize: isMobile ? 16 : 14,
+                        padding: isMobile ? "14px 18px" : "10px 14px",
+                        boxShadow: isMobile
+                          ? "0 16px 28px rgba(37,99,235,0.18)"
+                          : "0 12px 24px rgba(37,99,235,0.14)",
+                        width: isMobile ? "100%" : undefined,
+                      }}
+                    >
+                      {primaryCta.label}
+                    </Link>
+                  ) : null}
                   {secondaryCta ? (
                     <Link
                       href={secondaryCta.href}

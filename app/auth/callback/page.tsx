@@ -147,6 +147,26 @@ function AuthCallbackPageContent() {
           }
         }
 
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData.user;
+
+        if (user?.id) {
+          try {
+            await supabase.from("profiles").upsert({
+              id: user.id,
+              email: user.email?.toLowerCase() || null,
+              full_name:
+                safe(user.user_metadata?.full_name) ||
+                safe(user.user_metadata?.name) ||
+                null,
+              user_type: safe(user.user_metadata?.user_type) || "family",
+              onboarding_complete: false,
+            });
+          } catch {
+            // Non-blocking. Session completion matters more than profile hydration here.
+          }
+        }
+
         if (!mounted) return;
 
         setMessage(
