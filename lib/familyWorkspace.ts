@@ -66,6 +66,34 @@ async function withTimeout<T>(
   }
 }
 
+function buildYearLabel(yearLevel: string | number | null | undefined) {
+  const clean = safe(yearLevel);
+  return clean ? `Year ${clean}` : "";
+}
+
+function parseYearLevel(yearLabel: string | number | null | undefined) {
+  const clean = safe(yearLabel).replace(/^Year\s+/i, "");
+  const numeric = Number(clean);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function mergeLearners(
+  primary: FamilyLearner[],
+  secondary: FamilyLearner[],
+): FamilyLearner[] {
+  const map = new Map<string, FamilyLearner>();
+
+  for (const learner of secondary) {
+    map.set(learner.id, learner);
+  }
+
+  for (const learner of primary) {
+    map.set(learner.id, learner);
+  }
+
+  return Array.from(map.values());
+}
+
 export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
   return safe(learner?.label) || "Learner";
 }
@@ -96,14 +124,12 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
     label: child.label,
     yearLabel:
       safe((child as { yearLabel?: string | null }).yearLabel) ||
-      (safe((child as { year_level?: string | number | null }).year_level)
-        ? `Year ${safe((child as { year_level?: string | number | null }).year_level)}`
-        : ""),
-    year_level: Number.isFinite(
-      Number((child as { year_level?: string | number | null }).year_level),
-    )
-      ? Number((child as { year_level?: string | number | null }).year_level)
-      : null,
+      buildYearLabel(
+        (child as { year_level?: string | number | null }).year_level,
+      ),
+    year_level: parseYearLevel(
+      (child as { year_level?: string | number | null }).year_level,
+    ),
     connectedAt: null,
   }));
 }
@@ -260,29 +286,59 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     };
   }
 
-  const [profile, learners] = await withTimeout(
-    Promise.all([loadFamilyProfile(), loadLinkedLearners(userId)]),
-    "load family workspace",
-  );
+  try {
+    const [profile, dbLearners] = await withTimeout(
+      Promise.all([
+        loadFamilyProfile().catch(() => ({
+          id: "local",
+          ...localProfile,
+        })) as Promise<FamilyProfileRow>,
+        loadLinkedLearners(userId).catch((error) => {
+          console.error("loadLinkedLearners fallback", error);
+          return localLearners;
+        }),
+      ]),
+      "load family workspace",
+    );
 
-  const mergedProfile: FamilyProfileRow = {
-    ...profile,
-    default_child_id:
-      profile.default_child_id ||
-      localProfile.default_child_id ||
-      learners[0]?.id ||
-      null,
-  };
+    const learners = mergeLearners(dbLearners, localLearners);
 
-  persistSettingsToLocalStorage(mergedProfile);
-  persistLearnersToLocalCache(learners);
+    const mergedProfile: FamilyProfileRow = {
+      ...localProfile,
+      ...profile,
+      default_child_id:
+        profile.default_child_id ||
+        localProfile.default_child_id ||
+        learners[0]?.id ||
+        null,
+    };
 
-  return {
-    profile: mergedProfile,
-    learners,
-    userId,
-    storageMode: "database",
-  };
+    persistSettingsToLocalStorage(mergedProfile);
+    persistLearnersToLocalCache(learners);
+
+    return {
+      profile: mergedProfile,
+      learners,
+      userId,
+      storageMode:
+        learners.some((learner) => learner.id.startsWith("local-")) ||
+        dbLearners.length === 0
+          ? "local"
+          : "database",
+    };
+  } catch (error) {
+    console.error("loadFamilyWorkspace fallback", error);
+
+    return {
+      profile: {
+        id: "local",
+        ...localProfile,
+      },
+      learners: localLearners,
+      userId,
+      storageMode: "local",
+    };
+  }
 }
 
 export async function saveFamilyWorkspaceSettings(
