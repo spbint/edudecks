@@ -4,6 +4,9 @@ import type {
   FamilyShellHandoffIntent,
   FamilyShellHandoffPayload,
 } from "@/lib/familyCommandHandoff";
+import type { CrossRoleHandoffIntent } from "@/lib/crossRoleHandoff";
+
+type GuidanceIntent = FamilyShellHandoffIntent | CrossRoleHandoffIntent;
 
 export type FamilyGuidanceEventName =
   | "recommended_card_clicked"
@@ -14,7 +17,7 @@ export type FamilyGuidanceEventName =
 
 export type FamilyGuidanceEvent = {
   name: FamilyGuidanceEventName;
-  intent?: FamilyShellHandoffIntent;
+  intent?: GuidanceIntent;
   sourceHref?: string;
   destinationHref?: string;
   pathname?: string;
@@ -39,7 +42,7 @@ export type FamilyGuidanceDebugSnapshot = {
   crossChildLabel?: string;
   crossChildDetail?: string;
   helperMode?: "start" | "followup";
-  helperIntent?: FamilyShellHandoffIntent;
+  helperIntent?: GuidanceIntent;
   updatedAt: number;
 };
 

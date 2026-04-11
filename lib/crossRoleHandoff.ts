@@ -189,7 +189,7 @@ export function resolveCrossRoleHandoff(args: {
   expectedHref: string;
   expectedToRole: CrossRoleHandoffRole;
   expectedContextId?: string | null;
-}) {
+}): CrossRoleHandoffPayload | null {
   const rawIntent = safe(args.intentValue);
   if (!rawIntent || !isIntent(rawIntent)) return null;
 
@@ -212,6 +212,8 @@ export function resolveCrossRoleHandoff(args: {
     if (!isIntent(safe(parsed.intent)) || parsed.intent !== rawIntent) return null;
     if (!isRole(safe(parsed.fromRole)) || !isRole(safe(parsed.toRole))) return null;
     if (parsed.toRole !== args.expectedToRole) return null;
+    const fromRole = parsed.fromRole as CrossRoleHandoffRole;
+    const toRole = parsed.toRole as CrossRoleHandoffRole;
     if (safe(parsed.href) && safe(parsed.href) !== args.expectedHref) {
       window.localStorage.removeItem(CROSS_ROLE_HANDOFF_KEY);
       return null;
@@ -226,8 +228,8 @@ export function resolveCrossRoleHandoff(args: {
 
     return {
       intent: parsed.intent,
-      fromRole: parsed.fromRole,
-      toRole: parsed.toRole,
+      fromRole,
+      toRole,
       contextId: parsedContextId,
       href: args.expectedHref,
       title: safe(parsed.title) || "Suggested next move",
