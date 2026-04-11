@@ -2,17 +2,13 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
-  loadFamilyWorkspace,
   resolveEffectiveActiveLearnerId,
-  setActiveLearnerId,
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
 import {
-  DEFAULT_FAMILY_SETTINGS,
-  loadChildrenFromLocalStorage,
-  loadSettingsFromLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
 import { supabase } from "@/lib/supabaseClient";
@@ -88,29 +84,6 @@ function loadPlannerRows(): PlannerRow[] {
   }
 }
 
-function buildLocalLearners(): FamilyLearner[] {
-  return loadChildrenFromLocalStorage().map((child) => {
-    const yearLevel = safe(child.year_level);
-    const yearLabel =
-      safe(child.yearLabel) || (yearLevel ? `Year ${yearLevel}` : "");
-
-    return {
-      id: child.id,
-      label: child.label,
-      yearLabel,
-      year_level: yearLevel ? Number(yearLevel) || null : null,
-      connectedAt: child.connectedAt ?? null,
-    };
-  });
-}
-
-function buildLocalProfile(): FamilySettings {
-  return {
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...loadSettingsFromLocalStorage(),
-  };
-}
-
 function ChildTile({ child, isDefault }: { child: LearnerTile; isDefault: boolean }) {
   return (
     <div style={S.childCard}>
@@ -175,6 +148,8 @@ function WorkflowRibbon() {
 }
 
 export default function FamilyHomePage() {
+  const { workspace, activeLearnerId, loading: workspaceLoading, error: workspaceError, setActiveLearner } =
+    useFamilyWorkspace();
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [learners, setLearners] = useState<FamilyLearner[]>([]);
@@ -190,32 +165,24 @@ export default function FamilyHomePage() {
       setError("");
 
       try {
-        const workspace = await withTimeout(
-          loadFamilyWorkspace(),
-          "load family workspace",
-        );
+        const nextLearners = workspace.learners ?? [];
+        const nextProfile = workspace.profile as FamilySettings;
 
         if (!mounted) return;
 
-        const nextLearners = workspace.learners ?? [];
-        const nextProfile = workspace.profile ?? buildLocalProfile();
-
         if (!nextLearners.length) {
-          const localLearners = buildLocalLearners();
-          setLearners(localLearners);
+          setLearners([]);
 
-          const effectiveLearnerId = resolveEffectiveActiveLearnerId(
-            localLearners,
-            nextProfile,
-          );
+          const effectiveLearnerId = resolveEffectiveActiveLearnerId(nextLearners, nextProfile);
           setDefaultLearnerId(effectiveLearnerId);
 
           if (effectiveLearnerId) {
-            setActiveLearnerId(effectiveLearnerId);
+            setActiveLearner(effectiveLearnerId);
           }
 
           setCaptureRows([]);
           setReportRows([]);
+          setError(workspaceError);
           return;
         }
 
@@ -228,7 +195,7 @@ export default function FamilyHomePage() {
         setDefaultLearnerId(effectiveLearnerId);
 
         if (effectiveLearnerId) {
-          setActiveLearnerId(effectiveLearnerId);
+          setActiveLearner(effectiveLearnerId);
         }
 
         if (!workspace.userId) {
@@ -272,33 +239,11 @@ export default function FamilyHomePage() {
       } catch (err) {
         console.error("Family workspace load failed", err);
         if (!mounted) return;
-
-        const localLearners = buildLocalLearners();
-        const localProfile = buildLocalProfile();
-
-        if (localLearners.length) {
-          setLearners(localLearners);
-
-          const effectiveLearnerId = resolveEffectiveActiveLearnerId(
-            localLearners,
-            localProfile,
-          );
-          setDefaultLearnerId(effectiveLearnerId);
-
-          if (effectiveLearnerId) {
-            setActiveLearnerId(effectiveLearnerId);
-          }
-
-          setCaptureRows([]);
-          setReportRows([]);
-          setError("");
-        } else {
-          setLearners([]);
-          setDefaultLearnerId("");
-          setCaptureRows([]);
-          setReportRows([]);
-          setError("We could not load the family workspace right now.");
-        }
+        setLearners(workspace.learners);
+        setDefaultLearnerId(activeLearnerId);
+        setCaptureRows([]);
+        setReportRows([]);
+        setError(workspaceError || "We could not load the family workspace right now.");
       } finally {
         if (mounted) setBusy(false);
       }
@@ -309,7 +254,13 @@ export default function FamilyHomePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [workspace.learners, workspace.profile, workspace.userId, workspaceError, activeLearnerId]);
+
+  useEffect(() => {
+    if (activeLearnerId) {
+      setDefaultLearnerId(activeLearnerId);
+    }
+  }, [activeLearnerId]);
 
   const learnerTiles = useMemo(() => {
     return learners.map((learner) => {
@@ -355,7 +306,7 @@ export default function FamilyHomePage() {
         <section style={S.section}>
           <div style={S.sectionTitle}>Your learners</div>
 
-          {busy ? (
+          {busy || workspaceLoading ? (
             <div style={S.card}>
               <div style={S.cardText}>Loading linked learners…</div>
             </div>

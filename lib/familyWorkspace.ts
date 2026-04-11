@@ -13,6 +13,7 @@ import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 export const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 export const FAMILY_CHILDREN_CACHE_KEY = "edudecks_children_seed_v1";
+export const FAMILY_WORKSPACE_EVENT = "edudecksFamilyWorkspaceChanged";
 
 export type FamilyLearner = {
   id: string;
@@ -94,6 +95,33 @@ function mergeLearners(
   return Array.from(map.values());
 }
 
+function dispatchFamilyWorkspaceChanged(detail?: unknown) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(FAMILY_WORKSPACE_EVENT, {
+      detail: detail ?? {},
+    }),
+  );
+}
+
+export function buildLocalFamilyWorkspaceSnapshot(): FamilyWorkspaceState {
+  const localSettings = loadSettingsFromLocalStorage();
+  const localLearners = loadLearnersFromLocalCache();
+
+  return {
+    profile: {
+      id: "local",
+      ...DEFAULT_FAMILY_SETTINGS,
+      ...localSettings,
+      default_child_id:
+        localSettings.default_child_id || localLearners[0]?.id || null,
+    },
+    learners: localLearners,
+    userId: null,
+    storageMode: "local",
+  };
+}
+
 export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
   return safe(learner?.label) || "Learner";
 }
@@ -116,6 +144,11 @@ export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
   } catch {
     // ignore local cache failures
   }
+
+  dispatchFamilyWorkspaceChanged({
+    learnersChanged: true,
+    count: learners.length,
+  });
 }
 
 export function loadLearnersFromLocalCache(): FamilyLearner[] {
@@ -262,24 +295,15 @@ export async function loadLinkedLearners(
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
-  const localSettings = loadSettingsFromLocalStorage();
-  const localLearners = loadLearnersFromLocalCache();
-
-  const localProfile = {
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...localSettings,
-    default_child_id:
-      localSettings.default_child_id || localLearners[0]?.id || null,
-  };
+  const localSnapshot = buildLocalFamilyWorkspaceSnapshot();
+  const localProfile = localSnapshot.profile;
+  const localLearners = localSnapshot.learners;
 
   const userId = await getCurrentFamilyUserId();
 
   if (!userId || !hasSupabaseEnv) {
     return {
-      profile: {
-        id: "local",
-        ...localProfile,
-      },
+      profile: { ...localProfile },
       learners: localLearners,
       userId,
       storageMode: "local",
@@ -289,10 +313,7 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   try {
     const [profile, dbLearners] = await withTimeout(
       Promise.all([
-        loadFamilyProfile().catch(() => ({
-          id: "local",
-          ...localProfile,
-        })) as Promise<FamilyProfileRow>,
+        loadFamilyProfile().catch(() => ({ ...localProfile })) as Promise<FamilyProfileRow>,
         loadLinkedLearners(userId).catch((error) => {
           console.error("loadLinkedLearners fallback", error);
           return localLearners;
@@ -330,10 +351,7 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     console.error("loadFamilyWorkspace fallback", error);
 
     return {
-      profile: {
-        id: "local",
-        ...localProfile,
-      },
+      profile: { ...localProfile },
       learners: localLearners,
       userId,
       storageMode: "local",
@@ -345,10 +363,15 @@ export async function saveFamilyWorkspaceSettings(
   settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
   persistSettingsToLocalStorage(settings);
-  return withTimeout(
+  const saved = await withTimeout(
     upsertFamilyProfile(settings),
     "save family workspace settings",
   );
+  dispatchFamilyWorkspaceChanged({
+    profileChanged: true,
+    defaultLearnerId: saved.default_child_id ?? null,
+  });
+  return saved;
 }
 
 export async function setDefaultLearner(

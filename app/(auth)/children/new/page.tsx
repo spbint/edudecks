@@ -1,71 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  persistSettingsToLocalStorage,
+} from "@/lib/familySettings";
+import {
+  createLinkedLearner,
+  loadLearnersFromLocalCache,
+  persistLearnersToLocalCache,
+  setActiveLearnerId,
+} from "@/lib/familyWorkspace";
+import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
-
-/* ================= HELPERS ================= */
-
-function safe(v: any) {
+function safe(v: unknown) {
   return String(v ?? "").trim();
 }
-
-function splitName(fullName: string) {
-  const clean = safe(fullName);
-  if (!clean) return { first_name: "", surname: "" };
-  const parts = clean.split(/\s+/).filter(Boolean);
-  return {
-    first_name: parts[0] || "",
-    surname: parts.slice(1).join(" "),
-  };
-}
-
-/* ================= DATABASE ================= */
-
-async function createStudentRecord(userId: string, childName: string, yearLevel: string) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  console.log("AUTH USER:", user);
-  if (!user?.id) {
-    throw new Error("User not authenticated - cannot create student");
-  }
-
-  const nameBits = splitName(childName);
-  const yearNum = Number(safe(yearLevel));
-  const usableYear = Number.isFinite(yearNum) ? yearNum : null;
-
-  const payload = {
-    user_id: user?.id,
-    first_name: nameBits.first_name || safe(childName),
-    preferred_name: nameBits.first_name || safe(childName),
-    surname: nameBits.surname || null,
-    year_level: usableYear,
-  };
-  console.log("STUDENT INSERT PAYLOAD:", payload);
-
-  const r = await supabase.from("students").insert(payload).select("id").single();
-  if (r.error) throw r.error;
-  return r.data.id as string;
-}
-
-async function linkStudent(userId: string, studentId: string) {
-  const r = await supabase.from("parent_student_links").upsert(
-    {
-      parent_user_id: userId,
-      student_id: studentId,
-      relationship_label: "child",
-      sort_order: 0,
-    },
-    { onConflict: "parent_user_id,student_id" }
-  );
-
-  if (r.error) throw r.error;
-}
-
-/* ================= PAGE ================= */
 
 export default function AddChildPage() {
   const [childName, setChildName] = useState("");
@@ -83,19 +34,38 @@ export default function AddChildPage() {
     setErr("");
 
     try {
-      const authResp = await supabase.auth.getUser();
-      const user = authResp.data.user;
-      if (!user) throw new Error("You must be signed in.");
+      const authResp = await supabase.auth.getSession();
+      const user = authResp.data.session?.user ?? null;
 
-      const id = await createStudentRecord(user.id, childName, yearLevel);
+      if (user?.id && hasSupabaseEnv) {
+        const id = await createLinkedLearner(user.id, childName, yearLevel);
+        setActiveLearnerId(id);
+        window.location.href = "/family";
+        return;
+      }
 
-      await linkStudent(user.id, id);
+      const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const existingLearners = loadLearnersFromLocalCache();
+      persistLearnersToLocalCache([
+        ...existingLearners,
+        {
+          id: localId,
+          label: safe(childName),
+          yearLabel: safe(yearLevel) ? `Year ${safe(yearLevel)}` : "",
+          year_level: safe(yearLevel) ? Number(safe(yearLevel)) || null : null,
+          connectedAt: new Date().toISOString(),
+        },
+      ]);
 
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, id);
+      const nextSettings = {
+        ...DEFAULT_FAMILY_SETTINGS,
+        default_child_id: localId,
+      };
+      persistSettingsToLocalStorage(nextSettings);
+      setActiveLearnerId(localId);
       window.location.href = "/family";
-      return;
-    } catch (e: any) {
-      setErr(String(e?.message ?? e ?? "Add child failed."));
+    } catch (e: unknown) {
+      setErr(String((e as { message?: unknown })?.message ?? e ?? "Add child failed."));
     } finally {
       setSaving(false);
     }
@@ -151,7 +121,7 @@ export default function AddChildPage() {
           />
         </div>
 
-        {err && (
+        {err ? (
           <div
             style={{
               background: "#fff1f2",
@@ -165,7 +135,7 @@ export default function AddChildPage() {
           >
             {err}
           </div>
-        )}
+        ) : null}
 
         <div style={{ display: "flex", gap: 10 }}>
           <button
@@ -186,7 +156,7 @@ export default function AddChildPage() {
           </button>
 
           <button
-            onClick={saveChild}
+            onClick={() => void saveChild()}
             disabled={saving}
             style={{
               padding: "12px 16px",
@@ -198,7 +168,7 @@ export default function AddChildPage() {
               cursor: "pointer",
             }}
           >
-            {saving ? "Saving…" : "Add child"}
+            {saving ? "Saving..." : "Add child"}
           </button>
         </div>
       </section>

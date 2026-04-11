@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   DEFAULT_FAMILY_SETTINGS,
@@ -12,8 +13,6 @@ import {
 } from "@/lib/familySettings";
 import {
   createLinkedLearner,
-  loadFamilyWorkspace,
-  loadLinkedLearners,
   persistLearnersToLocalCache,
   removeLinkedLearner,
   saveFamilyWorkspaceSettings,
@@ -86,12 +85,18 @@ async function withTimeout<T>(
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuthUser();
+  const {
+    workspace,
+    loading: workspaceLoading,
+    error: workspaceError,
+    reloadWorkspace,
+    setWorkspacePatch,
+    setActiveLearner,
+  } = useFamilyWorkspace();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
-  const [settings, setSettings] = useState<FamilySettings>(
-    DEFAULT_FAMILY_SETTINGS,
-  );
+  const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [children, setChildren] = useState<ProfileChild[]>([]);
   const [captures, setCaptures] = useState<EvidenceEntry[]>([]);
   const [reports, setReports] = useState<ReportActivity[]>([]);
@@ -106,113 +111,79 @@ export default function ProfilePage() {
   const [hydrating, setHydrating] = useState(true);
 
   useEffect(() => {
+    setPlans(loadPlannerActivity());
+  }, []);
+
+  useEffect(() => {
+    if (workspaceLoading) return;
+
+    setUserId(workspace.userId ?? null);
+    setSettings(workspace.profile);
+    setChildren(
+      workspace.learners.map((child) => ({
+        id: child.id,
+        name: child.label,
+        yearLabel: child.yearLabel || "",
+        connectedAt: child.connectedAt ?? null,
+      })),
+    );
+
+    if (workspaceError) {
+      setError(workspaceError);
+    } else if (!hasSupabaseEnv) {
+      setError("Supabase is not configured for this preview environment.");
+    } else if (!workspace.userId && !authLoading) {
+      setError("Sign in to view your family profile.");
+    } else {
+      setError("");
+    }
+
+    if (authLoading && !workspace.userId) {
+      setStatus("Resolving your signed-in session...");
+    }
+
+    setHydrating(false);
+  }, [workspace, workspaceLoading, workspaceError, authLoading]);
+
+  useEffect(() => {
     let mounted = true;
 
-    async function hydrate() {
-      setHydrating(true);
-      setPlans(loadPlannerActivity());
+    async function hydrateRemoteDetails() {
+      if (!userId || !hasSupabaseEnv) {
+        if (!mounted) return;
+        setProfile(null);
+        setCaptures([]);
+        setReports([]);
+        return;
+      }
 
       try {
-        const workspace = await loadFamilyWorkspace();
-        if (!mounted) return;
-
-        setUserId(workspace.userId ?? null);
-        setSettings(workspace.profile);
-        setChildren(
-          workspace.learners.map((child) => ({
-            id: child.id,
-            name: child.label,
-            yearLabel: child.yearLabel || "",
-            connectedAt: child.connectedAt ?? null,
-          })),
-        );
-
-        if (!hasSupabaseEnv) {
-          setError("Supabase is not configured for this preview environment.");
-          return;
-        }
-
-        let resolvedUserId = workspace.userId || user?.id || null;
-
-        if (!resolvedUserId) {
-          const sessionRes = await withTimeout(
-            supabase.auth.getSession(),
-            "getSession",
-          );
-          resolvedUserId = sessionRes.data.session?.user?.id ?? null;
-        }
-
-        if (!resolvedUserId) {
-          const userRes = await withTimeout(
-            supabase.auth.getUser(),
-            "getUser",
-          );
-          resolvedUserId = userRes.data.user?.id ?? null;
-        }
-
-        if (!mounted) return;
-
-        setUserId(resolvedUserId);
-
-        if (!resolvedUserId) {
-          if (authLoading) {
-            setStatus("Resolving your signed-in session…");
-          } else {
-            setError("Sign in to view your family profile.");
-          }
-          return;
-        }
-
-        setError("");
-        setStatus("");
-
-        const profileRow = await fetchProfileRow(resolvedUserId);
-        if (!mounted) return;
-        setProfile(profileRow);
-
-        const refreshedLearners = await withTimeout(
-          loadLinkedLearners(resolvedUserId),
-          "load linked learners",
-        );
-        if (!mounted) return;
-
-        if (refreshedLearners.length > 0) {
-          setChildren(
-            refreshedLearners.map((child) => ({
-              id: child.id,
-              name: child.label,
-              yearLabel: child.yearLabel || "",
-              connectedAt: child.connectedAt ?? null,
-            })),
-          );
-        }
-
-        const ids = refreshedLearners.map((child) => child.id);
+        const profileRow = await fetchProfileRow(userId);
+        const learnerIds = children
+          .map((child) => child.id)
+          .filter((id) => !id.startsWith("local-"));
         const [captureRows, reportRows] = await Promise.all([
-          ids.length ? fetchRecentEvidence(ids) : Promise.resolve([]),
-          fetchRecentReports(resolvedUserId),
+          learnerIds.length ? fetchRecentEvidence(learnerIds) : Promise.resolve([]),
+          fetchRecentReports(userId),
         ]);
 
         if (!mounted) return;
-
+        setProfile(profileRow);
         setCaptures(captureRows);
         setReports(reportRows);
       } catch (err) {
-        console.error("Profile load failed", err);
+        console.error("Profile detail load failed", err);
         if (!mounted) return;
-        setError("We could not load the family profile right now.");
-      } finally {
-        if (!mounted) return;
-        setHydrating(false);
+        setError((prev) => prev || "We could not load the family profile right now.");
       }
     }
 
-    void hydrate();
+    void hydrateRemoteDetails();
 
     return () => {
       mounted = false;
     };
-  }, [authLoading, user?.id]);
+  }, [userId, children]);
 
   const displayName = useMemo(() => {
     const fromProfile = profile?.full_name || profile?.name;
@@ -265,13 +236,24 @@ export default function ProfilePage() {
   async function saveCurriculum() {
     setSavingCurriculum(true);
     setStatus("");
+
     try {
       const saved = await saveFamilyWorkspaceSettings({ ...settings });
       setSettings(saved);
+      setWorkspacePatch({
+        profile: saved,
+        storageMode: "database",
+        userId: workspace.userId,
+      });
       setStatus("Curriculum setup saved.");
     } catch (err) {
       console.error("Curriculum save failed", err);
       persistSettingsToLocalStorage(settings);
+      setWorkspacePatch({
+        profile: settings,
+        storageMode: "local",
+        userId: workspace.userId,
+      });
       setStatus("Curriculum setup saved locally.");
     } finally {
       setSavingCurriculum(false);
@@ -290,13 +272,24 @@ export default function ProfilePage() {
         };
         setSettings(nextSettings);
         persistSettingsToLocalStorage(nextSettings);
-        setActiveLearnerId(childId);
+        setWorkspacePatch({
+          profile: nextSettings,
+          storageMode: "local",
+          userId,
+        });
+        setActiveLearner(childId);
         setStatus("Default learner updated.");
         return;
       }
 
       const saved = await setDefaultLearner(settings, childId);
       setSettings(saved);
+      setWorkspacePatch({
+        profile: saved,
+        storageMode: "database",
+        userId,
+      });
+      setActiveLearner(childId);
       setStatus("Default learner updated.");
     } catch (err) {
       console.error("Default child update failed", err);
@@ -306,6 +299,11 @@ export default function ProfilePage() {
       };
       setSettings(nextSettings);
       persistSettingsToLocalStorage(nextSettings);
+      setWorkspacePatch({
+        profile: nextSettings,
+        storageMode: "local",
+        userId,
+      });
       setActiveLearnerId(childId);
       setStatus("Default learner updated locally.");
     } finally {
@@ -324,38 +322,48 @@ export default function ProfilePage() {
     setBusyChildId(child.id);
     setStatus("");
 
+    const nextChildren = children.filter((item) => item.id !== child.id);
+    const patchedLearners = nextChildren.map((item) => ({
+      id: item.id,
+      label: item.name,
+      yearLabel: item.yearLabel,
+      year_level: parseYearLabel(item.yearLabel),
+      connectedAt: item.connectedAt ?? null,
+    }));
+
     try {
-      const nextChildren = children.filter((item) => item.id !== child.id);
       setChildren(nextChildren);
+      persistLearnersToLocalCache(patchedLearners);
 
-      persistLearnersToLocalCache(
-        nextChildren.map((item) => ({
-          id: item.id,
-          label: item.name,
-          yearLabel: item.yearLabel,
-          year_level: parseYearLabel(item.yearLabel),
-          connectedAt: item.connectedAt ?? null,
-        })),
-      );
-
+      let nextSettings = settings;
       if (settings.default_child_id === child.id) {
         const nextDefault = nextChildren[0]?.id ?? null;
-        const nextSettings = {
+        nextSettings = {
           ...settings,
           default_child_id: nextDefault,
         };
         setSettings(nextSettings);
         persistSettingsToLocalStorage(nextSettings);
-        setActiveLearnerId(nextDefault);
+        setActiveLearner(nextDefault);
       }
+
+      setWorkspacePatch({
+        learners: patchedLearners,
+        profile: nextSettings,
+        storageMode:
+          child.id.startsWith("local-") || !userId ? "local" : workspace.storageMode,
+        userId,
+      });
 
       if (!child.id.startsWith("local-") && userId) {
         await removeLinkedLearner(userId, child.id);
+        await reloadWorkspace();
       }
 
       setStatus("Learner removed from family links.");
     } catch (err) {
       console.error("Child removal failed", err);
+      await reloadWorkspace();
       setStatus(`Learner could not be removed: ${describeError(err)}`);
     } finally {
       setBusyChildId("");
@@ -415,46 +423,17 @@ export default function ProfilePage() {
         "create learner",
       );
 
-      const refreshedLearners = await withTimeout(
-        loadLinkedLearners(resolvedUserId),
-        "reload learners",
-      );
-
-      const linkedChildren = refreshedLearners.map((child) => ({
-        id: child.id,
-        name: child.label,
-        yearLabel: child.yearLabel || "",
-        connectedAt: child.connectedAt ?? null,
-      }));
-
-      const nextChildren = linkedChildren.some((child) => child.id === studentId)
-        ? linkedChildren
-        : [
-            ...linkedChildren,
-            {
-              id: studentId,
-              name: learnerName,
-              yearLabel: learnerYear ? `Year ${learnerYear}` : "",
-              connectedAt: new Date().toISOString(),
-            },
-          ];
-
-      setChildren(nextChildren);
-
-      persistLearnersToLocalCache(
-        nextChildren.map((child) => ({
-          id: child.id,
-          label: child.name,
-          yearLabel: child.yearLabel,
-          year_level: parseYearLabel(child.yearLabel),
-          connectedAt: child.connectedAt ?? null,
-        })),
-      );
+      await reloadWorkspace();
 
       if (!settings.default_child_id) {
         try {
           const saved = await setDefaultLearner(settings, studentId);
           setSettings(saved);
+          setWorkspacePatch({
+            profile: saved,
+            storageMode: "database",
+            userId: resolvedUserId,
+          });
         } catch {
           const nextSettings = {
             ...settings,
@@ -462,10 +441,15 @@ export default function ProfilePage() {
           };
           setSettings(nextSettings);
           persistSettingsToLocalStorage(nextSettings);
-          setActiveLearnerId(studentId);
+          setWorkspacePatch({
+            profile: nextSettings,
+            storageMode: "local",
+            userId: resolvedUserId,
+          });
+          setActiveLearner(studentId);
         }
       } else {
-        setActiveLearnerId(studentId);
+        setActiveLearner(studentId);
       }
 
       setAddName("");
@@ -476,23 +460,23 @@ export default function ProfilePage() {
       return;
     } catch (err) {
       console.error("Add learner DB path failed, using local fallback", err);
+    } finally {
+      setAdding(false);
     }
 
     const nextChildren = mergeProfileChildren(children, localChild);
-    setChildren(nextChildren);
+    const patchedLearners = nextChildren.map((child) => ({
+      id: child.id,
+      label: child.name,
+      yearLabel: child.yearLabel,
+      year_level: parseYearLabel(child.yearLabel),
+      connectedAt: child.connectedAt ?? null,
+    }));
 
-    persistLearnersToLocalCache(
-      nextChildren.map((child) => ({
-        id: child.id,
-        label: child.name,
-        yearLabel: child.yearLabel,
-        year_level: parseYearLabel(child.yearLabel),
-        connectedAt: child.connectedAt ?? null,
-      })),
-    );
+    setChildren(nextChildren);
+    persistLearnersToLocalCache(patchedLearners);
 
     let nextSettings = settings;
-
     if (!settings.default_child_id) {
       nextSettings = {
         ...settings,
@@ -502,13 +486,18 @@ export default function ProfilePage() {
       persistSettingsToLocalStorage(nextSettings);
     }
 
-    setActiveLearnerId(nextSettings.default_child_id || localChild.id);
+    setWorkspacePatch({
+      learners: patchedLearners,
+      profile: nextSettings,
+      storageMode: "local",
+      userId,
+    });
+    setActiveLearner(nextSettings.default_child_id || localChild.id);
     setAddName("");
     setAddYear("");
     setStatus(
       `${learnerName} was added to the family workspace and will use the current family curriculum setup.`,
     );
-    setAdding(false);
   }
 
   return (
@@ -534,7 +523,7 @@ export default function ProfilePage() {
             {error ? <div style={styles.warn}>{error}</div> : null}
             {status ? <div style={styles.ok}>{status}</div> : null}
             {hydrating ? (
-              <div style={styles.muted}>Resolving your family workspace…</div>
+              <div style={styles.muted}>Resolving your family workspace...</div>
             ) : null}
           </div>
 
@@ -604,7 +593,7 @@ export default function ProfilePage() {
           </section>
         </div>
 
-        <section style={styles.card}>
+        <section id="curriculum-setup" style={styles.card}>
           <div
             style={{
               display: "flex",
@@ -642,7 +631,7 @@ export default function ProfilePage() {
           />
         </section>
 
-        <section style={styles.card}>
+        <section id="manage-family" style={styles.card}>
           <div
             style={{
               display: "flex",

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   ChildOption,
   DEFAULT_FAMILY_SETTINGS,
@@ -11,15 +12,9 @@ import {
   FamilySettings,
   MarketKey,
   WeekStart,
-  getCurrentUserId,
-  loadChildrenFromLocalStorage,
-  loadFamilyProfile,
-  loadSettingsFromLocalStorage,
   persistSettingsToLocalStorage,
-  rowToSettings,
-  upsertFamilyProfile,
 } from "@/lib/familySettings";
-import { hasSupabaseEnv } from "@/lib/supabaseClient";
+import { saveFamilyWorkspaceSettings, setActiveLearnerId } from "@/lib/familyWorkspace";
 
 function marketLabel(key: MarketKey) {
   if (key === "au") return "Australia";
@@ -87,95 +82,60 @@ function childOptionYearLabel(child: ChildOption | null | undefined) {
 }
 
 export default function FamilySettingsPage() {
+  const {
+    workspace,
+    loading: workspaceLoading,
+    error: workspaceError,
+    setWorkspacePatch,
+    setActiveLearner,
+  } = useFamilyWorkspace();
   const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [initialSettings, setInitialSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
-  const [children, setChildren] = useState<ChildOption[]>([]);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string>("");
   const [hydrated, setHydrated] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [loadError, setLoadError] = useState<string>("");
   const [saveError, setSaveError] = useState<string>("");
+  const [hasPendingEdits, setHasPendingEdits] = useState(false);
+
+  const children = useMemo<ChildOption[]>(
+    () =>
+      workspace.learners.map((learner) => ({
+        id: learner.id,
+        label: learner.label,
+        yearLabel: learner.yearLabel || "",
+        year_level: learner.year_level ?? null,
+        connectedAt: learner.connectedAt ?? null,
+      })),
+    [workspace.learners],
+  );
 
   useEffect(() => {
-    let mounted = true;
+    if (workspaceLoading) return;
 
-    async function hydrate() {
-      try {
-        const seededChildren = loadChildrenFromLocalStorage();
-        const localSettings = loadSettingsFromLocalStorage();
+    const nextSettings: FamilySettings = {
+      ...DEFAULT_FAMILY_SETTINGS,
+      ...workspace.profile,
+      default_child_id:
+        workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+    };
 
-        const localMerged: FamilySettings = {
-          ...DEFAULT_FAMILY_SETTINGS,
-          ...localSettings,
-          default_child_id: localSettings.default_child_id || seededChildren[0]?.id || null,
-        };
+    setStorageMode(workspace.storageMode);
+    setLoadError(workspaceError);
 
-        if (!mounted) return;
-
-        setChildren(seededChildren);
-        setSettings(localMerged);
-        setInitialSettings(localMerged);
-
-        const currentUserId = await getCurrentUserId();
-
-        if (!mounted) return;
-
-        setUserId(currentUserId);
-
-        if (!currentUserId || !hasSupabaseEnv) {
-          setStorageMode("local");
-          return;
-        }
-
-        let data: any = null;
-
-        try {
-          data = await loadFamilyProfile();
-        } catch {
-          if (!mounted) return;
-          setStorageMode("local");
-          setLoadError(
-            "Database profile could not be loaded, so local settings are being used."
-          );
-          return;
-        }
-
-        if (!mounted) return;
-
-        if (!data) {
-          setStorageMode("database");
-          return;
-        }
-
-        const dbSettings: FamilySettings = {
-          ...DEFAULT_FAMILY_SETTINGS,
-          ...rowToSettings(data),
-          default_child_id:
-            data.default_child_id || localMerged.default_child_id || seededChildren[0]?.id || null,
-        };
-
-        setStorageMode("database");
-        setSettings(dbSettings);
-        setInitialSettings(dbSettings);
-        persistSettingsToLocalStorage(dbSettings);
-      } catch (err) {
-        console.error("Family settings hydrate failed", err);
-        if (!mounted) return;
-        setLoadError("We could not load your family defaults just yet. Please try again.");
-      } finally {
-        if (!mounted) return;
-        setHydrated(true);
-      }
+    if (!hasPendingEdits) {
+      setSettings(nextSettings);
+      setInitialSettings(nextSettings);
     }
 
-    hydrate();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    setHydrated(true);
+  }, [
+    workspaceLoading,
+    workspace,
+    workspaceError,
+    hasPendingEdits,
+  ]);
 
   const isDirty = useMemo(() => {
     return JSON.stringify(settings) !== JSON.stringify(initialSettings);
@@ -218,6 +178,7 @@ export default function FamilySettingsPage() {
   }, [settings.show_authority_guidance, settings.experience_mode]);
 
   function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
+    setHasPendingEdits(true);
     setSettings((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -227,38 +188,44 @@ export default function FamilySettingsPage() {
 
     try {
       persistSettingsToLocalStorage(settings);
-
-      if (!userId) {
-        setStorageMode("local");
-        setInitialSettings(settings);
-        setSavedAt(new Date().toLocaleString());
-        return;
-      }
-
-      let data: any = null;
-
-      try {
-        data = await upsertFamilyProfile(settings);
-      } catch {
-        setStorageMode("local");
-        setSaveError(
-          "Settings were saved locally, but the family profile could not be updated in the database."
-        );
-        setInitialSettings(settings);
-        setSavedAt(new Date().toLocaleString());
-        return;
-      }
-
+      const saved = await saveFamilyWorkspaceSettings(settings);
       const merged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
-        ...rowToSettings(data),
-        default_child_id: data?.default_child_id || settings.default_child_id || null,
+        ...saved,
+        default_child_id:
+          saved.default_child_id || settings.default_child_id || children[0]?.id || null,
       };
 
       setStorageMode("database");
       setSettings(merged);
       setInitialSettings(merged);
+      setWorkspacePatch({
+        profile: saved,
+        storageMode: "database",
+        userId: workspace.userId,
+      });
       persistSettingsToLocalStorage(merged);
+      if (merged.default_child_id) {
+        setActiveLearner(merged.default_child_id);
+      }
+      setHasPendingEdits(false);
+      setSavedAt(new Date().toLocaleString());
+    } catch (err) {
+      console.error("Settings save failed", err);
+      setStorageMode("local");
+      setWorkspacePatch({
+        profile: settings,
+        storageMode: "local",
+        userId: workspace.userId,
+      });
+      if (settings.default_child_id) {
+        setActiveLearnerId(settings.default_child_id);
+      }
+      setInitialSettings(settings);
+      setHasPendingEdits(false);
+      setSaveError(
+        "Settings were saved locally, but the family profile could not be updated in the database."
+      );
       setSavedAt(new Date().toLocaleString());
     } finally {
       setSaving(false);
@@ -271,6 +238,7 @@ export default function FamilySettingsPage() {
       default_child_id: children[0]?.id || null,
     };
     setSettings(fallback);
+    setHasPendingEdits(true);
   }
 
   if (!hydrated) {

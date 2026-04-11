@@ -3,7 +3,9 @@
 import Link from "next/link";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useAuthUser } from "@/app/components/AuthUserProvider";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 
 type FamilyTopNavShellProps = {
   children: React.ReactNode;
@@ -104,10 +106,10 @@ export default function FamilyTopNavShell({
   subtitle,
   className,
   contentClassName,
-  familyName = "EduDecks Family",
-  email = "seanbint@live.com",
-  defaultLearner = "Ava",
-  curriculum = "Australian Curriculum v9",
+  familyName,
+  email,
+  defaultLearner,
+  curriculum,
   heroTitle,
   heroText,
   heroAsideTitle = "Family Snapshot",
@@ -118,11 +120,23 @@ export default function FamilyTopNavShell({
   hideHeroAside = false,
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
+  const { user } = useAuthUser();
+  const { workspace, activeLearner } = useFamilyWorkspace();
 
   const resolvedTitle = title ?? routeTitle(pathname);
   const resolvedSubtitle = subtitle ?? routeSubtitle(pathname);
   const resolvedHeroTitle = heroTitle ?? routeHeroTitle(pathname, resolvedSubtitle);
   const resolvedHeroText = heroText ?? routeHeroText(pathname);
+  const resolvedFamilyName =
+    familyName || workspace.profile.family_display_name || "EduDecks Family";
+  const resolvedEmail = email || user?.email || "Signed-in family workspace";
+  const resolvedDefaultLearner =
+    defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
+  const resolvedCurriculum =
+    curriculum ||
+    workspace.profile.curriculum_preferences.framework_id ||
+    workspace.profile.preferred_market?.toUpperCase() ||
+    "Curriculum not set";
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -145,10 +159,10 @@ export default function FamilyTopNavShell({
 
           <div className="shrink-0">
             <FamilyProfileMenu
-              familyName={familyName}
-              email={email}
-              defaultLearner={defaultLearner}
-              curriculum={curriculum}
+              familyName={resolvedFamilyName}
+              email={resolvedEmail}
+              defaultLearner={resolvedDefaultLearner}
+              curriculum={resolvedCurriculum}
             />
           </div>
         </div>
