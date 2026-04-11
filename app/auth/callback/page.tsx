@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeNextPath } from "@/lib/authRedirect";
@@ -51,7 +51,7 @@ function AuthCallbackPageContent() {
   const [manualLinking, setManualLinking] = useState(false);
   const redirectInProgress = useRef(false);
 
-  const nextPath = useMemo(() => {
+  const requestedNextPath = useMemo(() => {
     const fallback = normalizeNextPath("/family");
     const candidate = searchParams.get("next");
     return normalizeNextPath(candidate || fallback);
@@ -73,17 +73,6 @@ function AuthCallbackPageContent() {
       window.clearTimeout(timer);
     };
   }, []);
-
-  const navigateToNextPath = useCallback(() => {
-    if (redirectInProgress.current) return;
-    redirectInProgress.current = true;
-    router.replace(nextPath);
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        window.location.replace(nextPath);
-      }, 800);
-    }
-  }, [nextPath, router]);
 
   useEffect(() => {
     let mounted = true;
@@ -149,9 +138,18 @@ function AuthCallbackPageContent() {
 
         const { data: userData } = await supabase.auth.getUser();
         const user = userData.user;
+        let resolvedNextPath = requestedNextPath;
 
         if (user?.id) {
           try {
+            const profileResp = await supabase
+              .from("profiles")
+              .select("id,onboarding_complete")
+              .eq("id", user.id)
+              .maybeSingle();
+
+            const onboardingComplete = Boolean(profileResp.data?.onboarding_complete);
+
             await supabase.from("profiles").upsert({
               id: user.id,
               email: user.email?.toLowerCase() || null,
@@ -160,8 +158,19 @@ function AuthCallbackPageContent() {
                 safe(user.user_metadata?.name) ||
                 null,
               user_type: safe(user.user_metadata?.user_type) || "family",
-              onboarding_complete: false,
+              onboarding_complete: onboardingComplete,
             });
+
+            const linksResp = await supabase
+              .from("parent_student_links")
+              .select("student_id", { count: "exact", head: true })
+              .eq("parent_user_id", user.id);
+
+            const linkedChildrenCount = linksResp.count ?? 0;
+
+            if (requestedNextPath === "/family" && !onboardingComplete && linkedChildrenCount === 0) {
+              resolvedNextPath = "/welcome";
+            }
           } catch {
             // Non-blocking. Session completion matters more than profile hydration here.
           }
@@ -170,12 +179,21 @@ function AuthCallbackPageContent() {
         if (!mounted) return;
 
         setMessage(
-          nextPath === "/start"
+          resolvedNextPath === "/start"
             ? "You're signed in. Returning you to your learning record..."
+            : resolvedNextPath === "/welcome"
+            ? "You're signed in. Getting your first step ready..."
             : "You're signed in. Taking you back to EduDecks..."
         );
 
-        navigateToNextPath();
+        if (redirectInProgress.current) return;
+        redirectInProgress.current = true;
+        router.replace(resolvedNextPath);
+        if (typeof window !== "undefined") {
+          window.setTimeout(() => {
+            window.location.replace(resolvedNextPath);
+          }, 800);
+        }
       } catch (err: any) {
         console.error("Auth callback failed", err);
         if (!mounted) return;
@@ -195,19 +213,25 @@ function AuthCallbackPageContent() {
       mounted = false;
     };
   }, [
-    nextPath,
+    requestedNextPath,
     router,
     errorParam,
     errorDescription,
     codeParam,
     accessTokenParam,
     refreshTokenParam,
-    navigateToNextPath,
   ]);
 
   function handleManualContinue() {
     setManualLinking(true);
-    navigateToNextPath();
+    if (redirectInProgress.current) return;
+    redirectInProgress.current = true;
+    router.replace(requestedNextPath);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        window.location.replace(requestedNextPath);
+      }, 800);
+    }
   }
 
   return (
@@ -273,7 +297,7 @@ function AuthCallbackPageContent() {
           >
             {error
               ? "We hit a problem while completing sign-in. We're sending you back to a safe place now."
-              : nextPath === "/start"
+              : requestedNextPath === "/start"
               ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
               : "You'll be returned to the right EduDecks page automatically."}
           </div>
