@@ -25,7 +25,7 @@ type CurriculumSetupCardProps = {
   onChange: (curriculum: CurriculumPreferences) => void;
 };
 
-const FALLBACK_COUNTRIES: CurriculumCountry[] = [
+const FALLBACK_COUNTRIES = [
   { id: "us", name: "United States" },
   { id: "au", name: "Australia" },
   { id: "uk", name: "United Kingdom" },
@@ -34,11 +34,11 @@ const FALLBACK_COUNTRIES: CurriculumCountry[] = [
   { id: "za", name: "South Africa" },
   { id: "sg", name: "Singapore" },
   { id: "ib", name: "International Baccalaureate" },
-];
+] as unknown as CurriculumCountry[];
 
-const FALLBACK_REGIONS: CurriculumRegion[] = [];
+const FALLBACK_REGIONS = [] as unknown as CurriculumRegion[];
 
-const FALLBACK_FRAMEWORKS: CurriculumFramework[] = [
+const FALLBACK_FRAMEWORKS = [
   {
     id: "common-core",
     name: "Common Core",
@@ -95,32 +95,121 @@ const FALLBACK_FRAMEWORKS: CurriculumFramework[] = [
     region_id: undefined,
     subject_ids: ["english", "math", "science", "humanities"],
   },
-];
+] as unknown as CurriculumFramework[];
 
-const FALLBACK_LEVELS: CurriculumLevel[] = [
-  { id: "k", label: "Kindergarten / Prep", sort: 0, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-1", label: "Year 1 / Grade 1", sort: 1, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-2", label: "Year 2 / Grade 2", sort: 2, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-3", label: "Year 3 / Grade 3", sort: 3, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-4", label: "Year 4 / Grade 4", sort: 4, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-5", label: "Year 5 / Grade 5", sort: 5, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-6", label: "Year 6 / Grade 6", sort: 6, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-7", label: "Year 7 / Grade 7", sort: 7, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-8", label: "Year 8 / Grade 8", sort: 8, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-9", label: "Year 9 / Grade 9", sort: 9, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-10", label: "Year 10 / Grade 10", sort: 10, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-11", label: "Year 11 / Grade 11", sort: 11, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "year-12", label: "Year 12 / Grade 12", sort: 12, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-];
+const FALLBACK_LEVELS = [
+  {
+    id: "k",
+    label: "Kindergarten / Prep",
+    sort: 0,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-1",
+    label: "Year 1 / Grade 1",
+    sort: 1,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-2",
+    label: "Year 2 / Grade 2",
+    sort: 2,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-3",
+    label: "Year 3 / Grade 3",
+    sort: 3,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-4",
+    label: "Year 4 / Grade 4",
+    sort: 4,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-5",
+    label: "Year 5 / Grade 5",
+    sort: 5,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-6",
+    label: "Year 6 / Grade 6",
+    sort: 6,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-7",
+    label: "Year 7 / Grade 7",
+    sort: 7,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-8",
+    label: "Year 8 / Grade 8",
+    sort: 8,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-9",
+    label: "Year 9 / Grade 9",
+    sort: 9,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-10",
+    label: "Year 10 / Grade 10",
+    sort: 10,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-11",
+    label: "Year 11 / Grade 11",
+    sort: 11,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "year-12",
+    label: "Year 12 / Grade 12",
+    sort: 12,
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+] as unknown as CurriculumLevel[];
 
-const FALLBACK_SUBJECTS: CurriculumSubject[] = [
-  { id: "english", label: "English / Language Arts", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "math", label: "Mathematics", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "science", label: "Science", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "humanities", label: "Humanities", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "arts", label: "Arts", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-  { id: "health", label: "Health & PE", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
-];
+const FALLBACK_SUBJECTS = [
+  {
+    id: "english",
+    label: "English / Language Arts",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "math",
+    label: "Mathematics",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "science",
+    label: "Science",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "humanities",
+    label: "Humanities",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "arts",
+    label: "Arts",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+  {
+    id: "health",
+    label: "Health & PE",
+    framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id),
+  },
+] as unknown as CurriculumSubject[];
 
 export default function CurriculumSetupCard({
   value,
@@ -155,7 +244,13 @@ export default function CurriculumSetupCard({
 
         if (!active) return;
 
-        const [countryResult, regionResult, frameworkResult, levelResult, subjectResult] = settled;
+        const [
+          countryResult,
+          regionResult,
+          frameworkResult,
+          levelResult,
+          subjectResult,
+        ] = settled;
 
         const loadedCountries =
           countryResult.status === "fulfilled" ? countryResult.value : [];
@@ -238,9 +333,9 @@ export default function CurriculumSetupCard({
     (country) => country.id === value.country_id,
   );
   const selectedRegion = regions.find((region) => region.id === value.region_id);
-  const selectedFramework = frameworks.find(
-    (framework) => framework.id === value.framework_id,
-  ) || findFrameworkById(value.framework_id);
+  const selectedFramework =
+    frameworks.find((framework) => framework.id === value.framework_id) ||
+    findFrameworkById(value.framework_id);
   const selectedLevelLabel =
     levels.find((level) => level.id === value.level_id)?.label ||
     findLevelLabel(value.level_id);
