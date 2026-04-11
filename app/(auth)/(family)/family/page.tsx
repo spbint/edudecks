@@ -1,29 +1,25 @@
 ﻿"use client";
 
-import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import React, { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   loadFamilyWorkspace,
-  syncEffectiveActiveLearner,
+  resolveEffectiveActiveLearnerId,
+  setActiveLearnerId,
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
   id: string;
-  student_id?: string | null;
+  student_id: string | null;
   created_at?: string | null;
 };
 
 type ReportRow = {
   id: string;
   updated_at?: string | null;
-};
-
-type SavedPlan = {
-  studentId: string;
-  updatedAt: string;
 };
 
 type LearnerTile = {
@@ -34,76 +30,139 @@ type LearnerTile = {
   readiness: string;
 };
 
+type PlannerRow = {
+  studentId: string;
+  updatedAt?: string;
+};
+
 const LOCAL_PLAN_KEY = "edudecks_plan";
 
-const steps = [
-  { label: "Home", href: "/family" },
-  { label: "Calendar", href: "/calendar" },
-  { label: "Planner", href: "/planner" },
-  { label: "Capture", href: "/capture" },
-  { label: "Portfolio", href: "/portfolio" },
-  { label: "Reports", href: "/reports" },
-  { label: "Output", href: "/authority" },
-];
+async function withTimeout<T>(
+  promise: PromiseLike<T> | Promise<T>,
+  label: string,
+  ms = 8000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
 
-function WorkflowRibbon({ current }: { current: string }) {
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function safe(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function loadPlannerRows(): PlannerRow[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PLAN_KEY);
+    if (!raw) return [];
+
+    return Object.values(
+      JSON.parse(raw) as Record<string, { studentId?: string; updatedAt?: string }>,
+    )
+      .map((item) => ({
+        studentId: safe(item.studentId),
+        updatedAt: safe(item.updatedAt),
+      }))
+      .filter((item) => item.studentId);
+  } catch {
+    return [];
+  }
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function ChildTile({ child, isDefault }: { child: LearnerTile; isDefault: boolean }) {
   return (
-    <div style={S.ribbonWrap}>
-      <div style={S.ribbon}>
-        {steps.map((step, i) => {
-          const isActive = step.href === current;
+    <div style={S.childCard}>
+      <div style={S.childHeader}>
+        <div>
+          <div style={S.childName}>{child.name}</div>
+          <div style={S.childMeta}>{child.year}</div>
+        </div>
+        {isDefault ? <span style={S.defaultChip}>Default learner</span> : null}
+      </div>
 
-          return (
-            <React.Fragment key={step.href}>
-              <Link
-                href={step.href}
-                style={{
-                  ...S.step,
-                  ...(isActive ? S.stepActive : {}),
-                }}
-              >
-                <span style={S.stepNumber}>{i + 1}</span>
-                {step.label}
-              </Link>
+      <div style={S.childStats}>
+        <div style={S.statPill}>
+          <span style={S.statLabel}>Captures</span>
+          <span style={S.statValue}>{child.captures}</span>
+        </div>
+        <div style={S.statPill}>
+          <span style={S.statLabel}>Readiness</span>
+          <span style={S.statValue}>{child.readiness}</span>
+        </div>
+      </div>
 
-              {i < steps.length - 1 && <span style={S.arrow}>→</span>}
-            </React.Fragment>
-          );
-        })}
+      <div style={S.childActions}>
+        <Link href="/calendar" style={S.smallPrimaryButton}>
+          Build learning block
+        </Link>
+        <Link href="/capture" style={S.smallSecondaryButton}>
+          Capture learning
+        </Link>
       </div>
     </div>
   );
 }
 
-function ChildTile({ child }: { child: LearnerTile }) {
+function WorkflowRibbon() {
+  const items = [
+    { label: "Home", href: "/family", active: true },
+    { label: "Calendar", href: "/calendar" },
+    { label: "Planner", href: "/planner" },
+    { label: "Capture", href: "/capture" },
+    { label: "Portfolio", href: "/portfolio" },
+    { label: "Reports", href: "/reports" },
+    { label: "Output", href: "/reports/output" },
+  ];
+
   return (
-    <Link href={`/children/${child.id}`} style={S.childTile}>
-      <div style={S.childTopRow}>
-        <div>
-          <div style={S.childName}>{child.name}</div>
-          <div style={S.childMeta}>{child.year}</div>
-        </div>
-
-        <div style={S.childArrow}>→</div>
-      </div>
-
-      <div style={S.childStats}>
-        <div>Captures: {child.captures}</div>
-        <div>Status: {child.readiness}</div>
-      </div>
-
-      <div style={S.childHint}>Open learner profile</div>
-    </Link>
+    <div style={S.ribbon}>
+      {items.map((item, index) => (
+        <React.Fragment key={item.label}>
+          <Link
+            href={item.href}
+            style={item.active ? S.ribbonItemActive : S.ribbonItem}
+          >
+            <span style={S.ribbonIndex}>{index + 1}</span>
+            {item.label}
+          </Link>
+          {index < items.length - 1 ? <span style={S.ribbonArrow}>→</span> : null}
+        </React.Fragment>
+      ))}
+    </div>
   );
 }
 
-export default function FamilyPage() {
+export default function FamilyHomePage() {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [learners, setLearners] = useState<FamilyLearner[]>([]);
+  const [defaultLearnerId, setDefaultLearnerId] = useState("");
   const [captureRows, setCaptureRows] = useState<EvidenceRow[]>([]);
   const [reportRows, setReportRows] = useState<ReportRow[]>([]);
-  const [defaultLearnerId, setDefaultLearnerId] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -113,32 +172,51 @@ export default function FamilyPage() {
       setError("");
 
       try {
-        const workspace = await loadFamilyWorkspace();
+        const workspace = await withTimeout(
+          loadFamilyWorkspace(),
+          "load family workspace",
+        );
+
         if (!mounted) return;
 
-        setLearners(workspace.learners);
-        setDefaultLearnerId(syncEffectiveActiveLearner(workspace.learners, workspace.profile));
+        const nextLearners = workspace.learners ?? [];
+        setLearners(nextLearners);
 
-        if (!hasSupabaseEnv || !workspace.userId || !workspace.learners.length) {
-          setBusy(false);
+        const effectiveLearnerId = resolveEffectiveActiveLearnerId(
+          nextLearners,
+          workspace.profile,
+        );
+        setDefaultLearnerId(effectiveLearnerId);
+
+        if (effectiveLearnerId) {
+          setActiveLearnerId(effectiveLearnerId);
+        }
+
+        if (!nextLearners.length || !workspace.userId) {
+          setCaptureRows([]);
+          setReportRows([]);
           return;
         }
 
-        const learnerIds = workspace.learners.map((learner) => learner.id);
-        const [evidenceRes, reportRes] = await Promise.all([
-          supabase
-            .from("evidence_entries")
-            .select("id,student_id,created_at")
-            .in("student_id", learnerIds)
-            .order("created_at", { ascending: false })
-            .limit(24),
-          supabase
-            .from("report_drafts")
-            .select("id,updated_at")
-            .eq("user_id", workspace.userId)
-            .order("updated_at", { ascending: false })
-            .limit(12),
-        ]);
+        const learnerIds = nextLearners.map((learner) => learner.id);
+
+        const [evidenceRes, reportRes] = await withTimeout(
+          Promise.all([
+            supabase
+              .from("evidence_entries")
+              .select("id,student_id,created_at")
+              .in("student_id", learnerIds)
+              .order("created_at", { ascending: false })
+              .limit(24),
+            supabase
+              .from("report_drafts")
+              .select("id,updated_at")
+              .eq("user_id", workspace.userId)
+              .order("updated_at", { ascending: false })
+              .limit(12),
+          ]),
+          "load family evidence and reports",
+        );
 
         if (!mounted) return;
 
@@ -147,13 +225,27 @@ export default function FamilyPage() {
       } catch (err) {
         console.error("Family workspace load failed", err);
         if (!mounted) return;
-        setError("We could not load the family workspace right now.");
+
+        const fallbackWorkspace = await loadFamilyWorkspace().catch(() => null);
+
+        if (fallbackWorkspace?.learners?.length) {
+          setLearners(fallbackWorkspace.learners);
+          const effectiveLearnerId = resolveEffectiveActiveLearnerId(
+            fallbackWorkspace.learners,
+            fallbackWorkspace.profile,
+          );
+          setDefaultLearnerId(effectiveLearnerId);
+          setError("");
+        } else {
+          setError("We could not load the family workspace right now.");
+        }
       } finally {
         if (mounted) setBusy(false);
       }
     }
 
     void hydrate();
+
     return () => {
       mounted = false;
     };
@@ -161,7 +253,10 @@ export default function FamilyPage() {
 
   const learnerTiles = useMemo(() => {
     return learners.map((learner) => {
-      const captures = captureRows.filter((row) => row.student_id === learner.id).length;
+      const captures = captureRows.filter(
+        (row) => row.student_id === learner.id,
+      ).length;
+
       const readiness =
         captures >= 4 ? "Strong" : captures >= 1 ? "Building" : "Ready to begin";
 
@@ -179,7 +274,11 @@ export default function FamilyPage() {
   const recentCaptureCount = captureRows.length;
   const recentPlanCount = plannerRows.length;
   const recentReportCount = reportRows.length;
-  const nextLearner = learnerTiles.find((learner) => learner.id === defaultLearnerId) || learnerTiles[0] || null;
+
+  const nextLearner =
+    learnerTiles.find((learner) => learner.id === defaultLearnerId) ||
+    learnerTiles[0] ||
+    null;
 
   return (
     <FamilyTopNavShell
@@ -191,7 +290,7 @@ export default function FamilyPage() {
       heroAsideText="A calm, clear view of the current family workspace and the next connected step."
     >
       <div style={S.page}>
-        <WorkflowRibbon current="/family" />
+        <WorkflowRibbon />
 
         <section style={S.section}>
           <div style={S.sectionTitle}>Your learners</div>
@@ -200,18 +299,23 @@ export default function FamilyPage() {
             <div style={S.card}>
               <div style={S.cardText}>Loading linked learners…</div>
             </div>
-          ) : error ? (
-            <div style={S.errorCard}>{error}</div>
           ) : learnerTiles.length ? (
             <div style={S.childGrid}>
               {learnerTiles.map((child) => (
-                <ChildTile key={child.id} child={child} />
+                <ChildTile
+                  key={child.id}
+                  child={child}
+                  isDefault={child.id === defaultLearnerId}
+                />
               ))}
             </div>
+          ) : error ? (
+            <div style={S.errorCard}>{error}</div>
           ) : (
             <div style={S.card}>
               <div style={S.cardText}>
-                No learners are linked yet. Add a learner once in profile and the family workspace will follow everywhere.
+                No learners are linked yet. Add a learner once in profile and the
+                family workspace will follow everywhere.
               </div>
               <div style={S.nextStepActions}>
                 <Link href="/profile#manage-family" style={S.smallPrimaryButton}>
@@ -225,32 +329,40 @@ export default function FamilyPage() {
         <section style={S.section}>
           <div style={S.sectionTitle}>This week</div>
 
-          <div style={S.grid}>
-            <div style={S.card}>
-              <div style={S.cardTitle}>Planning</div>
-              <div style={S.cardText}>
-                {recentPlanCount ? `${recentPlanCount} saved planner update${recentPlanCount === 1 ? "" : "s"}` : "No planner work saved yet"}
+          <div style={S.summaryGrid}>
+            <div style={S.summaryCard}>
+              <div style={S.summaryTitle}>Planning</div>
+              <div style={S.summaryText}>
+                {recentPlanCount > 0
+                  ? `${recentPlanCount} saved planner moment(s)`
+                  : "No planner work saved yet"}
               </div>
             </div>
 
-            <div style={S.card}>
-              <div style={S.cardTitle}>Recent captures</div>
-              <div style={S.cardText}>
-                {recentCaptureCount ? `${recentCaptureCount} linked learning moment${recentCaptureCount === 1 ? "" : "s"}` : "No captures linked yet"}
+            <div style={S.summaryCard}>
+              <div style={S.summaryTitle}>Recent captures</div>
+              <div style={S.summaryText}>
+                {recentCaptureCount > 0
+                  ? `${recentCaptureCount} capture(s) linked`
+                  : "No captures linked yet"}
               </div>
             </div>
 
-            <div style={S.card}>
-              <div style={S.cardTitle}>Portfolio</div>
-              <div style={S.cardText}>
-                {recentCaptureCount ? "Building from real captured moments" : "Waiting for the first captured moment"}
+            <div style={S.summaryCard}>
+              <div style={S.summaryTitle}>Portfolio</div>
+              <div style={S.summaryText}>
+                {recentCaptureCount > 0
+                  ? "Building from captured learning"
+                  : "Waiting for the first captured moment"}
               </div>
             </div>
 
-            <div style={S.card}>
-              <div style={S.cardTitle}>Reports</div>
-              <div style={S.cardText}>
-                {recentReportCount ? `${recentReportCount} report draft${recentReportCount === 1 ? "" : "s"} in progress` : "Not started"}
+            <div style={S.summaryCard}>
+              <div style={S.summaryTitle}>Reports</div>
+              <div style={S.summaryText}>
+                {recentReportCount > 0
+                  ? `${recentReportCount} report draft(s)`
+                  : "Not started"}
               </div>
             </div>
           </div>
@@ -258,29 +370,38 @@ export default function FamilyPage() {
 
         <section style={S.section}>
           <div style={S.sectionTitle}>Next best step</div>
-
           <div style={S.nextStepCard}>
-            <div style={S.nextStepText}>
+            <div style={S.cardText}>
               {nextLearner
-                ? `Keep ${nextLearner.name} moving by placing one small learning block in Calendar or capturing the next useful moment.`
+                ? `Next, place one calm learning block for ${nextLearner.name} in Calendar, then capture one real moment from the week.`
                 : "Add one learner in profile to begin shaping the week."}
             </div>
 
             <div style={S.nextStepActions}>
-              <Link href={nextLearner ? "/calendar" : "/profile#manage-family"} style={S.smallPrimaryButton}>
-                {nextLearner ? "Go to Calendar" : "Manage family"}
-              </Link>
+              {nextLearner ? (
+                <>
+                  <Link href="/calendar" style={S.smallPrimaryButton}>
+                    Go to calendar
+                  </Link>
+                  <Link href="/capture" style={S.smallSecondaryButton}>
+                    Capture learning
+                  </Link>
+                </>
+              ) : (
+                <Link href="/profile#manage-family" style={S.smallPrimaryButton}>
+                  Manage family
+                </Link>
+              )}
             </div>
           </div>
         </section>
 
         <section style={S.section}>
           <div style={S.sectionTitle}>Recent learning</div>
-
           <div style={S.card}>
             <div style={S.cardText}>
-              {recentCaptureCount
-                ? `${recentCaptureCount} captured learning moment${recentCaptureCount === 1 ? "" : "s"} are now feeding the family workspace.`
+              {recentCaptureCount > 0
+                ? `You have ${recentCaptureCount} captured learning moment(s). Open Portfolio to review the strongest record.`
                 : "No recent learning yet. Capture one real moment to begin your story."}
             </div>
           </div>
@@ -290,185 +411,203 @@ export default function FamilyPage() {
   );
 }
 
-function loadPlannerRows(): SavedPlan[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.localStorage.getItem(LOCAL_PLAN_KEY);
-    if (!raw) return [];
-    return Object.values(JSON.parse(raw) as Record<string, SavedPlan>);
-  } catch {
-    return [];
-  }
-}
-
 const S: Record<string, React.CSSProperties> = {
-  page: {
-    display: "grid",
-    gap: 28,
-    padding: "0 0 32px",
-  },
-  section: {
-    display: "grid",
-    gap: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  ribbonWrap: {
-    display: "grid",
-    gap: 12,
-  },
+  page: { display: "grid", gap: 18, paddingBottom: 64 },
   ribbon: {
     display: "flex",
+    flexWrap: "wrap",
     alignItems: "center",
     gap: 10,
-    flexWrap: "wrap",
   },
-  step: {
-    padding: "10px 14px",
-    borderRadius: 14,
-    background: "#ffffff",
-    textDecoration: "none",
-    color: "#0f172a",
-    fontWeight: 700,
-    display: "flex",
+  ribbonItem: {
+    display: "inline-flex",
     alignItems: "center",
     gap: 8,
-    border: "1px solid #e2e8f0",
-    boxShadow: "0 6px 16px rgba(15,23,42,0.03)",
+    textDecoration: "none",
+    borderRadius: 14,
+    border: "1px solid #dbe3f0",
+    background: "#ffffff",
+    color: "#0f172a",
+    padding: "10px 14px",
+    fontWeight: 800,
+    fontSize: 14,
   },
-  stepActive: {
+  ribbonItemActive: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    textDecoration: "none",
+    borderRadius: 14,
+    border: "1px solid #0f172a",
     background: "#0f172a",
     color: "#ffffff",
-    border: "1px solid #0f172a",
-  },
-  stepNumber: {
-    fontSize: 12,
-    opacity: 0.72,
-    fontWeight: 900,
-  },
-  arrow: {
-    opacity: 0.45,
-    color: "#64748b",
-    fontWeight: 700,
-  },
-  childGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: 14,
-  },
-  childTile: {
-    border: "1px solid #e2e8f0",
-    borderRadius: 18,
-    padding: 16,
-    textDecoration: "none",
-    color: "#0f172a",
-    background: "#ffffff",
-    boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
-    display: "grid",
-    gap: 12,
-  },
-  childTopRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "start",
-    gap: 12,
-  },
-  childName: {
+    padding: "10px 14px",
     fontWeight: 800,
-    fontSize: 18,
-    lineHeight: 1.2,
-  },
-  childMeta: {
-    fontSize: 13,
-    color: "#64748b",
-    marginTop: 4,
-    fontWeight: 600,
-  },
-  childArrow: {
-    fontSize: 18,
-    color: "#94a3b8",
-    fontWeight: 700,
-  },
-  childStats: {
     fontSize: 14,
-    display: "grid",
-    gap: 6,
-    color: "#334155",
-    lineHeight: 1.5,
   },
-  childHint: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#2563eb",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 14,
-  },
-  card: {
-    border: "1px solid #e2e8f0",
-    borderRadius: 18,
-    padding: 16,
-    background: "#ffffff",
-    boxShadow: "0 8px 24px rgba(15,23,42,0.04)",
-    display: "grid",
-    gap: 12,
-  },
-  errorCard: {
-    border: "1px solid #fed7aa",
-    borderRadius: 18,
-    padding: 16,
-    background: "#fff7ed",
-    color: "#9a3412",
-    fontSize: 14,
-    lineHeight: 1.7,
-  },
-  cardTitle: {
-    fontWeight: 800,
-    marginBottom: 8,
-    fontSize: 16,
-    color: "#0f172a",
-  },
-  cardText: {
-    fontSize: 14,
-    color: "#334155",
-    lineHeight: 1.6,
-  },
-  nextStepCard: {
-    border: "1px solid #e2e8f0",
-    borderRadius: 18,
-    padding: 16,
-    background: "#f8fbff",
-    display: "grid",
-    gap: 14,
-  },
-  nextStepText: {
-    fontSize: 15,
-    lineHeight: 1.7,
-    color: "#334155",
-  },
-  nextStepActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  smallPrimaryButton: {
+  ribbonIndex: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "10px 14px",
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.18)",
+    fontSize: 11,
+    fontWeight: 900,
+  },
+  ribbonArrow: {
+    color: "#94a3b8",
+    fontWeight: 700,
+  },
+  section: { display: "grid", gap: 12 },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 900,
+    color: "#0f172a",
+  },
+  card: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    background: "#ffffff",
+    padding: 16,
+  },
+  errorCard: {
+    border: "1px solid #fdba74",
+    borderRadius: 18,
+    background: "#fff7ed",
+    color: "#9a3412",
+    padding: 16,
+    fontSize: 14,
+  },
+  cardText: {
+    fontSize: 14,
+    lineHeight: 1.65,
+    color: "#475569",
+  },
+  childGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+    gap: 14,
+  },
+  childCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    background: "#ffffff",
+    padding: 16,
+    display: "grid",
+    gap: 12,
+    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
+  },
+  childHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  childName: {
+    fontSize: 16,
+    fontWeight: 900,
+    color: "#0f172a",
+  },
+  childMeta: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#64748b",
+  },
+  defaultChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: 999,
+    padding: "6px 10px",
+    fontSize: 12,
+    fontWeight: 800,
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    color: "#1d4ed8",
+  },
+  childStats: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  statPill: {
+    display: "inline-flex",
+    gap: 8,
+    alignItems: "center",
+    borderRadius: 999,
+    background: "#f8fafc",
+    border: "1px solid #e5e7eb",
+    padding: "8px 10px",
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#64748b",
+    fontWeight: 700,
+  },
+  statValue: {
+    fontSize: 12,
+    color: "#0f172a",
+    fontWeight: 900,
+  },
+  childActions: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
+    gap: 14,
+  },
+  summaryCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    background: "#ffffff",
+    padding: 16,
+    display: "grid",
+    gap: 8,
+  },
+  summaryTitle: {
+    fontSize: 15,
+    fontWeight: 900,
+    color: "#0f172a",
+  },
+  summaryText: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 1.55,
+  },
+  nextStepCard: {
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    background: "#ffffff",
+    padding: 16,
+    display: "grid",
+    gap: 14,
+  },
+  nextStepActions: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  smallPrimaryButton: {
+    textDecoration: "none",
+    borderRadius: 12,
     background: "#0f172a",
     color: "#ffffff",
-    borderRadius: 12,
-    textDecoration: "none",
-    fontWeight: 700,
+    padding: "10px 14px",
+    fontWeight: 800,
     fontSize: 14,
-    boxShadow: "0 8px 18px rgba(15,23,42,0.12)",
+  },
+  smallSecondaryButton: {
+    textDecoration: "none",
+    borderRadius: 12,
+    border: "1px solid #d1d5db",
+    background: "#ffffff",
+    color: "#0f172a",
+    padding: "10px 14px",
+    fontWeight: 800,
+    fontSize: 14,
   },
 };
