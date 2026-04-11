@@ -39,6 +39,7 @@ type FamilyTopNavShellProps = FamilyShellHeaderProps & FamilyHeroProps;
 const DEFAULT_SHELL_CONFIG: FamilyTopNavShellProps = {
   title: "EduDecks Family",
   subtitle: "Homeschool-first learning flow",
+  hideHero: true,
 };
 
 type FamilyShellConfigContextValue = {
@@ -671,7 +672,7 @@ function ChildSwitcher() {
   );
 }
 
-function FamilyCommandLayer({ pathname }: { pathname: string }) {
+export function FamilyCommandLayer({ pathname }: { pathname: string }) {
   const [signals, setSignals] = useState<Record<string, CommandSignal>>({});
   const [momentum, setMomentum] = useState<MomentumState | null>(null);
   const [confidence, setConfidence] = useState<ReadinessConfidenceState | null>(null);
@@ -2297,7 +2298,6 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         </div>
       </div>
 
-        <FamilyCommandLayer pathname={pathname} />
         <FamilyGuidanceDebugPanel />
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", position: "relative", zIndex: 10 }}>
@@ -2497,26 +2497,12 @@ export function FamilyShellSurface({
   children: React.ReactNode;
   shellConfig?: FamilyTopNavShellProps;
 }) {
-  const pathname = usePathname();
-  const shellId = React.useRef(Math.random().toString(36).slice(2, 8));
   const [registeredConfig, setRegisteredConfig] = useState<FamilyTopNavShellProps | null>(null);
   const activeConfig = registeredConfig ?? shellConfig ?? DEFAULT_SHELL_CONFIG;
 
   return (
     <FamilyShellConfigContext.Provider value={{ setConfig: setRegisteredConfig }}>
       <div style={surfaceStyle}>
-        <div
-          style={{
-            background: "#fefefe",
-            borderBottom: "1px solid #fde68a",
-            padding: "2px 8px",
-            fontSize: 12,
-            color: "#92400e",
-            textAlign: "center",
-          }}
-        >
-          Debug: shell {shellId.current} {process.env.NODE_ENV}
-        </div>
         <FamilyShellHeader title={activeConfig.title} subtitle={activeConfig.subtitle} />
         <main style={mainStyle}>
           {!activeConfig.hideHero ? <FamilyHero {...activeConfig} /> : null}

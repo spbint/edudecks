@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import FamilyTopNavShell, { FamilyCommandLayer } from "@/app/components/FamilyTopNavShell";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import {
   FAMILY_GUIDANCE_SNAPSHOT_EVENT,
@@ -231,6 +232,7 @@ function snapshotTone(label?: string): "neutral" | "info" | "warning" | "success
 }
 
 export default function FamilyPage() {
+  const pathname = usePathname();
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [activeChildId, setActiveChildId] = useState("");
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
@@ -373,6 +375,8 @@ export default function FamilyPage() {
       hideHero={true}
     >
       <div style={{ display: "grid", gap: 18 }}>
+        <FamilyCommandLayer pathname={pathname} />
+
         <section
           style={{
             border: "1px solid #e5e7eb",
