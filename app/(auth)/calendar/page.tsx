@@ -782,10 +782,12 @@ function CalendarPageContent() {
     return blocksByDate[isoDate(date)] || [];
   }
 
+  const isWeekView = view === "week";
+
   const heading =
     view === "day"
       ? formatLongDate(selectedDate)
-      : view === "week"
+      : isWeekView
       ? formatWeekLabel(selectedDate)
       : formatMonthYear(selectedDate);
 
@@ -823,7 +825,12 @@ function CalendarPageContent() {
           </div>
         </section>
 
-        <section style={styles.toolbarCard}>
+        <section
+          style={{
+            ...styles.toolbarCard,
+            ...(isWeekView ? styles.toolbarCardWeekSecondary : {}),
+          }}
+        >
           <div style={styles.topRow}>
             <div style={styles.navLeft}>
               <button style={styles.smallBtn} onClick={goToday}>
@@ -934,7 +941,12 @@ function CalendarPageContent() {
           <div style={styles.storageHint}>Storage mode: {storageMode}</div>
         </section>
 
-        <section style={styles.intelligenceCard}>
+        <section
+          style={{
+            ...styles.intelligenceCard,
+            ...(isWeekView ? styles.intelligenceCardWeekPrimary : {}),
+          }}
+        >
           <div style={styles.intelligenceTop}>
             <div>
               <div style={styles.intelligenceEyebrow}>Weekly guidance</div>
@@ -1024,8 +1036,13 @@ function CalendarPageContent() {
           ) : null}
         </section>
 
-        {!loading && view === "week" ? (
-          <section style={styles.weekSignals}>
+        {!loading && isWeekView ? (
+          <section
+            style={{
+              ...styles.weekSignals,
+              ...styles.weekSignalsWeekSupport,
+            }}
+          >
             <div style={styles.weekSignalsTitle}>Missing area signals</div>
             <div style={styles.chipRow}>
               {missingAreas.length ? (
@@ -1045,8 +1062,13 @@ function CalendarPageContent() {
 
         {loading ? (
           <section style={styles.loadingCard}>Loading calendar…</section>
-        ) : view === "week" ? (
-          <section style={styles.weekGrid}>
+        ) : isWeekView ? (
+          <section
+            style={{
+              ...styles.weekGrid,
+              ...styles.weekGridPrimary,
+            }}
+          >
             {visibleDates.map((date) => {
               const dayBlocks = blocksFor(date);
               const isToday = sameDay(date, new Date());
@@ -1521,6 +1543,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 20,
     padding: 16,
   },
+  toolbarCardWeekSecondary: {
+    order: 5,
+  },
   intelligenceCard: {
     background: "#ffffff",
     border: "1px solid #e6e9f0",
@@ -1528,6 +1553,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 18,
     display: "grid",
     gap: 14,
+  },
+  intelligenceCardWeekPrimary: {
+    order: 2,
   },
   intelligenceTop: {
     display: "flex",
@@ -1791,6 +1819,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 18,
     padding: 14,
   },
+  weekSignalsWeekSupport: {
+    order: 4,
+  },
   weekSignalsTitle: {
     fontSize: 13,
     fontWeight: 800,
@@ -1800,6 +1831,9 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
     gap: 10,
+  },
+  weekGridPrimary: {
+    order: 3,
   },
   weekCol: {
     background: "#ffffff",
