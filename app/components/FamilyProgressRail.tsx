@@ -1,151 +1,156 @@
 "use client";
 
-import Link from "next/link";
 import React from "react";
+import Link from "next/link";
 
-type StepState = "complete" | "active" | "upcoming";
+type StepKey = "home" | "calendar" | "capture" | "portfolio";
 
-type ProgressStep = {
-  number: number;
+type FamilyProgressRailProps = {
+  current: StepKey;
+};
+
+type Step = {
+  key: StepKey;
   label: string;
+  hint: string;
   href: string;
-  helper?: string;
 };
 
-export type FamilyProgressRailProps = {
-  current: "home" | "calendar" | "capture" | "portfolio";
-  className?: string;
-};
-
-const STEPS: ProgressStep[] = [
+const STEPS: Step[] = [
   {
-    number: 1,
+    key: "home",
     label: "Home",
+    hint: "Start with the family view",
     href: "/family",
-    helper: "Start with the family view",
   },
   {
-    number: 2,
+    key: "calendar",
     label: "Calendar",
+    hint: "Plan the week gently",
     href: "/calendar",
-    helper: "Plan this week gently",
   },
   {
-    number: 3,
+    key: "capture",
     label: "Capture",
+    hint: "Record what happened",
     href: "/capture",
-    helper: "Record what happened",
   },
   {
-    number: 4,
+    key: "portfolio",
     label: "Portfolio",
+    hint: "Build the story over time",
     href: "/portfolio",
-    helper: "Build the story over time",
   },
 ];
-
-const ORDER: Record<FamilyProgressRailProps["current"], number> = {
-  home: 1,
-  calendar: 2,
-  capture: 3,
-  portfolio: 4,
-};
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function getStepState(
-  stepNumber: number,
-  current: FamilyProgressRailProps["current"],
-): StepState {
-  const currentNumber = ORDER[current];
-  if (stepNumber < currentNumber) return "complete";
-  if (stepNumber === currentNumber) return "active";
-  return "upcoming";
-}
-
 export default function FamilyProgressRail({
   current,
-  className,
 }: FamilyProgressRailProps) {
-  return (
-    <aside
-      className={cx(
-        "hidden xl:block xl:w-[240px] xl:shrink-0",
-        className,
-      )}
-      aria-label="Workflow progress"
-    >
-      <div className="sticky top-6 rounded-[24px] border border-slate-200 bg-white px-5 py-6 shadow-[0_10px_34px_rgba(15,23,42,0.05)]">
-        <div className="mb-5 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-          Guided steps
-        </div>
+  const currentIndex = STEPS.findIndex((step) => step.key === current);
 
-        <div className="relative">
-          <div className="absolute left-[18px] top-2 bottom-2 w-px bg-slate-200" />
+  return (
+    <aside className="hidden xl:block xl:w-[120px] xl:flex-shrink-0">
+      <div className="sticky top-28">
+        <div className="relative pl-2">
+          <div className="mb-4 text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
+            Guided flow
+          </div>
+
+          <div className="absolute left-[21px] top-8 bottom-5 w-px bg-slate-200" />
 
           <div className="flex flex-col gap-5">
-            {STEPS.map((step) => {
-              const state = getStepState(step.number, current);
+            {STEPS.map((step, index) => {
+              const isCurrent = step.key === current;
+              const isComplete = index < currentIndex;
+              const isNext = index === currentIndex + 1;
 
-              return (
-                <div key={step.href} className="relative">
-                  <Link
-                    href={step.href}
-                    className="group flex items-start gap-4 rounded-[18px] p-2 transition hover:bg-slate-50"
-                  >
+              const markerClass = isCurrent
+                ? "border-blue-300 bg-blue-50 text-blue-700 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+                : isComplete
+                  ? "border-slate-300 bg-slate-100 text-slate-700"
+                  : isNext
+                    ? "border-slate-300 bg-white text-slate-500"
+                    : "border-slate-200 bg-white text-slate-400";
+
+              const labelClass = isCurrent
+                ? "text-slate-950"
+                : isComplete
+                  ? "text-slate-700"
+                  : "text-slate-500";
+
+              const metaText = isCurrent
+                ? "You are here"
+                : isNext
+                  ? "Next step"
+                  : isComplete
+                    ? "Done"
+                    : "";
+
+              const content = (
+                <>
+                  <div className="relative z-10 flex items-start gap-3">
                     <div
                       className={cx(
-                        "relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-black",
-                        state === "complete" &&
-                          "border-slate-200 bg-slate-100 text-slate-700",
-                        state === "active" &&
-                          "border-blue-200 bg-blue-50 text-blue-700",
-                        state === "upcoming" &&
-                          "border-slate-200 bg-white text-slate-400",
+                        "flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-black transition",
+                        markerClass,
                       )}
                     >
-                      {step.number}
+                      {index + 1}
                     </div>
 
-                    <div className="min-w-0 pt-1">
+                    <div className="min-w-0 pt-0.5">
                       <div
                         className={cx(
-                          "text-[15px] font-bold",
-                          state === "active" && "text-slate-950",
-                          state === "complete" && "text-slate-700",
-                          state === "upcoming" && "text-slate-500",
+                          "text-sm font-bold leading-none transition",
+                          labelClass,
                         )}
                       >
                         {step.label}
                       </div>
 
-                      <div
-                        className={cx(
-                          "mt-1 text-xs leading-5",
-                          state === "active" && "text-slate-600",
-                          state === "complete" && "text-slate-500",
-                          state === "upcoming" && "text-slate-400",
-                        )}
-                      >
-                        {step.helper}
+                      <div className="mt-1 text-[11px] leading-4 text-slate-400">
+                        {step.hint}
                       </div>
 
-                      {state === "active" && (
-                        <div className="mt-2 inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
-                          You are here
+                      {metaText ? (
+                        <div
+                          className={cx(
+                            "mt-1 text-[10px] font-black uppercase tracking-[0.18em]",
+                            isCurrent
+                              ? "text-blue-600"
+                              : isNext
+                                ? "text-slate-500"
+                                : "text-slate-400",
+                          )}
+                        >
+                          {metaText}
                         </div>
-                      )}
-
-                      {state === "upcoming" && step.number === ORDER[current] + 1 && (
-                        <div className="mt-2 inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">
-                          Next step
-                        </div>
-                      )}
+                      ) : null}
                     </div>
-                  </Link>
-                </div>
+                  </div>
+                </>
+              );
+
+              if (isCurrent) {
+                return (
+                  <div key={step.key} className="select-none">
+                    {content}
+                  </div>
+                );
+              }
+
+              return (
+                <Link
+                  key={step.key}
+                  href={step.href}
+                  className="group block rounded-2xl outline-none transition hover:translate-x-[1px] focus-visible:ring-2 focus-visible:ring-blue-200"
+                >
+                  {content}
+                </Link>
               );
             })}
           </div>

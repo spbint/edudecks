@@ -219,7 +219,7 @@ export default function CalendarPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-6 py-6">
-      <div className="flex gap-6">
+      <div className="flex gap-6 xl:gap-8">
         <FamilyProgressRail current="calendar" />
 
         <div className="min-w-0 flex-1">
@@ -677,8 +677,8 @@ export default function CalendarPage() {
                       Mini calendar
                     </div>
                     <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs text-slate-500">
-                      {["M", "T", "W", "T", "F"].map((d) => (
-                        <div key={d} className="font-bold">
+                      {["M", "T", "W", "T", "F"].map((d, index) => (
+                        <div key={`${d}-${index}`} className="font-bold">
                           {d}
                         </div>
                       ))}
