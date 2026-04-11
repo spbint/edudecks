@@ -3,13 +3,18 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { FamilyShellHandoffPayload } from "@/lib/familyCommandHandoff";
+import type { CrossRoleHandoffPayload } from "@/lib/crossRoleHandoff";
 import {
   publishFamilyGuidanceSnapshot,
   trackFamilyGuidanceEvent,
 } from "@/lib/familyGuidanceEvents";
 
+type SharedHandoffPayload =
+  | FamilyShellHandoffPayload
+  | CrossRoleHandoffPayload;
+
 type FamilyHandoffNoteProps = {
-  handoff: FamilyShellHandoffPayload | null;
+  handoff: SharedHandoffPayload | null;
   acted?: boolean;
   marginBottom?: number;
   marginTop?: number;
@@ -25,7 +30,7 @@ export default function FamilyHandoffNote({
   const handoffKey = useMemo(
     () =>
       handoff
-        ? `${pathname}:${handoff.intent}:${handoff.href}:${handoff.createdAt}`
+        ? `${pathname}:${handoff.intent}:${handoff.href}:${"timestamp" in handoff ? handoff.timestamp : handoff.createdAt}`
         : "",
     [handoff, pathname]
   );

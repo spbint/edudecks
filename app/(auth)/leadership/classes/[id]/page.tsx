@@ -3,8 +3,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  buildLeadershipTeacherHandoff,
+  withCrossRoleHandoffQuery,
+  writeCrossRoleHandoff,
+} from "@/lib/crossRoleHandoff";
 import { loadClassAnalytics } from "@/lib/analytics/class";
 import type { ClassAnalytics } from "@/lib/analytics/types";
+import { setTeacherClassId } from "@/lib/teacherWorkspace";
 
 function chipStyle(
   tone: "neutral" | "info" | "warning" | "success"
@@ -108,13 +114,16 @@ function nextClassActions(analytics: ClassAnalytics) {
   const actions: Array<{ label: string; href: string; tone: "primary" | "secondary" }> = [];
   const classId = analytics.klass?.id ?? "";
 
-  if (!analytics.evidence.length || analytics.evidenceCoverage.filter((row) => row.days <= 14).length <= 1) {
-    actions.push({
-      label: "Open class and restore visibility",
-      href: `/classes/${classId}`,
-      tone: "primary",
-    });
-  }
+  actions.push({
+    label:
+      !analytics.evidence.length || analytics.evidenceCoverage.filter((row) => row.days <= 14).length <= 1
+        ? "Open this class in teacher view"
+        : analytics.overdueReviewCount > 0 || analytics.openInterventionCount > 0
+          ? "Open this class in teacher view"
+          : "Check this class in teacher view",
+    href: "/teacher",
+    tone: "primary",
+  });
 
   if (classId && (analytics.overdueReviewCount > 0 || analytics.openInterventionCount > 0)) {
     actions.push({
@@ -124,11 +133,11 @@ function nextClassActions(analytics: ClassAnalytics) {
     });
   }
 
-  if (!actions.length && classId) {
+  if (actions.length === 1 && classId) {
     actions.push({
       label: "Open class overview",
       href: `/classes/${classId}`,
-      tone: "primary",
+      tone: "secondary",
     });
   }
 
@@ -191,6 +200,18 @@ export default function LeadershipClassDetailPage() {
   const reason = useMemo(() => (analytics ? classReason(analytics) : ""), [analytics]);
   const visibility = useMemo(() => (analytics ? classVisibility(analytics) : ""), [analytics]);
   const actions = useMemo(() => (analytics ? nextClassActions(analytics) : []), [analytics]);
+  const leadershipToTeacherHandoff = useMemo(
+    () =>
+      analytics?.klass?.id
+        ? buildLeadershipTeacherHandoff({
+            classId: analytics.klass.id,
+            className: analytics.klass.name || "this class",
+            reason,
+            href: "/teacher",
+          })
+        : null,
+    [analytics?.klass?.id, analytics?.klass?.name, reason]
+  );
   const recentCoverage = useMemo(
     () => analytics?.evidenceCoverage.slice(0, 5) ?? [],
     [analytics?.evidenceCoverage]
@@ -380,8 +401,18 @@ export default function LeadershipClassDetailPage() {
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {actions.map((action) => (
             <Link
-              key={action.href}
-              href={action.href}
+              key={`${action.href}:${action.label}`}
+              href={
+                action.href === "/teacher"
+                  ? withCrossRoleHandoffQuery(action.href, leadershipToTeacherHandoff)
+                  : action.href
+              }
+              onClick={() => {
+                if (action.href === "/teacher" && analytics?.klass?.id) {
+                  setTeacherClassId(analytics.klass.id);
+                  writeCrossRoleHandoff(leadershipToTeacherHandoff);
+                }
+              }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",

@@ -2,8 +2,17 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { loadClassAnalytics } from "@/lib/analytics/class";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import type { ClassAnalytics, ClassRow } from "@/lib/analytics/types";
+import {
+  CROSS_ROLE_HANDOFF_QUERY_PARAM,
+  buildTeacherLearnerHandoff,
+  resolveCrossRoleHandoff,
+  withCrossRoleHandoffQuery,
+  writeCrossRoleHandoff,
+} from "@/lib/crossRoleHandoff";
 import {
   TEACHER_CLASS_CHANGED_EVENT,
   actionForStudent,
@@ -13,6 +22,7 @@ import {
   issueForStudent,
   loadTeacherClasses,
   readLastTeacherClassId,
+  setTeacherClassId,
   shortDate,
   studentName,
   teacherStudentHref,
@@ -68,10 +78,20 @@ function resolveClassLabel(row: ClassRow | null) {
 }
 
 export default function TeacherDashboardPage() {
+  const searchParams = useSearchParams();
   const [classId, setClassId] = useState("");
   const [analytics, setAnalytics] = useState<ClassAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const leadershipHandoff = useMemo(
+    () =>
+      resolveCrossRoleHandoff({
+        intentValue: searchParams?.get(CROSS_ROLE_HANDOFF_QUERY_PARAM),
+        expectedHref: "/teacher",
+        expectedToRole: "teacher",
+      }),
+    [searchParams]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -110,6 +130,13 @@ export default function TeacherDashboardPage() {
       );
     };
   }, []);
+
+  useEffect(() => {
+    const handoffClassId = leadershipHandoff?.contextId || "";
+    if (!handoffClassId || handoffClassId === classId) return;
+    setClassId(handoffClassId);
+    setTeacherClassId(handoffClassId);
+  }, [classId, leadershipHandoff?.contextId]);
 
   useEffect(() => {
     let mounted = true;
@@ -208,6 +235,8 @@ export default function TeacherDashboardPage() {
         </section>
       ) : null}
 
+      <FamilyHandoffNote handoff={leadershipHandoff} acted={false} marginBottom={2} />
+
       <section style={pageStyles.section}>
         <div style={pageStyles.sectionTitle}>Priority students</div>
         <div style={pageStyles.sectionBody}>
@@ -222,9 +251,22 @@ export default function TeacherDashboardPage() {
 
         <div style={{ display: "grid", gap: 12 }}>
           {priorityStudents.map((student) => (
+            (() => {
+              const handoff = buildTeacherLearnerHandoff({
+                learnerId: student.student_id,
+                learnerName: studentName(student),
+                reason: issueForStudent(student),
+              });
+              const href = withCrossRoleHandoffQuery(
+                teacherStudentHref(student.student_id),
+                handoff
+              );
+
+              return (
             <Link
               key={student.student_id}
-              href={teacherStudentHref(student.student_id)}
+              href={href}
+              onClick={() => writeCrossRoleHandoff(handoff)}
               style={{
                 ...pageStyles.softCard,
                 textDecoration: "none",
@@ -269,6 +311,8 @@ export default function TeacherDashboardPage() {
                 </div>
               </div>
             </Link>
+              );
+            })()
           ))}
 
           {!loading && !priorityStudents.length ? (
@@ -323,9 +367,22 @@ export default function TeacherDashboardPage() {
           </div>
           <div style={{ display: "grid", gap: 10 }}>
             {supportQueue.map((item) => (
+              (() => {
+                const handoff = buildTeacherLearnerHandoff({
+                  learnerId: item.id,
+                  learnerName: item.name,
+                  reason: item.text,
+                });
+                const href = withCrossRoleHandoffQuery(
+                  teacherStudentHref(item.id),
+                  handoff
+                );
+
+                return (
               <Link
                 key={item.id}
-                href={teacherStudentHref(item.id)}
+                href={href}
+                onClick={() => writeCrossRoleHandoff(handoff)}
                 style={{
                   ...pageStyles.softCard,
                   textDecoration: "none",
@@ -352,6 +409,8 @@ export default function TeacherDashboardPage() {
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>{item.due}</div>
                 </div>
               </Link>
+                );
+              })()
             ))}
           </div>
         </section>

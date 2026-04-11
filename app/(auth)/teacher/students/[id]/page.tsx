@@ -2,8 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { loadStudentAnalytics } from "@/lib/analytics/class";
+import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
+import {
+  CROSS_ROLE_HANDOFF_QUERY_PARAM,
+  resolveCrossRoleHandoff,
+} from "@/lib/crossRoleHandoff";
 import { studentDisplayName } from "@/lib/analytics/helpers";
 import type { StudentAnalytics } from "@/lib/analytics/types";
 
@@ -144,11 +149,22 @@ function nextTeacherActions(analytics: StudentAnalytics) {
 
 export default function TeacherStudentDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const studentId = String(params?.id ?? "").trim();
 
   const [analytics, setAnalytics] = useState<StudentAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const teacherHandoff = useMemo(
+    () =>
+      resolveCrossRoleHandoff({
+        intentValue: searchParams?.get(CROSS_ROLE_HANDOFF_QUERY_PARAM),
+        expectedHref: `/teacher/students/${studentId}`,
+        expectedToRole: "learner",
+        expectedContextId: studentId,
+      }),
+    [searchParams, studentId]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -220,6 +236,8 @@ export default function TeacherStudentDetailPage() {
           <div style={{ fontSize: 14, lineHeight: 1.6 }}>{error}</div>
         </section>
       ) : null}
+
+      <FamilyHandoffNote handoff={teacherHandoff} acted={false} marginBottom={2} />
 
       <section style={panelStyle()}>
         <div
