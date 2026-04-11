@@ -28,6 +28,29 @@ function stepBadgeStyle(): CSSProperties {
   };
 }
 
+const RIBBON_STEPS = [
+  { key: "plan", label: "Plan" },
+  { key: "capture", label: "Capture" },
+  { key: "build", label: "Build your record" },
+] as const;
+
+function secondaryLinkStyle(): CSSProperties {
+  return {
+    minHeight: 42,
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+    color: "#334155",
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0 14px",
+    fontSize: 14,
+    fontWeight: 800,
+  };
+}
+
 export default function PostAuthWelcomePage() {
   return (
     <main
@@ -136,6 +159,10 @@ export default function PostAuthWelcomePage() {
               Takes less than 30 seconds. You can change it later.
             </div>
           </div>
+
+          <div style={{ width: "100%", maxWidth: 760, marginTop: 6 }}>
+            <WorkflowRibbon />
+          </div>
         </section>
 
         <section
@@ -200,9 +227,9 @@ export default function PostAuthWelcomePage() {
             ))}
           </div>
 
-          <div style={{ paddingTop: 4 }}>
-            <a
-              href="#how-it-works"
+          <div style={{ paddingTop: 4, display: "flex", justifyContent: "start" }}>
+            <Link
+              href="/start"
               style={{
                 color: "#1d4ed8",
                 textDecoration: "none",
@@ -210,11 +237,161 @@ export default function PostAuthWelcomePage() {
                 fontWeight: 800,
               }}
             >
-              See how it works
-            </a>
+              Start your first learning moment
+            </Link>
+          </div>
+        </section>
+
+        <section
+          style={{
+            ...sectionCardStyle(),
+            background: "#f8fafc",
+            borderColor: "#e2e8f0",
+            display: "grid",
+            gap: 14,
+          }}
+        >
+          <div style={{ display: "grid", gap: 6 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 900,
+                letterSpacing: 1.05,
+                textTransform: "uppercase",
+                color: "#64748b",
+              }}
+            >
+              Explore later
+            </div>
+            <div
+              style={{
+                fontSize: 16,
+                lineHeight: 1.45,
+                fontWeight: 800,
+                color: "#0f172a",
+              }}
+            >
+              The rest of EduDecks is ready when you need it, but you do not need to start there.
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+            }}
+          >
+            <Link href="/family" style={secondaryLinkStyle()}>
+              Family home
+            </Link>
+            <Link href="/portfolio" style={secondaryLinkStyle()}>
+              Portfolio
+            </Link>
+            <Link href="/reports" style={secondaryLinkStyle()}>
+              Reports
+            </Link>
+            <Link href="/authority/readiness" style={secondaryLinkStyle()}>
+              Readiness
+            </Link>
           </div>
         </section>
       </div>
     </main>
+  );
+}
+
+function WorkflowRibbon() {
+  return (
+    <section
+      style={{
+        border: "1px solid #dbeafe",
+        background: "#f8fbff",
+        borderRadius: 18,
+        padding: 14,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 900,
+          letterSpacing: 1.05,
+          textTransform: "uppercase",
+          color: "#64748b",
+        }}
+      >
+        How it flows
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          justifyContent: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        {RIBBON_STEPS.map((step, index) => (
+          <div
+            key={step.key}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "8px 12px",
+                borderRadius: 999,
+                border: "1px solid #dbeafe",
+                background: "#ffffff",
+                color: "#334155",
+                fontSize: 13,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              <span
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 999,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  color: "#1d4ed8",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 900,
+                }}
+              >
+                {index + 1}
+              </span>
+              {step.label}
+            </div>
+
+            {index < RIBBON_STEPS.length - 1 ? (
+              <span
+                style={{
+                  color: "#94a3b8",
+                  fontSize: 14,
+                  fontWeight: 900,
+                }}
+              >
+                →
+              </span>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
