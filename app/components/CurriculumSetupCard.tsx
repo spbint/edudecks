@@ -25,7 +25,107 @@ type CurriculumSetupCardProps = {
   onChange: (curriculum: CurriculumPreferences) => void;
 };
 
-export default function CurriculumSetupCard({ value, onChange }: CurriculumSetupCardProps) {
+const FALLBACK_COUNTRIES: CurriculumCountry[] = [
+  { id: "us", name: "United States" },
+  { id: "au", name: "Australia" },
+  { id: "uk", name: "United Kingdom" },
+  { id: "nz", name: "New Zealand" },
+  { id: "ca", name: "Canada" },
+  { id: "za", name: "South Africa" },
+  { id: "sg", name: "Singapore" },
+  { id: "ib", name: "International Baccalaureate" },
+];
+
+const FALLBACK_REGIONS: CurriculumRegion[] = [];
+
+const FALLBACK_FRAMEWORKS: CurriculumFramework[] = [
+  {
+    id: "common-core",
+    name: "Common Core",
+    country_id: "us",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "acara",
+    name: "Australian Curriculum",
+    country_id: "au",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "uk-national",
+    name: "National Curriculum",
+    country_id: "uk",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "nz-curriculum",
+    name: "New Zealand Curriculum",
+    country_id: "nz",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "canada-general",
+    name: "Canadian Curriculum",
+    country_id: "ca",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "caps",
+    name: "CAPS",
+    country_id: "za",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "singapore-national",
+    name: "Singapore Curriculum",
+    country_id: "sg",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+  {
+    id: "ib-pyp",
+    name: "IB Primary Years Programme",
+    country_id: "ib",
+    region_id: undefined,
+    subject_ids: ["english", "math", "science", "humanities"],
+  },
+];
+
+const FALLBACK_LEVELS: CurriculumLevel[] = [
+  { id: "k", label: "Kindergarten / Prep", sort: 0, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-1", label: "Year 1 / Grade 1", sort: 1, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-2", label: "Year 2 / Grade 2", sort: 2, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-3", label: "Year 3 / Grade 3", sort: 3, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-4", label: "Year 4 / Grade 4", sort: 4, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-5", label: "Year 5 / Grade 5", sort: 5, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-6", label: "Year 6 / Grade 6", sort: 6, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-7", label: "Year 7 / Grade 7", sort: 7, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-8", label: "Year 8 / Grade 8", sort: 8, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-9", label: "Year 9 / Grade 9", sort: 9, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-10", label: "Year 10 / Grade 10", sort: 10, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-11", label: "Year 11 / Grade 11", sort: 11, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "year-12", label: "Year 12 / Grade 12", sort: 12, framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+];
+
+const FALLBACK_SUBJECTS: CurriculumSubject[] = [
+  { id: "english", label: "English / Language Arts", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "math", label: "Mathematics", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "science", label: "Science", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "humanities", label: "Humanities", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "arts", label: "Arts", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+  { id: "health", label: "Health & PE", framework_ids: FALLBACK_FRAMEWORKS.map((f) => f.id) },
+];
+
+export default function CurriculumSetupCard({
+  value,
+  onChange,
+}: CurriculumSetupCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
   const [statusMessage, setStatusMessage] = useState("");
@@ -43,6 +143,7 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
     async function loadData() {
       setLoading(true);
       setLoadMessage("");
+
       try {
         const settled = await Promise.allSettled([
           loadCurriculumCountries(),
@@ -56,99 +157,165 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
 
         const [countryResult, regionResult, frameworkResult, levelResult, subjectResult] = settled;
 
-        setCountries(countryResult.status === "fulfilled" ? (countryResult.value as CurriculumCountry[]) : []);
-        setRegions(regionResult.status === "fulfilled" ? (regionResult.value as CurriculumRegion[]) : []);
-        setFrameworks(
-          frameworkResult.status === "fulfilled" ? (frameworkResult.value as CurriculumFramework[]) : []
-        );
-        setLevels(levelResult.status === "fulfilled" ? (levelResult.value as CurriculumLevel[]) : []);
-        setSubjects(subjectResult.status === "fulfilled" ? (subjectResult.value as CurriculumSubject[]) : []);
+        const loadedCountries =
+          countryResult.status === "fulfilled" ? countryResult.value : [];
+        const loadedRegions =
+          regionResult.status === "fulfilled" ? regionResult.value : [];
+        const loadedFrameworks =
+          frameworkResult.status === "fulfilled" ? frameworkResult.value : [];
+        const loadedLevels =
+          levelResult.status === "fulfilled" ? levelResult.value : [];
+        const loadedSubjects =
+          subjectResult.status === "fulfilled" ? subjectResult.value : [];
 
-        if (settled.some((result) => result.status === "rejected")) {
-          setLoadMessage("Some curriculum lists could not be loaded, so fallback options are being shown.");
+        const nextCountries =
+          loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES;
+        const nextRegions =
+          loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS;
+        const nextFrameworks =
+          loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS;
+        const nextLevels =
+          loadedLevels.length > 0 ? loadedLevels : FALLBACK_LEVELS;
+        const nextSubjects =
+          loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS;
+
+        setCountries(nextCountries);
+        setRegions(nextRegions);
+        setFrameworks(nextFrameworks);
+        setLevels(nextLevels);
+        setSubjects(nextSubjects);
+
+        if (
+          loadedCountries.length === 0 ||
+          loadedFrameworks.length === 0 ||
+          loadedLevels.length === 0
+        ) {
+          setLoadMessage(
+            "Live curriculum data could not be loaded right now, so built-in fallback options are being shown.",
+          );
+        } else if (settled.some((result) => result.status === "rejected")) {
+          setLoadMessage(
+            "Some curriculum lists could not be loaded, so fallback options are being shown where needed.",
+          );
         }
       } catch (error) {
         if (!active) return;
         console.error("Curriculum setup load failed", error);
-        setLoadMessage("Curriculum data could not be loaded right now. You can still reopen this later.");
+        setCountries(FALLBACK_COUNTRIES);
+        setRegions(FALLBACK_REGIONS);
+        setFrameworks(FALLBACK_FRAMEWORKS);
+        setLevels(FALLBACK_LEVELS);
+        setSubjects(FALLBACK_SUBJECTS);
+        setLoadMessage(
+          "Curriculum data could not be loaded right now, so built-in fallback options are being shown.",
+        );
       } finally {
         if (!active) return;
         setLoading(false);
       }
     }
 
-    loadData();
+    void loadData();
 
     return () => {
       active = false;
     };
   }, []);
 
-  const hasSetup = Boolean(value.country_id || value.framework_id || value.level_id);
-  const headerButtonLabel = hasSetup ? "Edit curriculum setup" : "Set up curriculum";
-  const selectedCountry = countries.find((country) => country.id === value.country_id);
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const hasSetup = Boolean(
+    value.country_id || value.framework_id || value.level_id,
+  );
+
+  const headerButtonLabel = hasSetup
+    ? "Edit curriculum setup"
+    : "Set up curriculum";
+
+  const selectedCountry = countries.find(
+    (country) => country.id === value.country_id,
+  );
   const selectedRegion = regions.find((region) => region.id === value.region_id);
-  const selectedFramework = findFrameworkById(value.framework_id);
-  const selectedLevelLabel = findLevelLabel(value.level_id);
+  const selectedFramework = frameworks.find(
+    (framework) => framework.id === value.framework_id,
+  ) || findFrameworkById(value.framework_id);
+  const selectedLevelLabel =
+    levels.find((level) => level.id === value.level_id)?.label ||
+    findLevelLabel(value.level_id);
   const selectedSubjectNames = value.subject_ids
-    .map((id) => findSubjectLabel(id))
+    .map((id) => {
+      const found = subjects.find((subject) => subject.id === id);
+      return found?.label || findSubjectLabel(id);
+    })
     .filter(Boolean);
 
   const regionOptions = useMemo(
     () => regions.filter((region) => region.country_id === draft.country_id),
-    [draft.country_id, regions]
+    [draft.country_id, regions],
   );
 
-  const frameworkOptions = useMemo(
-    () =>
-      frameworks.filter((framework) => {
-        if (!draft.country_id) return true;
-        if (framework.country_id !== draft.country_id) return false;
-        if (draft.region_id && framework.region_id) {
-          return framework.region_id === draft.region_id;
-        }
-        return draft.region_id ? framework.region_id === undefined : true;
-      }),
-    [draft.country_id, draft.region_id, frameworks]
-  );
+  const frameworkOptions = useMemo(() => {
+    return frameworks.filter((framework) => {
+      if (!draft.country_id) return true;
+      if (framework.country_id !== draft.country_id) return false;
+      if (draft.region_id && framework.region_id) {
+        return framework.region_id === draft.region_id;
+      }
+      return draft.region_id ? framework.region_id === undefined : true;
+    });
+  }, [draft.country_id, draft.region_id, frameworks]);
 
-  const levelOptions = useMemo(
-    () =>
-      levels
-        .filter((level) => !draft.framework_id || level.framework_ids.includes(draft.framework_id))
-        .slice()
-        .sort((a, b) => a.sort - b.sort),
-    [draft.framework_id, levels]
-  );
+  const levelOptions = useMemo(() => {
+    return levels
+      .filter(
+        (level) =>
+          !draft.framework_id || level.framework_ids.includes(draft.framework_id),
+      )
+      .slice()
+      .sort((a, b) => a.sort - b.sort);
+  }, [draft.framework_id, levels]);
 
-  const subjectOptions = useMemo(
-    () =>
-      subjects.filter(
-        (subject) =>
-          (subject.framework_ids || []).length === 0 ||
-          !draft.framework_id ||
-          subject.framework_ids.includes(draft.framework_id)
-      ),
-    [draft.framework_id, subjects]
-  );
+  const subjectOptions = useMemo(() => {
+    return subjects.filter(
+      (subject) =>
+        (subject.framework_ids || []).length === 0 ||
+        !draft.framework_id ||
+        subject.framework_ids.includes(draft.framework_id),
+    );
+  }, [draft.framework_id, subjects]);
 
-  const recommendedFrameworkId = useMemo(
-    () => getRecommendedFrameworkId(draft.country_id, draft.region_id),
-    [draft.country_id, draft.region_id]
-  );
-  const recommendedFramework = useMemo(
-    () => frameworks.find((framework) => framework.id === recommendedFrameworkId),
-    [frameworks, recommendedFrameworkId]
-  );
-  const recommendedLevelId = useMemo(
-    () => getRecommendedLevelId(recommendedFramework?.id ?? null),
-    [recommendedFramework]
-  );
-  const recommendedLevelLabel = findLevelLabel(recommendedLevelId);
+  const recommendedFrameworkId = useMemo(() => {
+    const recommended = getRecommendedFrameworkId(
+      draft.country_id,
+      draft.region_id,
+    );
+    if (recommended) return recommended;
+    return frameworkOptions[0]?.id ?? null;
+  }, [draft.country_id, draft.region_id, frameworkOptions]);
+
+  const recommendedFramework = useMemo(() => {
+    return (
+      frameworks.find((framework) => framework.id === recommendedFrameworkId) ||
+      frameworkOptions[0] ||
+      null
+    );
+  }, [frameworkOptions, frameworks, recommendedFrameworkId]);
+
+  const recommendedLevelId = useMemo(() => {
+    const recommended = getRecommendedLevelId(recommendedFramework?.id ?? null);
+    if (recommended) return recommended;
+    return levelOptions[0]?.id ?? null;
+  }, [levelOptions, recommendedFramework]);
+
+  const recommendedLevelLabel =
+    levels.find((level) => level.id === recommendedLevelId)?.label ||
+    findLevelLabel(recommendedLevelId);
 
   function updateDraft<K extends keyof CurriculumPreferences>(
     key: K,
-    valueToSet: CurriculumPreferences[K]
+    valueToSet: CurriculumPreferences[K],
   ) {
     setDraft((prev) => ({
       ...prev,
@@ -182,16 +349,19 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
   }
 
   function handleSubjectToggle(subjectId: string) {
-    updateDraft("subject_ids", draft.subject_ids.includes(subjectId)
-      ? draft.subject_ids.filter((id) => id !== subjectId)
-      : [...draft.subject_ids, subjectId]);
+    updateDraft(
+      "subject_ids",
+      draft.subject_ids.includes(subjectId)
+        ? draft.subject_ids.filter((id) => id !== subjectId)
+        : [...draft.subject_ids, subjectId],
+    );
   }
 
   function handleApply() {
     onChange(draft);
     setIsEditing(false);
     setStatusMessage("Curriculum setup updated for planning and reporting.");
-    setTimeout(() => {
+    window.setTimeout(() => {
       setStatusMessage("");
     }, 4000);
   }
@@ -203,13 +373,17 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
 
   function applyRecommendedSetup() {
     if (!recommendedFramework) return;
+
     setDraft((prev) => ({
       ...prev,
       country_id: prev.country_id || recommendedFramework.country_id,
       region_id: recommendedFramework.region_id ?? prev.region_id,
       framework_id: recommendedFramework.id,
       level_id: recommendedLevelId ?? prev.level_id,
-      subject_ids: recommendedFramework.subject_ids,
+      subject_ids:
+        recommendedFramework.subject_ids?.length > 0
+          ? recommendedFramework.subject_ids
+          : prev.subject_ids,
     }));
   }
 
@@ -220,10 +394,11 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
           <div style={cardStyles.eyebrow}>Curriculum setup</div>
           <div style={cardStyles.title}>Curriculum setup</div>
           <p style={cardStyles.description}>
-            Choose the learning framework that best matches your child’s context. You can keep
-            this simple and change it later.
+            Choose the learning framework that best matches your child’s context.
+            You can keep this simple and change it later.
           </p>
         </div>
+
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {isEditing ? (
             <span style={cardStyles.editingBadge}>Editing</span>
@@ -251,7 +426,10 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
             <div style={cardStyles.loading}>Loading curriculum data…</div>
           ) : (
             <div style={cardStyles.form}>
-              <Field label="Country" help="Choose the country your learning and reporting context best fits.">
+              <Field
+                label="Country"
+                help="Choose the country your learning and reporting context best fits."
+              >
                 <select
                   value={draft.country_id ?? ""}
                   onChange={(event) => handleCountryChange(event.target.value)}
@@ -324,7 +502,7 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
                 </select>
               </Field>
 
-              {subjectOptions.length ? (
+              {subjectOptions.length > 0 ? (
                 <Field
                   label="Learning areas (optional)"
                   help="You can narrow the setup to the areas you want to focus on first."
@@ -357,7 +535,8 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
               {recommendedFramework ? (
                 <div style={cardStyles.recommendation}>
                   <div style={{ fontWeight: 600 }}>
-                    Recommended {selectedCountry ? `for ${selectedCountry.name}` : ""}:
+                    Recommended
+                    {selectedCountry ? ` for ${selectedCountry.name}` : ""}:
                     <span style={{ marginLeft: 6 }}>{recommendedFramework.name}</span>
                   </div>
                   {recommendedLevelLabel ? (
@@ -384,7 +563,11 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
                 >
                   Save curriculum setup
                 </button>
-                <button type="button" style={cardStyles.linkButton} onClick={handleCancel}>
+                <button
+                  type="button"
+                  style={cardStyles.linkButton}
+                  onClick={handleCancel}
+                >
                   Cancel
                 </button>
               </div>
@@ -405,13 +588,19 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
               {selectedLevelLabel ? (
                 <Row label="Year level" value={selectedLevelLabel} />
               ) : null}
-              {selectedSubjectNames.length ? (
-                <Row label="Learning areas" value={selectedSubjectNames.join(" · ")} />
+              {selectedSubjectNames.length > 0 ? (
+                <Row
+                  label="Learning areas"
+                  value={selectedSubjectNames.join(" · ")}
+                />
               ) : null}
             </div>
           ) : (
             <div style={cardStyles.empty}>
-              <p>Set your curriculum once so EduDecks can organise planning, capture, and reports more clearly.</p>
+              <p>
+                Set your curriculum once so EduDecks can organise planning,
+                capture, and reports more clearly.
+              </p>
               <button
                 type="button"
                 style={cardStyles.secondaryButton}
