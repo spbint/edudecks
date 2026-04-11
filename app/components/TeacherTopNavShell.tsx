@@ -136,10 +136,10 @@ export default function TeacherTopNavShell({ children }: { children: React.React
         >
           <div style={{ display: "grid", gap: 8 }}>
             <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" }}>
-              Teacher workspace
+              Teacher command centre
             </div>
             <div style={{ fontSize: "clamp(1.6rem, 2.8vw, 2.3rem)", fontWeight: 900, lineHeight: 1.05, color: "#0f172a" }}>
-              {analytics?.klass ? className(analytics.klass) : "Teacher dashboard"}
+              {analytics?.klass ? className(analytics.klass) : "Teacher command centre"}
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: "#475569", maxWidth: 760 }}>
               {analytics?.klass
@@ -224,7 +224,7 @@ export default function TeacherTopNavShell({ children }: { children: React.React
 
         {supportPressureNote ? (
           <div style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b" }}>
-            Support pressure: {supportPressureNote}
+            Support note: {supportPressureNote}
           </div>
         ) : null}
       </section>

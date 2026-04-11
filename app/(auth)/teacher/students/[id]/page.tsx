@@ -278,7 +278,7 @@ export default function TeacherStudentDetailPage() {
                 fontWeight: 800,
               }}
             >
-              Back to class triage
+              Back to teacher command centre
             </Link>
           </div>
         </div>
@@ -443,11 +443,11 @@ export default function TeacherStudentDetailPage() {
       ) : null}
 
       <section style={panelStyle()}>
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
-          What to do next
-        </div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
+            What to do next
+          </div>
         <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
-          Keep the next move small and concrete. One fresh example or one quick support check is usually enough to steady this learner view.
+          Keep the next move small and concrete. One fresh example or one quick support check is usually enough to steady the learner view.
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {actions.map((action) => (

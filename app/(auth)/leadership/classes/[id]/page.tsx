@@ -267,7 +267,7 @@ export default function LeadershipClassDetailPage() {
                 fontWeight: 800,
               }}
             >
-              Back to leadership triage
+              Back to leadership command centre
             </Link>
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function LeadershipClassDetailPage() {
       {(analytics?.overdueReviewCount || analytics?.openInterventionCount) ? (
         <section style={panelStyle()}>
           <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
-            Review and support pressure
+            Review and support context
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
             {analytics.overdueReviewCount
@@ -375,7 +375,7 @@ export default function LeadershipClassDetailPage() {
           What to do next
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
-          Keep the next leadership move small. One visibility reset or one support review is usually enough to steady a class picture.
+          Keep the next move small and concrete. One visibility reset or one support review is usually enough to steady the class picture.
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {actions.map((action) => (

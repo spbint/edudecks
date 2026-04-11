@@ -311,7 +311,7 @@ export default function TeacherDashboardPage() {
 
       {gentleNudge ? (
         <section style={pageStyles.quietNote}>
-          <span style={{ fontWeight: 800, color: "#0f172a" }}>Gentle nudge:</span> {gentleNudge}
+          <span style={{ fontWeight: 800, color: "#0f172a" }}>Teacher note:</span> {gentleNudge}
         </section>
       ) : null}
 

@@ -188,7 +188,7 @@ export default function LeadershipCommandCentrePage() {
 
       {supportPressure ? (
         <section style={styles.quietNote}>
-          <span style={{ fontWeight: 800, color: "#0f172a" }}>Support pressure:</span>{" "}
+          <span style={{ fontWeight: 800, color: "#0f172a" }}>Support note:</span>{" "}
           {supportPressure}
         </section>
       ) : null}

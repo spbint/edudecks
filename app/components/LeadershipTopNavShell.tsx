@@ -101,7 +101,7 @@ export default function LeadershipTopNavShell({
                 color: "#64748b",
               }}
             >
-              Leadership workspace
+              Leadership command centre
             </div>
             <div
               style={{
@@ -136,7 +136,7 @@ export default function LeadershipTopNavShell({
                 fontWeight: 800,
               }}
             >
-              Teacher view
+              Open teacher view
             </Link>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function LeadershipTopNavShell({
 
         {supportPressure ? (
           <div style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b" }}>
-            Support pressure: {supportPressure}
+            Support note: {supportPressure}
           </div>
         ) : null}
       </section>
