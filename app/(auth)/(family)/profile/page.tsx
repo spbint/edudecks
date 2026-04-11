@@ -3,773 +3,511 @@
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
-import { PremiumPlan, getPremiumPlanFromStorage } from "@/lib/premiumUpgradeEngine";
-import { FamilyProfileRow, loadFamilyProfile } from "@/lib/familySettings";
-import { ReportDraftStatus } from "@/lib/reportDrafts";
+import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
+import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  loadChildrenFromLocalStorage,
+  loadFamilyProfile,
+  loadSettingsFromLocalStorage,
+  persistSettingsToLocalStorage,
+  type FamilySettings,
+} from "@/lib/familySettings";
+import { type ReportDraftStatus } from "@/lib/reportDrafts";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
-type ProfileRow = {
-  is_admin?: boolean | null;
-  full_name?: string | null;
-  name?: string | null;
-  avatar_url?: string | null;
-};
+type ProfileRow = { is_admin?: boolean | null; full_name?: string | null; name?: string | null };
+type ProfileChild = { id: string; name: string; yearLabel: string; connectedAt?: string | null };
+type EvidenceEntry = { id: string; student_id: string | null; learning_area?: string | null; created_at?: string | null; note?: string | null; title?: string | null };
+type ReportActivity = { id: string; title: string; childName: string; status: ReportDraftStatus; updatedAt?: string | null };
+type SavedPlan = { studentId: string; weekKey: string; focusTitle: string; focusSummary: string; updatedAt: string };
 
-type ProfileChild = {
-  id: string;
-  name: string;
-  yearLabel: string;
-  connectedAt?: string | null;
-};
-
-type EvidenceEntry = {
-  id: string;
-  student_id: string | null;
-  learning_area?: string | null;
-  occurred_on?: string | null;
-  created_at?: string | null;
-  note?: string | null;
-  title?: string | null;
-};
-
-type ReportActivity = {
-  id: string;
-  title: string;
-  childName: string;
-  status: ReportDraftStatus;
-  updatedAt?: string | null;
-};
-
-const MAX_RECENT_ACTIVITY = 4;
+const LOCAL_PLAN_KEY = "edudecks_plan";
+const LOCAL_CHILDREN_KEY = "edudecks_children_seed_v1";
+const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
-  const [profileRow, setProfileRow] = useState<ProfileRow | null>(null);
-  const [familyProfile, setFamilyProfile] = useState<FamilyProfileRow | null>(null);
+  const [profile, setProfile] = useState<ProfileRow | null>(null);
+  const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
   const [children, setChildren] = useState<ProfileChild[]>([]);
-  const [recentEvidence, setRecentEvidence] = useState<EvidenceEntry[]>([]);
-  const [recentReports, setRecentReports] = useState<ReportActivity[]>([]);
-  const [plan, setPlan] = useState<PremiumPlan>("free");
-  const [loading, setLoading] = useState(true);
+  const [captures, setCaptures] = useState<EvidenceEntry[]>([]);
+  const [reports, setReports] = useState<ReportActivity[]>([]);
+  const [plans, setPlans] = useState<SavedPlan[]>([]);
+  const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    setPlan(getPremiumPlanFromStorage());
-  }, []);
+  const [savingCurriculum, setSavingCurriculum] = useState(false);
+  const [busyChildId, setBusyChildId] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addYear, setAddYear] = useState("");
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-
     async function hydrate() {
+      const localSettings = loadSettingsFromLocalStorage();
+      const localChildren = loadChildrenFromLocalStorage().map((child) => ({
+        id: child.id,
+        name: child.label,
+        yearLabel: "",
+        connectedAt: null,
+      }));
+      if (!mounted) return;
+      setSettings(localSettings);
+      setChildren(localChildren);
+      setPlans(loadPlannerActivity());
+
       if (!hasSupabaseEnv) {
-        if (!mounted) return;
         setError("Supabase is not configured for this preview environment.");
-        setLoading(false);
         return;
       }
 
       try {
-        const { data } = await supabase.auth.getUser();
-        const currentUser = data.user;
+        const auth = await supabase.auth.getUser();
+        const currentUser = auth.data.user;
         if (!mounted) return;
         if (!currentUser) {
-          setError("Sign in to view your profile.");
-          setLoading(false);
+          setError("Sign in to view your family profile.");
           return;
         }
-
         setUser(currentUser);
 
-        const [profile, familyRow] = await Promise.all([
+        const [profileRow, familyProfile, linkedChildren] = await Promise.all([
           fetchProfileRow(currentUser.id),
           loadFamilyProfile(),
+          loadLinkedChildren(currentUser.id),
         ]);
-
         if (!mounted) return;
-        setProfileRow(profile);
-        setFamilyProfile(familyRow);
+        setProfile(profileRow);
+        setSettings(familyProfile);
+        setChildren(linkedChildren);
+        persistSettingsToLocalStorage(familyProfile);
+        persistSeedChildren(linkedChildren);
 
-        const connected = await loadLinkedChildren(currentUser.id);
-        if (!mounted) return;
-        setChildren(connected);
-
-        const childIds = connected.map((child) => child.id);
-        const [evidenceRows, reportRows] = await Promise.all([
-          childIds.length ? fetchRecentEvidence(childIds) : Promise.resolve([]),
+        const ids = linkedChildren.map((child) => child.id);
+        const [captureRows, reportRows] = await Promise.all([
+          ids.length ? fetchRecentEvidence(ids) : Promise.resolve([]),
           fetchRecentReports(currentUser.id),
         ]);
-
         if (!mounted) return;
-        setRecentEvidence(evidenceRows);
-        setRecentReports(reportRows);
+        setCaptures(captureRows);
+        setReports(reportRows);
       } catch (err) {
-        console.error("Profile page load failed", err);
+        console.error("Profile load failed", err);
         if (!mounted) return;
-        setError("We could not load your profile right now. Try again shortly.");
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setError("We could not load the family profile right now.");
       }
     }
-
-    hydrate();
-
+    void hydrate();
     return () => {
       mounted = false;
     };
   }, []);
 
-  const roleLabel = profileRow?.is_admin ? "Admin" : "Family member";
   const displayName = useMemo(() => {
-    if (!user && !profileRow) return "EduDecks user";
-    const source =
-      profileRow?.full_name ||
-      profileRow?.name ||
-      user?.user_metadata?.full_name ||
-      user?.user_metadata?.name;
-    return typeof source === "string" && source.trim().length > 0
-      ? source
-      : user?.email || "EduDecks user";
-  }, [profileRow, user]);
+    const fromProfile = profile?.full_name || profile?.name;
+    const fromUser = safe(user?.user_metadata?.full_name) || safe(user?.user_metadata?.name);
+    return fromProfile || fromUser || user?.email || "EduDecks family";
+  }, [profile, user]);
 
-  const defaultChild = useMemo(() => {
-    if (!familyProfile) return null;
-    return children.find((child) => child.id === familyProfile.default_child_id) ?? null;
-  }, [children, familyProfile]);
+  const defaultChild = useMemo(
+    () => children.find((child) => child.id === settings.default_child_id) ?? null,
+    [children, settings.default_child_id]
+  );
 
-  const evidenceByChild = useMemo(() => {
-    const map: Record<string, EvidenceEntry[]> = {};
-    recentEvidence.forEach((entry) => {
-      const studentId = entry.student_id;
-      if (!studentId) return;
-      if (!map[studentId]) map[studentId] = [];
-      map[studentId].push(entry);
-    });
-    return map;
-  }, [recentEvidence]);
+  const activity = useMemo(() => {
+    return [
+      ...captures.map((item) => ({
+        id: `capture-${item.id}`,
+        kind: "Capture",
+        title: lookupChild(item.student_id, children) || "Capture",
+        note: `${item.learning_area || "Learning moment"}${item.note || item.title ? `: ${item.note || item.title}` : ""}`,
+        date: item.created_at,
+        href: "/capture",
+      })),
+      ...plans.map((item, index) => ({
+        id: `plan-${index}`,
+        kind: "Planner",
+        title: item.focusTitle || "Weekly plan",
+        note: `${lookupChild(item.studentId, children) || "Learner"} - ${item.focusSummary || "Planner work saved."}`,
+        date: item.updatedAt,
+        href: "/planner",
+      })),
+      ...reports.map((item) => ({
+        id: `report-${item.id}`,
+        kind: "Report",
+        title: item.title,
+        note: `${item.childName || "Child"} - ${item.status}`,
+        date: item.updatedAt,
+        href: "/reports",
+      })),
+    ]
+      .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
+      .slice(0, 6);
+  }, [captures, children, plans, reports]);
 
-  const evidenceNote = (childId: string) => {
-    const entries = evidenceByChild[childId] ?? [];
-    if (!entries.length) {
-      return "No captures yet";
+  async function saveCurriculum() {
+    setSavingCurriculum(true);
+    setStatus("");
+    try {
+      const next = { ...settings };
+      persistSettingsToLocalStorage(next);
+      if (hasSupabaseEnv && user) {
+        const saved = await saveFamilySettings(next);
+        setSettings(saved);
+        persistSettingsToLocalStorage(saved);
+      }
+      setStatus("Curriculum setup saved.");
+    } catch (err) {
+      console.error("Curriculum save failed", err);
+      setStatus("Curriculum setup could not be saved.");
+    } finally {
+      setSavingCurriculum(false);
     }
-    const latest = entries[0];
-    return `Latest capture ${formatDate(latest.created_at)}`;
-  };
+  }
 
-  const planLabel = plan === "premium" ? "EduDecks Premium" : "Family free plan";
-  const planDescription =
-    plan === "premium"
-      ? "Premium is active across this family."
-      : "Stay calm with the free plan. Upgrade anytime for richer reporting together.";
+  async function setDefaultChild(childId: string) {
+    setBusyChildId(childId);
+    setStatus("");
+    try {
+      const next = { ...settings, default_child_id: childId };
+      setSettings(next);
+      persistSettingsToLocalStorage(next);
+      if (hasSupabaseEnv && user) {
+        const saved = await saveFamilySettings(next);
+        setSettings(saved);
+        persistSettingsToLocalStorage(saved);
+      }
+      if (typeof window !== "undefined") window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
+      setStatus("Default learner updated.");
+    } catch (err) {
+      console.error("Default child update failed", err);
+      setStatus("Default learner could not be updated.");
+    } finally {
+      setBusyChildId("");
+    }
+  }
+
+  async function removeChild(child: ProfileChild) {
+    if (typeof window !== "undefined" && !window.confirm(`Remove ${child.name} from this family workspace?`)) return;
+    setBusyChildId(child.id);
+    setStatus("");
+    try {
+      if (hasSupabaseEnv && user) {
+        const res = await supabase.from("parent_student_links").delete().eq("parent_user_id", user.id).eq("student_id", child.id);
+        if (res.error) throw res.error;
+      }
+      const nextChildren = children.filter((item) => item.id !== child.id);
+      setChildren(nextChildren);
+      persistSeedChildren(nextChildren);
+      if (settings.default_child_id === child.id) {
+        const next = { ...settings, default_child_id: nextChildren[0]?.id ?? null };
+        setSettings(next);
+        persistSettingsToLocalStorage(next);
+        if (hasSupabaseEnv && user) {
+          const saved = await saveFamilySettings(next);
+          setSettings(saved);
+          persistSettingsToLocalStorage(saved);
+        }
+      }
+      setStatus("Learner removed from family links.");
+    } catch (err) {
+      console.error("Child removal failed", err);
+      setStatus("Learner could not be removed.");
+    } finally {
+      setBusyChildId("");
+    }
+  }
+
+  async function addLearner() {
+    if (!safe(addName)) {
+      setStatus("Enter a learner name before adding.");
+      return;
+    }
+    if (!hasSupabaseEnv || !user) {
+      setStatus("A signed-in Supabase session is required to add a learner.");
+      return;
+    }
+    setAdding(true);
+    setStatus("");
+    try {
+      const studentId = await createStudent(user.id, addName, addYear);
+      const link = await supabase.from("parent_student_links").upsert(
+        { parent_user_id: user.id, student_id: studentId, relationship_label: "child", sort_order: 0 },
+        { onConflict: "parent_user_id,student_id" }
+      );
+      if (link.error) throw link.error;
+      const linkedChildren = await loadLinkedChildren(user.id);
+      setChildren(linkedChildren);
+      persistSeedChildren(linkedChildren);
+      if (!settings.default_child_id) {
+        const next = { ...settings, default_child_id: studentId };
+        setSettings(next);
+        const saved = await saveFamilySettings(next);
+        setSettings(saved);
+        persistSettingsToLocalStorage(saved);
+      }
+      setAddName("");
+      setAddYear("");
+      setStatus("Learner added to the family workspace.");
+    } catch (err) {
+      console.error("Add learner failed", err);
+      setStatus("Learner could not be added.");
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
-    <div style={profileStyles.page}>
-        <section style={profileStyles.headerCard}>
-          <div>
-            <div style={profileStyles.sectionEyebrow}>My profile</div>
-            <h1 style={profileStyles.headerTitle}>Keep your family connected</h1>
-            <p style={profileStyles.headerText}>
-              This page summarises who is signed in, the learners you are connected to, and the
-              plan that powers your quiet, calm homeschooling workflow.
+    <FamilyTopNavShell title="EduDecks Family" subtitle="Profile" hideHero={true}>
+      <div style={styles.page}>
+        <section style={styles.hero}>
+          <div style={{ display: "grid", gap: 12 }}>
+            <div style={styles.eyebrow}>My profile</div>
+            <h1 style={styles.h1}>Keep your family connected</h1>
+            <p style={styles.text}>
+              This is the family nerve centre for identity, learner links, curriculum defaults, and the recent work shaping your planner, captures, and reports.
             </p>
-          </div>
-          <div style={profileStyles.identityChip}>
-            <div style={profileStyles.avatar}>
-              {displayName
-                .split(" ")
-                .filter(Boolean)
-                .map((chunk) => chunk[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
+            <div style={styles.actions}>
+              <Link href="/family" style={styles.primaryLink}>Family Home</Link>
+              <Link href="/settings" style={styles.secondaryLink}>Settings</Link>
             </div>
-            <div style={{ display: "grid", gap: 4 }}>
-              <div style={profileStyles.displayName}>{displayName}</div>
-              <div style={profileStyles.roleLabel}>{roleLabel}</div>
-              {user?.email ? (
-                <div style={profileStyles.emailText}>{user.email}</div>
-              ) : null}
-            </div>
+            {error ? <div style={styles.warn}>{error}</div> : null}
+            {status ? <div style={styles.ok}>{status}</div> : null}
           </div>
-          <div style={profileStyles.defaultChildRow}>
-            <span style={profileStyles.subtleText}>Default child:</span>
-            <strong style={{ fontSize: 14, color: "#0f172a" }}>
-              {defaultChild ? `${defaultChild.name} (${defaultChild.yearLabel})` : "Not set"}
-            </strong>
+          <div style={styles.aside}>
+            <div style={styles.avatar}>{initials(displayName)}</div>
+            <div style={styles.asideTitle}>{safe(settings.family_display_name) || "Your family"}</div>
+            <div style={styles.text}>Signed in as {user?.email || "guest view"} and ready to keep the family workspace steady.</div>
           </div>
-          {error ? (
-            <div style={profileStyles.errorBanner}>{error}</div>
-          ) : null}
         </section>
 
-        <div style={profileStyles.sectionGrid}>
-          <section style={profileStyles.card}>
-            <div style={profileStyles.sectionHeader}>
-              <div>
-                <div style={profileStyles.sectionTitle}>Child & family links</div>
-                <div style={profileStyles.sectionText}>
-                  These learners stay connected to your planner, capture, and reporting work.
-                </div>
-              </div>
-              <Link href="/children" style={profileStyles.secondaryLink}>
-                Manage children
-              </Link>
-            </div>
-
-            {loading ? (
-              <div style={profileStyles.placeholderText}>Loading child data…</div>
-            ) : children.length ? (
-              <div style={profileStyles.childGrid}>
-                {children.map((child) => (
-                  <div key={child.id} style={profileStyles.childCard}>
-                    <div style={profileStyles.childName}>{child.name}</div>
-                    <div style={profileStyles.childMeta}>{child.yearLabel}</div>
-                    <div style={profileStyles.childMeta}>{evidenceNote(child.id)}</div>
-                    {child.connectedAt ? (
-                      <div style={profileStyles.subtleText}>
-                        Connected on {formatDate(child.connectedAt)}
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={profileStyles.placeholder}>
-                No linked children yet. Connect a learner so capture, reporting, and planning stay
-                aligned.
-              </div>
-            )}
+        <div style={styles.grid2}>
+          <section style={styles.card}>
+            <div style={styles.sectionTitle}>Family identity</div>
+            <IdentityRow label="Family / workspace identity" value={safe(settings.family_display_name) || "Your family"} />
+            <IdentityRow label="Signed-in email" value={user?.email || "Not available"} />
+            <IdentityRow label="Default child" value={defaultChild ? `${defaultChild.name} (${defaultChild.yearLabel})` : "Not set"} />
+            <IdentityRow label="Plan visibility" value="Family plan signals stay visible here for the whole workspace." />
+            <IdentityRow label="Account role" value={profile?.is_admin ? "Admin account" : "Family member"} />
           </section>
 
-          <section style={profileStyles.card}>
-            <div style={profileStyles.sectionHeader}>
-              <div>
-                <div style={profileStyles.sectionTitle}>Subscription & plan</div>
-                <div style={profileStyles.sectionText}>
-                  This plan label helps EduDecks shape premium prompts and confidence-building
-                  nudges.
+          <section style={styles.card}>
+            <div style={styles.sectionTitle}>Recent activity</div>
+            <div style={styles.muted}>Recent captures / planning / report activity</div>
+            {activity.length ? activity.map((item) => (
+              <Link key={item.id} href={item.href} style={styles.activity}>
+                <div>
+                  <div style={styles.kind}>{item.kind}</div>
+                  <div style={styles.rowTitle}>{item.title}</div>
+                  <div style={styles.muted}>{item.note}</div>
                 </div>
-              </div>
-              <Link href="/pricing" style={profileStyles.secondaryLink}>
-                View plans
+                <div style={styles.date}>{formatDate(item.date)}</div>
               </Link>
-            </div>
-
-            <div style={profileStyles.planTitle}>{planLabel}</div>
-            <div style={profileStyles.planDescription}>{planDescription}</div>
-            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <Link href="/settings" style={profileStyles.primaryAction}>
-                Adjust settings
-              </Link>
-              <Link href="/settings?section=curriculum" style={profileStyles.secondaryAction}>
-                Edit curriculum setup
-              </Link>
-            </div>
+            )) : <div style={styles.empty}>No recent family activity has been saved yet.</div>}
           </section>
         </div>
 
-        <section style={profileStyles.card}>
-          <div style={profileStyles.sectionHeader}>
+        <section style={styles.card}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
-              <div style={profileStyles.sectionTitle}>Recent activity</div>
-              <div style={profileStyles.sectionText}>
-                These are the latest captures and reports that help you keep the story calm and
-                organised.
-              </div>
+              <div style={styles.sectionTitle}>Curriculum setup</div>
+              <div style={styles.muted}>Use the curriculum selector, then save the setup for planning and reporting.</div>
             </div>
+            <button type="button" onClick={saveCurriculum} style={styles.primaryButton} disabled={savingCurriculum}>
+              {savingCurriculum ? "Saving..." : "Save curriculum setup"}
+            </button>
           </div>
+          <CurriculumSetupCard
+            value={settings.curriculum_preferences}
+            onChange={(curriculum) => setSettings((prev) => ({ ...prev, curriculum_preferences: curriculum }))}
+          />
+        </section>
 
-          <div style={profileStyles.activityGrid}>
+        <section style={styles.card}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
             <div>
-              <div style={profileStyles.activityLabel}>Recent captures</div>
-              {recentEvidence.length ? (
-                recentEvidence.map((entry) => (
-                  <div key={entry.id} style={profileStyles.activityRow}>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <strong style={{ fontSize: 15, color: "#0f172a" }}>
-                        {lookupChildName(entry.student_id, children) || "Capture"}
-                      </strong>
-                      <span style={profileStyles.subtleText}>
-                        {entry.learning_area || "Learning moment"} · {formatDate(entry.created_at)}
-                      </span>
-                      <span style={profileStyles.activityNote}>{entry.note || entry.title || ""}</span>
-                    </div>
-                    <Link href="/capture" style={profileStyles.inlineLink}>
-                      View capture
-                    </Link>
+              <div style={styles.sectionTitle}>Child & family links</div>
+              <div style={styles.muted}>List of learners, default child controls, removal, and a simple add learner form.</div>
+            </div>
+            <Link href="/children" style={styles.secondaryLink}>Open children workspace</Link>
+          </div>
+          <div style={styles.grid2}>
+            <div style={{ display: "grid", gap: 12 }}>
+              {children.length ? children.map((child) => (
+                <div key={child.id} style={styles.childCard}>
+                  <div>
+                    <div style={styles.rowTitle}>{child.name}</div>
+                    <div style={styles.muted}>{child.yearLabel || "Year level not set"}</div>
+                    <div style={styles.muted}>Connected {formatDate(child.connectedAt)}</div>
                   </div>
-                ))
-              ) : (
-                <div style={profileStyles.placeholder}>
-                  No captures yet. Add a calm learning moment and it will appear here.
+                  <div style={styles.actions}>
+                    {settings.default_child_id === child.id ? <span style={styles.chip}>Default learner</span> : (
+                      <button type="button" onClick={() => void setDefaultChild(child.id)} style={styles.secondaryButton} disabled={busyChildId === child.id}>
+                        {busyChildId === child.id ? "Saving..." : "Set default child"}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => void removeChild(child)} style={styles.dangerButton} disabled={busyChildId === child.id}>
+                      {busyChildId === child.id ? "Working..." : "Remove child"}
+                    </button>
+                  </div>
                 </div>
-              )}
+              )) : <div style={styles.empty}>No learners are linked yet.</div>}
             </div>
 
-            <div>
-              <div style={profileStyles.activityLabel}>Recent report drafts</div>
-              {recentReports.length ? (
-                recentReports.map((report) => (
-                  <div key={report.id} style={profileStyles.activityRow}>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <strong style={{ fontSize: 15, color: "#0f172a" }}>{report.title}</strong>
-                      <span style={profileStyles.subtleText}>
-                        {report.childName || "Child"} · {report.status}
-                      </span>
-                      <span style={profileStyles.subtleText}>
-                        Last updated {formatDate(report.updatedAt)}
-                      </span>
-                    </div>
-                    <Link href="/reports" style={profileStyles.inlineLink}>
-                      Open reports
-                    </Link>
-                  </div>
-                ))
-              ) : (
-                <div style={profileStyles.placeholder}>
-                  No report drafts yet. Save one when you are ready and it will appear here.
-                </div>
-              )}
+            <div style={styles.childCard}>
+              <div style={styles.sectionTitle}>Add learner</div>
+              <label style={styles.field}>
+                <span style={styles.label}>Learner name</span>
+                <input value={addName} onChange={(e) => setAddName(e.target.value)} style={styles.input} placeholder="e.g. Charlotte Brown" />
+              </label>
+              <label style={styles.field}>
+                <span style={styles.label}>Year level</span>
+                <input value={addYear} onChange={(e) => setAddYear(e.target.value)} style={styles.input} placeholder="e.g. 4" />
+              </label>
+              <button type="button" onClick={() => void addLearner()} style={styles.primaryButton} disabled={adding}>
+                {adding ? "Adding..." : "Add learner"}
+              </button>
             </div>
           </div>
         </section>
 
-        <section style={profileStyles.card}>
-          <div style={profileStyles.sectionHeader}>
-            <div>
-              <div style={profileStyles.sectionTitle}>Quick actions</div>
-              <div style={profileStyles.sectionText}>
-                Access the areas where you change your profile, curriculum, or family workspace defaults.
-              </div>
-            </div>
-          </div>
-
-          <div style={profileStyles.quickActions}>
-            <Link href="/settings" style={profileStyles.quickLink}>
-              Go to settings
-            </Link>
-            <Link href="/settings?section=curriculum" style={profileStyles.quickLink}>
-              Curriculum setup
-            </Link>
-            <Link href="/family" style={profileStyles.quickLink}>
-              Family snapshot
-            </Link>
-          </div>
-
-          <div style={profileStyles.usedNote}>
-            The profile control in the shell stays available everywhere in the signed-in family workspace.
+        <section style={styles.card}>
+          <div style={styles.sectionTitle}>Quick actions</div>
+          <div style={styles.quickGrid}>
+            <QuickLink href="/family" label="family" />
+            <QuickLink href="/settings" label="settings" />
+            <QuickLink href="/planner" label="planner" />
+            <QuickLink href="/portfolio" label="portfolio" />
+            <QuickLink href="/reports" label="reports" />
+            <QuickLink href="/calendar" label="calendar" />
           </div>
         </section>
+      </div>
+    </FamilyTopNavShell>
+  );
+}
+
+function IdentityRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={styles.identityRow}>
+      <div style={styles.label}>{label}</div>
+      <div style={styles.rowTitle}>{value}</div>
     </div>
   );
 }
 
-function lookupChildName(studentId: string | null, children: ProfileChild[]) {
-  if (!studentId) return null;
-  return children.find((child) => child.id === studentId)?.name ?? null;
+function QuickLink({ href, label }: { href: string; label: string }) {
+  return <Link href={href} style={styles.quickLink}>{label}</Link>;
 }
 
+function safe(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function initials(value: string) { return (safe(value).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("")) || "ED"; }
+function lookupChild(id: string | null | undefined, children: ProfileChild[]) { return id ? children.find((child) => child.id === id)?.name ?? null : null; }
 function formatDate(value?: string | null) {
-  if (!value) return "—";
-  const candidate = new Date(value);
-  if (Number.isNaN(candidate.getTime())) return value.slice(0, 10);
-  return candidate.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  if (!value) return "Not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+function persistSeedChildren(children: ProfileChild[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LOCAL_CHILDREN_KEY, JSON.stringify(children.map((child) => ({ id: child.id, name: child.name }))));
+}
+function loadPlannerActivity(): SavedPlan[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_PLAN_KEY);
+    if (!raw) return [];
+    return Object.values(JSON.parse(raw) as Record<string, SavedPlan>).sort(
+      (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+    ).slice(0, 3);
+  } catch {
+    return [];
+  }
 }
 
 async function fetchProfileRow(userId: string): Promise<ProfileRow | null> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("is_admin,full_name,name,avatar_url")
-    .eq("id", userId)
-    .maybeSingle();
-  return data ?? null;
+  const res = await supabase.from("profiles").select("is_admin,full_name,name").eq("id", userId).maybeSingle();
+  return res.data ?? null;
 }
-
 async function loadLinkedChildren(userId: string): Promise<ProfileChild[]> {
-  const { data: links } = await supabase
-    .from("parent_student_links")
-    .select("student_id,created_at")
-    .eq("parent_user_id", userId)
-    .order("created_at", { ascending: true });
-
-  if (!links?.length) return [];
-  const orderedIds: string[] = [];
-  const seen = new Set<string>();
-
-  links.forEach((link) => {
-    const studentId = link.student_id;
-    if (!studentId || seen.has(studentId)) return;
-    seen.add(studentId);
-    orderedIds.push(studentId);
+  const links = await supabase.from("parent_student_links").select("student_id,created_at").eq("parent_user_id", userId).order("created_at", { ascending: true });
+  if (!links.data?.length) return [];
+  const ids = Array.from(new Set(links.data.map((row) => safe(row.student_id)).filter(Boolean)));
+  const students = await supabase.from("students").select("id,preferred_name,first_name,surname,family_name,year_level").in("id", ids);
+  const studentMap = new Map((students.data ?? []).map((row) => [row.id, row]));
+  return ids.map((id) => {
+    const row = studentMap.get(id);
+    const link = links.data?.find((item) => safe(item.student_id) === id);
+    const name = safe(row?.preferred_name) || [safe(row?.first_name), safe(row?.surname), safe(row?.family_name)].filter(Boolean).join(" ") || "Unnamed learner";
+    const yearLabel = Number.isFinite(Number(row?.year_level)) ? `Year ${row?.year_level}` : "Year level";
+    return { id, name, yearLabel, connectedAt: link?.created_at ?? null };
   });
-
-  if (!orderedIds.length) return [];
-
-  const { data: students } = await supabase
-    .from("students")
-    .select("id,preferred_name,first_name,surname,family_name,year_level")
-    .in("id", orderedIds);
-
-  if (!students?.length) return [];
-
-  const studentMap = new Map<string, typeof students[0]>();
-  students.forEach((student) => {
-    if (student?.id) {
-      studentMap.set(student.id, student);
-    }
-  });
-
-  return (
-    orderedIds
-      .map((id) => {
-        const student = studentMap.get(id);
-        if (!student) return null;
-        const name =
-          safeName(student.preferred_name) ||
-          [safeName(student.first_name), safeName(student.surname), safeName(student.family_name)]
-            .filter(Boolean)
-            .join(" ")
-            .trim() ||
-          "Unnamed child";
-        const yearLabel = Number.isFinite(Number(student.year_level))
-          ? `Year ${student.year_level}`
-          : "Year level";
-        const linkRow = links.find((row) => row.student_id === id);
-        return {
-          id,
-          name,
-          yearLabel,
-          connectedAt: linkRow?.created_at ?? null,
-        } as ProfileChild;
-      })
-      .filter((child): child is ProfileChild => Boolean(child))
-  );
 }
-
 async function fetchRecentEvidence(studentIds: string[]): Promise<EvidenceEntry[]> {
-  const { data } = await supabase
-    .from("evidence_entries")
-    .select("id,student_id,learning_area,occurred_on,created_at,note,title")
-    .in("student_id", studentIds)
-    .order("created_at", { ascending: false })
-    .limit(MAX_RECENT_ACTIVITY);
-
-  return data ?? [];
+  const res = await supabase.from("evidence_entries").select("id,student_id,learning_area,created_at,note,title").in("student_id", studentIds).order("created_at", { ascending: false }).limit(4);
+  return res.data ?? [];
 }
-
 async function fetchRecentReports(userId: string): Promise<ReportActivity[]> {
-  const { data } = await supabase
-    .from("report_drafts")
-    .select("id,title,status,child_name,updated_at")
-    .eq("user_id", userId)
-    .order("updated_at", { ascending: false })
-    .limit(3);
-
-  if (!data?.length) return [];
-
-  return data.map((row) => ({
-    id: row.id,
-    title: row.title || "Report draft",
-    childName: row.child_name || "Child",
-    status: (row.status as ReportDraftStatus) ?? "draft",
-    updatedAt: row.updated_at,
-  }));
+  const res = await supabase.from("report_drafts").select("id,title,status,child_name,updated_at").eq("user_id", userId).order("updated_at", { ascending: false }).limit(3);
+  return (res.data ?? []).map((row) => ({ id: row.id, title: row.title || "Report draft", childName: row.child_name || "Child", status: (row.status as ReportDraftStatus) ?? "draft", updatedAt: row.updated_at }));
+}
+async function saveFamilySettings(next: FamilySettings): Promise<FamilySettings> {
+  const current = await loadFamilyProfile();
+  const payload = { ...current, ...next, updated_at: new Date().toISOString() };
+  const res = await supabase.from("family_profiles").upsert(payload, { onConflict: "id" }).select().single();
+  if (res.error) throw res.error;
+  return { ...DEFAULT_FAMILY_SETTINGS, ...res.data };
+}
+async function createStudent(userId: string, childName: string, yearLevel: string) {
+  const parts = safe(childName).split(/\s+/).filter(Boolean);
+  const first = parts[0] || safe(childName);
+  const surname = parts.slice(1).join(" ") || null;
+  const year = Number(safe(yearLevel));
+  const res = await supabase.from("students").insert({
+    user_id: userId,
+    first_name: first,
+    preferred_name: first,
+    surname,
+    year_level: Number.isFinite(year) ? year : null,
+  }).select("id").single();
+  if (res.error) throw res.error;
+  return res.data.id as string;
 }
 
-function safeName(value: string | undefined | null) {
-  if (!value) return "";
-  return value.trim();
-}
-
-const profileStyles: Record<string, React.CSSProperties> = {
-  page: {
-    maxWidth: 1120,
-    margin: "0 auto",
-    display: "grid",
-    gap: 18,
-    paddingBottom: 60,
-  },
-
-  headerCard: {
-    borderRadius: 20,
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    padding: "28px 32px",
-    display: "grid",
-    gap: 14,
-    position: "relative",
-    overflow: "hidden",
-  },
-
-  sectionEyebrow: {
-    fontSize: 12,
-    lineHeight: 1.2,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontWeight: 800,
-    color: "#64748b",
-  },
-
-  headerTitle: {
-    margin: 0,
-    fontSize: 28,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  headerText: {
-    margin: 0,
-    fontSize: 14,
-    lineHeight: 1.7,
-    color: "#475569",
-  },
-
-  identityChip: {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-
-  avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: "50%",
-    background: "#dbeafe",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 18,
-    fontWeight: 900,
-    color: "#1d4ed8",
-  },
-
-  displayName: {
-    fontSize: 18,
-    fontWeight: 900,
-  },
-
-  roleLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#2563eb",
-  },
-
-  emailText: {
-    fontSize: 13,
-    color: "#475569",
-  },
-
-  errorBanner: {
-    marginTop: 10,
-    padding: "10px 14px",
-    borderRadius: 12,
-    background: "#fff7ed",
-    border: "1px solid #fde68a",
-    color: "#92400e",
-    fontSize: 13,
-  },
-
-  sectionGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: 18,
-  },
-
-  card: {
-    borderRadius: 20,
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    padding: 24,
-    display: "grid",
-    gap: 16,
-    boxShadow: "0 18px 50px rgba(15,23,42,0.06)",
-  },
-
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  sectionText: {
-    fontSize: 13,
-    color: "#475569",
-    maxWidth: 500,
-  },
-
-  secondaryLink: {
-    textDecoration: "none",
-    padding: "8px 12px",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    background: "#f8fafc",
-    fontWeight: 700,
-    color: "#0f172a",
-    fontSize: 13,
-  },
-
-  childGrid: {
-    display: "grid",
-    gap: 12,
-  },
-
-  childCard: {
-    borderRadius: 14,
-    border: "1px solid #e5e7eb",
-    padding: 14,
-    background: "#fdfdfd",
-    display: "grid",
-    gap: 6,
-  },
-
-  childName: {
-    fontSize: 16,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  childMeta: {
-    fontSize: 13,
-    color: "#475569",
-  },
-
-  subtleText: {
-    fontSize: 12,
-    color: "#64748b",
-  },
-
-  defaultChildRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-  },
-
-  placeholder: {
-    fontSize: 14,
-    color: "#475569",
-    padding: "14px 12px",
-    borderRadius: 12,
-    border: "1px dashed #cbd5f5",
-    background: "#f8fafc",
-  },
-
-  placeholderText: {
-    fontSize: 14,
-    color: "#475569",
-    fontStyle: "italic",
-  },
-
-  planTitle: {
-    fontSize: 20,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  planDescription: {
-    fontSize: 14,
-    color: "#475569",
-  },
-
-  primaryAction: {
-    textDecoration: "none",
-    borderRadius: 12,
-    border: "none",
-    background: "#2563eb",
-    color: "#ffffff",
-    padding: "10px 16px",
-    fontWeight: 700,
-    fontSize: 14,
-  },
-
-  secondaryAction: {
-    textDecoration: "none",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    color: "#0f172a",
-    padding: "10px 16px",
-    fontWeight: 700,
-    fontSize: 14,
-  },
-
-  activityGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-    gap: 16,
-  },
-
-  activityLabel: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#64748b",
-    letterSpacing: 1,
-    textTransform: "uppercase",
-    marginBottom: 10,
-  },
-
-  activityRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "flex-start",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid #e5e7eb",
-    background: "#f8fafc",
-    marginBottom: 10,
-  },
-
-  activityNote: {
-    fontSize: 14,
-    color: "#475569",
-  },
-
-  inlineLink: {
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#2563eb",
-  },
-
-  quickActions: {
-    display: "grid",
-    gap: 10,
-    marginTop: 10,
-  },
-
-  quickLink: {
-    textDecoration: "none",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    padding: "10px 14px",
-    fontWeight: 700,
-    color: "#0f172a",
-    background: "#ffffff",
-    display: "inline-flex",
-    justifyContent: "center",
-    width: "100%",
-    maxWidth: 260,
-  },
-
-  usedNote: {
-    marginTop: 14,
-    fontSize: 12,
-    color: "#475569",
-    opacity: 0.85,
-  },
+const styles: Record<string, React.CSSProperties> = {
+  page: { display: "grid", gap: 18, paddingBottom: 60 },
+  hero: { display: "grid", gridTemplateColumns: "minmax(0,1.4fr) minmax(260px,0.8fr)", gap: 18, border: "1px solid #dbeafe", borderRadius: 24, background: "linear-gradient(180deg,#ffffff 0%,#f8fbff 100%)", padding: 24 },
+  card: { border: "1px solid #e5e7eb", borderRadius: 20, background: "#ffffff", padding: 20, display: "grid", gap: 14, boxShadow: "0 12px 28px rgba(15,23,42,0.04)" },
+  grid2: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 18, alignItems: "start" },
+  eyebrow: { fontSize: 12, fontWeight: 800, letterSpacing: 1.1, textTransform: "uppercase", color: "#64748b" },
+  h1: { margin: 0, fontSize: "clamp(2rem,3vw,2.8rem)", lineHeight: 1.05, fontWeight: 900, color: "#0f172a" },
+  sectionTitle: { fontSize: 18, fontWeight: 900, color: "#0f172a" },
+  rowTitle: { fontSize: 15, fontWeight: 800, color: "#0f172a" },
+  text: { fontSize: 14, lineHeight: 1.65, color: "#475569" },
+  muted: { fontSize: 13, lineHeight: 1.55, color: "#64748b" },
+  actions: { display: "flex", flexWrap: "wrap", gap: 10 },
+  primaryLink: { textDecoration: "none", borderRadius: 12, background: "#1d4ed8", color: "#ffffff", padding: "10px 14px", fontWeight: 800, fontSize: 14 },
+  secondaryLink: { textDecoration: "none", borderRadius: 12, border: "1px solid #d1d5db", background: "#ffffff", color: "#0f172a", padding: "10px 14px", fontWeight: 800, fontSize: 14 },
+  aside: { border: "1px solid #e5e7eb", borderRadius: 20, background: "rgba(255,255,255,0.9)", padding: 18, display: "grid", gap: 10, alignContent: "start" },
+  avatar: { width: 56, height: 56, borderRadius: "50%", background: "#dbeafe", color: "#1d4ed8", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 18 },
+  asideTitle: { fontSize: 20, fontWeight: 900, color: "#0f172a" },
+  ok: { border: "1px solid #bbf7d0", background: "#ecfdf5", color: "#166534", borderRadius: 14, padding: "10px 12px", fontSize: 13 },
+  warn: { border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", borderRadius: 14, padding: "10px 12px", fontSize: 13 },
+  identityRow: { border: "1px solid #eef2f7", background: "#f8fafc", borderRadius: 14, padding: "12px 14px", display: "grid", gap: 4 },
+  activity: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", border: "1px solid #eef2f7", background: "#f8fafc", borderRadius: 14, padding: "12px 14px", textDecoration: "none" },
+  kind: { fontSize: 11, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1, color: "#64748b" },
+  date: { fontSize: 12, color: "#64748b", whiteSpace: "nowrap" },
+  primaryButton: { border: "1px solid #1d4ed8", background: "#1d4ed8", color: "#ffffff", borderRadius: 12, padding: "10px 14px", fontWeight: 800, fontSize: 14 },
+  secondaryButton: { border: "1px solid #d1d5db", background: "#ffffff", color: "#0f172a", borderRadius: 12, padding: "10px 14px", fontWeight: 800, fontSize: 13 },
+  dangerButton: { border: "1px solid #fecdd3", background: "#fff1f2", color: "#be123c", borderRadius: 12, padding: "10px 14px", fontWeight: 800, fontSize: 13 },
+  childCard: { border: "1px solid #eef2f7", background: "#f8fafc", borderRadius: 16, padding: 16, display: "grid", gap: 12 },
+  chip: { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", fontSize: 12, fontWeight: 800 },
+  field: { display: "grid", gap: 8 },
+  label: { fontSize: 13, fontWeight: 800, color: "#0f172a" },
+  input: { width: "100%", borderRadius: 12, border: "1px solid #d1d5db", background: "#ffffff", color: "#0f172a", padding: "10px 12px", fontSize: 14 },
+  empty: { border: "1px dashed #cbd5e1", background: "#f8fafc", color: "#475569", borderRadius: 14, padding: "14px 12px", fontSize: 14, lineHeight: 1.6 },
+  quickGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12 },
+  quickLink: { textDecoration: "none", borderRadius: 14, border: "1px solid #d1d5db", background: "#ffffff", color: "#0f172a", padding: "14px 16px", textAlign: "center", fontWeight: 800, fontSize: 14 },
 };
