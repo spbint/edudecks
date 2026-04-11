@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { loadFamilyProfile } from "@/lib/familySettings";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
@@ -15,6 +15,7 @@ import {
   publishFamilyGuidanceSnapshot,
   trackFamilyGuidanceEvent,
 } from "@/lib/familyGuidanceEvents";
+import BrandHomeLink from "./BrandHomeLink";
 import FamilyGuidanceDebugPanel from "./FamilyGuidanceDebugPanel";
 import ProfileMenu from "./ProfileMenu";
 
@@ -47,11 +48,6 @@ type FamilyShellConfigContextValue = {
 };
 
 const FamilyShellConfigContext = createContext<FamilyShellConfigContextValue | null>(null);
-
-type NavItem = {
-  href: string;
-  label: string;
-};
 
 type CommandItem = {
   href: string;
@@ -329,24 +325,6 @@ function isMissingRelationOrColumn(err: any) {
 function isActive(pathname: string, href: string) {
   if (href === "/family") return pathname === "/family";
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function navBtn(active: boolean): React.CSSProperties {
-  return {
-    border: active ? "1px solid #2563eb" : "1px solid #d1d5db",
-    background: active ? "#2563eb" : "#fff",
-    color: active ? "#fff" : "#111827",
-    borderRadius: 12,
-    padding: "10px 14px",
-    fontWeight: 700,
-    fontSize: 14,
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    whiteSpace: "nowrap",
-    boxShadow: active ? "0 10px 24px rgba(37,99,235,0.18)" : "none",
-  };
 }
 
 function utilBtn(primary = false): React.CSSProperties {
@@ -2148,19 +2126,6 @@ export function FamilyCommandLayer({ pathname }: { pathname: string }) {
   );
 }
 
-const PRIMARY_NAV: NavItem[] = [
-  { href: "/family", label: "Home" },
-  { href: "/calendar", label: "Calendar" },
-  { href: "/capture", label: "Capture" },
-  { href: "/planner", label: "Planner" },
-  { href: "/portfolio", label: "Portfolio" },
-  { href: "/reports", label: "Reports" },
-  { href: "/authority/readiness", label: "Readiness" },
-  { href: "/community", label: "Community" },
-  { href: "/profile", label: "Profile" },
-  { href: "/settings", label: "Settings" },
-];
-
 const COMMAND_ITEMS: CommandItem[] = [
   {
     href: "/capture",
@@ -2190,8 +2155,6 @@ const COMMAND_ITEMS: CommandItem[] = [
 ];
 
 function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-first learning flow" }: FamilyShellHeaderProps) {
-  const pathname = usePathname();
-
   return (
     <header
       style={{
@@ -2227,32 +2190,46 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
           <div
             style={{
               marginRight: 16,
-              display: "grid",
-              gap: 2,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              flexWrap: "wrap",
             }}
           >
-            <Link
+            <BrandHomeLink
               href="/family"
+              height={38}
+              width={148}
               style={{
-                fontSize: 22,
-                fontWeight: 900,
-                letterSpacing: 0.1,
-                color: "#0f172a",
-                lineHeight: 1.1,
-                textDecoration: "none",
+                flexShrink: 0,
               }}
-            >
-              {title}
-            </Link>
+            />
             <div
               style={{
-                fontSize: 12,
-                color: "#64748b",
-                fontWeight: 700,
-                lineHeight: 1.3,
+                display: "grid",
+                gap: 2,
               }}
             >
-              {subtitle}
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#0f172a",
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                }}
+              >
+                {title}
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#64748b",
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                }}
+              >
+                {subtitle}
+              </div>
             </div>
           </div>
 
@@ -2263,24 +2240,6 @@ function FamilyShellHeader({ title = "EduDecks Family", subtitle = "Homeschool-f
         </div>
 
         <FamilyGuidanceDebugPanel />
-
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            flexWrap: "nowrap",
-            overflowX: "auto",
-            paddingBottom: 2,
-            position: "relative",
-            zIndex: 10,
-          }}
-        >
-          {PRIMARY_NAV.map((item) => (
-            <Link key={item.href} href={item.href} style={navBtn(isActive(pathname, item.href))}>
-              {item.label}
-            </Link>
-          ))}
-        </div>
       </div>
     </header>
   );

@@ -52,6 +52,16 @@ const LEARNING_AREAS = [
   "Wellbeing",
 ];
 
+const WEEKDAY_PLANNING_PROMPTS = [
+  "Set the tone with one anchor learning moment.",
+  "Keep momentum steady with a small follow-through block.",
+  "Add a practical task that turns planning into doing.",
+  "Round out the week with something creative or open-ended.",
+  "Choose the one block that would make the week feel complete.",
+  "Leave space for family rhythm and a light catch-up block.",
+  "Keep this day soft with reflection, reading, or rest.",
+];
+
 function safeString(value: unknown): string {
   return String(value ?? "").trim();
 }
@@ -208,6 +218,15 @@ function titleForSuggestedArea(area: string) {
   if (area === "Creative") return "Creative learning moment";
   if (area === "Bible") return "Bible learning moment";
   return `${area} learning moment`;
+}
+
+function planningPromptForDate(date: Date, hasBlocks: boolean, suggestedArea: string) {
+  if (hasBlocks) {
+    return "This day already has a plan. Keep the note practical so capture is easy later.";
+  }
+
+  const weekdayPrompt = WEEKDAY_PLANNING_PROMPTS[date.getDay()] || WEEKDAY_PLANNING_PROMPTS[1];
+  return `${weekdayPrompt} ${suggestedArea} would be a calm place to begin.`;
 }
 
 export default function CalendarPage() {
@@ -567,6 +586,33 @@ function CalendarPageContent() {
       ? `Strongest planned area: ${strongestArea}`
       : "No area is leading yet.";
 
+  const weeklyScaffold = useMemo(
+    () => [
+      {
+        title: "Start the week",
+        text:
+          weeklyBlocks.length === 0
+            ? "Place one anchor block first. The week does not need to be full before it becomes useful."
+            : "Your first anchor is in place. Keep the next addition small and specific.",
+      },
+      {
+        title: "Look for coverage",
+        text:
+          missingAreas.length > 0
+            ? `A ${suggestedNextArea} moment would strengthen balance without over-planning the week.`
+            : "Coverage already feels broad. Use notes inside each day to keep the week realistic.",
+      },
+      {
+        title: "Move into capture",
+        text:
+          weeklyBlocks.length > 0
+            ? "When a planned moment happens, use Capture from that day card so planning turns into evidence."
+            : "Once one planned moment happens, move straight into Capture and let the record grow from there.",
+      },
+    ],
+    [missingAreas.length, suggestedNextArea, weeklyBlocks.length]
+  );
+
   const suggestedDateIso = useMemo(() => {
     const firstOpenDay = selectedWeekDates.find((date) => {
       const dateKey = isoDate(date);
@@ -797,10 +843,11 @@ function CalendarPageContent() {
         <section style={styles.hero}>
           <div>
             <div style={styles.kicker}>FAMILY CALENDAR</div>
-            <h1 style={styles.h1}>Plan visually for your learner</h1>
+            <h1 style={styles.h1}>Weekly planning starts here</h1>
             <p style={styles.sub}>
-              Keep your rhythm visible across the day, week, and month. This calendar is designed
-              to support learning gently, not pressure it.
+              Start with the week, place a few real learning moments, and leave enough structure in
+              each day to make capture easy later. Day and month views stay available, but week is
+              where the planning rhythm begins.
             </p>
 
             <div style={styles.heroChips}>
@@ -816,11 +863,11 @@ function CalendarPageContent() {
           </div>
 
           <div style={styles.heroActions}>
-            <Link href="/planner" style={styles.secondaryBtn}>
-              Back to Planner
+            <Link href="/family" style={styles.secondaryBtn}>
+              Home
             </Link>
             <button style={styles.primaryBtn} onClick={() => goToCapture()}>
-              Capture
+              Capture from plan
             </button>
           </div>
         </section>
@@ -981,7 +1028,7 @@ function CalendarPageContent() {
             </div>
 
             <div style={styles.intelligencePanel}>
-              <div style={styles.intelligencePanelTitle}>Suggested next block</div>
+              <div style={styles.intelligencePanelTitle}>Suggested next planning move</div>
               <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
               <div style={styles.cardActions}>
                 <button
@@ -1036,6 +1083,17 @@ function CalendarPageContent() {
           ) : null}
         </section>
 
+        {isWeekView ? (
+          <section style={styles.planningScaffold}>
+            {weeklyScaffold.map((item) => (
+              <div key={item.title} style={styles.planningScaffoldCard}>
+                <div style={styles.planningScaffoldTitle}>{item.title}</div>
+                <div style={styles.planningScaffoldText}>{item.text}</div>
+              </div>
+            ))}
+          </section>
+        ) : null}
+
         {!loading && isWeekView ? (
           <section
             style={{
@@ -1082,7 +1140,19 @@ function CalendarPageContent() {
                     {isToday ? <div style={styles.todayPill}>Today</div> : null}
                   </div>
 
-                  <div style={styles.openState}>Open</div>
+                  <div style={styles.openState}>
+                    {dayBlocks.length > 0 ? `${dayBlocks.length} planned` : "Open"}
+                  </div>
+
+                  <div style={styles.dayPrompt}>
+                    {planningPromptForDate(
+                      date,
+                      dayBlocks.length > 0,
+                      dayBlocks.length > 0
+                        ? safeString(dayBlocks[0]?.learning_area) || suggestedNextArea
+                        : suggestedNextArea
+                    )}
+                  </div>
 
                   <textarea
                     style={styles.dayScratch}
@@ -1154,8 +1224,8 @@ function CalendarPageContent() {
                     <div style={styles.emptyCard}>
                       <div style={styles.emptyTitle}>Start with one small learning moment</div>
                       <div style={styles.emptyText}>
-                        Keep it light. Add one block, capture one moment, or place one focus for
-                        the day.
+                        Keep it light. Add one block, sketch one intention, or choose a quick chip
+                        so the day feels useful before any data exists.
                       </div>
 
                       <div style={styles.cardActions}>
@@ -1217,7 +1287,7 @@ function CalendarPageContent() {
                     </div>
                   )}
 
-                  <div style={styles.quickAddLabel}>QUICK ADD</div>
+                  <div style={styles.quickAddLabel}>PLAN THIS DAY</div>
                   <div style={styles.quickAddStack}>
                     {["Literacy", "Numeracy", "Bible", "Inquiry", "Creative"].map((area) => (
                       <button
@@ -1813,6 +1883,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 15,
     color: "#475569",
   },
+  planningScaffold: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 12,
+    order: 3,
+  },
+  planningScaffoldCard: {
+    background: "#fbfdff",
+    border: "1px solid #e6edf5",
+    borderRadius: 18,
+    padding: 16,
+  },
+  planningScaffoldTitle: {
+    fontSize: 14,
+    fontWeight: 800,
+    color: "#0f172a",
+    marginBottom: 8,
+  },
+  planningScaffoldText: {
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "#556070",
+  },
   weekSignals: {
     background: "#ffffff",
     border: "1px solid #e6e9f0",
@@ -1871,6 +1964,16 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 700,
     color: "#64748b",
+  },
+  dayPrompt: {
+    borderRadius: 14,
+    border: "1px solid #e2e8f0",
+    background: "#f8fafc",
+    padding: "10px 12px",
+    fontSize: 12,
+    lineHeight: 1.55,
+    color: "#475569",
+    fontWeight: 700,
   },
   dayScratch: {
     width: "100%",
