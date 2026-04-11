@@ -1,47 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import React, { useMemo, useState } from "react";
 
 type ViewMode = "day" | "week" | "month";
-type BlockStatus = "planned" | "done";
 
-type PlannerBlock = {
-  id: string;
-  user_id: string | null;
-  student_id: string | null;
-  title: string;
-  learning_area: string;
-  planned_for: string;
-  planned_time: string | null;
-  note: string | null;
-  status: BlockStatus;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
+type SubjectOption =
+  | "Literacy"
+  | "Numeracy"
+  | "Bible"
+  | "Inquiry"
+  | "Creative"
+  | "Science"
+  | "Humanities"
+  | "Wellbeing";
 
-type PlannerDayNote = {
-  id: string;
-  user_id: string | null;
-  student_id: string | null;
-  note_date: string;
-  note: string;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
-
-type Learner = {
-  id: string;
-  label: string;
-};
-
-const STORAGE_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
-const STORAGE_NOTES_KEY = "edudecks_calendar_notes_v1";
-const STORAGE_LEARNER_KEY = "edudecks_active_student_id";
-
-const LEARNING_AREAS = [
+const SUBJECTS: SubjectOption[] = [
   "Literacy",
   "Numeracy",
   "Bible",
@@ -52,74 +25,30 @@ const LEARNING_AREAS = [
   "Wellbeing",
 ];
 
-const WEEKDAY_PLANNING_PROMPTS = [
-  "Set the tone with one anchor learning moment.",
-  "Keep momentum steady with a small follow-through block.",
-  "Add a practical task that turns planning into doing.",
-  "Round out the week with something creative or open-ended.",
-  "Choose the one block that would make the week feel complete.",
-  "Leave space for family rhythm and a light catch-up block.",
-  "Keep this day soft with reflection, reading, or rest.",
-];
-
-function safeString(value: unknown): string {
-  return String(value ?? "").trim();
+function formatMonthYear(date: Date) {
+  return date.toLocaleDateString("en-AU", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
-function isoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, "0");
-  const d = `${date.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function formatWeekRange(start: Date, end: Date) {
+  const startMonth = start.toLocaleDateString("en-AU", { month: "short" });
+  const endMonth = end.toLocaleDateString("en-AU", { month: "short" });
+
+  const startDay = start.getDate();
+  const endDay = end.getDate();
+  const year = end.getFullYear();
+
+  if (startMonth === endMonth) {
+    return `Week of ${startDay} ${startMonth} – ${endDay} ${endMonth} ${year}`;
+  }
+
+  return `Week of ${startDay} ${startMonth} – ${endDay} ${endMonth} ${year}`;
 }
 
-function parseDate(value: string | null | undefined): Date {
-  if (!value) return new Date();
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? new Date() : d;
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function startOfWeekMonday(date: Date): Date {
-  const d = startOfDay(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
-function endOfWeekSunday(date: Date): Date {
-  const d = startOfWeekMonday(date);
-  d.setDate(d.getDate() + 6);
-  return d;
-}
-
-function startOfMonthGrid(date: Date): Date {
-  const first = new Date(date.getFullYear(), date.getMonth(), 1);
-  return startOfWeekMonday(first);
-}
-
-function endOfMonthGrid(date: Date): Date {
-  const last = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  const end = endOfWeekSunday(last);
-  return end;
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function sameDay(a: Date, b: Date): boolean {
-  return isoDate(a) === isoDate(b);
-}
-
-function formatLongDate(date: Date): string {
-  return date.toLocaleDateString(undefined, {
+function formatLongDate(date: Date) {
+  return date.toLocaleDateString("en-AU", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -127,2229 +56,527 @@ function formatLongDate(date: Date): string {
   });
 }
 
-function formatShortDay(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "numeric",
-  });
+function toInputDate(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-function formatMonthYear(date: Date): string {
-  return date.toLocaleDateString(undefined, {
-    month: "long",
-    year: "numeric",
-  });
+function startOfWeek(date: Date) {
+  const copy = new Date(date);
+  const day = copy.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  copy.setDate(copy.getDate() + diff);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
 }
 
-function formatWeekLabel(date: Date): string {
-  const start = startOfWeekMonday(date);
-  const end = endOfWeekSunday(date);
-
-  const startMonth = start.toLocaleDateString(undefined, { month: "short" });
-  const endMonth = end.toLocaleDateString(undefined, { month: "short" });
-
-  return `Week of ${start.getDate()} ${startMonth} – ${end.getDate()} ${endMonth} ${end.getFullYear()}`;
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
 }
 
-function rangeDates(start: Date, end: Date): Date[] {
-  const out: Date[] = [];
-  let current = startOfDay(start);
-  const final = startOfDay(end);
-
-  while (current <= final) {
-    out.push(new Date(current));
-    current = addDays(current, 1);
-  }
-
-  return out;
+function buildWeekDays(anchor: Date) {
+  const monday = startOfWeek(anchor);
+  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 }
 
-function getLocalBlocks(): PlannerBlock[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_BLOCKS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function buildMonthGrid(anchor: Date) {
+  const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const gridStart = startOfWeek(firstOfMonth);
+
+  return Array.from({ length: 35 }, (_, i) => addDays(gridStart, i));
 }
 
-function setLocalBlocks(blocks: PlannerBlock[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_BLOCKS_KEY, JSON.stringify(blocks));
+function cls(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
 }
 
-function getLocalNotes(): Record<string, PlannerDayNote> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_NOTES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function setLocalNotes(notes: Record<string, PlannerDayNote>) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_NOTES_KEY, JSON.stringify(notes));
-}
-
-function buildNoteKey(userId: string | null, studentId: string | null, date: string) {
-  return `${userId || "anon"}::${studentId || "none"}::${date}`;
-}
-
-function learnerLabel(row: any): string {
-  const first =
-    safeString(row?.preferred_name || row?.first_name || row?.name || row?.label || row?.title);
-  const last = safeString(row?.surname || row?.family_name || row?.last_name);
-  return [first, last].filter(Boolean).join(" ").trim() || "Learner";
-}
-
-function titleForSuggestedArea(area: string) {
-  if (area === "Literacy") return "Literacy learning moment";
-  if (area === "Numeracy") return "Numeracy learning moment";
-  if (area === "Science") return "Science learning moment";
-  if (area === "Humanities") return "Humanities learning moment";
-  if (area === "Inquiry") return "Inquiry learning moment";
-  if (area === "Creative") return "Creative learning moment";
-  if (area === "Bible") return "Bible learning moment";
-  return `${area} learning moment`;
-}
-
-function planningPromptForDate(date: Date, hasBlocks: boolean, suggestedArea: string) {
-  if (hasBlocks) {
-    return "This day already has a plan. Keep the note practical so capture is easy later.";
-  }
-
-  const weekdayPrompt = WEEKDAY_PLANNING_PROMPTS[date.getDay()] || WEEKDAY_PLANNING_PROMPTS[1];
-  return `${weekdayPrompt} ${suggestedArea} would be a calm place to begin.`;
-}
+const surface =
+  "rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.05)]";
+const card =
+  "rounded-[20px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
+const pill =
+  "inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600";
+const buttonBase =
+  "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition";
+const buttonPrimary =
+  `${buttonBase} bg-slate-950 text-white hover:bg-slate-800`;
+const buttonSecondary =
+  `${buttonBase} border border-slate-200 bg-white text-slate-700 hover:bg-slate-50`;
+const inputClass =
+  "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
+const textareaClass =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
 
 export default function CalendarPage() {
-  return (
-    <Suspense fallback={null}>
-      <CalendarPageContent />
-    </Suspense>
-  );
-}
-
-function CalendarPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [view, setView] = useState<ViewMode>("week");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date("2026-04-11"));
+  const [learner, setLearner] = useState("Your learner");
+  const [subject, setSubject] = useState<SubjectOption>("Literacy");
+  const [momentTitle, setMomentTitle] = useState("");
+  const [momentNote, setMomentNote] = useState("");
+  const [optionalTime, setOptionalTime] = useState("");
+  const [dayNote, setDayNote] = useState("");
 
-  const [userId, setUserId] = useState<string | null>(null);
-  const [learners, setLearners] = useState<Learner[]>([]);
-  const [activeLearnerId, setActiveLearnerId] = useState<string>("");
+  const weekDays = useMemo(() => buildWeekDays(selectedDate), [selectedDate]);
+  const monthDays = useMemo(() => buildMonthGrid(selectedDate), [selectedDate]);
 
-  const [title, setTitle] = useState("");
-  const [learningArea, setLearningArea] = useState("Literacy");
-  const [plannedTime, setPlannedTime] = useState("");
-  const [toolbarDate, setToolbarDate] = useState(isoDate(new Date()));
-  const [toolbarNote, setToolbarNote] = useState("");
+  const weekStart = weekDays[0];
+  const weekEnd = weekDays[6];
 
-  const [blocks, setBlocks] = useState<PlannerBlock[]>([]);
-  const [noteText, setNoteText] = useState("");
-  const [dayNotesMap, setDayNotesMap] = useState<Record<string, PlannerDayNote>>({});
+  const guidanceTitle =
+    "This week is still open. Start with one small learning moment and let the week take shape gently.";
 
-  const [loading, setLoading] = useState(true);
-  const [savingBlock, setSavingBlock] = useState(false);
-  const [savingNote, setSavingNote] = useState(false);
-  const [storageMode, setStorageMode] = useState<"database" | "local">("local");
-  const [message, setMessage] = useState("");
+  const dayHeading = formatLongDate(selectedDate);
 
-  useEffect(() => {
-    const qView = safeString(searchParams.get("view")).toLowerCase();
-    const qDate = searchParams.get("date");
-
-    if (qView === "day" || qView === "week" || qView === "month") {
-      setView(qView);
-    }
-    if (qDate) {
-      const d = parseDate(qDate);
-      setSelectedDate(d);
-      setToolbarDate(isoDate(d));
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function init() {
-      setLoading(true);
-
-      try {
-        const auth = await supabase.auth.getUser();
-        const uid = auth?.data?.user?.id ?? null;
-        if (!mounted) return;
-        setUserId(uid);
-
-        const learnerOptions = await loadLearners();
-        if (!mounted) return;
-        setLearners(learnerOptions);
-
-        const storedLearner =
-          typeof window !== "undefined"
-            ? safeString(window.localStorage.getItem(STORAGE_LEARNER_KEY))
-            : "";
-
-        const chosenLearner =
-          learnerOptions.find((l) => l.id === storedLearner)?.id ||
-          learnerOptions[0]?.id ||
-          "";
-
-        setActiveLearnerId(chosenLearner);
-
-        await loadCalendarData(uid, chosenLearner);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    init();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    function syncActiveLearner(detailId?: string) {
-      const nextId =
-        detailId || safeString(window.localStorage.getItem(STORAGE_LEARNER_KEY)) || "";
-      if (!nextId) return;
-      if (learners.some((learner) => learner.id === nextId)) {
-        setActiveLearnerId((prev) => (prev === nextId ? prev : nextId));
-        return;
-      }
-      if (learners.length) {
-        const fallback = learners[0].id;
-        setActiveLearnerId(fallback);
-        window.localStorage.setItem(STORAGE_LEARNER_KEY, fallback);
-      }
-    }
-
-    function handleCustomEvent(event: Event) {
-      const detail = (event as CustomEvent<{ childId?: string }>).detail;
-      syncActiveLearner(detail?.childId);
-    }
-
-    function handleStorage(event: StorageEvent) {
-      if (event.key !== STORAGE_LEARNER_KEY) return;
-      syncActiveLearner(event.newValue || undefined);
-    }
-
-    syncActiveLearner();
-    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener(
-        "edudecksActiveChildChanged",
-        handleCustomEvent as EventListener
-      );
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [learners]);
-
-  useEffect(() => {
-    const selectedIso = isoDate(selectedDate);
-    setToolbarDate(selectedIso);
-
-    const key = buildNoteKey(userId, activeLearnerId || null, selectedIso);
-    setNoteText(dayNotesMap[key]?.note || "");
-  }, [selectedDate, activeLearnerId, userId, dayNotesMap]);
-
-  async function loadLearners(): Promise<Learner[]> {
-    try {
-      const childrenRes = await supabase
-        .from("children")
-        .select("id, preferred_name, first_name, surname, family_name, last_name, name, label, title")
-        .limit(50);
-
-      if (!childrenRes.error && Array.isArray(childrenRes.data) && childrenRes.data.length > 0) {
-        return childrenRes.data.map((row: any) => ({
-          id: safeString(row?.id),
-          label: learnerLabel(row),
-        }));
-      }
-    } catch {}
-
-    try {
-      const studentsRes = await supabase
-        .from("students")
-        .select("id, preferred_name, first_name, surname, family_name, last_name, name, label, title")
-        .limit(50);
-
-      if (!studentsRes.error && Array.isArray(studentsRes.data) && studentsRes.data.length > 0) {
-        return studentsRes.data.map((row: any) => ({
-          id: safeString(row?.id),
-          label: learnerLabel(row),
-        }));
-      }
-    } catch {}
-
-    return [];
+  function goPrevious() {
+    setSelectedDate((prev) => {
+      const next = new Date(prev);
+      if (view === "day") next.setDate(next.getDate() - 1);
+      if (view === "week") next.setDate(next.getDate() - 7);
+      if (view === "month") next.setMonth(next.getMonth() - 1);
+      return next;
+    });
   }
 
-  async function loadCalendarData(uid: string | null, learnerId: string) {
-    const localBlocks = getLocalBlocks();
-    const localNotes = getLocalNotes();
-
-    try {
-      let blockQuery = supabase
-        .from("planner_blocks")
-        .select("*")
-        .order("planned_for", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (uid) {
-        blockQuery = blockQuery.eq("user_id", uid);
-      }
-
-      if (learnerId) {
-        blockQuery = blockQuery.eq("student_id", learnerId);
-      }
-
-      const blockRes = await blockQuery;
-
-      let notesQuery = supabase.from("planner_day_notes").select("*");
-
-      if (uid) {
-        notesQuery = notesQuery.eq("user_id", uid);
-      }
-
-      if (learnerId) {
-        notesQuery = notesQuery.eq("student_id", learnerId);
-      }
-
-      const notesRes = await notesQuery;
-
-      if (!blockRes.error && !notesRes.error) {
-        setStorageMode("database");
-        setBlocks((blockRes.data || []) as PlannerBlock[]);
-
-        const notesMap: Record<string, PlannerDayNote> = {};
-        ((notesRes.data || []) as PlannerDayNote[]).forEach((note) => {
-          const key = buildNoteKey(note.user_id, note.student_id, note.note_date);
-          notesMap[key] = note;
-        });
-
-        setDayNotesMap(notesMap);
-        return;
-      }
-    } catch {}
-
-    setStorageMode("local");
-    setBlocks(
-      localBlocks.filter((b) => {
-        const userOk = !uid || b.user_id === uid || !b.user_id;
-        const learnerOk = !learnerId || b.student_id === learnerId || !b.student_id;
-        return userOk && learnerOk;
-      })
-    );
-    setDayNotesMap(localNotes);
-  }
-
-  const visibleDates = useMemo(() => {
-    if (view === "day") return [startOfDay(selectedDate)];
-    if (view === "week") {
-      return rangeDates(startOfWeekMonday(selectedDate), endOfWeekSunday(selectedDate));
-    }
-    return rangeDates(startOfMonthGrid(selectedDate), endOfMonthGrid(selectedDate));
-  }, [view, selectedDate]);
-
-  const blocksByDate = useMemo(() => {
-    const map: Record<string, PlannerBlock[]> = {};
-    blocks.forEach((block) => {
-      const key = safeString(block.planned_for);
-      if (!map[key]) map[key] = [];
-      map[key].push(block);
+  function goNext() {
+    setSelectedDate((prev) => {
+      const next = new Date(prev);
+      if (view === "day") next.setDate(next.getDate() + 1);
+      if (view === "week") next.setDate(next.getDate() + 7);
+      if (view === "month") next.setMonth(next.getMonth() + 1);
+      return next;
     });
-    return map;
-  }, [blocks]);
-
-  const selectedIso = isoDate(selectedDate);
-  const selectedWeekStart = useMemo(() => startOfWeekMonday(selectedDate), [selectedDate]);
-  const selectedWeekEnd = useMemo(() => endOfWeekSunday(selectedDate), [selectedDate]);
-  const selectedWeekDates = useMemo(
-    () => rangeDates(selectedWeekStart, selectedWeekEnd),
-    [selectedWeekStart, selectedWeekEnd]
-  );
-  const selectedWeekStartIso = isoDate(selectedWeekStart);
-  const selectedWeekEndIso = isoDate(selectedWeekEnd);
-
-  const weeklyBlocks = useMemo(
-    () =>
-      blocks.filter((block) => {
-        const plannedFor = safeString(block.planned_for);
-        return plannedFor >= selectedWeekStartIso && plannedFor <= selectedWeekEndIso;
-      }),
-    [blocks, selectedWeekEndIso, selectedWeekStartIso]
-  );
-
-  const weeklyAreaCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    weeklyBlocks.forEach((block) => {
-      const area = safeString(block.learning_area) || "General";
-      counts[area] = (counts[area] || 0) + 1;
-    });
-    return counts;
-  }, [weeklyBlocks]);
-
-  const coveredAreas = useMemo(
-    () => LEARNING_AREAS.filter((area) => (weeklyAreaCounts[area] || 0) > 0),
-    [weeklyAreaCounts]
-  );
-
-  const missingAreas = useMemo(
-    () => LEARNING_AREAS.filter((area) => !coveredAreas.includes(area)),
-    [coveredAreas]
-  );
-
-  const strongestArea = useMemo(() => {
-    let best = "";
-    let bestCount = 0;
-    Object.entries(weeklyAreaCounts).forEach(([area, count]) => {
-      if (count > bestCount) {
-        best = area;
-        bestCount = count;
-      }
-    });
-    return best;
-  }, [weeklyAreaCounts]);
-
-  const isBalancedWeek =
-    weeklyBlocks.length > 0 && coveredAreas.length >= 4 && missingAreas.length <= 4;
-
-  const suggestedNextArea = useMemo(() => {
-    if (weeklyBlocks.length === 0) return "Literacy";
-
-    const coreMissing = ["Literacy", "Numeracy", "Science", "Humanities"].find((area) =>
-      missingAreas.includes(area)
-    );
-    if (coreMissing) return coreMissing;
-
-    const anyMissing = LEARNING_AREAS.find((area) => missingAreas.includes(area));
-    if (anyMissing) return anyMissing;
-
-    if ((weeklyAreaCounts.Inquiry || 0) === 0) return "Inquiry";
-    if ((weeklyAreaCounts.Creative || 0) === 0) return "Creative";
-    if ((weeklyAreaCounts.Bible || 0) === 0) return "Bible";
-    return "Inquiry";
-  }, [missingAreas, weeklyAreaCounts, weeklyBlocks.length]);
-
-  const suggestedNextCopy = useMemo(() => {
-    if (weeklyBlocks.length === 0) {
-      return "Start with one small Literacy or Numeracy block this week.";
-    }
-
-    if (missingAreas.length > 0) {
-      if (suggestedNextArea === "Science" || suggestedNextArea === "Humanities") {
-        return `A simple ${suggestedNextArea} block would help round out the week.`;
-      }
-      return `Suggested next block: Add one ${suggestedNextArea} moment this week.`;
-    }
-
-    return "This week looks balanced - consider adding one creative or inquiry moment.";
-  }, [missingAreas.length, suggestedNextArea, weeklyBlocks.length]);
-
-  const weeklySummaryText = useMemo(() => {
-    if (weeklyBlocks.length === 0) {
-      return "This week is still open. Start with one small learning moment and let the week take shape gently.";
-    }
-    if (isBalancedWeek) {
-      return "This week is looking balanced. You've already planned a healthy spread of learning.";
-    }
-    return "This week is beginning to take shape.";
-  }, [isBalancedWeek, weeklyBlocks.length]);
-
-  const weeklyCoverageText = useMemo(() => {
-    if (weeklyBlocks.length === 0) {
-      return "A simple Literacy or Numeracy block is enough to begin.";
-    }
-    if (missingAreas.length === 0) {
-      return "You already have something planned across each learning area in this weekly view.";
-    }
-    return `Missing this week: ${missingAreas.slice(0, 4).join(", ")}${missingAreas.length > 4 ? "..." : ""}`;
-  }, [missingAreas, weeklyBlocks.length]);
-
-  const strongestAreaText =
-    weeklyBlocks.length > 0 && strongestArea
-      ? `Strongest planned area: ${strongestArea}`
-      : "No area is leading yet.";
-
-  const weeklyScaffold = useMemo(
-    () => [
-      {
-        title: "Start the week",
-        text:
-          weeklyBlocks.length === 0
-            ? "Place one anchor block first. The week does not need to be full before it becomes useful."
-            : "Your first anchor is in place. Keep the next addition small and specific.",
-      },
-      {
-        title: "Look for coverage",
-        text:
-          missingAreas.length > 0
-            ? `A ${suggestedNextArea} moment would strengthen balance without over-planning the week.`
-            : "Coverage already feels broad. Use notes inside each day to keep the week realistic.",
-      },
-      {
-        title: "Move into capture",
-        text:
-          weeklyBlocks.length > 0
-            ? "When a planned moment happens, use Capture from that day card so planning turns into evidence."
-            : "Once one planned moment happens, move straight into Capture and let the record grow from there.",
-      },
-    ],
-    [missingAreas.length, suggestedNextArea, weeklyBlocks.length]
-  );
-
-  const suggestedDateIso = useMemo(() => {
-    const firstOpenDay = selectedWeekDates.find((date) => {
-      const dateKey = isoDate(date);
-      return (blocksByDate[dateKey] || []).length === 0;
-    });
-    return isoDate(firstOpenDay || selectedDate);
-  }, [blocksByDate, selectedDate, selectedWeekDates]);
-
-  function shiftPeriod(direction: -1 | 1) {
-    if (view === "day") {
-      setSelectedDate(addDays(selectedDate, direction));
-      return;
-    }
-
-    if (view === "week") {
-      setSelectedDate(addDays(selectedDate, direction * 7));
-      return;
-    }
-
-    const d = new Date(selectedDate);
-    d.setMonth(d.getMonth() + direction);
-    setSelectedDate(d);
   }
 
   function goToday() {
-    const now = new Date();
-    setSelectedDate(now);
-    setToolbarDate(isoDate(now));
+    setSelectedDate(new Date());
   }
 
-  async function persistBlock(block: PlannerBlock) {
-    try {
-      const res = await supabase.from("planner_blocks").insert(block).select("*").single();
-      if (!res.error && res.data) {
-        setStorageMode("database");
-        setBlocks((prev) => {
-          const next = [...prev, res.data as PlannerBlock].sort((a, b) => {
-            if (a.planned_for !== b.planned_for) return a.planned_for.localeCompare(b.planned_for);
-            return safeString(a.created_at).localeCompare(safeString(b.created_at));
-          });
-          return next;
-        });
-        return true;
-      }
-    } catch {}
-
-    const local = getLocalBlocks();
-    local.push(block);
-    setLocalBlocks(local);
-    setStorageMode("local");
-    setBlocks((prev) => [...prev, block]);
-    return false;
-  }
-
-  async function handleAddBlock(custom?: { date?: string; area?: string; title?: string }) {
-    const nextTitle = safeString(custom?.title ?? title);
-    const nextArea = safeString(custom?.area ?? learningArea) || "Literacy";
-    const nextDate = safeString(custom?.date ?? toolbarDate) || selectedIso;
-
-    if (!nextTitle) {
-      setMessage("Add a simple learning moment first.");
-      return;
-    }
-
-    setSavingBlock(true);
-    setMessage("");
-
-    const block: PlannerBlock = {
-      id:
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `local-${Date.now()}`,
-      user_id: userId,
-      student_id: activeLearnerId || null,
-      title: nextTitle,
-      learning_area: nextArea,
-      planned_for: nextDate,
-      planned_time: safeString(plannedTime) || null,
-      note: safeString(toolbarNote) || null,
-      status: "planned",
-    };
-
-    const savedToDatabase = await persistBlock(block);
-
-    setTitle("");
-    setToolbarNote("");
-    setMessage(savedToDatabase ? "Learning block added." : "Learning block added locally.");
-    setSavingBlock(false);
-  }
-
-  async function handleSaveDayNote() {
-    const note = safeString(noteText);
-    const noteDate = selectedIso;
-
-    setSavingNote(true);
-    setMessage("");
-
-    const payload: PlannerDayNote = {
-      id:
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `note-${Date.now()}`,
-      user_id: userId,
-      student_id: activeLearnerId || null,
-      note_date: noteDate,
-      note,
-    };
-
-    try {
-      const existingKey = buildNoteKey(userId, activeLearnerId || null, noteDate);
-      const existing = dayNotesMap[existingKey];
-
-      if (existing?.id) {
-        const res = await supabase
-          .from("planner_day_notes")
-          .update({
-            note,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existing.id)
-          .select("*")
-          .single();
-
-        if (!res.error && res.data) {
-          const next = { ...dayNotesMap };
-          next[existingKey] = res.data as PlannerDayNote;
-          setDayNotesMap(next);
-          setStorageMode("database");
-          setMessage("Day note saved.");
-          setSavingNote(false);
-          return;
-        }
-      } else {
-        const res = await supabase.from("planner_day_notes").insert(payload).select("*").single();
-
-        if (!res.error && res.data) {
-          const key = buildNoteKey(userId, activeLearnerId || null, noteDate);
-          const next = { ...dayNotesMap, [key]: res.data as PlannerDayNote };
-          setDayNotesMap(next);
-          setStorageMode("database");
-          setMessage("Day note saved.");
-          setSavingNote(false);
-          return;
-        }
-      }
-    } catch {}
-
-    const key = buildNoteKey(userId, activeLearnerId || null, noteDate);
-    const existing = getLocalNotes();
-    existing[key] = payload;
-    setLocalNotes(existing);
-    setDayNotesMap(existing);
-    setStorageMode("local");
-    setMessage("Day note saved locally.");
-    setSavingNote(false);
-  }
-
-  async function markDone(block: PlannerBlock) {
-    const nextStatus: BlockStatus = block.status === "done" ? "planned" : "done";
-
-    try {
-      const res = await supabase
-        .from("planner_blocks")
-        .update({ status: nextStatus, updated_at: new Date().toISOString() })
-        .eq("id", block.id)
-        .select("*")
-        .single();
-
-      if (!res.error && res.data) {
-        setBlocks((prev) =>
-          prev.map((b) => (b.id === block.id ? ((res.data as PlannerBlock) || b) : b))
-        );
-        setStorageMode("database");
-        return;
-      }
-    } catch {}
-
-    const next = blocks.map((b) => (b.id === block.id ? { ...b, status: nextStatus } : b));
-    setBlocks(next);
-    setLocalBlocks(next);
-    setStorageMode("local");
-  }
-
-  function openDay(date: Date) {
-    setSelectedDate(date);
-    setView("day");
-  }
-
-  function goToCapture(block?: PlannerBlock, date?: Date, area?: string) {
-    const params = new URLSearchParams();
-
-    const plannedDate = block?.planned_for || (date ? isoDate(date) : selectedIso);
-    const plannedArea = block?.learning_area || safeString(area) || learningArea;
-    const plannedTitle = block?.title || title;
-
-    if (plannedDate) params.set("date", plannedDate);
-    if (plannedArea) params.set("learning_area", plannedArea);
-    if (plannedTitle) params.set("title", plannedTitle);
-    if (block?.id) params.set("planner_block_id", block.id);
-
-    router.push(`/capture?${params.toString()}`);
-  }
-
-  async function handleLearnerChange(nextId: string) {
-    setActiveLearnerId(nextId);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_LEARNER_KEY, nextId);
-    }
-    await loadCalendarData(userId, nextId);
-  }
-
-  function blocksFor(date: Date) {
-    return blocksByDate[isoDate(date)] || [];
-  }
-
-  const isWeekView = view === "week";
-
-  const heading =
+  const topTitle =
     view === "day"
       ? formatLongDate(selectedDate)
-      : isWeekView
-      ? formatWeekLabel(selectedDate)
-      : formatMonthYear(selectedDate);
+      : view === "week"
+        ? formatWeekRange(weekStart, weekEnd)
+        : formatMonthYear(selectedDate);
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
-        <section style={styles.hero}>
-          <div>
-            <div style={styles.kicker}>FAMILY CALENDAR</div>
-            <h1 style={styles.h1}>Weekly planning starts here</h1>
-            <p style={styles.sub}>
-              Start with the week, place a few real learning moments, and leave enough structure in
-              each day to make capture easy later. Day and month views stay available, but week is
-              where the planning rhythm begins.
-            </p>
-
-            <div style={styles.heroChips}>
-              <div style={styles.heroChip}>Current view {view.toUpperCase()}</div>
-              <div style={styles.heroChip}>
-                This week’s focus&nbsp;
-                <strong>
-                  Use the calendar to place gentle learning blocks across the week without turning
-                  home into school.
-                </strong>
+    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-6 py-8">
+      {/* Ribbon */}
+      <section className={cls(surface, "px-6 py-5")}>
+        <div className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+          How it flows
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {[
+            { n: 1, label: "Home", active: false },
+            { n: 2, label: "Calendar", active: true },
+            { n: 3, label: "Capture", active: false },
+            { n: 4, label: "Portfolio", active: false },
+          ].map((step, index, arr) => (
+            <React.Fragment key={step.label}>
+              <div
+                className={cls(
+                  "inline-flex items-center gap-3 rounded-[18px] border px-4 py-3",
+                  step.active
+                    ? "border-blue-200 bg-blue-50 text-blue-700"
+                    : "border-slate-200 bg-white text-slate-700",
+                )}
+              >
+                <div
+                  className={cls(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-sm font-black",
+                    step.active
+                      ? "border-blue-200 bg-white text-blue-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500",
+                  )}
+                >
+                  {step.n}
+                </div>
+                <span className="text-[15px] font-semibold">{step.label}</span>
               </div>
+              {index < arr.length - 1 && (
+                <span className="text-slate-400">→</span>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      </section>
+
+      {/* Hero */}
+      <section className={cls(surface, "flex flex-col gap-5 px-8 py-7")}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-[760px]">
+            <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+              Family calendar
             </div>
+            <h1 className="text-4xl font-black tracking-tight text-slate-950">
+              Plan visually for your learner
+            </h1>
+            <p className="mt-3 max-w-[700px] text-[15px] leading-7 text-slate-600">
+              Keep your rhythm visible across the day, week, and month. This
+              calendar is designed to support learning gently, not pressure it.
+            </p>
           </div>
 
-          <div style={styles.heroActions}>
-            <Link href="/family" style={styles.secondaryBtn}>
-              Home
-            </Link>
-            <button style={styles.primaryBtn} onClick={() => goToCapture()}>
-              Capture from plan
+          <div className="flex flex-wrap gap-3">
+            <button className={buttonSecondary}>Back to Planner</button>
+            <button className={buttonPrimary}>Capture</button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <span className={pill}>
+            Current view&nbsp;
+            <strong className="text-slate-800">{view.toUpperCase()}</strong>
+          </span>
+          <span className={pill}>
+            This week’s focus&nbsp;
+            <strong className="text-slate-800">
+              Use the calendar to place gentle learning blocks across the week
+              without turning home into school.
+            </strong>
+          </span>
+        </div>
+      </section>
+
+      {/* Weekly guidance */}
+      <section className={cls(surface, "px-7 py-7")}>
+        <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+          Weekly guidance
+        </div>
+        <h2 className="text-[20px] font-black leading-tight text-slate-950">
+          {guidanceTitle}
+        </h2>
+        <p className="mt-3 text-sm text-slate-600">
+          A simple Literacy or Numeracy block is enough to begin.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-3">
+          <span className={pill}>No blocks planned yet</span>
+          <span className={pill}>No area is leading yet</span>
+        </div>
+
+        <div className="mt-5 grid gap-4 lg:grid-cols-2">
+          <div className={cls(card, "p-5")}>
+            <div className="text-lg font-bold text-slate-900">
+              Covered this week
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              Nothing is planned yet.
+            </p>
+          </div>
+
+          <div className={cls(card, "p-5")}>
+            <div className="text-lg font-bold text-slate-900">
+              Suggested next block
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              Start with one small Literacy or Numeracy block this week.
+            </p>
+            <button className={cls(buttonPrimary, "mt-4")}>
+              Add suggested block
             </button>
           </div>
-        </section>
+        </div>
 
-        <section
-          style={{
-            ...styles.toolbarCard,
-            ...(isWeekView ? styles.toolbarCardWeekSecondary : {}),
-          }}
-        >
-          <div style={styles.topRow}>
-            <div style={styles.navLeft}>
-              <button style={styles.smallBtn} onClick={goToday}>
+        <div className={cls(card, "mt-4 p-5")}>
+          <div className="text-lg font-bold text-slate-900">
+            Start with one small learning moment
+          </div>
+          <p className="mt-3 text-sm text-slate-600">
+            A simple Literacy or Numeracy block is enough to begin. You can
+            round out the week once the first piece is in place.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button className={buttonSecondary}>Add Literacy block</button>
+            <button className={buttonSecondary}>Add Numeracy block</button>
+          </div>
+        </div>
+      </section>
+
+      {/* Input / controls */}
+      <section className={cls(surface, "px-5 py-5")}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <button className={buttonSecondary} onClick={goToday}>
                 Today
               </button>
-              <button style={styles.iconBtn} onClick={() => shiftPeriod(-1)}>
+              <button className={buttonSecondary} onClick={goPrevious}>
                 ←
               </button>
-              <button style={styles.iconBtn} onClick={() => shiftPeriod(1)}>
+              <button className={buttonSecondary} onClick={goNext}>
                 →
               </button>
-              <div style={styles.heading}>{heading}</div>
+              <h3 className="ml-2 text-[18px] font-black text-slate-950">
+                {topTitle}
+              </h3>
             </div>
 
-            <div style={styles.navRight}>
+            <div className="flex flex-wrap items-center gap-3">
               <select
-                value={activeLearnerId}
-                onChange={(e) => handleLearnerChange(e.target.value)}
-                style={styles.select}
+                className={inputClass}
+                value={learner}
+                onChange={(e) => setLearner(e.target.value)}
               >
-                <option value="">Your learner</option>
-                {learners.map((learner) => (
-                  <option key={learner.id} value={learner.id}>
-                    {learner.label}
-                  </option>
-                ))}
+                <option>Your learner</option>
               </select>
 
-              <div style={styles.viewToggle}>
-                <button
-                  style={{ ...styles.toggleBtn, ...(view === "day" ? styles.toggleBtnActive : {}) }}
-                  onClick={() => setView("day")}
-                >
-                  DAY
-                </button>
-                <button
-                  style={{
-                    ...styles.toggleBtn,
-                    ...(view === "week" ? styles.toggleBtnActive : {}),
-                  }}
-                  onClick={() => setView("week")}
-                >
-                  WEEK
-                </button>
-                <button
-                  style={{
-                    ...styles.toggleBtn,
-                    ...(view === "month" ? styles.toggleBtnActive : {}),
-                  }}
-                  onClick={() => setView("month")}
-                >
-                  MONTH
-                </button>
+              <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1">
+                {(["day", "week", "month"] as ViewMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setView(mode)}
+                    className={cls(
+                      "rounded-xl px-4 py-2 text-sm font-bold",
+                      view === mode
+                        ? "bg-slate-950 text-white"
+                        : "text-slate-500 hover:bg-slate-50",
+                    )}
+                  >
+                    {mode.toUpperCase()}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          <div style={styles.inputRow}>
+          <div className="grid gap-3 lg:grid-cols-[1.8fr_0.7fr_0.6fr_0.6fr_auto]">
             <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              className={inputClass}
               placeholder="Add a simple learning moment..."
-              style={styles.textInput}
+              value={momentTitle}
+              onChange={(e) => setMomentTitle(e.target.value)}
             />
-
             <select
-              value={learningArea}
-              onChange={(e) => setLearningArea(e.target.value)}
-              style={styles.select}
+              className={inputClass}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value as SubjectOption)}
             >
-              {LEARNING_AREAS.map((area) => (
-                <option key={area} value={area}>
-                  {area}
-                </option>
+              {SUBJECTS.map((item) => (
+                <option key={item}>{item}</option>
               ))}
             </select>
-
             <input
-              value={plannedTime}
-              onChange={(e) => setPlannedTime(e.target.value)}
+              className={inputClass}
               placeholder="Optional time"
-              style={styles.timeInput}
+              value={optionalTime}
+              onChange={(e) => setOptionalTime(e.target.value)}
             />
-
             <input
+              className={inputClass}
               type="date"
-              value={toolbarDate}
-              onChange={(e) => {
-                setToolbarDate(e.target.value);
-                setSelectedDate(parseDate(e.target.value));
-              }}
-              style={styles.dateInput}
+              value={toInputDate(selectedDate)}
+              onChange={(e) => setSelectedDate(new Date(e.target.value))}
             />
-
-            <button style={styles.addBtn} onClick={() => handleAddBlock()} disabled={savingBlock}>
-              {savingBlock ? "..." : "Add"}
-            </button>
+            <button className={buttonPrimary}>Add</button>
           </div>
 
           <textarea
-            value={toolbarNote}
-            onChange={(e) => setToolbarNote(e.target.value)}
+            className={textareaClass}
+            rows={2}
             placeholder="Optional notes for this learning block..."
-            style={styles.noteInput}
+            value={momentNote}
+            onChange={(e) => setMomentNote(e.target.value)}
           />
 
-          {message ? <div style={styles.message}>{message}</div> : null}
-          <div style={styles.storageHint}>Storage mode: {storageMode}</div>
-        </section>
+          <div className="text-xs text-slate-500">Storage mode: local</div>
+        </div>
+      </section>
 
-        <section
-          style={{
-            ...styles.intelligenceCard,
-            ...(isWeekView ? styles.intelligenceCardWeekPrimary : {}),
-          }}
-        >
-          <div style={styles.intelligenceTop}>
-            <div>
-              <div style={styles.intelligenceEyebrow}>Weekly guidance</div>
-              <div style={styles.intelligenceTitle}>{weeklySummaryText}</div>
-              <div style={styles.intelligenceText}>{weeklyCoverageText}</div>
-            </div>
+      {/* Calendar body */}
+      {view === "week" && (
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+          {weekDays.map((day) => {
+            const label = day.toLocaleDateString("en-AU", {
+              weekday: "short",
+              day: "numeric",
+            });
+            const isToday =
+              toInputDate(day) === toInputDate(new Date("2026-03-31"));
 
-            <div style={styles.intelligencePills}>
-              <span style={styles.intelligencePill}>
-                {weeklyBlocks.length === 0
-                  ? "No blocks planned yet"
-                  : `${weeklyBlocks.length} planned ${weeklyBlocks.length === 1 ? "block" : "blocks"}`}
-              </span>
-              <span style={styles.intelligencePill}>{strongestAreaText}</span>
-            </div>
-          </div>
-
-          <div style={styles.intelligenceGrid}>
-            <div style={styles.intelligencePanel}>
-              <div style={styles.intelligencePanelTitle}>Covered this week</div>
-              <div style={styles.chipRow}>
-                {coveredAreas.length ? (
-                  coveredAreas.map((area) => (
-                    <span key={area} style={styles.coveredChip}>
-                      {area}
+            return (
+              <div key={day.toISOString()} className={cls(card, "p-4")}>
+                <div className="mb-2 flex items-start justify-between">
+                  <div className="text-[18px] font-black text-slate-900">
+                    {label}
+                  </div>
+                  {isToday && (
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700">
+                      Today
                     </span>
-                  ))
-                ) : (
-                  <span style={styles.helperText}>Nothing is planned yet.</span>
-                )}
-              </div>
-            </div>
+                  )}
+                </div>
 
-            <div style={styles.intelligencePanel}>
-              <div style={styles.intelligencePanelTitle}>Suggested next planning move</div>
-              <div style={styles.intelligenceText}>{suggestedNextCopy}</div>
-              <div style={styles.cardActions}>
-                <button
-                  style={styles.darkSmBtn}
-                  onClick={() =>
-                    handleAddBlock({
-                      date: suggestedDateIso,
-                      area: suggestedNextArea,
-                      title: titleForSuggestedArea(suggestedNextArea),
-                    })
-                  }
-                >
-                  Add suggested block
-                </button>
-              </div>
-            </div>
-          </div>
+                <div className="mb-2 text-xs font-semibold text-slate-500">
+                  Open
+                </div>
 
-          {weeklyBlocks.length === 0 ? (
-            <div style={styles.emptyWeekCard}>
-              <div style={styles.intelligencePanelTitle}>Start with one small learning moment</div>
-              <div style={styles.intelligenceText}>
-                A simple Literacy or Numeracy block is enough to begin. You can round out the week once the first piece is in place.
-              </div>
-              <div style={styles.cardActions}>
-                <button
-                  style={styles.outlineSmBtn}
-                  onClick={() =>
-                    handleAddBlock({
-                      date: suggestedDateIso,
-                      area: "Literacy",
-                      title: titleForSuggestedArea("Literacy"),
-                    })
-                  }
-                >
-                  Add Literacy block
-                </button>
-                <button
-                  style={styles.outlineSmBtn}
-                  onClick={() =>
-                    handleAddBlock({
-                      date: suggestedDateIso,
-                      area: "Numeracy",
-                      title: titleForSuggestedArea("Numeracy"),
-                    })
-                  }
-                >
-                  Add Numeracy block
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </section>
+                <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-slate-600">
+                  A gentle note for today...
+                </div>
 
-        {isWeekView ? (
-          <section style={styles.planningScaffold}>
-            {weeklyScaffold.map((item) => (
-              <div key={item.title} style={styles.planningScaffoldCard}>
-                <div style={styles.planningScaffoldTitle}>{item.title}</div>
-                <div style={styles.planningScaffoldText}>{item.text}</div>
-              </div>
-            ))}
-          </section>
-        ) : null}
-
-        {!loading && isWeekView ? (
-          <section
-            style={{
-              ...styles.weekSignals,
-              ...styles.weekSignalsWeekSupport,
-            }}
-          >
-            <div style={styles.weekSignalsTitle}>Missing area signals</div>
-            <div style={styles.chipRow}>
-              {missingAreas.length ? (
-                missingAreas.map((area) => (
-                  <span key={area} style={styles.missingChip}>
-                    {area}
-                  </span>
-                ))
-              ) : (
-                <span style={styles.helperText}>
-                  This week is already carrying a healthy spread.
-                </span>
-              )}
-            </div>
-          </section>
-        ) : null}
-
-        {loading ? (
-          <section style={styles.loadingCard}>Loading calendar…</section>
-        ) : isWeekView ? (
-          <section
-            style={{
-              ...styles.weekGrid,
-              ...styles.weekGridPrimary,
-            }}
-          >
-            {visibleDates.map((date) => {
-              const dayBlocks = blocksFor(date);
-              const isToday = sameDay(date, new Date());
-
-              return (
-                <div key={isoDate(date)} style={styles.weekCol}>
-                  <div style={styles.weekHeader}>
-                    <div style={styles.weekDayTitle}>
-                      {date.toLocaleDateString(undefined, { weekday: "short" })} {date.getDate()}
-                    </div>
-                    {isToday ? <div style={styles.todayPill}>Today</div> : null}
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
+                  <div className="text-sm font-bold text-slate-900">
+                    Start with one small learning moment
                   </div>
+                  <p className="mt-2 text-xs leading-5 text-slate-600">
+                    Keep it light. Add one block, capture one moment, or place
+                    one focus for the day.
+                  </p>
 
-                  <div style={styles.openState}>
-                    {dayBlocks.length > 0 ? `${dayBlocks.length} planned` : "Open"}
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button className={buttonSecondary}>+ Add block</button>
+                    <button className={buttonSecondary}>Open day</button>
+                    <button className={buttonPrimary}>Capture</button>
                   </div>
+                </div>
 
-                  <div style={styles.dayPrompt}>
-                    {planningPromptForDate(
-                      date,
-                      dayBlocks.length > 0,
-                      dayBlocks.length > 0
-                        ? safeString(dayBlocks[0]?.learning_area) || suggestedNextArea
-                        : suggestedNextArea
+                <div className="mt-3">
+                  <div className="mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+                    Quick add
+                  </div>
+                  <div className="grid gap-2">
+                    {["Literacy", "Numeracy", "Bible", "+ Inquiry", "+ Creative"].map(
+                      (chip) => (
+                        <button key={chip} className={buttonSecondary}>
+                          {chip}
+                        </button>
+                      ),
                     )}
                   </div>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
 
-                  <textarea
-                    style={styles.dayScratch}
-                    placeholder="A gentle note for today..."
-                    value={
-                      dayNotesMap[buildNoteKey(userId, activeLearnerId || null, isoDate(date))]
-                        ?.note || ""
-                    }
-                    onChange={(e) => {
-                      const key = buildNoteKey(userId, activeLearnerId || null, isoDate(date));
-                      setDayNotesMap((prev) => ({
-                        ...prev,
-                        [key]: {
-                          id: prev[key]?.id || `scratch-${Date.now()}`,
-                          user_id: userId,
-                          student_id: activeLearnerId || null,
-                          note_date: isoDate(date),
-                          note: e.target.value,
-                        },
-                      }));
-                    }}
-                    onBlur={async () => {
-                      if (sameDay(date, selectedDate)) return;
-                      const key = buildNoteKey(userId, activeLearnerId || null, isoDate(date));
-                      const val = dayNotesMap[key]?.note || "";
-                      if (!val) return;
+      {view === "day" && (
+        <section className="grid gap-4 lg:grid-cols-[2fr_360px]">
+          <div className={cls(surface, "px-6 py-6")}>
+            <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+              Day view
+            </div>
+            <h3 className="text-[20px] font-black text-slate-950">
+              {dayHeading}
+            </h3>
+            <p className="mt-3 text-sm text-slate-600">
+              Use today’s blocks to shape a gentle flow of learning. Keep
+              structure visible, but leave room for flexibility.
+            </p>
 
-                      try {
-                        const existing = dayNotesMap[key];
-                        if (existing?.id && !existing.id.startsWith("scratch-")) {
-                          await supabase
-                            .from("planner_day_notes")
-                            .update({ note: val, updated_at: new Date().toISOString() })
-                            .eq("id", existing.id);
-                        } else {
-                          const res = await supabase
-                            .from("planner_day_notes")
-                            .insert({
-                              user_id: userId,
-                              student_id: activeLearnerId || null,
-                              note_date: isoDate(date),
-                              note: val,
-                            })
-                            .select("*")
-                            .single();
+            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
+              <div className="text-[18px] font-black text-slate-900">
+                Nothing planned yet for today
+              </div>
+              <p className="mt-2 text-sm text-slate-500">
+                Add one or two meaningful learning blocks to get started.
+              </p>
+            </div>
+          </div>
 
-                          if (!res.error && res.data) {
-                            setDayNotesMap((prev) => ({
-                              ...prev,
-                              [key]: res.data as PlannerDayNote,
-                            }));
-                          }
-                        }
-                      } catch {
-                        const local = getLocalNotes();
-                        local[key] = {
-                          id: dayNotesMap[key]?.id || `local-note-${Date.now()}`,
-                          user_id: userId,
-                          student_id: activeLearnerId || null,
-                          note_date: isoDate(date),
-                          note: val,
-                        };
-                        setLocalNotes(local);
-                      }
-                    }}
-                  />
+          <div className="flex flex-col gap-4">
+            <div className={cls(surface, "px-5 py-5")}>
+              <div className="text-lg font-bold text-slate-900">
+                Notes for today
+              </div>
+              <textarea
+                className="mt-4 h-40 w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm outline-none"
+                placeholder="Type a note..."
+                value={dayNote}
+                onChange={(e) => setDayNote(e.target.value)}
+              />
+            </div>
 
-                  {dayBlocks.length === 0 ? (
-                    <div style={styles.emptyCard}>
-                      <div style={styles.emptyTitle}>Start with one small learning moment</div>
-                      <div style={styles.emptyText}>
-                        Keep it light. Add one block, sketch one intention, or choose a quick chip
-                        so the day feels useful before any data exists.
-                      </div>
-
-                      <div style={styles.cardActions}>
-                        <button
-                          style={styles.outlineSmBtn}
-                          onClick={() =>
-                            handleAddBlock({
-                              date: isoDate(date),
-                              title: `Learning focus for ${formatShortDay(date)}`,
-                              area: "Literacy",
-                            })
-                          }
-                        >
-                          + Add block
-                        </button>
-                        <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
-                          Open day
-                        </button>
-                        <button style={styles.darkSmBtn} onClick={() => goToCapture(undefined, date)}>
-                          Capture
-                        </button>
-                      </div>
+            <div className={cls(surface, "px-5 py-5")}>
+              <div className="text-lg font-bold text-slate-900">
+                Mini calendar
+              </div>
+              <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs text-slate-500">
+                {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+                  <div key={`${d}-${i}`} className="font-bold">
+                    {d}
+                  </div>
+                ))}
+                {buildMonthGrid(selectedDate).slice(0, 35).map((d) => {
+                  const active = toInputDate(d) === toInputDate(selectedDate);
+                  return (
+                    <div
+                      key={d.toISOString()}
+                      className={cls(
+                        "rounded-xl px-2 py-2",
+                        active ? "bg-blue-50 font-black text-blue-700" : "",
+                      )}
+                    >
+                      {d.getDate()}
                     </div>
-                  ) : (
-                    <div style={styles.dayBlockList}>
-                      {dayBlocks.map((block) => (
-                        <div
-                          key={block.id}
-                          style={{
-                            ...styles.blockCard,
-                            ...(block.status === "done" ? styles.blockCardDone : {}),
-                          }}
-                        >
-                          <div style={styles.blockTop}>
-                            <div>
-                              <div style={styles.blockArea}>{block.learning_area}</div>
-                              <div style={styles.blockTitle}>{block.title}</div>
-                            </div>
-                            <button style={styles.markDoneBtn} onClick={() => markDone(block)}>
-                              {block.status === "done" ? "Planned" : "Done"}
-                            </button>
-                          </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
-                          {block.planned_time ? (
-                            <div style={styles.blockMeta}>Time: {block.planned_time}</div>
-                          ) : null}
-                          {block.note ? <div style={styles.blockMeta}>{block.note}</div> : null}
+      {view === "month" && (
+        <section>
+          <div className="mb-3 grid grid-cols-7 gap-4 px-2 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
 
-                          <div style={styles.cardActions}>
-                            <button style={styles.outlineSmBtn} onClick={() => openDay(date)}>
-                              Open day
-                            </button>
-                            <button style={styles.darkSmBtn} onClick={() => goToCapture(block)}>
-                              Capture
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+          <div className="grid grid-cols-7 gap-4">
+            {monthDays.map((day) => {
+              const active = day.getMonth() === selectedDate.getMonth();
+              const isToday =
+                toInputDate(day) === toInputDate(new Date("2026-03-31"));
+
+              return (
+                <div
+                  key={day.toISOString()}
+                  className={cls(
+                    card,
+                    "min-h-[120px] p-4",
+                    !active && "opacity-45",
+                    isToday && "border-blue-200",
                   )}
-
-                  <div style={styles.quickAddLabel}>PLAN THIS DAY</div>
-                  <div style={styles.quickAddStack}>
-                    {["Literacy", "Numeracy", "Bible", "Inquiry", "Creative"].map((area) => (
-                      <button
-                        key={area}
-                        style={styles.quickChip}
-                        onClick={() =>
-                          handleAddBlock({
-                            date: isoDate(date),
-                            area,
-                            title: `${area} learning block`,
-                          })
-                        }
-                      >
-                        {area === "Inquiry" || area === "Creative" ? `+ ${area}` : area}
-                      </button>
-                    ))}
+                >
+                  <div className="text-lg font-black text-slate-900">
+                    {day.getDate()}
                   </div>
                 </div>
               );
             })}
-          </section>
-        ) : view === "day" ? (
-          <section style={styles.dayLayout}>
-            <div style={styles.dayMain}>
-              <div style={styles.dayCard}>
-                <div style={styles.kicker}>DAY VIEW</div>
-                <h2 style={styles.dayTitle}>{formatLongDate(selectedDate)}</h2>
-                <p style={styles.dayText}>
-                  Use today’s blocks to shape a gentle flow of learning. Keep structure visible, but
-                  leave room for flexibility.
-                </p>
-              </div>
-
-              <div style={styles.dayContentCard}>
-                {blocksFor(selectedDate).length === 0 ? (
-                  <div style={styles.dayEmpty}>
-                    <div style={styles.dayEmptyTitle}>Nothing planned yet for today</div>
-                    <div style={styles.dayEmptyText}>
-                      Add one or two meaningful learning blocks to get started.
-                    </div>
-                  </div>
-                ) : (
-                  <div style={styles.dayBlockList}>
-                    {blocksFor(selectedDate).map((block) => (
-                      <div
-                        key={block.id}
-                        style={{
-                          ...styles.blockCardWide,
-                          ...(block.status === "done" ? styles.blockCardDone : {}),
-                        }}
-                      >
-                        <div style={styles.blockTop}>
-                          <div>
-                            <div style={styles.blockArea}>{block.learning_area}</div>
-                            <div style={styles.blockTitle}>{block.title}</div>
-                          </div>
-                          <button style={styles.markDoneBtn} onClick={() => markDone(block)}>
-                            {block.status === "done" ? "Planned" : "Done"}
-                          </button>
-                        </div>
-
-                        <div style={styles.dayBlockMetaRow}>
-                          <div style={styles.blockMeta}>Date: {block.planned_for}</div>
-                          {block.planned_time ? (
-                            <div style={styles.blockMeta}>Time: {block.planned_time}</div>
-                          ) : null}
-                        </div>
-
-                        {block.note ? <div style={styles.blockNoteWide}>{block.note}</div> : null}
-
-                        <div style={styles.cardActions}>
-                          <button style={styles.outlineSmBtn} onClick={() => goToCapture(block)}>
-                            Capture from this block
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={styles.daySide}>
-              <div style={styles.sideCard}>
-                <div style={styles.sideTitle}>Notes for today</div>
-                <textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Type a note..."
-                  style={styles.notesArea}
-                />
-                <button style={styles.darkSmBtn} onClick={handleSaveDayNote} disabled={savingNote}>
-                  {savingNote ? "Saving..." : "Save note"}
-                </button>
-              </div>
-
-              <div style={styles.sideCard}>
-                <div style={styles.sideTitle}>Mini calendar</div>
-                <MiniMonth
-                  selectedDate={selectedDate}
-                  onSelect={(date) => {
-                    setSelectedDate(date);
-                    setToolbarDate(isoDate(date));
-                  }}
-                />
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section>
-            <div style={styles.monthWeekdays}>
-              {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((w) => (
-                <div key={w} style={styles.monthWeekday}>
-                  {w}
-                </div>
-              ))}
-            </div>
-
-            <div style={styles.monthGrid}>
-              {visibleDates.map((date) => {
-                const currentMonth = date.getMonth() === selectedDate.getMonth();
-                const selected = sameDay(date, selectedDate);
-                const count = blocksFor(date).length;
-
-                return (
-                  <button
-                    key={isoDate(date)}
-                    style={{
-                      ...styles.monthCell,
-                      ...(selected ? styles.monthCellSelected : {}),
-                      ...(currentMonth ? {} : styles.monthCellMuted),
-                    }}
-                    onClick={() => {
-                      setSelectedDate(date);
-                      setView("day");
-                    }}
-                  >
-                    <div style={styles.monthCellTop}>
-                      <span>{date.getDate()}</span>
-                      {sameDay(date, new Date()) ? (
-                        <span style={styles.todayTiny}>Today</span>
-                      ) : null}
-                    </div>
-
-                    {count > 0 ? (
-                      <div style={styles.monthCount}>
-                        {count} planned {count === 1 ? "block" : "blocks"}
-                      </div>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        <section style={styles.footerStrip}>
-          <div>
-            <div style={styles.footerTitle}>Continue your flow</div>
-            <div style={styles.footerText}>
-              Move between planning, capture, portfolio, and reporting without losing the thread.
-            </div>
-          </div>
-
-          <div style={styles.footerLinks}>
-            <Link href="/planner" style={styles.footerChip}>
-              Planner
-            </Link>
-            <Link href="/calendar" style={{ ...styles.footerChip, ...styles.footerChipActive }}>
-              Calendar
-            </Link>
-            <Link href="/capture" style={styles.footerChip}>
-              Capture
-            </Link>
-            <Link href="/portfolio" style={styles.footerChip}>
-              Portfolio
-            </Link>
-            <Link href="/reports" style={styles.footerChip}>
-              Reports
-            </Link>
           </div>
         </section>
-      </div>
-    </div>
-  );
-}
+      )}
 
-function MiniMonth({
-  selectedDate,
-  onSelect,
-}: {
-  selectedDate: Date;
-  onSelect: (date: Date) => void;
-}) {
-  const dates = rangeDates(startOfMonthGrid(selectedDate), endOfMonthGrid(selectedDate));
-
-  return (
-    <div>
-      <div style={styles.miniMonthLabel}>{formatMonthYear(selectedDate)}</div>
-      <div style={styles.miniWeekdays}>
-        {["M", "T", "W", "T", "F", "S", "S"].map((d) => (
-          <div key={d} style={styles.miniWeekday}>
-            {d}
+      {/* Continue your flow */}
+      <section className={cls(surface, "flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between")}>
+        <div>
+          <div className="text-lg font-bold text-slate-950">
+            Continue your flow
           </div>
-        ))}
-      </div>
-      <div style={styles.miniGrid}>
-        {dates.map((date) => {
-          const selected = sameDay(date, selectedDate);
-          const currentMonth = date.getMonth() === selectedDate.getMonth();
+          <p className="mt-1 text-sm text-slate-500">
+            Move between planning, capture, portfolio, and reporting without
+            losing the thread.
+          </p>
+        </div>
 
-          return (
-            <button
-              key={isoDate(date)}
-              style={{
-                ...styles.miniCell,
-                ...(selected ? styles.miniCellSelected : {}),
-                ...(currentMonth ? {} : styles.miniCellMuted),
-              }}
-              onClick={() => onSelect(date)}
-            >
-              {date.getDate()}
+        <div className="flex flex-wrap gap-2">
+          {["Planner", "Capture", "Portfolio", "Reports"].map((item) => (
+            <button key={item} className={buttonSecondary}>
+              {item}
             </button>
-          );
-        })}
-      </div>
-    </div>
+          ))}
+        </div>
+      </section>
+    </main>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    background: "#f5f7fb",
-    minHeight: "100vh",
-    padding: "32px 20px 60px",
-  },
-  container: {
-    maxWidth: 1380,
-    margin: "0 auto",
-    display: "grid",
-    gap: 16,
-  },
-  hero: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 24,
-    padding: 24,
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 20,
-    alignItems: "flex-start",
-  },
-  kicker: {
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: "0.14em",
-    color: "#6b7280",
-    marginBottom: 8,
-  },
-  h1: {
-    margin: 0,
-    fontSize: 34,
-    lineHeight: 1.05,
-    color: "#0f172a",
-  },
-  sub: {
-    marginTop: 10,
-    marginBottom: 0,
-    fontSize: 15,
-    lineHeight: 1.7,
-    color: "#556070",
-    maxWidth: 760,
-  },
-  heroChips: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    marginTop: 16,
-  },
-  heroChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 34,
-    padding: "0 12px",
-    borderRadius: 999,
-    border: "1px solid #dce3ef",
-    background: "#f8fafc",
-    color: "#475569",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  heroActions: {
-    display: "flex",
-    gap: 10,
-    flexShrink: 0,
-  },
-  primaryBtn: {
-    minHeight: 42,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "none",
-    background: "#0f172a",
-    color: "#ffffff",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  secondaryBtn: {
-    minHeight: 42,
-    padding: "0 16px",
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontWeight: 800,
-    cursor: "pointer",
-    textDecoration: "none",
-    display: "inline-flex",
-    alignItems: "center",
-  },
-  toolbarCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 16,
-  },
-  toolbarCardWeekSecondary: {
-    order: 5,
-  },
-  intelligenceCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 18,
-    display: "grid",
-    gap: 14,
-  },
-  intelligenceCardWeekPrimary: {
-    order: 2,
-  },
-  intelligenceTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 14,
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-  },
-  intelligenceEyebrow: {
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: "0.12em",
-    textTransform: "uppercase",
-    color: "#64748b",
-    marginBottom: 6,
-  },
-  intelligenceTitle: {
-    fontSize: 22,
-    lineHeight: 1.2,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  intelligenceText: {
-    marginTop: 8,
-    fontSize: 14,
-    lineHeight: 1.65,
-    color: "#556070",
-    maxWidth: 760,
-  },
-  intelligencePills: {
-    display: "grid",
-    gap: 8,
-    alignItems: "start",
-  },
-  intelligencePill: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 32,
-    padding: "0 12px",
-    borderRadius: 999,
-    border: "1px solid #dce3ef",
-    background: "#f8fafc",
-    color: "#475569",
-    fontSize: 12,
-    fontWeight: 700,
-  },
-  intelligenceGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
-    gap: 14,
-  },
-  intelligencePanel: {
-    border: "1px solid #eef2f7",
-    borderRadius: 16,
-    background: "#fbfdff",
-    padding: 14,
-  },
-  intelligencePanelTitle: {
-    fontSize: 15,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  chipRow: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-    marginTop: 10,
-  },
-  coveredChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 30,
-    padding: "0 10px",
-    borderRadius: 999,
-    border: "1px solid #bfdbfe",
-    background: "#eff6ff",
-    color: "#1d4ed8",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  missingChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 30,
-    padding: "0 10px",
-    borderRadius: 999,
-    border: "1px solid #fde68a",
-    background: "#fffbeb",
-    color: "#92400e",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  helperText: {
-    fontSize: 13,
-    color: "#64748b",
-    lineHeight: 1.55,
-    fontWeight: 700,
-  },
-  emptyWeekCard: {
-    border: "1px solid #dbeafe",
-    borderRadius: 16,
-    background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-    padding: 14,
-  },
-  topRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  navLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  navRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  smallBtn: {
-    minHeight: 34,
-    padding: "0 12px",
-    borderRadius: 10,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontWeight: 700,
-    cursor: "pointer",
-  },
-  iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginLeft: 4,
-  },
-  viewToggle: {
-    display: "inline-flex",
-    border: "1px solid #d8deea",
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  toggleBtn: {
-    minHeight: 36,
-    padding: "0 12px",
-    border: "none",
-    background: "#ffffff",
-    color: "#475569",
-    fontWeight: 800,
-    fontSize: 12,
-    cursor: "pointer",
-  },
-  toggleBtnActive: {
-    background: "#0f172a",
-    color: "#ffffff",
-  },
-  inputRow: {
-    display: "grid",
-    gridTemplateColumns: "1.6fr 180px 140px 140px 80px",
-    gap: 10,
-    marginTop: 14,
-  },
-  textInput: {
-    minHeight: 46,
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    padding: "0 14px",
-    fontSize: 14,
-    color: "#111827",
-    outline: "none",
-  },
-  select: {
-    minHeight: 46,
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    padding: "0 12px",
-    fontSize: 14,
-    color: "#111827",
-    outline: "none",
-  },
-  timeInput: {
-    minHeight: 46,
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    padding: "0 12px",
-    fontSize: 14,
-    color: "#111827",
-    outline: "none",
-  },
-  dateInput: {
-    minHeight: 46,
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    padding: "0 12px",
-    fontSize: 14,
-    color: "#111827",
-    outline: "none",
-  },
-  addBtn: {
-    minHeight: 46,
-    borderRadius: 12,
-    border: "none",
-    background: "#0f172a",
-    color: "#ffffff",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  noteInput: {
-    width: "100%",
-    minHeight: 62,
-    marginTop: 10,
-    borderRadius: 12,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    padding: 12,
-    fontSize: 14,
-    color: "#111827",
-    resize: "vertical",
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  message: {
-    marginTop: 10,
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#1d4ed8",
-  },
-  storageHint: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#64748b",
-  },
-  loadingCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 18,
-    padding: 32,
-    fontSize: 15,
-    color: "#475569",
-  },
-  planningScaffold: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 12,
-    order: 3,
-  },
-  planningScaffoldCard: {
-    background: "#fbfdff",
-    border: "1px solid #e6edf5",
-    borderRadius: 18,
-    padding: 16,
-  },
-  planningScaffoldTitle: {
-    fontSize: 14,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginBottom: 8,
-  },
-  planningScaffoldText: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "#556070",
-  },
-  weekSignals: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 18,
-    padding: 14,
-  },
-  weekSignalsWeekSupport: {
-    order: 4,
-  },
-  weekSignalsTitle: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#475569",
-  },
-  weekGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-    gap: 10,
-  },
-  weekGridPrimary: {
-    order: 3,
-  },
-  weekCol: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 18,
-    padding: 12,
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    minHeight: 470,
-  },
-  weekHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-  },
-  weekDayTitle: {
-    fontSize: 20,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  todayPill: {
-    minHeight: 24,
-    padding: "0 8px",
-    borderRadius: 999,
-    background: "#dbeafe",
-    color: "#2563eb",
-    fontSize: 11,
-    fontWeight: 800,
-    display: "inline-flex",
-    alignItems: "center",
-  },
-  openState: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "#64748b",
-  },
-  dayPrompt: {
-    borderRadius: 14,
-    border: "1px solid #e2e8f0",
-    background: "#f8fafc",
-    padding: "10px 12px",
-    fontSize: 12,
-    lineHeight: 1.55,
-    color: "#475569",
-    fontWeight: 700,
-  },
-  dayScratch: {
-    width: "100%",
-    minHeight: 68,
-    borderRadius: 14,
-    border: "1px solid #e5d58f",
-    background: "#fef8d6",
-    padding: 10,
-    fontSize: 13,
-    color: "#665c1d",
-    resize: "vertical",
-    boxSizing: "border-box",
-    outline: "none",
-  },
-  emptyCard: {
-    border: "1px dashed #d8deea",
-    borderRadius: 16,
-    padding: 14,
-    background: "#fbfcfe",
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "#64748b",
-    marginBottom: 12,
-  },
-  cardActions: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  outlineSmBtn: {
-    minHeight: 34,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  darkSmBtn: {
-    minHeight: 34,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "none",
-    background: "#0f172a",
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  dayBlockList: {
-    display: "grid",
-    gap: 10,
-  },
-  blockCard: {
-    border: "1px solid #d8deea",
-    borderRadius: 14,
-    padding: 12,
-    background: "#ffffff",
-  },
-  blockCardWide: {
-    border: "1px solid #d8deea",
-    borderRadius: 16,
-    padding: 16,
-    background: "#ffffff",
-  },
-  blockCardDone: {
-    background: "#f8fafc",
-    opacity: 0.82,
-  },
-  blockTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "flex-start",
-  },
-  blockArea: {
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: "0.12em",
-    color: "#64748b",
-    marginBottom: 4,
-  },
-  blockTitle: {
-    fontSize: 16,
-    fontWeight: 800,
-    color: "#0f172a",
-    lineHeight: 1.35,
-  },
-  markDoneBtn: {
-    minHeight: 30,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer",
-    flexShrink: 0,
-  },
-  blockMeta: {
-    fontSize: 13,
-    color: "#64748b",
-    lineHeight: 1.6,
-    marginTop: 8,
-  },
-  quickAddLabel: {
-    fontSize: 11,
-    fontWeight: 800,
-    letterSpacing: "0.12em",
-    color: "#6b7280",
-    marginTop: 4,
-  },
-  quickAddStack: {
-    display: "grid",
-    gap: 8,
-  },
-  quickChip: {
-    minHeight: 34,
-    padding: "0 10px",
-    borderRadius: 10,
-    border: "1px solid #d8deea",
-    background: "#ffffff",
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  dayLayout: {
-    display: "grid",
-    gridTemplateColumns: "1.55fr 0.85fr",
-    gap: 14,
-    alignItems: "start",
-  },
-  dayMain: {
-    display: "grid",
-    gap: 12,
-  },
-  dayCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 18,
-  },
-  dayTitle: {
-    margin: "4px 0 8px",
-    fontSize: 22,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  dayText: {
-    margin: 0,
-    fontSize: 14,
-    color: "#64748b",
-    lineHeight: 1.7,
-  },
-  dayContentCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 18,
-  },
-  dayEmpty: {
-    minHeight: 160,
-    border: "1px dashed #d8deea",
-    borderRadius: 16,
-    display: "grid",
-    placeItems: "center",
-    textAlign: "center",
-    padding: 20,
-  },
-  dayEmptyTitle: {
-    fontSize: 28,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginBottom: 8,
-  },
-  dayEmptyText: {
-    fontSize: 14,
-    color: "#64748b",
-  },
-  daySide: {
-    display: "grid",
-    gap: 12,
-  },
-  sideCard: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 16,
-  },
-  sideTitle: {
-    fontSize: 18,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginBottom: 12,
-  },
-  notesArea: {
-    width: "100%",
-    minHeight: 118,
-    borderRadius: 14,
-    border: "1px solid #e5d58f",
-    background: "#fef8d6",
-    padding: 12,
-    fontSize: 14,
-    color: "#665c1d",
-    resize: "vertical",
-    boxSizing: "border-box",
-    outline: "none",
-    marginBottom: 10,
-  },
-  miniMonthLabel: {
-    fontSize: 14,
-    fontWeight: 800,
-    color: "#0f172a",
-    marginBottom: 10,
-  },
-  miniWeekdays: {
-    display: "grid",
-    gridTemplateColumns: "repeat(7, 1fr)",
-    gap: 4,
-    marginBottom: 6,
-  },
-  miniWeekday: {
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: 700,
-    color: "#64748b",
-  },
-  miniGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(7, 1fr)",
-    gap: 4,
-  },
-  miniCell: {
-    minHeight: 32,
-    borderRadius: 10,
-    border: "1px solid transparent",
-    background: "#ffffff",
-    color: "#111827",
-    fontSize: 12,
-    fontWeight: 700,
-    cursor: "pointer",
-  },
-  miniCellSelected: {
-    background: "#eaf2ff",
-    color: "#1d4ed8",
-    border: "1px solid #9ab8ff",
-  },
-  miniCellMuted: {
-    color: "#94a3b8",
-  },
-  monthWeekdays: {
-    display: "grid",
-    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-    gap: 10,
-    marginBottom: 8,
-  },
-  monthWeekday: {
-    textAlign: "center",
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#475569",
-  },
-  monthGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-    gap: 10,
-  },
-  monthCell: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 18,
-    minHeight: 118,
-    padding: 12,
-    textAlign: "left",
-    cursor: "pointer",
-  },
-  monthCellSelected: {
-    border: "1px solid #9ab8ff",
-    boxShadow: "0 0 0 1px rgba(59,130,246,0.08) inset",
-  },
-  monthCellMuted: {
-    opacity: 0.62,
-  },
-  monthCellTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 16,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  todayTiny: {
-    minHeight: 22,
-    padding: "0 8px",
-    borderRadius: 999,
-    background: "#dbeafe",
-    color: "#2563eb",
-    fontSize: 10,
-    fontWeight: 800,
-    display: "inline-flex",
-    alignItems: "center",
-  },
-  monthCount: {
-    marginTop: 12,
-    fontSize: 13,
-    color: "#475569",
-    lineHeight: 1.6,
-  },
-  footerStrip: {
-    background: "#ffffff",
-    border: "1px solid #e6e9f0",
-    borderRadius: 20,
-    padding: 18,
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 16,
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  footerTitle: {
-    fontSize: 22,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-  footerText: {
-    marginTop: 6,
-    fontSize: 14,
-    color: "#64748b",
-  },
-  footerLinks: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  footerChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 36,
-    padding: "0 14px",
-    borderRadius: 999,
-    background: "#ffffff",
-    border: "1px solid #d8deea",
-    color: "#1f2940",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: 800,
-  },
-  footerChipActive: {
-    background: "#eef4ff",
-    border: "1px solid #7aa2ff",
-    color: "#1d4ed8",
-  },
-  dayBlockMetaRow: {
-    display: "flex",
-    gap: 14,
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
-  blockNoteWide: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#475569",
-    lineHeight: 1.7,
-  },
-};
