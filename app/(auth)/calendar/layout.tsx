@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 
 export default function CalendarLayout({
@@ -18,6 +19,7 @@ export default function CalendarLayout({
       workflowCurrentHref="/calendar"
       workflowHelperText="You are in the calendar step now. Place the plan gently in the week, then move into capture when the moment is complete."
     >
+      <FamilyWorkflowStrip current="calendar" />
       {children}
     </FamilyTopNavShell>
   );
