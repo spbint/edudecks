@@ -9,6 +9,12 @@ import {
   setActiveLearnerId,
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  loadChildrenFromLocalStorage,
+  loadSettingsFromLocalStorage,
+  type FamilySettings,
+} from "@/lib/familySettings";
 import { supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
@@ -82,15 +88,27 @@ function loadPlannerRows(): PlannerRow[] {
   }
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return "Not available";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+function buildLocalLearners(): FamilyLearner[] {
+  return loadChildrenFromLocalStorage().map((child) => {
+    const yearLevel = safe(child.year_level);
+    const yearLabel =
+      safe(child.yearLabel) || (yearLevel ? `Year ${yearLevel}` : "");
+
+    return {
+      id: child.id,
+      label: child.label,
+      yearLabel,
+      year_level: yearLevel ? Number(yearLevel) || null : null,
+      connectedAt: child.connectedAt ?? null,
+    };
   });
+}
+
+function buildLocalProfile(): FamilySettings {
+  return {
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...loadSettingsFromLocalStorage(),
+  };
 }
 
 function ChildTile({ child, isDefault }: { child: LearnerTile; isDefault: boolean }) {
@@ -180,11 +198,32 @@ export default function FamilyHomePage() {
         if (!mounted) return;
 
         const nextLearners = workspace.learners ?? [];
+        const nextProfile = workspace.profile ?? buildLocalProfile();
+
+        if (!nextLearners.length) {
+          const localLearners = buildLocalLearners();
+          setLearners(localLearners);
+
+          const effectiveLearnerId = resolveEffectiveActiveLearnerId(
+            localLearners,
+            nextProfile,
+          );
+          setDefaultLearnerId(effectiveLearnerId);
+
+          if (effectiveLearnerId) {
+            setActiveLearnerId(effectiveLearnerId);
+          }
+
+          setCaptureRows([]);
+          setReportRows([]);
+          return;
+        }
+
         setLearners(nextLearners);
 
         const effectiveLearnerId = resolveEffectiveActiveLearnerId(
           nextLearners,
-          workspace.profile,
+          nextProfile,
         );
         setDefaultLearnerId(effectiveLearnerId);
 
@@ -192,13 +231,21 @@ export default function FamilyHomePage() {
           setActiveLearnerId(effectiveLearnerId);
         }
 
-        if (!nextLearners.length || !workspace.userId) {
+        if (!workspace.userId) {
           setCaptureRows([]);
           setReportRows([]);
           return;
         }
 
-        const learnerIds = nextLearners.map((learner) => learner.id);
+        const learnerIds = nextLearners
+          .map((learner) => learner.id)
+          .filter((id) => !id.startsWith("local-"));
+
+        if (!learnerIds.length) {
+          setCaptureRows([]);
+          setReportRows([]);
+          return;
+        }
 
         const [evidenceRes, reportRes] = await withTimeout(
           Promise.all([
@@ -226,17 +273,30 @@ export default function FamilyHomePage() {
         console.error("Family workspace load failed", err);
         if (!mounted) return;
 
-        const fallbackWorkspace = await loadFamilyWorkspace().catch(() => null);
+        const localLearners = buildLocalLearners();
+        const localProfile = buildLocalProfile();
 
-        if (fallbackWorkspace?.learners?.length) {
-          setLearners(fallbackWorkspace.learners);
+        if (localLearners.length) {
+          setLearners(localLearners);
+
           const effectiveLearnerId = resolveEffectiveActiveLearnerId(
-            fallbackWorkspace.learners,
-            fallbackWorkspace.profile,
+            localLearners,
+            localProfile,
           );
           setDefaultLearnerId(effectiveLearnerId);
+
+          if (effectiveLearnerId) {
+            setActiveLearnerId(effectiveLearnerId);
+          }
+
+          setCaptureRows([]);
+          setReportRows([]);
           setError("");
         } else {
+          setLearners([]);
+          setDefaultLearnerId("");
+          setCaptureRows([]);
+          setReportRows([]);
           setError("We could not load the family workspace right now.");
         }
       } finally {
