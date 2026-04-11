@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
+import useIsMobile from "@/app/components/useIsMobile";
 
 type CtaLink = { label: string; href: string };
 
@@ -169,6 +170,8 @@ export default function PublicSiteShell({
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
+  const isTablet = useIsMobile(1080);
+  const isMobile = useIsMobile(720);
 
   void title;
 
@@ -198,31 +201,31 @@ export default function PublicSiteShell({
           style={{
             maxWidth: 1320,
             margin: "0 auto",
-            padding: "18px 24px 16px",
+            padding: isMobile ? "14px 16px 12px" : "18px 24px 16px",
             display: "grid",
-            gap: 16,
+            gap: isMobile ? 12 : 16,
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              gap: 22,
+              gap: isMobile ? 12 : 22,
               alignItems: "center",
               flexWrap: "wrap",
             }}
           >
             <BrandHomeLink
               href="/"
-              height={50}
-              width={184}
+              height={isMobile ? 40 : 50}
+              width={isMobile ? 148 : 184}
               style={{
                 flexShrink: 0,
-                paddingRight: 6,
+                paddingRight: isMobile ? 0 : 6,
               }}
             />
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginLeft: "auto" }}>
               {headerAction ? (
                 <Link href={headerAction.href} style={shellButtonStyle(false)}>
                   {headerAction.label}
@@ -234,9 +237,11 @@ export default function PublicSiteShell({
           <nav
             style={{
               display: "flex",
-              gap: 10,
-              flexWrap: "wrap",
+              gap: 8,
+              flexWrap: isMobile ? "nowrap" : "wrap",
               alignItems: "center",
+              overflowX: isMobile ? "auto" : "visible",
+              paddingBottom: isMobile ? 2 : 0,
             }}
           >
             {NAV_ITEMS.map((item) => (
@@ -252,7 +257,12 @@ export default function PublicSiteShell({
         </div>
       </header>
 
-      <main style={{ padding: "24px 24px 48px", position: "relative" }}>
+      <main
+        style={{
+          padding: isMobile ? "16px 16px 32px" : "24px 24px 48px",
+          position: "relative",
+        }}
+      >
         <div style={{ maxWidth: 1320, margin: "0 auto" }}>
           {showWorkflowStrip ? (
             <section style={{ marginBottom: 20 }}>
@@ -273,11 +283,13 @@ export default function PublicSiteShell({
           >
             <div
               style={{
-                padding: "28px 24px",
+                padding: isMobile ? "20px 16px" : isTablet ? "24px 20px" : "28px 24px",
                 display: "grid",
-                gridTemplateColumns: "minmax(0, 1.3fr) minmax(280px, 0.9fr)",
-                gap: 28,
-                alignItems: "center",
+                gridTemplateColumns: isTablet
+                  ? "minmax(0, 1fr)"
+                  : "minmax(0, 1.3fr) minmax(280px, 0.9fr)",
+                gap: isMobile ? 18 : 28,
+                alignItems: isTablet ? "start" : "center",
               }}
             >
               <div>
@@ -297,8 +309,8 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: 34,
-                    lineHeight: 1.1,
+                    fontSize: isMobile ? 30 : 34,
+                    lineHeight: isMobile ? 1.08 : 1.1,
                     fontWeight: 900,
                     color: C.textStrong,
                     marginBottom: 12,
@@ -310,7 +322,7 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: 14,
+                    fontSize: isMobile ? 15 : 14,
                     lineHeight: 1.6,
                     color: C.textMain,
                     maxWidth: 860,
@@ -350,11 +362,23 @@ export default function PublicSiteShell({
                 ) : null}
 
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                  <Link href={primaryCta.href} style={shellButtonStyle(true)}>
+                  <Link
+                    href={primaryCta.href}
+                    style={{
+                      ...shellButtonStyle(true),
+                      width: isMobile ? "100%" : undefined,
+                    }}
+                  >
                     {primaryCta.label}
                   </Link>
                   {secondaryCta ? (
-                    <Link href={secondaryCta.href} style={shellButtonStyle(false)}>
+                    <Link
+                      href={secondaryCta.href}
+                      style={{
+                        ...shellButtonStyle(false),
+                        width: isMobile ? "100%" : undefined,
+                      }}
+                    >
                       {secondaryCta.label}
                     </Link>
                   ) : null}

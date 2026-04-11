@@ -7,6 +7,7 @@ import PublicSiteShell, {
   publicCardStyle,
   publicPill,
 } from "@/app/components/PublicSiteShell";
+import useIsMobile from "@/app/components/useIsMobile";
 
 const familyBlocks = [
   {
@@ -238,6 +239,9 @@ function proofPanel(
 }
 
 export default function HomePage() {
+  const isTablet = useIsMobile(1080);
+  const isMobile = useIsMobile(720);
+
   return (
     <PublicSiteShell
       title="EduDecks"
@@ -266,7 +270,7 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: 24,
-          padding: 28,
+          padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
           scrollMarginTop: 116,
         }}
@@ -274,8 +278,10 @@ export default function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
-            gap: 22,
+            gridTemplateColumns: isTablet
+              ? "minmax(0, 1fr)"
+              : "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
+            gap: isMobile ? 18 : 22,
             alignItems: "start",
           }}
         >
@@ -286,11 +292,33 @@ export default function HomePage() {
               "Capture learning simply, build a rich record of progress, and stay confident as reporting and reflection come together."
             )}
             {blockGrid(familyBlocks)}
-            <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-              <Link href="/start" style={publicButtonStyle(true)}>
+            <div
+              style={{
+                marginTop: 18,
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <Link
+                href="/start"
+                style={{
+                  ...publicButtonStyle(true),
+                  width: isMobile ? "100%" : undefined,
+                }}
+              >
                 Start as a family
               </Link>
-              <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "#64748b",
+                  fontWeight: 700,
+                  maxWidth: isMobile ? "100%" : 320,
+                }}
+              >
                 Start with one learning moment, then let the record build.
               </div>
             </div>
@@ -312,7 +340,7 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: 24,
-          padding: 28,
+          padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
           scrollMarginTop: 116,
         }}
@@ -320,8 +348,10 @@ export default function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.05fr) minmax(300px, 0.95fr)",
-            gap: 22,
+            gridTemplateColumns: isTablet
+              ? "minmax(0, 1fr)"
+              : "minmax(0, 1.05fr) minmax(300px, 0.95fr)",
+            gap: isMobile ? 18 : 22,
             alignItems: "start",
           }}
         >
@@ -332,11 +362,33 @@ export default function HomePage() {
               "From learner follow-up to class triage and leadership visibility, EduDecks helps schools focus attention where it matters most without the dashboard overload."
             )}
             {blockGrid(schoolBlocks)}
-            <div style={{ marginTop: 18, display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-              <Link href="/contact" style={publicButtonStyle(false)}>
+            <div
+              style={{
+                marginTop: 18,
+                display: "flex",
+                gap: 12,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <Link
+                href="/contact"
+                style={{
+                  ...publicButtonStyle(false),
+                  width: isMobile ? "100%" : undefined,
+                }}
+              >
                 Explore the school view
               </Link>
-              <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  color: "#64748b",
+                  fontWeight: 700,
+                  maxWidth: isMobile ? "100%" : 320,
+                }}
+              >
                 A good next step for school teams exploring a calmer rollout.
               </div>
             </div>
@@ -357,7 +409,7 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: 24,
-          padding: 28,
+          padding: isMobile ? 18 : isTablet ? 24 : 28,
         }}
       >
         {sectionTitle(
@@ -369,7 +421,7 @@ export default function HomePage() {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 16,
+            gap: isMobile ? 12 : 16,
             marginBottom: 18,
           }}
         >
@@ -379,7 +431,7 @@ export default function HomePage() {
               style={{
                 border: "1px solid #e5e7eb",
                 borderRadius: 18,
-                padding: 20,
+                padding: isMobile ? 16 : 20,
                 background: index === 1 ? "#f8fafc" : "#ffffff",
               }}
             >
@@ -423,7 +475,7 @@ export default function HomePage() {
         style={{
           ...publicCardStyle(),
           marginBottom: 24,
-          padding: 28,
+          padding: isMobile ? 18 : isTablet ? 24 : 28,
           background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
         }}
       >
@@ -437,7 +489,7 @@ export default function HomePage() {
       <section
         style={{
           borderRadius: 28,
-          padding: 32,
+          padding: isMobile ? 20 : isTablet ? 24 : 32,
           marginBottom: 12,
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
           color: "#ffffff",
@@ -463,6 +515,7 @@ export default function HomePage() {
             fontWeight: 900,
             marginBottom: 10,
             maxWidth: 720,
+            ...(isMobile ? { fontSize: 30, lineHeight: 1.08 } : null),
           }}
         >
           Know what matters next, then move forward calmly.
@@ -487,6 +540,7 @@ export default function HomePage() {
               background: "#ffffff",
               color: "#0f172a",
               border: "1px solid #ffffff",
+              width: isMobile ? "100%" : undefined,
             }}
           >
             Start as a family
@@ -498,6 +552,7 @@ export default function HomePage() {
               background: "transparent",
               color: "#ffffff",
               border: "1px solid rgba(255,255,255,0.28)",
+              width: isMobile ? "100%" : undefined,
             }}
           >
             Bring EduDecks to your school
