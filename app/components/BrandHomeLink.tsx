@@ -3,64 +3,20 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type BrandHomeLinkProps = {
   height?: number;
   width?: number;
-  hrefWhenAuthenticated?: string;
-  hrefWhenUnauthenticated?: string;
+  href?: string;
   style?: React.CSSProperties;
 };
 
 export default function BrandHomeLink({
   height = 36,
   width = 132,
-  hrefWhenAuthenticated = "/family",
-  hrefWhenUnauthenticated = "/",
+  href = "/",
   style,
 }: BrandHomeLinkProps) {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  React.useEffect(() => {
-    let mounted = true;
-
-    async function hydrateAuth() {
-      if (!hasSupabaseEnv) {
-        if (mounted) setIsAuthenticated(false);
-        return;
-      }
-
-      const { data } = await supabase.auth.getUser();
-      if (mounted) {
-        setIsAuthenticated(Boolean(data.user));
-      }
-    }
-
-    void hydrateAuth();
-
-    if (!hasSupabaseEnv) {
-      return () => {
-        mounted = false;
-      };
-    }
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setIsAuthenticated(Boolean(session?.user));
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const href = isAuthenticated ? hrefWhenAuthenticated : hrefWhenUnauthenticated;
-
   return (
     <Link
       href={href}

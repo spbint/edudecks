@@ -38,7 +38,7 @@ export default function TeacherShellHeader({
       >
         <div style={{ maxWidth: 760 }}>
           <div style={{ marginBottom: 14 }}>
-            <BrandHomeLink height={38} width={140} />
+            <BrandHomeLink href="/family" height={38} width={140} />
           </div>
           <div
             style={{

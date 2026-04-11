@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type CtaLink = { label: string; href: string };
 
@@ -170,44 +169,6 @@ export default function PublicSiteShell({
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  React.useEffect(() => {
-    let mounted = true;
-
-    async function hydrateAuth() {
-      if (!hasSupabaseEnv) {
-        if (mounted) setIsAuthenticated(false);
-        return;
-      }
-
-      const { data } = await supabase.auth.getUser();
-      if (mounted) {
-        setIsAuthenticated(Boolean(data.user));
-      }
-    }
-
-    void hydrateAuth();
-
-    if (!hasSupabaseEnv) {
-      return () => {
-        mounted = false;
-      };
-    }
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setIsAuthenticated(Boolean(session?.user));
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
 
   void title;
 
@@ -215,8 +176,10 @@ export default function PublicSiteShell({
     <div
       style={{
         minHeight: "100vh",
-        background: C.bgApp,
+        background: "transparent",
         color: C.textStrong,
+        position: "relative",
+        isolation: "isolate",
         fontFamily:
           'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       }}
@@ -250,6 +213,7 @@ export default function PublicSiteShell({
             }}
           >
             <BrandHomeLink
+              href="/"
               height={50}
               width={184}
               style={{
@@ -259,11 +223,7 @@ export default function PublicSiteShell({
             />
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {isAuthenticated ? (
-                <Link href="/family" style={shellButtonStyle(false)}>
-                  Family Hub
-                </Link>
-              ) : headerAction ? (
+              {headerAction ? (
                 <Link href={headerAction.href} style={shellButtonStyle(false)}>
                   {headerAction.label}
                 </Link>
@@ -292,7 +252,7 @@ export default function PublicSiteShell({
         </div>
       </header>
 
-      <main style={{ padding: "24px 24px 48px" }}>
+      <main style={{ padding: "24px 24px 48px", position: "relative" }}>
         <div style={{ maxWidth: 1320, margin: "0 auto" }}>
           {showWorkflowStrip ? (
             <section style={{ marginBottom: 20 }}>
