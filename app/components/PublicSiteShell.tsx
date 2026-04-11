@@ -16,6 +16,7 @@ type PublicSiteShellProps = {
   heroText: string;
   heroMicrocopy?: React.ReactNode;
   heroBadges?: string[];
+  asideItems?: string[];
   primaryCta?: CtaLink;
   secondaryCta?: CtaLink | null;
   headerAction?: CtaLink | null;
@@ -23,15 +24,15 @@ type PublicSiteShellProps = {
   footerSecondaryCta?: CtaLink | null;
   asideTitle?: string;
   asideText?: string;
+  showWorkflowStrip?: boolean;
   children: React.ReactNode;
 };
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
-  { href: "/get-started", label: "How It Works" },
+  { href: "/#families", label: "Families" },
+  { href: "/#schools", label: "Schools" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/compare", label: "Compare" },
-  { href: "/faq", label: "FAQ" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
@@ -63,6 +64,7 @@ const C = {
 };
 
 function isActive(pathname: string, href: string) {
+  if (href.startsWith("/#")) return pathname === "/";
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -145,19 +147,26 @@ function shellPillStyle(
 }
 
 export default function PublicSiteShell({
-  title = "EduDecks Family",
+  title = "EduDecks",
   eyebrow = "Homeschool-first workflow",
   heroTitle,
   heroText,
   heroMicrocopy,
   heroBadges = [],
+  asideItems = [
+    "Works with different homeschool styles",
+    "Nothing is submitted automatically",
+    "Build evidence over time, not in a panic",
+    "Stay organised without turning home into school",
+  ],
   primaryCta = { label: "Start Free", href: "/capture" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
   footerPrimaryCta = primaryCta,
   footerSecondaryCta = { label: "Contact", href: "/contact" },
   asideTitle = "Why families feel calmer",
-  asideText = "EduDecks Family gives families one connected place to capture learning, organise evidence, plan intentionally, and build credible reports over time.",
+  asideText = "EduDecks gives families, teachers, and school leaders one calmer way to capture evidence, guide attention, and stay clear on what matters next.",
+  showWorkflowStrip = true,
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
@@ -277,9 +286,11 @@ export default function PublicSiteShell({
 
       <main style={{ padding: "24px 24px 48px" }}>
         <div style={{ maxWidth: 1320, margin: "0 auto" }}>
-          <section style={{ marginBottom: 20 }}>
-            <FamilyWorkflowStrip />
-          </section>
+          {showWorkflowStrip ? (
+            <section style={{ marginBottom: 20 }}>
+              <FamilyWorkflowStrip />
+            </section>
+          ) : null}
 
           <section
             style={{
@@ -423,12 +434,7 @@ export default function PublicSiteShell({
                 </div>
 
                 <div style={{ display: "grid", gap: 10 }}>
-                  {[
-                    "Works with different homeschool styles",
-                    "Nothing is submitted automatically",
-                    "Build evidence over time, not in a panic",
-                    "Stay organised without turning home into school",
-                  ].map((item, i) => (
+                  {asideItems.map((item, i) => (
                     <div
                       key={item}
                       style={{
@@ -502,7 +508,7 @@ export default function PublicSiteShell({
                 marginBottom: 4,
               }}
             >
-              EduDecks Family
+              EduDecks
             </div>
             <div
               style={{
@@ -512,8 +518,9 @@ export default function PublicSiteShell({
                 maxWidth: 620,
               }}
             >
-              A calm, evidence-led homeschool operating system for planning,
-              calendar, capture, reporting, and portfolio over time.
+              One calm operating system for families, teachers, and school
+              leaders who want clearer learning visibility and a better next
+              move.
             </div>
           </div>
 
