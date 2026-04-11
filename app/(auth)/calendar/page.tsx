@@ -1,66 +1,52 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type ViewMode = "day" | "week" | "month";
-
-type SubjectOption =
+type Subject =
   | "Literacy"
   | "Numeracy"
   | "Bible"
   | "Inquiry"
-  | "Creative"
-  | "Science"
-  | "Humanities"
-  | "Wellbeing";
+  | "Creative";
 
-const SUBJECTS: SubjectOption[] = [
+type CalendarBlock = {
+  id: string;
+  title: string;
+  subject: Subject;
+  note: string;
+  time: string;
+};
+
+const SUBJECTS: Subject[] = [
   "Literacy",
   "Numeracy",
   "Bible",
   "Inquiry",
   "Creative",
-  "Science",
-  "Humanities",
-  "Wellbeing",
 ];
 
-function formatMonthYear(date: Date) {
-  return date.toLocaleDateString("en-AU", {
-    month: "long",
-    year: "numeric",
-  });
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
 }
 
-function formatWeekRange(start: Date, end: Date) {
-  const startMonth = start.toLocaleDateString("en-AU", { month: "short" });
-  const endMonth = end.toLocaleDateString("en-AU", { month: "short" });
-
-  const startDay = start.getDate();
-  const endDay = end.getDate();
-  const year = end.getFullYear();
-
-  if (startMonth === endMonth) {
-    return `Week of ${startDay} ${startMonth} – ${endDay} ${endMonth} ${year}`;
-  }
-
-  return `Week of ${startDay} ${startMonth} – ${endDay} ${endMonth} ${year}`;
+function ymd(date: Date) {
+  const y = date.getFullYear();
+  const m = `${date.getMonth() + 1}`.padStart(2, "0");
+  const d = `${date.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
-function formatLongDate(date: Date) {
-  return date.toLocaleDateString("en-AU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+function parseYmd(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
 }
 
-function toInputDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
 }
 
 function startOfWeek(date: Date) {
@@ -72,34 +58,66 @@ function startOfWeek(date: Date) {
   return copy;
 }
 
-function addDays(date: Date, days: number) {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
-
-function buildWeekDays(anchor: Date) {
+function getBusinessWeek(anchor: Date) {
   const monday = startOfWeek(anchor);
-  return Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  return Array.from({ length: 5 }, (_, index) => addDays(monday, index));
 }
 
-function buildMonthGrid(anchor: Date) {
-  const firstOfMonth = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  const gridStart = startOfWeek(firstOfMonth);
+function getBusinessMonthGrid(anchor: Date) {
+  const year = anchor.getFullYear();
+  const month = anchor.getMonth();
+  const days: Date[] = [];
 
-  return Array.from({ length: 35 }, (_, i) => addDays(gridStart, i));
+  const cursor = new Date(year, month, 1);
+  while (cursor.getMonth() === month) {
+    const day = cursor.getDay();
+    if (day !== 0 && day !== 6) {
+      days.push(new Date(cursor));
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return days;
 }
 
-function cls(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
+function formatWeekRange(days: Date[]) {
+  const first = days[0];
+  const last = days[days.length - 1];
+  const firstMonth = first.toLocaleDateString("en-AU", { month: "short" });
+  const lastMonth = last.toLocaleDateString("en-AU", { month: "short" });
+  const year = last.getFullYear();
+
+  return `Week of ${first.getDate()} ${firstMonth} – ${last.getDate()} ${lastMonth} ${year}`;
+}
+
+function formatMonthYear(date: Date) {
+  return date.toLocaleDateString("en-AU", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatDayHeading(date: Date) {
+  return date.toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function shortWeekday(date: Date) {
+  return date.toLocaleDateString("en-AU", { weekday: "short" });
+}
+
+function prettyDate(date: Date) {
+  return `${shortWeekday(date)} ${date.getDate()}`;
 }
 
 const surface =
-  "rounded-[24px] border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.05)]";
+  "rounded-[24px] border border-slate-200 bg-white shadow-[0_10px_34px_rgba(15,23,42,0.05)]";
 const card =
   "rounded-[20px] border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.04)]";
-const pill =
-  "inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600";
 const buttonBase =
   "inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-semibold transition";
 const buttonPrimary =
@@ -112,25 +130,57 @@ const textareaClass =
   "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
 
 export default function CalendarPage() {
+  const router = useRouter();
+
   const [view, setView] = useState<ViewMode>("week");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date("2026-04-11"));
   const [learner, setLearner] = useState("Your learner");
-  const [subject, setSubject] = useState<SubjectOption>("Literacy");
+  const [subject, setSubject] = useState<Subject>("Literacy");
   const [momentTitle, setMomentTitle] = useState("");
   const [momentNote, setMomentNote] = useState("");
   const [optionalTime, setOptionalTime] = useState("");
-  const [dayNote, setDayNote] = useState("");
 
-  const weekDays = useMemo(() => buildWeekDays(selectedDate), [selectedDate]);
-  const monthDays = useMemo(() => buildMonthGrid(selectedDate), [selectedDate]);
+  const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
+  const [blocks, setBlocks] = useState<Record<string, CalendarBlock[]>>({});
 
-  const weekStart = weekDays[0];
-  const weekEnd = weekDays[6];
+  const weekDays = useMemo(() => getBusinessWeek(selectedDate), [selectedDate]);
+  const monthDays = useMemo(() => getBusinessMonthGrid(selectedDate), [selectedDate]);
 
-  const guidanceTitle =
-    "This week is still open. Start with one small learning moment and let the week take shape gently.";
+  function addBlockForDate(date: Date, title?: string, forcedSubject?: Subject) {
+    const key = ymd(date);
+    const trimmed = (title ?? momentTitle).trim();
+    const finalTitle = trimmed || "Start with one small learning moment";
 
-  const dayHeading = formatLongDate(selectedDate);
+    const newBlock: CalendarBlock = {
+      id: `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: finalTitle,
+      subject: forcedSubject ?? subject,
+      note: momentNote.trim(),
+      time: optionalTime.trim(),
+    };
+
+    setBlocks((prev) => ({
+      ...prev,
+      [key]: [...(prev[key] ?? []), newBlock],
+    }));
+
+    setMomentTitle("");
+    setMomentNote("");
+    setOptionalTime("");
+  }
+
+  function updateDayNote(date: Date, value: string) {
+    const key = ymd(date);
+    setDayNotes((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  }
+
+  function addSuggestedBlock() {
+    const target = weekDays[0];
+    addBlockForDate(target, "Suggested literacy block", "Literacy");
+  }
 
   function goPrevious() {
     setSelectedDate((prev) => {
@@ -158,56 +208,17 @@ export default function CalendarPage() {
 
   const topTitle =
     view === "day"
-      ? formatLongDate(selectedDate)
+      ? formatDayHeading(selectedDate)
       : view === "week"
-        ? formatWeekRange(weekStart, weekEnd)
+        ? formatWeekRange(weekDays)
         : formatMonthYear(selectedDate);
 
-  return (
-    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-6 py-8">
-      {/* Ribbon */}
-      <section className={cls(surface, "px-6 py-5")}>
-        <div className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
-          How it flows
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {[
-            { n: 1, label: "Home", active: false },
-            { n: 2, label: "Calendar", active: true },
-            { n: 3, label: "Capture", active: false },
-            { n: 4, label: "Portfolio", active: false },
-          ].map((step, index, arr) => (
-            <React.Fragment key={step.label}>
-              <div
-                className={cls(
-                  "inline-flex items-center gap-3 rounded-[18px] border px-4 py-3",
-                  step.active
-                    ? "border-blue-200 bg-blue-50 text-blue-700"
-                    : "border-slate-200 bg-white text-slate-700",
-                )}
-              >
-                <div
-                  className={cls(
-                    "flex h-8 w-8 items-center justify-center rounded-full border text-sm font-black",
-                    step.active
-                      ? "border-blue-200 bg-white text-blue-700"
-                      : "border-slate-200 bg-slate-50 text-slate-500",
-                  )}
-                >
-                  {step.n}
-                </div>
-                <span className="text-[15px] font-semibold">{step.label}</span>
-              </div>
-              {index < arr.length - 1 && (
-                <span className="text-slate-400">→</span>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      </section>
+  const selectedDayKey = ymd(selectedDate);
+  const selectedDayBlocks = blocks[selectedDayKey] ?? [];
 
-      {/* Hero */}
-      <section className={cls(surface, "flex flex-col gap-5 px-8 py-7")}>
+  return (
+    <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-6 py-6">
+      <section className={cx(surface, "px-8 py-7")}>
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="max-w-[760px]">
             <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
@@ -223,17 +234,29 @@ export default function CalendarPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <button className={buttonSecondary}>Back to Planner</button>
-            <button className={buttonPrimary}>Capture</button>
+            <button
+              type="button"
+              className={buttonSecondary}
+              onClick={() => router.push("/planner")}
+            >
+              Back to Planner
+            </button>
+            <button
+              type="button"
+              className={buttonPrimary}
+              onClick={() => router.push("/capture")}
+            >
+              Capture
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <span className={pill}>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
             Current view&nbsp;
             <strong className="text-slate-800">{view.toUpperCase()}</strong>
           </span>
-          <span className={pill}>
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
             This week’s focus&nbsp;
             <strong className="text-slate-800">
               Use the calendar to place gentle learning blocks across the week
@@ -243,73 +266,104 @@ export default function CalendarPage() {
         </div>
       </section>
 
-      {/* Weekly guidance */}
-      <section className={cls(surface, "px-7 py-7")}>
+      <section className={cx(surface, "px-7 py-7")}>
         <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
           Weekly guidance
         </div>
         <h2 className="text-[20px] font-black leading-tight text-slate-950">
-          {guidanceTitle}
+          This week is still open. Start with one small learning moment and let
+          the week take shape gently.
         </h2>
         <p className="mt-3 text-sm text-slate-600">
           A simple Literacy or Numeracy block is enough to begin.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
-          <span className={pill}>No blocks planned yet</span>
-          <span className={pill}>No area is leading yet</span>
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+            {weekDays.every((day) => (blocks[ymd(day)] ?? []).length === 0)
+              ? "No blocks planned yet"
+              : "You’ve started the week"}
+          </span>
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600">
+            Start small and build gently
+          </span>
         </div>
 
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          <div className={cls(card, "p-5")}>
+          <div className={cx(card, "p-5")}>
             <div className="text-lg font-bold text-slate-900">
               Covered this week
             </div>
             <p className="mt-3 text-sm text-slate-600">
-              Nothing is planned yet.
+              {weekDays.reduce(
+                (count, day) => count + (blocks[ymd(day)]?.length ?? 0),
+                0,
+              ) === 0
+                ? "Nothing is planned yet."
+                : `${weekDays.reduce(
+                    (count, day) => count + (blocks[ymd(day)]?.length ?? 0),
+                    0,
+                  )} block(s) placed across the week.`}
             </p>
           </div>
 
-          <div className={cls(card, "p-5")}>
+          <div className={cx(card, "p-5")}>
             <div className="text-lg font-bold text-slate-900">
               Suggested next block
             </div>
             <p className="mt-3 text-sm text-slate-600">
               Start with one small Literacy or Numeracy block this week.
             </p>
-            <button className={cls(buttonPrimary, "mt-4")}>
+            <button
+              type="button"
+              className={cx(buttonPrimary, "mt-4")}
+              onClick={addSuggestedBlock}
+            >
               Add suggested block
             </button>
           </div>
         </div>
 
-        <div className={cls(card, "mt-4 p-5")}>
+        <div className={cx(card, "mt-4 p-5")}>
           <div className="text-lg font-bold text-slate-900">
             Start with one small learning moment
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            A simple Literacy or Numeracy block is enough to begin. You can
-            round out the week once the first piece is in place.
-          </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button className={buttonSecondary}>Add Literacy block</button>
-            <button className={buttonSecondary}>Add Numeracy block</button>
+            <button
+              type="button"
+              className={buttonSecondary}
+              onClick={() => {
+                setSubject("Literacy");
+                addBlockForDate(weekDays[0], "Literacy block", "Literacy");
+              }}
+            >
+              Add Literacy block
+            </button>
+            <button
+              type="button"
+              className={buttonSecondary}
+              onClick={() => {
+                setSubject("Numeracy");
+                addBlockForDate(weekDays[0], "Numeracy block", "Numeracy");
+              }}
+            >
+              Add Numeracy block
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Input / controls */}
-      <section className={cls(surface, "px-5 py-5")}>
+      <section className={cx(surface, "px-5 py-5")}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <button className={buttonSecondary} onClick={goToday}>
+              <button type="button" className={buttonSecondary} onClick={goToday}>
                 Today
               </button>
-              <button className={buttonSecondary} onClick={goPrevious}>
+              <button type="button" className={buttonSecondary} onClick={goPrevious}>
                 ←
               </button>
-              <button className={buttonSecondary} onClick={goNext}>
+              <button type="button" className={buttonSecondary} onClick={goNext}>
                 →
               </button>
               <h3 className="ml-2 text-[18px] font-black text-slate-950">
@@ -330,8 +384,9 @@ export default function CalendarPage() {
                 {(["day", "week", "month"] as ViewMode[]).map((mode) => (
                   <button
                     key={mode}
+                    type="button"
                     onClick={() => setView(mode)}
-                    className={cls(
+                    className={cx(
                       "rounded-xl px-4 py-2 text-sm font-bold",
                       view === mode
                         ? "bg-slate-950 text-white"
@@ -355,7 +410,7 @@ export default function CalendarPage() {
             <select
               className={inputClass}
               value={subject}
-              onChange={(e) => setSubject(e.target.value as SubjectOption)}
+              onChange={(e) => setSubject(e.target.value as Subject)}
             >
               {SUBJECTS.map((item) => (
                 <option key={item}>{item}</option>
@@ -370,10 +425,16 @@ export default function CalendarPage() {
             <input
               className={inputClass}
               type="date"
-              value={toInputDate(selectedDate)}
-              onChange={(e) => setSelectedDate(new Date(e.target.value))}
+              value={ymd(selectedDate)}
+              onChange={(e) => setSelectedDate(parseYmd(e.target.value))}
             />
-            <button className={buttonPrimary}>Add</button>
+            <button
+              type="button"
+              className={buttonPrimary}
+              onClick={() => addBlockForDate(selectedDate)}
+            >
+              Add
+            </button>
           </div>
 
           <textarea
@@ -388,66 +449,140 @@ export default function CalendarPage() {
         </div>
       </section>
 
-      {/* Calendar body */}
       {view === "week" && (
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-7">
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           {weekDays.map((day) => {
-            const label = day.toLocaleDateString("en-AU", {
-              weekday: "short",
-              day: "numeric",
-            });
-            const isToday =
-              toInputDate(day) === toInputDate(new Date("2026-03-31"));
+            const key = ymd(day);
+            const items = blocks[key] ?? [];
+            const today = ymd(day) === ymd(new Date("2026-04-11"));
 
             return (
-              <div key={day.toISOString()} className={cls(card, "p-4")}>
+              <div key={key} className={cx(card, "p-4")}>
                 <div className="mb-2 flex items-start justify-between">
                   <div className="text-[18px] font-black text-slate-900">
-                    {label}
+                    {prettyDate(day)}
                   </div>
-                  {isToday && (
+                  {today && (
                     <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-blue-700">
                       Today
                     </span>
                   )}
                 </div>
 
-                <div className="mb-2 text-xs font-semibold text-slate-500">
-                  Open
-                </div>
+                <div className="mb-2 text-xs font-semibold text-slate-500">Open</div>
 
-                <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-slate-600">
-                  A gentle note for today...
-                </div>
+                <textarea
+                  className="mb-3 min-h-[70px] w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-slate-700 outline-none"
+                  placeholder="A gentle note for today..."
+                  value={dayNotes[key] ?? ""}
+                  onChange={(e) => updateDayNote(day, e.target.value)}
+                />
 
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
-                  <div className="text-sm font-bold text-slate-900">
-                    Start with one small learning moment
+                {items.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
+                    <div className="text-sm font-bold text-slate-900">
+                      Start with one small learning moment
+                    </div>
+
+                    <div className="mt-3 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        className={buttonSecondary}
+                        onClick={() => addBlockForDate(day, "Learning block")}
+                      >
+                        + Add block
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonSecondary}
+                        onClick={() => {
+                          setSelectedDate(day);
+                          setView("day");
+                        }}
+                      >
+                        Open day
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonPrimary}
+                        onClick={() => router.push("/capture")}
+                      >
+                        Capture
+                      </button>
+                    </div>
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-600">
-                    Keep it light. Add one block, capture one moment, or place
-                    one focus for the day.
-                  </p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 p-3"
+                      >
+                        <div className="text-sm font-bold text-slate-900">
+                          {item.title}
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500">
+                          {item.subject}
+                          {item.time ? ` · ${item.time}` : ""}
+                        </div>
+                        {item.note ? (
+                          <div className="mt-2 text-xs text-slate-600">
+                            {item.note}
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
 
-                  <div className="mt-3 flex flex-col gap-2">
-                    <button className={buttonSecondary}>+ Add block</button>
-                    <button className={buttonSecondary}>Open day</button>
-                    <button className={buttonPrimary}>Capture</button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        type="button"
+                        className={buttonSecondary}
+                        onClick={() => addBlockForDate(day, "Learning block")}
+                      >
+                        + Add block
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonSecondary}
+                        onClick={() => {
+                          setSelectedDate(day);
+                          setView("day");
+                        }}
+                      >
+                        Open day
+                      </button>
+                      <button
+                        type="button"
+                        className={buttonPrimary}
+                        onClick={() => router.push("/capture")}
+                      >
+                        Capture
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="mt-3">
                   <div className="mb-2 text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
                     Quick add
                   </div>
                   <div className="grid gap-2">
-                    {["Literacy", "Numeracy", "Bible", "+ Inquiry", "+ Creative"].map(
-                      (chip) => (
-                        <button key={chip} className={buttonSecondary}>
-                          {chip}
-                        </button>
-                      ),
-                    )}
+                    {[
+                      { label: "Literacy", subject: "Literacy" as Subject },
+                      { label: "Numeracy", subject: "Numeracy" as Subject },
+                      { label: "Bible", subject: "Bible" as Subject },
+                      { label: "+ Inquiry", subject: "Inquiry" as Subject },
+                      { label: "+ Creative", subject: "Creative" as Subject },
+                    ].map((chip) => (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        className={buttonSecondary}
+                        onClick={() => addBlockForDate(day, chip.label, chip.subject)}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -458,63 +593,84 @@ export default function CalendarPage() {
 
       {view === "day" && (
         <section className="grid gap-4 lg:grid-cols-[2fr_360px]">
-          <div className={cls(surface, "px-6 py-6")}>
+          <div className={cx(surface, "px-6 py-6")}>
             <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
               Day view
             </div>
             <h3 className="text-[20px] font-black text-slate-950">
-              {dayHeading}
+              {formatDayHeading(selectedDate)}
             </h3>
             <p className="mt-3 text-sm text-slate-600">
               Use today’s blocks to shape a gentle flow of learning. Keep
               structure visible, but leave room for flexibility.
             </p>
 
-            <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
-              <div className="text-[18px] font-black text-slate-900">
-                Nothing planned yet for today
-              </div>
-              <p className="mt-2 text-sm text-slate-500">
-                Add one or two meaningful learning blocks to get started.
-              </p>
+            <div className="mt-4 flex flex-col gap-3">
+              {selectedDayBlocks.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center">
+                  <div className="text-[18px] font-black text-slate-900">
+                    Nothing planned yet for today
+                  </div>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Add one or two meaningful learning blocks to get started.
+                  </p>
+                </div>
+              ) : (
+                selectedDayBlocks.map((item) => (
+                  <div key={item.id} className={cx(card, "p-4")}>
+                    <div className="text-lg font-bold text-slate-900">
+                      {item.title}
+                    </div>
+                    <div className="mt-2 text-sm text-slate-500">
+                      {item.subject}
+                      {item.time ? ` · ${item.time}` : ""}
+                    </div>
+                    {item.note ? (
+                      <div className="mt-2 text-sm text-slate-600">{item.note}</div>
+                    ) : null}
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
           <div className="flex flex-col gap-4">
-            <div className={cls(surface, "px-5 py-5")}>
+            <div className={cx(surface, "px-5 py-5")}>
               <div className="text-lg font-bold text-slate-900">
                 Notes for today
               </div>
               <textarea
                 className="mt-4 h-40 w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm outline-none"
                 placeholder="Type a note..."
-                value={dayNote}
-                onChange={(e) => setDayNote(e.target.value)}
+                value={dayNotes[selectedDayKey] ?? ""}
+                onChange={(e) => updateDayNote(selectedDate, e.target.value)}
               />
             </div>
 
-            <div className={cls(surface, "px-5 py-5")}>
+            <div className={cx(surface, "px-5 py-5")}>
               <div className="text-lg font-bold text-slate-900">
                 Mini calendar
               </div>
-              <div className="mt-4 grid grid-cols-7 gap-2 text-center text-xs text-slate-500">
-                {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-                  <div key={`${d}-${i}`} className="font-bold">
+              <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs text-slate-500">
+                {["M", "T", "W", "T", "F"].map((d) => (
+                  <div key={d} className="font-bold">
                     {d}
                   </div>
                 ))}
-                {buildMonthGrid(selectedDate).slice(0, 35).map((d) => {
-                  const active = toInputDate(d) === toInputDate(selectedDate);
+                {getBusinessMonthGrid(selectedDate).map((d) => {
+                  const active = ymd(d) === selectedDayKey;
                   return (
-                    <div
-                      key={d.toISOString()}
-                      className={cls(
+                    <button
+                      key={ymd(d)}
+                      type="button"
+                      onClick={() => setSelectedDate(d)}
+                      className={cx(
                         "rounded-xl px-2 py-2",
-                        active ? "bg-blue-50 font-black text-blue-700" : "",
+                        active ? "bg-blue-50 font-black text-blue-700" : "hover:bg-slate-50",
                       )}
                     >
                       {d.getDate()}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -525,44 +681,55 @@ export default function CalendarPage() {
 
       {view === "month" && (
         <section>
-          <div className="mb-3 grid grid-cols-7 gap-4 px-2 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+          <div className="mb-3 grid grid-cols-5 gap-4 px-2 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500">
+            {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
               <div key={d}>{d}</div>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             {monthDays.map((day) => {
               const active = day.getMonth() === selectedDate.getMonth();
-              const isToday =
-                toInputDate(day) === toInputDate(new Date("2026-03-31"));
+              const key = ymd(day);
+              const items = blocks[key] ?? [];
 
               return (
-                <div
-                  key={day.toISOString()}
-                  className={cls(
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate(day);
+                    setView("day");
+                  }}
+                  className={cx(
                     card,
-                    "min-h-[120px] p-4",
+                    "min-h-[132px] p-4 text-left transition hover:bg-slate-50",
                     !active && "opacity-45",
-                    isToday && "border-blue-200",
                   )}
                 >
                   <div className="text-lg font-black text-slate-900">
                     {day.getDate()}
                   </div>
-                </div>
+                  {items.length > 0 ? (
+                    <div className="mt-3 text-xs font-semibold text-slate-600">
+                      {items.length} planned
+                    </div>
+                  ) : null}
+                </button>
               );
             })}
           </div>
         </section>
       )}
 
-      {/* Continue your flow */}
-      <section className={cls(surface, "flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between")}>
+      <section
+        className={cx(
+          surface,
+          "flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between",
+        )}
+      >
         <div>
-          <div className="text-lg font-bold text-slate-950">
-            Continue your flow
-          </div>
+          <div className="text-lg font-bold text-slate-950">Continue your flow</div>
           <p className="mt-1 text-sm text-slate-500">
             Move between planning, capture, portfolio, and reporting without
             losing the thread.
@@ -570,11 +737,34 @@ export default function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {["Planner", "Capture", "Portfolio", "Reports"].map((item) => (
-            <button key={item} className={buttonSecondary}>
-              {item}
-            </button>
-          ))}
+          <button
+            type="button"
+            className={buttonSecondary}
+            onClick={() => router.push("/planner")}
+          >
+            Planner
+          </button>
+          <button
+            type="button"
+            className={buttonSecondary}
+            onClick={() => router.push("/capture")}
+          >
+            Capture
+          </button>
+          <button
+            type="button"
+            className={buttonSecondary}
+            onClick={() => router.push("/portfolio")}
+          >
+            Portfolio
+          </button>
+          <button
+            type="button"
+            className={buttonSecondary}
+            onClick={() => router.push("/reports")}
+          >
+            Reports
+          </button>
         </div>
       </section>
     </main>

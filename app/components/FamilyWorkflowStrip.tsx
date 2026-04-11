@@ -1,157 +1,87 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import useIsMobile from "@/app/components/useIsMobile";
+import React from "react";
 
-type WorkflowStep = {
-  href: string;
+type Step = {
   label: string;
-  matches: string[];
+  href: string;
+  number: number;
 };
 
-type FamilyWorkflowStripProps = {
+export type FamilyWorkflowStripProps = {
   current?: string;
   currentHref?: string;
-  helperText?: string;
+  className?: string;
 };
 
-function isStepActive(pathname: string, step: WorkflowStep) {
-  return step.matches.some((match) => {
-    if (match === pathname) return true;
-    return pathname.startsWith(`${match}/`);
-  });
-}
-
-function stepStyle(active: boolean): React.CSSProperties {
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    padding: "8px 12px",
-    borderRadius: 14,
-    border: `1px solid ${active ? "#bfdbfe" : "#e5e7eb"}`,
-    background: active ? "#f8fbff" : "#f8fafc",
-    color: active ? "#1d4ed8" : "#475569",
-    textDecoration: "none",
-    fontSize: 13,
-    fontWeight: active ? 800 : 700,
-    whiteSpace: "nowrap",
-    boxShadow: active ? "0 6px 16px rgba(37,99,235,0.08)" : "none",
-    opacity: 1,
-  };
-}
-
-const WORKFLOW_STEPS: WorkflowStep[] = [
-  { href: "/family", label: "Home", matches: ["/family"] },
-  { href: "/calendar", label: "Calendar", matches: ["/calendar"] },
-  { href: "/capture", label: "Capture", matches: ["/capture"] },
-  { href: "/portfolio", label: "Portfolio", matches: ["/portfolio"] },
+const STEPS: Step[] = [
+  { number: 1, label: "Home", href: "/family" },
+  { number: 2, label: "Calendar", href: "/calendar" },
+  { number: 3, label: "Capture", href: "/capture" },
+  { number: 4, label: "Portfolio", href: "/portfolio" },
 ];
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
 
 export default function FamilyWorkflowStrip({
   current,
   currentHref,
-  helperText,
+  className,
 }: FamilyWorkflowStripProps) {
-  const pathname = usePathname();
-  const isMobile = useIsMobile();
-  const normalizedCurrentHref = currentHref ?? (current ? `/${current}` : undefined);
+  const resolvedHref =
+    currentHref ?? (current ? `/${current.replace(/^\//, "")}` : "");
 
   return (
     <div
-      style={{
-        border: "1px solid #e5e7eb",
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-        borderRadius: 16,
-        padding: isMobile ? 12 : 14,
-        boxShadow: "0 10px 30px rgba(15,23,42,0.03)",
-      }}
+      className={cx(
+        "mx-auto w-full max-w-[1180px] px-6 pt-6",
+        className,
+      )}
     >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 900,
-          letterSpacing: 1.1,
-          textTransform: "uppercase",
-          color: "#64748b",
-          marginBottom: 10,
-        }}
-      >
-        How it flows
-      </div>
-
-      {helperText ? (
-        <div
-          style={{
-            fontSize: 13,
-            lineHeight: 1.6,
-            color: "#475569",
-            marginBottom: 12,
-            maxWidth: 760,
-          }}
-        >
-          {helperText}
+      <section className="rounded-[22px] border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_28px_rgba(15,23,42,0.04)]">
+        <div className="mb-3 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
+          How it flows
         </div>
-      ) : null}
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: isMobile ? 6 : 8,
-          flexWrap: isMobile ? "nowrap" : "wrap",
-          overflowX: isMobile ? "auto" : "visible",
-          paddingBottom: isMobile ? 4 : 0,
-        }}
-      >
-        {WORKFLOW_STEPS.map((step, index) => {
-          const active =
-            normalizedCurrentHref === step.href ||
-            (!normalizedCurrentHref && isStepActive(pathname, step));
+        <div className="flex flex-wrap items-center gap-3">
+          {STEPS.map((step, index) => {
+            const active = resolvedHref === step.href;
 
-          return (
-            <React.Fragment key={step.href}>
-              <Link href={step.href} style={stepStyle(active)}>
-                <span
-                  style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: 999,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: active ? "#2563eb" : "#ffffff",
-                    color: active ? "#ffffff" : "#64748b",
-                    border: `1px solid ${active ? "#2563eb" : "#dbe3ef"}`,
-                    fontSize: 11,
-                    fontWeight: 900,
-                    flexShrink: 0,
-                  }}
+            return (
+              <React.Fragment key={step.href}>
+                <Link
+                  href={step.href}
+                  className={cx(
+                    "inline-flex items-center gap-3 rounded-[18px] border px-4 py-3 transition",
+                    active
+                      ? "border-blue-200 bg-blue-50 text-blue-700"
+                      : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+                  )}
                 >
-                  {index + 1}
-                </span>
-                <span>{step.label}</span>
-              </Link>
+                  <span
+                    className={cx(
+                      "flex h-8 w-8 items-center justify-center rounded-full border text-sm font-black",
+                      active
+                        ? "border-blue-200 bg-white text-blue-700"
+                        : "border-slate-200 bg-slate-50 text-slate-500",
+                    )}
+                  >
+                    {step.number}
+                  </span>
+                  <span className="text-[15px] font-semibold">{step.label}</span>
+                </Link>
 
-              {index < WORKFLOW_STEPS.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  style={{
-                    color: "#94a3b8",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    flexShrink: 0,
-                  }}
-                >
-                  &rarr;
-                </span>
-              ) : null}
-            </React.Fragment>
-          );
-        })}
-      </div>
+                {index < STEPS.length - 1 && (
+                  <span className="text-slate-400">→</span>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
