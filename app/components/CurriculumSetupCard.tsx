@@ -148,56 +148,56 @@ const FALLBACK_FRAMEWORKS = [
     name: "Common Core",
     country_id: "us",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "acara",
     name: "Australian Curriculum",
     country_id: "au",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "uk-national",
     name: "National Curriculum",
     country_id: "uk",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "nz-curriculum",
     name: "New Zealand Curriculum",
     country_id: "nz",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "canada-general",
     name: "Canadian Curriculum",
     country_id: "ca",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "caps",
     name: "CAPS",
     country_id: "za",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "singapore-national",
     name: "Singapore Curriculum",
     country_id: "sg",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
   {
     id: "ib-pyp",
     name: "IB Primary Years Programme",
     country_id: "ib",
     region_id: undefined,
-    subject_ids: ["english", "math", "science", "humanities"],
+    subject_ids: ["english", "math", "science"],
   },
 ] as unknown as CurriculumFramework[];
 
@@ -206,79 +206,79 @@ const FALLBACK_LEVELS = [
     id: "k",
     label: "Kindergarten / Prep",
     sort: 0,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-1",
     label: "Year 1 / Grade 1",
     sort: 1,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-2",
     label: "Year 2 / Grade 2",
     sort: 2,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-3",
     label: "Year 3 / Grade 3",
     sort: 3,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-4",
     label: "Year 4 / Grade 4",
     sort: 4,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-5",
     label: "Year 5 / Grade 5",
     sort: 5,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-6",
     label: "Year 6 / Grade 6",
     sort: 6,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-7",
     label: "Year 7 / Grade 7",
     sort: 7,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-8",
     label: "Year 8 / Grade 8",
     sort: 8,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-9",
     label: "Year 9 / Grade 9",
     sort: 9,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-10",
     label: "Year 10 / Grade 10",
     sort: 10,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-11",
     label: "Year 11 / Grade 11",
     sort: 11,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "year-12",
     label: "Year 12 / Grade 12",
     sort: 12,
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
 ] as unknown as CurriculumLevel[];
 
@@ -286,32 +286,17 @@ const FALLBACK_SUBJECTS = [
   {
     id: "english",
     label: "English Language Arts",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "math",
     label: "Mathematics",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
   {
     id: "science",
     label: "Science",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
-  },
-  {
-    id: "humanities",
-    label: "Humanities",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
-  },
-  {
-    id: "arts",
-    label: "Arts",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
-  },
-  {
-    id: "health",
-    label: "Health & PE",
-    framework_ids: FALLBACK_FRAMEWORKS.map((f) => String(f.id)),
+    framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"],
   },
 ] as unknown as CurriculumSubject[];
 
@@ -371,17 +356,13 @@ export default function CurriculumSetupCard({
           loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES,
         );
         setRegions(
-          loadedRegions.length > 0
-            ? loadedRegions
-            : FALLBACK_REGIONS,
+          loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS,
         );
         setFrameworks(
           loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS,
         );
-        setLevels(loadedLevels.length > 0 ? loadedLevels : FALLBACK_LEVELS);
-        setSubjects(
-          loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS,
-        );
+        setLevels(loadedLevels.length > 0 ? loadedLevels : []);
+        setSubjects(loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS);
 
         if (
           loadedCountries.length === 0 ||
@@ -402,7 +383,7 @@ export default function CurriculumSetupCard({
         setCountries(FALLBACK_COUNTRIES);
         setRegions(FALLBACK_REGIONS);
         setFrameworks(FALLBACK_FRAMEWORKS);
-        setLevels(FALLBACK_LEVELS);
+        setLevels([]);
         setSubjects(FALLBACK_SUBJECTS);
         setLoadMessage(
           "Curriculum data could not be loaded right now, so built-in fallback options are being shown.",
@@ -487,27 +468,49 @@ export default function CurriculumSetupCard({
     fallbackFrameworkOptions,
   ]);
 
-  const levelOptions = useMemo(() => {
-    const activeLevels = levels.length > 0 ? levels : FALLBACK_LEVELS;
-    return activeLevels
-      .filter(
-        (level) =>
-          !draft.framework_id ||
-          (level.framework_ids || []).includes(String(draft.framework_id)),
-      )
+  const liveLevelOptions = useMemo(() => {
+    return levels
+      .filter((level) => {
+        if (!draft.framework_id) return true;
+        return (level.framework_ids || []).includes(String(draft.framework_id));
+      })
       .slice()
       .sort((a, b) => Number(a.sort) - Number(b.sort));
   }, [draft.framework_id, levels]);
 
-  const subjectOptions = useMemo(() => {
-    const activeSubjects = subjects.length > 0 ? subjects : FALLBACK_SUBJECTS;
-    return activeSubjects.filter(
+  const fallbackLevelOptions = useMemo(() => {
+    return FALLBACK_LEVELS
+      .filter((level) => {
+        if (!draft.framework_id) return true;
+        return (level.framework_ids || []).includes(String(draft.framework_id));
+      })
+      .slice()
+      .sort((a, b) => Number(a.sort) - Number(b.sort));
+  }, [draft.framework_id]);
+
+  const levelOptions =
+    liveLevelOptions.length > 0 ? liveLevelOptions : fallbackLevelOptions;
+
+  const liveSubjectOptions = useMemo(() => {
+    return subjects.filter(
       (subject) =>
         (subject.framework_ids || []).length === 0 ||
         !draft.framework_id ||
         (subject.framework_ids || []).includes(String(draft.framework_id)),
     );
   }, [draft.framework_id, subjects]);
+
+  const fallbackSubjectOptions = useMemo(() => {
+    return FALLBACK_SUBJECTS.filter(
+      (subject) =>
+        (subject.framework_ids || []).length === 0 ||
+        !draft.framework_id ||
+        (subject.framework_ids || []).includes(String(draft.framework_id)),
+    );
+  }, [draft.framework_id]);
+
+  const subjectOptions =
+    liveSubjectOptions.length > 0 ? liveSubjectOptions : fallbackSubjectOptions;
 
   const selectedRegion = regionOptions.find(
     (region) => String(region.id) === String(value.region_id ?? ""),
@@ -591,6 +594,7 @@ export default function CurriculumSetupCard({
       FALLBACK_COUNTRIES.find((item) => String(item.id) === String(id));
 
     const countryKey = inferCountryKey(country?.name || id);
+
     const defaultFrameworkId =
       countryKey === "us"
         ? "common-core"
@@ -598,17 +602,27 @@ export default function CurriculumSetupCard({
             (framework) => inferCountryKey(framework.country_id) === countryKey,
           )?.id ?? null;
 
+    const defaultLevelId =
+      FALLBACK_LEVELS.find((level) =>
+        (level.framework_ids || []).includes(String(defaultFrameworkId)),
+      )?.id ?? null;
+
     updateDraft("country_id", id || null);
     updateDraft("framework_id", defaultFrameworkId);
     updateDraft("region_id", null);
-    updateDraft("level_id", null);
+    updateDraft("level_id", defaultLevelId);
     updateDraft("subject_ids", []);
   }
 
   function handleFrameworkChange(id: string) {
+    const defaultLevelId =
+      FALLBACK_LEVELS.find((level) =>
+        (level.framework_ids || []).includes(String(id)),
+      )?.id ?? null;
+
     updateDraft("framework_id", id || null);
-    updateDraft("region_id", null);
-    updateDraft("level_id", null);
+    updateDraft("region_id", draft.region_id);
+    updateDraft("level_id", defaultLevelId);
     updateDraft("subject_ids", []);
   }
 
