@@ -12,6 +12,8 @@ import {
 import {
   createLinkedLearner,
   loadFamilyWorkspace,
+  loadLinkedLearners,
+  persistLearnersToLocalCache,
   removeLinkedLearner,
   saveFamilyWorkspaceSettings,
   setActiveLearnerId,
@@ -213,15 +215,39 @@ export default function ProfilePage() {
     setAdding(true);
     setStatus("");
     try {
-      const studentId = await createLinkedLearner(userId, addName, addYear);
-      const workspace = await loadFamilyWorkspace();
-      const linkedChildren = workspace.learners.map((child) => ({
+      const learnerName = safe(addName);
+      const studentId = await createLinkedLearner(userId, learnerName, addYear);
+      const refreshedLearners = await loadLinkedLearners(userId);
+      const linkedChildren = refreshedLearners.map((child) => ({
         id: child.id,
         name: child.label,
         yearLabel: child.yearLabel || "",
         connectedAt: child.connectedAt ?? null,
       }));
-      setChildren(linkedChildren);
+      const nextChildren = linkedChildren.some((child) => child.id === studentId)
+        ? linkedChildren
+        : [
+            ...linkedChildren,
+            {
+              id: studentId,
+              name: learnerName,
+              yearLabel: safe(addYear) ? `Year ${safe(addYear)}` : "",
+              connectedAt: new Date().toISOString(),
+            },
+          ];
+
+      setChildren(nextChildren);
+      persistLearnersToLocalCache(
+        nextChildren.map((child) => ({
+          id: child.id,
+          label: child.name,
+          yearLabel: child.yearLabel,
+          year_level: Number.isFinite(Number(child.yearLabel.replace(/^Year\s+/i, "")))
+            ? Number(child.yearLabel.replace(/^Year\s+/i, ""))
+            : null,
+          connectedAt: child.connectedAt ?? null,
+        })),
+      );
       if (!settings.default_child_id) {
         const saved = await setDefaultLearner(settings, studentId);
         setSettings(saved);
@@ -230,10 +256,14 @@ export default function ProfilePage() {
       }
       setAddName("");
       setAddYear("");
-      setStatus("Learner added to the family workspace.");
+      setStatus(
+        nextChildren.some((child) => child.id === studentId)
+          ? `${learnerName} was added to the family workspace.`
+          : `${learnerName} was created, but the learner list could not be refreshed yet.`,
+      );
     } catch (err) {
       console.error("Add learner failed", err);
-      setStatus("Learner could not be added.");
+      setStatus(`Learner could not be added: ${describeError(err)}`);
     } finally {
       setAdding(false);
     }
@@ -383,6 +413,11 @@ function QuickLink({ href, label }: { href: string; label: string }) {
 }
 
 function safe(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function describeError(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message);
+  if (!message) return "please try again.";
+  return message.endsWith(".") ? message : `${message}.`;
+}
 function initials(value: string) { return (safe(value).split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() || "").join("")) || "ED"; }
 function lookupChild(id: string | null | undefined, children: ProfileChild[]) { return id ? children.find((child) => child.id === id)?.name ?? null : null; }
 function formatDate(value?: string | null) {

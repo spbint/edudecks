@@ -33,6 +33,11 @@ function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function isMissingColumnError(error: unknown) {
+  const message = String((error as { message?: unknown })?.message ?? "").toLowerCase();
+  return message.includes("does not exist") && message.includes("column");
+}
+
 export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
   return safe(learner?.label) || "Learner";
 }
@@ -113,13 +118,32 @@ export async function loadLinkedLearners(userId: string): Promise<FamilyLearner[
 
   if (!orderedIds.length) return [];
 
-  const { data: students, error: studentsError } = await supabase
-    .from("students")
-    .select("id,preferred_name,first_name,surname,family_name,year_level")
-    .in("id", orderedIds);
+  const studentSelectVariants = [
+    "id,preferred_name,first_name,surname,family_name,year_level",
+    "id,preferred_name,first_name,surname,year_level",
+    "id,preferred_name,first_name,family_name,year_level",
+    "id,preferred_name,first_name,year_level",
+  ];
 
-  if (studentsError) {
-    throw studentsError;
+  let students: Array<Record<string, unknown>> = [];
+  let lastStudentsError: unknown = null;
+
+  for (const select of studentSelectVariants) {
+    const response = await supabase.from("students").select(select).in("id", orderedIds);
+    if (!response.error) {
+      students = ((response.data ?? []) as unknown) as Array<Record<string, unknown>>;
+      lastStudentsError = null;
+      break;
+    }
+
+    lastStudentsError = response.error;
+    if (!isMissingColumnError(response.error)) {
+      throw response.error;
+    }
+  }
+
+  if (lastStudentsError) {
+    throw lastStudentsError;
   }
 
   const studentMap = new Map((students ?? []).map((student) => [student.id, student]));
@@ -231,23 +255,67 @@ export async function createLinkedLearner(
   const surname = parts.slice(1).join(" ") || null;
   const numericYear = Number(safe(yearLevel));
 
-  const studentInsert = await supabase
-    .from("students")
-    .insert({
+  const studentPayloadVariants: Array<Record<string, unknown>> = [
+    {
       user_id: userId,
       first_name: firstName,
       preferred_name: firstName,
       surname,
       year_level: Number.isFinite(numericYear) ? numericYear : null,
-    })
-    .select("id")
-    .single();
+      class_id: null,
+      is_ilp: false,
+    },
+    {
+      user_id: userId,
+      first_name: firstName,
+      preferred_name: firstName,
+      family_name: surname,
+      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      class_id: null,
+      is_ilp: false,
+    },
+    {
+      user_id: userId,
+      first_name: firstName,
+      preferred_name: firstName,
+      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      class_id: null,
+      is_ilp: false,
+    },
+    {
+      user_id: userId,
+      first_name: firstName,
+      preferred_name: firstName,
+      year_level: Number.isFinite(numericYear) ? numericYear : null,
+    },
+    {
+      first_name: firstName,
+      preferred_name: firstName,
+      surname,
+      year_level: Number.isFinite(numericYear) ? numericYear : null,
+    },
+  ];
 
-  if (studentInsert.error) {
-    throw studentInsert.error;
+  let studentId = "";
+  let lastInsertError: unknown = null;
+
+  for (const payload of studentPayloadVariants) {
+    const response = await supabase.from("students").insert(payload).select("id").single();
+    if (!response.error && response.data?.id) {
+      studentId = String(response.data.id);
+      lastInsertError = null;
+      break;
+    }
+
+    lastInsertError = response.error;
+    if (!isMissingColumnError(response.error)) {
+      throw response.error;
+    }
   }
 
-  const studentId = studentInsert.data.id as string;
+  if (!studentId) {
+    throw lastInsertError ?? new Error("Could not create learner record.");
+  }
 
   const linkInsert = await supabase.from("parent_student_links").upsert(
     {

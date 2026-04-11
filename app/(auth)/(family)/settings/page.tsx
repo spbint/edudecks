@@ -11,6 +11,8 @@ import {
   FamilySettings,
   MarketKey,
   WeekStart,
+  loadChildrenFromLocalStorage,
+  loadSettingsFromLocalStorage,
   persistSettingsToLocalStorage,
 } from "@/lib/familySettings";
 import { hasSupabaseEnv } from "@/lib/supabaseClient";
@@ -96,9 +98,15 @@ function learnerToOption(child: FamilyLearner): ChildOption {
 }
 
 export default function FamilySettingsPage() {
-  const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
-  const [initialSettings, setInitialSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
-  const [children, setChildren] = useState<ChildOption[]>([]);
+  const [settings, setSettings] = useState<FamilySettings>(() =>
+    typeof window === "undefined" ? DEFAULT_FAMILY_SETTINGS : loadSettingsFromLocalStorage()
+  );
+  const [initialSettings, setInitialSettings] = useState<FamilySettings>(() =>
+    typeof window === "undefined" ? DEFAULT_FAMILY_SETTINGS : loadSettingsFromLocalStorage()
+  );
+  const [children, setChildren] = useState<ChildOption[]>(() =>
+    typeof window === "undefined" ? [] : loadChildrenFromLocalStorage()
+  );
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string>("");
   const [hydrated, setHydrated] = useState(false);
@@ -111,15 +119,12 @@ export default function FamilySettingsPage() {
     let mounted = true;
 
     async function hydrate() {
+      if (mounted) {
+        setHydrated(true);
+      }
+
       try {
-        const workspace = await Promise.race([
-          loadFamilyWorkspace(),
-          new Promise<never>((_, reject) => {
-            setTimeout(() => {
-              reject(new Error("Family settings load timed out."));
-            }, 12000);
-          }),
-        ]);
+        const workspace = await loadFamilyWorkspace();
         if (!mounted) return;
 
         const realChildren = workspace.learners.map((child) => learnerToOption(child));
@@ -144,15 +149,9 @@ export default function FamilySettingsPage() {
       } catch (err) {
         console.error("Family settings hydrate failed", err);
         if (!mounted) return;
-        setChildren([]);
-        setSettings(DEFAULT_FAMILY_SETTINGS);
-        setInitialSettings(DEFAULT_FAMILY_SETTINGS);
         setUserId(null);
         setStorageMode("local");
         setLoadError("We could not load your family defaults just yet. Please try again.");
-      } finally {
-        if (!mounted) return;
-        setHydrated(true);
       }
     }
 

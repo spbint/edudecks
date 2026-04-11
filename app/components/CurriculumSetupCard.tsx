@@ -44,22 +44,13 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
       setLoading(true);
       setLoadMessage("");
       try {
-        const timeout = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error("Curriculum data load timed out."));
-          }, 12000);
-        });
-
-        const settled = (await Promise.race([
-          Promise.allSettled([
-            loadCurriculumCountries(),
-            loadCurriculumRegions(),
-            loadCurriculumFrameworks(),
-            loadCurriculumLevels(),
-            loadCurriculumSubjects(),
-          ]),
-          timeout,
-        ])) as PromiseSettledResult<unknown[]>[];
+        const settled = await Promise.allSettled([
+          loadCurriculumCountries(),
+          loadCurriculumRegions(),
+          loadCurriculumFrameworks(),
+          loadCurriculumLevels(),
+          loadCurriculumSubjects(),
+        ]);
 
         if (!active) return;
 
@@ -79,11 +70,6 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
       } catch (error) {
         if (!active) return;
         console.error("Curriculum setup load failed", error);
-        setCountries([]);
-        setRegions([]);
-        setFrameworks([]);
-        setLevels([]);
-        setSubjects([]);
         setLoadMessage("Curriculum data could not be loaded right now. You can still reopen this later.");
       } finally {
         if (!active) return;
@@ -129,9 +115,10 @@ export default function CurriculumSetupCard({ value, onChange }: CurriculumSetup
   const levelOptions = useMemo(
     () =>
       levels
+        .filter((level) => !draft.framework_id || level.framework_ids.includes(draft.framework_id))
         .slice()
         .sort((a, b) => a.sort - b.sort),
-    [levels]
+    [draft.framework_id, levels]
   );
 
   const subjectOptions = useMemo(
