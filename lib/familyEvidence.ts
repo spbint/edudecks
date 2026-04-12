@@ -1,6 +1,18 @@
 import { supabase } from "@/lib/supabaseClient";
 import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
+export type CreateFamilyEvidenceInput = {
+  familyProfileId: string;
+  studentId: string;
+  createdByUserId: string;
+  title: string;
+  summary: string;
+  occurredOn?: string | null;
+  evidenceType?: string | null;
+  visibility?: string | null;
+  metadata?: Record<string, unknown>;
+};
+
 export async function loadEvidenceEntriesWithVariants<T>(
   selectVariants: string[],
   options?: {
@@ -58,4 +70,32 @@ export async function loadEvidenceEntriesWithVariants<T>(
 
   if (lastError) throw lastError;
   return [];
+}
+
+export async function createFamilyEvidenceEntry(
+  input: CreateFamilyEvidenceInput,
+): Promise<{ id: string }> {
+  const response = await supabase
+    .from("evidence_entries")
+    .insert({
+      family_profile_id: input.familyProfileId,
+      student_id: input.studentId,
+      created_by_user_id: input.createdByUserId,
+      title: input.title,
+      summary: input.summary,
+      body: input.summary,
+      evidence_type: input.evidenceType ?? "note",
+      occurred_on: input.occurredOn ?? null,
+      visibility: input.visibility ?? "private",
+      metadata: input.metadata ?? {},
+      is_deleted: false,
+    })
+    .select("id")
+    .single();
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  return { id: String(response.data?.id ?? "").trim() };
 }

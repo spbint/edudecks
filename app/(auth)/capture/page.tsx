@@ -4,12 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
-import { supabase } from "@/lib/supabaseClient";
-import {
-  isMissingLearnerColumnError,
-  loadFamilyStudentsWithVariants,
-  loadLinkedFamilyStudentIds,
-} from "@/lib/familyLearners";
+import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -18,6 +13,7 @@ import {
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
+import { hasSupabaseEnv } from "@/lib/supabaseClient";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
@@ -95,16 +91,6 @@ function parseJson<T>(value: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
-}
-
-function isMissingColumnError(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
-}
-
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("column") || msg.includes("relation"));
 }
 
 function childDisplayName(child: ChildRow | null | undefined) {
@@ -845,7 +831,8 @@ function SearchableSelect({
 
 export default function CapturePage() {
   const searchParams = useSearchParams();
-  const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
+  const { workspace, activeLearnerId, setActiveLearner, loading: workspaceLoading } =
+    useFamilyWorkspace();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -879,36 +866,25 @@ export default function CapturePage() {
     setErr("");
 
     try {
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
-      let merged: ChildRow[] = [];
+      let merged: ChildRow[] = workspace.learners.map((learner) => ({
+        id: learner.id,
+        preferred_name: learner.label,
+        first_name: learner.label,
+        year_level: learner.year_level ?? null,
+        yearLabel: learner.yearLabel ?? "",
+        relationship_label: "Family",
+        source: learner.id.startsWith("local-") ? ("seed" as const) : ("db" as const),
+      }));
 
-      if (userId) {
-        const ids = await loadLinkedFamilyStudentIds();
-        if (Array.isArray(ids) && ids.length) {
-          const students = await loadFamilyStudentsWithVariants<ChildRow>(
-            [
-              "id,first_name,preferred_name,surname,family_name,year_level,created_at",
-              "id,first_name,preferred_name,surname,year_level,created_at",
-              "id,first_name,preferred_name,family_name,year_level,created_at",
-              "id,first_name,preferred_name,year_level,created_at",
-              "id,first_name,preferred_name,created_at",
-              "id,first_name,created_at",
-            ],
-            { orderedIds: ids },
-          );
-
-          merged = students.map((student) => ({
-            ...student,
-            source: "db" as const,
-          }));
-        }
+      if (!merged.length && !workspace.userId) {
+        merged = getSeedChildren();
       }
-
-      if (!merged.length) merged = getSeedChildren();
 
       if (!merged.length) {
         setChildren([]);
+        if (workspace.userId && hasSupabaseEnv) {
+          setErr("Add a linked learner first so EduDecks can save captures to the family record.");
+        }
         setBusy(false);
         return;
       }
@@ -935,9 +911,9 @@ export default function CapturePage() {
   }
 
   useEffect(() => {
-    loadChildren();
+    void loadChildren();
     setIsPremium(getPremiumFromStorage());
-  }, []);
+  }, [workspace.learners, workspace.profile, workspace.userId, activeLearnerId]);
 
   useEffect(() => {
     const nextId = resolveCanonicalActiveLearnerId(
@@ -1046,9 +1022,6 @@ export default function CapturePage() {
     setFeedback("");
 
     try {
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
-
       const curriculumFields =
         isPremium && safe(curriculum.country)
           ? {
@@ -1061,76 +1034,37 @@ export default function CapturePage() {
             }
           : {};
 
-      let inserted = false;
       let insertedId = "";
-      let lastError: any = null;
-
-      if (activeChild?.source === "db" && userId) {
-        const payloadVariants: Array<Record<string, any>> = [
-          {
-            user_id: userId,
-            student_id: activeChildId,
-            title: safe(title),
-            summary: safe(summary),
-            note: safe(summary),
-            learning_area: safe(learningArea) || "General",
-            evidence_type: safe(evidenceType),
-            occurred_on: safe(occurredOn) || null,
-            visibility: "family",
-            is_deleted: false,
-            ...curriculumFields,
-          },
-          {
-            user_id: userId,
-            student_id: activeChildId,
-            title: safe(title),
-            summary: safe(summary),
-            learning_area: safe(learningArea) || "General",
-            evidence_type: safe(evidenceType),
-            occurred_on: safe(occurredOn) || null,
-            is_deleted: false,
-            ...curriculumFields,
-          },
-          {
-            user_id: userId,
-            student_id: activeChildId,
-            title: safe(title),
-            note: safe(summary),
-            learning_area: safe(learningArea) || "General",
-            occurred_on: safe(occurredOn) || null,
-            is_deleted: false,
-            ...curriculumFields,
-          },
-          {
-            user_id: userId,
-            student_id: activeChildId,
-            title: safe(title),
-            summary: safe(summary),
-            occurred_on: safe(occurredOn) || null,
-            ...curriculumFields,
-          },
-          {
-            user_id: userId,
-            student_id: activeChildId,
-            title: safe(title),
-            note: safe(summary),
-            occurred_on: safe(occurredOn) || null,
-            ...curriculumFields,
-          },
-        ];
-
-        for (const payload of payloadVariants) {
-          const r = await supabase.from("evidence_entries").insert(payload).select("id").single();
-          if (!r.error) {
-            inserted = true;
-            insertedId = safe(r.data?.id);
-            break;
-          }
-          lastError = r.error;
-          if (!isMissingColumnError(r.error)) throw r.error;
+      if (workspace.userId && hasSupabaseEnv) {
+        if (!workspace.profile?.id || workspace.profile.id === "local") {
+          throw new Error(
+            "Family workspace is not ready for canonical evidence saves yet. Refresh and try again.",
+          );
         }
 
-        if (!inserted && lastError) throw lastError;
+        if (!activeChild || activeChild.source !== "db") {
+          throw new Error(
+            "Choose a linked learner before saving to the family record.",
+          );
+        }
+
+        const created = await createFamilyEvidenceEntry({
+          familyProfileId: workspace.profile.id,
+          studentId: activeChildId,
+          createdByUserId: workspace.userId,
+          title: safe(title),
+          summary: safe(summary),
+          occurredOn: safe(occurredOn) || null,
+          evidenceType: safe(evidenceType) || "note",
+          visibility: "family",
+          metadata: {
+            learning_area: safe(learningArea) || "General",
+            capture_surface: "family_capture",
+            premium_curriculum: curriculumFields,
+          },
+        });
+
+        insertedId = safe(created.id);
       } else {
         if (typeof window === "undefined") {
           throw new Error("Could not save learning outside the browser.");
@@ -1153,10 +1087,9 @@ export default function CapturePage() {
         });
 
         window.localStorage.setItem(CHILDREN_KEY, JSON.stringify(nextChildren));
-        inserted = true;
       }
 
-      if (!inserted) throw new Error("Could not save evidence.");
+      if (!insertedId) throw new Error("Could not save evidence.");
 
       if (typeof window !== "undefined" && insertedId) {
         window.localStorage.setItem(PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY, insertedId);
@@ -1231,7 +1164,7 @@ export default function CapturePage() {
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
-      {busy ? (
+      {busy || workspaceLoading ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>
       ) : err ? (
         <div
