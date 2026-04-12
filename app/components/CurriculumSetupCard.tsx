@@ -88,6 +88,35 @@ function inferCountryKey(value: unknown) {
   return "";
 }
 
+function resolveCountryKey(
+  countryId: string | null | undefined,
+  options: CurriculumCountry[],
+) {
+  const raw = safe(countryId);
+  if (!raw) return "";
+
+  const match =
+    options.find((country) => String(country.id) === raw) ||
+    FALLBACK_COUNTRIES.find((country) => String(country.id) === raw);
+
+  const code = safe((match as { code?: unknown } | undefined)?.code);
+  if (code) return inferCountryKey(code);
+  if (match?.name) return inferCountryKey(match.name);
+  return inferCountryKey(raw);
+}
+
+function findAustralianFrameworkId(options: CurriculumFramework[]) {
+  return (
+    options.find((framework) =>
+      /acara|australian curriculum/i.test(
+        `${safe((framework as { code?: unknown }).code)} ${safe(framework.name)}`,
+      ),
+    )?.id ??
+    options[0]?.id ??
+    null
+  );
+}
+
 const FALLBACK_COUNTRIES = [
   { id: "us", name: "United States" },
   { id: "au", name: "Australia" },
@@ -134,14 +163,15 @@ const FALLBACK_SUBJECTS = [
 
 function buildBaseComplianceProfile(
   draft: CurriculumPreferences,
+  countryKey: string,
   explicitState?: string | null,
 ): ComplianceProfile {
   const existing = draft.compliance_profile;
   const state = explicitState ?? existing?.state ?? null;
 
-  if (inferCountryKey(draft.country_id) !== "au") {
+  if (countryKey !== "au") {
     return {
-      country: draft.country_id,
+      country: countryKey || draft.country_id,
       state: null,
       curriculum_framework: draft.framework_id,
       compliance_mode: null,
@@ -157,7 +187,7 @@ function buildBaseComplianceProfile(
   const template = getAustraliaComplianceTemplate(state);
   if (!template) {
     return {
-      country: draft.country_id,
+      country: countryKey || draft.country_id,
       state,
       curriculum_framework: draft.framework_id,
       compliance_mode: null,
@@ -171,7 +201,7 @@ function buildBaseComplianceProfile(
   }
 
   return {
-    country: draft.country_id,
+    country: countryKey,
     state,
     curriculum_framework: draft.framework_id,
     compliance_mode: template.compliance_mode,
@@ -266,9 +296,10 @@ export default function CurriculumSetupCard({
     (country) => String(country.id) === String(draft.country_id ?? ""),
   );
 
-  const selectedCountryKey = useMemo(() => {
-    return inferCountryKey(selectedCountry?.name || draft.country_id);
-  }, [selectedCountry?.name, draft.country_id]);
+  const selectedCountryKey = useMemo(
+    () => resolveCountryKey(draft.country_id, countries),
+    [draft.country_id, countries],
+  );
 
   const regionOptions = useMemo(() => {
     const live = regions.filter((region) =>
@@ -328,8 +359,8 @@ export default function CurriculumSetupCard({
   }, [draft.framework_id, subjects]);
 
   const complianceProfile = useMemo(
-    () => buildBaseComplianceProfile(draft),
-    [draft],
+    () => buildBaseComplianceProfile(draft, selectedCountryKey),
+    [draft, selectedCountryKey],
   );
 
   const australiaTemplate = useMemo(
@@ -364,6 +395,9 @@ export default function CurriculumSetupCard({
   const headerButtonLabel = hasSetup ? "Edit curriculum setup" : "Set up curriculum";
 
   const recommendedFrameworkId = useMemo(() => {
+    if (selectedCountryKey === "au") {
+      return findAustralianFrameworkId(frameworkOptions);
+    }
     const recommended = getRecommendedFrameworkId(draft.country_id, draft.region_id);
     if (recommended) return recommended;
     if (selectedCountryKey === "us") return "common-core";
@@ -379,10 +413,13 @@ export default function CurriculumSetupCard({
   }, [frameworkOptions, recommendedFrameworkId]);
 
   const recommendedLevelId = useMemo(() => {
+    if (selectedCountryKey === "au") {
+      return draft.level_id ?? null;
+    }
     const recommended = getRecommendedLevelId(recommendedFramework?.id ?? null);
     if (recommended) return recommended;
     return levelOptions[0]?.id ?? null;
-  }, [levelOptions, recommendedFramework]);
+  }, [draft.level_id, levelOptions, recommendedFramework, selectedCountryKey]);
 
   const recommendedLevelLabel =
     levelOptions.find((level) => String(level.id) === String(recommendedLevelId ?? ""))?.label ||
@@ -462,11 +499,11 @@ export default function CurriculumSetupCard({
       nextDraft.compliance_profile =
         countryKey === "au"
           ? buildComplianceProfileFromTemplate({
-              country: nextDraft.country_id,
+              country: countryKey,
               state: null,
               curriculumFramework: nextDraft.framework_id,
             })
-          : buildBaseComplianceProfile(nextDraft, null);
+          : buildBaseComplianceProfile(nextDraft, countryKey, null);
 
       return nextDraft;
     });
@@ -491,15 +528,23 @@ export default function CurriculumSetupCard({
       };
 
       nextDraft.compliance_profile =
-        inferCountryKey(nextDraft.country_id) === "au" && prev.compliance_profile?.state
+        selectedCountryKey === "au" && prev.compliance_profile?.state
           ? {
-              ...buildBaseComplianceProfile(nextDraft, prev.compliance_profile.state),
+              ...buildBaseComplianceProfile(
+                nextDraft,
+                selectedCountryKey,
+                prev.compliance_profile.state,
+              ),
               recommended_fields: prev.compliance_profile.recommended_fields,
               optional_fields: prev.compliance_profile.optional_fields,
               custom_labels: prev.compliance_profile.custom_labels,
               last_reviewed_at: prev.compliance_profile.last_reviewed_at,
             }
-          : buildBaseComplianceProfile(nextDraft, prev.compliance_profile?.state ?? null);
+          : buildBaseComplianceProfile(
+              nextDraft,
+              selectedCountryKey,
+              prev.compliance_profile?.state ?? null,
+            );
 
       return nextDraft;
     });
@@ -525,7 +570,7 @@ export default function CurriculumSetupCard({
   function handleAustraliaStateChange(stateId: string) {
     updateComplianceProfile(
       buildComplianceProfileFromTemplate({
-        country: draft.country_id,
+        country: selectedCountryKey || draft.country_id,
         state: stateId || null,
         curriculumFramework: draft.framework_id,
       }),
@@ -604,7 +649,11 @@ export default function CurriculumSetupCard({
             : prev.subject_ids,
       };
 
-      nextDraft.compliance_profile = buildBaseComplianceProfile(nextDraft, prev.compliance_profile?.state ?? null);
+      nextDraft.compliance_profile = buildBaseComplianceProfile(
+        nextDraft,
+        resolveCountryKey(nextDraft.country_id, countries),
+        prev.compliance_profile?.state ?? null,
+      );
       return nextDraft;
     });
   }
@@ -810,11 +859,28 @@ export default function CurriculumSetupCard({
                 {recommendedFramework ? (
                   <div style={cardStyles.recommendation}>
                     <div style={{ fontWeight: 600 }}>
-                      Recommended
-                      {selectedCountry ? ` for ${selectedCountry.name}` : ""}:
-                      <span style={{ marginLeft: 6 }}>{recommendedFramework.name}</span>
+                      {selectedCountryKey === "au" ? (
+                        <>
+                          Recommended compliance framework:
+                          <span style={{ marginLeft: 6 }}>
+                            {recommendedFramework.name}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          Recommended
+                          {selectedCountry ? ` for ${selectedCountry.name}` : ""}:
+                          <span style={{ marginLeft: 6 }}>{recommendedFramework.name}</span>
+                        </>
+                      )}
                     </div>
-                    {recommendedLevelLabel ? (
+                    {selectedCountryKey === "au" ? (
+                      <div style={cardStyles.recommendationSub}>
+                        {recommendedLevelLabel
+                          ? `Suggested level: ${recommendedLevelLabel}`
+                          : "Suggested level will follow the learner year level when that is available."}
+                      </div>
+                    ) : recommendedLevelLabel ? (
                       <div style={cardStyles.recommendationSub}>
                         Suggested level: {recommendedLevelLabel}
                       </div>

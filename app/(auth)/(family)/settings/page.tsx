@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
+import dynamic from "next/dynamic";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -17,6 +17,18 @@ import {
   persistSettingsToLocalStorage,
 } from "@/lib/familySettings";
 import { saveFamilyWorkspaceSettings, setActiveLearnerId } from "@/lib/familyWorkspace";
+
+const CurriculumSetupCard = dynamic(
+  () => import("@/app/components/CurriculumSetupCard"),
+  {
+    ssr: false,
+    loading: () => (
+      <div style={shellStyles.loadingCard}>
+        Loading curriculum and compliance controls...
+      </div>
+    ),
+  },
+);
 
 function marketLabel(key: MarketKey) {
   if (key === "au") return "Australia";
@@ -91,11 +103,21 @@ export default function FamilySettingsPage() {
     setWorkspacePatch,
     setActiveLearner,
   } = useFamilyWorkspace();
-  const [settings, setSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
-  const [initialSettings, setInitialSettings] = useState<FamilySettings>(DEFAULT_FAMILY_SETTINGS);
+  const [settings, setSettings] = useState<FamilySettings>(() => ({
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...workspace.profile,
+    default_child_id:
+      workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+  }));
+  const [initialSettings, setInitialSettings] = useState<FamilySettings>(() => ({
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...workspace.profile,
+    default_child_id:
+      workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+  }));
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string>("");
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(true);
   const [storageMode, setStorageMode] = useState<"database" | "local">("local");
   const [loadError, setLoadError] = useState<string>("");
   const [saveError, setSaveError] = useState<string>("");
@@ -114,8 +136,6 @@ export default function FamilySettingsPage() {
   );
 
   useEffect(() => {
-    if (workspaceLoading) return;
-
     const nextSettings: FamilySettings = {
       ...DEFAULT_FAMILY_SETTINGS,
       ...workspace.profile,
@@ -133,7 +153,6 @@ export default function FamilySettingsPage() {
 
     setHydrated(true);
   }, [
-    workspaceLoading,
     workspace,
     workspaceError,
     hasPendingEdits,
@@ -243,7 +262,7 @@ export default function FamilySettingsPage() {
     setHasPendingEdits(true);
   }
 
-  if (!hydrated) {
+  if (!hydrated && workspaceLoading) {
     return (
       <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
         <main style={shellStyles.app}>
