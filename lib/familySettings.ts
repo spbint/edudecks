@@ -72,6 +72,10 @@ export type FamilyProfileRow = FamilySettings & {
   updated_at?: string;
 };
 
+type FamilyProfileWritePayload = Omit<FamilyProfileRow, "id"> & {
+  id?: string;
+};
+
 /* ============================================================
    DEFAULTS
    ============================================================ */
@@ -167,13 +171,6 @@ async function withTimeout<T>(
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-function isMissingColumnError(error: unknown) {
-  const message = String(
-    (error as { message?: unknown })?.message ?? "",
-  ).toLowerCase();
-  return message.includes("does not exist") && message.includes("column");
 }
 
 function describeSupabaseError(error: unknown) {
@@ -386,9 +383,10 @@ function toDbCurriculumPreferences(
 function toFamilyProfilePayload(
   settings: FamilySettings,
   userId: string,
-): FamilyProfileRow {
+  existingId?: string | null,
+): FamilyProfileWritePayload {
   return {
-    id: userId,
+    ...(safeString(existingId) ? { id: safeString(existingId) } : {}),
     user_id: userId,
     owner_user_id: userId,
     family_display_name:
@@ -428,13 +426,6 @@ function toFamilyProfilePayload(
     ),
     updated_at: new Date().toISOString(),
   };
-}
-
-function omitOwnershipFields<T extends Record<string, unknown>>(payload: T) {
-  const next = { ...payload };
-  delete next.user_id;
-  delete next.owner_user_id;
-  return next;
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -685,98 +676,20 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
     return { ...DEFAULT_FAMILY_PROFILE };
   }
 
-  const loadVariants: Array<{
-    label: string;
-    run: () => Promise<{
-      data: FamilyProfileRow | null;
-      error: unknown;
-    }>;
-    continueOnError?: (error: unknown) => boolean;
-  }> = [
-    {
-      label: "family_profiles by owner_user_id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("owner_user_id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-      continueOnError: (error) => isMissingColumnError(error),
-    },
-    {
-      label: "family_profiles by user_id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-      continueOnError: (error) => isMissingColumnError(error),
-    },
-    {
-      label: "family_profiles by id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-    },
-  ];
-
-  for (const variant of loadVariants) {
-    const { data, error } = await variant.run();
-
-    if (!error && data) {
-      return {
-        ...DEFAULT_FAMILY_PROFILE,
-        ...data,
-        id: safeString(data.id) || userId,
-        user_id: safeString(data.user_id) || userId,
-        owner_user_id: safeString(data.owner_user_id) || userId,
-      };
+  try {
+    const profile = await selectFamilyProfileRow(userId);
+    if (profile) {
+      return profile;
     }
-
-    if (error) {
-      console.error(`loadFamilyProfile ${variant.label} failed`, {
-        userId,
-        error,
-      });
-
-      if (variant.continueOnError?.(error)) {
-        continue;
-      }
-
-      return {
-        ...DEFAULT_FAMILY_PROFILE,
-        id: userId,
-        user_id: userId,
-        owner_user_id: userId,
-      };
-    }
+  } catch (error) {
+    console.error("loadFamilyProfile failed", {
+      userId,
+      error,
+    });
   }
 
   return {
     ...DEFAULT_FAMILY_PROFILE,
-    id: userId,
     user_id: userId,
     owner_user_id: userId,
   };
@@ -785,107 +698,50 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 async function selectFamilyProfileRow(
   userId: string,
 ): Promise<FamilyProfileRow | null> {
-  const selectVariants: Array<{
-    label: string;
-    run: () => Promise<{
-      data: FamilyProfileRow | null;
-      error: unknown;
-    }>;
-    continueOnError?: (error: unknown) => boolean;
-  }> = [
-    {
+  const startedAt = Date.now();
+  console.info("selectFamilyProfileRow start", {
+    label: "family_profiles select by owner_user_id",
+    userId,
+  });
+
+  const response = await withTimeout(
+    supabase
+      .from("family_profiles")
+      .select("*")
+      .eq("owner_user_id", userId)
+      .limit(1)
+      .maybeSingle(),
+    "family_profiles select by owner_user_id",
+    12000,
+  );
+
+  if (response.error) {
+    console.error("selectFamilyProfileRow error", {
       label: "family_profiles select by owner_user_id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("owner_user_id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-      continueOnError: (error) => isMissingColumnError(error),
-    },
-    {
-      label: "family_profiles select by user_id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-      continueOnError: (error) => isMissingColumnError(error),
-    },
-    {
-      label: "family_profiles select by id",
-      run: async () => {
-        const response = await supabase
-          .from("family_profiles")
-          .select("*")
-          .eq("id", userId)
-          .limit(1)
-          .maybeSingle();
-        return {
-          data: (response.data as FamilyProfileRow | null) ?? null,
-          error: response.error,
-        };
-      },
-    },
-  ];
-
-  for (const variant of selectVariants) {
-    const startedAt = Date.now();
-    console.info("selectFamilyProfileRow start", {
-      label: variant.label,
-      userId,
+      durationMs: Date.now() - startedAt,
+      error: response.error,
     });
-
-    const { data, error } = await withTimeout(
-      variant.run(),
-      variant.label,
-      12000,
-    );
-
-    if (!error && data) {
-      console.info("selectFamilyProfileRow success", {
-        label: variant.label,
-        durationMs: Date.now() - startedAt,
-        data,
-      });
-      return {
-        ...DEFAULT_FAMILY_PROFILE,
-        ...data,
-        id: safeString(data.id) || userId,
-        user_id: safeString(data.user_id) || userId,
-        owner_user_id: safeString(data.owner_user_id) || userId,
-      };
-    }
-
-    if (error) {
-      console.error("selectFamilyProfileRow error", {
-        label: variant.label,
-        durationMs: Date.now() - startedAt,
-        error,
-      });
-
-      if (variant.continueOnError?.(error)) {
-        continue;
-      }
-
-      throw error;
-    }
+    throw response.error;
   }
 
-  return null;
+  if (!response.data) {
+    return null;
+  }
+
+  const data = response.data as FamilyProfileRow;
+  console.info("selectFamilyProfileRow success", {
+    label: "family_profiles select by owner_user_id",
+    durationMs: Date.now() - startedAt,
+    data,
+  });
+
+  return {
+    ...DEFAULT_FAMILY_PROFILE,
+    ...data,
+    id: safeString(data.id) || DEFAULT_FAMILY_PROFILE.id,
+    user_id: safeString(data.user_id) || userId,
+    owner_user_id: safeString(data.owner_user_id) || userId,
+  };
 }
 
 export async function upsertFamilyProfile(
@@ -902,20 +758,20 @@ export async function upsertFamilyProfile(
     );
   }
 
-  const payload = toFamilyProfilePayload(settings, userId);
-  const startedAt = Date.now();
-
-  console.info("upsertFamilyProfile incoming payload", {
-    userId,
-    payload,
-  });
-
   const existingProfile = await selectFamilyProfileRow(userId).catch((error) => {
     console.error("upsertFamilyProfile existing row check failed", {
       userId,
       error,
     });
     return null;
+  });
+
+  const payload = toFamilyProfilePayload(settings, userId, existingProfile?.id);
+  const startedAt = Date.now();
+
+  console.info("upsertFamilyProfile incoming payload", {
+    userId,
+    payload,
   });
 
   console.info("upsertFamilyProfile existing row result", {
@@ -926,7 +782,6 @@ export async function upsertFamilyProfile(
   const saveVariants: Array<{
     label: string;
     run: () => Promise<{ data: unknown; error: unknown }>;
-    continueOnError?: (error: unknown) => boolean;
   }> = existingProfile
     ? [
         {
@@ -936,28 +791,6 @@ export async function upsertFamilyProfile(
               .from("family_profiles")
               .update(payload)
               .eq("owner_user_id", userId);
-            return { data: response.data, error: response.error };
-          },
-          continueOnError: (error) => isMissingColumnError(error),
-        },
-        {
-          label: "family_profiles update by user_id",
-          run: async () => {
-            const response = await supabase
-              .from("family_profiles")
-              .update(payload)
-              .eq("user_id", userId);
-            return { data: response.data, error: response.error };
-          },
-          continueOnError: (error) => isMissingColumnError(error),
-        },
-        {
-          label: "family_profiles update by id",
-          run: async () => {
-            const response = await supabase
-              .from("family_profiles")
-              .update(omitOwnershipFields(payload))
-              .eq("id", userId);
             return { data: response.data, error: response.error };
           },
         },
@@ -996,37 +829,14 @@ export async function upsertFamilyProfile(
         response: writeResponse.data,
       });
 
-      const selectStartedAt = Date.now();
-      console.info("upsertFamilyProfile post-write select start", {
-        label: variant.label,
-        totalDurationMs: Date.now() - startedAt,
-      });
-
-      try {
-        const selected = await selectFamilyProfileRow(userId);
-        if (selected) {
-          console.info("upsertFamilyProfile post-write select success", {
-            label: variant.label,
-            durationMs: Date.now() - selectStartedAt,
-            totalDurationMs: Date.now() - startedAt,
-          });
-          return selected;
-        }
-      } catch (selectError) {
-        console.error("upsertFamilyProfile post-write select failed", {
-          label: variant.label,
-          durationMs: Date.now() - selectStartedAt,
-          totalDurationMs: Date.now() - startedAt,
-          error: selectError,
-        });
-      }
-
       return {
         ...DEFAULT_FAMILY_PROFILE,
+        ...(existingProfile ?? {}),
         ...payload,
-        id: userId,
-        user_id: userId,
-        owner_user_id: userId,
+        id:
+          safeString(existingProfile?.id) ||
+          safeString(payload.id) ||
+          DEFAULT_FAMILY_PROFILE.id,
       };
     }
 
@@ -1038,8 +848,31 @@ export async function upsertFamilyProfile(
       error: writeResponse.error,
     });
 
-    if (variant.continueOnError?.(writeResponse.error)) {
-      continue;
+    const message = describeSupabaseError(writeResponse.error).toLowerCase();
+    if (!existingProfile && message.includes("duplicate")) {
+      const retryStartedAt = Date.now();
+      const retryResponse = await withTimeout(
+        supabase
+          .from("family_profiles")
+          .update(payload)
+          .eq("owner_user_id", userId),
+        "upsertFamilyProfile duplicate insert retry",
+      );
+
+      if (!retryResponse.error) {
+        console.info("upsertFamilyProfile duplicate retry success", {
+          durationMs: Date.now() - retryStartedAt,
+          totalDurationMs: Date.now() - startedAt,
+        });
+
+        return {
+          ...DEFAULT_FAMILY_PROFILE,
+          ...payload,
+          id: safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
+        };
+      }
+
+      lastError = retryResponse.error;
     }
   }
 

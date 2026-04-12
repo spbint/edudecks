@@ -4,12 +4,8 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
-import {
-  DEFAULT_FAMILY_PROFILE,
-  loadFamilyProfile,
-  type FamilyProfileRow,
-} from "@/lib/familySettings";
 import {
   marketLabel,
   modeLabel,
@@ -643,6 +639,7 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { workspace } = useFamilyWorkspace();
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -653,7 +650,6 @@ function ReportsPageContent() {
   );
   const autoSelectedStudentRef = useRef<string>("");
 
-  const [profile, setProfile] = useState<FamilyProfileRow>(DEFAULT_FAMILY_PROFILE);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
 
@@ -691,8 +687,7 @@ function ReportsPageContent() {
         setLoading(true);
         setError("");
 
-        const [familyProfile, dbStudentRows, evidenceRows] = await Promise.all([
-          loadFamilyProfile(),
+        const [dbStudentRows, evidenceRows] = await Promise.all([
           loadStudents().catch(() => [] as StudentRow[]),
           loadEvidence(),
         ]);
@@ -715,10 +710,8 @@ function ReportsPageContent() {
 
         const initialMarket =
           ((existingDraft?.preferred_market as PreferredMarket) ||
-            safe(familyProfile?.preferred_market) ||
+            safe(workspace.profile?.preferred_market) ||
             "au") as PreferredMarket;
-
-        setProfile(familyProfile);
         setStudents(mergedStudents);
         setEvidence(evidenceRows);
 
@@ -738,7 +731,7 @@ function ReportsPageContent() {
           safe(existingDraft?.student_id) ||
           validRequestedStudent ||
           validStoredStudent ||
-          safe(familyProfile?.default_child_id) ||
+          safe(workspace.profile?.default_child_id) ||
           safe(mergedStudents[0]?.id) ||
           "";
 
@@ -746,7 +739,7 @@ function ReportsPageContent() {
         setSelectedStudentId(defaultStudentId);
         setReportMode(
           (existingDraft?.report_mode ||
-            safe(familyProfile?.report_tone_default) ||
+            safe(workspace.profile?.report_tone_default) ||
             "family-summary") as ReportMode
         );
         setPeriodMode((existingDraft?.period_mode || "term") as PeriodMode);
@@ -761,7 +754,7 @@ function ReportsPageContent() {
         setIncludeAppendix(existingDraft?.include_appendix ?? true);
         setIncludeReadinessNotes(
           existingDraft?.include_readiness_notes ??
-            Boolean((familyProfile as any)?.show_authority_guidance)
+            Boolean(workspace.profile?.show_authority_guidance)
         );
         setSelectedAreas(
           existingDraft?.selected_areas?.length
@@ -803,7 +796,7 @@ function ReportsPageContent() {
     return () => {
       mounted = false;
     };
-  }, [searchParams]);
+  }, [searchParams, workspace.profile]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

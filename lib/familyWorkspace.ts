@@ -1,5 +1,6 @@
 import {
   DEFAULT_FAMILY_SETTINGS,
+  getCurrentUserId,
   loadChildrenFromLocalStorage,
   loadFamilyProfile,
   loadSettingsFromLocalStorage,
@@ -174,27 +175,7 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
 }
 
 export async function getCurrentFamilyUserId(): Promise<string | null> {
-  if (!hasSupabaseEnv) return null;
-
-  const sessionResp = await withTimeout(
-    supabase.auth.getSession(),
-    "getSession",
-  );
-
-  if (sessionResp.data.session?.user?.id) {
-    return sessionResp.data.session.user.id;
-  }
-
-  const userResp = await withTimeout(supabase.auth.getUser(), "getUser");
-  const user = userResp.data.user;
-  const error = userResp.error;
-
-  if (error) {
-    console.error("getCurrentFamilyUserId error", error);
-    return null;
-  }
-
-  return user?.id ?? null;
+  return getCurrentUserId();
 }
 
 export async function loadLinkedLearners(
