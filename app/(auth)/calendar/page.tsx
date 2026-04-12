@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import FamilyProgressRail from "@/app/components/FamilyProgressRail";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import {
+  addFamilyCalendarBlock,
+  loadFamilyCalendarWindow,
+  saveFamilyCalendarDayNote,
+} from "@/lib/familyPlanner";
 
 type ViewMode = "day" | "week" | "month";
 type Subject =
@@ -132,10 +138,15 @@ const textareaClass =
 
 export default function CalendarPage() {
   const router = useRouter();
+  const {
+    workspace,
+    activeLearnerId,
+    setActiveLearner,
+    error: workspaceError,
+  } = useFamilyWorkspace();
 
   const [view, setView] = useState<ViewMode>("week");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date("2026-04-11"));
-  const [learner, setLearner] = useState("Your learner");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [subject, setSubject] = useState<Subject>("Literacy");
   const [momentTitle, setMomentTitle] = useState("");
   const [momentNote, setMomentNote] = useState("");
@@ -143,19 +154,105 @@ export default function CalendarPage() {
 
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
   const [blocks, setBlocks] = useState<Record<string, CalendarBlock[]>>({});
+  const [loadingCalendar, setLoadingCalendar] = useState(true);
+  const [savingCalendar, setSavingCalendar] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const weekDays = useMemo(() => getBusinessWeek(selectedDate), [selectedDate]);
   const monthDays = useMemo(() => getBusinessMonthGrid(selectedDate), [selectedDate]);
+  const monthRange = useMemo(() => {
+    const first = monthDays[0] ?? selectedDate;
+    const last = monthDays[monthDays.length - 1] ?? selectedDate;
+    return {
+      start: ymd(first),
+      end: ymd(last),
+    };
+  }, [monthDays, selectedDate]);
+  const canonicalReady =
+    Boolean(workspace.userId) &&
+    workspace.storageMode === "database" &&
+    Boolean(workspace.profile?.id) &&
+    workspace.profile.id !== "local" &&
+    Boolean(activeLearnerId);
 
-  function addBlockForDate(date: Date, title?: string, forcedSubject?: Subject) {
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateCalendar() {
+      if (!canonicalReady) {
+        if (mounted) {
+          setBlocks({});
+          setDayNotes({});
+          setLoadingCalendar(false);
+        }
+        return;
+      }
+
+      try {
+        setLoadingCalendar(true);
+        setErrorMessage("");
+
+        const windowData = await loadFamilyCalendarWindow({
+          familyProfileId: workspace.profile.id,
+          studentId: activeLearnerId,
+          dateFrom: monthRange.start,
+          dateTo: monthRange.end,
+        });
+
+        if (!mounted) return;
+
+        const nextBlocks = Object.fromEntries(
+          Object.entries(windowData.blocks).map(([date, items]) => [
+            date,
+            items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              subject: (SUBJECTS.includes(item.subject as Subject)
+                ? item.subject
+                : "Creative") as Subject,
+              note: item.note,
+              time: item.time,
+            })),
+          ]),
+        ) as Record<string, CalendarBlock[]>;
+
+        setBlocks(nextBlocks);
+        setDayNotes(windowData.dayNotes);
+      } catch (error: any) {
+        if (!mounted) return;
+        setErrorMessage(
+          String(error?.message ?? "We could not load the family calendar."),
+        );
+      } finally {
+        if (mounted) setLoadingCalendar(false);
+      }
+    }
+
+    void hydrateCalendar();
+    return () => {
+      mounted = false;
+    };
+  }, [
+    canonicalReady,
+    workspace.profile?.id,
+    workspace.storageMode,
+    workspace.userId,
+    activeLearnerId,
+    monthRange.start,
+    monthRange.end,
+  ]);
+
+  async function addBlockForDate(date: Date, title?: string, forcedSubject?: Subject) {
     const key = ymd(date);
     const trimmed = (title ?? momentTitle).trim();
     const finalTitle = trimmed || "Start with one small learning moment";
+    const finalSubject = forcedSubject ?? subject;
 
     const newBlock: CalendarBlock = {
       id: `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       title: finalTitle,
-      subject: forcedSubject ?? subject,
+      subject: finalSubject,
       note: momentNote.trim(),
       time: optionalTime.trim(),
     };
@@ -168,6 +265,54 @@ export default function CalendarPage() {
     setMomentTitle("");
     setMomentNote("");
     setOptionalTime("");
+
+    if (!canonicalReady) {
+      setStatusMessage("Calendar is ready once a linked learner and family workspace are available.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setErrorMessage("");
+
+      const savedBlock = await addFamilyCalendarBlock({
+        familyProfileId: workspace.profile.id,
+        studentId: activeLearnerId,
+        createdByUserId: workspace.userId as string,
+        date: key,
+        title: finalTitle,
+        subject: finalSubject,
+        note: newBlock.note,
+        time: newBlock.time,
+      });
+
+      setBlocks((prev) => ({
+        ...prev,
+        [key]: [
+          ...(prev[key] ?? []).slice(0, -1),
+          {
+            id: savedBlock.id,
+            title: savedBlock.title,
+            subject: (SUBJECTS.includes(savedBlock.subject as Subject)
+              ? savedBlock.subject
+              : finalSubject) as Subject,
+            note: savedBlock.note,
+            time: savedBlock.time,
+          },
+        ],
+      }));
+      setStatusMessage("Saved to the family calendar.");
+    } catch (error: any) {
+      setBlocks((prev) => ({
+        ...prev,
+        [key]: (prev[key] ?? []).filter((item) => item.id !== newBlock.id),
+      }));
+      setErrorMessage(
+        String(error?.message ?? "We could not save this calendar block."),
+      );
+    } finally {
+      setSavingCalendar(false);
+    }
   }
 
   function updateDayNote(date: Date, value: string) {
@@ -178,9 +323,38 @@ export default function CalendarPage() {
     }));
   }
 
-  function addSuggestedBlock() {
+  async function persistDayNote(date: Date) {
+    const key = ymd(date);
+    const nextNote = dayNotes[key] ?? "";
+
+    if (!canonicalReady) {
+      setStatusMessage("Calendar notes will save once a linked learner is ready.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setErrorMessage("");
+      await saveFamilyCalendarDayNote({
+        familyProfileId: workspace.profile.id,
+        studentId: activeLearnerId,
+        createdByUserId: workspace.userId as string,
+        date: key,
+        note: nextNote,
+      });
+      setStatusMessage(nextNote.trim() ? "Day note saved." : "Day note cleared.");
+    } catch (error: any) {
+      setErrorMessage(
+        String(error?.message ?? "We could not save this day note."),
+      );
+    } finally {
+      setSavingCalendar(false);
+    }
+  }
+
+  async function addSuggestedBlock() {
     const target = weekDays[0];
-    addBlockForDate(target, "Suggested literacy block", "Literacy");
+    await addBlockForDate(target, "Suggested literacy block", "Literacy");
   }
 
   function goPrevious() {
@@ -273,6 +447,24 @@ export default function CalendarPage() {
               </div>
             </section>
 
+            {errorMessage ? (
+              <section className={cx(surface, "px-6 py-4")}>
+                <div className="text-sm font-semibold text-rose-700">{errorMessage}</div>
+              </section>
+            ) : null}
+
+            {workspaceError && !errorMessage ? (
+              <section className={cx(surface, "px-6 py-4")}>
+                <div className="text-sm font-semibold text-rose-700">{workspaceError}</div>
+              </section>
+            ) : null}
+
+            {statusMessage ? (
+              <section className={cx(surface, "px-6 py-4")}>
+                <div className="text-sm font-semibold text-slate-700">{statusMessage}</div>
+              </section>
+            ) : null}
+
             <section className={cx(surface, "px-7 py-7")}>
               <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
                 Weekly guidance
@@ -324,7 +516,7 @@ export default function CalendarPage() {
                   <button
                     type="button"
                     className={cx(buttonPrimary, "mt-4")}
-                    onClick={addSuggestedBlock}
+                    onClick={() => void addSuggestedBlock()}
                   >
                     Add suggested block
                   </button>
@@ -341,7 +533,7 @@ export default function CalendarPage() {
                     className={buttonSecondary}
                     onClick={() => {
                       setSubject("Literacy");
-                      addBlockForDate(weekDays[0], "Literacy block", "Literacy");
+                      void addBlockForDate(weekDays[0], "Literacy block", "Literacy");
                     }}
                   >
                     Add Literacy block
@@ -351,7 +543,7 @@ export default function CalendarPage() {
                     className={buttonSecondary}
                     onClick={() => {
                       setSubject("Numeracy");
-                      addBlockForDate(weekDays[0], "Numeracy block", "Numeracy");
+                      void addBlockForDate(weekDays[0], "Numeracy block", "Numeracy");
                     }}
                   >
                     Add Numeracy block
@@ -393,10 +585,17 @@ export default function CalendarPage() {
                   <div className="flex flex-wrap items-center gap-3">
                     <select
                       className={inputClass}
-                      value={learner}
-                      onChange={(e) => setLearner(e.target.value)}
+                      value={activeLearnerId}
+                      onChange={(e) => setActiveLearner(e.target.value)}
                     >
-                      <option>Your learner</option>
+                      {!workspace.learners.length ? (
+                        <option value="">No learner selected</option>
+                      ) : null}
+                      {workspace.learners.map((learner) => (
+                        <option key={learner.id} value={learner.id}>
+                          {learner.label}
+                        </option>
+                      ))}
                     </select>
 
                     <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1">
@@ -450,7 +649,7 @@ export default function CalendarPage() {
                   <button
                     type="button"
                     className={buttonPrimary}
-                    onClick={() => addBlockForDate(selectedDate)}
+                    onClick={() => void addBlockForDate(selectedDate)}
                   >
                     Add
                   </button>
@@ -464,7 +663,10 @@ export default function CalendarPage() {
                   onChange={(e) => setMomentNote(e.target.value)}
                 />
 
-                <div className="text-xs text-slate-500">Storage mode: local</div>
+                <div className="text-xs text-slate-500">
+                  Storage mode: {workspace.storageMode === "database" ? "database" : "local snapshot"}
+                  {savingCalendar ? " · Saving…" : loadingCalendar ? " · Loading…" : ""}
+                </div>
               </div>
             </section>
 
@@ -473,7 +675,7 @@ export default function CalendarPage() {
                 {weekDays.map((day) => {
                   const key = ymd(day);
                   const items = blocks[key] ?? [];
-                  const today = ymd(day) === ymd(new Date("2026-04-11"));
+                  const today = ymd(day) === ymd(new Date());
 
                   return (
                     <div key={key} className={cx(card, "p-4")}>
@@ -497,6 +699,7 @@ export default function CalendarPage() {
                         placeholder="A gentle note for today..."
                         value={dayNotes[key] ?? ""}
                         onChange={(e) => updateDayNote(day, e.target.value)}
+                        onBlur={() => void persistDayNote(day)}
                       />
 
                       {items.length === 0 ? (
@@ -509,7 +712,7 @@ export default function CalendarPage() {
                             <button
                               type="button"
                               className={buttonSecondary}
-                              onClick={() => addBlockForDate(day, "Learning block")}
+                              onClick={() => void addBlockForDate(day, "Learning block")}
                             >
                               + Add block
                             </button>
@@ -558,7 +761,7 @@ export default function CalendarPage() {
                             <button
                               type="button"
                               className={buttonSecondary}
-                              onClick={() => addBlockForDate(day, "Learning block")}
+                              onClick={() => void addBlockForDate(day, "Learning block")}
                             >
                               + Add block
                             </button>
@@ -600,7 +803,7 @@ export default function CalendarPage() {
                               type="button"
                               className={buttonSecondary}
                               onClick={() =>
-                                addBlockForDate(day, chip.label, chip.subject)
+                                void addBlockForDate(day, chip.label, chip.subject)
                               }
                             >
                               {chip.label}
@@ -669,6 +872,7 @@ export default function CalendarPage() {
                       placeholder="Type a note..."
                       value={dayNotes[selectedDayKey] ?? ""}
                       onChange={(e) => updateDayNote(selectedDate, e.target.value)}
+                      onBlur={() => void persistDayNote(selectedDate)}
                     />
                   </div>
 

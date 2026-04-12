@@ -24,6 +24,20 @@ export type FamilyWeeklyPlan = {
   updatedAt: string;
 };
 
+export type FamilyCalendarBlockEntry = {
+  id: string;
+  date: string;
+  title: string;
+  subject: string;
+  note: string;
+  time: string;
+};
+
+export type FamilyCalendarWindow = {
+  dayNotes: Record<string, string>;
+  blocks: Record<string, FamilyCalendarBlockEntry[]>;
+};
+
 type PlannerRow = {
   id: string;
   title?: string | null;
@@ -35,6 +49,39 @@ type PlannerRow = {
 
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function getWeekKeyFromDate(dateValue: string): string {
+  const date = new Date(`${dateValue}T00:00:00`);
+  const year = date.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diffDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
+  const week = Math.ceil((diffDays + start.getDay() + 1) / 7);
+  return `${year}-W${String(week).padStart(2, "0")}`;
+}
+
+function parseCalendarPayload(value: string) {
+  const raw = safe(value);
+  if (!raw) return { note: "", time: "" };
+
+  try {
+    const parsed = JSON.parse(raw) as { note?: unknown; time?: unknown };
+    return {
+      note: safe(parsed?.note),
+      time: safe(parsed?.time),
+    };
+  } catch {
+    return { note: raw, time: "" };
+  }
+}
+
+function calendarBlockSource(subject: string) {
+  return `planner_calendar_block:${safe(subject) || "General"}`;
+}
+
+function parseCalendarBlockSubject(source: string) {
+  const parsed = safe(source).replace("planner_calendar_block:", "");
+  return parsed || "General";
 }
 
 function actionCategoryFromSource(source: string): FamilyPlannerActionCategory {
@@ -176,6 +223,174 @@ export async function saveFamilyWeeklyPlan(input: {
   ];
 
   const insertResponse = await supabase.from("learning_plan_items").insert(rows);
+  if (insertResponse.error) {
+    throw insertResponse.error;
+  }
+}
+
+export async function loadFamilyCalendarWindow(input: {
+  familyProfileId: string;
+  studentId: string;
+  dateFrom: string;
+  dateTo: string;
+}): Promise<FamilyCalendarWindow> {
+  const response = await supabase
+    .from("learning_plan_items")
+    .select("id,title,description,planned_date,source")
+    .eq("family_profile_id", input.familyProfileId)
+    .eq("student_id", input.studentId)
+    .gte("planned_date", input.dateFrom)
+    .lte("planned_date", input.dateTo)
+    .like("source", "planner_calendar_%")
+    .order("planned_date", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  const rows = (response.data ?? []) as Array<{
+    id?: string | null;
+    title?: string | null;
+    description?: string | null;
+    planned_date?: string | null;
+    source?: string | null;
+  }>;
+
+  const result: FamilyCalendarWindow = {
+    dayNotes: {},
+    blocks: {},
+  };
+
+  for (const row of rows) {
+    const plannedDate = safe(row.planned_date);
+    const source = safe(row.source);
+    if (!plannedDate || !source) continue;
+
+    if (source === "planner_calendar_note") {
+      result.dayNotes[plannedDate] = safe(row.description);
+      continue;
+    }
+
+    if (source.startsWith("planner_calendar_block:")) {
+      const payload = parseCalendarPayload(safe(row.description));
+      const entry: FamilyCalendarBlockEntry = {
+        id: safe(row.id),
+        date: plannedDate,
+        title: safe(row.title) || "Learning block",
+        subject: parseCalendarBlockSubject(source),
+        note: payload.note,
+        time: payload.time,
+      };
+
+      result.blocks[plannedDate] = [...(result.blocks[plannedDate] ?? []), entry];
+    }
+  }
+
+  return result;
+}
+
+export async function addFamilyCalendarBlock(input: {
+  familyProfileId: string;
+  studentId: string;
+  createdByUserId: string;
+  date: string;
+  title: string;
+  subject: string;
+  note?: string;
+  time?: string;
+}): Promise<FamilyCalendarBlockEntry> {
+  const response = await supabase
+    .from("learning_plan_items")
+    .insert({
+      family_profile_id: input.familyProfileId,
+      student_id: input.studentId,
+      title: safe(input.title) || "Learning block",
+      description: JSON.stringify({
+        note: safe(input.note),
+        time: safe(input.time),
+      }),
+      planned_date: input.date,
+      week_key: getWeekKeyFromDate(input.date),
+      status: "planned",
+      source: calendarBlockSource(input.subject),
+      created_by_user_id: input.createdByUserId,
+    })
+    .select("id,title,description,planned_date,source")
+    .single();
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  const row = response.data as {
+    id?: string | null;
+    title?: string | null;
+    description?: string | null;
+    planned_date?: string | null;
+    source?: string | null;
+  };
+
+  const payload = parseCalendarPayload(safe(row.description));
+  return {
+    id: safe(row.id),
+    date: safe(row.planned_date),
+    title: safe(row.title) || "Learning block",
+    subject: parseCalendarBlockSubject(safe(row.source)),
+    note: payload.note,
+    time: payload.time,
+  };
+}
+
+export async function saveFamilyCalendarDayNote(input: {
+  familyProfileId: string;
+  studentId: string;
+  createdByUserId: string;
+  date: string;
+  note: string;
+}): Promise<void> {
+  const existing = await supabase
+    .from("learning_plan_items")
+    .select("id")
+    .eq("family_profile_id", input.familyProfileId)
+    .eq("student_id", input.studentId)
+    .eq("planned_date", input.date)
+    .eq("source", "planner_calendar_note");
+
+  if (existing.error) {
+    throw existing.error;
+  }
+
+  const existingIds = (existing.data ?? [])
+    .map((row) => safe((row as { id?: unknown }).id))
+    .filter(Boolean);
+
+  if (existingIds.length) {
+    const deletion = await supabase
+      .from("learning_plan_items")
+      .delete()
+      .in("id", existingIds);
+
+    if (deletion.error) {
+      throw deletion.error;
+    }
+  }
+
+  const note = safe(input.note);
+  if (!note) return;
+
+  const insertResponse = await supabase.from("learning_plan_items").insert({
+    family_profile_id: input.familyProfileId,
+    student_id: input.studentId,
+    title: "Calendar day note",
+    description: note,
+    planned_date: input.date,
+    week_key: getWeekKeyFromDate(input.date),
+    status: "planned",
+    source: "planner_calendar_note",
+    created_by_user_id: input.createdByUserId,
+  });
+
   if (insertResponse.error) {
     throw insertResponse.error;
   }
