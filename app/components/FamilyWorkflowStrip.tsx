@@ -19,8 +19,15 @@ const STEPS: Step[] = [
   { number: 1, label: "Home", href: "/family" },
   { number: 2, label: "Calendar", href: "/calendar" },
   { number: 3, label: "Capture", href: "/capture" },
-  { number: 4, label: "Portfolio", href: "/portfolio" },
+  { number: 4, label: "Curriculum", href: "/curriculum" },
+  { number: 5, label: "Reports", href: "/reports" },
 ];
+
+function isActiveStep(currentHref: string, stepHref: string) {
+  if (!currentHref || !stepHref) return false;
+  if (currentHref === stepHref) return true;
+  return currentHref.startsWith(`${stepHref}/`);
+}
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -48,7 +55,7 @@ export default function FamilyWorkflowStrip({
 
         <div className="flex flex-wrap items-center gap-3">
           {STEPS.map((step, index) => {
-            const active = resolvedHref === step.href;
+            const active = isActiveStep(resolvedHref, step.href);
 
             return (
               <React.Fragment key={step.href}>

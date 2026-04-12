@@ -52,6 +52,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/family") return "Family Home";
   if (pathname === "/calendar") return "Calendar";
   if (pathname === "/capture") return "Capture";
+  if (pathname === "/curriculum") return "Curriculum";
   if (pathname === "/planner") return "Planner";
   if (pathname === "/portfolio") return "Portfolio";
   if (pathname === "/reports") return "Reports";
@@ -69,6 +70,7 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/family") return "Keep the family rhythm calm and connected";
   if (pathname === "/calendar") return "See the week clearly before it fills up";
   if (pathname === "/capture") return "Capture the learning while it is still fresh";
+  if (pathname === "/curriculum") return "See curriculum coverage clearly for the current learner";
   if (pathname === "/planner") return "Shape the next week with confidence";
   if (pathname === "/portfolio") return "Curate the learning story as it grows";
   if (pathname === "/reports") return "Turn captured moments into clear family reporting";
@@ -85,6 +87,9 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
+  }
+  if (pathname === "/curriculum") {
+    return "Track what has started, what is secure, and what needs the next calm step without leaving the family workflow.";
   }
   if (pathname === "/planner") {
     return "A light, clear weekly plan helps the whole family move forward without pressure.";
