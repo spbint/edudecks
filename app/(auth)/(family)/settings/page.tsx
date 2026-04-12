@@ -366,7 +366,7 @@ export default function FamilySettingsPage() {
                 </span>
               </div>
 
-              {workspaceLoading ? <div style={styles.inlineNote}>Refreshing your latest family settings...</div> : null}
+              {workspaceLoading ? <div style={styles.inlineNote}>Refreshing the latest family settings in the background...</div> : null}
               {loadError ? <div style={styles.warningBanner}>{loadError}</div> : null}
               {saveError ? <div style={styles.warningBanner}>{saveError}</div> : null}
             </div>
@@ -406,11 +406,11 @@ export default function FamilySettingsPage() {
                 primary
               >
                 <div style={styles.helperText}>
-                  Set the reporting structure for your family first. This will guide later planning and report output.
+                  Set the reporting structure for your family first. Later planning, capture, and reporting will follow this setup.
                 </div>
 
                 {savedAt && !saveError ? (
-                  <div style={styles.successBanner}>Curriculum and compliance settings saved.</div>
+                  <div style={styles.successBanner}>Curriculum and compliance settings were saved to your family profile.</div>
                 ) : null}
 
                 <CurriculumSetupCard
@@ -676,7 +676,7 @@ export default function FamilySettingsPage() {
                   ? "You have unsaved family settings changes."
                   : savedAt
                     ? "Family settings were saved successfully."
-                    : "Family settings are up to date."}
+                    : "All family settings are saved."}
             </div>
             <div style={styles.stickySub}>
               {saveError
@@ -684,8 +684,8 @@ export default function FamilySettingsPage() {
                 : savedAt
                 ? `Last saved ${savedAt}`
                 : storageMode === "database"
-                  ? "Save to persist these settings into the family profile."
-                  : "Save will persist locally until signed-in database storage is available."}
+                  ? "Changes made here will stay in sync across the family workspace."
+                  : "Changes will stay local until signed-in database storage is available."}
             </div>
           </div>
 
@@ -698,10 +698,10 @@ export default function FamilySettingsPage() {
               onClick={handleSave}
               style={{
                 ...styles.primaryButton,
-                opacity: saving ? 0.7 : 1,
-                cursor: saving ? "wait" : "pointer",
+                opacity: saving || (!isDirty && !saveError) ? 0.7 : 1,
+                cursor: saving ? "wait" : !isDirty && !saveError ? "default" : "pointer",
               }}
-              disabled={saving}
+              disabled={saving || (!isDirty && !saveError)}
             >
               {saving ? "Saving..." : "Save family settings"}
             </button>
@@ -737,6 +737,7 @@ function StepSection({
       style={{
         ...styles.stepCard,
         ...(primary ? styles.stepCardPrimary : {}),
+        scrollMarginTop: 112,
       }}
     >
       <button

@@ -55,10 +55,10 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/planner") return "Planner";
   if (pathname === "/portfolio") return "Portfolio";
   if (pathname === "/reports") return "Reports";
-  if (pathname === "/profile") return "Homeschool-first learning flow";
+  if (pathname === "/profile") return "Profile";
   if (pathname === "/settings") return "Settings";
   if (pathname === "/community") return "Community";
-  return "Homeschool-first learning flow";
+  return "Family workspace";
 }
 
 function routeTitle(_pathname: string) {

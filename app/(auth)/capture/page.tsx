@@ -1710,6 +1710,7 @@ export default function CapturePage() {
 
                   {feedback ? (
                     <div
+                      aria-live="polite"
                       style={{
                         border:
                           saveState === "success"
@@ -1726,6 +1727,9 @@ export default function CapturePage() {
                         transition: "box-shadow 160ms ease",
                       }}
                     >
+                      <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 4 }}>
+                        {saveState === "success" ? "Saved to family record" : "Could not save yet"}
+                      </div>
                       {feedback}
                     </div>
                   ) : null}
@@ -1759,7 +1763,7 @@ export default function CapturePage() {
                         minWidth: 190,
                       }}
                     >
-                      {saveState === "saving" ? "Saving..." : "Save learning record"}
+                      {saveState === "saving" ? "Saving..." : "Save to family record"}
                     </button>
 
                     <button

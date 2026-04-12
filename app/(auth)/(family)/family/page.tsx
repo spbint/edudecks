@@ -321,7 +321,7 @@ export default function FamilyHomePage() {
               </div>
               <div style={S.nextStepActions}>
                 <Link href="/profile#manage-family" style={S.smallPrimaryButton}>
-                  Go to profile
+                  Add your first learner
                 </Link>
               </div>
             </div>
