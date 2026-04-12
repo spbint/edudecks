@@ -31,6 +31,10 @@ export type FamilyWorkspaceState = {
   storageMode: "database" | "local";
 };
 
+type LearnerIdentity = {
+  id: string;
+};
+
 type QueryResponse<T> = {
   data: T | null;
   error: { message?: string | null } | null;
@@ -504,6 +508,14 @@ export function getStoredActiveLearnerId() {
   return safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY));
 }
 
+export function isValidActiveLearnerId(
+  learners: LearnerIdentity[],
+  learnerId: string | null | undefined,
+) {
+  const clean = safe(learnerId);
+  return !!clean && learners.some((learner) => learner.id === clean);
+}
+
 export function setActiveLearnerId(learnerId: string | null | undefined) {
   if (typeof window === "undefined") return;
 
@@ -520,12 +532,10 @@ export function setActiveLearnerId(learnerId: string | null | undefined) {
       detail: { childId: clean || undefined },
     }),
   );
-
-  dispatchFamilyWorkspaceEvent({ childId: clean || undefined });
 }
 
 export function resolveEffectiveActiveLearnerId(
-  learners: FamilyLearner[],
+  learners: LearnerIdentity[],
   profile?: Pick<FamilySettings, "default_child_id" | "auto_open_last_child"> | null,
 ) {
   const stored = getStoredActiveLearnerId();
@@ -537,6 +547,20 @@ export function resolveEffectiveActiveLearnerId(
     learners[0]?.id ||
     ""
   );
+}
+
+export function resolveCanonicalActiveLearnerId(
+  learners: LearnerIdentity[],
+  profile?: Pick<FamilySettings, "default_child_id" | "auto_open_last_child"> | null,
+  ...candidates: Array<string | null | undefined>
+) {
+  for (const candidate of candidates) {
+    if (isValidActiveLearnerId(learners, candidate)) {
+      return safe(candidate);
+    }
+  }
+
+  return resolveEffectiveActiveLearnerId(learners, profile);
 }
 
 export function syncEffectiveActiveLearner(

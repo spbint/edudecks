@@ -26,6 +26,7 @@ import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
+import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 
 type StudentRow = {
   id: string;
@@ -127,7 +128,6 @@ const PRESET_OPTIONS: {
   },
 ];
 
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
 
@@ -604,7 +604,7 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { workspace } = useFamilyWorkspace();
+  const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -675,11 +675,6 @@ function ReportsPageContent() {
             ? dbStudentRows
             : seedStudents;
 
-        const activeStoredStudent =
-          typeof window !== "undefined"
-            ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
-            : "";
-
         const initialMarket =
           ((existingDraft?.preferred_market as PreferredMarket) ||
             safe(workspace.profile?.preferred_market) ||
@@ -693,22 +688,19 @@ function ReportsPageContent() {
             ? requestedStudentId
             : "";
 
-        const validStoredStudent =
-          activeStoredStudent &&
-          mergedStudents.some((student) => student.id === activeStoredStudent)
-            ? activeStoredStudent
-            : "";
-
-        const defaultStudentId =
-          safe(existingDraft?.student_id) ||
-          validRequestedStudent ||
-          validStoredStudent ||
-          safe(workspace.profile?.default_child_id) ||
-          safe(mergedStudents[0]?.id) ||
-          "";
+        const defaultStudentId = resolveCanonicalActiveLearnerId(
+          mergedStudents,
+          workspace.profile,
+          safe(existingDraft?.student_id),
+          validRequestedStudent,
+          activeLearnerId,
+        );
 
         setDraftId(existingDraft?.id || "");
         setSelectedStudentId(defaultStudentId);
+        if (defaultStudentId) {
+          setActiveLearner(defaultStudentId);
+        }
         setReportMode(
           (existingDraft?.report_mode ||
             safe(workspace.profile?.report_tone_default) ||
@@ -749,9 +741,9 @@ function ReportsPageContent() {
           }
         }
 
-        if (!existingDraft && validStoredStudent) {
+        if (!existingDraft && defaultStudentId) {
           const found =
-            mergedStudents.find((student) => student.id === validStoredStudent) || null;
+            mergedStudents.find((student) => student.id === defaultStudentId) || null;
           setMessage(
             `${firstNameOf(found)} is already selected. Next step: choose evidence and save a first draft.`
           );
@@ -771,49 +763,14 @@ function ReportsPageContent() {
   }, [searchParams, workspace.profile]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!safe(selectedStudentId)) return;
-    try {
-      window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, selectedStudentId);
-    } catch {}
-  }, [selectedStudentId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    function syncActiveStudent(detailId?: string) {
-      const nextId =
-        detailId || safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) || "";
-      if (!nextId) return;
-      if (students.some((student) => student.id === nextId)) {
-        setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
-        return;
-      }
-      if (students.length) {
-        const fallback = students[0].id;
-        setSelectedStudentId(fallback);
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, fallback);
-      }
-    }
-
-    function handleCustomEvent(event: Event) {
-      const detail = (event as CustomEvent<{ childId?: string }>).detail;
-      syncActiveStudent(detail?.childId);
-    }
-
-    function handleStorage(event: StorageEvent) {
-      if (event.key !== ACTIVE_STUDENT_ID_KEY) return;
-      syncActiveStudent(event.newValue || undefined);
-    }
-
-    syncActiveStudent();
-    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [students]);
+    const nextId = resolveCanonicalActiveLearnerId(
+      students,
+      workspace.profile,
+      activeLearnerId,
+      selectedStudentId,
+    );
+    setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
+  }, [students, workspace.profile, activeLearnerId, selectedStudentId]);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || null,
@@ -1486,9 +1443,7 @@ function ReportsPageContent() {
                     onChange={(e) => {
                       setSelectedStudentId(e.target.value);
                       autoSelectedStudentRef.current = "";
-                      if (typeof window !== "undefined") {
-                        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, e.target.value);
-                      }
+                      setActiveLearner(e.target.value);
                     }}
                     style={{ width: "100%", minHeight: 44, borderRadius: 12, border: "1px solid #d1d5db", padding: "10px 12px" }}
                   >

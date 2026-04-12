@@ -149,7 +149,7 @@ function WorkflowRibbon() {
 }
 
 export default function FamilyHomePage() {
-  const { workspace, activeLearnerId, loading: workspaceLoading, error: workspaceError, setActiveLearner } =
+  const { workspace, activeLearnerId, loading: workspaceLoading, error: workspaceError } =
     useFamilyWorkspace();
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -177,10 +177,6 @@ export default function FamilyHomePage() {
           const effectiveLearnerId = resolveEffectiveActiveLearnerId(nextLearners, nextProfile);
           setDefaultLearnerId(effectiveLearnerId);
 
-          if (effectiveLearnerId) {
-            setActiveLearner(effectiveLearnerId);
-          }
-
           setCaptureRows([]);
           setReportRows([]);
           setError(workspaceError);
@@ -194,10 +190,6 @@ export default function FamilyHomePage() {
           nextProfile,
         );
         setDefaultLearnerId(effectiveLearnerId);
-
-        if (effectiveLearnerId) {
-          setActiveLearner(effectiveLearnerId);
-        }
 
         if (!workspace.userId) {
           setCaptureRows([]);

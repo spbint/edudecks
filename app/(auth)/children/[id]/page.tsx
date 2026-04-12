@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import {
@@ -47,8 +48,6 @@ type CoverageRow = {
   area: string;
   count: number;
 };
-
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
 function safe(v: any) {
   return String(v ?? "").trim();
@@ -121,6 +120,7 @@ function pillStyle(bg: string, fg: string): React.CSSProperties {
 export default function ChildWorkspacePage() {
   const params = useParams();
   const router = useRouter();
+  const { setActiveLearner } = useFamilyWorkspace();
   const childId = safe(params?.id);
 
   const [busy, setBusy] = useState(true);
@@ -192,7 +192,7 @@ export default function ChildWorkspacePage() {
       setChild(childRow);
       setEvidence(evidenceRows);
       setSavedDrafts(listSavedDrafts().filter((d) => d.studentId === childId));
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
+      setActiveLearner(childId);
     } catch (e: any) {
       setErr(String(e?.message ?? e));
     } finally {

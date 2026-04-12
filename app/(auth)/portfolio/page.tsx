@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FlowStep from "@/app/components/FlowStep";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -20,6 +21,7 @@ import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
+import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -144,7 +146,6 @@ const SAMPLE_TAG_OPTIONS: SampleTag[] = [
 const PORTFOLIO_TAGS_KEY = "edudecks_portfolio_tags_v1";
 const PORTFOLIO_LAYOUT_KEY = "edudecks_portfolio_layout_v2";
 const PLAN_STORAGE_KEY = "edudecks_plan";
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
 
@@ -603,6 +604,7 @@ export default function PortfolioPage() {
 }
 
 function PortfolioPageContent() {
+  const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
   const searchParams = useSearchParams();
   const shellHandoff = useMemo(
     () =>
@@ -670,22 +672,20 @@ function PortfolioPageContent() {
         setStudents(mergedStudents);
         setAllEvidence(loadedEvidence);
 
-        const storedActiveStudent =
-          typeof window !== "undefined"
-            ? safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY))
-            : "";
-
         const validQueryStudent =
           queryStudentId && mergedStudents.some((s) => s.id === queryStudentId)
             ? queryStudentId
             : "";
-
-        const validStoredStudent =
-          storedActiveStudent && mergedStudents.some((s) => s.id === storedActiveStudent)
-            ? storedActiveStudent
-            : "";
-
-        setSelectedStudentId(validQueryStudent || validStoredStudent || mergedStudents[0]?.id || "");
+        const nextSelectedStudentId = resolveCanonicalActiveLearnerId(
+          mergedStudents,
+          workspace.profile,
+          validQueryStudent,
+          activeLearnerId,
+        );
+        setSelectedStudentId(nextSelectedStudentId);
+        if (nextSelectedStudentId) {
+          setActiveLearner(nextSelectedStudentId);
+        }
 
         if (typeof window !== "undefined") {
           try {
@@ -742,49 +742,14 @@ function PortfolioPageContent() {
   }, [layout]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!safe(selectedStudentId)) return;
-    try {
-      localStorage.setItem(ACTIVE_STUDENT_ID_KEY, selectedStudentId);
-    } catch {}
-  }, [selectedStudentId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    function syncActiveStudent(detailId?: string) {
-      const nextId =
-        detailId || safe(window.localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) || "";
-      if (!nextId) return;
-      if (students.some((student) => student.id === nextId)) {
-        setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
-        return;
-      }
-      if (students.length) {
-        const fallback = students[0].id;
-        setSelectedStudentId(fallback);
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, fallback);
-      }
-    }
-
-    function handleCustomEvent(event: Event) {
-      const detail = (event as CustomEvent<{ childId?: string }>).detail;
-      syncActiveStudent(detail?.childId);
-    }
-
-    function handleStorage(event: StorageEvent) {
-      if (event.key !== ACTIVE_STUDENT_ID_KEY) return;
-      syncActiveStudent(event.newValue || undefined);
-    }
-
-    syncActiveStudent();
-    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [students]);
+    const nextId = resolveCanonicalActiveLearnerId(
+      students,
+      workspace.profile,
+      activeLearnerId,
+      selectedStudentId,
+    );
+    setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
+  }, [students, workspace.profile, activeLearnerId, selectedStudentId]);
 
   const student = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || students[0] || null,
@@ -1445,9 +1410,7 @@ function PortfolioPageContent() {
                   value={student?.id || ""}
                   onChange={(e) => {
                     setSelectedStudentId(e.target.value);
-                    if (typeof window !== "undefined") {
-                      window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, e.target.value);
-                    }
+                    setActiveLearner(e.target.value);
                   }}
                   style={{ ...UI.input(), width: "100%" }}
                 >

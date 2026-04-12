@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { supabase } from "@/lib/supabaseClient";
 import {
   isMissingLearnerColumnError,
@@ -16,8 +17,7 @@ import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
-
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
@@ -845,6 +845,7 @@ function SearchableSelect({
 
 export default function CapturePage() {
   const searchParams = useSearchParams();
+  const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -914,16 +915,16 @@ export default function CapturePage() {
 
       setChildren(merged);
 
-      const storedActive =
-        typeof window !== "undefined" ? safe(localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) : "";
-
-      const usableActive =
-        merged.find((c) => c.id === storedActive)?.id || merged[0]?.id || "";
+      const usableActive = resolveCanonicalActiveLearnerId(
+        merged,
+        workspace.profile,
+        activeLearnerId,
+      );
 
       setActiveChildId(usableActive);
 
-      if (typeof window !== "undefined" && usableActive) {
-        localStorage.setItem(ACTIVE_STUDENT_ID_KEY, usableActive);
+      if (usableActive) {
+        setActiveLearner(usableActive);
       }
     } catch (e: any) {
       setErr(String(e?.message ?? e ?? "Could not load learners."));
@@ -939,41 +940,14 @@ export default function CapturePage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    function syncActiveChild(detailId?: string) {
-      const nextId =
-        detailId || safe(localStorage.getItem(ACTIVE_STUDENT_ID_KEY)) || "";
-      if (!nextId) return;
-      if (children.some((child) => child.id === nextId)) {
-        setActiveChildId((prev) => (prev === nextId ? prev : nextId));
-        return;
-      }
-      if (children.length) {
-        const fallback = children[0].id;
-        setActiveChildId(fallback);
-        localStorage.setItem(ACTIVE_STUDENT_ID_KEY, fallback);
-      }
-    }
-
-    function handleCustomEvent(event: Event) {
-      const detail = (event as CustomEvent<{ childId?: string }>).detail;
-      syncActiveChild(detail?.childId);
-    }
-
-    function handleStorage(event: StorageEvent) {
-      if (event.key !== ACTIVE_STUDENT_ID_KEY) return;
-      syncActiveChild(event.newValue || undefined);
-    }
-
-    syncActiveChild();
-    window.addEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-    window.addEventListener("storage", handleStorage);
-    return () => {
-      window.removeEventListener("edudecksActiveChildChanged", handleCustomEvent as EventListener);
-      window.removeEventListener("storage", handleStorage);
-    };
-  }, [children]);
+    const nextId = resolveCanonicalActiveLearnerId(
+      children,
+      workspace.profile,
+      activeLearnerId,
+      activeChildId,
+    );
+    setActiveChildId((prev) => (prev === nextId ? prev : nextId));
+  }, [children, workspace.profile, activeLearnerId, activeChildId]);
 
   useEffect(() => {
     if (!saveFlash) return;
@@ -1374,9 +1348,7 @@ export default function CapturePage() {
                       value={activeChildId}
                       onChange={(e) => {
                         setActiveChildId(e.target.value);
-                        if (typeof window !== "undefined") {
-                          localStorage.setItem(ACTIVE_STUDENT_ID_KEY, e.target.value);
-                        }
+                        setActiveLearner(e.target.value);
                       }}
                       style={inputStyle()}
                     >

@@ -6,8 +6,10 @@ import {
   ACTIVE_CHILD_EVENT,
   FAMILY_WORKSPACE_EVENT,
   buildLocalFamilyWorkspaceSnapshot,
+  isValidActiveLearnerId,
   loadFamilyWorkspace,
   persistLearnersToLocalCache,
+  resolveCanonicalActiveLearnerId,
   resolveEffectiveActiveLearnerId,
   setActiveLearnerId,
   type FamilyLearner,
@@ -50,10 +52,11 @@ function applyActiveLearner(
   workspace: FamilyWorkspaceState,
   explicitId?: string | null,
 ) {
-  const nextId =
-    explicitId && workspace.learners.some((learner) => learner.id === explicitId)
-      ? explicitId
-      : resolveEffectiveActiveLearnerId(workspace.learners, workspace.profile);
+  const nextId = resolveCanonicalActiveLearnerId(
+    workspace.learners,
+    workspace.profile,
+    explicitId,
+  );
 
   if (nextId) {
     setActiveLearnerId(nextId);
@@ -132,9 +135,13 @@ export function FamilyWorkspaceProvider({
   }
 
   function handleSetActiveLearner(learnerId: string | null | undefined) {
-    const clean = String(learnerId ?? "").trim();
-    setActiveLearnerId(clean);
-    setActiveLearnerIdState(clean);
+    const nextId = resolveCanonicalActiveLearnerId(
+      workspace.learners,
+      workspace.profile,
+      learnerId,
+    );
+    setActiveLearnerId(nextId || null);
+    setActiveLearnerIdState(nextId);
   }
 
   useEffect(() => {
@@ -148,7 +155,11 @@ export function FamilyWorkspaceProvider({
 
     function handleActiveLearnerChanged(event: Event) {
       const customEvent = event as CustomEvent<{ childId?: string }>;
-      const nextId = String(customEvent.detail?.childId ?? "").trim();
+      const nextId = resolveCanonicalActiveLearnerId(
+        workspace.learners,
+        workspace.profile,
+        customEvent.detail?.childId,
+      );
       setActiveLearnerIdState(nextId);
     }
 
@@ -161,7 +172,12 @@ export function FamilyWorkspaceProvider({
         void reloadWorkspace();
       }
       if (event.key === "edudecks_active_student_id") {
-        setActiveLearnerIdState(String(event.newValue ?? "").trim());
+        const nextId = resolveCanonicalActiveLearnerId(
+          workspace.learners,
+          workspace.profile,
+          String(event.newValue ?? "").trim(),
+        );
+        setActiveLearnerIdState(nextId);
       }
     }
 
@@ -177,7 +193,23 @@ export function FamilyWorkspaceProvider({
       );
       window.removeEventListener("storage", handleStorage);
     };
-  }, [user?.id]);
+  }, [user?.id, workspace.learners, workspace.profile]);
+
+  useEffect(() => {
+    if (!workspace.learners.length) {
+      if (activeLearnerId) {
+        setActiveLearnerId(null);
+        setActiveLearnerIdState("");
+      }
+      return;
+    }
+
+    if (isValidActiveLearnerId(workspace.learners, activeLearnerId)) {
+      return;
+    }
+
+    setActiveLearnerIdState(applyActiveLearner(workspace));
+  }, [workspace.learners, workspace.profile, activeLearnerId]);
 
   const activeLearner =
     workspace.learners.find((learner) => learner.id === activeLearnerId) ?? null;
