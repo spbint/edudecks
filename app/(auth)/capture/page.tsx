@@ -4,6 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  isMissingLearnerColumnError,
+  loadFamilyStudentsWithVariants,
+  loadLinkedFamilyStudentIds,
+} from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -878,56 +883,24 @@ export default function CapturePage() {
       let merged: ChildRow[] = [];
 
       if (userId) {
-        const linksResp = await supabase
-          .from("parent_student_links")
-          .select("student_id,relationship_label,sort_order,created_at")
-          .eq("parent_user_id", userId)
-          .order("sort_order", { ascending: true })
-          .order("created_at", { ascending: true });
+        const ids = await loadLinkedFamilyStudentIds();
+        if (Array.isArray(ids) && ids.length) {
+          const students = await loadFamilyStudentsWithVariants<ChildRow>(
+            [
+              "id,first_name,preferred_name,surname,family_name,year_level,created_at",
+              "id,first_name,preferred_name,surname,year_level,created_at",
+              "id,first_name,preferred_name,family_name,year_level,created_at",
+              "id,first_name,preferred_name,year_level,created_at",
+              "id,first_name,preferred_name,created_at",
+              "id,first_name,created_at",
+            ],
+            { orderedIds: ids },
+          );
 
-        if (linksResp.error && !isMissingRelationOrColumn(linksResp.error)) {
-          throw linksResp.error;
-        }
-
-        const links = ((linksResp.data ?? []) as Array<{
-          student_id: string;
-          relationship_label?: string | null;
-        }>).filter(Boolean);
-
-        if (links.length) {
-          const ids = links.map((x) => x.student_id).filter(Boolean);
-          const tries = [
-            "id,first_name,preferred_name,surname,family_name,year_level",
-            "id,first_name,preferred_name,surname,year_level",
-            "id,first_name,preferred_name,family_name,year_level",
-            "id,first_name,preferred_name,year_level",
-            "id,first_name,preferred_name",
-            "id,first_name",
-          ];
-
-          let students: ChildRow[] = [];
-
-          for (const sel of tries) {
-            const r = await supabase.from("students").select(sel).in("id", ids);
-            if (!r.error) {
-              students = ((r.data ?? []) as unknown) as ChildRow[];
-              break;
-            }
-            if (!isMissingColumnError(r.error)) throw r.error;
-          }
-
-          merged = ids
-            .map((id) => {
-              const student = students.find((s) => s.id === id);
-              const link = links.find((l) => l.student_id === id);
-              if (!student) return null;
-              return {
-                ...student,
-                relationship_label: link?.relationship_label ?? null,
-                source: "db" as const,
-              } as ChildRow;
-            })
-            .filter(Boolean) as ChildRow[];
+          merged = students.map((student) => ({
+            ...student,
+            source: "db" as const,
+          }));
         }
       }
 

@@ -4,12 +4,16 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import FlowStep from "@/app/components/FlowStep";
-import { supabase } from "@/lib/supabaseClient";
+import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import UpgradeHint from "@/app/components/UpgradeHint";
 import useIsMobile from "@/app/components/useIsMobile";
+import {
+  loadFamilyStudentsWithVariants,
+  loadLinkedFamilyStudentIds,
+} from "@/lib/familyLearners";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
 import { useAssessmentInsights } from "@/app/components/ReportSignalsPanel";
 import {
@@ -277,11 +281,6 @@ function evidenceThumb(e: EvidenceRow) {
   return safe(e.photo_url || e.image_url);
 }
 
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("relation") || msg.includes("column"));
-}
-
 function getReadinessBand(evidenceCount: number, areaCount: number, recentCount: number): ReadinessBand {
   if (evidenceCount >= 4 && areaCount >= 2 && recentCount >= 1) return "Ready to report";
   if (evidenceCount >= 2) return "Building";
@@ -493,37 +492,6 @@ function buildSeedStudents(): StudentRow[] {
   }));
 }
 
-async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
-  const authResp = await supabase.auth.getUser();
-  const userId = authResp.data.user?.id;
-
-  if (!userId) return null;
-
-  const linksResp = await supabase
-    .from("parent_student_links")
-    .select("student_id,sort_order,created_at")
-    .eq("parent_user_id", userId)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
-  if (linksResp.error) {
-    if (!isMissingRelationOrColumn(linksResp.error)) throw linksResp.error;
-    return null;
-  }
-
-  const orderedIds: string[] = [];
-  const seen = new Set<string>();
-
-  ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
-    const id = safe(row.student_id);
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    orderedIds.push(id);
-  });
-
-  return orderedIds;
-}
-
 /* ──────────────────────────────────────────────────────────────
    STYLES
    ────────────────────────────────────────────────────────────── */
@@ -672,41 +640,15 @@ function PortfolioPageContent() {
         const linkedStudentIds = await loadLinkedFamilyStudentIds();
         const hasScopedFamily = Array.isArray(linkedStudentIds);
 
-        const studentQueries = [
-          supabase
-            .from("students")
-            .select("id,preferred_name,first_name,surname,family_name,last_name,year_level,created_at")
-            .order("created_at", { ascending: true }),
-          supabase
-            .from("students")
-            .select("id,preferred_name,first_name,surname,family_name,year_level,created_at")
-            .order("created_at", { ascending: true }),
-          supabase
-            .from("students")
-            .select("id,preferred_name,first_name,surname,year_level,created_at")
-            .order("created_at", { ascending: true }),
-          supabase
-            .from("students")
-            .select("id,preferred_name,first_name,year_level,created_at")
-            .order("created_at", { ascending: true }),
-        ];
-
-        let loadedStudents: StudentRow[] = [];
-        for (const q of studentQueries) {
-          const r = await q;
-          if (!r.error) {
-            loadedStudents = (r.data as StudentRow[]) ?? [];
-            break;
-          }
-          if (!isMissingRelationOrColumn(r.error)) throw r.error;
-        }
-
-        if (hasScopedFamily) {
-          const scopedIds = linkedStudentIds ?? [];
-          loadedStudents = scopedIds
-            .map((id) => loadedStudents.find((student) => safe(student.id) === id) || null)
-            .filter((student): student is StudentRow => student !== null);
-        }
+        const loadedStudents = await loadFamilyStudentsWithVariants<StudentRow>(
+          [
+            "id,preferred_name,first_name,surname,family_name,last_name,year_level,created_at",
+            "id,preferred_name,first_name,surname,family_name,year_level,created_at",
+            "id,preferred_name,first_name,surname,year_level,created_at",
+            "id,preferred_name,first_name,year_level,created_at",
+          ],
+          { orderedIds: linkedStudentIds },
+        );
 
         const seedStudents = buildSeedStudents();
         const mergedStudents = hasScopedFamily
@@ -715,53 +657,15 @@ function PortfolioPageContent() {
           ? loadedStudents
           : seedStudents;
 
-        const evidenceQueries = [
-          supabase
-            .from("evidence_entries")
-            .select(
-              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url,curriculum_country,curriculum_framework,curriculum_year,curriculum_subject,curriculum_strand,curriculum_skill"
-            )
-            .eq("is_deleted", false)
-            .order("occurred_on", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("evidence_entries")
-            .select(
-              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url"
-            )
-            .eq("is_deleted", false)
-            .order("occurred_on", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("evidence_entries")
-            .select(
-              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted"
-            )
-            .eq("is_deleted", false)
-            .order("occurred_on", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("evidence_entries")
-            .select("id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted")
-            .eq("is_deleted", false)
-            .order("occurred_on", { ascending: false, nullsFirst: false })
-            .order("created_at", { ascending: false }),
-        ];
-
-        let loadedEvidence: EvidenceRow[] = [];
-        for (const q of evidenceQueries) {
-          const r = await q;
-          if (!r.error) {
-            loadedEvidence = ((r.data as EvidenceRow[]) ?? []).filter((x) => x.is_deleted !== true);
-            break;
-          }
-          if (!isMissingRelationOrColumn(r.error)) throw r.error;
-        }
-
-        if (hasScopedFamily) {
-          const allowedIds = new Set(linkedStudentIds ?? []);
-          loadedEvidence = loadedEvidence.filter((item) => allowedIds.has(safe(item.student_id)));
-        }
+        const loadedEvidence = await loadEvidenceEntriesWithVariants<EvidenceRow>(
+          [
+            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url,curriculum_country,curriculum_framework,curriculum_year,curriculum_subject,curriculum_strand,curriculum_skill",
+            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
+            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted",
+            "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
+          ],
+          { studentIds: linkedStudentIds },
+        );
 
         setStudents(mergedStudents);
         setAllEvidence(loadedEvidence);

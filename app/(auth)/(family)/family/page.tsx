@@ -8,6 +8,7 @@ import {
   resolveEffectiveActiveLearnerId,
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
+import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import {
   type FamilySettings,
 } from "@/lib/familySettings";
@@ -216,12 +217,10 @@ export default function FamilyHomePage() {
 
         const [evidenceRes, reportRes] = await withTimeout(
           Promise.all([
-            supabase
-              .from("evidence_entries")
-              .select("id,student_id,created_at")
-              .in("student_id", learnerIds)
-              .order("created_at", { ascending: false })
-              .limit(24),
+            loadEvidenceEntriesWithVariants<EvidenceRow>(
+              ["id,student_id,created_at,is_deleted"],
+              { studentIds: learnerIds, limit: 24 },
+            ),
             supabase
               .from("report_drafts")
               .select("id,updated_at")
@@ -234,7 +233,7 @@ export default function FamilyHomePage() {
 
         if (!mounted) return;
 
-        setCaptureRows((evidenceRes.data ?? []) as EvidenceRow[]);
+        setCaptureRows(evidenceRes);
         setReportRows((reportRes.data ?? []) as ReportRow[]);
       } catch (err) {
         console.error("Family workspace load failed", err);

@@ -3,8 +3,12 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
+import {
+  loadFamilyStudentsWithVariants,
+  loadLinkedFamilyStudentIds,
+} from "@/lib/familyLearners";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   marketLabel,
@@ -152,14 +156,6 @@ function studentName(student?: StudentRow | null) {
 
 function firstNameOf(student?: StudentRow | null) {
   return safe(student?.preferred_name || student?.first_name) || "your child";
-}
-
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return (
-    msg.includes("does not exist") &&
-    (msg.includes("relation") || msg.includes("column"))
-  );
 }
 
 function guessArea(raw: string | null | undefined) {
@@ -436,56 +432,25 @@ function buildSeedStudents(): StudentRow[] {
   }));
 }
 
-async function loadStudents(): Promise<StudentRow[]> {
-  const variants = [
+async function loadStudents(orderedIds?: string[] | null): Promise<StudentRow[]> {
+  return loadFamilyStudentsWithVariants<StudentRow>([
     "id,class_id,preferred_name,first_name,surname,family_name,last_name,year_level",
     "id,class_id,preferred_name,first_name,surname,last_name,year_level",
     "id,class_id,preferred_name,first_name,last_name,year_level",
-  ];
-
-  let lastErr: any = null;
-
-  for (const select of variants) {
-    const res = await supabase.from("students").select(select);
-    if (!res.error) {
-      return ((res.data || []) as unknown) as StudentRow[];
-    }
-    lastErr = res.error;
-    if (!isMissingRelationOrColumn(res.error)) break;
-  }
-
-  if (lastErr) throw lastErr;
-  return [];
+  ], {
+    orderedIds: orderedIds ?? null,
+    orderByCreatedAt: false,
+  });
 }
 
-async function loadEvidence(): Promise<EvidenceRow[]> {
-  const variants = [
+async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
+  return loadEvidenceEntriesWithVariants<EvidenceRow>([
     "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,audio_url,is_deleted",
     "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,is_deleted",
     "id,student_id,class_id,title,summary,note,learning_area,occurred_on,created_at,is_deleted",
-  ];
-
-  let lastErr: any = null;
-
-  for (const select of variants) {
-    const res = await supabase
-      .from("evidence_entries")
-      .select(select)
-      .order("occurred_on", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
-
-    if (!res.error) {
-      return (((res.data || []) as unknown) as EvidenceRow[]).filter(
-        (x) => !x.is_deleted
-      );
-    }
-
-    lastErr = res.error;
-    if (!isMissingRelationOrColumn(res.error)) break;
-  }
-
-  if (lastErr) throw lastErr;
-  return [];
+  ], {
+    studentIds: studentIds ?? null,
+  });
 }
 
 const pageStyle: React.CSSProperties = {
@@ -687,9 +652,12 @@ function ReportsPageContent() {
         setLoading(true);
         setError("");
 
+        const linkedStudentIds = await loadLinkedFamilyStudentIds();
+        const hasScopedFamily = Array.isArray(linkedStudentIds);
+
         const [dbStudentRows, evidenceRows] = await Promise.all([
-          loadStudents().catch(() => [] as StudentRow[]),
-          loadEvidence(),
+          loadStudents(linkedStudentIds).catch(() => [] as StudentRow[]),
+          loadEvidence(linkedStudentIds),
         ]);
 
         const requestedDraftId = safe(searchParams.get("draftId"));
@@ -701,7 +669,11 @@ function ReportsPageContent() {
         if (!mounted) return;
 
         const seedStudents = buildSeedStudents();
-        const mergedStudents = dbStudentRows.length > 0 ? dbStudentRows : seedStudents;
+        const mergedStudents = hasScopedFamily
+          ? dbStudentRows
+          : dbStudentRows.length > 0
+            ? dbStudentRows
+            : seedStudents;
 
         const activeStoredStudent =
           typeof window !== "undefined"

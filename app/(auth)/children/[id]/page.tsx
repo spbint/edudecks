@@ -4,6 +4,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
+import {
+  loadFamilyStudentsWithVariants,
+  loadLinkedFamilyStudentIds,
+} from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   listSavedDrafts,
@@ -47,16 +52,6 @@ const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
 function safe(v: any) {
   return String(v ?? "").trim();
-}
-
-function isMissingColumnError(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
-}
-
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && (msg.includes("column") || msg.includes("relation"));
 }
 
 function childDisplayName(child: ChildRow | null | undefined) {
@@ -141,47 +136,30 @@ export default function ChildWorkspacePage() {
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
   async function loadChild() {
-    const tries = [
-      "id,first_name,preferred_name,surname,family_name,year_level,created_at,photo_url",
-      "id,first_name,preferred_name,surname,year_level,created_at,photo_url",
-      "id,first_name,preferred_name,family_name,year_level,created_at",
-      "id,first_name,preferred_name,year_level,created_at",
-      "id,first_name,preferred_name,created_at",
-      "id,first_name,created_at",
-    ];
-
-    for (const sel of tries) {
-      const r = await supabase.from("students").select(sel).eq("id", childId).single();
-      if (!r.error) return ((r.data ?? null) as unknown) as ChildRow | null;
-      if (!isMissingColumnError(r.error)) throw r.error;
-    }
-
-    return null;
+    const rows = await loadFamilyStudentsWithVariants<ChildRow>(
+      [
+        "id,first_name,preferred_name,surname,family_name,year_level,created_at,photo_url",
+        "id,first_name,preferred_name,surname,year_level,created_at,photo_url",
+        "id,first_name,preferred_name,family_name,year_level,created_at",
+        "id,first_name,preferred_name,year_level,created_at",
+        "id,first_name,preferred_name,created_at",
+        "id,first_name,created_at",
+      ],
+      { orderedIds: [childId], orderByCreatedAt: false },
+    );
+    return rows[0] ?? null;
   }
 
   async function loadEvidence() {
-    const tries = [
-      "id,student_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,is_deleted",
-      "id,student_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
-      "id,student_id,title,summary,learning_area,occurred_on,created_at,is_deleted",
-      "id,student_id,title,occurred_on,created_at,is_deleted",
-    ];
-
-    for (const sel of tries) {
-      const r = await supabase
-        .from("evidence_entries")
-        .select(sel)
-        .eq("student_id", childId)
-        .order("occurred_on", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (!r.error) {
-        return (((r.data ?? []) as unknown) as EvidenceRow[]).filter((x) => !x.is_deleted);
-      }
-      if (!isMissingColumnError(r.error)) throw r.error;
-    }
-
-    return [];
+    return loadEvidenceEntriesWithVariants<EvidenceRow>(
+      [
+        "id,student_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,is_deleted",
+        "id,student_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
+        "id,student_id,title,summary,learning_area,occurred_on,created_at,is_deleted",
+        "id,student_id,title,occurred_on,created_at,is_deleted",
+      ],
+      { studentId: childId },
+    );
   }
 
   async function loadAll() {
@@ -195,27 +173,15 @@ export default function ChildWorkspacePage() {
         return;
       }
 
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
+      const linkedIds = await loadLinkedFamilyStudentIds();
 
-      if (!userId) {
+      if (!Array.isArray(linkedIds)) {
         setErr("You must be signed in.");
         setBusy(false);
         return;
       }
 
-      const linkResp = await supabase
-        .from("parent_student_links")
-        .select("student_id")
-        .eq("parent_user_id", userId)
-        .eq("student_id", childId)
-        .maybeSingle();
-
-      if (linkResp.error && !isMissingRelationOrColumn(linkResp.error)) {
-        throw linkResp.error;
-      }
-
-      if (!linkResp.data && !linkResp.error) {
+      if (!linkedIds.includes(childId)) {
         setErr("This child is not linked to your household.");
         setBusy(false);
         return;
