@@ -14,6 +14,14 @@ export type FamilyPlannerAction = {
   completed: boolean;
 };
 
+export type FamilyPlannerOutcomeLink = {
+  outcomeId: string;
+  outcomeCode: string;
+  outcomeLabel: string;
+};
+
+export type FamilyPlannerOutcomeLinkMap = Record<string, FamilyPlannerOutcomeLink[]>;
+
 export type FamilyWeeklyPlan = {
   focusTitle: string;
   focusSummary: string;
@@ -45,6 +53,10 @@ type PlannerRow = {
   source?: string | null;
   status?: string | null;
   updated_at?: string | null;
+};
+
+type PlannerRowWithCreatedAt = PlannerRow & {
+  created_at?: string | null;
 };
 
 function safe(value: unknown) {
@@ -148,69 +160,103 @@ export async function saveFamilyWeeklyPlan(input: {
   createdByUserId: string;
   weekKey: string;
   plan: FamilyWeeklyPlan;
-}): Promise<void> {
+}): Promise<FamilyWeeklyPlan> {
   const existing = await supabase
     .from("learning_plan_items")
-    .select("id")
+    .select("id,title,description,source,status,updated_at,created_at")
     .eq("family_profile_id", input.familyProfileId)
     .eq("student_id", input.studentId)
-    .eq("week_key", input.weekKey);
+    .eq("week_key", input.weekKey)
+    .order("created_at", { ascending: true });
 
   if (existing.error) {
     throw existing.error;
   }
 
-  const existingIds = (existing.data ?? [])
-    .map((row) => safe((row as { id?: unknown }).id))
-    .filter(Boolean);
+  const rows = (existing.data ?? []) as PlannerRowWithCreatedAt[];
+  const upsertedActionIds = new Set<string>();
 
-  if (existingIds.length) {
-    const deletion = await supabase
-      .from("learning_plan_items")
-      .delete()
-      .in("id", existingIds);
+  async function upsertSingletonRow(config: {
+    source: string;
+    title: string;
+    description: string;
+    status?: string;
+    present: boolean;
+  }) {
+    const existingRow =
+      rows.find((row) => safe(row.source) === config.source) ?? null;
 
-    if (deletion.error) {
-      throw deletion.error;
+    if (!config.present) {
+      if (!existingRow?.id) return;
+      const deletion = await supabase
+        .from("learning_plan_items")
+        .delete()
+        .eq("id", existingRow.id);
+
+      if (deletion.error) {
+        throw deletion.error;
+      }
+      return;
+    }
+
+    const payload = {
+      family_profile_id: input.familyProfileId,
+      student_id: input.studentId,
+      title: config.title,
+      description: config.description,
+      week_key: input.weekKey,
+      status: config.status ?? "planned",
+      source: config.source,
+      created_by_user_id: input.createdByUserId,
+    };
+
+    if (existingRow?.id) {
+      const updateResponse = await supabase
+        .from("learning_plan_items")
+        .update(payload)
+        .eq("id", existingRow.id);
+
+      if (updateResponse.error) {
+        throw updateResponse.error;
+      }
+      return;
+    }
+
+    const insertResponse = await supabase.from("learning_plan_items").insert(payload);
+    if (insertResponse.error) {
+      throw insertResponse.error;
     }
   }
 
-  const rows: Array<Record<string, unknown>> = [
-    {
-      family_profile_id: input.familyProfileId,
-      student_id: input.studentId,
-      title: input.plan.focusTitle || "Weekly focus",
-      description: input.plan.focusSummary || "",
-      week_key: input.weekKey,
-      status: "planned",
-      source: "planner_focus",
-      created_by_user_id: input.createdByUserId,
-    },
-    {
-      family_profile_id: input.familyProfileId,
-      student_id: input.studentId,
-      title: input.plan.selectedGoal || "Weekly family focus",
-      description: input.plan.encouragement || "",
-      week_key: input.weekKey,
-      status: "planned",
-      source: "planner_goal",
-      created_by_user_id: input.createdByUserId,
-    },
-    ...(input.plan.notes
-      ? [
-          {
-            family_profile_id: input.familyProfileId,
-            student_id: input.studentId,
-            title: "Weekly note",
-            description: input.plan.notes,
-            week_key: input.weekKey,
-            status: "planned",
-            source: "planner_note",
-            created_by_user_id: input.createdByUserId,
-          },
-        ]
-      : []),
-    ...input.plan.actions.map((action) => ({
+  await upsertSingletonRow({
+    source: "planner_focus",
+    title: input.plan.focusTitle || "Weekly focus",
+    description: input.plan.focusSummary || "",
+    present: true,
+  });
+
+  await upsertSingletonRow({
+    source: "planner_goal",
+    title: input.plan.selectedGoal || "Weekly family focus",
+    description: input.plan.encouragement || "",
+    present: true,
+  });
+
+  await upsertSingletonRow({
+    source: "planner_note",
+    title: "Weekly note",
+    description: input.plan.notes,
+    present: Boolean(safe(input.plan.notes)),
+  });
+
+  const existingActionRows = rows.filter((row) =>
+    safe(row.source).startsWith("planner_action:"),
+  );
+
+  for (const action of input.plan.actions) {
+    const existingActionRow =
+      existingActionRows.find((row) => row.id === action.id) ?? null;
+    const payload = {
       family_profile_id: input.familyProfileId,
       student_id: input.studentId,
       title: action.title || "Planner action",
@@ -219,13 +265,164 @@ export async function saveFamilyWeeklyPlan(input: {
       status: action.completed ? "completed" : "planned",
       source: `planner_action:${action.category}`,
       created_by_user_id: input.createdByUserId,
-    })),
-  ];
+    };
 
-  const insertResponse = await supabase.from("learning_plan_items").insert(rows);
-  if (insertResponse.error) {
-    throw insertResponse.error;
+    if (existingActionRow?.id) {
+      const updateResponse = await supabase
+        .from("learning_plan_items")
+        .update(payload)
+        .eq("id", existingActionRow.id)
+        .select("id")
+        .single();
+
+      if (updateResponse.error) {
+        throw updateResponse.error;
+      }
+      upsertedActionIds.add(safe(updateResponse.data?.id) || existingActionRow.id);
+      continue;
+    }
+
+    const insertResponse = await supabase
+      .from("learning_plan_items")
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (insertResponse.error) {
+      throw insertResponse.error;
+    }
+    upsertedActionIds.add(safe(insertResponse.data?.id));
   }
+
+  const actionIdsToDelete = existingActionRows
+    .map((row) => safe(row.id))
+    .filter((id) => id && !upsertedActionIds.has(id));
+
+  if (actionIdsToDelete.length) {
+    const deletion = await supabase
+      .from("learning_plan_items")
+      .delete()
+      .in("id", actionIdsToDelete);
+
+    if (deletion.error) {
+      throw deletion.error;
+    }
+  }
+
+  const refreshed = await loadFamilyWeeklyPlan({
+    familyProfileId: input.familyProfileId,
+    studentId: input.studentId,
+    weekKey: input.weekKey,
+  });
+
+  return (
+    refreshed ?? {
+      focusTitle: input.plan.focusTitle,
+      focusSummary: input.plan.focusSummary,
+      selectedGoal: input.plan.selectedGoal,
+      notes: input.plan.notes,
+      encouragement: input.plan.encouragement,
+      actions: input.plan.actions,
+      updatedAt: input.plan.updatedAt,
+    }
+  );
+}
+
+export async function loadFamilyPlannerOutcomeLinks(input: {
+  learningPlanItemIds: string[];
+}): Promise<FamilyPlannerOutcomeLinkMap> {
+  const ids = Array.from(new Set(input.learningPlanItemIds.map(safe).filter(Boolean)));
+  if (!ids.length) return {};
+
+  const response = await supabase
+    .from("learning_plan_item_outcomes")
+    .select(
+      "learning_plan_item_id,outcome_id,curriculum_outcomes!inner(code,short_label,full_text)",
+    )
+    .in("learning_plan_item_id", ids);
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  const rows = (response.data ?? []) as Array<{
+    learning_plan_item_id?: string | null;
+    outcome_id?: string | null;
+    curriculum_outcomes?:
+      | {
+          code?: string | null;
+          short_label?: string | null;
+          full_text?: string | null;
+        }
+      | Array<{
+          code?: string | null;
+          short_label?: string | null;
+          full_text?: string | null;
+        }>
+      | null;
+  }>;
+
+  const result: FamilyPlannerOutcomeLinkMap = {};
+
+  for (const row of rows) {
+    const planItemId = safe(row.learning_plan_item_id);
+    const outcomeId = safe(row.outcome_id);
+    if (!planItemId || !outcomeId) continue;
+
+    const outcomeRow = Array.isArray(row.curriculum_outcomes)
+      ? row.curriculum_outcomes[0]
+      : row.curriculum_outcomes ?? null;
+
+    const nextLink: FamilyPlannerOutcomeLink = {
+      outcomeId,
+      outcomeCode: safe(outcomeRow?.code),
+      outcomeLabel: safe(outcomeRow?.short_label) || safe(outcomeRow?.full_text) || "Outcome",
+    };
+
+    result[planItemId] = [...(result[planItemId] ?? []), nextLink];
+  }
+
+  return result;
+}
+
+export async function replaceFamilyPlannerItemOutcomeLinks(input: {
+  learningPlanItemId: string;
+  outcomeIds: string[];
+}): Promise<FamilyPlannerOutcomeLink[]> {
+  const learningPlanItemId = safe(input.learningPlanItemId);
+  if (!learningPlanItemId) {
+    throw new Error("A saved planner item is required before curriculum links can be updated.");
+  }
+
+  const outcomeIds = Array.from(new Set(input.outcomeIds.map(safe).filter(Boolean)));
+
+  const deleteResponse = await supabase
+    .from("learning_plan_item_outcomes")
+    .delete()
+    .eq("learning_plan_item_id", learningPlanItemId);
+
+  if (deleteResponse.error) {
+    throw deleteResponse.error;
+  }
+
+  if (outcomeIds.length) {
+    const insertResponse = await supabase.from("learning_plan_item_outcomes").insert(
+      outcomeIds.map((outcomeId) => ({
+        learning_plan_item_id: learningPlanItemId,
+        outcome_id: outcomeId,
+      })),
+    );
+
+    if (insertResponse.error) {
+      throw insertResponse.error;
+    }
+  }
+
+  const linkMap = await loadFamilyPlannerOutcomeLinks({
+    learningPlanItemIds: [learningPlanItemId],
+  });
+
+  return linkMap[learningPlanItemId] ?? [];
 }
 
 export async function loadFamilyCalendarWindow(input: {

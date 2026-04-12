@@ -11,8 +11,15 @@ import {
 } from "@/lib/familyCommandHandoff";
 import {
   loadFamilyWeeklyPlan,
+  loadFamilyPlannerOutcomeLinks,
+  replaceFamilyPlannerItemOutcomeLinks,
   saveFamilyWeeklyPlan,
+  type FamilyPlannerOutcomeLinkMap,
 } from "@/lib/familyPlanner";
+import {
+  loadLinkableOutcomesForStudent,
+  type LearnerCurriculumLinkContext,
+} from "@/lib/familyCurriculum";
 
 type ChildRecord = {
   id: string;
@@ -428,6 +435,14 @@ export default function PlannerPage() {
   const [pageError, setPageError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
+  const [plannerOutcomeLinks, setPlannerOutcomeLinks] =
+    useState<FamilyPlannerOutcomeLinkMap>({});
+  const [curriculumLinkContext, setCurriculumLinkContext] =
+    useState<LearnerCurriculumLinkContext | null>(null);
+  const [activeLinkActionId, setActiveLinkActionId] = useState("");
+  const [linkDraftOutcomeIds, setLinkDraftOutcomeIds] = useState<string[]>([]);
+  const [linkMessage, setLinkMessage] = useState("");
+  const [savingLinkActionId, setSavingLinkActionId] = useState("");
 
   const weekKey = useMemo(() => getWeekKey(), []);
   const todayLabel = useMemo(() => formatDate(), []);
@@ -544,6 +559,10 @@ export default function PlannerPage() {
         );
         setNotes(loadedPlan?.notes || "");
         setActions(resolvedActions);
+        setPlannerOutcomeLinks({});
+        setActiveLinkActionId("");
+        setLinkDraftOutcomeIds([]);
+        setLinkMessage("");
       } catch (error: any) {
         console.error("planner hydrate failed", error);
         if (!mounted) return;
@@ -576,6 +595,87 @@ export default function PlannerPage() {
     workspace.userId,
     workspace.profile.id,
   ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateCurriculumLinkContext() {
+      if (
+        !activeStudentId ||
+        !workspace.userId ||
+        !workspace.profile.id ||
+        workspace.profile.id === "local" ||
+        activeStudentId.startsWith("local-")
+      ) {
+        if (mounted) {
+          setCurriculumLinkContext(null);
+        }
+        return;
+      }
+
+      try {
+        const nextContext = await loadLinkableOutcomesForStudent({
+          studentId: activeStudentId,
+          familyPreferences: workspace.profile.curriculum_preferences,
+        });
+        if (!mounted) return;
+        setCurriculumLinkContext(nextContext);
+      } catch (error) {
+        console.error("planner curriculum context hydrate failed", error);
+        if (!mounted) return;
+        setCurriculumLinkContext(null);
+      }
+    }
+
+    void hydrateCurriculumLinkContext();
+    return () => {
+      mounted = false;
+    };
+  }, [
+    activeStudentId,
+    workspace.profile.curriculum_preferences,
+    workspace.profile.id,
+    workspace.userId,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydratePlannerOutcomeLinks() {
+      const persistedActionIds = actions
+        .map((action) => safe(action.id))
+        .filter((id) => id && !id.startsWith("action_"));
+
+      if (
+        !workspace.userId ||
+        !workspace.profile.id ||
+        workspace.profile.id === "local" ||
+        !persistedActionIds.length
+      ) {
+        if (mounted) {
+          setPlannerOutcomeLinks({});
+        }
+        return;
+      }
+
+      try {
+        const nextLinks = await loadFamilyPlannerOutcomeLinks({
+          learningPlanItemIds: persistedActionIds,
+        });
+        if (!mounted) return;
+        setPlannerOutcomeLinks(nextLinks);
+      } catch (error) {
+        console.error("planner outcome links hydrate failed", error);
+        if (!mounted) return;
+        setPlannerOutcomeLinks({});
+      }
+    }
+
+    void hydratePlannerOutcomeLinks();
+    return () => {
+      mounted = false;
+    };
+  }, [actions, workspace.profile.id, workspace.userId]);
 
   const activeChild = useMemo(() => {
     return children.find((child) => child.id === activeStudentId) || null;
@@ -642,6 +742,16 @@ export default function PlannerPage() {
 
   function removeAction(actionId: string) {
     setActions((current) => current.filter((action) => action.id !== actionId));
+    setPlannerOutcomeLinks((current) => {
+      const next = { ...current };
+      delete next[actionId];
+      return next;
+    });
+    if (activeLinkActionId === actionId) {
+      setActiveLinkActionId("");
+      setLinkDraftOutcomeIds([]);
+      setLinkMessage("");
+    }
   }
 
   async function handleSaveNow() {
@@ -673,7 +783,7 @@ export default function PlannerPage() {
           );
         }
 
-        await saveFamilyWeeklyPlan({
+        const savedPlan = await saveFamilyWeeklyPlan({
           familyProfileId: workspace.profile.id,
           studentId: activeStudentId,
           createdByUserId: workspace.userId,
@@ -688,8 +798,23 @@ export default function PlannerPage() {
             updatedAt: payload.updatedAt,
           },
         });
+        setFocusTitle(savedPlan.focusTitle);
+        setFocusSummary(savedPlan.focusSummary);
+        setSelectedGoal(savedPlan.selectedGoal);
+        setNotes(savedPlan.notes);
+        setEncouragement(savedPlan.encouragement);
+        setActions(savedPlan.actions);
         const existing = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
-        existing[`${activeStudentId}:${weekKey}`] = payload;
+        existing[`${activeStudentId}:${weekKey}`] = {
+          ...payload,
+          actions: savedPlan.actions,
+          focusTitle: savedPlan.focusTitle,
+          focusSummary: savedPlan.focusSummary,
+          selectedGoal: savedPlan.selectedGoal,
+          notes: savedPlan.notes,
+          encouragement: savedPlan.encouragement,
+          updatedAt: savedPlan.updatedAt,
+        };
         writeJson(STORAGE_KEYS.PLAN, existing);
         setSaveMessage("Planner saved to the family workspace.");
       } else {
@@ -706,6 +831,65 @@ export default function PlannerPage() {
         String(error?.message ?? "We could not save this planner right now."),
       );
       window.setTimeout(() => setSaveMessage(""), 2600);
+    }
+  }
+
+  function openCurriculumLinker(actionId: string) {
+    setActiveLinkActionId(actionId);
+    setLinkDraftOutcomeIds(
+      (plannerOutcomeLinks[actionId] ?? []).map((link) => link.outcomeId),
+    );
+    setLinkMessage("");
+  }
+
+  async function handleSaveActionLinks(actionId: string) {
+    if (!workspace.userId || !workspace.profile.id || workspace.profile.id === "local") {
+      setLinkMessage(
+        "Family workspace is not ready for curriculum links yet. Save the planner in the live family workspace first.",
+      );
+      return;
+    }
+
+    if (actionId.startsWith("action_")) {
+      setLinkMessage("Save the planner before linking this action to curriculum.");
+      return;
+    }
+
+    if (!curriculumLinkContext?.framework || !curriculumLinkContext?.level) {
+      setLinkMessage("Set the family curriculum in Settings before linking planner items.");
+      return;
+    }
+
+    if (curriculumLinkContext.outcomes.length === 0) {
+      setLinkMessage(
+        "No canonical outcomes are seeded yet for this learner's framework and level.",
+      );
+      return;
+    }
+
+    try {
+      setSavingLinkActionId(actionId);
+      setLinkMessage("");
+      const links = await replaceFamilyPlannerItemOutcomeLinks({
+        learningPlanItemId: actionId,
+        outcomeIds: linkDraftOutcomeIds,
+      });
+      setPlannerOutcomeLinks((current) => ({
+        ...current,
+        [actionId]: links,
+      }));
+      setLinkMessage(
+        links.length
+          ? `Linked ${links.length} curriculum outcome${links.length === 1 ? "" : "s"} to this planner action.`
+          : "Removed curriculum links from this planner action.",
+      );
+    } catch (error: any) {
+      console.error("planner curriculum link save failed", error);
+      setLinkMessage(
+        String(error?.message ?? "We could not save planner curriculum links right now."),
+      );
+    } finally {
+      setSavingLinkActionId("");
     }
   }
 
@@ -734,6 +918,8 @@ export default function PlannerPage() {
 
   const heroStudentName = getChildDisplayName(activeChild);
   const plannerStepTaken = actions.some((action) => action.completed) || Boolean(saveMessage) || Boolean(syncMessage);
+  const curriculumReady =
+    !!curriculumLinkContext?.framework && !!curriculumLinkContext?.level;
 
   return (
     <main style={styles.page}>
@@ -940,6 +1126,110 @@ export default function PlannerPage() {
                           opacity: action.completed ? 0.7 : 1,
                         }}
                       />
+
+                      <div style={styles.linkSummaryRow}>
+                        <div style={styles.linkSummaryText}>
+                          {!activeStudentId
+                            ? "Choose a learner before linking planner items."
+                            : action.id.startsWith("action_")
+                              ? "Save planner before linking this action to curriculum."
+                              : !curriculumReady
+                                ? "Set the family curriculum in Settings before linking this action."
+                                : curriculumLinkContext.outcomes.length === 0
+                                  ? "No canonical outcomes are seeded yet for this learner's framework and level."
+                                  : plannerOutcomeLinks[action.id]?.length
+                                    ? `${plannerOutcomeLinks[action.id]?.length ?? 0} curriculum outcome${plannerOutcomeLinks[action.id]?.length === 1 ? "" : "s"} linked`
+                                    : "No curriculum outcomes linked yet"}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openCurriculumLinker(action.id)}
+                          style={styles.secondaryButton}
+                        >
+                          Link to curriculum
+                        </button>
+                      </div>
+
+                      {activeLinkActionId === action.id ? (
+                        <div style={styles.linkPanel}>
+                          <div style={styles.focusLabel}>Curriculum links</div>
+                          {!activeStudentId ? (
+                            <div style={styles.linkPanelText}>
+                              Choose a learner first.
+                            </div>
+                          ) : !curriculumReady ? (
+                            <div style={styles.linkPanelText}>
+                              Set the family curriculum in{" "}
+                              <Link href="/settings#curriculum">Settings</Link> before linking this planner action.
+                            </div>
+                          ) : curriculumLinkContext.outcomes.length === 0 ? (
+                            <div style={styles.linkPanelText}>
+                              No canonical outcomes are seeded yet for this learner's framework and level.
+                            </div>
+                          ) : action.id.startsWith("action_") ? (
+                            <div style={styles.linkPanelText}>
+                              Save the planner first so this action has a canonical planner item ID.
+                            </div>
+                          ) : (
+                            <>
+                              <div style={styles.linkPanelText}>
+                                {curriculumLinkContext.framework?.name} · {curriculumLinkContext.level?.level_label}
+                              </div>
+                              <select
+                                multiple
+                                value={linkDraftOutcomeIds}
+                                onChange={(event) =>
+                                  setLinkDraftOutcomeIds(
+                                    Array.from(event.target.selectedOptions).map(
+                                      (option) => option.value,
+                                    ),
+                                  )
+                                }
+                                style={styles.multiSelect}
+                              >
+                                {curriculumLinkContext.outcomes.map((outcome) => (
+                                  <option key={outcome.id} value={outcome.id}>
+                                    {outcome.learningAreaName} · {outcome.strandName} · {outcome.code || "Outcome"} · {outcome.shortLabel || outcome.fullText}
+                                  </option>
+                                ))}
+                              </select>
+                              {plannerOutcomeLinks[action.id]?.length ? (
+                                <div style={styles.linkChipRow}>
+                                  {plannerOutcomeLinks[action.id].map((link) => (
+                                    <span key={link.outcomeId} style={styles.linkChip}>
+                                      {link.outcomeCode || "Outcome"}: {link.outcomeLabel}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
+                              <div style={styles.linkActionRow}>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleSaveActionLinks(action.id)}
+                                  style={styles.primaryButton}
+                                  disabled={savingLinkActionId === action.id}
+                                >
+                                  {savingLinkActionId === action.id ? "Saving links..." : "Save links"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveLinkActionId("");
+                                    setLinkDraftOutcomeIds([]);
+                                    setLinkMessage("");
+                                  }}
+                                  style={styles.secondaryButton}
+                                >
+                                  Close
+                                </button>
+                              </div>
+                            </>
+                          )}
+                          {activeLinkActionId === action.id && linkMessage ? (
+                            <div style={styles.linkMessage}>{linkMessage}</div>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </div>
                   ))
                 )}
@@ -1437,6 +1727,71 @@ const styles: Record<string, React.CSSProperties> = {
   syncMessage: {
     fontSize: 14,
     color: "#1d4ed8",
+    fontWeight: 700,
+  },
+  linkSummaryRow: {
+    marginTop: 12,
+    display: "flex",
+    gap: 12,
+    justifyContent: "space-between",
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
+  linkSummaryText: {
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: "#64748b",
+    fontWeight: 600,
+  },
+  linkPanel: {
+    marginTop: 14,
+    background: "#f8fbff",
+    border: "1px solid #dbeafe",
+    borderRadius: 16,
+    padding: 14,
+    display: "grid",
+    gap: 10,
+  },
+  linkPanelText: {
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "#475569",
+  },
+  multiSelect: {
+    width: "100%",
+    minHeight: 150,
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
+    padding: "10px 12px",
+    fontSize: 13,
+    color: "#0f172a",
+    background: "#ffffff",
+  },
+  linkChipRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  linkChip: {
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: 999,
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    color: "#1d4ed8",
+    padding: "6px 10px",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  linkActionRow: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  linkMessage: {
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: "#0f766e",
     fontWeight: 700,
   },
   sideEyebrow: {
