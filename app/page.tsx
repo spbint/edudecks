@@ -245,24 +245,24 @@ export default function HomePage() {
   return (
     <PublicSiteShell
       title="EduDecks"
-      eyebrow="One calm learning operating system"
-      heroTitle="Know what to do next, whether you are teaching one child or leading a whole school."
-      heroText="EduDecks is a calm, evidence-led system for families, teachers, and school leaders who want clarity on what matters most next."
-      heroMicrocopy="Choose your path to see how EduDecks works for your learning context."
-      heroBadges={["Families / Homeschool", "Teachers", "School leaders"]}
+      eyebrow="Homeschool-first learning workflow"
+      heroTitle="A calmer way for families to capture learning, plan clearly, and report with confidence."
+      heroText="EduDecks is now focused on the family and homeschool workflow first: one connected place for learning moments, portfolios, planning, and reporting."
+      heroMicrocopy="Built for families now, with preserved room for broader school layers later."
+      heroBadges={["Families / Homeschool", "Capture", "Portfolio", "Reporting"]}
       asideTitle="What EduDecks helps you do"
-      asideText="Capture what matters, understand where attention is needed, and move forward with a clearer next step across home learning, classrooms, and schools."
+      asideText="Capture what matters, understand where attention is needed, and move forward with a clearer next step across family learning."
       asideItems={[
         "Capture evidence without turning learning into admin",
         "See the next best move with calmer guidance",
-        "Carry context from one role or page into the next",
+        "Build a connected family record over time",
         "Build confidence for reflection, reporting, and support",
       ]}
-      primaryCta={{ label: "For Families / Homeschool", href: "/#families" }}
-      secondaryCta={{ label: "For Schools / Teachers", href: "/#schools" }}
+      primaryCta={{ label: "Start as a family", href: "/start" }}
+      secondaryCta={{ label: "See how it works", href: "/get-started" }}
       headerAction={{ label: "Sign in", href: "/login" }}
       footerPrimaryCta={{ label: "Start as a family", href: "/start" }}
-      footerSecondaryCta={{ label: "Bring EduDecks to your school", href: "/contact" }}
+      footerSecondaryCta={{ label: "Contact", href: "/contact" }}
       showWorkflowStrip={false}
     >
       <section
@@ -357,9 +357,9 @@ export default function HomePage() {
         >
           <div>
             {sectionTitle(
-              "Schools / Teachers",
-              "Built for classrooms and schools",
-              "From learner follow-up to class triage and leadership visibility, EduDecks helps schools focus attention where it matters most without the dashboard overload."
+              "Future school layer",
+              "Preserved for future school and classroom expansion",
+              "The earlier teacher, leadership, and school workflows are being kept in reserve for later. The live product is currently focused on families and homeschool learning."
             )}
             {blockGrid(schoolBlocks)}
             <div
@@ -378,7 +378,7 @@ export default function HomePage() {
                   width: isMobile ? "100%" : undefined,
                 }}
               >
-                Explore the school view
+                Ask about future school access
               </Link>
               <div
                 style={{
@@ -389,15 +389,15 @@ export default function HomePage() {
                   maxWidth: isMobile ? "100%" : 320,
                 }}
               >
-                A good next step for school teams exploring a calmer rollout.
+                Useful if you want to discuss the dormant school layer or future B2B plans.
               </div>
             </div>
           </div>
           <div>
             {proofPanel(
-              "School proof",
-              "One connected operating layer across teaching and leadership",
-              "EduDecks is built to keep learner follow-up, class attention, and school visibility connected rather than split across separate tools.",
+              "Future-facing",
+              "The school layer is preserved, but it is not the live product centre",
+              "Teacher and leadership ideas remain in the repo for later reactivation, while current product energy is centered on the family workflow.",
               schoolProof,
               "schools"
             )}
@@ -413,9 +413,9 @@ export default function HomePage() {
         }}
       >
         {sectionTitle(
-          "The platform story",
-          "One system. Different lenses.",
-          "EduDecks works across the levels that matter."
+          "Built to grow",
+          "Start with the family core, then expand carefully later.",
+          "The current live product is family-first. Broader classroom and school layers remain preserved for later rather than positioned as active first-class experiences."
         )}
         <div
           style={{
@@ -529,8 +529,7 @@ export default function HomePage() {
             maxWidth: 760,
           }}
         >
-          EduDecks keeps one product identity across home learning, classrooms, and schools while
-          giving each role the right lens on what needs attention next.
+          EduDecks is being shaped around one calm family learning core now, with preserved room to expand carefully later if broader school layers are reactivated.
         </div>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
@@ -555,7 +554,7 @@ export default function HomePage() {
               width: isMobile ? "100%" : undefined,
             }}
           >
-            Bring EduDecks to your school
+            Contact EduDecks
           </Link>
         </div>
       </section>

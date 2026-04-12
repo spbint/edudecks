@@ -1,5 +1,6 @@
 "use client";
 
+// Dormant B2B component: preserved for older school-facing flows, not for the live family-first product.
 export default function TopNav(props: {
   productName: string;
   orgName: string;

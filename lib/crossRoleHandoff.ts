@@ -1,5 +1,6 @@
 "use client";
 
+// Dormant B2B library: preserved for cross-role school workflows, not for the live family-first product core.
 export const CROSS_ROLE_HANDOFF_QUERY_PARAM = "roleIntent";
 
 const CROSS_ROLE_HANDOFF_KEY = "edudecks_cross_role_handoff_v1";

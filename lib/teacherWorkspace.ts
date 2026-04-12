@@ -1,3 +1,4 @@
+// Dormant B2B library: preserved for teacher workflows, not for the live family-first product core.
 import { supabase } from "@/lib/supabaseClient";
 import type {
   ClassAnalytics,

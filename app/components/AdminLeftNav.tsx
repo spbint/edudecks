@@ -1,5 +1,6 @@
 "use client";
 
+// Dormant B2B component: preserved for admin/school workflows, not for the live family-first product.
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

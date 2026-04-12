@@ -31,7 +31,6 @@ type PublicSiteShellProps = {
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
   { href: "/#families", label: "Families" },
-  { href: "/#schools", label: "Schools" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -173,7 +172,7 @@ export default function PublicSiteShell({
   footerPrimaryCta = primaryCta,
   footerSecondaryCta = { label: "Contact", href: "/contact" },
   asideTitle = "Why families feel calmer",
-  asideText = "EduDecks gives families, teachers, and school leaders one calmer way to capture evidence, guide attention, and stay clear on what matters next.",
+  asideText = "EduDecks gives families one calmer way to capture evidence, guide attention, and stay clear on what matters next.",
   showWorkflowStrip = true,
   children,
 }: PublicSiteShellProps) {

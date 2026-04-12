@@ -1,3 +1,4 @@
+// Dormant B2B library: preserved for leadership workflows, not for the live family-first product core.
 import { supabase } from "@/lib/supabaseClient";
 
 export type LeadershipTrendPoint = { period_start: string; value: number };

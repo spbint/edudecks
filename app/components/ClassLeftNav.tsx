@@ -1,5 +1,6 @@
 "use client";
 
+// Dormant B2B component: preserved for class/leadership workflows, not for the live family-first product.
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

@@ -1,5 +1,6 @@
 "use client";
 
+// Dormant B2B component: preserved for teacher workflows, not for the live family-first product.
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { loadClassAnalytics } from "@/lib/analytics/class";
