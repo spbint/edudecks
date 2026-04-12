@@ -734,6 +734,12 @@ export async function upsertFamilyProfile(
   }
 
   const payload = toFamilyProfilePayload(settings, userId);
+  const startedAt = Date.now();
+
+  console.info("upsertFamilyProfile incoming payload", {
+    userId,
+    payload,
+  });
 
   const saveVariants: Array<{
     label: string;
@@ -764,6 +770,7 @@ export async function upsertFamilyProfile(
       onConflict: variant.onConflict,
     });
 
+    const dbCallStartedAt = Date.now();
     const { data, error } = await supabase
       .from("family_profiles")
       .upsert(variant.payload, { onConflict: variant.onConflict })
@@ -773,6 +780,8 @@ export async function upsertFamilyProfile(
     if (!error && data) {
       console.info("upsertFamilyProfile success", {
         label: variant.label,
+        durationMs: Date.now() - dbCallStartedAt,
+        totalDurationMs: Date.now() - startedAt,
         data,
       });
 
@@ -788,6 +797,8 @@ export async function upsertFamilyProfile(
     lastError = error;
     console.error("upsertFamilyProfile Supabase error", {
       label: variant.label,
+      durationMs: Date.now() - dbCallStartedAt,
+      totalDurationMs: Date.now() - startedAt,
       payload: variant.payload,
       error,
     });
@@ -797,6 +808,11 @@ export async function upsertFamilyProfile(
     }
   }
 
+  console.error("upsertFamilyProfile final failure", {
+    totalDurationMs: Date.now() - startedAt,
+    userId,
+    lastError,
+  });
   throw new Error(describeSupabaseError(lastError));
 }
 

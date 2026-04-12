@@ -7,7 +7,7 @@ export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
 
 const fallbackSupabaseUrl = "https://placeholder.supabase.co";
 const fallbackSupabaseAnonKey = "placeholder-anon-key";
-const SUPABASE_REQUEST_TIMEOUT_MS = 10000;
+const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
 
 if (!hasSupabaseEnv) {
   console.warn(
