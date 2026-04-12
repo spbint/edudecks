@@ -290,7 +290,7 @@ export default function CurriculumSetupCard({
   }, []);
 
   useEffect(() => {
-    if (!isEditing || !hasLocalEdits) {
+    if (!isEditing && !hasLocalEdits) {
       setDraft(value);
     }
   }, [value, isEditing, hasLocalEdits]);
@@ -477,6 +477,8 @@ export default function CurriculumSetupCard({
   }
 
   function handleCountryChange(id: string) {
+    setHasLocalEdits(true);
+
     const country =
       countries.find((item) => String(item.id) === String(id)) ||
       FALLBACK_COUNTRIES.find((item) => String(item.id) === String(id));
@@ -518,6 +520,8 @@ export default function CurriculumSetupCard({
   }
 
   function handleFrameworkChange(id: string) {
+    setHasLocalEdits(true);
+
     const defaultLevelId =
       FALLBACK_LEVELS.find((level) =>
         (level.framework_ids || []).includes(String(id)),
@@ -643,6 +647,7 @@ export default function CurriculumSetupCard({
   function applyRecommendedSetup() {
     if (!recommendedFramework) return;
 
+    setHasLocalEdits(true);
     setDraft((prev) => {
       const nextDraft: CurriculumPreferences = {
         ...prev,
