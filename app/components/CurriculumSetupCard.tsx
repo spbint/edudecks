@@ -220,6 +220,7 @@ export default function CurriculumSetupCard({
 }: CurriculumSetupCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
+  const [hasLocalEdits, setHasLocalEdits] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadMessage, setLoadMessage] = useState("");
@@ -289,8 +290,10 @@ export default function CurriculumSetupCard({
   }, []);
 
   useEffect(() => {
-    setDraft(value);
-  }, [value]);
+    if (!isEditing || !hasLocalEdits) {
+      setDraft(value);
+    }
+  }, [value, isEditing, hasLocalEdits]);
 
   const selectedCountry = countries.find(
     (country) => String(country.id) === String(draft.country_id ?? ""),
@@ -466,6 +469,7 @@ export default function CurriculumSetupCard({
     key: K,
     valueToSet: CurriculumPreferences[K],
   ) {
+    setHasLocalEdits(true);
     setDraft((prev) => ({
       ...prev,
       [key]: valueToSet,
@@ -622,6 +626,7 @@ export default function CurriculumSetupCard({
         last_reviewed_at: new Date().toISOString(),
       },
     });
+    setHasLocalEdits(false);
     setIsEditing(false);
     setStatusMessage("Curriculum setup updated for planning and reporting.");
     window.setTimeout(() => {
@@ -631,6 +636,7 @@ export default function CurriculumSetupCard({
 
   function handleCancel() {
     setDraft(value);
+    setHasLocalEdits(false);
     setIsEditing(false);
   }
 
@@ -679,6 +685,7 @@ export default function CurriculumSetupCard({
               style={cardStyles.primaryButton}
               onClick={() => {
                 setDraft(value);
+                setHasLocalEdits(false);
                 setIsEditing(true);
               }}
             >
@@ -1089,6 +1096,7 @@ export default function CurriculumSetupCard({
                 style={cardStyles.secondaryButton}
                 onClick={() => {
                   setDraft(value);
+                  setHasLocalEdits(false);
                   setIsEditing(true);
                 }}
                 disabled={loading}

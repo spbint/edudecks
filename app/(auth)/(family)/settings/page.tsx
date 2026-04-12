@@ -387,12 +387,46 @@ export default function FamilySettingsPage() {
                 family profile and later report output.
               </div>
 
+              {savedAt && !saveError ? (
+                <div style={shellStyles.successBanner}>
+                  Curriculum and compliance settings saved.
+                </div>
+              ) : null}
+
+              {saveError ? (
+                <div style={shellStyles.warningBanner}>
+                  Curriculum and compliance settings could not be saved to the database.
+                </div>
+              ) : null}
+
               <CurriculumSetupCard
                 value={settings.curriculum_preferences}
                 onChange={(curriculum_preferences) =>
                   update("curriculum_preferences", curriculum_preferences)
                 }
               />
+
+              <div style={shellStyles.previewStack}>
+                <PreviewRow
+                  label="Country"
+                  value={curriculumCountryLabel(settings)}
+                />
+                <PreviewRow
+                  label="State / territory"
+                  value={curriculumStateLabel(settings)}
+                />
+                <PreviewRow
+                  label="Curriculum framework"
+                  value={curriculumFrameworkLabel(settings)}
+                />
+                <PreviewRow
+                  label="Compliance mode"
+                  value={
+                    settings.curriculum_preferences.compliance_profile?.compliance_mode ||
+                    "Not set"
+                  }
+                />
+              </div>
             </section>
 
             <section style={shellStyles.card}>
@@ -752,6 +786,44 @@ export default function FamilySettingsPage() {
   );
 }
 
+function curriculumCountryLabel(settings: FamilySettings) {
+  const profileCountry = settings.curriculum_preferences.compliance_profile?.country;
+  if (profileCountry === "au") return "Australia";
+  if (profileCountry === "uk") return "United Kingdom";
+  if (profileCountry === "us") return "United States";
+
+  const raw = String(settings.curriculum_preferences.country_id ?? "").trim();
+  if (raw === "au") return "Australia";
+  if (raw === "uk") return "United Kingdom";
+  if (raw === "us") return "United States";
+  return raw || "Not set";
+}
+
+function curriculumFrameworkLabel(settings: FamilySettings) {
+  const raw = String(settings.curriculum_preferences.framework_id ?? "").trim();
+  if (!raw) return "Not set";
+  if (/acara|australian/i.test(raw)) return "Australian Curriculum / ACARA";
+  if (/common-core/i.test(raw)) return "Common Core";
+  return raw;
+}
+
+function curriculumStateLabel(settings: FamilySettings) {
+  const state = settings.curriculum_preferences.compliance_profile?.state;
+  if (!state) return "Not set";
+  return (
+    {
+      act: "Australian Capital Territory",
+      nsw: "New South Wales",
+      nt: "Northern Territory",
+      qld: "Queensland",
+      sa: "South Australia",
+      tas: "Tasmania",
+      vic: "Victoria",
+      wa: "Western Australia",
+    }[state] || state
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -922,6 +994,17 @@ const shellStyles: Record<string, React.CSSProperties> = {
     background: "#fff7ed",
     border: "1px solid #fed7aa",
     color: "#9a3412",
+    borderRadius: 14,
+    padding: "10px 12px",
+    fontSize: 13,
+    lineHeight: 1.5,
+    fontWeight: 600,
+  },
+
+  successBanner: {
+    background: "#ecfdf5",
+    border: "1px solid #bbf7d0",
+    color: "#166534",
     borderRadius: 14,
     padding: "10px 12px",
     fontSize: 13,
