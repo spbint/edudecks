@@ -142,6 +142,27 @@ function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+async function withTimeout<T>(
+  promise: PromiseLike<T> | Promise<T>,
+  label: string,
+  ms = 25000
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function isMissingColumnError(error: unknown) {
   const message = String(
     (error as { message?: unknown })?.message ?? "",
@@ -771,11 +792,17 @@ export async function upsertFamilyProfile(
     });
 
     const dbCallStartedAt = Date.now();
-    const { data, error } = await supabase
-      .from("family_profiles")
-      .upsert(variant.payload, { onConflict: variant.onConflict })
-      .select()
-      .single();
+    const { data, error }: {
+      data: Record<string, unknown> | null;
+      error: unknown;
+    } = await withTimeout(
+      supabase
+        .from("family_profiles")
+        .upsert(variant.payload, { onConflict: variant.onConflict })
+        .select()
+        .single(),
+      `upsertFamilyProfile ${variant.label}`,
+    );
 
     if (!error && data) {
       console.info("upsertFamilyProfile success", {

@@ -151,6 +151,27 @@ function stepSummary(step: StepKey, settings: FamilySettings, children: ChildOpt
     .join(" • ") || "No reminders selected";
 }
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 30000,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms.`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default function FamilySettingsPage() {
   const {
     workspace,
@@ -225,17 +246,43 @@ export default function FamilySettingsPage() {
   }
 
   async function handleSave() {
+    const startedAt = Date.now();
+    console.info("settings.handleSave start", {
+      startedAt: new Date(startedAt).toISOString(),
+      settings,
+    });
     setSaving(true);
     setSaveError("");
 
     try {
       persistSettingsToLocalStorage(settings);
-      const saved = await saveFamilyWorkspaceSettings(settings);
+      console.info("settings.handleSave local snapshot stored", {
+        durationMs: Date.now() - startedAt,
+      });
+
+      console.info("settings.handleSave DB request start", {
+        durationMs: Date.now() - startedAt,
+      });
+
+      const saved = await withTimeout(
+        saveFamilyWorkspaceSettings(settings),
+        "settings save",
+      );
+
+      console.info("settings.handleSave DB request success", {
+        durationMs: Date.now() - startedAt,
+        saved,
+      });
+
       const merged: FamilySettings = {
         ...DEFAULT_FAMILY_SETTINGS,
         ...saved,
         default_child_id: saved.default_child_id || settings.default_child_id || children[0]?.id || null,
       };
+
+      console.info("settings.handleSave workspace patch start", {
+        durationMs: Date.now() - startedAt,
+      });
 
       setStorageMode("database");
       setSettings(merged);
@@ -251,8 +298,14 @@ export default function FamilySettingsPage() {
       }
       setHasPendingEdits(false);
       setSavedAt(new Date().toLocaleString());
+      console.info("settings.handleSave workspace patch success", {
+        durationMs: Date.now() - startedAt,
+      });
     } catch (err) {
-      console.error("Settings save failed", err);
+      console.error("settings.handleSave error", {
+        durationMs: Date.now() - startedAt,
+        err,
+      });
       const message =
         err instanceof Error && err.message
           ? err.message
@@ -267,6 +320,9 @@ export default function FamilySettingsPage() {
       setSavedAt("");
       setSaveError(`Database save failed: ${message}`);
     } finally {
+      console.info("settings.handleSave final saving state cleared", {
+        durationMs: Date.now() - startedAt,
+      });
       setSaving(false);
     }
   }
