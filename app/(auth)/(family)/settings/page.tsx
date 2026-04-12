@@ -670,10 +670,18 @@ export default function FamilySettingsPage() {
         <div style={styles.stickyBar}>
           <div style={{ display: "grid", gap: 4 }}>
             <div style={styles.stickyTitle}>
-              {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+              {saveError
+                ? "Family settings could not be saved to the database."
+                : isDirty
+                  ? "You have unsaved family settings changes."
+                  : savedAt
+                    ? "Family settings were saved successfully."
+                    : "Family settings are up to date."}
             </div>
             <div style={styles.stickySub}>
-              {savedAt
+              {saveError
+                ? saveError
+                : savedAt
                 ? `Last saved ${savedAt}`
                 : storageMode === "database"
                   ? "Save to persist these settings into the family profile."

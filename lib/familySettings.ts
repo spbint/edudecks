@@ -742,6 +742,93 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
   return { ...DEFAULT_FAMILY_PROFILE, id: userId, user_id: userId };
 }
 
+async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow | null> {
+  const selectVariants: Array<{
+    label: string;
+    run: () => Promise<{
+      data: FamilyProfileRow | null;
+      error: unknown;
+    }>;
+    continueOnError?: (error: unknown) => boolean;
+  }> = [
+    {
+      label: "family_profiles select by user_id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+      continueOnError: (error) => isMissingColumnError(error),
+    },
+    {
+      label: "family_profiles select by id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+    },
+  ];
+
+  for (const variant of selectVariants) {
+    const startedAt = Date.now();
+    console.info("selectFamilyProfileRow start", {
+      label: variant.label,
+      userId,
+    });
+
+    const { data, error } = await withTimeout(
+      variant.run(),
+      variant.label,
+      12000,
+    );
+
+    if (!error && data) {
+      console.info("selectFamilyProfileRow success", {
+        label: variant.label,
+        durationMs: Date.now() - startedAt,
+        data,
+      });
+      return {
+        ...DEFAULT_FAMILY_PROFILE,
+        ...data,
+        id: safeString(data.id) || userId,
+        user_id: safeString(data.user_id) || userId,
+      };
+    }
+
+    if (error) {
+      console.error("selectFamilyProfileRow error", {
+        label: variant.label,
+        durationMs: Date.now() - startedAt,
+        error,
+      });
+
+      if (variant.continueOnError?.(error)) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return null;
+}
+
 export async function upsertFamilyProfile(
   settings: FamilySettings
 ): Promise<FamilyProfileRow> {
@@ -792,45 +879,67 @@ export async function upsertFamilyProfile(
     });
 
     const dbCallStartedAt = Date.now();
-    const { data, error }: {
-      data: Record<string, unknown> | null;
+    const writeResponse: {
+      data: Record<string, unknown>[] | null;
       error: unknown;
     } = await withTimeout(
       supabase
         .from("family_profiles")
-        .upsert(variant.payload, { onConflict: variant.onConflict })
-        .select()
-        .single(),
-      `upsertFamilyProfile ${variant.label}`,
+        .upsert(variant.payload, { onConflict: variant.onConflict }),
+      `upsertFamilyProfile write ${variant.label}`,
     );
 
-    if (!error && data) {
-      console.info("upsertFamilyProfile success", {
+    if (!writeResponse.error) {
+      console.info("upsertFamilyProfile write success", {
         label: variant.label,
         durationMs: Date.now() - dbCallStartedAt,
         totalDurationMs: Date.now() - startedAt,
-        data,
+        response: writeResponse.data,
       });
+
+      const selectStartedAt = Date.now();
+      console.info("upsertFamilyProfile post-write select start", {
+        label: variant.label,
+        totalDurationMs: Date.now() - startedAt,
+      });
+
+      try {
+        const selected = await selectFamilyProfileRow(userId);
+        if (selected) {
+          console.info("upsertFamilyProfile post-write select success", {
+            label: variant.label,
+            durationMs: Date.now() - selectStartedAt,
+            totalDurationMs: Date.now() - startedAt,
+          });
+          return selected;
+        }
+      } catch (selectError) {
+        console.error("upsertFamilyProfile post-write select failed", {
+          label: variant.label,
+          durationMs: Date.now() - selectStartedAt,
+          totalDurationMs: Date.now() - startedAt,
+          error: selectError,
+        });
+      }
 
       return {
         ...DEFAULT_FAMILY_PROFILE,
-        ...data,
-        id: safeString((data as Record<string, unknown>).id) || userId,
-        user_id:
-          safeString((data as Record<string, unknown>).user_id) || userId,
+        ...payload,
+        id: userId,
+        user_id: userId,
       };
     }
 
-    lastError = error;
+    lastError = writeResponse.error;
     console.error("upsertFamilyProfile Supabase error", {
       label: variant.label,
       durationMs: Date.now() - dbCallStartedAt,
       totalDurationMs: Date.now() - startedAt,
       payload: variant.payload,
-      error,
+      error: writeResponse.error,
     });
 
-    if (variant.continueOnError?.(error)) {
+    if (variant.continueOnError?.(writeResponse.error)) {
       continue;
     }
   }
