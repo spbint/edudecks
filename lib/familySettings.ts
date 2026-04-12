@@ -28,6 +28,18 @@ export type CurriculumPreferences = {
   framework_id: string | null;
   level_id: string | null;
   subject_ids: string[];
+  compliance_profile?: {
+    country: string | null;
+    state: string | null;
+    curriculum_framework: string | null;
+    compliance_mode: string | null;
+    template_version: string | null;
+    required_fields: string[];
+    recommended_fields: string[];
+    optional_fields: string[];
+    custom_labels: Record<string, string>;
+    last_reviewed_at: string | null;
+  };
 };
 
 export type FamilySettings = {
@@ -87,6 +99,18 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
     framework_id: null,
     level_id: null,
     subject_ids: [],
+    compliance_profile: {
+      country: null,
+      state: null,
+      curriculum_framework: null,
+      compliance_mode: null,
+      template_version: null,
+      required_fields: [],
+      recommended_fields: [],
+      optional_fields: [],
+      custom_labels: {},
+      last_reviewed_at: null,
+    },
   },
 };
 
@@ -173,6 +197,91 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
     subject_ids: subjectIdsRaw
       .map((item) => safeString(item))
       .filter(Boolean),
+    compliance_profile:
+      row.compliance_profile && typeof row.compliance_profile === "object"
+        ? {
+            country:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>).country,
+              ) || null,
+            state:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>).state,
+              ) || null,
+            curriculum_framework:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>)
+                  .curriculum_framework,
+              ) || null,
+            compliance_mode:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>)
+                  .compliance_mode,
+              ) || null,
+            template_version:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>)
+                  .template_version,
+              ) || null,
+            required_fields: Array.isArray(
+              (row.compliance_profile as Record<string, unknown>).required_fields,
+            )
+              ? (
+                  (row.compliance_profile as Record<string, unknown>)
+                    .required_fields as unknown[]
+                )
+                  .map((item) => safeString(item))
+                  .filter(Boolean)
+              : [],
+            recommended_fields: Array.isArray(
+              (row.compliance_profile as Record<string, unknown>).recommended_fields,
+            )
+              ? (
+                  (row.compliance_profile as Record<string, unknown>)
+                    .recommended_fields as unknown[]
+                )
+                  .map((item) => safeString(item))
+                  .filter(Boolean)
+              : [],
+            optional_fields: Array.isArray(
+              (row.compliance_profile as Record<string, unknown>).optional_fields,
+            )
+              ? (
+                  (row.compliance_profile as Record<string, unknown>)
+                    .optional_fields as unknown[]
+                )
+                  .map((item) => safeString(item))
+                  .filter(Boolean)
+              : [],
+            custom_labels:
+              (row.compliance_profile as Record<string, unknown>).custom_labels &&
+              typeof (row.compliance_profile as Record<string, unknown>).custom_labels ===
+                "object"
+                ? Object.fromEntries(
+                    Object.entries(
+                      (row.compliance_profile as Record<string, unknown>)
+                        .custom_labels as Record<string, unknown>,
+                    ).map(([key, item]) => [key, safeString(item)]),
+                  )
+                : {},
+            last_reviewed_at:
+              safeString(
+                (row.compliance_profile as Record<string, unknown>)
+                  .last_reviewed_at,
+              ) || null,
+          }
+        : {
+            country: null,
+            state: null,
+            curriculum_framework: null,
+            compliance_mode: null,
+            template_version: null,
+            required_fields: [],
+            recommended_fields: [],
+            optional_fields: [],
+            custom_labels: {},
+            last_reviewed_at: null,
+          },
   };
 }
 
