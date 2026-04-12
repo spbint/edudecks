@@ -1,19 +1,18 @@
-﻿"use client";
+"use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import dynamic from "next/dynamic";
+import React, { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
-  ChildOption,
+  type ChildOption,
   DEFAULT_FAMILY_SETTINGS,
-  DefaultChildLanding,
-  EvidencePrivacy,
-  ExperienceMode,
-  FamilySettings,
-  MarketKey,
-  WeekStart,
+  type DefaultChildLanding,
+  type EvidencePrivacy,
+  type ExperienceMode,
+  type FamilySettings,
+  type MarketKey,
+  type WeekStart,
   persistSettingsToLocalStorage,
 } from "@/lib/familySettings";
 import { saveFamilyWorkspaceSettings, setActiveLearnerId } from "@/lib/familyWorkspace";
@@ -23,12 +22,17 @@ const CurriculumSetupCard = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div style={shellStyles.loadingCard}>
-        Loading curriculum and compliance controls...
-      </div>
+      <div style={styles.loadingCard}>Loading curriculum and compliance controls...</div>
     ),
   },
 );
+
+type StepKey =
+  | "curriculum"
+  | "platform"
+  | "child"
+  | "guidance"
+  | "notifications";
 
 function marketLabel(key: MarketKey) {
   if (key === "au") return "Australia";
@@ -66,11 +70,7 @@ function childOptionLabel(child: ChildOption | null | undefined) {
     row.label ||
     row.name ||
     row.title ||
-    [
-      row.preferred_name,
-      row.first_name,
-      row.surname || row.family_name,
-    ]
+    [row.preferred_name, row.first_name, row.surname || row.family_name]
       .filter(Boolean)
       .join(" ")
       .trim() ||
@@ -88,702 +88,7 @@ function childOptionYearLabel(child: ChildOption | null | undefined) {
       year_level: string | number | null;
     }>;
 
-  return (
-    row.yearLabel ||
-    row.year_label ||
-    (row.year_level ? `Year ${row.year_level}` : "")
-  );
-}
-
-export default function FamilySettingsPage() {
-  const {
-    workspace,
-    loading: workspaceLoading,
-    error: workspaceError,
-    setWorkspacePatch,
-    setActiveLearner,
-  } = useFamilyWorkspace();
-  const [settings, setSettings] = useState<FamilySettings>(() => ({
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...workspace.profile,
-    default_child_id:
-      workspace.profile.default_child_id || workspace.learners[0]?.id || null,
-  }));
-  const [initialSettings, setInitialSettings] = useState<FamilySettings>(() => ({
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...workspace.profile,
-    default_child_id:
-      workspace.profile.default_child_id || workspace.learners[0]?.id || null,
-  }));
-  const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<string>("");
-  const [hydrated, setHydrated] = useState(true);
-  const [storageMode, setStorageMode] = useState<"database" | "local">("local");
-  const [loadError, setLoadError] = useState<string>("");
-  const [saveError, setSaveError] = useState<string>("");
-  const [hasPendingEdits, setHasPendingEdits] = useState(false);
-
-  const children = useMemo<ChildOption[]>(
-    () =>
-      workspace.learners.map((learner) => ({
-        id: learner.id,
-        label: learner.label,
-        yearLabel: learner.yearLabel || "",
-        year_level: learner.year_level ?? null,
-        connectedAt: learner.connectedAt ?? null,
-      })),
-    [workspace.learners],
-  );
-
-  useEffect(() => {
-    const nextSettings: FamilySettings = {
-      ...DEFAULT_FAMILY_SETTINGS,
-      ...workspace.profile,
-      default_child_id:
-        workspace.profile.default_child_id || workspace.learners[0]?.id || null,
-    };
-
-    setStorageMode(workspace.storageMode);
-    setLoadError(workspaceError);
-
-    if (!hasPendingEdits) {
-      setSettings(nextSettings);
-      setInitialSettings(nextSettings);
-    }
-
-    setHydrated(true);
-  }, [
-    workspace,
-    workspaceError,
-    hasPendingEdits,
-  ]);
-
-  const isDirty = useMemo(() => {
-    return JSON.stringify(settings) !== JSON.stringify(initialSettings);
-  }, [settings, initialSettings]);
-
-  const preferredAuthorityHref = useMemo(() => {
-    if (settings.preferred_market === "au") return "/authority-au";
-    if (settings.preferred_market === "uk") return "/authority-uk";
-    return "/authority-us";
-  }, [settings.preferred_market]);
-
-  const readinessTone = useMemo(() => {
-    if (settings.show_authority_guidance && settings.experience_mode === "family") {
-      return {
-        label: "Guided family mode",
-        text: "Families will see simpler guidance, calmer explanations, and authority-ready prompts where helpful.",
-        chipBg: "#ecfdf5",
-        chipBorder: "#a7f3d0",
-        chipText: "#166534",
-      };
-    }
-
-    if (settings.experience_mode === "teacher") {
-      return {
-        label: "Teacher detail mode",
-        text: "Pages can surface more working detail while still using the family design language.",
-        chipBg: "#ecfeff",
-        chipBorder: "#a5f3fc",
-        chipText: "#0c4a6e",
-      };
-    }
-
-    return {
-      label: "Leadership overview mode",
-      text: "Settings lean toward summary, oversight, and wider organisational clarity.",
-      chipBg: "#fff7ed",
-      chipBorder: "#fed7aa",
-      chipText: "#9a3412",
-    };
-  }, [settings.show_authority_guidance, settings.experience_mode]);
-
-  function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
-    setHasPendingEdits(true);
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setSaveError("");
-
-    try {
-      persistSettingsToLocalStorage(settings);
-      const saved = await saveFamilyWorkspaceSettings(settings);
-      const merged: FamilySettings = {
-        ...DEFAULT_FAMILY_SETTINGS,
-        ...saved,
-        default_child_id:
-          saved.default_child_id || settings.default_child_id || children[0]?.id || null,
-      };
-
-      setStorageMode("database");
-      setSettings(merged);
-      setInitialSettings(merged);
-      setWorkspacePatch({
-        profile: saved,
-        storageMode: "database",
-        userId: workspace.userId,
-      });
-      persistSettingsToLocalStorage(merged);
-      if (merged.default_child_id) {
-        setActiveLearner(merged.default_child_id);
-      }
-      setHasPendingEdits(false);
-      setSavedAt(new Date().toLocaleString());
-    } catch (err) {
-      console.error("Settings save failed", err);
-      setStorageMode("local");
-      setWorkspacePatch({
-        profile: settings,
-        storageMode: "local",
-        userId: workspace.userId,
-      });
-      if (settings.default_child_id) {
-        setActiveLearnerId(settings.default_child_id);
-      }
-      setInitialSettings(settings);
-      setHasPendingEdits(false);
-      setSaveError(
-        "Settings were saved locally, but the family profile could not be updated in the database."
-      );
-      setSavedAt(new Date().toLocaleString());
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleReset() {
-    const fallback: FamilySettings = {
-      ...DEFAULT_FAMILY_SETTINGS,
-      default_child_id: children[0]?.id || null,
-    };
-    setSettings(fallback);
-    setHasPendingEdits(true);
-  }
-
-  if (!hydrated && workspaceLoading) {
-    return (
-      <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
-        <main style={shellStyles.app}>
-          <div style={shellStyles.wrap}>
-            <div style={shellStyles.loadingCard}>Loading family settings...</div>
-          </div>
-        </main>
-      </FamilyTopNavShell>
-    );
-  }
-
-  return (
-    <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
-      <main style={shellStyles.app}>
-        <div style={shellStyles.wrap}>
-        <section style={shellStyles.hero}>
-          <div style={{ display: "grid", gap: 14 }}>
-            <div style={shellStyles.eyebrow}>Family settings</div>
-            <h1 style={shellStyles.h1}>Family controls and defaults</h1>
-            <p style={shellStyles.heroText}>
-              Set the default experience for your household, choose how children open into the
-              platform, control reporting and planner behaviour, and shape how calm or detailed the
-              system feels from day to day.
-            </p>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              <span
-                style={{
-                  ...shellStyles.chip,
-                  background: readinessTone.chipBg,
-                  borderColor: readinessTone.chipBorder,
-                  color: readinessTone.chipText,
-                }}
-              >
-                {readinessTone.label}
-              </span>
-              <span style={shellStyles.chipMuted}>
-                Preferred market: {marketLabel(settings.preferred_market)}
-              </span>
-              <span style={shellStyles.chipMuted}>
-                Default child view: {childLandingLabel(settings.default_child_landing)}
-              </span>
-              <span style={shellStyles.chipMuted}>
-                Storage: {storageMode === "database" ? "Durable database profile" : "Local device fallback"}
-              </span>
-            </div>
-
-            {loadError ? <div style={shellStyles.warningBanner}>{loadError}</div> : null}
-            {saveError ? <div style={shellStyles.warningBanner}>{saveError}</div> : null}
-          </div>
-
-          <div style={shellStyles.heroAside}>
-            <div style={shellStyles.heroAsideLabel}>Current settings posture</div>
-            <div style={shellStyles.heroAsideTitle}>{readinessTone.label}</div>
-            <div style={shellStyles.heroAsideText}>{readinessTone.text}</div>
-            <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
-              <div style={shellStyles.summaryRow}>
-                <span style={shellStyles.summaryKey}>Market</span>
-                <span style={shellStyles.summaryValue}>{marketLabel(settings.preferred_market)}</span>
-              </div>
-              <div style={shellStyles.summaryRow}>
-                <span style={shellStyles.summaryKey}>Mode</span>
-                <span style={shellStyles.summaryValue}>{modeLabel(settings.experience_mode)}</span>
-              </div>
-              <div style={shellStyles.summaryRow}>
-                <span style={shellStyles.summaryKey}>Default child</span>
-                <span style={shellStyles.summaryValue}>
-                  {childOptionLabel(children.find((c) => c.id === settings.default_child_id))}
-                </span>
-              </div>
-              <div style={shellStyles.summaryRow}>
-                <span style={shellStyles.summaryKey}>Profile storage</span>
-                <span style={shellStyles.summaryValue}>
-                  {storageMode === "database" ? "Database-backed" : "Local fallback"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section style={shellStyles.metricsGrid}>
-          <MetricCard
-            label="Experience mode"
-            value={modeLabel(settings.experience_mode)}
-            note="Controls the default depth and emphasis of the interface."
-          />
-          <MetricCard
-            label="Planner behaviour"
-            value={settings.planner_auto_carry_forward ? "Carry forward on" : "Carry forward off"}
-            note="Defines how unfinished weekly activity rolls into the next cycle."
-          />
-          <MetricCard
-            label="Authority support"
-            value={settings.show_authority_guidance ? "Guidance on" : "Guidance off"}
-            note="Adds reassurance and readiness framing for family users."
-          />
-          <MetricCard
-            label="Notifications"
-            value={
-              [
-                settings.notifications_weekly_digest,
-                settings.notifications_readiness_alerts,
-                settings.notifications_planner_nudges,
-              ].filter(Boolean).length + " active"
-            }
-            note="Weekly digests, readiness alerts, and planner nudges."
-          />
-        </section>
-
-        <div style={shellStyles.mainGrid}>
-          <div style={{ display: "grid", gap: 18 }}>
-            <section id="curriculum" style={shellStyles.card}>
-              <div style={shellStyles.sectionHeader}>
-                <div>
-                  <div style={shellStyles.sectionEyebrow}>Curriculum and compliance</div>
-                  <div style={shellStyles.sectionTitle}>Curriculum setup</div>
-                </div>
-              </div>
-
-              <div style={shellStyles.sideText}>
-                Use the same family curriculum and Australia compliance setup that powers the
-                family profile and later report output.
-              </div>
-
-              {savedAt && !saveError ? (
-                <div style={shellStyles.successBanner}>
-                  Curriculum and compliance settings saved.
-                </div>
-              ) : null}
-
-              {saveError ? (
-                <div style={shellStyles.warningBanner}>
-                  Curriculum and compliance settings could not be saved to the database.
-                </div>
-              ) : null}
-
-              <CurriculumSetupCard
-                value={settings.curriculum_preferences}
-                onChange={(curriculum_preferences) =>
-                  update("curriculum_preferences", curriculum_preferences)
-                }
-              />
-
-              <div style={shellStyles.previewStack}>
-                <PreviewRow
-                  label="Country"
-                  value={curriculumCountryLabel(settings)}
-                />
-                <PreviewRow
-                  label="State / territory"
-                  value={curriculumStateLabel(settings)}
-                />
-                <PreviewRow
-                  label="Curriculum framework"
-                  value={curriculumFrameworkLabel(settings)}
-                />
-                <PreviewRow
-                  label="Compliance mode"
-                  value={
-                    settings.curriculum_preferences.compliance_profile?.compliance_mode ||
-                    "Not set"
-                  }
-                />
-              </div>
-            </section>
-
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sectionHeader}>
-                <div>
-                  <div style={shellStyles.sectionEyebrow}>Platform defaults</div>
-                  <div style={shellStyles.sectionTitle}>Market and experience mode</div>
-                </div>
-              </div>
-
-              <div style={shellStyles.formGrid}>
-                <Field label="Family display name" help="Used in family-facing summaries and future shared views.">
-                  <input
-                    value={settings.family_display_name}
-                    onChange={(e) => update("family_display_name", e.target.value)}
-                    style={shellStyles.input}
-                    placeholder="Your family"
-                  />
-                </Field>
-
-                <Field label="Preferred market" help="Sets the authority lens and future market-specific guidance.">
-                  <select
-                    value={settings.preferred_market}
-                    onChange={(e) => update("preferred_market", e.target.value as MarketKey)}
-                    style={shellStyles.input}
-                  >
-                    <option value="au">Australia</option>
-                    <option value="uk">United Kingdom</option>
-                    <option value="us">United States</option>
-                  </select>
-                </Field>
-
-                <Field label="Experience mode" help="Family keeps the calmest interface. Teacher and leadership allow more operational detail.">
-                  <div style={shellStyles.segmentWrap}>
-                    {(["family", "teacher", "leadership"] as ExperienceMode[]).map((mode) => {
-                      const active = settings.experience_mode === mode;
-                      return (
-                        <button
-                          key={mode}
-                          type="button"
-                          onClick={() => update("experience_mode", mode)}
-                          style={{
-                            ...shellStyles.segmentButton,
-                            ...(active ? shellStyles.segmentButtonActive : {}),
-                          }}
-                        >
-                          {modeLabel(mode)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <Field label="Week starts on" help="Used in planner and weekly schedule views.">
-                  <select
-                    value={settings.week_start}
-                    onChange={(e) => update("week_start", e.target.value as WeekStart)}
-                    style={shellStyles.input}
-                  >
-                    <option value="monday">Monday</option>
-                    <option value="sunday">Sunday</option>
-                  </select>
-                </Field>
-              </div>
-            </section>
-
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sectionHeader}>
-                <div>
-                  <div style={shellStyles.sectionEyebrow}>Child defaults</div>
-                  <div style={shellStyles.sectionTitle}>Default child behaviour</div>
-                </div>
-              </div>
-
-              <div style={shellStyles.formGrid}>
-                <Field label="Default child" help="The child selected first when family pages open.">
-                  <select
-                    value={settings.default_child_id ?? ""}
-                    onChange={(e) => update("default_child_id", e.target.value || null)}
-                    style={shellStyles.input}
-                  >
-                    <option value="">No child selected</option>
-                    {children.map((child) => (
-                      <option key={child.id} value={child.id}>
-                        {childOptionLabel(child)}
-                        {childOptionYearLabel(child) ? ` - ${childOptionYearLabel(child)}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="Default child landing view" help="Controls where the system opens once a child context is chosen.">
-                  <select
-                    value={settings.default_child_landing}
-                    onChange={(e) =>
-                      update("default_child_landing", e.target.value as DefaultChildLanding)
-                    }
-                    style={shellStyles.input}
-                  >
-                    <option value="dashboard">Dashboard</option>
-                    <option value="portfolio">Portfolio</option>
-                    <option value="planner">Planner</option>
-                    <option value="reports">Reports</option>
-                  </select>
-                </Field>
-
-                <ToggleRow
-                  title="Open last viewed child automatically"
-                  description="When enabled, the family workspace returns to the most recently used child context."
-                  checked={settings.auto_open_last_child}
-                  onChange={(value) => update("auto_open_last_child", value)}
-                />
-
-                <ToggleRow
-                  title="Use compact mode on family pages"
-                  description="Tightens spacing slightly for users who want more information on screen."
-                  checked={settings.compact_mode}
-                  onChange={(value) => update("compact_mode", value)}
-                />
-              </div>
-            </section>
-
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sectionHeader}>
-                <div>
-                  <div style={shellStyles.sectionEyebrow}>Family-level controls</div>
-                  <div style={shellStyles.sectionTitle}>Guidance, privacy, and planner defaults</div>
-                </div>
-              </div>
-
-              <div style={shellStyles.stack}>
-                <ToggleRow
-                  title="Show advanced insights"
-                  description="Adds more detailed analytics and richer explanatory signals on family surfaces."
-                  checked={settings.show_advanced_insights}
-                  onChange={(value) => update("show_advanced_insights", value)}
-                />
-
-                <ToggleRow
-                  title="Show authority guidance"
-                  description="Adds calm readiness language and clearer next-step prompts for compliance-related pages."
-                  checked={settings.show_authority_guidance}
-                  onChange={(value) => update("show_authority_guidance", value)}
-                />
-
-                <ToggleRow
-                  title="Carry unfinished planner items forward"
-                  description="Helpful for families who roll weekly plans over rather than resetting them."
-                  checked={settings.planner_auto_carry_forward}
-                  onChange={(value) => update("planner_auto_carry_forward", value)}
-                />
-
-                <ToggleRow
-                  title="Show weekends in planner"
-                  description="Useful for flexible or family-led schedules that include weekend learning."
-                  checked={settings.planner_show_weekend}
-                  onChange={(value) => update("planner_show_weekend", value)}
-                />
-
-                <Field label="Default evidence privacy" help="Sets the default visibility for newly captured evidence.">
-                  <select
-                    value={settings.evidence_privacy_default}
-                    onChange={(e) =>
-                      update("evidence_privacy_default", e.target.value as EvidencePrivacy)
-                    }
-                    style={shellStyles.input}
-                  >
-                    <option value="private">Private</option>
-                    <option value="family">Family only</option>
-                    <option value="shared">Shareable</option>
-                  </select>
-                </Field>
-
-                <Field label="Default report tone" help="Preselects the reporting voice that best suits your household.">
-                  <select
-                    value={settings.report_tone_default}
-                    onChange={(e) =>
-                      update(
-                        "report_tone_default",
-                        e.target.value as "family-summary" | "authority-ready" | "progress-review"
-                      )
-                    }
-                    style={shellStyles.input}
-                  >
-                    <option value="family-summary">Family summary</option>
-                    <option value="authority-ready">Authority ready</option>
-                    <option value="progress-review">Progress review</option>
-                  </select>
-                </Field>
-
-                <Field label="Portfolio print style" help="Lets you choose a softer showcase feel or a more formal presentation layout later.">
-                  <div style={shellStyles.segmentWrap}>
-                    {(["calm", "formal"] as Array<"calm" | "formal">).map((styleKey) => {
-                      const active = settings.portfolio_print_style === styleKey;
-                      return (
-                        <button
-                          key={styleKey}
-                          type="button"
-                          onClick={() => update("portfolio_print_style", styleKey)}
-                          style={{
-                            ...shellStyles.segmentButton,
-                            ...(active ? shellStyles.segmentButtonActive : {}),
-                          }}
-                        >
-                          {styleKey === "calm" ? "Calm showcase" : "Formal print"}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-              </div>
-            </section>
-
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sectionHeader}>
-                <div>
-                  <div style={shellStyles.sectionEyebrow}>Notifications</div>
-                  <div style={shellStyles.sectionTitle}>Helpful nudges and reassurance</div>
-                </div>
-              </div>
-
-              <div style={shellStyles.stack}>
-                <ToggleRow
-                  title="Weekly digest"
-                  description="A compact summary of recent evidence, planner movement, and reporting momentum."
-                  checked={settings.notifications_weekly_digest}
-                  onChange={(value) => update("notifications_weekly_digest", value)}
-                />
-
-                <ToggleRow
-                  title="Readiness alerts"
-                  description="Shows when evidence coverage or reporting readiness starts to drift."
-                  checked={settings.notifications_readiness_alerts}
-                  onChange={(value) => update("notifications_readiness_alerts", value)}
-                />
-
-                <ToggleRow
-                  title="Planner nudges"
-                  description="Provides gentle prompts when the next week has not yet been shaped."
-                  checked={settings.notifications_planner_nudges}
-                  onChange={(value) => update("notifications_planner_nudges", value)}
-                />
-              </div>
-            </section>
-          </div>
-
-          <aside style={{ display: "grid", gap: 18 }}>
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sideTitle}>Settings impact preview</div>
-              <div style={shellStyles.sideText}>
-                These defaults now form part of the family profile object and can be reused across
-                the wider B2C experience.
-              </div>
-
-              <div style={shellStyles.previewStack}>
-                <PreviewRow
-                  label="Market lens"
-                  value={`Primary guidance will lean toward ${marketLabel(settings.preferred_market)} reporting expectations.`}
-                />
-                <PreviewRow
-                  label="Default route"
-                  value={`Selected child contexts open into ${childLandingLabel(settings.default_child_landing)} first.`}
-                />
-                <PreviewRow
-                  label="Family feel"
-                  value={
-                    settings.show_advanced_insights
-                      ? "Pages can reveal richer analysis where helpful."
-                      : "Pages stay calmer and simpler by default."
-                  }
-                />
-                <PreviewRow
-                  label="Planner posture"
-                  value={
-                    settings.planner_auto_carry_forward
-                      ? "Unfinished weekly items can carry forward."
-                      : "Each planner cycle starts fresh unless edited manually."
-                  }
-                />
-              </div>
-            </section>
-
-            <section style={shellStyles.card}>
-              <div style={shellStyles.sideTitle}>Recommended next connections</div>
-              <div style={shellStyles.actionList}>
-                <Link href="/family" style={shellStyles.actionLink}>
-                  Review Family Dashboard
-                </Link>
-                <Link href="/portfolio" style={shellStyles.actionLink}>
-                  Check portfolio showcase mode
-                </Link>
-                <Link href="/reports" style={shellStyles.actionLink}>
-                  Confirm report defaults
-                </Link>
-                <Link href={preferredAuthorityHref} style={shellStyles.actionLink}>
-                  Open preferred authority market
-                </Link>
-              </div>
-            </section>
-
-            <section
-              style={{
-                ...shellStyles.card,
-                background: "#fffaf0",
-                borderColor: "#fde68a",
-              }}
-            >
-              <div style={{ ...shellStyles.sideTitle, color: "#92400e" }}>Now unlocked structurally</div>
-              <div style={{ ...shellStyles.sideText, color: "#92400e" }}>
-                Because this page is now tied to a family profile object, it is ready to inform:
-              </div>
-              <div style={shellStyles.premiumList}>
-                <span style={shellStyles.premiumItem}>family dashboard defaults</span>
-                <span style={shellStyles.premiumItem}>planner defaults</span>
-                <span style={shellStyles.premiumItem}>report defaults</span>
-                <span style={shellStyles.premiumItem}>portfolio behaviour</span>
-                <span style={shellStyles.premiumItem}>future premium controls</span>
-              </div>
-            </section>
-          </aside>
-        </div>
-        </div>
-        <div style={shellStyles.stickyBar}>
-          <div style={{ display: "grid", gap: 4 }}>
-            <div style={shellStyles.stickyTitle}>
-              {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
-            </div>
-            <div style={shellStyles.stickySub}>
-              {savedAt
-                ? `Last saved ${savedAt}`
-                : storageMode === "database"
-                ? "Save to persist these settings into the family profile."
-                : "Save will persist locally until signed-in database storage is available."}
-            </div>
-          </div>
-
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button type="button" onClick={handleReset} style={shellStyles.secondaryButton}>
-              Reset to defaults
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              style={{
-                ...shellStyles.primaryButton,
-                opacity: saving ? 0.7 : 1,
-                cursor: saving ? "wait" : "pointer",
-              }}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save family settings"}
-            </button>
-          </div>
-        </div>
-      </main>
-    </FamilyTopNavShell>
-  );
+  return row.yearLabel || row.year_label || (row.year_level ? `Year ${row.year_level}` : "");
 }
 
 function curriculumCountryLabel(settings: FamilySettings) {
@@ -824,21 +129,573 @@ function curriculumStateLabel(settings: FamilySettings) {
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  note,
+function stepSummary(step: StepKey, settings: FamilySettings, children: ChildOption[]) {
+  if (step === "curriculum") {
+    return `${curriculumCountryLabel(settings)} • ${curriculumStateLabel(settings)} • ${settings.curriculum_preferences.compliance_profile?.compliance_mode || "Compliance mode not set"}`;
+  }
+  if (step === "platform") {
+    return `${marketLabel(settings.preferred_market)} • ${modeLabel(settings.experience_mode)} • Week starts ${settings.week_start}`;
+  }
+  if (step === "child") {
+    return `${childOptionLabel(children.find((c) => c.id === settings.default_child_id))} • ${childLandingLabel(settings.default_child_landing)}`;
+  }
+  if (step === "guidance") {
+    return `${settings.show_authority_guidance ? "Authority guidance on" : "Authority guidance off"} • ${settings.planner_auto_carry_forward ? "Carry forward on" : "Carry forward off"}`;
+  }
+  return [
+    settings.notifications_weekly_digest ? "Weekly digest" : null,
+    settings.notifications_readiness_alerts ? "Readiness alerts" : null,
+    settings.notifications_planner_nudges ? "Planner nudges" : null,
+  ]
+    .filter(Boolean)
+    .join(" • ") || "No reminders selected";
+}
+
+export default function FamilySettingsPage() {
+  const {
+    workspace,
+    loading: workspaceLoading,
+    error: workspaceError,
+    setWorkspacePatch,
+    setActiveLearner,
+  } = useFamilyWorkspace();
+
+  const [settings, setSettings] = useState<FamilySettings>(() => ({
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...workspace.profile,
+    default_child_id: workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+  }));
+  const [initialSettings, setInitialSettings] = useState<FamilySettings>(() => ({
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...workspace.profile,
+    default_child_id: workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+  }));
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState("");
+  const [storageMode, setStorageMode] = useState<"database" | "local">("local");
+  const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [hasPendingEdits, setHasPendingEdits] = useState(false);
+  const [openStep, setOpenStep] = useState<StepKey>("curriculum");
+
+  const children = useMemo<ChildOption[]>(
+    () =>
+      workspace.learners.map((learner) => ({
+        id: learner.id,
+        label: learner.label,
+        yearLabel: learner.yearLabel || "",
+        year_level: learner.year_level ?? null,
+        connectedAt: learner.connectedAt ?? null,
+      })),
+    [workspace.learners],
+  );
+
+  useEffect(() => {
+    const nextSettings: FamilySettings = {
+      ...DEFAULT_FAMILY_SETTINGS,
+      ...workspace.profile,
+      default_child_id: workspace.profile.default_child_id || workspace.learners[0]?.id || null,
+    };
+
+    setStorageMode(workspace.storageMode);
+    setLoadError(workspaceError);
+
+    if (!hasPendingEdits) {
+      setSettings(nextSettings);
+      setInitialSettings(nextSettings);
+    }
+  }, [workspace, workspaceError, hasPendingEdits]);
+
+  const isDirty = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(initialSettings),
+    [settings, initialSettings],
+  );
+
+  const guideSteps: Array<{ key: StepKey; number: string; label: string }> = [
+    { key: "curriculum", number: "1", label: "Curriculum" },
+    { key: "platform", number: "2", label: "Platform" },
+    { key: "child", number: "3", label: "Child" },
+    { key: "guidance", number: "4", label: "Guidance" },
+    { key: "notifications", number: "5", label: "Notifications" },
+  ];
+
+  function update<K extends keyof FamilySettings>(key: K, value: FamilySettings[K]) {
+    setHasPendingEdits(true);
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      persistSettingsToLocalStorage(settings);
+      const saved = await saveFamilyWorkspaceSettings(settings);
+      const merged: FamilySettings = {
+        ...DEFAULT_FAMILY_SETTINGS,
+        ...saved,
+        default_child_id: saved.default_child_id || settings.default_child_id || children[0]?.id || null,
+      };
+
+      setStorageMode("database");
+      setSettings(merged);
+      setInitialSettings(merged);
+      setWorkspacePatch({
+        profile: saved,
+        storageMode: "database",
+        userId: workspace.userId,
+      });
+      persistSettingsToLocalStorage(merged);
+      if (merged.default_child_id) {
+        setActiveLearner(merged.default_child_id);
+      }
+      setHasPendingEdits(false);
+      setSavedAt(new Date().toLocaleString());
+    } catch (err) {
+      console.error("Settings save failed", err);
+      setStorageMode("local");
+      setWorkspacePatch({
+        profile: settings,
+        storageMode: "local",
+        userId: workspace.userId,
+      });
+      if (settings.default_child_id) {
+        setActiveLearnerId(settings.default_child_id);
+      }
+      setInitialSettings(settings);
+      setHasPendingEdits(false);
+      setSaveError(
+        "Settings were saved locally, but the family profile could not be updated in the database.",
+      );
+      setSavedAt(new Date().toLocaleString());
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleReset() {
+    const fallback: FamilySettings = {
+      ...DEFAULT_FAMILY_SETTINGS,
+      default_child_id: children[0]?.id || null,
+    };
+    setSettings(fallback);
+    setHasPendingEdits(true);
+  }
+
+  function toggleStep(step: StepKey) {
+    if (step === "curriculum") {
+      setOpenStep("curriculum");
+      return;
+    }
+    setOpenStep((current) => (current === step ? "curriculum" : step));
+  }
+
+  return (
+    <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
+      <main style={styles.app}>
+        <div style={styles.wrap}>
+          <section style={styles.hero}>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={styles.eyebrow}>Family settings</div>
+              <h1 style={styles.h1}>Set up your family workspace in order</h1>
+              <p style={styles.heroText}>
+                Start with curriculum and compliance, then shape how the family uses EduDecks day to day.
+              </p>
+
+              <div style={styles.heroChips}>
+                <span style={styles.chip}>Market: {marketLabel(settings.preferred_market)}</span>
+                <span style={styles.chip}>
+                  Default child: {childOptionLabel(children.find((c) => c.id === settings.default_child_id))}
+                </span>
+                <span style={styles.chip}>
+                  Storage: {storageMode === "database" ? "Database-backed" : "Local fallback"}
+                </span>
+              </div>
+
+              {workspaceLoading ? <div style={styles.inlineNote}>Refreshing your latest family settings...</div> : null}
+              {loadError ? <div style={styles.warningBanner}>{loadError}</div> : null}
+              {saveError ? <div style={styles.warningBanner}>{saveError}</div> : null}
+            </div>
+          </section>
+
+          <div style={styles.flowLayout}>
+            <aside style={styles.rail} aria-label="Settings setup guide">
+              <div style={styles.railLine} />
+              {guideSteps.map((step) => {
+                const active = openStep === step.key;
+                return (
+                  <a
+                    key={step.key}
+                    href={step.key === "curriculum" ? "/settings#curriculum" : `#${step.key}`}
+                    onClick={() => setOpenStep(step.key)}
+                    style={{
+                      ...styles.railItem,
+                      ...(active ? styles.railItemActive : {}),
+                    }}
+                  >
+                    <span style={{ ...styles.railDot, ...(active ? styles.railDotActive : {}) }}>
+                      {step.number}
+                    </span>
+                    <span style={styles.railLabel}>{step.label}</span>
+                  </a>
+                );
+              })}
+            </aside>
+
+            <div style={styles.contentStack}>
+              <StepSection
+                id="curriculum"
+                step="Step 1"
+                title="Set up your curriculum"
+                summary={stepSummary("curriculum", settings, children)}
+                open={true}
+                primary
+              >
+                <div style={styles.helperText}>
+                  Set the reporting structure for your family first. This will guide later planning and report output.
+                </div>
+
+                {savedAt && !saveError ? (
+                  <div style={styles.successBanner}>Curriculum and compliance settings saved.</div>
+                ) : null}
+
+                <CurriculumSetupCard
+                  value={settings.curriculum_preferences}
+                  onChange={(curriculum_preferences) =>
+                    update("curriculum_preferences", curriculum_preferences)
+                  }
+                />
+
+                <div style={styles.savedSummary}>
+                  <SummaryRow label="Country" value={curriculumCountryLabel(settings)} />
+                  <SummaryRow label="State / territory" value={curriculumStateLabel(settings)} />
+                  <SummaryRow label="Curriculum framework" value={curriculumFrameworkLabel(settings)} />
+                  <SummaryRow
+                    label="Compliance mode"
+                    value={settings.curriculum_preferences.compliance_profile?.compliance_mode || "Not set"}
+                  />
+                </div>
+              </StepSection>
+
+              <StepSection
+                id="platform"
+                step="Step 2"
+                title="How your family uses EduDecks"
+                summary={stepSummary("platform", settings, children)}
+                open={openStep === "platform"}
+                onToggle={() => toggleStep("platform")}
+              >
+                <div style={styles.formGrid}>
+                  <Field label="Preferred market" help="Sets the main authority lens for the family workspace.">
+                    <select
+                      value={settings.preferred_market}
+                      onChange={(e) => update("preferred_market", e.target.value as MarketKey)}
+                      style={styles.input}
+                    >
+                      <option value="au">Australia</option>
+                      <option value="uk">United Kingdom</option>
+                      <option value="us">United States</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Experience mode" help="Family keeps the calmest view.">
+                    <div style={styles.segmentWrap}>
+                      {(["family", "teacher", "leadership"] as ExperienceMode[]).map((mode) => {
+                        const active = settings.experience_mode === mode;
+                        return (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => update("experience_mode", mode)}
+                            style={{
+                              ...styles.segmentButton,
+                              ...(active ? styles.segmentButtonActive : {}),
+                            }}
+                          >
+                            {modeLabel(mode)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+
+                  <Field label="Week starts on" help="Used in planner and weekly schedule views.">
+                    <select
+                      value={settings.week_start}
+                      onChange={(e) => update("week_start", e.target.value as WeekStart)}
+                      style={styles.input}
+                    >
+                      <option value="monday">Monday</option>
+                      <option value="sunday">Sunday</option>
+                    </select>
+                  </Field>
+                </div>
+              </StepSection>
+
+              <StepSection
+                id="child"
+                step="Step 3"
+                title="Default child experience"
+                summary={stepSummary("child", settings, children)}
+                open={openStep === "child"}
+                onToggle={() => toggleStep("child")}
+              >
+                <div style={styles.formGrid}>
+                  <Field label="Default child" help="The child selected first when family pages open.">
+                    <select
+                      value={settings.default_child_id ?? ""}
+                      onChange={(e) => update("default_child_id", e.target.value || null)}
+                      style={styles.input}
+                    >
+                      <option value="">No child selected</option>
+                      {children.map((child) => (
+                        <option key={child.id} value={child.id}>
+                          {childOptionLabel(child)}
+                          {childOptionYearLabel(child) ? ` - ${childOptionYearLabel(child)}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  <Field label="Default child landing view" help="Controls where the workspace opens first.">
+                    <select
+                      value={settings.default_child_landing}
+                      onChange={(e) =>
+                        update("default_child_landing", e.target.value as DefaultChildLanding)
+                      }
+                      style={styles.input}
+                    >
+                      <option value="dashboard">Dashboard</option>
+                      <option value="portfolio">Portfolio</option>
+                      <option value="planner">Planner</option>
+                      <option value="reports">Reports</option>
+                    </select>
+                  </Field>
+                </div>
+
+                <div style={styles.stack}>
+                  <ToggleRow
+                    title="Open last viewed child automatically"
+                    description="Return to the most recently used child context."
+                    checked={settings.auto_open_last_child}
+                    onChange={(value) => update("auto_open_last_child", value)}
+                  />
+
+                  <ToggleRow
+                    title="Use compact mode"
+                    description="Tightens spacing slightly for families who want more on screen."
+                    checked={settings.compact_mode}
+                    onChange={(value) => update("compact_mode", value)}
+                  />
+                </div>
+              </StepSection>
+
+              <StepSection
+                id="guidance"
+                step="Step 4"
+                title="Guidance and planning behaviour"
+                summary={stepSummary("guidance", settings, children)}
+                open={openStep === "guidance"}
+                onToggle={() => toggleStep("guidance")}
+              >
+                <div style={styles.stack}>
+                  <ToggleRow
+                    title="Show advanced insights"
+                    description="Reveal richer analysis where it helps."
+                    checked={settings.show_advanced_insights}
+                    onChange={(value) => update("show_advanced_insights", value)}
+                  />
+                  <ToggleRow
+                    title="Show authority guidance"
+                    description="Keep compliance prompts visible and calm."
+                    checked={settings.show_authority_guidance}
+                    onChange={(value) => update("show_authority_guidance", value)}
+                  />
+                  <ToggleRow
+                    title="Carry unfinished planner items forward"
+                    description="Roll unfinished weekly items into the next cycle."
+                    checked={settings.planner_auto_carry_forward}
+                    onChange={(value) => update("planner_auto_carry_forward", value)}
+                  />
+                  <ToggleRow
+                    title="Show weekends in planner"
+                    description="Useful for flexible family-led schedules."
+                    checked={settings.planner_show_weekend}
+                    onChange={(value) => update("planner_show_weekend", value)}
+                  />
+                </div>
+
+                <div style={styles.formGrid}>
+                  <Field label="Default evidence privacy" help="Sets the default visibility for new evidence.">
+                    <select
+                      value={settings.evidence_privacy_default}
+                      onChange={(e) =>
+                        update("evidence_privacy_default", e.target.value as EvidencePrivacy)
+                      }
+                      style={styles.input}
+                    >
+                      <option value="private">Private</option>
+                      <option value="family">Family only</option>
+                      <option value="shared">Shareable</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Default report tone" help="Choose the reporting voice that fits your family.">
+                    <select
+                      value={settings.report_tone_default}
+                      onChange={(e) =>
+                        update(
+                          "report_tone_default",
+                          e.target.value as "family-summary" | "authority-ready" | "progress-review",
+                        )
+                      }
+                      style={styles.input}
+                    >
+                      <option value="family-summary">Family summary</option>
+                      <option value="authority-ready">Authority ready</option>
+                      <option value="progress-review">Progress review</option>
+                    </select>
+                  </Field>
+
+                  <Field label="Portfolio print style" help="Choose a softer showcase feel or a more formal print style.">
+                    <div style={styles.segmentWrap}>
+                      {(["calm", "formal"] as Array<"calm" | "formal">).map((styleKey) => {
+                        const active = settings.portfolio_print_style === styleKey;
+                        return (
+                          <button
+                            key={styleKey}
+                            type="button"
+                            onClick={() => update("portfolio_print_style", styleKey)}
+                            style={{
+                              ...styles.segmentButton,
+                              ...(active ? styles.segmentButtonActive : {}),
+                            }}
+                          >
+                            {styleKey === "calm" ? "Calm showcase" : "Formal print"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                </div>
+              </StepSection>
+
+              <StepSection
+                id="notifications"
+                step="Step 5"
+                title="Notifications and reminders"
+                summary={stepSummary("notifications", settings, children)}
+                open={openStep === "notifications"}
+                onToggle={() => toggleStep("notifications")}
+              >
+                <div style={styles.stack}>
+                  <ToggleRow
+                    title="Weekly digest"
+                    description="A compact summary of recent family activity."
+                    checked={settings.notifications_weekly_digest}
+                    onChange={(value) => update("notifications_weekly_digest", value)}
+                  />
+                  <ToggleRow
+                    title="Readiness alerts"
+                    description="Surface when evidence coverage or reporting readiness drifts."
+                    checked={settings.notifications_readiness_alerts}
+                    onChange={(value) => update("notifications_readiness_alerts", value)}
+                  />
+                  <ToggleRow
+                    title="Planner nudges"
+                    description="Provide gentle prompts when the next week has not been shaped."
+                    checked={settings.notifications_planner_nudges}
+                    onChange={(value) => update("notifications_planner_nudges", value)}
+                  />
+                </div>
+              </StepSection>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.stickyBar}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <div style={styles.stickyTitle}>
+              {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+            </div>
+            <div style={styles.stickySub}>
+              {savedAt
+                ? `Last saved ${savedAt}`
+                : storageMode === "database"
+                  ? "Save to persist these settings into the family profile."
+                  : "Save will persist locally until signed-in database storage is available."}
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={handleReset} style={styles.secondaryButton}>
+              Reset to defaults
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              style={{
+                ...styles.primaryButton,
+                opacity: saving ? 0.7 : 1,
+                cursor: saving ? "wait" : "pointer",
+              }}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save family settings"}
+            </button>
+          </div>
+        </div>
+      </main>
+    </FamilyTopNavShell>
+  );
+}
+
+function StepSection({
+  id,
+  step,
+  title,
+  summary,
+  open,
+  children,
+  onToggle,
+  primary,
 }: {
-  label: string;
-  value: string;
-  note: string;
+  id: string;
+  step: string;
+  title: string;
+  summary: string;
+  open: boolean;
+  children: React.ReactNode;
+  onToggle?: () => void;
+  primary?: boolean;
 }) {
   return (
-    <div style={shellStyles.metricCard}>
-      <div style={shellStyles.metricLabel}>{label}</div>
-      <div style={shellStyles.metricValue}>{value}</div>
-      <div style={shellStyles.metricNote}>{note}</div>
-    </div>
+    <section
+      id={id}
+      style={{
+        ...styles.stepCard,
+        ...(primary ? styles.stepCardPrimary : {}),
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!onToggle}
+        style={{
+          ...styles.stepHeader,
+          cursor: onToggle ? "pointer" : "default",
+        }}
+      >
+        <div style={{ display: "grid", gap: 4, textAlign: "left" }}>
+          <div style={styles.stepEyebrow}>{step}</div>
+          <div style={styles.stepTitle}>{title}</div>
+          <div style={styles.stepSummary}>{summary}</div>
+        </div>
+        {onToggle ? <div style={styles.stepToggle}>{open ? "Hide" : "Show"}</div> : null}
+      </button>
+
+      {open ? <div style={styles.stepBody}>{children}</div> : null}
+    </section>
   );
 }
 
@@ -853,9 +710,9 @@ function Field({
 }) {
   return (
     <label style={{ display: "grid", gap: 8 }}>
-      <div style={shellStyles.fieldLabel}>{label}</div>
+      <div style={styles.fieldLabel}>{label}</div>
       {children}
-      {help ? <div style={shellStyles.fieldHelp}>{help}</div> : null}
+      {help ? <div style={styles.fieldHelp}>{help}</div> : null}
     </label>
   );
 }
@@ -872,10 +729,10 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <div style={shellStyles.toggleRow}>
+    <div style={styles.toggleRow}>
       <div style={{ display: "grid", gap: 4 }}>
-        <div style={shellStyles.toggleTitle}>{title}</div>
-        <div style={shellStyles.toggleDescription}>{description}</div>
+        <div style={styles.toggleTitle}>{title}</div>
+        <div style={styles.toggleDescription}>{description}</div>
       </div>
 
       <button
@@ -883,27 +740,27 @@ function ToggleRow({
         aria-pressed={checked}
         onClick={() => onChange(!checked)}
         style={{
-          ...shellStyles.toggle,
+          ...styles.toggle,
           justifyContent: checked ? "flex-end" : "flex-start",
           background: checked ? "#2563eb" : "#e5e7eb",
         }}
       >
-        <span style={shellStyles.toggleKnob} />
+        <span style={styles.toggleKnob} />
       </button>
     </div>
   );
 }
 
-function PreviewRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={shellStyles.previewRow}>
-      <div style={shellStyles.previewLabel}>{label}</div>
-      <div style={shellStyles.previewValue}>{value}</div>
+    <div style={styles.summaryRow}>
+      <div style={styles.summaryKey}>{label}</div>
+      <div style={styles.summaryValue}>{value}</div>
     </div>
   );
 }
 
-const shellStyles: Record<string, React.CSSProperties> = {
+const styles: Record<string, React.CSSProperties> = {
   app: {
     minHeight: "100vh",
     background: "#f6f8fc",
@@ -911,7 +768,6 @@ const shellStyles: Record<string, React.CSSProperties> = {
     fontFamily: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     paddingBottom: 120,
   },
-
   wrap: {
     maxWidth: 1320,
     margin: "0 auto",
@@ -919,7 +775,6 @@ const shellStyles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 18,
   },
-
   loadingCard: {
     background: "#ffffff",
     border: "1px solid #e5e7eb",
@@ -929,28 +784,21 @@ const shellStyles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     color: "#64748b",
   },
-
   hero: {
+    background: "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.05) 100%)",
+    border: "1px solid #dbeafe",
+    borderRadius: 24,
+    padding: "22px 22px",
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.7fr) minmax(300px, 0.9fr)",
-    gap: 18,
-    background:
-      "linear-gradient(135deg, rgba(79,124,240,0.08) 0%, rgba(139,124,246,0.08) 100%)",
-    border: "1px solid #bfdbfe",
-    borderRadius: 26,
-    padding: "28px 24px",
-    boxShadow: "0 18px 50px rgba(15, 23, 42, 0.06)",
+    gap: 12,
   },
-
   eyebrow: {
     fontSize: 12,
-    lineHeight: 1.2,
     fontWeight: 800,
     letterSpacing: 1.1,
     textTransform: "uppercase",
     color: "#64748b",
   },
-
   h1: {
     margin: 0,
     fontSize: 28,
@@ -958,27 +806,19 @@ const shellStyles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     color: "#0f172a",
   },
-
   heroText: {
     margin: 0,
     fontSize: 14,
-    lineHeight: 1.7,
+    lineHeight: 1.65,
     color: "#475569",
-    maxWidth: 840,
+    maxWidth: 820,
   },
-
+  heroChips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   chip: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 999,
-    padding: "6px 10px",
-    fontSize: 12,
-    fontWeight: 800,
-    border: "1px solid transparent",
-  },
-
-  chipMuted: {
     display: "inline-flex",
     alignItems: "center",
     borderRadius: 999,
@@ -989,7 +829,10 @@ const shellStyles: Record<string, React.CSSProperties> = {
     border: "1px solid #dbeafe",
     color: "#334155",
   },
-
+  inlineNote: {
+    fontSize: 13,
+    color: "#64748b",
+  },
   warningBanner: {
     background: "#fff7ed",
     border: "1px solid #fed7aa",
@@ -1000,7 +843,6 @@ const shellStyles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     fontWeight: 600,
   },
-
   successBanner: {
     background: "#ecfdf5",
     border: "1px solid #bbf7d0",
@@ -1011,149 +853,147 @@ const shellStyles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     fontWeight: 600,
   },
-
-  heroAside: {
-    background: "rgba(255,255,255,0.82)",
-    border: "1px solid #dbeafe",
-    borderRadius: 20,
-    padding: 18,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  flowLayout: {
     display: "grid",
-    alignContent: "start",
-  },
-
-  heroAsideLabel: {
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: 1.05,
-    textTransform: "uppercase",
-    color: "#64748b",
-    marginBottom: 8,
-  },
-
-  heroAsideTitle: {
-    fontSize: 18,
-    lineHeight: 1.25,
-    fontWeight: 900,
-    color: "#0f172a",
-    marginBottom: 8,
-  },
-
-  heroAsideText: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "#475569",
-  },
-
-  summaryRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    padding: "8px 0",
-    borderTop: "1px solid #e5e7eb",
-  },
-
-  summaryKey: {
-    fontSize: 13,
-    color: "#64748b",
-  },
-
-  summaryValue: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#0f172a",
-    textAlign: "right",
-  },
-
-  metricsGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-    gap: 14,
-  },
-
-  metricCard: {
-    background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    padding: 18,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-    display: "grid",
-    gap: 6,
-  },
-
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: 1.05,
-    textTransform: "uppercase",
-    color: "#64748b",
-  },
-
-  metricValue: {
-    fontSize: 18,
-    lineHeight: 1.25,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  metricNote: {
-    fontSize: 13,
-    lineHeight: 1.5,
-    color: "#64748b",
-  },
-
-  mainGrid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0, 1.55fr) minmax(300px, 0.8fr)",
-    gap: 18,
+    gridTemplateColumns: "140px minmax(0, 1fr)",
+    gap: 24,
     alignItems: "start",
   },
-
-  card: {
+  rail: {
+    position: "sticky",
+    top: 110,
+    display: "grid",
+    gap: 12,
+    alignContent: "start",
+    paddingTop: 8,
+  },
+  railLine: {
+    position: "absolute",
+    left: 17,
+    top: 14,
+    bottom: 14,
+    width: 2,
+    background: "#e2e8f0",
+  },
+  railItem: {
+    position: "relative",
+    zIndex: 1,
+    display: "grid",
+    gridTemplateColumns: "34px 1fr",
+    gap: 10,
+    alignItems: "center",
+    textDecoration: "none",
+    color: "#64748b",
+  },
+  railItemActive: {
+    color: "#0f172a",
+  },
+  railDot: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    border: "1px solid #cbd5e1",
     background: "#ffffff",
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  railDotActive: {
+    background: "#eff6ff",
+    borderColor: "#93c5fd",
+    color: "#1d4ed8",
+  },
+  railLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  contentStack: {
     display: "grid",
     gap: 16,
   },
-
-  sectionHeader: {
+  stepCard: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 18,
+    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    overflow: "hidden",
+  },
+  stepCardPrimary: {
+    borderColor: "#bfdbfe",
+    boxShadow: "0 14px 36px rgba(37,99,235,0.08)",
+  },
+  stepHeader: {
+    width: "100%",
+    border: "none",
+    background: "transparent",
+    padding: "18px 18px",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 12,
+    gap: 14,
+    alignItems: "center",
   },
-
-  sectionEyebrow: {
+  stepEyebrow: {
     fontSize: 12,
-    lineHeight: 1.2,
     fontWeight: 800,
     letterSpacing: 1.05,
     textTransform: "uppercase",
     color: "#64748b",
-    marginBottom: 6,
   },
-
-  sectionTitle: {
-    fontSize: 18,
-    lineHeight: 1.25,
+  stepTitle: {
+    fontSize: 20,
     fontWeight: 900,
     color: "#0f172a",
   },
-
+  stepSummary: {
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "#64748b",
+  },
+  stepToggle: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#2563eb",
+    whiteSpace: "nowrap",
+  },
+  stepBody: {
+    display: "grid",
+    gap: 16,
+    padding: "0 18px 18px",
+  },
+  helperText: {
+    fontSize: 13,
+    lineHeight: 1.6,
+    color: "#64748b",
+  },
+  savedSummary: {
+    display: "grid",
+    gap: 0,
+    border: "1px solid #e5e7eb",
+    borderRadius: 16,
+    background: "#f8fafc",
+    padding: "4px 14px",
+  },
   formGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
     gap: 16,
   },
-
   stack: {
     display: "grid",
     gap: 14,
   },
-
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  fieldHelp: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: "#64748b",
+  },
   input: {
     width: "100%",
     background: "#ffffff",
@@ -1164,25 +1004,11 @@ const shellStyles: Record<string, React.CSSProperties> = {
     color: "#1f2937",
     outline: "none",
   },
-
-  fieldLabel: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#0f172a",
-  },
-
-  fieldHelp: {
-    fontSize: 12,
-    lineHeight: 1.5,
-    color: "#64748b",
-  },
-
   segmentWrap: {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
   },
-
   segmentButton: {
     border: "1px solid #d1d5db",
     background: "#ffffff",
@@ -1193,13 +1019,11 @@ const shellStyles: Record<string, React.CSSProperties> = {
     fontWeight: 800,
     cursor: "pointer",
   },
-
   segmentButtonActive: {
     background: "#eff6ff",
     color: "#2563eb",
     border: "1px solid #bfdbfe",
   },
-
   toggleRow: {
     display: "grid",
     gridTemplateColumns: "minmax(0, 1fr) auto",
@@ -1210,19 +1034,16 @@ const shellStyles: Record<string, React.CSSProperties> = {
     borderRadius: 14,
     background: "#f8fafc",
   },
-
   toggleTitle: {
     fontSize: 14,
     fontWeight: 800,
     color: "#0f172a",
   },
-
   toggleDescription: {
     fontSize: 13,
     lineHeight: 1.5,
     color: "#64748b",
   },
-
   toggle: {
     width: 52,
     minWidth: 52,
@@ -1233,9 +1054,7 @@ const shellStyles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     cursor: "pointer",
-    transition: "all 0.2s ease",
   },
-
   toggleKnob: {
     width: 22,
     height: 22,
@@ -1243,80 +1062,23 @@ const shellStyles: Record<string, React.CSSProperties> = {
     background: "#ffffff",
     boxShadow: "0 2px 8px rgba(15,23,42,0.18)",
   },
-
-  sideTitle: {
-    fontSize: 16,
-    lineHeight: 1.3,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-
-  sideText: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "#64748b",
-  },
-
-  previewStack: {
-    display: "grid",
-    gap: 12,
-  },
-
-  previewRow: {
-    display: "grid",
-    gap: 4,
-    padding: "12px 0",
-    borderTop: "1px solid #e5e7eb",
-  },
-
-  previewLabel: {
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: 1.05,
-    textTransform: "uppercase",
-    color: "#64748b",
-  },
-
-  previewValue: {
-    fontSize: 13,
-    lineHeight: 1.6,
-    color: "#334155",
-  },
-
-  actionList: {
-    display: "grid",
-    gap: 10,
-  },
-
-  actionLink: {
-    textDecoration: "none",
-    color: "#2563eb",
-    fontSize: 14,
-    fontWeight: 700,
-    padding: "10px 12px",
-    borderRadius: 10,
-    border: "1px solid #dbeafe",
-    background: "#eff6ff",
-  },
-
-  premiumList: {
+  summaryRow: {
     display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
+    justifyContent: "space-between",
+    gap: 10,
+    padding: "10px 0",
+    borderBottom: "1px solid #e5e7eb",
   },
-
-  premiumItem: {
-    display: "inline-flex",
-    alignItems: "center",
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid #fde68a",
-    background: "#ffffff",
-    fontSize: 12,
+  summaryKey: {
+    fontSize: 13,
+    color: "#64748b",
+  },
+  summaryValue: {
+    fontSize: 13,
     fontWeight: 800,
-    color: "#92400e",
+    color: "#0f172a",
+    textAlign: "right",
   },
-
   stickyBar: {
     position: "fixed",
     left: 20,
@@ -1337,18 +1099,15 @@ const shellStyles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     flexWrap: "wrap",
   },
-
   stickyTitle: {
     fontSize: 14,
     fontWeight: 800,
     color: "#0f172a",
   },
-
   stickySub: {
     fontSize: 12,
     color: "#64748b",
   },
-
   primaryButton: {
     background: "#2563eb",
     color: "#ffffff",
@@ -1359,7 +1118,6 @@ const shellStyles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     textDecoration: "none",
   },
-
   secondaryButton: {
     background: "#ffffff",
     color: "#1f2937",
@@ -1374,4 +1132,3 @@ const shellStyles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
   },
 };
-
