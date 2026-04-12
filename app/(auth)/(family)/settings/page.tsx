@@ -253,21 +253,19 @@ export default function FamilySettingsPage() {
       setSavedAt(new Date().toLocaleString());
     } catch (err) {
       console.error("Settings save failed", err);
-      setStorageMode("local");
-      setWorkspacePatch({
-        profile: settings,
-        storageMode: "local",
-        userId: workspace.userId,
-      });
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "The family profile could not be updated in the database.";
+
       if (settings.default_child_id) {
         setActiveLearnerId(settings.default_child_id);
       }
-      setInitialSettings(settings);
-      setHasPendingEdits(false);
-      setSaveError(
-        "Settings were saved locally, but the family profile could not be updated in the database.",
-      );
-      setSavedAt(new Date().toLocaleString());
+
+      setStorageMode(workspace.storageMode);
+      setHasPendingEdits(true);
+      setSavedAt("");
+      setSaveError(`Database save failed: ${message}`);
     } finally {
       setSaving(false);
     }

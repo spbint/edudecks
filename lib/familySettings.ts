@@ -66,6 +66,7 @@ export type FamilySettings = {
 
 export type FamilyProfileRow = FamilySettings & {
   id: string;
+  user_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -139,6 +140,41 @@ function canUseBrowserStorage() {
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isMissingColumnError(error: unknown) {
+  const message = String(
+    (error as { message?: unknown })?.message ?? "",
+  ).toLowerCase();
+  return message.includes("does not exist") && message.includes("column");
+}
+
+function isMissingConstraintError(error: unknown) {
+  const message = String(
+    (error as { message?: unknown })?.message ?? "",
+  ).toLowerCase();
+  return (
+    message.includes("no unique or exclusion constraint") &&
+    message.includes("on conflict")
+  );
+}
+
+function describeSupabaseError(error: unknown) {
+  if (!error) return "Unknown Supabase error.";
+
+  if (typeof error === "string") return error;
+
+  if (typeof error === "object") {
+    const row = error as Record<string, unknown>;
+    return (
+      safeString(row.message) ||
+      safeString(row.details) ||
+      safeString(row.hint) ||
+      JSON.stringify(error)
+    );
+  }
+
+  return String(error);
 }
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
@@ -282,6 +318,96 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
             custom_labels: {},
             last_reviewed_at: null,
           },
+  };
+}
+
+function toDbCurriculumPreferences(
+  value: CurriculumPreferences | null | undefined
+): CurriculumPreferences {
+  const normalized = asCurriculumPreferences(value);
+
+  return {
+    country_id: normalized.country_id,
+    region_id: normalized.region_id,
+    framework_id: normalized.framework_id,
+    level_id: normalized.level_id,
+    subject_ids: [...normalized.subject_ids],
+    compliance_profile: normalized.compliance_profile
+      ? {
+          country: normalized.compliance_profile.country,
+          state: normalized.compliance_profile.state,
+          curriculum_framework:
+            normalized.compliance_profile.curriculum_framework,
+          compliance_mode: normalized.compliance_profile.compliance_mode,
+          template_version: normalized.compliance_profile.template_version,
+          required_fields: [...normalized.compliance_profile.required_fields],
+          recommended_fields: [
+            ...normalized.compliance_profile.recommended_fields,
+          ],
+          optional_fields: [...normalized.compliance_profile.optional_fields],
+          custom_labels: {
+            ...normalized.compliance_profile.custom_labels,
+          },
+          last_reviewed_at: normalized.compliance_profile.last_reviewed_at,
+        }
+      : {
+          country: null,
+          state: null,
+          curriculum_framework: null,
+          compliance_mode: null,
+          template_version: null,
+          required_fields: [],
+          recommended_fields: [],
+          optional_fields: [],
+          custom_labels: {},
+          last_reviewed_at: null,
+        },
+  };
+}
+
+function toFamilyProfilePayload(
+  settings: FamilySettings,
+  userId: string
+): FamilyProfileRow {
+  return {
+    id: userId,
+    user_id: userId,
+    family_display_name:
+      safeString(settings.family_display_name) ||
+      DEFAULT_FAMILY_SETTINGS.family_display_name,
+    preferred_market: asMarketKey(settings.preferred_market),
+    experience_mode: asExperienceMode(settings.experience_mode),
+    default_child_id: safeString(settings.default_child_id) || null,
+    default_child_landing: asDefaultChildLanding(
+      settings.default_child_landing
+    ),
+    week_start: asWeekStart(settings.week_start),
+    compact_mode: Boolean(settings.compact_mode),
+    show_advanced_insights: Boolean(settings.show_advanced_insights),
+    show_authority_guidance: Boolean(settings.show_authority_guidance),
+    auto_open_last_child: Boolean(settings.auto_open_last_child),
+    evidence_privacy_default: asEvidencePrivacy(
+      settings.evidence_privacy_default
+    ),
+    planner_auto_carry_forward: Boolean(settings.planner_auto_carry_forward),
+    planner_show_weekend: Boolean(settings.planner_show_weekend),
+    portfolio_print_style: asPortfolioPrintStyle(
+      settings.portfolio_print_style
+    ),
+    report_tone_default: asReportTone(settings.report_tone_default),
+    notifications_weekly_digest: Boolean(
+      settings.notifications_weekly_digest
+    ),
+    notifications_readiness_alerts: Boolean(
+      settings.notifications_readiness_alerts
+    ),
+    notifications_planner_nudges: Boolean(
+      settings.notifications_planner_nudges
+    ),
+    curriculum_preferences: toDbCurriculumPreferences(
+      settings.curriculum_preferences
+    ),
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -520,59 +646,158 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
     return { ...DEFAULT_FAMILY_PROFILE };
   }
 
-  const { data, error } = await supabase
-    .from("family_profiles")
-    .select("*")
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error("loadFamilyProfile error:", error);
+  const userId = await getCurrentUserId();
+  if (!userId) {
     return { ...DEFAULT_FAMILY_PROFILE };
   }
 
-  if (!data) {
-    return { ...DEFAULT_FAMILY_PROFILE };
+  const loadVariants: Array<{
+    label: string;
+    run: () => Promise<{
+      data: FamilyProfileRow | null;
+      error: unknown;
+    }>;
+    continueOnError?: (error: unknown) => boolean;
+  }> = [
+    {
+      label: "family_profiles by user_id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+      continueOnError: (error) => isMissingColumnError(error),
+    },
+    {
+      label: "family_profiles by id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+    },
+  ];
+
+  for (const variant of loadVariants) {
+    const { data, error } = await variant.run();
+
+    if (!error && data) {
+      return {
+        ...DEFAULT_FAMILY_PROFILE,
+        ...data,
+        id: safeString(data.id) || userId,
+        user_id: safeString(data.user_id) || userId,
+      };
+    }
+
+    if (error) {
+      console.error(`loadFamilyProfile ${variant.label} failed`, {
+        userId,
+        error,
+      });
+
+      if (variant.continueOnError?.(error)) {
+        continue;
+      }
+
+      return { ...DEFAULT_FAMILY_PROFILE, id: userId, user_id: userId };
+    }
   }
 
-  return {
-    ...DEFAULT_FAMILY_PROFILE,
-    ...data,
-  };
+  return { ...DEFAULT_FAMILY_PROFILE, id: userId, user_id: userId };
 }
 
 export async function upsertFamilyProfile(
   settings: FamilySettings
 ): Promise<FamilyProfileRow> {
-  const payload: FamilyProfileRow = {
-    id: "local",
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...settings,
-    updated_at: new Date().toISOString(),
-  };
-
   if (!hasSupabaseEnv) {
-    return {
-      ...DEFAULT_FAMILY_PROFILE,
-      ...payload,
-    };
+    return { ...DEFAULT_FAMILY_PROFILE, ...settings };
   }
 
-  const { data, error } = await supabase
-    .from("family_profiles")
-    .upsert(payload, { onConflict: "id" })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("upsertFamilyProfile error:", error);
-    throw error;
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("A signed-in Supabase session is required to save family settings.");
   }
 
-  return {
-    ...DEFAULT_FAMILY_PROFILE,
-    ...data,
-  };
+  const payload = toFamilyProfilePayload(settings, userId);
+
+  const saveVariants: Array<{
+    label: string;
+    payload: Record<string, unknown>;
+    onConflict: string;
+    continueOnError?: (error: unknown) => boolean;
+  }> = [
+    {
+      label: "family_profiles upsert by user_id",
+      payload,
+      onConflict: "user_id",
+      continueOnError: (error) =>
+        isMissingColumnError(error) || isMissingConstraintError(error),
+    },
+    {
+      label: "family_profiles upsert by id",
+      payload: { ...payload, id: userId },
+      onConflict: "id",
+    },
+  ];
+
+  let lastError: unknown = null;
+
+  for (const variant of saveVariants) {
+    console.info("upsertFamilyProfile attempt", {
+      label: variant.label,
+      payload: variant.payload,
+      onConflict: variant.onConflict,
+    });
+
+    const { data, error } = await supabase
+      .from("family_profiles")
+      .upsert(variant.payload, { onConflict: variant.onConflict })
+      .select()
+      .single();
+
+    if (!error && data) {
+      console.info("upsertFamilyProfile success", {
+        label: variant.label,
+        data,
+      });
+
+      return {
+        ...DEFAULT_FAMILY_PROFILE,
+        ...data,
+        id: safeString((data as Record<string, unknown>).id) || userId,
+        user_id:
+          safeString((data as Record<string, unknown>).user_id) || userId,
+      };
+    }
+
+    lastError = error;
+    console.error("upsertFamilyProfile Supabase error", {
+      label: variant.label,
+      payload: variant.payload,
+      error,
+    });
+
+    if (variant.continueOnError?.(error)) {
+      continue;
+    }
+  }
+
+  throw new Error(describeSupabaseError(lastError));
 }
 
 export async function saveFamilyProfile(settings: FamilySettings): Promise<void> {

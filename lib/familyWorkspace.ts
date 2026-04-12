@@ -360,13 +360,16 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
 export async function saveFamilyWorkspaceSettings(
   settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
+  console.info("saveFamilyWorkspaceSettings payload", settings);
   persistSettingsToLocalStorage(settings);
-  dispatchFamilyWorkspaceEvent();
-
-  return withTimeout(
+  const saved = await withTimeout(
     upsertFamilyProfile(settings),
     "save family workspace settings",
   );
+  console.info("saveFamilyWorkspaceSettings response", saved);
+  persistSettingsToLocalStorage(saved);
+  dispatchFamilyWorkspaceEvent();
+  return saved;
 }
 
 export async function setDefaultLearner(
