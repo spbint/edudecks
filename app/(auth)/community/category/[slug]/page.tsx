@@ -16,14 +16,27 @@ import {
 
 type FallbackThread = ForumThreadSummary & {
   authorLabel?: string;
+  latestActivityText?: string;
+  viewerSupports?: boolean;
 };
 
 function makeFallbackThread(
-  thread: Omit<FallbackThread, "user_id"> & { user_id?: string },
+  thread: Omit<
+    FallbackThread,
+    "user_id" | "authorLabel" | "latestActivityText" | "viewerSupports"
+  > & {
+    user_id?: string;
+    authorLabel?: string;
+    latestActivityText?: string;
+    viewerSupports?: boolean;
+  },
 ): FallbackThread {
   return {
     ...thread,
     user_id: thread.user_id ?? "demo-user",
+    authorLabel: thread.authorLabel ?? "EduDecks Community",
+    latestActivityText: thread.latestActivityText ?? "No replies yet",
+    viewerSupports: thread.viewerSupports ?? false,
   };
 }
 
