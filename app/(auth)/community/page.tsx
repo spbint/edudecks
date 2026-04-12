@@ -527,6 +527,21 @@ export default function CommunityHomePage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link
+            href="/family"
+            style={{
+              border: "1px solid #d1d5db",
+              background: "#ffffff",
+              color: "#334155",
+              borderRadius: 10,
+              padding: "10px 14px",
+              fontSize: 14,
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            Family Home
+          </Link>
           {featuredActions.map((action) => (
             <Link
               key={action.label}
