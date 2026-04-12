@@ -13,6 +13,7 @@ import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 export const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 export const FAMILY_CHILDREN_CACHE_KEY = "edudecks_children_seed_v1";
+export const FAMILY_WORKSPACE_EVENT = "edudecksFamilyWorkspaceChanged";
 
 export type FamilyLearner = {
   id: string;
@@ -94,8 +95,41 @@ function mergeLearners(
   return Array.from(map.values());
 }
 
+function dispatchFamilyWorkspaceEvent(detail?: {
+  childId?: string;
+  learners?: FamilyLearner[];
+}) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(
+    new CustomEvent(FAMILY_WORKSPACE_EVENT, {
+      detail: detail ?? {},
+    }),
+  );
+}
+
 export function learnerDisplayName(learner: FamilyLearner | null | undefined) {
   return safe(learner?.label) || "Learner";
+}
+
+export function buildLocalFamilyWorkspaceSnapshot(): FamilyWorkspaceState {
+  const localSettings = loadSettingsFromLocalStorage();
+  const localLearners = loadLearnersFromLocalCache();
+
+  const localProfile: FamilyProfileRow = {
+    id: "local",
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...localSettings,
+    default_child_id:
+      localSettings.default_child_id || localLearners[0]?.id || null,
+  };
+
+  return {
+    profile: localProfile,
+    learners: localLearners,
+    userId: null,
+    storageMode: "local",
+  };
 }
 
 export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
@@ -108,14 +142,18 @@ export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
         learners.map((learner) => ({
           id: learner.id,
           name: learner.label,
+          label: learner.label,
           yearLabel: learner.yearLabel || "",
           year_level: learner.year_level ?? "",
+          connectedAt: learner.connectedAt ?? null,
         })),
       ),
     );
   } catch {
     // ignore local cache failures
   }
+
+  dispatchFamilyWorkspaceEvent({ learners });
 }
 
 export function loadLearnersFromLocalCache(): FamilyLearner[] {
@@ -130,7 +168,8 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
     year_level: parseYearLevel(
       (child as { year_level?: string | number | null }).year_level,
     ),
-    connectedAt: null,
+    connectedAt:
+      safe((child as { connectedAt?: string | null }).connectedAt) || null,
   }));
 }
 
@@ -262,37 +301,20 @@ export async function loadLinkedLearners(
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
-  const localSettings = loadSettingsFromLocalStorage();
-  const localLearners = loadLearnersFromLocalCache();
-
-  const localProfile = {
-    ...DEFAULT_FAMILY_SETTINGS,
-    ...localSettings,
-    default_child_id:
-      localSettings.default_child_id || localLearners[0]?.id || null,
-  };
+  const localSnapshot = buildLocalFamilyWorkspaceSnapshot();
+  const localLearners = localSnapshot.learners;
+  const localProfile = localSnapshot.profile;
 
   const userId = await getCurrentFamilyUserId();
 
   if (!userId || !hasSupabaseEnv) {
-    return {
-      profile: {
-        id: "local",
-        ...localProfile,
-      },
-      learners: localLearners,
-      userId,
-      storageMode: "local",
-    };
+    return localSnapshot;
   }
 
   try {
     const [profile, dbLearners] = await withTimeout(
       Promise.all([
-        loadFamilyProfile().catch(() => ({
-          id: "local",
-          ...localProfile,
-        })) as Promise<FamilyProfileRow>,
+        loadFamilyProfile().catch(() => localProfile) as Promise<FamilyProfileRow>,
         loadLinkedLearners(userId).catch((error) => {
           console.error("loadLinkedLearners fallback", error);
           return localLearners;
@@ -328,15 +350,9 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     };
   } catch (error) {
     console.error("loadFamilyWorkspace fallback", error);
-
     return {
-      profile: {
-        id: "local",
-        ...localProfile,
-      },
-      learners: localLearners,
+      ...localSnapshot,
       userId,
-      storageMode: "local",
     };
   }
 }
@@ -345,6 +361,8 @@ export async function saveFamilyWorkspaceSettings(
   settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
   persistSettingsToLocalStorage(settings);
+  dispatchFamilyWorkspaceEvent();
+
   return withTimeout(
     upsertFamilyProfile(settings),
     "save family workspace settings",
@@ -459,6 +477,7 @@ export async function createLinkedLearner(
     throw linkInsert.error;
   }
 
+  dispatchFamilyWorkspaceEvent({ childId: studentId });
   return studentId;
 }
 
@@ -475,6 +494,8 @@ export async function removeLinkedLearner(userId: string, learnerId: string) {
   if (res.error) {
     throw res.error;
   }
+
+  dispatchFamilyWorkspaceEvent({ childId: learnerId });
 }
 
 export function getStoredActiveLearnerId() {
@@ -498,6 +519,8 @@ export function setActiveLearnerId(learnerId: string | null | undefined) {
       detail: { childId: clean || undefined },
     }),
   );
+
+  dispatchFamilyWorkspaceEvent({ childId: clean || undefined });
 }
 
 export function resolveEffectiveActiveLearnerId(
