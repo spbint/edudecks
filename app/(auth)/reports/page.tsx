@@ -84,6 +84,17 @@ type BuilderValueSignal = {
   secondaryIntent: string;
 };
 
+type CurriculumCoverageArea = {
+  area: string;
+  totalOutcomes: number;
+  linkedOutcomes: number;
+  evidenceLinks: number;
+  secureOutcomes: number;
+  trackedOutcomes: number;
+  status: CoverageStatus;
+  statusLabel: string;
+};
+
 const AREA_OPTIONS = [
   "Literacy",
   "Numeracy",
@@ -879,20 +890,132 @@ function ReportsPageContent() {
     return set.size;
   }, [studentEvidence]);
 
+  const curriculumCoverage = useMemo(() => {
+    if (!selectedStudentId) {
+      return {
+        ready: false,
+        reason: "no-learner" as const,
+        areas: [] as CurriculumCoverageArea[],
+        totalOutcomes: 0,
+        linkedOutcomes: 0,
+        evidenceLinks: 0,
+        secureOutcomes: 0,
+        trackedOutcomes: 0,
+        uncoveredOutcomes: 0,
+        strongestAreas: [] as string[],
+        weakestAreas: [] as string[],
+      };
+    }
+
+    if (!curriculumData?.framework || !curriculumData?.level) {
+      return {
+        ready: false,
+        reason: "no-curriculum" as const,
+        areas: [] as CurriculumCoverageArea[],
+        totalOutcomes: 0,
+        linkedOutcomes: 0,
+        evidenceLinks: 0,
+        secureOutcomes: 0,
+        trackedOutcomes: 0,
+        uncoveredOutcomes: 0,
+        strongestAreas: [] as string[],
+        weakestAreas: [] as string[],
+      };
+    }
+
+    if (curriculumData.totalOutcomes === 0) {
+      return {
+        ready: false,
+        reason: "no-outcomes" as const,
+        areas: [] as CurriculumCoverageArea[],
+        totalOutcomes: 0,
+        linkedOutcomes: 0,
+        evidenceLinks: 0,
+        secureOutcomes: 0,
+        trackedOutcomes: 0,
+        uncoveredOutcomes: 0,
+        strongestAreas: [] as string[],
+        weakestAreas: [] as string[],
+      };
+    }
+
+    const areas = curriculumData.areas.map((area) => {
+      const outcomes = area.strands.flatMap((strand) => strand.outcomes);
+      const totalOutcomes = outcomes.length;
+      const linkedOutcomes = outcomes.filter((outcome) => outcome.evidenceCount > 0).length;
+      const secureOutcomes = outcomes.filter((outcome) => outcome.status === "secure").length;
+      const trackedOutcomes = outcomes.filter(
+        (outcome) => outcome.status !== "not_introduced",
+      ).length;
+      const status = getCoverageStatus(linkedOutcomes);
+
+      return {
+        area: area.name,
+        totalOutcomes,
+        linkedOutcomes,
+        evidenceLinks: area.evidenceCount,
+        secureOutcomes,
+        trackedOutcomes,
+        status,
+        statusLabel: coverageStatusLabel(status),
+      } satisfies CurriculumCoverageArea;
+    });
+
+    const strongestAreas = areas
+      .filter((area) => area.linkedOutcomes > 0)
+      .sort((a, b) => b.linkedOutcomes - a.linkedOutcomes || b.evidenceLinks - a.evidenceLinks)
+      .slice(0, 3)
+      .map((area) => area.area);
+
+    const weakestAreas = areas
+      .filter((area) => area.linkedOutcomes === 0)
+      .slice(0, 3)
+      .map((area) => area.area);
+
+    return {
+      ready: true,
+      reason: "ok" as const,
+      areas,
+      totalOutcomes: curriculumData.totalOutcomes,
+      linkedOutcomes: curriculumData.evidenceLinkedOutcomeCount,
+      evidenceLinks: curriculumData.totalEvidenceLinks,
+      secureOutcomes: curriculumData.statusCounts.secure,
+      trackedOutcomes: curriculumData.trackedOutcomeCount,
+      uncoveredOutcomes: Math.max(
+        curriculumData.totalOutcomes - curriculumData.evidenceLinkedOutcomeCount,
+        0,
+      ),
+      strongestAreas,
+      weakestAreas,
+    };
+  }, [curriculumData, selectedStudentId]);
+
   const readinessScore = useMemo(() => {
-    let score = 25;
-    if (selectedStudentId) score += 15;
-    if (selectedAreas.length >= 4) score += 15;
-    if (selectedEvidenceIds.length >= 4) score += 22;
-    else if (selectedEvidenceIds.length >= 2) score += 14;
-    else if (selectedEvidenceIds.length >= 1) score += 8;
-    if (selectedCoreCount >= 2) score += 6;
-    if (includeAppendix && selectedAppendixCount >= 1) score += 4;
-    if (includeReadinessNotes) score += 5;
-    if (notes.trim().length >= 20) score += 6;
+    let score = 12;
+    if (selectedStudentId) score += 10;
+    if (curriculumCoverage.ready) score += 10;
+    if (curriculumCoverage.totalOutcomes > 0) score += 6;
+    if (curriculumCoverage.linkedOutcomes >= 8) score += 20;
+    else if (curriculumCoverage.linkedOutcomes >= 4) score += 14;
+    else if (curriculumCoverage.linkedOutcomes >= 1) score += 8;
+    if (curriculumCoverage.secureOutcomes >= 3) score += 10;
+    else if (curriculumCoverage.secureOutcomes >= 1) score += 6;
+    if (plannerData?.actions.length) score += 6;
+    if (selectedAreas.length >= 4) score += 8;
+    if (selectedEvidenceIds.length >= 4) score += 10;
+    else if (selectedEvidenceIds.length >= 2) score += 6;
+    else if (selectedEvidenceIds.length >= 1) score += 3;
+    if (selectedCoreCount >= 2) score += 5;
+    if (includeAppendix && selectedAppendixCount >= 1) score += 3;
+    if (includeReadinessNotes) score += 4;
+    if (notes.trim().length >= 20) score += 4;
+    if (draftId) score += 4;
     if (reportMode === "authority-ready") score += 2;
     return Math.min(score, 100);
   }, [
+    curriculumCoverage,
+    draftId,
+    plannerData?.actions.length,
     selectedStudentId,
     selectedAreas.length,
     selectedEvidenceIds.length,
@@ -956,46 +1079,55 @@ function ReportsPageContent() {
   }, [studentEvidence]);
 
   const interpretation = useMemo(() => {
-    const strongAreas = areaStats.filter((x) => x.status === "strong").map((x) => x.area);
-    const developingAreas = areaStats
+    const strongAreas = curriculumCoverage.strongestAreas;
+    const weakAreas = curriculumCoverage.weakestAreas;
+    const developingAreas = curriculumCoverage.areas
       .filter((x) => x.status === "developing")
       .map((x) => x.area);
-    const weakAreas = areaStats.filter((x) => x.status === "attention").map((x) => x.area);
 
     let text = "";
 
     if (!selectedStudentId) {
       text =
         "Choose a child first so EduDecks can interpret evidence coverage and build a meaningful report position.";
+    } else if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+      text =
+        "This learner does not have a canonical curriculum selection yet. Finish that in settings before trusting report readiness.";
+    } else if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+      text =
+        "The learner's curriculum is selected, but no seeded outcomes were found for the current level yet.";
     } else if (!studentEvidence.length) {
       text =
         "There is not enough evidence in the current child and area filter to interpret this report yet. Add evidence or widen the selected areas first.";
+    } else if (curriculumCoverage.linkedOutcomes === 0) {
+      text =
+        "Evidence is available, but none of it is linked to canonical curriculum outcomes yet. Link captured work to curriculum before trusting report coverage.";
     } else if (strongAreas.length) {
-      text = `You have built strong evidence in ${joinNatural(strongAreas)}.`;
+      text = `Evidence-backed curriculum coverage is strongest in ${joinNatural(strongAreas)}.`;
       if (developingAreas.length) {
         text += ` ${joinNatural(
           developingAreas.slice(0, 2)
-        )} is emerging but would benefit from a little more recent evidence.`;
+        )} is emerging but would benefit from a little more linked evidence.`;
       }
       if (weakAreas.length) {
         text += ` ${joinNatural(
           weakAreas.slice(0, 2)
-        )} still need more evidence to make the report feel balanced.`;
+        )} still need more evidence support to make the report feel balanced.`;
       }
     } else if (developingAreas.length) {
-      text = `You have early evidence in ${joinNatural(
+      text = `You have early curriculum coverage in ${joinNatural(
         developingAreas.slice(0, 3)
-      )}, but the report still needs stronger anchors before it will feel settled.`;
+      )}, but the report still needs stronger evidence anchors before it will feel settled.`;
       if (weakAreas.length) {
         text += ` ${joinNatural(weakAreas.slice(0, 2))} remain the clearest gaps.`;
       }
     } else {
       text =
-        "The report still lacks strong evidence anchors. Start by selecting a few clearer evidence items and broadening the area mix slightly.";
+        "The report still lacks strong evidence-backed curriculum anchors. Start by linking more captured work to outcomes and selecting a few clearer evidence items.";
     }
 
     const strongestFocus =
-      strongAreas[0] || developingAreas[0] || selectedAreas[0] || "Literacy";
+      strongAreas[0] || developingAreas[0] || curriculumCoverage.areas[0]?.area || selectedAreas[0] || "Literacy";
     const weakestFocus =
       weakAreas[0] || developingAreas[1] || weakAreas[1] || "";
 
@@ -1007,10 +1139,19 @@ function ReportsPageContent() {
       weakestFocus,
       text,
     };
-  }, [areaStats, selectedStudentId, studentEvidence.length, selectedAreas]);
+  }, [curriculumCoverage, selectedStudentId, studentEvidence.length, selectedAreas]);
 
   const nextBestMove = useMemo(() => {
     if (!selectedStudentId) return "Choose a child to start the report object.";
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+      return "Finish the learner's curriculum setup in Settings before trusting report coverage or readiness.";
+    }
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+      return "Seed the selected framework and level with canonical outcomes before using this report as a trustworthy curriculum-backed hub.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) {
+      return "Open Capture and link saved evidence to curriculum outcomes so this report stops relying on manual progress alone.";
+    }
     if (studentEvidence.length === 0) {
       return "No evidence is available for this child and area filter yet. Add evidence or widen the area filter first.";
     }
@@ -1031,6 +1172,7 @@ function ReportsPageContent() {
     }
     return "Open output to review the saved draft, then export it or open the authority pack if you need the formal version.";
   }, [
+    curriculumCoverage,
     draftId,
     selectedStudentId,
     studentEvidence.length,
@@ -1041,6 +1183,9 @@ function ReportsPageContent() {
   ]);
 
   const saveConfidenceText = useMemo(() => {
+    if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) {
+      return "This draft can still be saved now, but it will feel much more trustworthy once some evidence is linked to curriculum outcomes.";
+    }
     if (readinessScore >= 85) {
       return "You are ready to save this draft. After saving, review the output before exporting or opening the authority pack.";
     }
@@ -1048,7 +1193,7 @@ function ReportsPageContent() {
       return "You are close to ready. One or two small improvements will make the saved draft feel much stronger.";
     }
     return "This draft can still be saved now, but it will feel more trustworthy once evidence and balance improve.";
-  }, [readinessScore]);
+  }, [curriculumCoverage, readinessScore]);
 
   const builderStage = useMemo(
     () => buildBuilderStage(selectedStudentId, selectedEvidenceIds.length, draftId),
@@ -1452,6 +1597,10 @@ function ReportsPageContent() {
                   <strong>{evidenceCoverageCount}</strong>
                 </div>
                 <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Outcomes with evidence</span>
+                  <strong>{curriculumCoverage.linkedOutcomes}</strong>
+                </div>
+                <div style={miniStatStyle}>
                   <span style={miniStatLabel}>Curriculum outcomes tracked</span>
                   <strong>{curriculumData?.trackedOutcomeCount ?? 0}</strong>
                 </div>
@@ -1486,6 +1635,31 @@ function ReportsPageContent() {
 
               <div style={{ height: 14 }} />
 
+              {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum" ? (
+                <div style={{ ...softCardStyle, marginBottom: 14 }}>
+                  <div style={smallStyle}>
+                    No canonical curriculum is selected for this learner yet, so evidence-backed curriculum coverage cannot be calculated here. Finish the setup in{" "}
+                    <Link href="/settings#curriculum">Settings</Link>.
+                  </div>
+                </div>
+              ) : null}
+
+              {!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes" ? (
+                <div style={{ ...softCardStyle, marginBottom: 14 }}>
+                  <div style={smallStyle}>
+                    The learner's curriculum is selected, but no seeded outcomes exist for the current level yet, so evidence-backed coverage is still unavailable.
+                  </div>
+                </div>
+              ) : null}
+
+              {curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0 ? (
+                <div style={{ ...softCardStyle, marginBottom: 14 }}>
+                  <div style={smallStyle}>
+                    No evidence links exist yet for this learner's curriculum map. Capture and link evidence before treating coverage as report-ready.
+                  </div>
+                </div>
+              ) : null}
+
               <div
                 style={{
                   display: "grid",
@@ -1503,6 +1677,11 @@ function ReportsPageContent() {
                         </div>
                         <div style={{ ...smallStyle, marginTop: 6 }}>
                           {curriculumData.level.level_label} · {curriculumData.totalOutcomes} mapped outcomes
+                        </div>
+                        <div style={{ ...smallStyle, marginTop: 8 }}>
+                          {curriculumCoverage.linkedOutcomes > 0
+                            ? `${curriculumCoverage.linkedOutcomes} outcomes are already supported by ${curriculumCoverage.evidenceLinks} linked evidence item${curriculumCoverage.evidenceLinks === 1 ? "" : "s"}.`
+                            : "No curriculum outcomes are evidence-backed yet. Use Capture to link saved evidence before trusting coverage."}
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                           {curriculumStatusSummary.map((item) => (
@@ -1714,7 +1893,7 @@ function ReportsPageContent() {
             <section style={cardStyle}>
               <div style={h2Style}>Coverage snapshot</div>
               <div style={smallStyle}>
-                Choose the learning areas this saved report object should speak for.
+                Evidence-backed curriculum coverage is shown here first. The area filter below still shapes which evidence this saved report object will include.
               </div>
 
               <div style={{ height: 14 }} />
@@ -1748,8 +1927,10 @@ function ReportsPageContent() {
                   gap: 12,
                 }}
               >
-                {areaStats
-                  .filter((item) => selectedAreas.includes(item.area))
+                {(curriculumCoverage.ready ? curriculumCoverage.areas : areaStats)
+                  .filter((item) =>
+                    curriculumCoverage.ready ? true : selectedAreas.includes(item.area)
+                  )
                   .map((item) => (
                     <div
                       key={item.area}
@@ -1782,8 +1963,11 @@ function ReportsPageContent() {
                         <span style={pillStyle(coverageTone(item.status))}>{item.statusLabel}</span>
                       </div>
                       <div style={smallStyle}>
-                        {item.count} evidence item{item.count === 1 ? "" : "s"}
-                        {item.lastSeen ? ` · last seen ${shortDate(item.lastSeen)}` : " · no evidence yet"}
+                        {"linkedOutcomes" in item
+                          ? item.linkedOutcomes > 0
+                            ? `${item.linkedOutcomes} outcome${item.linkedOutcomes === 1 ? "" : "s"} linked, ${item.evidenceLinks} evidence link${item.evidenceLinks === 1 ? "" : "s"}, ${item.secureOutcomes} secure`
+                            : `${item.totalOutcomes} mapped outcomes, no evidence linked yet`
+                          : `${item.count} evidence item${item.count === 1 ? "" : "s"}${item.lastSeen ? ` · last seen ${shortDate(item.lastSeen)}` : " · no evidence yet"}`}
                       </div>
                     </div>
                   ))}
@@ -2069,6 +2253,11 @@ function ReportsPageContent() {
                 >
                   {draftId || "Not saved yet"}
                 </div>
+                {!draftId ? (
+                  <div style={{ ...smallStyle, marginTop: 8 }}>
+                    No canonical report draft exists yet for this working report. Save the draft when the evidence base feels trustworthy.
+                  </div>
+                ) : null}
               </div>
             </section>
           </aside>
