@@ -5,19 +5,15 @@ import { CurriculumPreferences } from "@/lib/familySettings";
 import type {
   CurriculumCountry,
   CurriculumFramework,
-  CurriculumLevel,
   CurriculumRegion,
   CurriculumSubject,
 } from "@/lib/curriculum";
 import {
   findFrameworkById,
-  findLevelLabel,
   findSubjectLabel,
   getRecommendedFrameworkId,
-  getRecommendedLevelId,
   loadCurriculumCountries,
   loadCurriculumFrameworks,
-  loadCurriculumLevels,
   loadCurriculumRegions,
   loadCurriculumSubjects,
 } from "@/lib/curriculum";
@@ -35,6 +31,13 @@ type CurriculumSetupCardProps = {
   value: CurriculumPreferences;
   onChange: (curriculum: CurriculumPreferences) => void;
 };
+
+function withoutFamilyLevel(value: CurriculumPreferences): CurriculumPreferences {
+  return {
+    ...value,
+    level_id: null,
+  };
+}
 
 async function withTimeout<T>(
   promise: Promise<T>,
@@ -147,14 +150,6 @@ const FALLBACK_FRAMEWORKS = [
   { id: "ib-pyp", name: "IB Primary Years Programme", country_id: "ib", region_id: undefined, subject_ids: ["english", "math", "science"] },
 ] as unknown as CurriculumFramework[];
 
-const FALLBACK_LEVELS = [
-  { id: "year-1", label: "Year 1 / Grade 1", sort: 1, framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
-  { id: "year-2", label: "Year 2 / Grade 2", sort: 2, framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
-  { id: "year-3", label: "Year 3 / Grade 3", sort: 3, framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
-  { id: "year-4", label: "Year 4 / Grade 4", sort: 4, framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
-  { id: "year-5", label: "Year 5 / Grade 5", sort: 5, framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
-] as unknown as CurriculumLevel[];
-
 const FALLBACK_SUBJECTS = [
   { id: "english", label: "English Language Arts", framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
   { id: "math", label: "Mathematics", framework_ids: ["common-core", "acara", "uk-national", "nz-curriculum", "canada-general", "caps", "singapore-national", "ib-pyp"] },
@@ -219,7 +214,7 @@ export default function CurriculumSetupCard({
   onChange,
 }: CurriculumSetupCardProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState<CurriculumPreferences>(value);
+  const [draft, setDraft] = useState<CurriculumPreferences>(() => withoutFamilyLevel(value));
   const [hasLocalEdits, setHasLocalEdits] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -227,7 +222,6 @@ export default function CurriculumSetupCard({
   const [countries, setCountries] = useState<CurriculumCountry[]>([]);
   const [regions, setRegions] = useState<CurriculumRegion[]>([]);
   const [frameworks, setFrameworks] = useState<CurriculumFramework[]>([]);
-  const [levels, setLevels] = useState<CurriculumLevel[]>([]);
   const [subjects, setSubjects] = useState<CurriculumSubject[]>([]);
 
   useEffect(() => {
@@ -242,7 +236,6 @@ export default function CurriculumSetupCard({
           withTimeout(loadCurriculumCountries(), "load curriculum countries"),
           withTimeout(loadCurriculumRegions(), "load curriculum regions"),
           withTimeout(loadCurriculumFrameworks(), "load curriculum frameworks"),
-          withTimeout(loadCurriculumLevels(), "load curriculum levels"),
           withTimeout(loadCurriculumSubjects(), "load curriculum subjects"),
         ]);
 
@@ -251,13 +244,11 @@ export default function CurriculumSetupCard({
         const loadedCountries = settled[0].status === "fulfilled" ? settled[0].value : [];
         const loadedRegions = settled[1].status === "fulfilled" ? settled[1].value : [];
         const loadedFrameworks = settled[2].status === "fulfilled" ? settled[2].value : [];
-        const loadedLevels = settled[3].status === "fulfilled" ? settled[3].value : [];
-        const loadedSubjects = settled[4].status === "fulfilled" ? settled[4].value : [];
+        const loadedSubjects = settled[3].status === "fulfilled" ? settled[3].value : [];
 
         setCountries(loadedCountries.length > 0 ? loadedCountries : FALLBACK_COUNTRIES);
         setRegions(loadedRegions.length > 0 ? loadedRegions : FALLBACK_REGIONS);
         setFrameworks(loadedFrameworks.length > 0 ? loadedFrameworks : FALLBACK_FRAMEWORKS);
-        setLevels(loadedLevels.length > 0 ? loadedLevels : FALLBACK_LEVELS);
         setSubjects(loadedSubjects.length > 0 ? loadedSubjects : FALLBACK_SUBJECTS);
 
         if (settled.some((result) => result.status === "rejected")) {
@@ -271,7 +262,6 @@ export default function CurriculumSetupCard({
         setCountries(FALLBACK_COUNTRIES);
         setRegions(FALLBACK_REGIONS);
         setFrameworks(FALLBACK_FRAMEWORKS);
-        setLevels(FALLBACK_LEVELS);
         setSubjects(FALLBACK_SUBJECTS);
         setLoadMessage(
           "Curriculum data could not be loaded right now, so EduDecks is using built-in options.",
@@ -291,7 +281,7 @@ export default function CurriculumSetupCard({
 
   useEffect(() => {
     if (!isEditing && !hasLocalEdits) {
-      setDraft(value);
+      setDraft(withoutFamilyLevel(value));
     }
   }, [value, isEditing, hasLocalEdits]);
 
@@ -330,19 +320,6 @@ export default function CurriculumSetupCard({
       (framework) => inferCountryKey(framework.country_id) === selectedCountryKey,
     );
   }, [draft.country_id, draft.region_id, frameworks, selectedCountryKey]);
-
-  const levelOptions = useMemo(() => {
-    const live = levels
-      .filter((level) => !draft.framework_id || (level.framework_ids || []).includes(String(draft.framework_id)))
-      .slice()
-      .sort((a, b) => Number(a.sort) - Number(b.sort));
-    if (live.length > 0) return live;
-
-    return FALLBACK_LEVELS
-      .filter((level) => !draft.framework_id || (level.framework_ids || []).includes(String(draft.framework_id)))
-      .slice()
-      .sort((a, b) => Number(a.sort) - Number(b.sort));
-  }, [draft.framework_id, levels]);
 
   const subjectOptions = useMemo(() => {
     const live = subjects.filter(
@@ -383,10 +360,6 @@ export default function CurriculumSetupCard({
     (region) => String(region.id) === String(value.region_id ?? ""),
   );
 
-  const selectedLevelLabel =
-    levelOptions.find((level) => String(level.id) === String(value.level_id ?? ""))?.label ||
-    findLevelLabel(value.level_id);
-
   const selectedSubjectNames = value.subject_ids
     .map((id) => {
       const found = subjectOptions.find((subject) => String(subject.id) === String(id));
@@ -394,7 +367,7 @@ export default function CurriculumSetupCard({
     })
     .filter(Boolean);
 
-  const hasSetup = Boolean(value.country_id || value.framework_id || value.level_id);
+  const hasSetup = Boolean(value.country_id || value.framework_id);
   const headerButtonLabel = hasSetup ? "Edit curriculum setup" : "Set up curriculum";
 
   const recommendedFrameworkId = useMemo(() => {
@@ -414,19 +387,6 @@ export default function CurriculumSetupCard({
       ) || null
     );
   }, [frameworkOptions, recommendedFrameworkId]);
-
-  const recommendedLevelId = useMemo(() => {
-    if (selectedCountryKey === "au") {
-      return draft.level_id ?? null;
-    }
-    const recommended = getRecommendedLevelId(recommendedFramework?.id ?? null);
-    if (recommended) return recommended;
-    return levelOptions[0]?.id ?? null;
-  }, [draft.level_id, levelOptions, recommendedFramework, selectedCountryKey]);
-
-  const recommendedLevelLabel =
-    levelOptions.find((level) => String(level.id) === String(recommendedLevelId ?? ""))?.label ||
-    findLevelLabel(recommendedLevelId);
 
   const requiredFieldDefinitions = useMemo(
     () =>
@@ -487,10 +447,6 @@ export default function CurriculumSetupCard({
     const defaultFrameworkId =
       FALLBACK_FRAMEWORKS.find((framework) => inferCountryKey(framework.country_id) === countryKey)?.id ??
       null;
-    const defaultLevelId =
-      FALLBACK_LEVELS.find((level) =>
-        (level.framework_ids || []).includes(String(defaultFrameworkId)),
-      )?.id ?? null;
 
     setDraft((prev) => {
       const nextDraft: CurriculumPreferences = {
@@ -498,7 +454,7 @@ export default function CurriculumSetupCard({
         country_id: id || null,
         region_id: null,
         framework_id: defaultFrameworkId,
-        level_id: defaultLevelId,
+        level_id: null,
         subject_ids: [],
       };
 
@@ -522,16 +478,11 @@ export default function CurriculumSetupCard({
   function handleFrameworkChange(id: string) {
     setHasLocalEdits(true);
 
-    const defaultLevelId =
-      FALLBACK_LEVELS.find((level) =>
-        (level.framework_ids || []).includes(String(id)),
-      )?.id ?? null;
-
     setDraft((prev) => {
       const nextDraft: CurriculumPreferences = {
         ...prev,
         framework_id: id || null,
-        level_id: defaultLevelId,
+        level_id: null,
         subject_ids: [],
       };
 
@@ -556,10 +507,6 @@ export default function CurriculumSetupCard({
 
       return nextDraft;
     });
-  }
-
-  function handleLevelChange(id: string) {
-    updateDraft("level_id", id || null);
   }
 
   function handleSubjectToggle(subjectId: string) {
@@ -624,7 +571,7 @@ export default function CurriculumSetupCard({
 
   function handleApply() {
     onChange({
-      ...draft,
+      ...withoutFamilyLevel(draft),
       compliance_profile: {
         ...complianceProfile,
         last_reviewed_at: new Date().toISOString(),
@@ -639,7 +586,7 @@ export default function CurriculumSetupCard({
   }
 
   function handleCancel() {
-    setDraft(value);
+    setDraft(withoutFamilyLevel(value));
     setHasLocalEdits(false);
     setIsEditing(false);
   }
@@ -653,7 +600,7 @@ export default function CurriculumSetupCard({
         ...prev,
         country_id: prev.country_id || recommendedFramework.country_id,
         framework_id: recommendedFramework.id,
-        level_id: recommendedLevelId ?? prev.level_id,
+        level_id: null,
         subject_ids:
           recommendedFramework.subject_ids?.length > 0
             ? recommendedFramework.subject_ids
@@ -689,7 +636,7 @@ export default function CurriculumSetupCard({
               type="button"
               style={cardStyles.primaryButton}
               onClick={() => {
-                setDraft(value);
+                setDraft(withoutFamilyLevel(value));
                 setHasLocalEdits(false);
                 setIsEditing(true);
               }}
@@ -808,25 +755,6 @@ export default function CurriculumSetupCard({
                   </select>
                 </Field>
 
-                <Field
-                  label="Year level / grade band"
-                  help="Choose the level that best matches your child right now."
-                >
-                  <select
-                    value={draft.level_id ?? ""}
-                    onChange={(event) => handleLevelChange(event.target.value)}
-                    style={cardStyles.input}
-                    disabled={!draft.framework_id}
-                  >
-                    <option value="">Select a level</option>
-                    {levelOptions.map((level) => (
-                      <option key={String(level.id)} value={String(level.id)}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
                 {subjectOptions.length > 0 ? (
                   <Field
                     label="Learning areas (optional)"
@@ -886,17 +814,11 @@ export default function CurriculumSetupCard({
                         </>
                       )}
                     </div>
-                    {selectedCountryKey === "au" ? (
-                      <div style={cardStyles.recommendationSub}>
-                        {recommendedLevelLabel
-                          ? `Suggested level: ${recommendedLevelLabel}`
-                          : "Suggested level will follow the learner year level when that is available."}
-                      </div>
-                    ) : recommendedLevelLabel ? (
-                      <div style={cardStyles.recommendationSub}>
-                        Suggested level: {recommendedLevelLabel}
-                      </div>
-                    ) : null}
+                    <div style={cardStyles.recommendationSub}>
+                      {selectedCountryKey === "au"
+                        ? "Australian curriculum setup stays focused on jurisdiction and framework. Individual learner year levels belong in each learner profile."
+                        : "Curriculum setup stays at the family structure level. Individual learner year levels belong in each learner profile."}
+                    </div>
                     <button
                       type="button"
                       style={cardStyles.recommendButton}
@@ -1082,7 +1004,6 @@ export default function CurriculumSetupCard({
               {complianceProfile.compliance_mode ? (
                 <Row label="Compliance mode" value={complianceProfile.compliance_mode} />
               ) : null}
-              {selectedLevelLabel ? <Row label="Year level" value={selectedLevelLabel} /> : null}
               {selectedSubjectNames.length > 0 ? (
                 <Row label="Learning areas" value={selectedSubjectNames.join(" - ")} />
               ) : null}
@@ -1100,7 +1021,7 @@ export default function CurriculumSetupCard({
                 type="button"
                 style={cardStyles.secondaryButton}
                 onClick={() => {
-                  setDraft(value);
+                  setDraft(withoutFamilyLevel(value));
                   setHasLocalEdits(false);
                   setIsEditing(true);
                 }}
