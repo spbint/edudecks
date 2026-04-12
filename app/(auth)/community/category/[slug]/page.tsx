@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -13,6 +13,222 @@ import {
   type ForumCategory,
   type ForumThreadSummary,
 } from "@/lib/communityForum";
+
+type FallbackThread = ForumThreadSummary & {
+  authorLabel?: string;
+};
+
+const CATEGORY_FALLBACKS: Record<
+  string,
+  {
+    name: string;
+    description: string;
+    prompts: string[];
+    emptyTitle: string;
+    emptyText: string;
+    starterThreads: FallbackThread[];
+  }
+> = {
+  "general-discussion": {
+    name: "General Discussion",
+    description:
+      "A calm place for homeschool families to share wins, ask everyday questions, and encourage one another.",
+    prompts: [
+      "What has worked well in your home this week?",
+      "What is one challenge your family is navigating right now?",
+      "What encouragement would help another parent today?",
+    ],
+    emptyTitle: "Start the first general discussion",
+    emptyText:
+      "This is the place for everyday homeschool conversation, simple questions, and warm encouragement.",
+    starterThreads: [
+      {
+        id: "sample-general-1",
+        category_id: "general-discussion",
+        title: "What does a calm homeschool morning look like for your family?",
+        body: "Share one thing that helps the day begin well.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "open",
+        support_count: 0,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+  "curriculum-and-planning": {
+    name: "Curriculum & Planning",
+    description:
+      "Talk about curriculum choices, planning rhythms, year levels, and how families structure learning across the week.",
+    prompts: [
+      "What curriculum are you loving this term?",
+      "How do you plan a week without making home feel like school-school?",
+      "How do you balance structure and flexibility?",
+    ],
+    emptyTitle: "Start the first planning conversation",
+    emptyText:
+      "Ask about curriculum, weekly planning, year levels, and how other families organise their learning.",
+    starterThreads: [
+      {
+        id: "sample-plan-1",
+        category_id: "curriculum-and-planning",
+        title: "How do you plan for multiple children at different ages?",
+        body: "Share routines, tools, or simple systems that actually help.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "open",
+        support_count: 0,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+  "resources-and-ideas": {
+    name: "Resources & Ideas",
+    description:
+      "Share books, printables, websites, games, projects, and creative ideas that have genuinely helped your family.",
+    prompts: [
+      "What resource made a real difference this month?",
+      "What free or low-cost tool would you recommend to another parent?",
+      "What is a hands-on idea your child loved recently?",
+    ],
+    emptyTitle: "Share the first useful resource",
+    emptyText:
+      "This is a great place to swap practical ideas, unit-study resources, and helpful learning tools.",
+    starterThreads: [
+      {
+        id: "sample-resource-1",
+        category_id: "resources-and-ideas",
+        title: "Favourite free resources for Year 2 reading and writing?",
+        body: "Share websites, printable packs, readers, or simple literacy ideas.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "open",
+        support_count: 0,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+  "new-to-homeschooling": {
+    name: "New to Homeschooling",
+    description:
+      "A gentle starting point for parents who are just beginning and want calm, practical advice without noise or overwhelm.",
+    prompts: [
+      "What is your biggest first-step question?",
+      "What do you wish someone had told you when you began?",
+      "How did you build confidence in your first term?",
+    ],
+    emptyTitle: "Ask the first beginner question",
+    emptyText:
+      "This category is for new families who need a simple, safe starting point.",
+    starterThreads: [
+      {
+        id: "sample-new-1",
+        category_id: "new-to-homeschooling",
+        title: "What should I focus on first in my first month of homeschooling?",
+        body: "Share simple advice for families just getting started.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "open",
+        support_count: 0,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+  "faith-and-family": {
+    name: "Faith & Family",
+    description:
+      "Discuss Bible learning, Christian parenting, faith conversations, prayer, memory verses, and family discipleship.",
+    prompts: [
+      "How do you keep faith woven through the week naturally?",
+      "What Bible routine has worked well in your home?",
+      "What are your favourite family discipleship resources?",
+    ],
+    emptyTitle: "Start the first faith discussion",
+    emptyText:
+      "A gentle space for Christian homeschool families to share faith-based ideas and encouragement.",
+    starterThreads: [
+      {
+        id: "sample-faith-1",
+        category_id: "faith-and-family",
+        title: "What has helped your family build a simple Bible routine?",
+        body: "Share practical ideas for keeping Christ central in the week.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "open",
+        support_count: 0,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+  "feature-suggestions": {
+    name: "Feature Suggestions",
+    description:
+      "Help shape EduDecks by suggesting features that would make planning, capture, portfolios, and reporting more helpful for families.",
+    prompts: [
+      "What would make EduDecks more useful for your family?",
+      "What problem would this feature solve?",
+      "How would it save time, reduce overwhelm, or improve visibility?",
+    ],
+    emptyTitle: "Share the first feature idea",
+    emptyText:
+      "Tell us what would help your family most and why it matters.",
+    starterThreads: [
+      {
+        id: "sample-feature-1",
+        category_id: "feature-suggestions",
+        title: "I’d love a better way to compare multiple children’s weekly plans",
+        body: "This could help families with more than one learner see the whole week at a glance.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        reply_count: 0,
+        last_reply_at: new Date().toISOString(),
+        is_pinned: true,
+        status: "under_review",
+        support_count: 3,
+        authorLabel: "EduDecks Community",
+        slug: "",
+      } as FallbackThread,
+    ],
+  },
+};
+
+function getFallbackCategory(slug: string) {
+  return (
+    CATEGORY_FALLBACKS[slug] || {
+      name: "Community",
+      description:
+        "A calm, structured place to start or continue a thoughtful homeschool discussion.",
+      prompts: [
+        "What question would you like to ask?",
+        "What resource or encouragement could you share?",
+        "What would be useful to another family today?",
+      ],
+      emptyTitle: "Start the first discussion",
+      emptyText:
+        "This category is ready for the first thoughtful conversation.",
+      starterThreads: [],
+    }
+  );
+}
 
 export default function CommunityCategoryPage() {
   const params = useParams<{ slug: string }>();
@@ -29,45 +245,108 @@ export default function CommunityCategoryPage() {
   const [body, setBody] = useState("");
   const [showComposer, setShowComposer] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const userId = await requireCommunityUserId();
-      if (!userId) {
-        router.replace("/login");
-        return;
-      }
+  const fallback = useMemo(() => getFallbackCategory(slug), [slug]);
 
-      setViewerId(userId);
-      const data = await loadCategoryPageData(slug, userId);
-      setCategory(data.category);
-      setThreads(data.threads);
-      setLoading(false);
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const userId = await requireCommunityUserId();
+
+        if (!mounted) return;
+
+        setViewerId(userId ?? "demo-user");
+
+        if (!userId) {
+          setCategory({
+            id: slug,
+            slug,
+            name: fallback.name,
+            description: fallback.description,
+          } as ForumCategory);
+          setThreads(fallback.starterThreads);
+          setLoading(false);
+          return;
+        }
+
+        const data = await loadCategoryPageData(slug, userId);
+
+        if (!mounted) return;
+
+        setCategory(
+          data.category ||
+            ({
+              id: slug,
+              slug,
+              name: fallback.name,
+              description: fallback.description,
+            } as ForumCategory),
+        );
+
+        if (data.threads?.length) {
+          setThreads(data.threads);
+        } else {
+          setThreads(fallback.starterThreads);
+        }
+      } catch (error) {
+        console.error("Community category load failed", error);
+
+        if (!mounted) return;
+
+        setViewerId("demo-user");
+        setCategory({
+          id: slug,
+          slug,
+          name: fallback.name,
+          description: fallback.description,
+        } as ForumCategory);
+        setThreads(fallback.starterThreads);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
     void load();
-  }, [router, slug]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [fallback.description, fallback.name, fallback.starterThreads, router, slug]);
 
   async function handleCreateThread() {
-    if (!viewerId || !category) return;
+    if (!category) return;
     if (!title.trim()) {
       setMessage("Add a thread title first.");
+      return;
+    }
+
+    if (!viewerId || viewerId === "demo-user") {
+      setMessage("Preview mode is active. Live posting will work once community sign-in is connected.");
       return;
     }
 
     setSaving(true);
     setMessage("");
 
-    const result = await createForumThread({
-      viewerId,
-      category,
-      title,
-      body,
-    });
+    try {
+      const result = await createForumThread({
+        viewerId,
+        category,
+        title,
+        body,
+      });
 
-    setTitle("");
-    setBody("");
-    setShowComposer(false);
-    router.push(`/community/thread/${result.thread.id}`);
+      setTitle("");
+      setBody("");
+      setShowComposer(false);
+      router.push(`/community/thread/${result.thread.id}`);
+    } catch (error) {
+      console.error("Create thread failed", error);
+      setMessage("That thread could not be posted right now.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const isFeatureCategory = isFeatureSuggestionCategory(category);
@@ -80,10 +359,10 @@ export default function CommunityCategoryPage() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Community"
-      heroTitle={category?.name || "Community"}
+      heroTitle={category?.name || fallback.name}
       heroText={
         category?.description ||
-        "A calm, structured place to start or continue a thoughtful homeschool discussion."
+        fallback.description
       }
       hideHeroAside={true}
       workflowHelperText="Community is structured by category first, then threads, then replies."
@@ -97,7 +376,7 @@ export default function CommunityCategoryPage() {
           boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
           marginBottom: 18,
           display: "grid",
-          gap: 12,
+          gap: 14,
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
@@ -115,10 +394,10 @@ export default function CommunityCategoryPage() {
               Category
             </div>
             <div style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 900, color: "#0f172a" }}>
-              {category?.name || "Loading..."}
+              {category?.name || fallback.name}
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
-              {category?.description}
+              {category?.description || fallback.description}
             </div>
           </div>
 
@@ -155,6 +434,41 @@ export default function CommunityCategoryPage() {
               {isFeatureCategory ? "Share an idea" : "Start new thread"}
             </button>
           </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e2e8f0",
+            background: "#f8fafc",
+            borderRadius: 18,
+            padding: 16,
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 1,
+              textTransform: "uppercase",
+              color: "#64748b",
+            }}
+          >
+            Helpful prompts
+          </div>
+          {fallback.prompts.map((prompt) => (
+            <div
+              key={prompt}
+              style={{
+                fontSize: 14,
+                lineHeight: 1.65,
+                color: "#334155",
+              }}
+            >
+              • {prompt}
+            </div>
+          ))}
         </div>
 
         {showComposer ? (
@@ -276,11 +590,11 @@ export default function CommunityCategoryPage() {
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>No threads yet</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>
+            {fallback.emptyTitle}
+          </div>
           <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
-            {isFeatureCategory
-              ? "Share the first idea for helping shape EduDecks."
-              : "Start the first discussion in this category."}
+            {fallback.emptyText}
           </div>
         </section>
       ) : (

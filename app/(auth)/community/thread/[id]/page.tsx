@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -65,6 +65,59 @@ function statusBadge(status: ForumThreadStatus): React.CSSProperties {
   };
 }
 
+function fallbackThread(id: string): {
+  category: ForumCategory;
+  thread: ThreadView;
+  replies: ReplyView[];
+} {
+  return {
+    category: {
+      id: "general-discussion",
+      slug: "general-discussion",
+      name: "General Discussion",
+      description:
+        "A calm place for homeschool families to talk through everyday learning and family life.",
+    } as ForumCategory,
+    thread: {
+      id,
+      category_id: "general-discussion",
+      user_id: "demo-user",
+      title: "Welcome to the EduDecks community",
+      body:
+        "This is a preview thread so the community space feels alive from first click.\n\nParents will be able to share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
+      is_pinned: true,
+      status: "open",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      authorLabel: "EduDecks Community",
+      supportCount: 0,
+      viewerSupports: false,
+    },
+    replies: [
+      {
+        id: "reply-1",
+        thread_id: id,
+        user_id: "demo-user-2",
+        body:
+          "I love the idea of having a forum that feels calm and practical rather than noisy. This would be such a helpful place to swap planning ideas.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        authorLabel: "Homeschool parent",
+      },
+      {
+        id: "reply-2",
+        thread_id: id,
+        user_id: "demo-user-3",
+        body:
+          "A category for resources and another for new homeschoolers would be especially useful.",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        authorLabel: "EduDecks family",
+      },
+    ],
+  };
+}
+
 export default function CommunityThreadPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -80,64 +133,122 @@ export default function CommunityThreadPage() {
   const [supporting, setSupporting] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      const userId = await requireCommunityUserId();
-      if (!userId) {
-        router.replace("/login");
-        return;
-      }
+  const previewMode = useMemo(
+    () => !viewerId || viewerId === "demo-user",
+    [viewerId],
+  );
 
-      setViewerId(userId);
-      const data = await loadThreadPageData(id, userId);
-      setThread(data.thread as ThreadView | null);
-      setReplies(data.replies as ReplyView[]);
-      setCategory(data.category);
-      setLoading(false);
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        const userId = await requireCommunityUserId();
+
+        if (!mounted) return;
+
+        setViewerId(userId ?? "demo-user");
+
+        if (!userId) {
+          const preview = fallbackThread(id);
+          setThread(preview.thread);
+          setReplies(preview.replies);
+          setCategory(preview.category);
+          setLoading(false);
+          return;
+        }
+
+        const data = await loadThreadPageData(id, userId);
+
+        if (!mounted) return;
+
+        if (data.thread) {
+          setThread(data.thread as ThreadView);
+          setReplies((data.replies as ReplyView[]) ?? []);
+          setCategory(data.category);
+        } else {
+          const preview = fallbackThread(id);
+          setThread(preview.thread);
+          setReplies(preview.replies);
+          setCategory(preview.category);
+        }
+      } catch (error) {
+        console.error("Community thread load failed", error);
+
+        if (!mounted) return;
+
+        const preview = fallbackThread(id);
+        setViewerId("demo-user");
+        setThread(preview.thread);
+        setReplies(preview.replies);
+        setCategory(preview.category);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
     void load();
+
+    return () => {
+      mounted = false;
+    };
   }, [id, router]);
 
   async function handleReply() {
-    if (!viewerId || !thread) return;
+    if (!thread) return;
     if (!replyBody.trim()) {
       setMessage("Write a reply first.");
+      return;
+    }
+
+    if (previewMode) {
+      setReplies((current) => [
+        ...current,
+        {
+          id: `preview-reply-${Date.now()}`,
+          thread_id: thread.id,
+          user_id: "demo-user",
+          body: replyBody,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          authorLabel: "You",
+        },
+      ]);
+      setReplyBody("");
+      setMessage("Preview reply added. Live posting will work once community sign-in is connected.");
       return;
     }
 
     setReplying(true);
     setMessage("");
 
-    const result = await createForumReply({
-      viewerId,
-      threadId: thread.id,
-      body: replyBody,
-    });
+    try {
+      const result = await createForumReply({
+        viewerId: viewerId as string,
+        threadId: thread.id,
+        body: replyBody,
+      });
 
-    setReplies((current) => [
-      ...current,
-      {
-        ...(result.post as ReplyView),
-        authorLabel: "You",
-      },
-    ]);
-    setReplyBody("");
-    setReplying(false);
+      setReplies((current) => [
+        ...current,
+        {
+          ...(result.post as ReplyView),
+          authorLabel: "You",
+        },
+      ]);
+      setReplyBody("");
+    } catch (error) {
+      console.error("Reply failed", error);
+      setMessage("That reply could not be posted right now.");
+    } finally {
+      setReplying(false);
+    }
   }
 
   async function handleSupport() {
-    if (!viewerId || !thread || thread.viewerSupports) return;
+    if (!thread || thread.viewerSupports) return;
 
-    setSupporting(true);
-    setMessage("");
-
-    const result = await supportForumThread({
-      viewerId,
-      threadId: thread.id,
-    });
-
-    if (!result.alreadySupported) {
+    if (previewMode) {
       setThread((current) =>
         current
           ? {
@@ -145,20 +256,47 @@ export default function CommunityThreadPage() {
               supportCount: current.supportCount + 1,
               viewerSupports: true,
             }
-          : current
+          : current,
       );
-    } else {
-      setThread((current) =>
-        current
-          ? {
-              ...current,
-              viewerSupports: true,
-            }
-          : current
-      );
+      setMessage("Preview support recorded.");
+      return;
     }
 
-    setSupporting(false);
+    setSupporting(true);
+    setMessage("");
+
+    try {
+      const result = await supportForumThread({
+        viewerId: viewerId as string,
+        threadId: thread.id,
+      });
+
+      if (!result.alreadySupported) {
+        setThread((current) =>
+          current
+            ? {
+                ...current,
+                supportCount: current.supportCount + 1,
+                viewerSupports: true,
+              }
+            : current,
+        );
+      } else {
+        setThread((current) =>
+          current
+            ? {
+                ...current,
+                viewerSupports: true,
+              }
+            : current,
+        );
+      }
+    } catch (error) {
+      console.error("Support failed", error);
+      setMessage("Support could not be saved right now.");
+    } finally {
+      setSupporting(false);
+    }
   }
 
   const statusLabel = getThreadStatusLabel(thread?.status ?? null);
