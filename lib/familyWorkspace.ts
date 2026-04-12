@@ -486,6 +486,72 @@ export async function createLinkedLearner(
   return studentId;
 }
 
+export async function updateLinkedLearner(
+  userId: string,
+  learnerId: string,
+  learnerName: string,
+  yearLevel: string,
+) {
+  const cleanName = safe(learnerName);
+  const parts = cleanName.split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || cleanName;
+  const surname = parts.slice(1).join(" ") || null;
+  const numericYear = Number(safe(yearLevel));
+
+  const linkCheck = (await withTimeout(
+    supabase
+      .from("parent_student_links")
+      .select("student_id")
+      .eq("parent_user_id", userId)
+      .eq("student_id", learnerId)
+      .limit(1)
+      .maybeSingle(),
+    "validate linked learner",
+  )) as QueryResponse<{ student_id?: string | null }>;
+
+  if (linkCheck.error) {
+    throw linkCheck.error;
+  }
+
+  if (!safe(linkCheck.data?.student_id)) {
+    throw new Error("This learner is not linked to the current family workspace.");
+  }
+
+  const basePayload: Record<string, unknown> = {
+    first_name: firstName,
+    preferred_name: firstName,
+    year_level: Number.isFinite(numericYear) ? numericYear : null,
+  };
+
+  const payloadVariants: Array<Record<string, unknown>> = [
+    { ...basePayload, surname },
+    { ...basePayload, family_name: surname },
+    basePayload,
+  ];
+
+  let lastUpdateError: unknown = null;
+
+  for (const payload of payloadVariants) {
+    const response = (await withTimeout(
+      supabase.from("students").update(payload).eq("id", learnerId),
+      "update learner",
+    )) as QueryResponse<unknown>;
+
+    if (!response.error) {
+      dispatchFamilyWorkspaceEvent({ childId: learnerId });
+      return;
+    }
+
+    lastUpdateError = response.error;
+
+    if (!isMissingColumnError(response.error)) {
+      throw response.error;
+    }
+  }
+
+  throw lastUpdateError ?? new Error("Could not update learner record.");
+}
+
 export async function removeLinkedLearner(userId: string, learnerId: string) {
   const res = (await withTimeout(
     supabase
