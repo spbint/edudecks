@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   loadCommunityHomeData,
@@ -18,6 +17,9 @@ type CommunityCategoryCard = {
   starterPrompt: string;
   ctaLabel: string;
   tone: string;
+  threadCount: number;
+  latestThreadTitle: string;
+  latestThreadMeta: string;
 };
 
 const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
@@ -26,33 +28,42 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     slug: "general-discussion",
     name: "General Discussion",
     description:
-      "A calm place for homeschool families to talk about the everyday rhythm of home education, family life, wins, worries, and encouragement.",
+      "A calm place for homeschool families to share wins, ask everyday questions, and encourage one another.",
     starterPrompt:
       "Start with a simple question, a quick encouragement, or something your family is navigating this week.",
-    ctaLabel: "Start a general thread",
+    ctaLabel: "Open discussion",
     tone: "Ask, share, encourage",
+    threadCount: 18,
+    latestThreadTitle: "What does a calm homeschool morning look like in your home?",
+    latestThreadMeta: "Latest: routines, breakfast, and peaceful starts",
   },
   {
     id: "curriculum-and-planning",
     slug: "curriculum-and-planning",
     name: "Curriculum & Planning",
     description:
-      "Talk about curriculum choices, year levels, term plans, weekly flow, routines, and how other families organise their learning.",
+      "Talk about curriculum choices, planning rhythms, year levels, and how families structure learning across the week.",
     starterPrompt:
       "Ask how other parents plan a week, structure a day, or choose resources for a particular age or year level.",
-    ctaLabel: "Start a planning thread",
+    ctaLabel: "Open planning forum",
     tone: "Plan with confidence",
+    threadCount: 24,
+    latestThreadTitle: "How do you plan for multiple children at different ages?",
+    latestThreadMeta: "Latest: loops, blocks, and gentle structure",
   },
   {
     id: "resources-and-ideas",
     slug: "resources-and-ideas",
     name: "Resources & Ideas",
     description:
-      "Share printable resources, websites, books, games, memory work ideas, science projects, field trip ideas, and creative learning tools.",
+      "Share printable resources, websites, books, games, projects, field trip ideas, and creative learning tools.",
     starterPrompt:
       "Share something that worked well for your child, or ask for help finding a resource for a specific topic.",
-    ctaLabel: "Share a resource",
+    ctaLabel: "Open resource forum",
     tone: "Swap useful ideas",
+    threadCount: 31,
+    latestThreadTitle: "Favourite free resources for Year 2 reading and writing?",
+    latestThreadMeta: "Latest: websites, readers, and printable packs",
   },
   {
     id: "new-to-homeschooling",
@@ -61,36 +72,66 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "A gentle starting point for families beginning the homeschool journey and wanting practical advice without pressure or noise.",
     starterPrompt:
-      "Ask your first question here — from getting started and routines to curriculum, confidence, or what a normal week can look like.",
-    ctaLabel: "Ask your first question",
+      "Ask your first question here, from getting started and routines to curriculum, confidence, or what a normal week can look like.",
+    ctaLabel: "Open starter forum",
     tone: "A gentle first step",
+    threadCount: 15,
+    latestThreadTitle: "What should I focus on in my first month of homeschooling?",
+    latestThreadMeta: "Latest: first steps, confidence, and simple priorities",
   },
   {
     id: "faith-and-family",
     slug: "faith-and-family",
     name: "Faith & Family",
     description:
-      "Discuss family discipleship, Bible learning, Christian parenting, prayer, and how faith shapes homeschool life and culture.",
+      "Discuss Bible learning, Christian parenting, prayer, memory verses, and how faith shapes homeschool life.",
     starterPrompt:
       "Share ideas for Bible time, memory verses, faith conversations, or how your family keeps Christ central in the week.",
-    ctaLabel: "Start a faith thread",
+    ctaLabel: "Open faith forum",
     tone: "Encourage one another",
+    threadCount: 12,
+    latestThreadTitle: "How do you build a simple Bible rhythm into the week?",
+    latestThreadMeta: "Latest: family devotions and memory work",
   },
   {
     id: "feature-suggestions",
     slug: "feature-suggestions",
     name: "Feature Suggestions",
     description:
-      "Help shape EduDecks by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful for families.",
+      "Help shape EduDecks by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful.",
     starterPrompt:
-      "Tell us what would help your family most, what problem it would solve, and how it could improve your homeschool workflow.",
-    ctaLabel: "Suggest a feature",
+      "Tell us what would help your family most, what problem it would solve, and how it would improve your workflow.",
+    ctaLabel: "Open feature forum",
     tone: "Help build EduDecks",
+    threadCount: 9,
+    latestThreadTitle: "A better way to compare multiple children’s weekly plans",
+    latestThreadMeta: "Latest: support, triage, and family-level visibility",
   },
 ];
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  label: string,
+  ms = 3500,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${ms}ms`));
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function normalizeCategory(
-  category: ForumCategorySummary
+  category: ForumCategorySummary,
 ): CommunityCategoryCard {
   const slug =
     typeof (category as { slug?: unknown }).slug === "string" &&
@@ -109,17 +150,27 @@ function normalizeCategory(
     description: category.description,
     starterPrompt:
       fallback?.starterPrompt ||
-      "Start a thread with a simple question, a useful resource, or an encouraging idea.",
-    ctaLabel: fallback?.ctaLabel || "Open category",
+      "Start with a question, a resource, or a practical idea that could help another family.",
+    ctaLabel: fallback?.ctaLabel || "Open forum",
     tone: fallback?.tone || "Join the conversation",
+    threadCount:
+      typeof (category as { thread_count?: unknown }).thread_count === "number"
+        ? Number((category as { thread_count?: number }).thread_count)
+        : fallback?.threadCount || 0,
+    latestThreadTitle:
+      (typeof (category as { latest_thread_title?: unknown }).latest_thread_title ===
+      "string"
+        ? String((category as { latest_thread_title?: string }).latest_thread_title)
+        : "") || fallback?.latestThreadTitle || "Start the first thread here",
+    latestThreadMeta:
+      (typeof (category as { latest_thread_meta?: unknown }).latest_thread_meta ===
+      "string"
+        ? String((category as { latest_thread_meta?: string }).latest_thread_meta)
+        : "") || fallback?.latestThreadMeta || "Ready for the first conversation",
   };
 }
 
-function CategoryCard({
-  category,
-}: {
-  category: CommunityCategoryCard;
-}) {
+function CategoryCard({ category }: { category: CommunityCategoryCard }) {
   return (
     <article
       style={{
@@ -129,30 +180,57 @@ function CategoryCard({
         padding: 20,
         boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
         display: "grid",
-        gap: 12,
+        gap: 14,
       }}
     >
       <div
         style={{
-          fontSize: 12,
-          fontWeight: 900,
-          letterSpacing: 1.1,
-          textTransform: "uppercase",
-          color: "#64748b",
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
         }}
       >
-        {category.tone}
-      </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 1.1,
+              textTransform: "uppercase",
+              color: "#64748b",
+            }}
+          >
+            {category.tone}
+          </div>
 
-      <div
-        style={{
-          fontSize: 24,
-          lineHeight: 1.15,
-          fontWeight: 900,
-          color: "#0f172a",
-        }}
-      >
-        {category.name}
+          <div
+            style={{
+              fontSize: 24,
+              lineHeight: 1.15,
+              fontWeight: 900,
+              color: "#0f172a",
+            }}
+          >
+            {category.name}
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            borderRadius: 999,
+            padding: "7px 12px",
+            fontSize: 12,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {category.threadCount} threads
+        </div>
       </div>
 
       <div
@@ -172,7 +250,7 @@ function CategoryCard({
           borderRadius: 16,
           padding: 14,
           display: "grid",
-          gap: 6,
+          gap: 8,
         }}
       >
         <div
@@ -194,6 +272,46 @@ function CategoryCard({
           }}
         >
           {category.starterPrompt}
+        </div>
+      </div>
+
+      <div
+        style={{
+          borderTop: "1px solid #eef2f7",
+          paddingTop: 12,
+          display: "grid",
+          gap: 4,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 900,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            color: "#64748b",
+          }}
+        >
+          Active thread
+        </div>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 800,
+            color: "#0f172a",
+            lineHeight: 1.45,
+          }}
+        >
+          {category.latestThreadTitle}
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: "#64748b",
+            lineHeight: 1.5,
+          }}
+        >
+          {category.latestThreadMeta}
         </div>
       </div>
 
@@ -235,38 +353,47 @@ function CategoryCard({
 }
 
 export default function CommunityHomePage() {
-  const router = useRouter();
   const [viewerId, setViewerId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<CommunityCategoryCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [categories, setCategories] = useState<CommunityCategoryCard[]>(FALLBACK_CATEGORIES);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(
+    "Starter categories are being shown so the community feels ready from first visit.",
+  );
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
+      setLoading(true);
+
       try {
-        const userId = await requireCommunityUserId();
+        const userId = await withTimeout(
+          requireCommunityUserId(),
+          "community user",
+          2000,
+        ).catch(() => null);
 
         if (!mounted) return;
 
+        setViewerId(userId ?? "demo-user");
+
         if (!userId) {
-          setViewerId("demo-user");
           setCategories(FALLBACK_CATEGORIES);
           setMessage(
-            "Community is currently running in preview mode, so starter categories are being shown.",
+            "Starter categories are being shown while live community sign-in settles.",
           );
-          setLoading(false);
           return;
         }
 
-        setViewerId(userId);
-
-        const data = await loadCommunityHomeData(userId);
+        const data = await withTimeout(
+          loadCommunityHomeData(userId),
+          "community home",
+          2500,
+        ).catch(() => null);
 
         if (!mounted) return;
 
-        if (data.categories?.length) {
+        if (data?.categories?.length) {
           setCategories(data.categories.map(normalizeCategory));
           setMessage("");
         } else {
@@ -286,9 +413,7 @@ export default function CommunityHomePage() {
           "Starter categories are being shown while the community connection settles.",
         );
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        if (mounted) setLoading(false);
       }
     }
 
@@ -297,7 +422,7 @@ export default function CommunityHomePage() {
     return () => {
       mounted = false;
     };
-  }, [router]);
+  }, []);
 
   const featuredActions = useMemo(
     () => [
@@ -411,32 +536,30 @@ export default function CommunityHomePage() {
         ) : null}
       </section>
 
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))",
+          gap: 16,
+        }}
+      >
+        {categories.map((category) => (
+          <CategoryCard key={category.id} category={category} />
+        ))}
+      </section>
+
       {loading ? (
-        <section
+        <div
           style={{
-            border: "1px solid #e5e7eb",
-            background: "#ffffff",
-            borderRadius: 20,
-            padding: 18,
-            color: "#475569",
+            marginTop: 14,
+            fontSize: 13,
             fontWeight: 700,
+            color: "#64748b",
           }}
         >
-          Loading community…
-        </section>
-      ) : (
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
-            gap: 16,
-          }}
-        >
-          {categories.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
-        </section>
-      )}
+          Refreshing live community data…
+        </div>
+      ) : null}
 
       {!loading && viewerId ? null : null}
     </FamilyTopNavShell>
