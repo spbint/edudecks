@@ -67,6 +67,7 @@ export type FamilySettings = {
 export type FamilyProfileRow = FamilySettings & {
   id: string;
   user_id?: string | null;
+  owner_user_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -117,6 +118,8 @@ export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
 
 export const DEFAULT_FAMILY_PROFILE: FamilyProfileRow = {
   id: "local",
+  user_id: null,
+  owner_user_id: null,
   ...DEFAULT_FAMILY_SETTINGS,
 };
 
@@ -135,7 +138,10 @@ const STORAGE_KEYS = {
    ============================================================ */
 
 function canUseBrowserStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" &&
+    typeof window.localStorage !== "undefined"
+  );
 }
 
 function safeString(value: unknown): string {
@@ -145,7 +151,7 @@ function safeString(value: unknown): string {
 async function withTimeout<T>(
   promise: PromiseLike<T> | Promise<T>,
   label: string,
-  ms = 25000
+  ms = 25000,
 ): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -230,7 +236,7 @@ function asPortfolioPrintStyle(value: unknown): "calm" | "formal" {
 }
 
 function asReportTone(
-  value: unknown
+  value: unknown,
 ): "family-summary" | "authority-ready" | "progress-review" {
   if (value === "authority-ready" || value === "progress-review") {
     return value;
@@ -291,7 +297,8 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
                   .filter(Boolean)
               : [],
             recommended_fields: Array.isArray(
-              (row.compliance_profile as Record<string, unknown>).recommended_fields,
+              (row.compliance_profile as Record<string, unknown>)
+                .recommended_fields,
             )
               ? (
                   (row.compliance_profile as Record<string, unknown>)
@@ -312,8 +319,8 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
               : [],
             custom_labels:
               (row.compliance_profile as Record<string, unknown>).custom_labels &&
-              typeof (row.compliance_profile as Record<string, unknown>).custom_labels ===
-                "object"
+              typeof (row.compliance_profile as Record<string, unknown>)
+                .custom_labels === "object"
                 ? Object.fromEntries(
                     Object.entries(
                       (row.compliance_profile as Record<string, unknown>)
@@ -343,7 +350,7 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
 }
 
 function toDbCurriculumPreferences(
-  value: CurriculumPreferences | null | undefined
+  value: CurriculumPreferences | null | undefined,
 ): CurriculumPreferences {
   const normalized = asCurriculumPreferences(value);
 
@@ -388,11 +395,12 @@ function toDbCurriculumPreferences(
 
 function toFamilyProfilePayload(
   settings: FamilySettings,
-  userId: string
+  userId: string,
 ): FamilyProfileRow {
   return {
     id: userId,
     user_id: userId,
+    owner_user_id: userId,
     family_display_name:
       safeString(settings.family_display_name) ||
       DEFAULT_FAMILY_SETTINGS.family_display_name,
@@ -400,7 +408,7 @@ function toFamilyProfilePayload(
     experience_mode: asExperienceMode(settings.experience_mode),
     default_child_id: safeString(settings.default_child_id) || null,
     default_child_landing: asDefaultChildLanding(
-      settings.default_child_landing
+      settings.default_child_landing,
     ),
     week_start: asWeekStart(settings.week_start),
     compact_mode: Boolean(settings.compact_mode),
@@ -408,33 +416,40 @@ function toFamilyProfilePayload(
     show_authority_guidance: Boolean(settings.show_authority_guidance),
     auto_open_last_child: Boolean(settings.auto_open_last_child),
     evidence_privacy_default: asEvidencePrivacy(
-      settings.evidence_privacy_default
+      settings.evidence_privacy_default,
     ),
     planner_auto_carry_forward: Boolean(settings.planner_auto_carry_forward),
     planner_show_weekend: Boolean(settings.planner_show_weekend),
     portfolio_print_style: asPortfolioPrintStyle(
-      settings.portfolio_print_style
+      settings.portfolio_print_style,
     ),
     report_tone_default: asReportTone(settings.report_tone_default),
     notifications_weekly_digest: Boolean(
-      settings.notifications_weekly_digest
+      settings.notifications_weekly_digest,
     ),
     notifications_readiness_alerts: Boolean(
-      settings.notifications_readiness_alerts
+      settings.notifications_readiness_alerts,
     ),
     notifications_planner_nudges: Boolean(
-      settings.notifications_planner_nudges
+      settings.notifications_planner_nudges,
     ),
     curriculum_preferences: toDbCurriculumPreferences(
-      settings.curriculum_preferences
+      settings.curriculum_preferences,
     ),
     updated_at: new Date().toISOString(),
   };
 }
 
-function omitUserId<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
+function omitUserId<T extends Record<string, unknown>>(payload: T) {
   const next = { ...payload };
   delete next.user_id;
+  return next;
+}
+
+function omitUserAndOwnerUserIds<T extends Record<string, unknown>>(payload: T) {
+  const next = { ...payload };
+  delete next.user_id;
+  delete next.owner_user_id;
   return next;
 }
 
@@ -468,7 +483,7 @@ function normalizeYearLevel(value: unknown): string | null {
 
 function normalizeYearLabel(
   yearLabel: unknown,
-  yearLevel: unknown
+  yearLevel: unknown,
 ): string | undefined {
   const explicit = safeString(yearLabel);
   if (explicit) return explicit;
@@ -499,7 +514,8 @@ function normalizeChildOption(value: unknown): ChildOption | null {
     safeString(row.family_name) ||
     safeString(row.familyName);
 
-  const label = explicitLabel || [firstName, lastName].filter(Boolean).join(" ").trim();
+  const label =
+    explicitLabel || [firstName, lastName].filter(Boolean).join(" ").trim();
 
   if (!id || !label) return null;
 
@@ -510,7 +526,7 @@ function normalizeChildOption(value: unknown): ChildOption | null {
 
   const yearLabel = normalizeYearLabel(
     row.yearLabel ?? row.year_label,
-    year_level
+    year_level,
   );
 
   return {
@@ -527,56 +543,60 @@ function normalizeChildOption(value: unknown): ChildOption | null {
    ============================================================ */
 
 export function rowToSettings(
-  row: Partial<FamilyProfileRow> | null | undefined
+  row: Partial<FamilyProfileRow> | null | undefined,
 ): FamilySettings {
   if (!row) return { ...DEFAULT_FAMILY_SETTINGS };
 
   return {
     family_display_name:
-      safeString(row.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
+      safeString(row.family_display_name) ||
+      DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: asMarketKey(row.preferred_market),
     experience_mode: asExperienceMode(row.experience_mode),
     default_child_id: safeString(row.default_child_id) || null,
     default_child_landing: asDefaultChildLanding(row.default_child_landing),
     week_start: asWeekStart(row.week_start),
-    compact_mode: asBoolean(row.compact_mode, DEFAULT_FAMILY_SETTINGS.compact_mode),
+    compact_mode: asBoolean(
+      row.compact_mode,
+      DEFAULT_FAMILY_SETTINGS.compact_mode,
+    ),
     show_advanced_insights: asBoolean(
       row.show_advanced_insights,
-      DEFAULT_FAMILY_SETTINGS.show_advanced_insights
+      DEFAULT_FAMILY_SETTINGS.show_advanced_insights,
     ),
     show_authority_guidance: asBoolean(
       row.show_authority_guidance,
-      DEFAULT_FAMILY_SETTINGS.show_authority_guidance
+      DEFAULT_FAMILY_SETTINGS.show_authority_guidance,
     ),
     auto_open_last_child: asBoolean(
       row.auto_open_last_child,
-      DEFAULT_FAMILY_SETTINGS.auto_open_last_child
+      DEFAULT_FAMILY_SETTINGS.auto_open_last_child,
     ),
     evidence_privacy_default: asEvidencePrivacy(row.evidence_privacy_default),
     planner_auto_carry_forward: asBoolean(
       row.planner_auto_carry_forward,
-      DEFAULT_FAMILY_SETTINGS.planner_auto_carry_forward
+      DEFAULT_FAMILY_SETTINGS.planner_auto_carry_forward,
     ),
     planner_show_weekend: asBoolean(
       row.planner_show_weekend,
-      DEFAULT_FAMILY_SETTINGS.planner_show_weekend
+      DEFAULT_FAMILY_SETTINGS.planner_show_weekend,
     ),
     portfolio_print_style: asPortfolioPrintStyle(row.portfolio_print_style),
     report_tone_default: asReportTone(row.report_tone_default),
     notifications_weekly_digest: asBoolean(
       row.notifications_weekly_digest,
-      DEFAULT_FAMILY_SETTINGS.notifications_weekly_digest
+      DEFAULT_FAMILY_SETTINGS.notifications_weekly_digest,
     ),
     notifications_readiness_alerts: asBoolean(
       row.notifications_readiness_alerts,
-      DEFAULT_FAMILY_SETTINGS.notifications_readiness_alerts
+      DEFAULT_FAMILY_SETTINGS.notifications_readiness_alerts,
     ),
     notifications_planner_nudges: asBoolean(
       row.notifications_planner_nudges,
-      DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges
+      DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges,
     ),
     curriculum_preferences: asCurriculumPreferences(
-      row.curriculum_preferences
+      row.curriculum_preferences,
     ),
   };
 }
@@ -586,7 +606,10 @@ export function rowToSettings(
    ============================================================ */
 
 export function loadSettingsFromLocalStorage(): FamilySettings {
-  const raw = readJson<Partial<FamilySettings> | null>(STORAGE_KEYS.SETTINGS, null);
+  const raw = readJson<Partial<FamilySettings> | null>(
+    STORAGE_KEYS.SETTINGS,
+    null,
+  );
   return rowToSettings(raw ?? undefined);
 }
 
@@ -687,6 +710,22 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
     continueOnError?: (error: unknown) => boolean;
   }> = [
     {
+      label: "family_profiles by owner_user_id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("owner_user_id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+      continueOnError: (error) => isMissingColumnError(error),
+    },
+    {
       label: "family_profiles by user_id",
       run: async () => {
         const response = await supabase
@@ -728,6 +767,7 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
         ...data,
         id: safeString(data.id) || userId,
         user_id: safeString(data.user_id) || userId,
+        owner_user_id: safeString(data.owner_user_id) || userId,
       };
     }
 
@@ -741,14 +781,26 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
         continue;
       }
 
-      return { ...DEFAULT_FAMILY_PROFILE, id: userId, user_id: userId };
+      return {
+        ...DEFAULT_FAMILY_PROFILE,
+        id: userId,
+        user_id: userId,
+        owner_user_id: userId,
+      };
     }
   }
 
-  return { ...DEFAULT_FAMILY_PROFILE, id: userId, user_id: userId };
+  return {
+    ...DEFAULT_FAMILY_PROFILE,
+    id: userId,
+    user_id: userId,
+    owner_user_id: userId,
+  };
 }
 
-async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow | null> {
+async function selectFamilyProfileRow(
+  userId: string,
+): Promise<FamilyProfileRow | null> {
   const selectVariants: Array<{
     label: string;
     run: () => Promise<{
@@ -757,6 +809,22 @@ async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow 
     }>;
     continueOnError?: (error: unknown) => boolean;
   }> = [
+    {
+      label: "family_profiles select by owner_user_id",
+      run: async () => {
+        const response = await supabase
+          .from("family_profiles")
+          .select("*")
+          .eq("owner_user_id", userId)
+          .limit(1)
+          .maybeSingle();
+        return {
+          data: (response.data as FamilyProfileRow | null) ?? null,
+          error: response.error,
+        };
+      },
+      continueOnError: (error) => isMissingColumnError(error),
+    },
     {
       label: "family_profiles select by user_id",
       run: async () => {
@@ -814,6 +882,7 @@ async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow 
         ...data,
         id: safeString(data.id) || userId,
         user_id: safeString(data.user_id) || userId,
+        owner_user_id: safeString(data.owner_user_id) || userId,
       };
     }
 
@@ -836,7 +905,7 @@ async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow 
 }
 
 export async function upsertFamilyProfile(
-  settings: FamilySettings
+  settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
   if (!hasSupabaseEnv) {
     return { ...DEFAULT_FAMILY_PROFILE, ...settings };
@@ -844,7 +913,9 @@ export async function upsertFamilyProfile(
 
   const userId = await getCurrentUserId();
   if (!userId) {
-    throw new Error("A signed-in Supabase session is required to save family settings.");
+    throw new Error(
+      "A signed-in Supabase session is required to save family settings.",
+    );
   }
 
   const payload = toFamilyProfilePayload(settings, userId);
@@ -875,6 +946,17 @@ export async function upsertFamilyProfile(
   }> = existingProfile
     ? [
         {
+          label: "family_profiles update by owner_user_id",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .update(payload)
+              .eq("owner_user_id", userId);
+            return { data: response.data, error: response.error };
+          },
+          continueOnError: (error) => isMissingColumnError(error),
+        },
+        {
           label: "family_profiles update by user_id",
           run: async () => {
             const response = await supabase
@@ -890,7 +972,7 @@ export async function upsertFamilyProfile(
           run: async () => {
             const response = await supabase
               .from("family_profiles")
-              .update(omitUserId(payload))
+              .update(omitUserAndOwnerUserIds(payload))
               .eq("id", userId);
             return { data: response.data, error: response.error };
           },
@@ -898,7 +980,7 @@ export async function upsertFamilyProfile(
       ]
     : [
         {
-          label: "family_profiles insert with user_id",
+          label: "family_profiles insert with owner_user_id",
           run: async () => {
             const response = await supabase
               .from("family_profiles")
@@ -909,11 +991,22 @@ export async function upsertFamilyProfile(
             isMissingColumnError(error) || isMissingConstraintError(error),
         },
         {
-          label: "family_profiles insert by id",
+          label: "family_profiles insert with user_id only",
           run: async () => {
             const response = await supabase
               .from("family_profiles")
               .insert(omitUserId(payload));
+            return { data: response.data, error: response.error };
+          },
+          continueOnError: (error) =>
+            isMissingColumnError(error) || isMissingConstraintError(error),
+        },
+        {
+          label: "family_profiles insert by id only",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .insert(omitUserAndOwnerUserIds(payload));
             return { data: response.data, error: response.error };
           },
         },
@@ -971,6 +1064,7 @@ export async function upsertFamilyProfile(
         ...payload,
         id: userId,
         user_id: userId,
+        owner_user_id: userId,
       };
     }
 
@@ -995,6 +1089,8 @@ export async function upsertFamilyProfile(
   throw new Error(describeSupabaseError(lastError));
 }
 
-export async function saveFamilyProfile(settings: FamilySettings): Promise<void> {
+export async function saveFamilyProfile(
+  settings: FamilySettings,
+): Promise<void> {
   await upsertFamilyProfile(settings);
 }
