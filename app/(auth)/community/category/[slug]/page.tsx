@@ -18,6 +18,15 @@ type FallbackThread = ForumThreadSummary & {
   authorLabel?: string;
 };
 
+function makeFallbackThread(
+  thread: Omit<FallbackThread, "user_id"> & { user_id?: string },
+): FallbackThread {
+  return {
+    ...thread,
+    user_id: thread.user_id ?? "demo-user",
+  };
+}
+
 const CATEGORY_FALLBACKS: Record<
   string,
   {
@@ -42,7 +51,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "This is the place for everyday homeschool conversation, simple questions, and warm encouragement.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-general-1",
         category_id: "general-discussion",
         title: "What does a calm homeschool morning look like for your family?",
@@ -56,7 +65,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 0,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
   "curriculum-and-planning": {
@@ -72,7 +81,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "Ask about curriculum, weekly planning, year levels, and how other families organise their learning.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-plan-1",
         category_id: "curriculum-and-planning",
         title: "How do you plan for multiple children at different ages?",
@@ -86,7 +95,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 0,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
   "resources-and-ideas": {
@@ -102,7 +111,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "This is a great place to swap practical ideas, unit-study resources, and helpful learning tools.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-resource-1",
         category_id: "resources-and-ideas",
         title: "Favourite free resources for Year 2 reading and writing?",
@@ -116,7 +125,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 0,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
   "new-to-homeschooling": {
@@ -132,7 +141,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "This category is for new families who need a simple, safe starting point.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-new-1",
         category_id: "new-to-homeschooling",
         title: "What should I focus on first in my first month of homeschooling?",
@@ -146,7 +155,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 0,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
   "faith-and-family": {
@@ -162,7 +171,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "A gentle space for Christian homeschool families to share faith-based ideas and encouragement.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-faith-1",
         category_id: "faith-and-family",
         title: "What has helped your family build a simple Bible routine?",
@@ -176,7 +185,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 0,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
   "feature-suggestions": {
@@ -192,7 +201,7 @@ const CATEGORY_FALLBACKS: Record<
     emptyText:
       "Tell us what would help your family most and why it matters.",
     starterThreads: [
-      {
+      makeFallbackThread({
         id: "sample-feature-1",
         category_id: "feature-suggestions",
         title: "I’d love a better way to compare multiple children’s weekly plans",
@@ -206,7 +215,7 @@ const CATEGORY_FALLBACKS: Record<
         support_count: 3,
         authorLabel: "EduDecks Community",
         slug: "",
-      } as FallbackThread,
+      }),
     ],
   },
 };
@@ -360,10 +369,7 @@ export default function CommunityCategoryPage() {
       title="EduDecks Family"
       subtitle="Community"
       heroTitle={category?.name || fallback.name}
-      heroText={
-        category?.description ||
-        fallback.description
-      }
+      heroText={category?.description || fallback.description}
       hideHeroAside={true}
       workflowHelperText="Community is structured by category first, then threads, then replies."
     >
