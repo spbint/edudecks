@@ -107,6 +107,34 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     latestThreadTitle: "A better way to compare multiple children’s weekly plans",
     latestThreadMeta: "Latest: support, triage, and family-level visibility",
   },
+  {
+    id: "classical-education",
+    slug: "classical-education",
+    name: "Classical Education",
+    description:
+      "Explore classical education, Charlotte Mason, Great Books, and time-tested approaches to learning.",
+    starterPrompt:
+      "How do you practically implement classical education at home without overwhelm?",
+    ctaLabel: "Open classical forum",
+    tone: "Classical approaches",
+    threadCount: 0,
+    latestThreadTitle: "Start the first classical education discussion",
+    latestThreadMeta: "Ready for the first conversation",
+  },
+  {
+    id: "special-needs",
+    slug: "special-needs",
+    name: "Special Needs & Diverse Learners",
+    description:
+      "Support for children with additional needs, different learning styles, and personalised learning approaches.",
+    starterPrompt:
+      "What has helped your child thrive when traditional learning approaches didn’t work?",
+    ctaLabel: "Open support forum",
+    tone: "Personalised support",
+    threadCount: 0,
+    latestThreadTitle: "Start the first diverse learners discussion",
+    latestThreadMeta: "Ready for the first conversation",
+  },
 ];
 
 async function withTimeout<T>(
