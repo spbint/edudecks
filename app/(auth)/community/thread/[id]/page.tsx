@@ -86,7 +86,7 @@ function fallbackThread(id: string): {
       body:
         "This is a preview thread so the community space feels alive from first click.\n\nParents will be able to share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
       is_pinned: true,
-      status: "active",
+      status: "under_review",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       authorLabel: "EduDecks Community",
