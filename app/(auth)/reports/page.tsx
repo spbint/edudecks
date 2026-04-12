@@ -5,10 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
-import {
-  loadFamilyStudentsWithVariants,
-  loadLinkedFamilyStudentIds,
-} from "@/lib/familyLearners";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   marketLabel,
@@ -27,9 +23,18 @@ import {
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
+import {
+  loadLearnerCurriculumPageData,
+  type LearnerCurriculumPageData,
+} from "@/lib/familyCurriculum";
+import {
+  loadFamilyWeeklyPlan,
+  type FamilyWeeklyPlan,
+} from "@/lib/familyPlanner";
 
 type StudentRow = {
   id: string;
+  label?: string;
   class_id?: string | null;
   preferred_name?: string | null;
   first_name?: string | null;
@@ -38,7 +43,6 @@ type StudentRow = {
   last_name?: string | null;
   year_level?: number | null;
   yearLabel?: string | null;
-  source?: "db" | "seed";
   [k: string]: any;
 };
 
@@ -128,7 +132,6 @@ const PRESET_OPTIONS: {
   },
 ];
 
-const CHILDREN_KEY = "edudecks_children_seed_v1";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
 
 function safe(v: unknown) {
@@ -139,15 +142,6 @@ function clip(v: string | null | undefined, max = 140) {
   const s = safe(v);
   if (!s) return "";
   return s.length > max ? `${s.slice(0, max)}…` : s;
-}
-
-function parseJson<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function studentName(student?: StudentRow | null) {
@@ -416,33 +410,6 @@ function joinNatural(items: string[]) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
-function seedStudentName(raw: any, index: number) {
-  return getDisplayName(raw, `Child ${index + 1}`);
-}
-
-function buildSeedStudents(): StudentRow[] {
-  if (typeof window === "undefined") return [];
-  const raw = parseJson<any[]>(window.localStorage.getItem(CHILDREN_KEY), []);
-  return raw.map((child, index) => ({
-    id: safe(child?.id) || `seed-child-${index + 1}`,
-    preferred_name: seedStudentName(child, index),
-    surname: safe(child?.surname || child?.family_name || child?.last_name) || null,
-    yearLabel: safe(child?.yearLabel || child?.year_label),
-    source: "seed",
-  }));
-}
-
-async function loadStudents(orderedIds?: string[] | null): Promise<StudentRow[]> {
-  return loadFamilyStudentsWithVariants<StudentRow>([
-    "id,class_id,preferred_name,first_name,surname,family_name,last_name,year_level",
-    "id,class_id,preferred_name,first_name,surname,last_name,year_level",
-    "id,class_id,preferred_name,first_name,last_name,year_level",
-  ], {
-    orderedIds: orderedIds ?? null,
-    orderByCreatedAt: false,
-  });
-}
-
 async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
   return loadEvidenceEntriesWithVariants<EvidenceRow>([
     "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,audio_url,is_deleted",
@@ -451,6 +418,43 @@ async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]
   ], {
     studentIds: studentIds ?? null,
   });
+}
+
+function buildWorkspaceStudents(
+  learners: Array<{
+    id: string;
+    label: string;
+    yearLabel?: string;
+    year_level?: number | null;
+  }>,
+): StudentRow[] {
+  return learners
+    .filter((learner) => !safe(learner.id).startsWith("local-"))
+    .map((learner) => {
+      const label = safe(learner.label);
+      const parts = label.split(/\s+/).filter(Boolean);
+      const first = parts[0] || label || "Learner";
+      const rest = parts.slice(1).join(" ");
+
+      return {
+        id: learner.id,
+        label,
+        preferred_name: first,
+        first_name: first,
+        surname: rest || null,
+        yearLabel: safe(learner.yearLabel),
+        year_level:
+          typeof learner.year_level === "number" ? learner.year_level : null,
+      } satisfies StudentRow;
+    });
+}
+
+function getCurrentWeekKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diffDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
+  const week = Math.ceil((diffDays + start.getDay() + 1) / 7);
+  return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
 const pageStyle: React.CSSProperties = {
@@ -604,7 +608,12 @@ export default function ReportsPage() {
 function ReportsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
+  const {
+    workspace,
+    activeLearnerId,
+    setActiveLearner,
+    error: workspaceError,
+  } = useFamilyWorkspace();
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -617,6 +626,9 @@ function ReportsPageContent() {
 
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
+  const [curriculumData, setCurriculumData] =
+    useState<LearnerCurriculumPageData | null>(null);
+  const [plannerData, setPlannerData] = useState<FamilyWeeklyPlan | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -643,6 +655,7 @@ function ReportsPageContent() {
   const [selectionMeta, setSelectionMeta] = useState<ReportSelectionMeta>({});
   const [notes, setNotes] = useState("");
   const [highlightEvidenceId, setHighlightEvidenceId] = useState("");
+  const weekKey = useMemo(() => getCurrentWeekKey(), []);
 
   useEffect(() => {
     let mounted = true;
@@ -652,13 +665,9 @@ function ReportsPageContent() {
         setLoading(true);
         setError("");
 
-        const linkedStudentIds = await loadLinkedFamilyStudentIds();
-        const hasScopedFamily = Array.isArray(linkedStudentIds);
-
-        const [dbStudentRows, evidenceRows] = await Promise.all([
-          loadStudents(linkedStudentIds).catch(() => [] as StudentRow[]),
-          loadEvidence(linkedStudentIds),
-        ]);
+        const canonicalStudents = buildWorkspaceStudents(workspace.learners);
+        const learnerIds = canonicalStudents.map((student) => student.id).filter(Boolean);
+        const evidenceRows = learnerIds.length ? await loadEvidence(learnerIds) : [];
 
         const requestedDraftId = safe(searchParams.get("draftId"));
         const requestedStudentId = safe(searchParams.get("studentId"));
@@ -668,28 +677,21 @@ function ReportsPageContent() {
 
         if (!mounted) return;
 
-        const seedStudents = buildSeedStudents();
-        const mergedStudents = hasScopedFamily
-          ? dbStudentRows
-          : dbStudentRows.length > 0
-            ? dbStudentRows
-            : seedStudents;
-
         const initialMarket =
           ((existingDraft?.preferred_market as PreferredMarket) ||
             safe(workspace.profile?.preferred_market) ||
             "au") as PreferredMarket;
-        setStudents(mergedStudents);
+        setStudents(canonicalStudents);
         setEvidence(evidenceRows);
 
         const validRequestedStudent =
           requestedStudentId &&
-          mergedStudents.some((student) => student.id === requestedStudentId)
+          canonicalStudents.some((student) => student.id === requestedStudentId)
             ? requestedStudentId
             : "";
 
         const defaultStudentId = resolveCanonicalActiveLearnerId(
-          mergedStudents,
+          canonicalStudents,
           workspace.profile,
           safe(existingDraft?.student_id),
           validRequestedStudent,
@@ -743,9 +745,13 @@ function ReportsPageContent() {
 
         if (!existingDraft && defaultStudentId) {
           const found =
-            mergedStudents.find((student) => student.id === defaultStudentId) || null;
+            canonicalStudents.find((student) => student.id === defaultStudentId) || null;
           setMessage(
             `${firstNameOf(found)} is already selected. Next step: choose evidence and save a first draft.`
+          );
+        } else if (!canonicalStudents.length) {
+          setMessage(
+            "Add a linked learner in Profile before building a saved report draft.",
           );
         }
       } catch (err: any) {
@@ -760,7 +766,7 @@ function ReportsPageContent() {
     return () => {
       mounted = false;
     };
-  }, [searchParams, workspace.profile]);
+  }, [searchParams, workspace.learners, workspace.profile, activeLearnerId]);
 
   useEffect(() => {
     const nextId = resolveCanonicalActiveLearnerId(
@@ -771,6 +777,52 @@ function ReportsPageContent() {
     );
     setSelectedStudentId((prev) => (prev === nextId ? prev : nextId));
   }, [students, workspace.profile, activeLearnerId, selectedStudentId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateCanonicalSummaries() {
+      if (
+        !selectedStudentId ||
+        !workspace.profile?.id ||
+        safe(workspace.profile.id) === "local"
+      ) {
+        if (mounted) {
+          setCurriculumData(null);
+          setPlannerData(null);
+        }
+        return;
+      }
+
+      try {
+        const [nextCurriculum, nextPlanner] = await Promise.all([
+          loadLearnerCurriculumPageData({
+            studentId: selectedStudentId,
+            familyPreferences: workspace.profile.curriculum_preferences,
+          }),
+          loadFamilyWeeklyPlan({
+            familyProfileId: workspace.profile.id,
+            studentId: selectedStudentId,
+            weekKey,
+          }),
+        ]);
+
+        if (!mounted) return;
+        setCurriculumData(nextCurriculum);
+        setPlannerData(nextPlanner);
+      } catch (err) {
+        if (!mounted) return;
+        console.error("reports summary hydrate failed", err);
+        setCurriculumData(null);
+        setPlannerData(null);
+      }
+    }
+
+    void hydrateCanonicalSummaries();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedStudentId, workspace.profile, weekKey]);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) || null,
@@ -856,6 +908,18 @@ function ReportsPageContent() {
     () => interpretReadiness(readinessScore),
     [readinessScore]
   );
+
+  const curriculumStatusSummary = useMemo(() => {
+    if (!curriculumData) return [];
+    return [
+      { label: "Not introduced", value: curriculumData.statusCounts.not_introduced },
+      { label: "Planned", value: curriculumData.statusCounts.planned },
+      { label: "In progress", value: curriculumData.statusCounts.in_progress },
+      { label: "Assessed", value: curriculumData.statusCounts.assessed },
+      { label: "Secure", value: curriculumData.statusCounts.secure },
+      { label: "Needs review", value: curriculumData.statusCounts.needs_review },
+    ];
+  }, [curriculumData]);
 
   const areaStats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -1221,6 +1285,18 @@ function ReportsPageContent() {
     <main style={pageStyle}>
       <div style={innerStyle}>
         <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
+        {workspaceError && !error ? (
+          <div
+            style={{
+              ...cardStyle,
+              marginBottom: 18,
+              borderColor: "#fecdd3",
+              background: "#fff1f2",
+            }}
+          >
+            <div style={smallStyle}>{workspaceError}</div>
+          </div>
+        ) : null}
         {highlightedEvidence ? (
           <section
             style={{
@@ -1375,6 +1451,14 @@ function ReportsPageContent() {
                   <span style={miniStatLabel}>Coverage seen</span>
                   <strong>{evidenceCoverageCount}</strong>
                 </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Curriculum outcomes tracked</span>
+                  <strong>{curriculumData?.trackedOutcomeCount ?? 0}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Planner actions this week</span>
+                  <strong>{plannerData?.actions.length ?? 0}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -1394,6 +1478,82 @@ function ReportsPageContent() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 18 }}>
           <div style={{ display: "grid", gap: 18 }}>
+            <section style={cardStyle}>
+              <div style={h2Style}>Canonical family signals</div>
+              <div style={smallStyle}>
+                These summaries come from the live family curriculum map, weekly planner, and evidence history already saved for this learner.
+              </div>
+
+              <div style={{ height: 14 }} />
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Curriculum position</div>
+                  {selectedStudentId ? (
+                    curriculumData?.framework && curriculumData?.level ? (
+                      <>
+                        <div style={{ ...h3Style, marginTop: 8 }}>
+                          {curriculumData.framework.name}
+                        </div>
+                        <div style={{ ...smallStyle, marginTop: 6 }}>
+                          {curriculumData.level.level_label} · {curriculumData.totalOutcomes} mapped outcomes
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                          {curriculumStatusSummary.map((item) => (
+                            <span key={item.label} style={pillStyle("secondary")}>
+                              {item.label}: {item.value}
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ ...smallStyle, marginTop: 8 }}>
+                        Curriculum has not been fully selected for this learner yet. Finish the setup in{" "}
+                        <Link href="/settings#curriculum">Settings</Link>.
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ ...smallStyle, marginTop: 8 }}>
+                      Choose a learner to load curriculum progress.
+                    </div>
+                  )}
+                </div>
+
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Planner position</div>
+                  {selectedStudentId ? (
+                    plannerData ? (
+                      <>
+                        <div style={{ ...h3Style, marginTop: 8 }}>{plannerData.focusTitle}</div>
+                        <div style={{ ...smallStyle, marginTop: 6 }}>
+                          Week {weekKey} · {plannerData.actions.length} saved action
+                          {plannerData.actions.length === 1 ? "" : "s"}
+                        </div>
+                        <div style={{ ...smallStyle, marginTop: 8 }}>
+                          {clip(plannerData.focusSummary || plannerData.notes, 180) ||
+                            "This week’s planner is saved and ready to support the report draft."}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ ...smallStyle, marginTop: 8 }}>
+                        No canonical weekly planner has been saved for this learner yet.
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ ...smallStyle, marginTop: 8 }}>
+                      Choose a learner to load the weekly planner summary.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div style={h2Style}>Preset and report settings</div>
 
