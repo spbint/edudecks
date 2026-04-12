@@ -13,6 +13,10 @@ export type CreateFamilyEvidenceInput = {
   metadata?: Record<string, unknown>;
 };
 
+export type EvidenceOutcomeLink = {
+  outcomeId: string;
+};
+
 export async function loadEvidenceEntriesWithVariants<T>(
   selectVariants: string[],
   options?: {
@@ -98,4 +102,51 @@ export async function createFamilyEvidenceEntry(
   }
 
   return { id: String(response.data?.id ?? "").trim() };
+}
+
+export async function loadEvidenceOutcomeLinks(
+  evidenceId: string,
+): Promise<EvidenceOutcomeLink[]> {
+  const response = await supabase
+    .from("evidence_outcomes")
+    .select("outcome_id")
+    .eq("evidence_id", evidenceId);
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  return ((response.data ?? []) as Array<{ outcome_id?: string | null }>).map((row) => ({
+    outcomeId: String(row.outcome_id ?? "").trim(),
+  })).filter((row) => row.outcomeId);
+}
+
+export async function linkEvidenceToOutcomes(input: {
+  evidenceId: string;
+  outcomeIds: string[];
+}): Promise<void> {
+  const uniqueOutcomeIds = Array.from(
+    new Set(input.outcomeIds.map((value) => String(value ?? "").trim()).filter(Boolean)),
+  );
+
+  if (!input.evidenceId.trim()) {
+    throw new Error("Evidence ID is required.");
+  }
+
+  const existing = await loadEvidenceOutcomeLinks(input.evidenceId);
+  const existingIds = new Set(existing.map((row) => row.outcomeId));
+  const missingOutcomeIds = uniqueOutcomeIds.filter((id) => !existingIds.has(id));
+
+  if (!missingOutcomeIds.length) return;
+
+  const response = await supabase.from("evidence_outcomes").insert(
+    missingOutcomeIds.map((outcomeId) => ({
+      evidence_id: input.evidenceId,
+      outcome_id: outcomeId,
+    })),
+  );
+
+  if (response.error) {
+    throw response.error;
+  }
 }

@@ -197,8 +197,8 @@ export default function CurriculumPage() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Curriculum"
-      heroTitle="See the learner’s curriculum clearly"
-      heroText="Track what belongs to this learner’s framework, what has started, and what still needs gentle attention."
+      heroTitle="See the learner's curriculum clearly"
+      heroText="Track what belongs to this learner's framework, what has started, and what still needs gentle attention."
       heroAsideTitle="Curriculum mapper"
       heroAsideText="This is the first live curriculum map surface backed by the canonical family settings and learner mapper tables."
     >
@@ -244,7 +244,7 @@ export default function CurriculumPage() {
 
         {workspaceLoading || loading ? (
           <section style={S.card}>
-            <div style={S.cardText}>Loading learner curriculum map…</div>
+            <div style={S.cardText}>Loading learner curriculum map...</div>
           </section>
         ) : !activeLearner ? (
           <EmptyState
@@ -268,7 +268,7 @@ export default function CurriculumPage() {
         ) : pageData.totalOutcomes === 0 ? (
           <EmptyState
             title="No outcomes are seeded for this framework and level"
-            text="The learner’s framework is selected, but no canonical outcomes were found for this level yet."
+            text="The learner's framework is selected, but no canonical outcomes were found for this level yet."
           />
         ) : (
           <>
@@ -289,6 +289,14 @@ export default function CurriculumPage() {
                 <div style={S.summaryLabel}>Tracked rows</div>
                 <div style={S.summaryValue}>{pageData.trackedOutcomeCount}</div>
               </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Evidence-linked outcomes</div>
+                <div style={S.summaryValue}>{pageData.evidenceLinkedOutcomeCount}</div>
+              </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Evidence links</div>
+                <div style={S.summaryValue}>{pageData.totalEvidenceLinks}</div>
+              </div>
             </section>
 
             <section style={S.card}>
@@ -297,8 +305,12 @@ export default function CurriculumPage() {
                   <div style={S.cardTitle}>Progress snapshot</div>
                   <div style={S.cardText}>
                     {pageData.trackedOutcomeCount > 0
-                      ? "These counts come from saved learner outcome statuses."
-                      : "No saved learner outcome rows exist yet. Outcomes below are currently shown as not introduced until you begin tracking."}
+                      ? pageData.totalEvidenceLinks > 0
+                        ? "These counts come from saved learner outcome statuses, with linked evidence now visible across the map."
+                        : "These counts come from saved learner outcome statuses. No evidence has been linked yet."
+                      : pageData.totalEvidenceLinks > 0
+                        ? "No saved learner outcome rows exist yet, but linked evidence is now visible below so progress is grounded in real captured work."
+                        : "No saved learner outcome rows exist yet. Outcomes below are currently shown as not introduced until you begin tracking."}
                   </div>
                 </div>
               </div>
@@ -315,13 +327,31 @@ export default function CurriculumPage() {
               </div>
             </section>
 
+            {pageData.totalEvidenceLinks === 0 ? (
+              <section style={S.card}>
+                <div style={S.cardHeader}>
+                  <div>
+                    <div style={S.cardTitle}>No evidence is linked yet</div>
+                    <div style={S.cardText}>
+                      The curriculum map is ready, but no saved evidence has been linked to
+                      outcomes for this learner yet. Capture a learning record and link it to
+                      curriculum to make progress feel more grounded.
+                    </div>
+                  </div>
+                </div>
+                <Link href="/capture" style={S.primaryLink}>
+                  Open capture
+                </Link>
+              </section>
+            ) : null}
+
             {pageData.areas.map((area) => (
               <section key={area.id} style={S.card}>
                 <div style={S.areaHeader}>
                   <div>
                     <div style={S.cardTitle}>{area.name}</div>
                     <div style={S.cardText}>
-                      {area.strands.length} strand{area.strands.length === 1 ? "" : "s"} · {Object.values(area.counts).reduce((sum, count) => sum + count, 0)} outcomes
+                      {area.strands.length} strand{area.strands.length === 1 ? "" : "s"}, {Object.values(area.counts).reduce((sum, count) => sum + count, 0)} outcomes, {area.evidenceCount} evidence link{area.evidenceCount === 1 ? "" : "s"}
                     </div>
                   </div>
                   <div style={S.countRow}>
@@ -349,6 +379,28 @@ export default function CurriculumPage() {
                                 <div style={S.outcomeCode}>{outcome.code || "Outcome"}</div>
                                 <div style={S.outcomeText}>
                                   {outcome.short_label || outcome.full_text}
+                                </div>
+                                <div style={S.outcomeMetaRow}>
+                                  <span
+                                    style={{
+                                      ...S.countChip,
+                                      background:
+                                        outcome.evidenceCount > 0 ? "#eff6ff" : "#f8fafc",
+                                      borderColor:
+                                        outcome.evidenceCount > 0 ? "#bfdbfe" : "#e5e7eb",
+                                      color:
+                                        outcome.evidenceCount > 0 ? "#1d4ed8" : "#64748b",
+                                    }}
+                                  >
+                                    {outcome.evidenceCount > 0
+                                      ? `Evidence linked: ${outcome.evidenceCount}`
+                                      : "No evidence yet"}
+                                  </span>
+                                  {outcome.recentEvidenceTitles.length > 0 ? (
+                                    <span style={S.outcomeMetaText}>
+                                      {outcome.recentEvidenceTitles.join(" / ")}
+                                    </span>
+                                  ) : null}
                                 </div>
                               </div>
                               <div style={S.outcomeControls}>
@@ -572,6 +624,13 @@ const S: Record<string, React.CSSProperties> = {
   outcomeCopy: { display: "grid", gap: 6, flex: "1 1 360px" },
   outcomeCode: { fontSize: 12, fontWeight: 800, color: "#64748b" },
   outcomeText: { fontSize: 14, lineHeight: 1.55, color: "#0f172a" },
+  outcomeMetaRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  outcomeMetaText: { fontSize: 12, lineHeight: 1.5, color: "#64748b" },
   outcomeControls: { display: "grid", gap: 8, justifyItems: "end" },
   statusSelect: {
     minWidth: 170,

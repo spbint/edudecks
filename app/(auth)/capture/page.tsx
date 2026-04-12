@@ -4,7 +4,15 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
-import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
+import {
+  createFamilyEvidenceEntry,
+  linkEvidenceToOutcomes,
+  loadEvidenceOutcomeLinks,
+} from "@/lib/familyEvidence";
+import {
+  loadLinkableOutcomesForStudent,
+  type LearnerCurriculumLinkContext,
+} from "@/lib/familyCurriculum";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
@@ -848,6 +856,12 @@ export default function CapturePage() {
   const [feedback, setFeedback] = useState("");
   const [savedCount, setSavedCount] = useState(0);
   const [saveFlash, setSaveFlash] = useState(false);
+  const [savedEvidenceId, setSavedEvidenceId] = useState("");
+  const [linkContext, setLinkContext] = useState<LearnerCurriculumLinkContext | null>(null);
+  const [selectedOutcomeId, setSelectedOutcomeId] = useState("");
+  const [linkedOutcomeIds, setLinkedOutcomeIds] = useState<string[]>([]);
+  const [linkingState, setLinkingState] = useState<SaveState>("idle");
+  const [linkingFeedback, setLinkingFeedback] = useState("");
 
   const [premiumMediaType, setPremiumMediaType] = useState<PremiumMediaType>(null);
   const [isPremium, setIsPremium] = useState(false);
@@ -935,6 +949,85 @@ export default function CapturePage() {
     () => children.find((c) => c.id === activeChildId) || null,
     [children, activeChildId]
   );
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateLinkContext() {
+      if (
+        !workspace.userId ||
+        !hasSupabaseEnv ||
+        !activeChildId ||
+        !activeChild ||
+        activeChild.source !== "db"
+      ) {
+        if (mounted) {
+          setLinkContext(null);
+          setSelectedOutcomeId("");
+        }
+        return;
+      }
+
+      try {
+        const next = await loadLinkableOutcomesForStudent({
+          studentId: activeChildId,
+          familyPreferences: workspace.profile.curriculum_preferences,
+        });
+
+        if (!mounted) return;
+        setLinkContext(next);
+        setSelectedOutcomeId((prev) =>
+          prev && next?.outcomes.some((outcome) => outcome.id === prev)
+            ? prev
+            : next?.outcomes[0]?.id || "",
+        );
+      } catch (error) {
+        if (!mounted) return;
+        console.error("capture curriculum link context failed", error);
+        setLinkContext(null);
+        setSelectedOutcomeId("");
+      }
+    }
+
+    void hydrateLinkContext();
+    return () => {
+      mounted = false;
+    };
+  }, [
+    workspace.userId,
+    workspace.profile,
+    activeChildId,
+    activeChild,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateEvidenceLinks() {
+      if (!savedEvidenceId || !workspace.userId || !hasSupabaseEnv) {
+        if (mounted) {
+          setLinkedOutcomeIds([]);
+          setLinkingState("idle");
+          setLinkingFeedback("");
+        }
+        return;
+      }
+
+      try {
+        const links = await loadEvidenceOutcomeLinks(savedEvidenceId);
+        if (!mounted) return;
+        setLinkedOutcomeIds(links.map((row) => row.outcomeId));
+      } catch (error) {
+        if (!mounted) return;
+        console.error("capture evidence links failed", error);
+        setLinkedOutcomeIds([]);
+      }
+    }
+
+    void hydrateEvidenceLinks();
+    return () => {
+      mounted = false;
+    };
+  }, [savedEvidenceId, workspace.userId]);
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -957,6 +1050,10 @@ export default function CapturePage() {
   const summaryPreview = useMemo(
     () => buildSummaryPreview(childDisplayName(activeChild), summary, learningArea),
     [activeChild, summary, learningArea]
+  );
+  const selectedOutcome = useMemo(
+    () => linkContext?.outcomes.find((outcome) => outcome.id === selectedOutcomeId) || null,
+    [linkContext, selectedOutcomeId],
   );
 
   const frameworks = useMemo(
@@ -981,6 +1078,40 @@ export default function CapturePage() {
   );
 
   const canSave = !!safe(activeChildId) && !!safe(title) && !!safe(summary);
+
+  async function saveEvidenceOutcomeLink() {
+    if (!savedEvidenceId) {
+      setLinkingState("error");
+      setLinkingFeedback("Save the evidence first, then link it to curriculum.");
+      return;
+    }
+
+    if (!selectedOutcomeId) {
+      setLinkingState("error");
+      setLinkingFeedback("Choose an outcome first.");
+      return;
+    }
+
+    try {
+      setLinkingState("saving");
+      setLinkingFeedback("");
+
+      await linkEvidenceToOutcomes({
+        evidenceId: savedEvidenceId,
+        outcomeIds: [selectedOutcomeId],
+      });
+
+      const links = await loadEvidenceOutcomeLinks(savedEvidenceId);
+      setLinkedOutcomeIds(links.map((row) => row.outcomeId));
+      setLinkingState("success");
+      setLinkingFeedback("Linked to curriculum.");
+    } catch (error: any) {
+      setLinkingState("error");
+      setLinkingFeedback(
+        String(error?.message ?? "We could not link this evidence right now."),
+      );
+    }
+  }
 
   function resetDependentCurriculum(level: keyof PremiumCurriculumState, value: string) {
     setCurriculum((prev) => {
@@ -1020,20 +1151,12 @@ export default function CapturePage() {
     setSaveState("saving");
     setErr("");
     setFeedback("");
+    setLinkingState("idle");
+    setLinkingFeedback("");
+    setSavedEvidenceId("");
+    setLinkedOutcomeIds([]);
 
     try {
-      const curriculumFields =
-        isPremium && safe(curriculum.country)
-          ? {
-              curriculum_country: safe(curriculum.country) || null,
-              curriculum_framework: safe(curriculum.framework) || null,
-              curriculum_year: safe(curriculum.yearLevel) || null,
-              curriculum_subject: safe(curriculum.subject) || null,
-              curriculum_strand: safe(curriculum.strand) || null,
-              curriculum_skill: safe(curriculum.skill) || null,
-            }
-          : {};
-
       let insertedId = "";
       if (workspace.userId && hasSupabaseEnv) {
         if (!workspace.profile?.id || workspace.profile.id === "local") {
@@ -1060,7 +1183,6 @@ export default function CapturePage() {
           metadata: {
             learning_area: safe(learningArea) || "General",
             capture_surface: "family_capture",
-            premium_curriculum: curriculumFields,
           },
         });
 
@@ -1098,6 +1220,7 @@ export default function CapturePage() {
 
       setSaveState("success");
       setSavedCount((prev) => prev + 1);
+      setSavedEvidenceId(workspace.userId && hasSupabaseEnv ? insertedId : "");
       setSaveFlash(true);
 
       setFeedback(
@@ -1435,9 +1558,7 @@ export default function CapturePage() {
                       ) : null}
 
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
-                        {isPremium
-                          ? "You can refine this with curriculum standards below."
-                          : "You can link this to curriculum standards later for stronger reporting evidence."}
+                        Link this to curriculum after saving so the same evidence can flow into curriculum coverage and later reports.
                       </div>
                     </div>
 
@@ -1493,97 +1614,147 @@ export default function CapturePage() {
                     </div>
                   ) : null}
 
-                  {isPremium ? (
-                    <div
-                      style={{
-                        ...softCard(),
-                        border: "1px solid #dbeafe",
-                        background: "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
-                        display: "grid",
-                        gap: 14,
-                      }}
-                    >
-                      <div>
-                        <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
-                          Curriculum refinement
-                        </div>
-                        <div
-                          style={{
-                            marginTop: 8,
-                            fontSize: 14,
-                            lineHeight: 1.65,
-                            color: "#1e3a8a",
-                          }}
-                        >
-                          Premium users can optionally link this learning to curriculum standards using searchable selectors.
-                        </div>
+                  <div
+                    style={{
+                      ...softCard(),
+                      border: "1px solid #dbeafe",
+                      background: "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
+                      display: "grid",
+                      gap: 14,
+                    }}
+                  >
+                    <div>
+                      <div style={{ ...eyebrowStyle(), color: "#1d4ed8" }}>
+                        Link to curriculum
                       </div>
+                      <div
+                        style={{
+                          marginTop: 8,
+                          fontSize: 14,
+                          lineHeight: 1.65,
+                          color: "#1e3a8a",
+                        }}
+                      >
+                        After you save this evidence, you can attach it to a canonical curriculum outcome for the current learner.
+                      </div>
+                    </div>
 
-                      <SearchableSelect
-                        label="Country"
-                        value={curriculum.country}
-                        options={CURRICULUM_COUNTRIES}
-                        placeholder="Search for a country or framework family"
-                        onChange={(value) => resetDependentCurriculum("country", value)}
-                      />
+                    {!workspace.userId || !hasSupabaseEnv ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+                        Curriculum linking is available when the signed-in family workspace is connected to Supabase.
+                      </div>
+                    ) : !activeChildId ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+                        Choose a learner first so EduDecks can load the right curriculum outcomes.
+                      </div>
+                    ) : !linkContext?.framework || !linkContext?.level ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+                        This learner does not have a curriculum selection yet. Finish the setup in{" "}
+                        <Link href="/settings#curriculum">Settings</Link>.
+                      </div>
+                    ) : linkContext.outcomes.length === 0 ? (
+                      <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+                        No canonical outcomes are seeded yet for {linkContext.framework.name} · {linkContext.level.level_label}.
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+                          {linkContext.framework.name} · {linkContext.level.level_label} · {linkContext.outcomes.length} available outcomes
+                        </div>
 
-                      {safe(curriculum.country) ? (
-                        <SearchableSelect
-                          label="Framework"
-                          value={curriculum.framework}
-                          options={frameworks}
-                          placeholder="Search for a framework"
-                          onChange={(value) => resetDependentCurriculum("framework", value)}
-                        />
-                      ) : null}
-
-                      {safe(curriculum.framework) ? (
                         <div
                           style={{
                             display: "grid",
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                            gap: 14,
+                            gridTemplateColumns: "minmax(0,1fr) auto",
+                            gap: 12,
+                            alignItems: "end",
                           }}
                         >
-                          <SearchableSelect
-                            label="Year / Grade / Level"
-                            value={curriculum.yearLevel}
-                            options={years}
-                            placeholder="Search for year, grade, or level"
-                            onChange={(value) => resetDependentCurriculum("yearLevel", value)}
-                          />
-                          <SearchableSelect
-                            label="Subject"
-                            value={curriculum.subject}
-                            options={subjects}
-                            placeholder="Search for a subject"
-                            onChange={(value) => resetDependentCurriculum("subject", value)}
-                          />
+                          <div>
+                            <label style={labelStyle()}>Outcome</label>
+                            <select
+                              value={selectedOutcomeId}
+                              onChange={(e) => setSelectedOutcomeId(e.target.value)}
+                              style={inputStyle()}
+                              disabled={!savedEvidenceId || linkingState === "saving"}
+                            >
+                              {linkContext.outcomes.map((outcome) => (
+                                <option key={outcome.id} value={outcome.id}>
+                                  {outcome.learningAreaName} · {outcome.strandName} · {outcome.code || "Outcome"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={saveEvidenceOutcomeLink}
+                            disabled={!savedEvidenceId || !selectedOutcomeId || linkingState === "saving"}
+                            style={{
+                              ...buttonStyle(false),
+                              cursor:
+                                !savedEvidenceId || !selectedOutcomeId || linkingState === "saving"
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity:
+                                !savedEvidenceId || !selectedOutcomeId || linkingState === "saving"
+                                  ? 0.7
+                                  : 1,
+                            }}
+                          >
+                            {linkingState === "saving" ? "Linking..." : "Link outcome"}
+                          </button>
                         </div>
-                      ) : null}
 
-                      {safe(curriculum.subject) ? (
-                        <SearchableSelect
-                          label="Strand"
-                          value={curriculum.strand}
-                          options={strands}
-                          placeholder="Search for a strand"
-                          onChange={(value) => resetDependentCurriculum("strand", value)}
-                        />
-                      ) : null}
+                        {selectedOutcome ? (
+                          <div style={{ fontSize: 13, lineHeight: 1.6, color: "#334155" }}>
+                            <strong>{selectedOutcome.code || "Outcome"}</strong>
+                            {selectedOutcome.shortLabel ? ` · ${selectedOutcome.shortLabel}` : ""}
+                            <div style={{ marginTop: 4, color: "#64748b" }}>
+                              {selectedOutcome.fullText}
+                            </div>
+                          </div>
+                        ) : null}
 
-                      {safe(curriculum.strand) ? (
-                        <SearchableSelect
-                          label="Skill"
-                          value={curriculum.skill}
-                          options={skills}
-                          placeholder="Search for a skill"
-                          onChange={(value) => resetDependentCurriculum("skill", value)}
-                          helperText="Optional. Leave this blank if a broader strand is enough."
-                        />
-                      ) : null}
-                    </div>
-                  ) : null}
+                        {linkingFeedback ? (
+                          <div
+                            style={{
+                              border: `1px solid ${linkingState === "success" ? "#a7f3d0" : "#dbeafe"}`,
+                              background: linkingState === "success" ? "#ecfdf5" : "#ffffff",
+                              color: linkingState === "success" ? "#166534" : "#1e3a8a",
+                              borderRadius: 12,
+                              padding: 12,
+                              fontSize: 13,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {linkingFeedback}
+                          </div>
+                        ) : null}
+
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {linkedOutcomeIds.length ? (
+                            linkedOutcomeIds.map((outcomeId) => {
+                              const linked = linkContext.outcomes.find((outcome) => outcome.id === outcomeId);
+                              if (!linked) return null;
+                              return (
+                                <span
+                                  key={outcomeId}
+                                  style={pillStyle("#ecfdf5", "#166534", "#a7f3d0")}
+                                >
+                                  {linked.code || "Outcome"}{linked.shortLabel ? ` · ${linked.shortLabel}` : ""}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span style={pillStyle("#ffffff", "#64748b", "#d1d5db")}>
+                              Save the evidence first, then link one or more outcomes.
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   <div
                     style={{
