@@ -345,7 +345,7 @@ function toDbCurriculumPreferences(
     country_id: normalized.country_id,
     region_id: normalized.region_id,
     framework_id: normalized.framework_id,
-    level_id: null,
+    level_id: normalized.level_id,
     subject_ids: [...normalized.subject_ids],
     compliance_profile: normalized.compliance_profile
       ? {

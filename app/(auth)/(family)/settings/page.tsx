@@ -105,6 +105,9 @@ function curriculumCountryLabel(settings: FamilySettings) {
 }
 
 function curriculumFrameworkLabel(settings: FamilySettings) {
+  const profileFramework = settings.curriculum_preferences.compliance_profile?.curriculum_framework;
+  if (profileFramework) return profileFramework;
+
   const raw = String(settings.curriculum_preferences.framework_id ?? "").trim();
   if (!raw) return "Not set";
   if (/acara|australian/i.test(raw)) return "Australian Curriculum / ACARA";
