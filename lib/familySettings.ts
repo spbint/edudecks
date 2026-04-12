@@ -432,6 +432,12 @@ function toFamilyProfilePayload(
   };
 }
 
+function omitUserId<T extends Record<string, unknown>>(payload: T): Record<string, unknown> {
+  const next = { ...payload };
+  delete next.user_id;
+  return next;
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (!canUseBrowserStorage()) return fallback;
   try {
@@ -849,43 +855,81 @@ export async function upsertFamilyProfile(
     payload,
   });
 
+  const existingProfile = await selectFamilyProfileRow(userId).catch((error) => {
+    console.error("upsertFamilyProfile existing row check failed", {
+      userId,
+      error,
+    });
+    return null;
+  });
+
+  console.info("upsertFamilyProfile existing row result", {
+    userId,
+    existingProfile,
+  });
+
   const saveVariants: Array<{
     label: string;
-    payload: Record<string, unknown>;
-    onConflict: string;
+    run: () => Promise<{ data: unknown; error: unknown }>;
     continueOnError?: (error: unknown) => boolean;
-  }> = [
-    {
-      label: "family_profiles upsert by user_id",
-      payload,
-      onConflict: "user_id",
-      continueOnError: (error) =>
-        isMissingColumnError(error) || isMissingConstraintError(error),
-    },
-    {
-      label: "family_profiles upsert by id",
-      payload: { ...payload, id: userId },
-      onConflict: "id",
-    },
-  ];
+  }> = existingProfile
+    ? [
+        {
+          label: "family_profiles update by user_id",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .update(payload)
+              .eq("user_id", userId);
+            return { data: response.data, error: response.error };
+          },
+          continueOnError: (error) => isMissingColumnError(error),
+        },
+        {
+          label: "family_profiles update by id",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .update(omitUserId(payload))
+              .eq("id", userId);
+            return { data: response.data, error: response.error };
+          },
+        },
+      ]
+    : [
+        {
+          label: "family_profiles insert with user_id",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .insert(payload);
+            return { data: response.data, error: response.error };
+          },
+          continueOnError: (error) =>
+            isMissingColumnError(error) || isMissingConstraintError(error),
+        },
+        {
+          label: "family_profiles insert by id",
+          run: async () => {
+            const response = await supabase
+              .from("family_profiles")
+              .insert(omitUserId(payload));
+            return { data: response.data, error: response.error };
+          },
+        },
+      ];
 
   let lastError: unknown = null;
 
   for (const variant of saveVariants) {
     console.info("upsertFamilyProfile attempt", {
       label: variant.label,
-      payload: variant.payload,
-      onConflict: variant.onConflict,
+      userId,
     });
 
     const dbCallStartedAt = Date.now();
-    const writeResponse: {
-      data: Record<string, unknown>[] | null;
-      error: unknown;
-    } = await withTimeout(
-      supabase
-        .from("family_profiles")
-        .upsert(variant.payload, { onConflict: variant.onConflict }),
+    const writeResponse = await withTimeout(
+      variant.run(),
       `upsertFamilyProfile write ${variant.label}`,
     );
 
@@ -935,7 +979,6 @@ export async function upsertFamilyProfile(
       label: variant.label,
       durationMs: Date.now() - dbCallStartedAt,
       totalDurationMs: Date.now() - startedAt,
-      payload: variant.payload,
       error: writeResponse.error,
     });
 
