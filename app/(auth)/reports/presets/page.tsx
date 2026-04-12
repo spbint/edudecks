@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import ActiveChildContextBar from "@/app/components/ActiveChildContextBar";
-import { useActiveStudent } from "@/app/hooks/useActiveStudent";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 
 type TemplateKey =
   | "general_portfolio"
@@ -62,14 +60,15 @@ function isMissingColumnError(err: any) {
   return msg.includes("does not exist") && msg.includes("column");
 }
 
-function toSectionArray(value: any): SectionKey[] {
-  if (Array.isArray(value)) return value.filter(Boolean) as SectionKey[];
-  return [];
-}
-
 export default function ReportPresetsPage() {
-  const router = useRouter();
-  const { studentName, activeStudentId } = useActiveStudent();
+  const {
+    workspace,
+    activeLearner,
+    activeLearnerId,
+    setActiveLearner,
+    loading: workspaceLoading,
+    error: workspaceError,
+  } = useFamilyWorkspace();
 
   const [name, setName] = useState("");
   const [template, setTemplate] = useState<TemplateKey>("homeschool_registration");
@@ -92,6 +91,10 @@ export default function ReportPresetsPage() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [presets, setPresets] = useState<ReportPresetRow[]>([]);
+
+  const learnerName = activeLearner?.label?.trim() || "";
+  const hasLearners = workspace.learners.length > 0;
+  const canSavePreset = Boolean(activeLearnerId);
 
   async function loadPresets() {
     setLoadingPresets(true);
@@ -141,13 +144,18 @@ export default function ReportPresetsPage() {
       return;
     }
 
+    if (!activeLearnerId) {
+      setErr("Choose a learner from the family workspace before saving a preset.");
+      return;
+    }
+
     setBusy(true);
     setErr("");
     setMsg("");
 
     try {
       const payload = {
-        student_id: activeStudentId || null,
+        student_id: activeLearnerId,
         name: safe(name),
         template_key: safe(template),
         date_from: safe(dateFrom) || null,
@@ -192,21 +200,69 @@ export default function ReportPresetsPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <ActiveChildContextBar />
-
       <h1>Report Presets</h1>
 
-      {msg && <div>{msg}</div>}
-      {err && <div style={{ color: "red" }}>{err}</div>}
+      <p style={{ color: "#4b5563", marginTop: 8, maxWidth: 720 }}>
+        Save a reusable report setup for the learner currently selected in your family
+        workspace.
+      </p>
+
+      <div
+        style={{
+          marginTop: 20,
+          padding: 16,
+          border: "1px solid #d1d5db",
+          borderRadius: 12,
+          background: "#f8fafc",
+          display: "grid",
+          gap: 12,
+          maxWidth: 720,
+        }}
+      >
+        <div>
+          <strong>Active learner</strong>
+          <div style={{ color: "#4b5563", marginTop: 4 }}>
+            {workspaceLoading
+              ? "Loading learner context..."
+              : learnerName || "No learner selected yet."}
+          </div>
+        </div>
+
+        {hasLearners ? (
+          <label style={{ display: "grid", gap: 6, maxWidth: 320 }}>
+            <span style={{ fontSize: 14, color: "#4b5563" }}>Use preset for</span>
+            <select
+              value={activeLearnerId}
+              onChange={(event) => setActiveLearner(event.target.value)}
+              disabled={workspaceLoading || busy}
+            >
+              {workspace.learners.map((learner) => (
+                <option key={learner.id} value={learner.id}>
+                  {learner.label || "Learner"}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div style={{ color: "#4b5563" }}>
+            Add a learner in <a href="/profile">Profile</a> before saving report presets.
+          </div>
+        )}
+      </div>
+
+      {msg && <div style={{ marginTop: 16 }}>{msg}</div>}
+      {err && <div style={{ color: "red", marginTop: 16 }}>{err}</div>}
+      {!err && workspaceError && <div style={{ color: "red", marginTop: 16 }}>{workspaceError}</div>}
 
       <div style={{ marginTop: 20 }}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Preset name" />
-        <button onClick={savePreset} disabled={busy}>
+        <button onClick={savePreset} disabled={busy || workspaceLoading || !canSavePreset}>
           Save
         </button>
       </div>
 
       <div style={{ marginTop: 20 }}>
+        {loadingPresets && <div>Loading saved presets...</div>}
         {presets.map((p) => (
           <div key={p.id}>
             <strong>{p.name}</strong>
