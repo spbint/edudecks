@@ -121,12 +121,12 @@ export default function FamilyProfileMenu({
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <span>{familyName}</span>
             <span aria-hidden style={{ fontSize: 12 }}>
-              ▾
+              v
             </span>
           </span>
         ) : (
           <span aria-hidden style={{ fontSize: 12 }}>
-            ▾
+            v
           </span>
         )}
       </button>
@@ -197,7 +197,7 @@ export default function FamilyProfileMenu({
               { label: "My profile", href: "/profile" },
               { label: "Family Home", href: "/family" },
               { label: "Settings", href: "/settings" },
-              { label: "Curriculum setup", href: "/settings?section=curriculum" },
+              { label: "Curriculum setup", href: "/settings#curriculum" },
             ].map((item) => (
               <Link
                 key={item.label}

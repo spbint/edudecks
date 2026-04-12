@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import CurriculumSetupCard from "@/app/components/CurriculumSetupCard";
+import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   ChildOption,
@@ -243,17 +245,20 @@ export default function FamilySettingsPage() {
 
   if (!hydrated) {
     return (
-      <main style={shellStyles.app}>
-        <div style={shellStyles.wrap}>
-          <div style={shellStyles.loadingCard}>Loading family settings…</div>
-        </div>
-      </main>
+      <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
+        <main style={shellStyles.app}>
+          <div style={shellStyles.wrap}>
+            <div style={shellStyles.loadingCard}>Loading family settings...</div>
+          </div>
+        </main>
+      </FamilyTopNavShell>
     );
   }
 
   return (
-    <main style={shellStyles.app}>
-      <div style={shellStyles.wrap}>
+    <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
+      <main style={shellStyles.app}>
+        <div style={shellStyles.wrap}>
         <section style={shellStyles.hero}>
           <div style={{ display: "grid", gap: 14 }}>
             <div style={shellStyles.eyebrow}>Family settings</div>
@@ -350,6 +355,27 @@ export default function FamilySettingsPage() {
 
         <div style={shellStyles.mainGrid}>
           <div style={{ display: "grid", gap: 18 }}>
+            <section id="curriculum" style={shellStyles.card}>
+              <div style={shellStyles.sectionHeader}>
+                <div>
+                  <div style={shellStyles.sectionEyebrow}>Curriculum and compliance</div>
+                  <div style={shellStyles.sectionTitle}>Curriculum setup</div>
+                </div>
+              </div>
+
+              <div style={shellStyles.sideText}>
+                Use the same family curriculum and Australia compliance setup that powers the
+                family profile and later report output.
+              </div>
+
+              <CurriculumSetupCard
+                value={settings.curriculum_preferences}
+                onChange={(curriculum_preferences) =>
+                  update("curriculum_preferences", curriculum_preferences)
+                }
+              />
+            </section>
+
             <section style={shellStyles.card}>
               <div style={shellStyles.sectionHeader}>
                 <div>
@@ -433,7 +459,7 @@ export default function FamilySettingsPage() {
                     {children.map((child) => (
                       <option key={child.id} value={child.id}>
                         {childOptionLabel(child)}
-                        {childOptionYearLabel(child) ? ` Â· ${childOptionYearLabel(child)}` : ""}
+                        {childOptionYearLabel(child) ? ` - ${childOptionYearLabel(child)}` : ""}
                       </option>
                     ))}
                   </select>
@@ -669,40 +695,41 @@ export default function FamilySettingsPage() {
             </section>
           </aside>
         </div>
-      </div>
-      <div style={shellStyles.stickyBar}>
-        <div style={{ display: "grid", gap: 4 }}>
-          <div style={shellStyles.stickyTitle}>
-            {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
-          </div>
-          <div style={shellStyles.stickySub}>
-            {savedAt
-              ? `Last saved ${savedAt}`
-              : storageMode === "database"
-              ? "Save to persist these settings into the family profile."
-              : "Save will persist locally until signed-in database storage is available."}
-          </div>
         </div>
+        <div style={shellStyles.stickyBar}>
+          <div style={{ display: "grid", gap: 4 }}>
+            <div style={shellStyles.stickyTitle}>
+              {isDirty ? "You have unsaved family settings changes." : "Family settings are up to date."}
+            </div>
+            <div style={shellStyles.stickySub}>
+              {savedAt
+                ? `Last saved ${savedAt}`
+                : storageMode === "database"
+                ? "Save to persist these settings into the family profile."
+                : "Save will persist locally until signed-in database storage is available."}
+            </div>
+          </div>
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button type="button" onClick={handleReset} style={shellStyles.secondaryButton}>
-            Reset to defaults
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            style={{
-              ...shellStyles.primaryButton,
-              opacity: saving ? 0.7 : 1,
-              cursor: saving ? "wait" : "pointer",
-            }}
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save family settings"}
-          </button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={handleReset} style={shellStyles.secondaryButton}>
+              Reset to defaults
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              style={{
+                ...shellStyles.primaryButton,
+                opacity: saving ? 0.7 : 1,
+                cursor: saving ? "wait" : "pointer",
+              }}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save family settings"}
+            </button>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </FamilyTopNavShell>
   );
 }
 
