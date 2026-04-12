@@ -3,11 +3,16 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
+import {
+  loadFamilyWeeklyPlan,
+  saveFamilyWeeklyPlan,
+} from "@/lib/familyPlanner";
 
 type ChildRecord = {
   id: string;
@@ -51,8 +56,6 @@ type PlannerCalendarSyncPayload = {
 type PlannerCalendarSyncMap = Record<string, PlannerCalendarSyncPayload>;
 
 const STORAGE_KEYS = {
-  ACTIVE_STUDENT: "edudecks_active_student_id",
-  CHILDREN: "edudecks_children_seed_v1",
   PLAN: "edudecks_plan",
   PLANNER_CALENDAR_SYNC: "edudecks_planner_calendar_sync_v1",
 };
@@ -108,46 +111,6 @@ function getChildDisplayName(child: ChildRecord | null): string {
     safe(child.name) ||
     [safe(child.first_name), safe(child.last_name)].filter(Boolean).join(" ");
   return full || "your learner";
-}
-
-function normaliseChildren(input: unknown): ChildRecord[] {
-  if (!Array.isArray(input)) return [];
-  return input
-    .map((item) => {
-      const row = item as Record<string, unknown>;
-      const id = safe(row.id) || makeId("child");
-      const first_name =
-        safe(row.first_name) ||
-        safe(row.firstName) ||
-        safe(row.given_name) ||
-        safe(row.givenName);
-      const last_name =
-        safe(row.last_name) ||
-        safe(row.lastName) ||
-        safe(row.surname) ||
-        safe(row.family_name) ||
-        safe(row.familyName);
-      const name = safe(row.name);
-      const age =
-        typeof row.age === "number" || typeof row.age === "string"
-          ? row.age
-          : undefined;
-      const year_level =
-        safe(row.year_level) ||
-        safe(row.yearLevel) ||
-        safe(row.grade) ||
-        safe(row.class_level);
-
-      return {
-        id,
-        first_name,
-        last_name,
-        name,
-        age,
-        year_level,
-      };
-    })
-    .filter((c) => safe(c.id));
 }
 
 function buildActionsFromGoal(goal: string): {
@@ -438,6 +401,12 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
 
 export default function PlannerPage() {
   const searchParams = useSearchParams();
+  const {
+    workspace,
+    activeLearnerId,
+    setActiveLearner,
+    loading: workspaceLoading,
+  } = useFamilyWorkspace();
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -455,7 +424,8 @@ export default function PlannerPage() {
   const [focusTitle, setFocusTitle] = useState("");
   const [focusSummary, setFocusSummary] = useState("");
   const [encouragement, setEncouragement] = useState("");
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadingPlan, setLoadingPlan] = useState(true);
+  const [pageError, setPageError] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
 
@@ -466,100 +436,145 @@ export default function PlannerPage() {
   const studentFromQuery = safe(searchParams.get("student"));
 
   useEffect(() => {
-    const loadedChildren = normaliseChildren(
-      readJson<unknown[]>(STORAGE_KEYS.CHILDREN, [])
-    );
-
-    const storedActiveStudent = safe(
-      window.localStorage.getItem(STORAGE_KEYS.ACTIVE_STUDENT)
-    );
-
-    const initialStudentId =
-      studentFromQuery ||
-      storedActiveStudent ||
-      loadedChildren[0]?.id ||
-      "";
-
-    const savedPlanMap = readJson<Record<string, SavedPlan>>(
-      STORAGE_KEYS.PLAN,
-      {}
-    );
-    const syncMap = readJson<PlannerCalendarSyncMap>(
-      STORAGE_KEYS.PLANNER_CALENDAR_SYNC,
-      {}
-    );
-
-    const loadedPlan = initialStudentId
-      ? savedPlanMap[`${initialStudentId}:${weekKey}`]
-      : undefined;
-
-    const syncPayload = initialStudentId
-      ? syncMap[`${initialStudentId}:${weekKey}`]
-      : undefined;
-
-    const initialGoal =
-      goalFromQuery || loadedPlan?.selectedGoal || "Weekly family focus";
-
-    const built = buildActionsFromGoal(initialGoal);
-
-    setChildren(loadedChildren);
-    setActiveStudentId(initialStudentId);
-
-    const resolvedActions =
-      syncPayload?.actions && syncPayload.actions.length > 0
-        ? syncPayload.actions
-        : loadedPlan?.actions && loadedPlan.actions.length > 0
-        ? loadedPlan.actions
-        : built.actions;
-
-    setSelectedGoal(initialGoal);
-    setFocusTitle(syncPayload?.focusTitle || loadedPlan?.focusTitle || built.focusTitle);
-    setFocusSummary(
-      syncPayload?.focusSummary || loadedPlan?.focusSummary || built.focusSummary
-    );
-    setEncouragement(
-      syncPayload?.encouragement || loadedPlan?.encouragement || built.encouragement
-    );
-    setNotes(loadedPlan?.notes || "");
-    setActions(resolvedActions);
-
-    if (initialStudentId) {
-      window.localStorage.setItem(STORAGE_KEYS.ACTIVE_STUDENT, initialStudentId);
-    }
-
-    setIsLoaded(true);
-  }, [goalFromQuery, studentFromQuery, weekKey]);
+    const nextChildren = workspace.learners.map((learner) => ({
+      id: learner.id,
+      first_name: learner.label,
+      name: learner.label,
+      year_level: learner.yearLabel || "",
+    }));
+    setChildren(nextChildren);
+  }, [workspace.learners]);
 
   useEffect(() => {
-    if (!isLoaded || !activeStudentId) return;
-
-    window.localStorage.setItem(STORAGE_KEYS.ACTIVE_STUDENT, activeStudentId);
-
-    const payload: SavedPlan = {
-      studentId: activeStudentId,
-      weekKey,
-      focusTitle,
-      focusSummary,
-      selectedGoal,
-      notes,
-      encouragement,
-      actions,
-      updatedAt: new Date().toISOString(),
-    };
-
-    const existing = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
-    existing[`${activeStudentId}:${weekKey}`] = payload;
-    writeJson(STORAGE_KEYS.PLAN, existing);
+    const nextActiveId =
+      studentFromQuery ||
+      activeLearnerId ||
+      workspace.profile.default_child_id ||
+      workspace.learners[0]?.id ||
+      "";
+    setActiveStudentId(nextActiveId);
+    if (nextActiveId) {
+      setActiveLearner(nextActiveId);
+    }
   }, [
-    isLoaded,
+    studentFromQuery,
+    activeLearnerId,
+    workspace.profile.default_child_id,
+    workspace.learners,
+    setActiveLearner,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydratePlan() {
+      setLoadingPlan(true);
+      setPageError("");
+
+      const syncMap = readJson<PlannerCalendarSyncMap>(
+        STORAGE_KEYS.PLANNER_CALENDAR_SYNC,
+        {},
+      );
+      const syncPayload = activeStudentId
+        ? syncMap[`${activeStudentId}:${weekKey}`]
+        : undefined;
+
+      try {
+        let loadedPlan: SavedPlan | null = null;
+
+        if (
+          activeStudentId &&
+          workspace.userId &&
+          workspace.profile.id &&
+          workspace.profile.id !== "local" &&
+          !activeStudentId.startsWith("local-")
+        ) {
+          const dbPlan = await loadFamilyWeeklyPlan({
+            familyProfileId: workspace.profile.id,
+            studentId: activeStudentId,
+            weekKey,
+          });
+
+          loadedPlan = dbPlan
+            ? {
+                studentId: activeStudentId,
+                weekKey,
+                focusTitle: dbPlan.focusTitle,
+                focusSummary: dbPlan.focusSummary,
+                selectedGoal: dbPlan.selectedGoal,
+                notes: dbPlan.notes,
+                encouragement: dbPlan.encouragement,
+                actions: dbPlan.actions,
+                updatedAt: dbPlan.updatedAt,
+              }
+            : null;
+        } else if (activeStudentId) {
+          const savedPlanMap = readJson<Record<string, SavedPlan>>(
+            STORAGE_KEYS.PLAN,
+            {},
+          );
+          loadedPlan = savedPlanMap[`${activeStudentId}:${weekKey}`] ?? null;
+        }
+
+        const initialGoal =
+          goalFromQuery || loadedPlan?.selectedGoal || "Weekly family focus";
+        const built = buildActionsFromGoal(initialGoal);
+        const resolvedActions =
+          syncPayload?.actions && syncPayload.actions.length > 0
+            ? syncPayload.actions
+            : loadedPlan?.actions && loadedPlan.actions.length > 0
+            ? loadedPlan.actions
+            : built.actions;
+
+        if (!mounted) return;
+
+        setSelectedGoal(initialGoal);
+        setFocusTitle(
+          syncPayload?.focusTitle || loadedPlan?.focusTitle || built.focusTitle,
+        );
+        setFocusSummary(
+          syncPayload?.focusSummary ||
+            loadedPlan?.focusSummary ||
+            built.focusSummary,
+        );
+        setEncouragement(
+          syncPayload?.encouragement ||
+            loadedPlan?.encouragement ||
+            built.encouragement,
+        );
+        setNotes(loadedPlan?.notes || "");
+        setActions(resolvedActions);
+      } catch (error: any) {
+        console.error("planner hydrate failed", error);
+        if (!mounted) return;
+        const built = buildActionsFromGoal(goalFromQuery || "Weekly family focus");
+        setSelectedGoal(goalFromQuery || "Weekly family focus");
+        setFocusTitle(built.focusTitle);
+        setFocusSummary(built.focusSummary);
+        setEncouragement(built.encouragement);
+        setNotes("");
+        setActions(built.actions);
+        setPageError(
+          String(error?.message ?? "We could not load this week’s planner."),
+        );
+      } finally {
+        if (mounted) {
+          setLoadingPlan(false);
+        }
+      }
+    }
+
+    void hydratePlan();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
     activeStudentId,
+    goalFromQuery,
     weekKey,
-    focusTitle,
-    focusSummary,
-    selectedGoal,
-    notes,
-    encouragement,
-    actions,
+    workspace.userId,
+    workspace.profile.id,
   ]);
 
   const activeChild = useMemo(() => {
@@ -578,38 +593,7 @@ export default function PlannerPage() {
 
   function handleStudentChange(nextId: string) {
     setActiveStudentId(nextId);
-
-    const savedPlanMap = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
-    const syncMap = readJson<PlannerCalendarSyncMap>(
-      STORAGE_KEYS.PLANNER_CALENDAR_SYNC,
-      {}
-    );
-
-    const existingPlan = savedPlanMap[`${nextId}:${weekKey}`];
-    const syncPayload = syncMap[`${nextId}:${weekKey}`];
-
-    if (existingPlan || syncPayload) {
-      setSelectedGoal(existingPlan?.selectedGoal || "Weekly family focus");
-      setFocusTitle(
-        syncPayload?.focusTitle || existingPlan?.focusTitle || "Weekly focus"
-      );
-      setFocusSummary(
-        syncPayload?.focusSummary || existingPlan?.focusSummary || ""
-      );
-      setEncouragement(
-        syncPayload?.encouragement || existingPlan?.encouragement || ""
-      );
-      setNotes(existingPlan?.notes || "");
-      setActions(syncPayload?.actions || existingPlan?.actions || []);
-      return;
-    }
-
-    const built = buildActionsFromGoal(selectedGoal || "Weekly family focus");
-    setFocusTitle(built.focusTitle);
-    setFocusSummary(built.focusSummary);
-    setEncouragement(built.encouragement);
-    setNotes("");
-    setActions(built.actions);
+    setActiveLearner(nextId);
   }
 
   function handleGoalRefresh(nextGoal: string) {
@@ -660,10 +644,10 @@ export default function PlannerPage() {
     setActions((current) => current.filter((action) => action.id !== actionId));
   }
 
-  function handleSaveNow() {
+  async function handleSaveNow() {
     if (!activeStudentId) return;
-    const existing = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
-    existing[`${activeStudentId}:${weekKey}`] = {
+
+    const payload: SavedPlan = {
       studentId: activeStudentId,
       weekKey,
       focusTitle,
@@ -674,9 +658,55 @@ export default function PlannerPage() {
       actions,
       updatedAt: new Date().toISOString(),
     };
-    writeJson(STORAGE_KEYS.PLAN, existing);
-    setSaveMessage("Planner saved for this week.");
-    window.setTimeout(() => setSaveMessage(""), 2000);
+
+    try {
+      if (workspace.userId) {
+        if (!workspace.profile.id || workspace.profile.id === "local") {
+          throw new Error(
+            "Family workspace is not ready for planner saves yet. Refresh and try again.",
+          );
+        }
+
+        if (activeStudentId.startsWith("local-")) {
+          throw new Error(
+            "Choose a linked learner before saving this planner to the family workspace.",
+          );
+        }
+
+        await saveFamilyWeeklyPlan({
+          familyProfileId: workspace.profile.id,
+          studentId: activeStudentId,
+          createdByUserId: workspace.userId,
+          weekKey,
+          plan: {
+            focusTitle,
+            focusSummary,
+            selectedGoal,
+            notes,
+            encouragement,
+            actions,
+            updatedAt: payload.updatedAt,
+          },
+        });
+        const existing = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
+        existing[`${activeStudentId}:${weekKey}`] = payload;
+        writeJson(STORAGE_KEYS.PLAN, existing);
+        setSaveMessage("Planner saved to the family workspace.");
+      } else {
+        const existing = readJson<Record<string, SavedPlan>>(STORAGE_KEYS.PLAN, {});
+        existing[`${activeStudentId}:${weekKey}`] = payload;
+        writeJson(STORAGE_KEYS.PLAN, existing);
+        setSaveMessage("Planner saved locally for this week.");
+      }
+
+      window.setTimeout(() => setSaveMessage(""), 2000);
+    } catch (error: any) {
+      console.error("planner save failed", error);
+      setSaveMessage(
+        String(error?.message ?? "We could not save this planner right now."),
+      );
+      window.setTimeout(() => setSaveMessage(""), 2600);
+    }
   }
 
   function handleSendToCalendar() {
@@ -745,6 +775,18 @@ export default function PlannerPage() {
             </div>
           </div>
         </section>
+
+        {workspaceLoading || loadingPlan ? (
+          <section style={styles.card}>
+            <div style={styles.cardText}>Loading this week’s planner…</div>
+          </section>
+        ) : null}
+
+        {pageError ? (
+          <section style={styles.errorCard}>
+            {pageError}
+          </section>
+        ) : null}
 
         <section style={styles.grid}>
           <div style={styles.leftColumn}>
@@ -1121,6 +1163,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 24,
     padding: 24,
     boxShadow: "0 12px 34px rgba(15, 23, 42, 0.05)",
+  },
+  errorCard: {
+    background: "#fff7ed",
+    border: "1px solid #fdba74",
+    borderRadius: 24,
+    padding: 18,
+    color: "#9a3412",
+    fontWeight: 700,
   },
   sideCard: {
     background: "#ffffff",
