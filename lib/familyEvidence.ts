@@ -26,6 +26,13 @@ export type ReportSupportingEvidenceItem = {
   attachmentCount: number;
   attachmentNames: string[];
   attachmentLabel: string | null;
+  attachments: Array<{
+    fileName: string;
+    mimeType: string;
+    bucketName: string | null;
+    objectPath: string | null;
+    source: "evidence_files" | "legacy_reference";
+  }>;
   linkedOutcomes: Array<{
     outcomeId: string;
     outcomeCode: string;
@@ -290,7 +297,7 @@ export async function loadReportSupportingEvidence(input: {
 
   const evidenceFileResponse = await client
     .from("evidence_files")
-    .select("evidence_id,original_filename,mime_type,file_size_bytes,object_path")
+    .select("evidence_id,bucket_name,original_filename,mime_type,file_size_bytes,object_path")
     .in(
       "evidence_id",
       orderedEvidenceRows.map((row) => String(row.id ?? "").trim()).filter(Boolean),
@@ -306,7 +313,7 @@ export async function loadReportSupportingEvidence(input: {
   >();
   const attachmentMap = new Map<
     string,
-    Array<{ name: string; mimeType: string; objectPath: string }>
+    Array<{ name: string; mimeType: string; objectPath: string; bucketName: string }>
   >();
 
   for (const row of (outcomeResponse.data ?? []) as Array<{
@@ -347,6 +354,7 @@ export async function loadReportSupportingEvidence(input: {
 
   for (const row of (evidenceFileResponse.data ?? []) as Array<{
     evidence_id?: string | null;
+    bucket_name?: string | null;
     original_filename?: string | null;
     mime_type?: string | null;
     object_path?: string | null;
@@ -360,6 +368,7 @@ export async function loadReportSupportingEvidence(input: {
       name: fileName || "Attached file",
       mimeType: safe(row.mime_type),
       objectPath,
+      bucketName: safe(row.bucket_name),
     };
 
     attachmentMap.set(evidenceId, [...(attachmentMap.get(evidenceId) ?? []), next]);
@@ -386,6 +395,22 @@ export async function loadReportSupportingEvidence(input: {
       storedAttachments.length > 0
         ? storedAttachments.map((file) => file.name).filter(Boolean).slice(0, 3)
         : legacyAttachmentNames.slice(0, 3);
+    const attachments =
+      storedAttachments.length > 0
+        ? storedAttachments.map((file) => ({
+            fileName: file.name,
+            mimeType: file.mimeType,
+            bucketName: file.bucketName || null,
+            objectPath: file.objectPath || null,
+            source: "evidence_files" as const,
+          }))
+        : legacyAttachmentValues.map((value) => ({
+            fileName: extractAttachmentName(value) || "Attached file",
+            mimeType: "",
+            bucketName: null,
+            objectPath: value || null,
+            source: "legacy_reference" as const,
+          }));
     const attachmentLabel =
       storedAttachments.length > 0
         ? mimeToAttachmentLabel(storedAttachments[0]?.mimeType ?? "")
@@ -404,6 +429,7 @@ export async function loadReportSupportingEvidence(input: {
       attachmentCount,
       attachmentNames,
       attachmentLabel,
+      attachments,
       linkedOutcomes: (outcomeMap.get(id) ?? []).slice(0, 3),
     };
   });

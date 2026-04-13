@@ -236,6 +236,8 @@ function ReportsOutputPageContent() {
   >([]);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState("");
+  const [downloadingPack, setDownloadingPack] = useState(false);
+  const [packError, setPackError] = useState("");
 
   const weekKey = useMemo(() => getCurrentWeekKey(), []);
   const draftId = safe(searchParams.get("draftId"));
@@ -291,6 +293,59 @@ function ReportsOutputPageContent() {
       setPdfError(String(err?.message || err || "Failed to generate report PDF."));
     } finally {
       setDownloadingPdf(false);
+    }
+  }
+
+  async function handleDownloadSubmissionPack() {
+    if (!draftId || downloadingPack) return;
+
+    try {
+      setDownloadingPack(true);
+      setPackError("");
+
+      const sessionResponse = await supabase.auth.getSession();
+      const accessToken = safe(sessionResponse.data.session?.access_token);
+      if (!accessToken) {
+        throw new Error("You need to be signed in to download this submission pack.");
+      }
+
+      const response = await fetch(
+        `/api/reports/submission-pack?draftId=${encodeURIComponent(draftId)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        let message = "Failed to generate submission pack.";
+        try {
+          const payload = await response.json();
+          message = safe(payload?.error) || message;
+        } catch {
+          // ignore non-json failures
+        }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const disposition = safe(response.headers.get("content-disposition"));
+      const filenameMatch = disposition.match(/filename="([^"]+)"/i);
+      const filename = filenameMatch?.[1] || "submission-pack.zip";
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err: any) {
+      setPackError(String(err?.message || err || "Failed to generate submission pack."));
+    } finally {
+      setDownloadingPack(false);
     }
   }
 
@@ -752,6 +807,14 @@ function ReportsOutputPageContent() {
               </button>
               <button
                 type="button"
+                onClick={() => void handleDownloadSubmissionPack()}
+                style={actionButtonStyle}
+                disabled={downloadingPack}
+              >
+                {downloadingPack ? "Preparing pack…" : "Download Submission Pack"}
+              </button>
+              <button
+                type="button"
                 onClick={() => window.print()}
                 style={actionButtonStyle}
               >
@@ -764,6 +827,11 @@ function ReportsOutputPageContent() {
             {pdfError ? (
               <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
                 {pdfError}
+              </div>
+            ) : null}
+            {packError ? (
+              <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
+                {packError}
               </div>
             ) : null}
             <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
