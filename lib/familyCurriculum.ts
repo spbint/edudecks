@@ -48,6 +48,7 @@ export type CurriculumOutcomeRow = {
   learning_area_id: string;
   strand_id: string;
   status: LearnerOutcomeStatusKey;
+  plannedCount: number;
   evidenceCount: number;
   recentEvidenceTitles: string[];
 };
@@ -65,6 +66,7 @@ export type CurriculumLearningAreaGroup = {
   name: string;
   strands: CurriculumStrandGroup[];
   counts: Record<LearnerOutcomeStatusKey, number>;
+  plannedCount: number;
   evidenceCount: number;
 };
 
@@ -76,8 +78,13 @@ export type LearnerCurriculumPageData = {
   areas: CurriculumLearningAreaGroup[];
   totalOutcomes: number;
   trackedOutcomeCount: number;
+  plannedLinkedOutcomeCount: number;
   evidenceLinkedOutcomeCount: number;
+  totalPlanLinks: number;
   totalEvidenceLinks: number;
+  plannedOnlyOutcomeCount: number;
+  evidenceOnlyOutcomeCount: number;
+  plannedAndEvidencedOutcomeCount: number;
 };
 
 export type LinkableCurriculumOutcome = {
@@ -195,8 +202,13 @@ export async function loadLearnerCurriculumPageData(input: {
       areas: [],
       totalOutcomes: 0,
       trackedOutcomeCount: 0,
+      plannedLinkedOutcomeCount: 0,
       evidenceLinkedOutcomeCount: 0,
+      totalPlanLinks: 0,
       totalEvidenceLinks: 0,
+      plannedOnlyOutcomeCount: 0,
+      evidenceOnlyOutcomeCount: 0,
+      plannedAndEvidencedOutcomeCount: 0,
     };
   }
 
@@ -252,16 +264,24 @@ export async function loadLearnerCurriculumPageData(input: {
   const outcomeIds = outcomes.map((outcome) => safe(outcome.id)).filter(Boolean);
   let trackedOutcomeCount = 0;
   const statusMap = new Map<string, LearnerOutcomeStatusKey>();
+  const plannedCounts = new Map<string, number>();
   const evidenceCounts = new Map<string, number>();
   const evidenceTitleMap = new Map<string, string[]>();
 
   if (outcomeIds.length) {
-    const [statusesResponse, evidenceLinksResponse] = await Promise.all([
+    const [statusesResponse, plannerLinksResponse, evidenceLinksResponse] = await Promise.all([
       supabase
         .from("learner_outcome_status")
         .select("outcome_id,status")
         .eq("student_id", input.studentId)
         .in("outcome_id", outcomeIds),
+      supabase
+        .from("learning_plan_item_outcomes")
+        .select(
+          "outcome_id,learning_plan_items!inner(id,student_id,status,updated_at,title)",
+        )
+        .in("outcome_id", outcomeIds)
+        .eq("learning_plan_items.student_id", input.studentId),
       supabase
         .from("evidence_outcomes")
         .select("outcome_id,evidence_entries!inner(id,title,student_id,is_deleted,occurred_on,created_at)")
@@ -272,6 +292,9 @@ export async function loadLearnerCurriculumPageData(input: {
 
     if (statusesResponse.error) {
       throw statusesResponse.error;
+    }
+    if (plannerLinksResponse.error) {
+      throw plannerLinksResponse.error;
     }
     if (evidenceLinksResponse.error) {
       throw evidenceLinksResponse.error;
@@ -285,6 +308,42 @@ export async function loadLearnerCurriculumPageData(input: {
     trackedOutcomeCount = statuses.length;
     for (const row of statuses) {
       statusMap.set(safe(row.outcome_id), normalizeStatus(row.status));
+    }
+
+    const plannerLinks = (plannerLinksResponse.data ?? []) as Array<{
+      outcome_id?: string | null;
+      learning_plan_items?:
+        | {
+            id?: string | null;
+            student_id?: string | null;
+            status?: string | null;
+            updated_at?: string | null;
+            title?: string | null;
+          }
+        | Array<{
+            id?: string | null;
+            student_id?: string | null;
+            status?: string | null;
+            updated_at?: string | null;
+            title?: string | null;
+          }>
+        | null;
+    }>;
+
+    for (const row of plannerLinks) {
+      const outcomeId = safe(row.outcome_id);
+      if (!outcomeId) continue;
+
+      const linkedPlanItems = Array.isArray(row.learning_plan_items)
+        ? row.learning_plan_items
+        : row.learning_plan_items
+          ? [row.learning_plan_items]
+          : [];
+
+      for (const planItem of linkedPlanItems) {
+        if (!safe(planItem.id)) continue;
+        plannedCounts.set(outcomeId, (plannedCounts.get(outcomeId) ?? 0) + 1);
+      }
     }
 
     const evidenceLinks = (evidenceLinksResponse.data ?? []) as Array<{
@@ -333,12 +392,18 @@ export async function loadLearnerCurriculumPageData(input: {
   }
 
   const statusCounts = { ...EMPTY_COUNTS };
+  let plannedLinkedOutcomeCount = 0;
   let evidenceLinkedOutcomeCount = 0;
+  let totalPlanLinks = 0;
   let totalEvidenceLinks = 0;
+  let plannedOnlyOutcomeCount = 0;
+  let evidenceOnlyOutcomeCount = 0;
+  let plannedAndEvidencedOutcomeCount = 0;
 
   const groupedAreas: CurriculumLearningAreaGroup[] = areas.map((area) => {
     const areaId = safe(area.id);
     const areaCounts = { ...EMPTY_COUNTS };
+    let areaPlannedCount = 0;
     let areaEvidenceCount = 0;
     const groupedStrands = strands
       .filter((strand) => safe(strand.learning_area_id) === areaId)
@@ -352,13 +417,26 @@ export async function loadLearnerCurriculumPageData(input: {
           )
           .map((outcome) => {
             const status = statusMap.get(safe(outcome.id)) ?? "not_introduced";
+            const plannedCount = plannedCounts.get(safe(outcome.id)) ?? 0;
             const evidenceCount = evidenceCounts.get(safe(outcome.id)) ?? 0;
             areaCounts[status] += 1;
             statusCounts[status] += 1;
+            areaPlannedCount += plannedCount;
             areaEvidenceCount += evidenceCount;
+            totalPlanLinks += plannedCount;
             totalEvidenceLinks += evidenceCount;
+            if (plannedCount > 0) {
+              plannedLinkedOutcomeCount += 1;
+            }
             if (evidenceCount > 0) {
               evidenceLinkedOutcomeCount += 1;
+            }
+            if (plannedCount > 0 && evidenceCount > 0) {
+              plannedAndEvidencedOutcomeCount += 1;
+            } else if (plannedCount > 0) {
+              plannedOnlyOutcomeCount += 1;
+            } else if (evidenceCount > 0) {
+              evidenceOnlyOutcomeCount += 1;
             }
 
             return {
@@ -369,6 +447,7 @@ export async function loadLearnerCurriculumPageData(input: {
               learning_area_id: areaId,
               strand_id: strandId,
               status,
+              plannedCount,
               evidenceCount,
               recentEvidenceTitles: evidenceTitleMap.get(safe(outcome.id)) ?? [],
             } satisfies CurriculumOutcomeRow;
@@ -389,6 +468,7 @@ export async function loadLearnerCurriculumPageData(input: {
       name: safe(area.name) || "Unnamed learning area",
       strands: groupedStrands,
       counts: areaCounts,
+      plannedCount: areaPlannedCount,
       evidenceCount: areaEvidenceCount,
     } satisfies CurriculumLearningAreaGroup;
   });
@@ -401,8 +481,13 @@ export async function loadLearnerCurriculumPageData(input: {
     areas: groupedAreas.filter((area) => area.strands.length > 0),
     totalOutcomes: outcomes.length,
     trackedOutcomeCount,
+    plannedLinkedOutcomeCount,
     evidenceLinkedOutcomeCount,
+    totalPlanLinks,
     totalEvidenceLinks,
+    plannedOnlyOutcomeCount,
+    evidenceOnlyOutcomeCount,
+    plannedAndEvidencedOutcomeCount,
   };
 }
 

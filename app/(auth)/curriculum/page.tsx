@@ -290,8 +290,20 @@ export default function CurriculumPage() {
                 <div style={S.summaryValue}>{pageData.trackedOutcomeCount}</div>
               </div>
               <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Planned outcomes</div>
+                <div style={S.summaryValue}>{pageData.plannedLinkedOutcomeCount}</div>
+              </div>
+              <div style={S.summaryCard}>
                 <div style={S.summaryLabel}>Evidence-linked outcomes</div>
                 <div style={S.summaryValue}>{pageData.evidenceLinkedOutcomeCount}</div>
+              </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Planned and evidenced</div>
+                <div style={S.summaryValue}>{pageData.plannedAndEvidencedOutcomeCount}</div>
+              </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Plan links</div>
+                <div style={S.summaryValue}>{pageData.totalPlanLinks}</div>
               </div>
               <div style={S.summaryCard}>
                 <div style={S.summaryLabel}>Evidence links</div>
@@ -305,12 +317,20 @@ export default function CurriculumPage() {
                   <div style={S.cardTitle}>Progress snapshot</div>
                   <div style={S.cardText}>
                     {pageData.trackedOutcomeCount > 0
-                      ? pageData.totalEvidenceLinks > 0
-                        ? "These counts come from saved learner outcome statuses, with linked evidence now visible across the map."
-                        : "These counts come from saved learner outcome statuses. No evidence has been linked yet."
-                      : pageData.totalEvidenceLinks > 0
-                        ? "No saved learner outcome rows exist yet, but linked evidence is now visible below so progress is grounded in real captured work."
-                        : "No saved learner outcome rows exist yet. Outcomes below are currently shown as not introduced until you begin tracking."}
+                      ? pageData.totalPlanLinks > 0 && pageData.totalEvidenceLinks > 0
+                        ? "These counts now show saved learner status, linked planning, and linked evidence together."
+                        : pageData.totalPlanLinks > 0
+                          ? "These counts come from saved learner outcome statuses, with curriculum-linked planning now visible across the map."
+                          : pageData.totalEvidenceLinks > 0
+                            ? "These counts come from saved learner outcome statuses, with linked evidence now visible across the map."
+                            : "These counts come from saved learner outcome statuses. No curriculum-linked planning or evidence has been added yet."
+                      : pageData.totalPlanLinks > 0 && pageData.totalEvidenceLinks > 0
+                        ? "No saved learner outcome rows exist yet, but linked planning and evidence are now visible below so progress feels more intentional."
+                        : pageData.totalPlanLinks > 0
+                          ? "No saved learner outcome rows exist yet, but linked planning is visible below so intended learning is clear."
+                          : pageData.totalEvidenceLinks > 0
+                            ? "No saved learner outcome rows exist yet, but linked evidence is now visible below so progress is grounded in real captured work."
+                            : "No saved learner outcome rows exist yet. Outcomes below are currently shown as not introduced until you begin tracking."}
                   </div>
                 </div>
               </div>
@@ -326,6 +346,24 @@ export default function CurriculumPage() {
                 })}
               </div>
             </section>
+
+            {pageData.totalPlanLinks === 0 ? (
+              <section style={S.card}>
+                <div style={S.cardHeader}>
+                  <div>
+                    <div style={S.cardTitle}>No curriculum-linked planning yet</div>
+                    <div style={S.cardText}>
+                      The curriculum map is ready, but no saved planner items have been linked
+                      to outcomes for this learner yet. Link weekly checklist items in Planner
+                      to make intended learning visible here.
+                    </div>
+                  </div>
+                </div>
+                <Link href="/planner" style={S.primaryLink}>
+                  Open planner
+                </Link>
+              </section>
+            ) : null}
 
             {pageData.totalEvidenceLinks === 0 ? (
               <section style={S.card}>
@@ -351,7 +389,7 @@ export default function CurriculumPage() {
                   <div>
                     <div style={S.cardTitle}>{area.name}</div>
                     <div style={S.cardText}>
-                      {area.strands.length} strand{area.strands.length === 1 ? "" : "s"}, {Object.values(area.counts).reduce((sum, count) => sum + count, 0)} outcomes, {area.evidenceCount} evidence link{area.evidenceCount === 1 ? "" : "s"}
+                      {area.strands.length} strand{area.strands.length === 1 ? "" : "s"}, {Object.values(area.counts).reduce((sum, count) => sum + count, 0)} outcomes, {area.plannedCount} plan link{area.plannedCount === 1 ? "" : "s"}, {area.evidenceCount} evidence link{area.evidenceCount === 1 ? "" : "s"}
                     </div>
                   </div>
                   <div style={S.countRow}>
@@ -385,6 +423,21 @@ export default function CurriculumPage() {
                                     style={{
                                       ...S.countChip,
                                       background:
+                                        outcome.plannedCount > 0 ? "#f8fafc" : "#ffffff",
+                                      borderColor:
+                                        outcome.plannedCount > 0 ? "#cbd5e1" : "#e5e7eb",
+                                      color:
+                                        outcome.plannedCount > 0 ? "#334155" : "#64748b",
+                                    }}
+                                  >
+                                    {outcome.plannedCount > 0
+                                      ? `Planned: ${outcome.plannedCount}`
+                                      : "Not planned yet"}
+                                  </span>
+                                  <span
+                                    style={{
+                                      ...S.countChip,
+                                      background:
                                         outcome.evidenceCount > 0 ? "#eff6ff" : "#f8fafc",
                                       borderColor:
                                         outcome.evidenceCount > 0 ? "#bfdbfe" : "#e5e7eb",
@@ -401,6 +454,15 @@ export default function CurriculumPage() {
                                       {outcome.recentEvidenceTitles.join(" / ")}
                                     </span>
                                   ) : null}
+                                  <span style={S.outcomeMetaText}>
+                                    {outcome.plannedCount > 0 && outcome.evidenceCount > 0
+                                      ? "Both planned and evidenced"
+                                      : outcome.plannedCount > 0
+                                        ? "Planned but not evidenced yet"
+                                        : outcome.evidenceCount > 0
+                                          ? "Evidenced without much prior planning"
+                                          : "No linked planning or evidence yet"}
+                                  </span>
                                 </div>
                               </div>
                               <div style={S.outcomeControls}>
