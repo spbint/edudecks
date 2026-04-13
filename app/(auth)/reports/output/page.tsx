@@ -64,6 +64,66 @@ function learnerLabel(input: {
   return matched?.label || safe(input.draft?.child_name) || "Learner";
 }
 
+function normalizeMarket(value?: string | null) {
+  const market = safe(value).toLowerCase();
+  if (market === "au" || market === "uk" || market === "us") return market;
+  return "";
+}
+
+function buildMarketOverlay(value?: string | null) {
+  const market = normalizeMarket(value);
+
+  if (market === "au") {
+    return {
+      reportEyebrow: "Australian homeschool learning report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Learning period",
+      marketLabelText: "National context",
+      coverageNote:
+        "This summary is presented in an Australian homeschool reporting context while remaining parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in an Australian family reporting context.",
+    };
+  }
+
+  if (market === "uk") {
+    return {
+      reportEyebrow: "UK home education report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Learning period",
+      marketLabelText: "UK context",
+      coverageNote:
+        "This summary is presented in a UK home education context while remaining clear and parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in a UK home education context.",
+    };
+  }
+
+  if (market === "us") {
+    return {
+      reportEyebrow: "US home education report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Reporting period",
+      marketLabelText: "US context",
+      coverageNote:
+        "This summary is presented in a US home education context while remaining clear and parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in a US family reporting context.",
+    };
+  }
+
+  return {
+    reportEyebrow: "Homeschool learning report",
+    preparedLinePrefix: "Prepared for",
+    periodLabel: "Reporting period",
+    marketLabelText: "Market context",
+    coverageNote:
+      "This summary is designed to stay calm, readable, and useful across family reporting contexts.",
+    backgroundNote:
+      "This document background reflects the current curriculum, planning, and evidence picture without adding market-specific rules.",
+  };
+}
+
 const pageStyle: React.CSSProperties = {
   minHeight: "100%",
   display: "grid",
@@ -355,6 +415,10 @@ function ReportsOutputPageContent() {
   });
 
   const selectedEvidenceIds = draft?.selected_evidence_ids ?? [];
+  const marketOverlay = useMemo(
+    () => buildMarketOverlay(draft?.preferred_market || workspace.profile?.preferred_market),
+    [draft?.preferred_market, workspace.profile?.preferred_market],
+  );
   const selectedCoreCount = useMemo(
     () =>
       selectedEvidenceIds.filter(
@@ -611,7 +675,7 @@ function ReportsOutputPageContent() {
           }}
         >
           <div style={{ maxWidth: 780 }}>
-            <div style={labelStyle}>Homeschool learning report</div>
+            <div style={labelStyle}>{marketOverlay.reportEyebrow}</div>
             <h1 style={h1Style}>{safe(draft.title) || "Learning Report"}</h1>
             <div style={{ ...bodyStyle, marginTop: 8, maxWidth: 720 }}>
               A structured summary of planned learning, captured evidence, and
@@ -626,7 +690,8 @@ function ReportsOutputPageContent() {
                 borderTop: "1px solid #e2e8f0",
               }}
             >
-              Prepared for <strong style={{ color: "#0f172a" }}>{studentLabel}</strong>
+              {marketOverlay.preparedLinePrefix}{" "}
+              <strong style={{ color: "#0f172a" }}>{studentLabel}</strong>
               {" • "}
               {modeLabel(draft.report_mode)}
               {" • "}
@@ -645,12 +710,14 @@ function ReportsOutputPageContent() {
                 <div style={h3Style}>{modeLabel(draft.report_mode)}</div>
               </div>
               <div style={statStyle}>
-                <div style={labelStyle}>Reporting period</div>
+                <div style={labelStyle}>{marketOverlay.periodLabel}</div>
                 <div style={h3Style}>{periodLabel(draft.period_mode)}</div>
               </div>
               <div style={statStyle}>
-                <div style={labelStyle}>Market context</div>
-                <div style={h3Style}>{marketLabel(draft.preferred_market)}</div>
+                <div style={labelStyle}>{marketOverlay.marketLabelText}</div>
+                <div style={h3Style}>
+                  {marketLabel(draft.preferred_market || workspace.profile?.preferred_market)}
+                </div>
               </div>
             </div>
             <div style={{ ...smallStyle, marginTop: 12 }}>
@@ -729,6 +796,7 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>Curriculum Coverage Summary</div>
         </div>
         <div style={smallStyle}>{coverageExplanation}</div>
+        <div style={{ ...smallStyle, marginTop: 8 }}>{marketOverlay.coverageNote}</div>
 
         <div
           className="reports-output-grid-four"
@@ -991,8 +1059,7 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>Report Background</div>
         </div>
         <div style={smallStyle}>
-          This section keeps the underlying report inputs visible without turning the
-          page into a dashboard.
+          {marketOverlay.backgroundNote}
         </div>
         <div
           className="reports-output-grid-four"
