@@ -162,6 +162,13 @@ const statStyle: React.CSSProperties = {
   gap: 6,
 };
 
+const metadataGridStyle: React.CSSProperties = {
+  marginTop: 16,
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: 12,
+};
+
 const actionButtonStyle: React.CSSProperties = {
   minHeight: 40,
   padding: "10px 14px",
@@ -498,13 +505,15 @@ function ReportsOutputPageContent() {
 
           .reports-output-grid-two,
           .reports-output-grid-three,
-          .reports-output-grid-four {
+          .reports-output-grid-four,
+          .reports-output-metadata-grid {
             display: block !important;
           }
 
           .reports-output-grid-two > *,
           .reports-output-grid-three > *,
-          .reports-output-grid-four > * {
+          .reports-output-grid-four > *,
+          .reports-output-metadata-grid > * {
             margin-bottom: 12px !important;
           }
 
@@ -529,14 +538,36 @@ function ReportsOutputPageContent() {
           }}
         >
           <div style={{ maxWidth: 780 }}>
-            <div style={labelStyle}>Learning report</div>
+            <div style={labelStyle}>Homeschool learning report</div>
             <h1 style={h1Style}>{safe(draft.title) || "Learning Report"}</h1>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
-              {studentLabel} · {modeLabel(draft.report_mode)} ·{" "}
-              {periodLabel(draft.period_mode)} · {marketLabel(draft.preferred_market)}
+              A structured summary of planned learning, captured evidence, and current
+              curriculum coverage for family review and sharing.
             </div>
-            <div style={{ ...smallStyle, marginTop: 8 }}>
-              Updated {shortDate(draft.updated_at || draft.created_at)} · Draft ID{" "}
+            <div
+              className="reports-output-metadata-grid"
+              style={metadataGridStyle}
+            >
+              <div style={statStyle}>
+                <div style={labelStyle}>Learner</div>
+                <div style={h3Style}>{studentLabel}</div>
+              </div>
+              <div style={statStyle}>
+                <div style={labelStyle}>Report mode</div>
+                <div style={h3Style}>{modeLabel(draft.report_mode)}</div>
+              </div>
+              <div style={statStyle}>
+                <div style={labelStyle}>Reporting period</div>
+                <div style={h3Style}>{periodLabel(draft.period_mode)}</div>
+              </div>
+              <div style={statStyle}>
+                <div style={labelStyle}>Market context</div>
+                <div style={h3Style}>{marketLabel(draft.preferred_market)}</div>
+              </div>
+            </div>
+            <div style={{ ...smallStyle, marginTop: 12 }}>
+              Viewed {shortDate(new Date().toISOString())} · Updated{" "}
+              {shortDate(draft.updated_at || draft.created_at)} · Draft reference{" "}
               <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
                 {draft.id}
               </span>
@@ -579,18 +610,18 @@ function ReportsOutputPageContent() {
       </section>
 
       <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Learning Overview</div>
+        <div style={h2Style}>Summary of Learning</div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
         {draft.notes ? (
           <div style={{ ...softCardStyle, marginTop: 16 }}>
-            <div style={labelStyle}>Family note</div>
+            <div style={labelStyle}>Family context note</div>
             <div style={bodyStyle}>{draft.notes}</div>
           </div>
         ) : null}
       </section>
 
       <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Curriculum Coverage</div>
+        <div style={h2Style}>Curriculum Coverage Summary</div>
         <div style={smallStyle}>{coverageExplanation}</div>
 
         <div
@@ -621,7 +652,7 @@ function ReportsOutputPageContent() {
         </div>
 
         <div style={{ ...softCardStyle, marginTop: 14 }}>
-          <div style={labelStyle}>Coverage summary</div>
+          <div style={labelStyle}>Coverage interpretation</div>
           <div style={bodyStyle}>{readiness.message}</div>
         </div>
       </section>
@@ -635,7 +666,7 @@ function ReportsOutputPageContent() {
         }}
       >
         <div style={cardStyle} className="reports-output-card">
-          <div style={h2Style}>Evidence of Learning</div>
+          <div style={h2Style}>Evidence Supporting Learning</div>
           <div style={bodyStyle}>
             {selectedEvidenceIds.length
               ? `${selectedEvidenceIds.length} linked evidence item${
@@ -648,7 +679,7 @@ function ReportsOutputPageContent() {
               : "No linked evidence is attached to this draft yet."}
           </div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
-            <div style={labelStyle}>Current focus areas</div>
+            <div style={labelStyle}>Learning focus noted in this draft</div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {selectedAreas.length
                 ? selectedAreas.join(", ")
@@ -672,7 +703,7 @@ function ReportsOutputPageContent() {
       </section>
 
       <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Next Steps</div>
+        <div style={h2Style}>Recommended Next Steps</div>
         <div style={bodyStyle}>{parentLanguage.nextStep}</div>
 
         <div
@@ -720,16 +751,16 @@ function ReportsOutputPageContent() {
         curriculumCoverage.linkedOutcomes === 0) ||
       (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) ? (
         <section style={cardStyle} className="reports-output-card">
-          <div style={h2Style}>What Is Still Missing</div>
+          <div style={h2Style}>Areas Requiring Further Development</div>
           <div style={bodyStyle}>
             {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
-              ? "There is not enough curriculum-linked context yet to build a strong report output."
+              ? "There is currently insufficient curriculum-linked context to build a strong report summary."
               : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
                 ? "The learner's curriculum is selected, but no seeded outcomes are available yet for this level."
                 : curriculumCoverage.plannedOutcomes === 0 &&
                     curriculumCoverage.linkedOutcomes === 0
-                  ? "There is not enough curriculum-linked planning and evidence yet to build a strong report output."
-                  : "Planning exists, but evidence support is still limited."}
+                  ? "There is currently insufficient curriculum-linked planning and evidence to generate a strong report summary."
+                  : "Planning is present, though evidence support remains limited in parts of the report."}
           </div>
           <div style={{ ...smallStyle, marginTop: 10 }}>
             Return to <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>/reports</Link>{" "}
@@ -742,7 +773,7 @@ function ReportsOutputPageContent() {
       ) : null}
 
       <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Report Context</div>
+        <div style={h2Style}>Report Background</div>
         <div style={smallStyle}>
           This section keeps the underlying report inputs visible without turning the
           page into a dashboard.
