@@ -100,6 +100,12 @@ type CurriculumCoverageArea = {
   statusLabel: string;
 };
 
+type ParentLanguageSummary = {
+  overall: string;
+  strengths: string;
+  nextStep: string;
+};
+
 const AREA_OPTIONS = [
   "Literacy",
   "Numeracy",
@@ -424,6 +430,141 @@ function joinNatural(items: string[]) {
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+function buildParentLanguageSummary(input: {
+  selectedStudentId: string;
+  curriculumCoverage: {
+    ready: boolean;
+    reason: "ok" | "no-learner" | "no-curriculum" | "no-outcomes";
+    plannedOutcomes: number;
+    linkedOutcomes: number;
+    plannedOnlyOutcomes: number;
+    evidenceOnlyOutcomes: number;
+    plannedAndEvidencedOutcomes: number;
+    strongestAreas: string[];
+    weakestAreas: string[];
+    planningAheadAreas: string[];
+    evidenceAheadAreas: string[];
+  };
+  studentEvidenceCount: number;
+  selectedEvidenceCount: number;
+  notesText: string;
+  draftId: string;
+}): ParentLanguageSummary {
+  const {
+    selectedStudentId,
+    curriculumCoverage,
+    studentEvidenceCount,
+    selectedEvidenceCount,
+    notesText,
+    draftId,
+  } = input;
+
+  if (!selectedStudentId) {
+    return {
+      overall: "Choose a learner first so EduDecks can build a clear picture from real planning, evidence, and curriculum links.",
+      strengths: "Once a learner is selected, this page will show where planning and evidence are already supporting the report.",
+      nextStep: "Start by selecting the learner you want this report to describe.",
+    };
+  }
+
+  if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+    return {
+      overall: "There is not enough curriculum context yet to build a strong report summary for this learner.",
+      strengths: "The learner is in the family workspace, but curriculum selection still needs to be finished before the report can interpret coverage properly.",
+      nextStep: "Finish curriculum setup in Settings so planning and evidence can be read against the right outcomes.",
+    };
+  }
+
+  if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+    return {
+      overall: "This learner has a curriculum selection, but there are no seeded outcomes available yet for the chosen level.",
+      strengths: "The core report path is ready, but the curriculum map does not have enough structure yet to support useful coverage language.",
+      nextStep: "Seed the selected curriculum level so EduDecks can turn planning and evidence into a meaningful summary.",
+    };
+  }
+
+  if (
+    curriculumCoverage.ready &&
+    curriculumCoverage.plannedOutcomes === 0 &&
+    curriculumCoverage.linkedOutcomes === 0
+  ) {
+    return {
+      overall: "You are still at an early stage of building a clear learning record for this report.",
+      strengths: "The report hub is ready, but there are no curriculum-linked planner items or evidence links yet.",
+      nextStep: "Link some planning in Planner and some evidence in Capture so the report has real curriculum support to work from.",
+    };
+  }
+
+  if (
+    curriculumCoverage.ready &&
+    curriculumCoverage.plannedOutcomes > 0 &&
+    curriculumCoverage.linkedOutcomes === 0
+  ) {
+    const planningAreas = joinNatural(curriculumCoverage.planningAheadAreas.slice(0, 2));
+    return {
+      overall: planningAreas
+        ? `Planning is taking shape well, especially in ${planningAreas}, but evidence has not caught up yet.`
+        : "Planning is taking shape well, but evidence has not caught up yet.",
+      strengths: "There is clear intention behind the learner's work, which gives the report a solid starting point.",
+      nextStep: "Capture one or two strong pieces of work and link them to the planned outcomes so the report feels more grounded.",
+    };
+  }
+
+  if (
+    curriculumCoverage.ready &&
+    curriculumCoverage.plannedAndEvidencedOutcomes > 0
+  ) {
+    const strongAreas = joinNatural(curriculumCoverage.strongestAreas.slice(0, 2));
+    const planningAheadAreas = joinNatural(
+      curriculumCoverage.planningAheadAreas.slice(0, 2),
+    );
+    const evidenceAheadAreas = joinNatural(
+      curriculumCoverage.evidenceAheadAreas.slice(0, 2),
+    );
+
+    return {
+      overall: strongAreas
+        ? `Planning and evidence are starting to line up well in ${strongAreas}, which gives this report a more trustworthy base.`
+        : "Planning and evidence are starting to line up well, which gives this report a more trustworthy base.",
+      strengths:
+        curriculumCoverage.plannedAndEvidencedOutcomes >= 3
+          ? "There is now a meaningful overlap between what was intended and what has been captured, so the learner's story is becoming clearer."
+          : "There is early overlap between planned learning and captured evidence, which is a good sign that the record is becoming more complete.",
+      nextStep: planningAheadAreas
+        ? `Add a little more evidence in ${planningAheadAreas} so the thinner planned areas catch up.`
+        : evidenceAheadAreas
+          ? `Link a little more forward planning around ${evidenceAheadAreas} so intention and proof stay aligned.`
+          : "Keep building with a few more well-chosen evidence links so the strongest areas are matched by broader coverage.",
+    };
+  }
+
+  if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes > 0) {
+    const evidenceAheadAreas = joinNatural(curriculumCoverage.evidenceAheadAreas.slice(0, 2));
+    const weakAreas = joinNatural(curriculumCoverage.weakestAreas.slice(0, 2));
+    return {
+      overall: evidenceAheadAreas
+        ? `There is meaningful evidence of learning, including growth in ${evidenceAheadAreas}, but planning is still catching up.`
+        : "There is meaningful evidence of learning, but planning is still catching up in places.",
+      strengths: "The learner already has real proof of progress recorded, so the report does not need to start from scratch.",
+      nextStep: weakAreas
+        ? `Add a little more planning and evidence around ${weakAreas} so the report feels more balanced.`
+        : "Link upcoming planner items to outcomes so the report can show intention as clearly as proof.",
+    };
+  }
+
+  return {
+    overall: studentEvidenceCount
+      ? "A learning record is starting to form, but it still needs stronger curriculum links before the report will feel settled."
+      : "There is not enough linked planning and evidence yet to build a strong summary.",
+    strengths: selectedEvidenceCount
+      ? "You already have some chosen evidence in the report builder, which gives you a useful starting point."
+      : "The report structure is ready to use once more curriculum-linked activity is recorded.",
+    nextStep: notesText.trim() && draftId
+      ? "Keep strengthening the thinner areas so the saved draft feels calmer and more complete."
+      : "Once a little more planning and evidence are linked, save the draft so you have a reusable report base to keep improving.",
+  };
 }
 
 async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
@@ -1246,6 +1387,26 @@ function ReportsPageContent() {
     };
   }, [curriculumCoverage, selectedStudentId, studentEvidence.length, selectedAreas]);
 
+  const parentLanguage = useMemo(
+    () =>
+      buildParentLanguageSummary({
+        selectedStudentId,
+        curriculumCoverage,
+        studentEvidenceCount: studentEvidence.length,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        notesText: notes,
+        draftId,
+      }),
+    [
+      curriculumCoverage,
+      draftId,
+      notes,
+      selectedEvidenceIds.length,
+      selectedStudentId,
+      studentEvidence.length,
+    ],
+  );
+
   const nextBestMove = useMemo(() => {
     if (!selectedStudentId) return "Choose a child to start the report object.";
     if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
@@ -1716,7 +1877,7 @@ function ReportsPageContent() {
                 />
               </div>
 
-              <div style={smallStyle}>{nextBestMove}</div>
+              <div style={smallStyle}>{parentLanguage.nextStep}</div>
 
               <div style={{ height: 12 }} />
 
@@ -2151,8 +2312,8 @@ function ReportsPageContent() {
             </section>
 
             <section style={cardStyle}>
-              <div style={h2Style}>What this report currently shows</div>
-              <div style={bodyStyle}>{interpretation.text}</div>
+              <div style={h2Style}>What this report is telling you</div>
+              <div style={bodyStyle}>{parentLanguage.overall}</div>
 
               <div
                 style={{
@@ -2163,21 +2324,29 @@ function ReportsPageContent() {
                 }}
               >
                 <div style={softCardStyle}>
-                  <div style={labelStyle}>Strongest current focus</div>
-                  <div style={h3Style}>{interpretation.strongestFocus || "—"}</div>
-                </div>
-
-                <div style={softCardStyle}>
-                  <div style={labelStyle}>Planning ahead of proof</div>
-                  <div style={h3Style}>
-                    {interpretation.planningAheadAreas[0] || "No major gap yet"}
+                  <div style={labelStyle}>What is going well</div>
+                  <div style={{ ...h3Style, fontSize: 15, lineHeight: 1.5 }}>
+                    {parentLanguage.strengths}
                   </div>
                 </div>
 
                 <div style={softCardStyle}>
-                  <div style={labelStyle}>Evidence ahead of planning</div>
-                  <div style={h3Style}>
-                    {interpretation.evidenceAheadAreas[0] || "Well aligned"}
+                  <div style={labelStyle}>Best next step</div>
+                  <div style={{ ...h3Style, fontSize: 15, lineHeight: 1.5 }}>
+                    {parentLanguage.nextStep}
+                  </div>
+                </div>
+
+                <div style={softCardStyle}>
+                  <div style={labelStyle}>Coverage shape</div>
+                  <div style={{ ...h3Style, fontSize: 15, lineHeight: 1.5 }}>
+                    {curriculumCoverage.plannedAndEvidencedOutcomes > 0
+                      ? "Planning and evidence are starting to align."
+                      : interpretation.planningAheadAreas.length > 0
+                        ? "Planning is ahead of proof in some areas."
+                        : interpretation.evidenceAheadAreas.length > 0
+                          ? "Evidence is arriving faster than prior planning in some areas."
+                          : "Coverage is still early and building."}
                   </div>
                 </div>
               </div>
@@ -2387,7 +2556,7 @@ function ReportsPageContent() {
 
             <section style={cardStyle}>
               <div style={h2Style}>What to do next</div>
-              <div style={bodyStyle}>{nextBestMove}</div>
+              <div style={bodyStyle}>{parentLanguage.nextStep}</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
               </div>
