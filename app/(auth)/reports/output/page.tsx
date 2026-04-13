@@ -118,6 +118,11 @@ const h3Style: React.CSSProperties = {
   color: "#0f172a",
 };
 
+const sectionEyebrowStyle: React.CSSProperties = {
+  ...labelStyle,
+  marginBottom: 8,
+};
+
 const bodyStyle: React.CSSProperties = {
   marginTop: 10,
   fontSize: 15,
@@ -182,6 +187,12 @@ const actionButtonStyle: React.CSSProperties = {
   color: "#0f172a",
   fontWeight: 900,
   cursor: "pointer",
+};
+
+const sectionHeaderStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  marginBottom: 16,
 };
 
 export default function ReportsOutputPage() {
@@ -468,8 +479,9 @@ function ReportsOutputPageContent() {
         <section style={cardStyle}>
           <div style={h2Style}>No report draft selected</div>
           <div style={bodyStyle}>
-            There is not enough canonical report context yet to build an output page.
-            Return to the report hub to build or select a saved draft first.
+            There is not enough canonical report context yet to prepare a finished
+            report output. Return to the report hub to build or select a saved draft
+            first.
           </div>
           <div style={{ marginTop: 14 }}>
             <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>
@@ -508,7 +520,7 @@ function ReportsOutputPageContent() {
           <div style={bodyStyle}>
             There is not enough canonical learner context to produce a trustworthy
             report output. Return to the report hub and save the draft against a
-            learner first.
+            learner first so this document can be prepared properly.
           </div>
         </section>
       </main>
@@ -544,6 +556,11 @@ function ReportsOutputPageContent() {
             page-break-inside: avoid;
           }
 
+          .reports-output-section {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
           .reports-output-grid-two,
           .reports-output-grid-three,
           .reports-output-grid-four,
@@ -568,9 +585,20 @@ function ReportsOutputPageContent() {
           }
         }
       `}</style>
-      <section style={cardStyle} className="reports-output-card">
+      <section
+        style={{ ...cardStyle, padding: 0, overflow: "hidden" }}
+        className="reports-output-card reports-output-section"
+      >
         <div
           style={{
+            height: 8,
+            background:
+              "linear-gradient(90deg, #0f172a 0%, #3b82f6 45%, #34d399 100%)",
+          }}
+        />
+        <div
+          style={{
+            padding: 28,
             display: "flex",
             justifyContent: "space-between",
             gap: 16,
@@ -581,13 +609,28 @@ function ReportsOutputPageContent() {
           <div style={{ maxWidth: 780 }}>
             <div style={labelStyle}>Homeschool learning report</div>
             <h1 style={h1Style}>{safe(draft.title) || "Learning Report"}</h1>
-            <div style={{ ...bodyStyle, marginTop: 8 }}>
-              A structured summary of planned learning, captured evidence, and current
-              curriculum coverage for family review and sharing.
+            <div style={{ ...bodyStyle, marginTop: 8, maxWidth: 720 }}>
+              A structured summary of planned learning, captured evidence, and
+              curriculum coverage prepared for family review, sharing, and future
+              submission workflows.
+            </div>
+            <div
+              style={{
+                ...smallStyle,
+                marginTop: 16,
+                paddingTop: 14,
+                borderTop: "1px solid #e2e8f0",
+              }}
+            >
+              Prepared for <strong style={{ color: "#0f172a" }}>{studentLabel}</strong>
+              {" • "}
+              {modeLabel(draft.report_mode)}
+              {" • "}
+              {periodLabel(draft.period_mode)}
             </div>
             <div
               className="reports-output-metadata-grid"
-              style={metadataGridStyle}
+              style={{ ...metadataGridStyle, marginTop: 18 }}
             >
               <div style={statStyle}>
                 <div style={labelStyle}>Learner</div>
@@ -607,8 +650,8 @@ function ReportsOutputPageContent() {
               </div>
             </div>
             <div style={{ ...smallStyle, marginTop: 12 }}>
-              Viewed {shortDate(new Date().toISOString())} · Updated{" "}
-              {shortDate(draft.updated_at || draft.created_at)} · Draft reference{" "}
+              Viewed {shortDate(new Date().toISOString())} {" • "} Updated{" "}
+              {shortDate(draft.updated_at || draft.created_at)} {" • "} Draft reference{" "}
               <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
                 {draft.id}
               </span>
@@ -650,8 +693,14 @@ function ReportsOutputPageContent() {
         </div>
       </section>
 
-      <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Summary of Learning</div>
+      <section
+        style={{ ...cardStyle, paddingTop: 22 }}
+        className="reports-output-card reports-output-section"
+      >
+        <div style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>Learning Overview</div>
+          <div style={h2Style}>Summary of Learning</div>
+        </div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
         {draft.notes ? (
           <div style={{ ...softCardStyle, marginTop: 16 }}>
@@ -661,8 +710,14 @@ function ReportsOutputPageContent() {
         ) : null}
       </section>
 
-      <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Curriculum Coverage Summary</div>
+      <section
+        style={{ ...cardStyle, paddingTop: 22 }}
+        className="reports-output-card reports-output-section"
+      >
+        <div style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>Curriculum Position</div>
+          <div style={h2Style}>Curriculum Coverage Summary</div>
+        </div>
         <div style={smallStyle}>{coverageExplanation}</div>
 
         <div
@@ -706,8 +761,14 @@ function ReportsOutputPageContent() {
           gap: 20,
         }}
       >
-        <div style={cardStyle} className="reports-output-card">
-          <div style={h2Style}>Evidence Supporting Learning</div>
+        <div
+          style={{ ...cardStyle, paddingTop: 22 }}
+          className="reports-output-card reports-output-section"
+        >
+          <div style={sectionHeaderStyle}>
+            <div style={sectionEyebrowStyle}>Evidence Summary</div>
+            <div style={h2Style}>Evidence Supporting Learning</div>
+          </div>
           <div style={bodyStyle}>
             {selectedEvidenceIds.length
               ? `${selectedEvidenceIds.length} linked evidence item${
@@ -729,8 +790,14 @@ function ReportsOutputPageContent() {
           </div>
         </div>
 
-        <div style={cardStyle} className="reports-output-card">
-          <div style={h2Style}>Strengths</div>
+        <div
+          style={{ ...cardStyle, paddingTop: 22 }}
+          className="reports-output-card reports-output-section"
+        >
+          <div style={sectionHeaderStyle}>
+            <div style={sectionEyebrowStyle}>Positive Indicators</div>
+            <div style={h2Style}>Areas of Strength</div>
+          </div>
           <div style={bodyStyle}>{parentLanguage.strengths}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
             <div style={labelStyle}>Strongest curriculum areas</div>
@@ -743,8 +810,14 @@ function ReportsOutputPageContent() {
         </div>
       </section>
 
-      <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Supporting Evidence</div>
+      <section
+        style={{ ...cardStyle, paddingTop: 22 }}
+        className="reports-output-card reports-output-section"
+      >
+        <div style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>Supporting Records</div>
+          <div style={h2Style}>Supporting Evidence</div>
+        </div>
         <div style={smallStyle}>
           This section shows a small set of linked learning records that support the
           report summary and curriculum coverage described above.
@@ -766,7 +839,7 @@ function ReportsOutputPageContent() {
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={h3Style}>{item.title}</div>
                     <div style={{ ...smallStyle, marginTop: 4 }}>
-                      {item.learningArea} · {shortDate(item.occurredOn)}
+                      {item.learningArea} {" • "} {shortDate(item.occurredOn)}
                     </div>
                   </div>
 
@@ -794,7 +867,7 @@ function ReportsOutputPageContent() {
                             ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
                             : outcome.outcomeLabel,
                         )
-                        .join(" · ")}`
+                        .join(" • ")}`
                     : "No linked outcome labels are available for this evidence item yet."}
                 </div>
               </div>
@@ -817,8 +890,14 @@ function ReportsOutputPageContent() {
         )}
       </section>
 
-      <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Recommended Next Steps</div>
+      <section
+        style={{ ...cardStyle, paddingTop: 22 }}
+        className="reports-output-card reports-output-section"
+      >
+        <div style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>Forward View</div>
+          <div style={h2Style}>Recommended Next Steps</div>
+        </div>
         <div style={bodyStyle}>{parentLanguage.nextStep}</div>
 
         <div
@@ -865,8 +944,14 @@ function ReportsOutputPageContent() {
         curriculumCoverage.plannedOutcomes === 0 &&
         curriculumCoverage.linkedOutcomes === 0) ||
       (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) ? (
-        <section style={cardStyle} className="reports-output-card">
-          <div style={h2Style}>Areas Requiring Further Development</div>
+        <section
+          style={{ ...cardStyle, paddingTop: 22 }}
+          className="reports-output-card reports-output-section"
+        >
+          <div style={sectionHeaderStyle}>
+            <div style={sectionEyebrowStyle}>Further Development</div>
+            <div style={h2Style}>Areas Requiring Further Development</div>
+          </div>
           <div style={bodyStyle}>
             {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
               ? "There is currently insufficient curriculum-linked context to build a strong report summary."
@@ -887,8 +972,14 @@ function ReportsOutputPageContent() {
         </section>
       ) : null}
 
-      <section style={cardStyle} className="reports-output-card">
-        <div style={h2Style}>Report Background</div>
+      <section
+        style={{ ...cardStyle, paddingTop: 22 }}
+        className="reports-output-card reports-output-section"
+      >
+        <div style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>Document Background</div>
+          <div style={h2Style}>Report Background</div>
+        </div>
         <div style={smallStyle}>
           This section keeps the underlying report inputs visible without turning the
           page into a dashboard.
@@ -935,6 +1026,39 @@ function ReportsOutputPageContent() {
             </div>
           </div>
         ) : null}
+      </section>
+
+      <section
+        style={{
+          ...cardStyle,
+          paddingTop: 18,
+          paddingBottom: 18,
+          background: "#fcfcfd",
+        }}
+        className="reports-output-card reports-output-section"
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={labelStyle}>End of Report</div>
+            <div style={{ ...smallStyle, color: "#475569" }}>
+              This document reflects the current saved draft, linked curriculum
+              records, and supporting evidence available on {shortDate(new Date().toISOString())}.
+            </div>
+          </div>
+          <div style={{ ...smallStyle, textAlign: "right" }}>
+            Prepared from canonical family records
+            <br />
+            Reference {draft.id}
+          </div>
+        </div>
       </section>
     </main>
   );
