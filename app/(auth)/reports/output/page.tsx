@@ -24,11 +24,15 @@ import {
   type ReportSupportingEvidenceItem,
 } from "@/lib/familyEvidence";
 import {
+  buildCoverageExplanation,
+  buildReportDocumentOverlay,
   buildCurriculumCoverage,
+  formatEvidenceReference,
   buildParentLanguageSummary,
   buildReportReadinessScore,
   coverageTone,
   interpretReadiness,
+  reportSectionCopy,
 } from "@/lib/reportPresentation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -63,66 +67,6 @@ function learnerLabel(input: {
   const draftStudentId = safe(input.draft?.student_id || input.draft?.child_id);
   const matched = input.workspaceLearners.find((row) => row.id === draftStudentId);
   return matched?.label || safe(input.draft?.child_name) || "Learner";
-}
-
-function normalizeMarket(value?: string | null) {
-  const market = safe(value).toLowerCase();
-  if (market === "au" || market === "uk" || market === "us") return market;
-  return "";
-}
-
-function buildMarketOverlay(value?: string | null) {
-  const market = normalizeMarket(value);
-
-  if (market === "au") {
-    return {
-      reportEyebrow: "Australian homeschool learning report",
-      preparedLinePrefix: "Prepared for",
-      periodLabel: "Learning period",
-      marketLabelText: "National context",
-      coverageNote:
-        "This summary is presented in an Australian homeschool reporting context while remaining parent-friendly.",
-      backgroundNote:
-        "The document background reflects the current curriculum, planning, and evidence picture in an Australian family reporting context.",
-    };
-  }
-
-  if (market === "uk") {
-    return {
-      reportEyebrow: "UK home education report",
-      preparedLinePrefix: "Prepared for",
-      periodLabel: "Learning period",
-      marketLabelText: "UK context",
-      coverageNote:
-        "This summary is presented in a UK home education context while remaining clear and parent-friendly.",
-      backgroundNote:
-        "The document background reflects the current curriculum, planning, and evidence picture in a UK home education context.",
-    };
-  }
-
-  if (market === "us") {
-    return {
-      reportEyebrow: "US home education report",
-      preparedLinePrefix: "Prepared for",
-      periodLabel: "Reporting period",
-      marketLabelText: "US context",
-      coverageNote:
-        "This summary is presented in a US home education context while remaining clear and parent-friendly.",
-      backgroundNote:
-        "The document background reflects the current curriculum, planning, and evidence picture in a US family reporting context.",
-    };
-  }
-
-  return {
-    reportEyebrow: "Homeschool learning report",
-    preparedLinePrefix: "Prepared for",
-    periodLabel: "Reporting period",
-    marketLabelText: "Market context",
-    coverageNote:
-      "This summary is designed to stay calm, readable, and useful across family reporting contexts.",
-    backgroundNote:
-      "This document background reflects the current curriculum, planning, and evidence picture without adding market-specific rules.",
-  };
 }
 
 const pageStyle: React.CSSProperties = {
@@ -482,7 +426,10 @@ function ReportsOutputPageContent() {
 
   const selectedEvidenceIds = draft?.selected_evidence_ids ?? [];
   const marketOverlay = useMemo(
-    () => buildMarketOverlay(draft?.preferred_market || workspace.profile?.preferred_market),
+    () =>
+      buildReportDocumentOverlay(
+        draft?.preferred_market || workspace.profile?.preferred_market,
+      ),
     [draft?.preferred_market, workspace.profile?.preferred_market],
   );
   const selectedCoreCount = useMemo(
@@ -566,15 +513,7 @@ function ReportsOutputPageContent() {
   const hasMeaningfulCoverage =
     curriculumCoverage.ready &&
     (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
-  const coverageExplanation = !curriculumCoverage.ready
-    ? "Curriculum coverage will appear here once the learner has a linked curriculum setup and seeded outcomes."
-    : curriculumCoverage.plannedAndEvidencedOutcomes > 0
-      ? "This report already shows areas where planned learning and captured evidence are lining up well."
-      : curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0
-        ? "Planning is visible, but evidence still needs to catch up before the report feels fully supported."
-        : curriculumCoverage.linkedOutcomes > 0 && curriculumCoverage.plannedOutcomes === 0
-          ? "Evidence is present, though some of it is arriving before planning has been linked clearly."
-          : "Coverage is still early and building.";
+  const coverageExplanation = buildCoverageExplanation(curriculumCoverage);
 
   if (loading) {
     return (
@@ -822,7 +761,7 @@ function ReportsOutputPageContent() {
               </button>
             </div>
             <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
-              This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.
+              {marketOverlay.outputRoleNote}
             </div>
             {pdfError ? (
               <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
@@ -859,8 +798,8 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Learning Overview</div>
-          <div style={h2Style}>Summary of Learning</div>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.overview.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.overview.title}</div>
         </div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
         {draft.notes ? (
@@ -876,8 +815,8 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Curriculum Position</div>
-          <div style={h2Style}>Curriculum Coverage Summary</div>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.coverage.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.coverage.title}</div>
         </div>
         <div style={smallStyle}>{coverageExplanation}</div>
         <div style={{ ...smallStyle, marginTop: 8 }}>{marketOverlay.coverageNote}</div>
@@ -928,8 +867,8 @@ function ReportsOutputPageContent() {
           className="reports-output-card reports-output-section"
         >
           <div style={sectionHeaderStyle}>
-            <div style={sectionEyebrowStyle}>Evidence Summary</div>
-            <div style={h2Style}>Evidence Supporting Learning</div>
+            <div style={sectionEyebrowStyle}>{reportSectionCopy.evidenceSummary.eyebrow}</div>
+            <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
           </div>
           <div style={bodyStyle}>
             {selectedEvidenceIds.length
@@ -957,8 +896,8 @@ function ReportsOutputPageContent() {
           className="reports-output-card reports-output-section"
         >
           <div style={sectionHeaderStyle}>
-            <div style={sectionEyebrowStyle}>Positive Indicators</div>
-            <div style={h2Style}>Areas of Strength</div>
+            <div style={sectionEyebrowStyle}>{reportSectionCopy.strengths.eyebrow}</div>
+            <div style={h2Style}>{reportSectionCopy.strengths.title}</div>
           </div>
           <div style={bodyStyle}>{parentLanguage.strengths}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
@@ -977,8 +916,8 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Appendix A</div>
-          <div style={h2Style}>Supporting Evidence Appendix</div>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.appendix.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.appendix.title}</div>
         </div>
         <div style={smallStyle}>
           This appendix presents a small set of linked learning records in a stable,
@@ -1004,7 +943,7 @@ function ReportsOutputPageContent() {
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={appendixReferenceStyle}>{`Evidence ${index + 1}`}</div>
+                    <div style={appendixReferenceStyle}>{formatEvidenceReference(index)}</div>
                     <div style={h3Style}>{item.title}</div>
                     <div style={{ ...smallStyle, marginTop: 4 }}>
                       {item.learningArea} {" • "} {shortDate(item.occurredOn)}
@@ -1054,7 +993,7 @@ function ReportsOutputPageContent() {
                   </div>
                 ) : null}
                 <div style={{ ...smallStyle, marginTop: 8, fontWeight: 800 }}>
-                  Reference: Evidence {index + 1}
+                  Reference: {formatEvidenceReference(index)}
                 </div>
               </div>
             ))}
@@ -1081,8 +1020,8 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Forward View</div>
-          <div style={h2Style}>Recommended Next Steps</div>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.nextSteps.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.nextSteps.title}</div>
         </div>
         <div style={bodyStyle}>{parentLanguage.nextStep}</div>
 
@@ -1135,8 +1074,8 @@ function ReportsOutputPageContent() {
           className="reports-output-card reports-output-section"
         >
           <div style={sectionHeaderStyle}>
-            <div style={sectionEyebrowStyle}>Further Development</div>
-            <div style={h2Style}>Areas Requiring Further Development</div>
+            <div style={sectionEyebrowStyle}>{reportSectionCopy.furtherDevelopment.eyebrow}</div>
+            <div style={h2Style}>{reportSectionCopy.furtherDevelopment.title}</div>
           </div>
           <div style={bodyStyle}>
             {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
@@ -1163,8 +1102,8 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Document Background</div>
-          <div style={h2Style}>Report Background</div>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.background.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.background.title}</div>
         </div>
         <div style={smallStyle}>
           {marketOverlay.backgroundNote}
@@ -1232,7 +1171,7 @@ function ReportsOutputPageContent() {
           }}
         >
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={labelStyle}>End of Report</div>
+            <div style={labelStyle}>{reportSectionCopy.end.title}</div>
             <div style={{ ...smallStyle, color: "#475569" }}>
               This document reflects the current saved draft, linked curriculum
               records, and supporting evidence available on {shortDate(new Date().toISOString())}.

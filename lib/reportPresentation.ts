@@ -47,11 +47,130 @@ export type ParentLanguageSummary = {
   nextStep: string;
 };
 
+export type ReportDocumentOverlay = {
+  reportEyebrow: string;
+  preparedLinePrefix: string;
+  periodLabel: string;
+  marketLabelText: string;
+  coverageNote: string;
+  backgroundNote: string;
+  outputRoleNote: string;
+};
+
+export const reportSectionCopy = {
+  overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
+  coverage: {
+    eyebrow: "Curriculum Position",
+    title: "Curriculum Coverage Summary",
+  },
+  evidenceSummary: {
+    eyebrow: "Evidence Summary",
+    title: "Evidence Supporting Learning",
+  },
+  strengths: { eyebrow: "Positive Indicators", title: "Areas of Strength" },
+  appendix: { eyebrow: "Appendix A", title: "Supporting Evidence Appendix" },
+  nextSteps: { eyebrow: "Forward View", title: "Recommended Next Steps" },
+  furtherDevelopment: {
+    eyebrow: "Further Development",
+    title: "Areas Requiring Further Development",
+  },
+  background: { eyebrow: "Document Background", title: "Report Background" },
+  end: { eyebrow: "End of Report", title: "End of Report" },
+} as const;
+
 function joinNatural(items: string[]) {
   if (!items.length) return "";
   if (items.length === 1) return items[0];
   if (items.length === 2) return `${items[0]} and ${items[1]}`;
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+export function normalizeReportMarket(value?: string | null) {
+  const market = String(value ?? "").trim().toLowerCase();
+  if (market === "au" || market === "uk" || market === "us") return market;
+  return "";
+}
+
+export function buildReportDocumentOverlay(value?: string | null): ReportDocumentOverlay {
+  const market = normalizeReportMarket(value);
+
+  if (market === "au") {
+    return {
+      reportEyebrow: "Australian homeschool learning report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Learning period",
+      marketLabelText: "National context",
+      coverageNote:
+        "This summary is presented in an Australian homeschool reporting context while remaining parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in an Australian family reporting context.",
+      outputRoleNote:
+        "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
+    };
+  }
+
+  if (market === "uk") {
+    return {
+      reportEyebrow: "UK home education report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Learning period",
+      marketLabelText: "UK context",
+      coverageNote:
+        "This summary is presented in a UK home education context while remaining clear and parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in a UK home education context.",
+      outputRoleNote:
+        "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
+    };
+  }
+
+  if (market === "us") {
+    return {
+      reportEyebrow: "US home education report",
+      preparedLinePrefix: "Prepared for",
+      periodLabel: "Reporting period",
+      marketLabelText: "US context",
+      coverageNote:
+        "This summary is presented in a US home education context while remaining clear and parent-friendly.",
+      backgroundNote:
+        "The document background reflects the current curriculum, planning, and evidence picture in a US family reporting context.",
+      outputRoleNote:
+        "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
+    };
+  }
+
+  return {
+    reportEyebrow: "Homeschool learning report",
+    preparedLinePrefix: "Prepared for",
+    periodLabel: "Reporting period",
+    marketLabelText: "Market context",
+    coverageNote:
+      "This summary is designed to stay calm, readable, and useful across family reporting contexts.",
+    backgroundNote:
+      "This document background reflects the current curriculum, planning, and evidence picture without adding market-specific rules.",
+    outputRoleNote:
+      "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
+  };
+}
+
+export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage) {
+  if (!curriculumCoverage.ready) {
+    return "Curriculum coverage will appear here once the learner has a linked curriculum setup and seeded outcomes.";
+  }
+  if (curriculumCoverage.plannedAndEvidencedOutcomes > 0) {
+    return "This report already shows areas where planned learning and captured evidence are lining up well.";
+  }
+  if (curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0) {
+    return "Planning is visible, but evidence still needs to catch up before the report feels fully supported.";
+  }
+  if (curriculumCoverage.linkedOutcomes > 0 && curriculumCoverage.plannedOutcomes === 0) {
+    return "Evidence is present, though some of it is arriving before planning has been linked clearly.";
+  }
+  return "Coverage is still early and building.";
+}
+
+export function formatEvidenceReference(index: number) {
+  return `Evidence ${index + 1}`;
 }
 
 export function getCoverageStatus(count: number): CoverageStatus {

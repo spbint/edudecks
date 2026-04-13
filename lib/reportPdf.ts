@@ -4,14 +4,18 @@ import os from "node:os";
 import path from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import type { CurriculumPreferences } from "@/lib/familySettings";
-import { hasSupabaseEnv } from "@/lib/supabaseClient";
 import { loadLearnerCurriculumPageData } from "@/lib/familyCurriculum";
 import { loadReportSupportingEvidence } from "@/lib/familyEvidence";
 import {
+  buildCoverageExplanation,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
+  buildReportDocumentOverlay,
+  formatEvidenceReference,
+  reportSectionCopy,
 } from "@/lib/reportPresentation";
 import { marketLabel, modeLabel, periodLabel, type ReportDraftRow } from "@/lib/reportDrafts";
+import { hasSupabaseEnv } from "@/lib/supabaseClient";
 
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value ?? "").trim();
@@ -66,13 +70,15 @@ function resolveChromiumExecutable() {
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   ].filter(Boolean) as string[];
 
-  return candidates.find((candidate) => {
-    try {
-      return existsSync(candidate);
-    } catch {
-      return false;
-    }
-  }) ?? "";
+  return (
+    candidates.find((candidate) => {
+      try {
+        return existsSync(candidate);
+      } catch {
+        return false;
+      }
+    }) ?? ""
+  );
 }
 
 export function createReportPdfClient(accessToken: string) {
@@ -142,14 +148,13 @@ export async function loadCanonicalReportPdfData(input: {
   }
 
   const familyPreferences =
-    ((familyProfileResponse.data?.curriculum_preferences as CurriculumPreferences | null) ??
-      {
-        country_id: null,
-        region_id: null,
-        framework_id: null,
-        level_id: null,
-        subject_ids: [],
-      }) as CurriculumPreferences;
+    ((familyProfileResponse.data?.curriculum_preferences as CurriculumPreferences | null) ?? {
+      country_id: null,
+      region_id: null,
+      framework_id: null,
+      level_id: null,
+      subject_ids: [],
+    }) as CurriculumPreferences;
 
   const [curriculumData, supportingEvidence] = await Promise.all([
     loadLearnerCurriculumPageData({
@@ -192,6 +197,7 @@ export async function loadCanonicalReportPdfData(input: {
 
 export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonicalReportPdfData>>) {
   const { draft, curriculumCoverage, parentLanguage, supportingEvidence, preferredMarket } = data;
+  const marketOverlay = buildReportDocumentOverlay(preferredMarket);
   const strongestAreas = curriculumCoverage.strongestAreas.slice(0, 3);
   const weakestAreas = curriculumCoverage.weakestAreas.slice(0, 3);
   const planningAheadAreas = curriculumCoverage.planningAheadAreas.slice(0, 3);
@@ -200,6 +206,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
   const evidenceItems = supportingEvidence.length
     ? supportingEvidence
         .map((item, index) => {
+          const referenceLabel = formatEvidenceReference(index);
           const linkedOutcomes = item.linkedOutcomes.length
             ? `Linked outcomes: ${escapeHtml(
                 item.linkedOutcomes
@@ -208,8 +215,8 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
                       ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
                       : outcome.outcomeLabel,
                   )
-                  .join(" • "),
-              )}`
+                  .join(" | "),
+              ).replace(/\s\|\s/g, " &bull; ")}`
             : "No linked outcome labels are available for this evidence item yet.";
 
           const attachmentLine =
@@ -227,9 +234,9 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
             <article class="evidence-card">
               <div class="row spread">
                 <div class="grow">
-                  <div class="reference">Evidence ${index + 1}</div>
+                  <div class="reference">${escapeHtml(referenceLabel)}</div>
                   <h3>${escapeHtml(item.title)}</h3>
-                  <div class="muted">${escapeHtml(item.learningArea)} • ${escapeHtml(shortDate(item.occurredOn))}</div>
+                  <div class="muted">${escapeHtml(item.learningArea)} &bull; ${escapeHtml(shortDate(item.occurredOn))}</div>
                 </div>
                 <div class="badges">
                   ${
@@ -251,7 +258,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
               <p>${escapeHtml(item.summary || "No written summary was saved with this evidence item.")}</p>
               <div class="muted">${linkedOutcomes}</div>
               ${attachmentLine}
-              <div class="muted strong">Reference: Evidence ${index + 1}</div>
+              <div class="muted strong">Reference: ${escapeHtml(referenceLabel)}</div>
             </article>
           `;
         })
@@ -306,7 +313,6 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         .strong { font-weight: 800; }
         .summary-line { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .stat, .panel, .evidence-card {
           border: 1px solid #e5e7eb;
@@ -351,26 +357,26 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         <section class="card header">
           <div class="header-band"></div>
           <div class="header-inner">
-            <div class="eyebrow">${escapeHtml(marketLabel(preferredMarket))} learning report</div>
+            <div class="eyebrow">${escapeHtml(marketOverlay.reportEyebrow)}</div>
             <h1>${escapeHtml(safe(draft.title) || "Learning Report")}</h1>
             <p>A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.</p>
             <div class="summary-line muted">
-              Prepared for <strong style="color:#0f172a">${escapeHtml(safe(draft.child_name) || "Learner")}</strong> •
-              ${escapeHtml(modeLabel(draft.report_mode))} •
+              ${escapeHtml(marketOverlay.preparedLinePrefix)} <strong style="color:#0f172a">${escapeHtml(safe(draft.child_name) || "Learner")}</strong> &bull;
+              ${escapeHtml(modeLabel(draft.report_mode))} &bull;
               ${escapeHtml(periodLabel(draft.period_mode))}
             </div>
             <div class="grid-4">
               <div class="stat"><div class="eyebrow">Learner</div><div class="strong">${escapeHtml(safe(draft.child_name) || "Learner")}</div></div>
               <div class="stat"><div class="eyebrow">Report mode</div><div class="strong">${escapeHtml(modeLabel(draft.report_mode))}</div></div>
-              <div class="stat"><div class="eyebrow">Reporting period</div><div class="strong">${escapeHtml(periodLabel(draft.period_mode))}</div></div>
-              <div class="stat"><div class="eyebrow">Market context</div><div class="strong">${escapeHtml(marketLabel(preferredMarket))}</div></div>
+              <div class="stat"><div class="eyebrow">${escapeHtml(marketOverlay.periodLabel)}</div><div class="strong">${escapeHtml(periodLabel(draft.period_mode))}</div></div>
+              <div class="stat"><div class="eyebrow">${escapeHtml(marketOverlay.marketLabelText)}</div><div class="strong">${escapeHtml(marketLabel(preferredMarket))}</div></div>
             </div>
           </div>
         </section>
 
         <section class="card">
-          <div class="eyebrow">Learning Overview</div>
-          <h2>Summary of Learning</h2>
+          <div class="eyebrow">${escapeHtml(reportSectionCopy.overview.eyebrow)}</div>
+          <h2>${escapeHtml(reportSectionCopy.overview.title)}</h2>
           <p>${escapeHtml(parentLanguage.overall)}</p>
           ${
             safe(draft.notes)
@@ -380,21 +386,10 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         </section>
 
         <section class="card">
-          <div class="eyebrow">Curriculum Position</div>
-          <h2>Curriculum Coverage Summary</h2>
-          <p>${
-            curriculumCoverage.ready
-              ? escapeHtml(
-                  curriculumCoverage.plannedAndEvidencedOutcomes > 0
-                    ? "This report shows areas where planned learning and captured evidence are lining up well."
-                    : curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0
-                      ? "Planning is visible, but evidence still needs to catch up before the report feels fully supported."
-                      : curriculumCoverage.linkedOutcomes > 0 && curriculumCoverage.plannedOutcomes === 0
-                        ? "Evidence is present, though some of it is arriving before planning has been linked clearly."
-                        : "Coverage is still early and building."
-                )
-              : "Curriculum coverage will appear here once the learner has a linked curriculum setup and seeded outcomes."
-          }</p>
+          <div class="eyebrow">${escapeHtml(reportSectionCopy.coverage.eyebrow)}</div>
+          <h2>${escapeHtml(reportSectionCopy.coverage.title)}</h2>
+          <p>${escapeHtml(buildCoverageExplanation(curriculumCoverage))}</p>
+          <div class="muted">${escapeHtml(marketOverlay.coverageNote)}</div>
           <div class="grid-4">
             <div class="stat"><div class="eyebrow">Outcomes planned</div><div class="strong">${curriculumCoverage.plannedOutcomes}</div></div>
             <div class="stat"><div class="eyebrow">Evidence-backed outcomes</div><div class="strong">${curriculumCoverage.linkedOutcomes}</div></div>
@@ -403,7 +398,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
           </div>
           <div class="grid-2">
             <div class="panel">
-              <div class="eyebrow">Areas of strength</div>
+              <div class="eyebrow">${escapeHtml(reportSectionCopy.strengths.title)}</div>
               <p>${escapeHtml(parentLanguage.strengths)}</p>
               <div class="muted">${escapeHtml(
                 strongestAreas.length
@@ -412,7 +407,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
               )}</div>
             </div>
             <div class="panel">
-              <div class="eyebrow">Recommended next steps</div>
+              <div class="eyebrow">${escapeHtml(reportSectionCopy.nextSteps.title)}</div>
               <p>${escapeHtml(parentLanguage.nextStep)}</p>
               <div class="muted">${escapeHtml(
                 planningAheadAreas.length
@@ -428,8 +423,8 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         </section>
 
         <section class="card">
-          <div class="eyebrow">Appendix A</div>
-          <h2>Supporting Evidence Appendix</h2>
+          <div class="eyebrow">${escapeHtml(reportSectionCopy.appendix.eyebrow)}</div>
+          <h2>${escapeHtml(reportSectionCopy.appendix.title)}</h2>
           <p>This appendix presents the linked learning records in stable order so they can support the report summary and future attachment workflows.</p>
           ${evidenceItems}
         </section>
