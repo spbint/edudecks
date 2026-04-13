@@ -87,7 +87,12 @@ type BuilderValueSignal = {
 type CurriculumCoverageArea = {
   area: string;
   totalOutcomes: number;
+  plannedOutcomes: number;
   linkedOutcomes: number;
+  plannedOnlyOutcomes: number;
+  evidenceOnlyOutcomes: number;
+  plannedAndEvidencedOutcomes: number;
+  planLinks: number;
   evidenceLinks: number;
   secureOutcomes: number;
   trackedOutcomes: number;
@@ -897,11 +902,18 @@ function ReportsPageContent() {
         reason: "no-learner" as const,
         areas: [] as CurriculumCoverageArea[],
         totalOutcomes: 0,
+        plannedOutcomes: 0,
         linkedOutcomes: 0,
+        plannedOnlyOutcomes: 0,
+        evidenceOnlyOutcomes: 0,
+        plannedAndEvidencedOutcomes: 0,
+        planLinks: 0,
         evidenceLinks: 0,
         secureOutcomes: 0,
         trackedOutcomes: 0,
         uncoveredOutcomes: 0,
+        planningAheadAreas: [] as string[],
+        evidenceAheadAreas: [] as string[],
         strongestAreas: [] as string[],
         weakestAreas: [] as string[],
       };
@@ -913,11 +925,18 @@ function ReportsPageContent() {
         reason: "no-curriculum" as const,
         areas: [] as CurriculumCoverageArea[],
         totalOutcomes: 0,
+        plannedOutcomes: 0,
         linkedOutcomes: 0,
+        plannedOnlyOutcomes: 0,
+        evidenceOnlyOutcomes: 0,
+        plannedAndEvidencedOutcomes: 0,
+        planLinks: 0,
         evidenceLinks: 0,
         secureOutcomes: 0,
         trackedOutcomes: 0,
         uncoveredOutcomes: 0,
+        planningAheadAreas: [] as string[],
+        evidenceAheadAreas: [] as string[],
         strongestAreas: [] as string[],
         weakestAreas: [] as string[],
       };
@@ -929,11 +948,18 @@ function ReportsPageContent() {
         reason: "no-outcomes" as const,
         areas: [] as CurriculumCoverageArea[],
         totalOutcomes: 0,
+        plannedOutcomes: 0,
         linkedOutcomes: 0,
+        plannedOnlyOutcomes: 0,
+        evidenceOnlyOutcomes: 0,
+        plannedAndEvidencedOutcomes: 0,
+        planLinks: 0,
         evidenceLinks: 0,
         secureOutcomes: 0,
         trackedOutcomes: 0,
         uncoveredOutcomes: 0,
+        planningAheadAreas: [] as string[],
+        evidenceAheadAreas: [] as string[],
         strongestAreas: [] as string[],
         weakestAreas: [] as string[],
       };
@@ -942,17 +968,32 @@ function ReportsPageContent() {
     const areas = curriculumData.areas.map((area) => {
       const outcomes = area.strands.flatMap((strand) => strand.outcomes);
       const totalOutcomes = outcomes.length;
+      const plannedOutcomes = outcomes.filter((outcome) => outcome.plannedCount > 0).length;
       const linkedOutcomes = outcomes.filter((outcome) => outcome.evidenceCount > 0).length;
+      const plannedOnlyOutcomes = outcomes.filter(
+        (outcome) => outcome.plannedCount > 0 && outcome.evidenceCount === 0,
+      ).length;
+      const evidenceOnlyOutcomes = outcomes.filter(
+        (outcome) => outcome.plannedCount === 0 && outcome.evidenceCount > 0,
+      ).length;
+      const plannedAndEvidencedOutcomes = outcomes.filter(
+        (outcome) => outcome.plannedCount > 0 && outcome.evidenceCount > 0,
+      ).length;
       const secureOutcomes = outcomes.filter((outcome) => outcome.status === "secure").length;
       const trackedOutcomes = outcomes.filter(
         (outcome) => outcome.status !== "not_introduced",
       ).length;
-      const status = getCoverageStatus(linkedOutcomes);
+      const status = getCoverageStatus(plannedAndEvidencedOutcomes || linkedOutcomes);
 
       return {
         area: area.name,
         totalOutcomes,
+        plannedOutcomes,
         linkedOutcomes,
+        plannedOnlyOutcomes,
+        evidenceOnlyOutcomes,
+        plannedAndEvidencedOutcomes,
+        planLinks: area.plannedCount,
         evidenceLinks: area.evidenceCount,
         secureOutcomes,
         trackedOutcomes,
@@ -962,13 +1003,30 @@ function ReportsPageContent() {
     });
 
     const strongestAreas = areas
-      .filter((area) => area.linkedOutcomes > 0)
-      .sort((a, b) => b.linkedOutcomes - a.linkedOutcomes || b.evidenceLinks - a.evidenceLinks)
+      .filter((area) => area.plannedAndEvidencedOutcomes > 0 || area.linkedOutcomes > 0)
+      .sort(
+        (a, b) =>
+          b.plannedAndEvidencedOutcomes - a.plannedAndEvidencedOutcomes ||
+          b.linkedOutcomes - a.linkedOutcomes ||
+          b.evidenceLinks - a.evidenceLinks,
+      )
       .slice(0, 3)
       .map((area) => area.area);
 
     const weakestAreas = areas
-      .filter((area) => area.linkedOutcomes === 0)
+      .filter((area) => area.plannedAndEvidencedOutcomes === 0 && area.linkedOutcomes === 0)
+      .slice(0, 3)
+      .map((area) => area.area);
+
+    const planningAheadAreas = areas
+      .filter((area) => area.plannedOnlyOutcomes > 0)
+      .sort((a, b) => b.plannedOnlyOutcomes - a.plannedOnlyOutcomes)
+      .slice(0, 3)
+      .map((area) => area.area);
+
+    const evidenceAheadAreas = areas
+      .filter((area) => area.evidenceOnlyOutcomes > 0)
+      .sort((a, b) => b.evidenceOnlyOutcomes - a.evidenceOnlyOutcomes)
       .slice(0, 3)
       .map((area) => area.area);
 
@@ -977,7 +1035,12 @@ function ReportsPageContent() {
       reason: "ok" as const,
       areas,
       totalOutcomes: curriculumData.totalOutcomes,
+      plannedOutcomes: curriculumData.plannedLinkedOutcomeCount,
       linkedOutcomes: curriculumData.evidenceLinkedOutcomeCount,
+      plannedOnlyOutcomes: curriculumData.plannedOnlyOutcomeCount,
+      evidenceOnlyOutcomes: curriculumData.evidenceOnlyOutcomeCount,
+      plannedAndEvidencedOutcomes: curriculumData.plannedAndEvidencedOutcomeCount,
+      planLinks: curriculumData.totalPlanLinks,
       evidenceLinks: curriculumData.totalEvidenceLinks,
       secureOutcomes: curriculumData.statusCounts.secure,
       trackedOutcomes: curriculumData.trackedOutcomeCount,
@@ -985,6 +1048,8 @@ function ReportsPageContent() {
         curriculumData.totalOutcomes - curriculumData.evidenceLinkedOutcomeCount,
         0,
       ),
+      planningAheadAreas,
+      evidenceAheadAreas,
       strongestAreas,
       weakestAreas,
     };
@@ -995,9 +1060,17 @@ function ReportsPageContent() {
     if (selectedStudentId) score += 10;
     if (curriculumCoverage.ready) score += 10;
     if (curriculumCoverage.totalOutcomes > 0) score += 6;
-    if (curriculumCoverage.linkedOutcomes >= 8) score += 20;
-    else if (curriculumCoverage.linkedOutcomes >= 4) score += 14;
-    else if (curriculumCoverage.linkedOutcomes >= 1) score += 8;
+    if (curriculumCoverage.plannedOutcomes >= 8) score += 10;
+    else if (curriculumCoverage.plannedOutcomes >= 4) score += 6;
+    else if (curriculumCoverage.plannedOutcomes >= 1) score += 3;
+    if (curriculumCoverage.linkedOutcomes >= 8) score += 16;
+    else if (curriculumCoverage.linkedOutcomes >= 4) score += 12;
+    else if (curriculumCoverage.linkedOutcomes >= 1) score += 6;
+    if (curriculumCoverage.plannedAndEvidencedOutcomes >= 6) score += 12;
+    else if (curriculumCoverage.plannedAndEvidencedOutcomes >= 3) score += 8;
+    else if (curriculumCoverage.plannedAndEvidencedOutcomes >= 1) score += 4;
+    if (curriculumCoverage.plannedOnlyOutcomes > 0) score += 2;
+    if (curriculumCoverage.evidenceOnlyOutcomes > 0) score += 2;
     if (curriculumCoverage.secureOutcomes >= 3) score += 10;
     else if (curriculumCoverage.secureOutcomes >= 1) score += 6;
     if (plannerData?.actions.length) score += 6;
@@ -1084,6 +1157,8 @@ function ReportsPageContent() {
     const developingAreas = curriculumCoverage.areas
       .filter((x) => x.status === "developing")
       .map((x) => x.area);
+    const planningAheadAreas = curriculumCoverage.planningAheadAreas;
+    const evidenceAheadAreas = curriculumCoverage.evidenceAheadAreas;
 
     let text = "";
 
@@ -1099,20 +1174,48 @@ function ReportsPageContent() {
     } else if (!studentEvidence.length) {
       text =
         "There is not enough evidence in the current child and area filter to interpret this report yet. Add evidence or widen the selected areas first.";
-    } else if (curriculumCoverage.linkedOutcomes === 0) {
+    } else if (curriculumCoverage.plannedOutcomes === 0 && curriculumCoverage.linkedOutcomes === 0) {
       text =
-        "Evidence is available, but none of it is linked to canonical curriculum outcomes yet. Link captured work to curriculum before trusting report coverage.";
-    } else if (strongAreas.length) {
-      text = `Evidence-backed curriculum coverage is strongest in ${joinNatural(strongAreas)}.`;
-      if (developingAreas.length) {
+        "This learner has canonical curriculum outcomes, but neither planning links nor evidence links are visible yet. Start in Planner or Capture before trusting report readiness.";
+    } else if (curriculumCoverage.linkedOutcomes === 0 && curriculumCoverage.plannedOutcomes > 0) {
+      text =
+        "Curriculum-linked planning has begun, but there is still no linked evidence. Planning is ahead of proof right now.";
+      if (planningAheadAreas.length) {
         text += ` ${joinNatural(
-          developingAreas.slice(0, 2)
-        )} is emerging but would benefit from a little more linked evidence.`;
+          planningAheadAreas.slice(0, 2)
+        )} are the clearest areas waiting for evidence support.`;
+      }
+    } else if (curriculumCoverage.plannedAndEvidencedOutcomes > 0) {
+      text = `Planned and evidenced curriculum coverage is strongest in ${joinNatural(
+        strongAreas.length ? strongAreas : developingAreas.slice(0, 2),
+      )}.`;
+      if (planningAheadAreas.length) {
+        text += ` ${joinNatural(
+          planningAheadAreas.slice(0, 2),
+        )} still look planned but not evidenced yet.`;
+      }
+      if (evidenceAheadAreas.length) {
+        text += ` ${joinNatural(
+          evidenceAheadAreas.slice(0, 2),
+        )} show evidence arriving faster than prior planning.`;
       }
       if (weakAreas.length) {
         text += ` ${joinNatural(
-          weakAreas.slice(0, 2)
-        )} still need more evidence support to make the report feel balanced.`;
+          weakAreas.slice(0, 2),
+        )} still need stronger planned and evidenced alignment.`;
+      }
+    } else if (curriculumCoverage.linkedOutcomes > 0) {
+      text =
+        "Some curriculum outcomes now have evidence support, but planning and proof are not aligning consistently yet.";
+      if (evidenceAheadAreas.length) {
+        text += ` ${joinNatural(
+          evidenceAheadAreas.slice(0, 2),
+        )} show evidence without much prior planning.`;
+      }
+      if (planningAheadAreas.length) {
+        text += ` ${joinNatural(
+          planningAheadAreas.slice(0, 2),
+        )} still need more proof.`;
       }
     } else if (developingAreas.length) {
       text = `You have early curriculum coverage in ${joinNatural(
@@ -1135,6 +1238,8 @@ function ReportsPageContent() {
       strongAreas,
       developingAreas,
       weakAreas,
+      planningAheadAreas,
+      evidenceAheadAreas,
       strongestFocus,
       weakestFocus,
       text,
@@ -1148,6 +1253,22 @@ function ReportsPageContent() {
     }
     if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
       return "Seed the selected framework and level with canonical outcomes before using this report as a trustworthy curriculum-backed hub.";
+    }
+    if (
+      curriculumCoverage.ready &&
+      curriculumCoverage.plannedOutcomes === 0 &&
+      curriculumCoverage.linkedOutcomes === 0
+    ) {
+      return "Open Planner or Capture and link work to curriculum outcomes so this report has real curriculum support to work from.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0) {
+      return "Planning is visible, but proof is still missing. Open Capture and link evidence to the planned outcomes.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.plannedOnlyOutcomes > 0) {
+      return "Some outcomes are planned but not evidenced yet. Capture one or two strong pieces to close the gap before relying on the report.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.evidenceOnlyOutcomes > 0) {
+      return "Some evidence is arriving ahead of planning. Link upcoming planner items so intention and proof stay aligned.";
     }
     if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) {
       return "Open Capture and link saved evidence to curriculum outcomes so this report stops relying on manual progress alone.";
@@ -1183,6 +1304,26 @@ function ReportsPageContent() {
   ]);
 
   const saveConfidenceText = useMemo(() => {
+    if (
+      curriculumCoverage.ready &&
+      curriculumCoverage.plannedOutcomes > 0 &&
+      curriculumCoverage.linkedOutcomes === 0
+    ) {
+      return "This draft can still be saved now, but it will feel much more trustworthy once planned outcomes have some evidence behind them.";
+    }
+    if (
+      curriculumCoverage.ready &&
+      curriculumCoverage.plannedOutcomes === 0 &&
+      curriculumCoverage.linkedOutcomes === 0
+    ) {
+      return "This draft can still be saved now, but it does not yet have curriculum-linked planning or evidence behind it.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.plannedOnlyOutcomes > 0) {
+      return "This draft is taking shape, but some planned outcomes still need proof before the report will feel settled.";
+    }
+    if (curriculumCoverage.ready && curriculumCoverage.evidenceOnlyOutcomes > 0) {
+      return "This draft has real evidence support, but some of that evidence is arriving without much prior planning. A little alignment will strengthen it.";
+    }
     if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) {
       return "This draft can still be saved now, but it will feel much more trustworthy once some evidence is linked to curriculum outcomes.";
     }
@@ -1597,8 +1738,24 @@ function ReportsPageContent() {
                   <strong>{evidenceCoverageCount}</strong>
                 </div>
                 <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Outcomes planned</span>
+                  <strong>{curriculumCoverage.plannedOutcomes}</strong>
+                </div>
+                <div style={miniStatStyle}>
                   <span style={miniStatLabel}>Outcomes with evidence</span>
                   <strong>{curriculumCoverage.linkedOutcomes}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Planned and evidenced</span>
+                  <strong>{curriculumCoverage.plannedAndEvidencedOutcomes}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Planned without proof</span>
+                  <strong>{curriculumCoverage.plannedOnlyOutcomes}</strong>
+                </div>
+                <div style={miniStatStyle}>
+                  <span style={miniStatLabel}>Evidence ahead of planning</span>
+                  <strong>{curriculumCoverage.evidenceOnlyOutcomes}</strong>
                 </div>
                 <div style={miniStatStyle}>
                   <span style={miniStatLabel}>Curriculum outcomes tracked</span>
@@ -1652,6 +1809,15 @@ function ReportsPageContent() {
                 </div>
               ) : null}
 
+              {curriculumCoverage.ready && curriculumCoverage.plannedOutcomes === 0 ? (
+                <div style={{ ...softCardStyle, marginBottom: 14 }}>
+                  <div style={smallStyle}>
+                    No curriculum-linked planning exists yet for this learner. Open{" "}
+                    <Link href="/planner">Planner</Link> and link weekly actions to outcomes before expecting intentional coverage here.
+                  </div>
+                </div>
+              ) : null}
+
               {curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0 ? (
                 <div style={{ ...softCardStyle, marginBottom: 14 }}>
                   <div style={smallStyle}>
@@ -1679,9 +1845,15 @@ function ReportsPageContent() {
                           {curriculumData.level.level_label} · {curriculumData.totalOutcomes} mapped outcomes
                         </div>
                         <div style={{ ...smallStyle, marginTop: 8 }}>
-                          {curriculumCoverage.linkedOutcomes > 0
-                            ? `${curriculumCoverage.linkedOutcomes} outcomes are already supported by ${curriculumCoverage.evidenceLinks} linked evidence item${curriculumCoverage.evidenceLinks === 1 ? "" : "s"}.`
-                            : "No curriculum outcomes are evidence-backed yet. Use Capture to link saved evidence before trusting coverage."}
+                          {curriculumCoverage.plannedAndEvidencedOutcomes > 0
+                            ? `${curriculumCoverage.plannedAndEvidencedOutcomes} outcomes are both planned and evidenced, ${curriculumCoverage.plannedOnlyOutcomes} are planned without proof, and ${curriculumCoverage.evidenceOnlyOutcomes} have evidence ahead of planning.`
+                            : curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes > 0
+                              ? `${curriculumCoverage.plannedOutcomes} outcomes are planned and ${curriculumCoverage.linkedOutcomes} have evidence support, but the overlap is still thin.`
+                              : curriculumCoverage.plannedOutcomes > 0
+                                ? `${curriculumCoverage.plannedOutcomes} outcomes are planned, but none are evidenced yet.`
+                                : curriculumCoverage.linkedOutcomes > 0
+                                  ? `${curriculumCoverage.linkedOutcomes} outcomes have evidence support, but planning is still thin.`
+                                  : "No curriculum outcomes are planned or evidence-backed yet. Use Planner and Capture to start building trustworthy coverage."}
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                           {curriculumStatusSummary.map((item) => (
@@ -1893,7 +2065,7 @@ function ReportsPageContent() {
             <section style={cardStyle}>
               <div style={h2Style}>Coverage snapshot</div>
               <div style={smallStyle}>
-                Evidence-backed curriculum coverage is shown here first. The area filter below still shapes which evidence this saved report object will include.
+                Planned and evidenced curriculum coverage is shown here first. The area filter below still shapes which evidence this saved report object will include.
               </div>
 
               <div style={{ height: 14 }} />
@@ -1964,9 +2136,13 @@ function ReportsPageContent() {
                       </div>
                       <div style={smallStyle}>
                         {"linkedOutcomes" in item
-                          ? item.linkedOutcomes > 0
-                            ? `${item.linkedOutcomes} outcome${item.linkedOutcomes === 1 ? "" : "s"} linked, ${item.evidenceLinks} evidence link${item.evidenceLinks === 1 ? "" : "s"}, ${item.secureOutcomes} secure`
-                            : `${item.totalOutcomes} mapped outcomes, no evidence linked yet`
+                          ? item.plannedAndEvidencedOutcomes > 0
+                            ? `${item.plannedOutcomes} planned, ${item.linkedOutcomes} evidenced, ${item.plannedAndEvidencedOutcomes} both planned and evidenced`
+                            : item.plannedOutcomes > 0 && item.linkedOutcomes === 0
+                              ? `${item.plannedOutcomes} planned, no evidence linked yet`
+                              : item.linkedOutcomes > 0 && item.plannedOutcomes === 0
+                                ? `${item.linkedOutcomes} evidenced, planning still thin`
+                                : `${item.totalOutcomes} mapped outcomes, no planning or evidence linked yet`
                           : `${item.count} evidence item${item.count === 1 ? "" : "s"}${item.lastSeen ? ` · last seen ${shortDate(item.lastSeen)}` : " · no evidence yet"}`}
                       </div>
                     </div>
@@ -1992,18 +2168,16 @@ function ReportsPageContent() {
                 </div>
 
                 <div style={softCardStyle}>
-                  <div style={labelStyle}>Weakest current area</div>
-                  <div style={h3Style}>{interpretation.weakestFocus || "No major gap yet"}</div>
+                  <div style={labelStyle}>Planning ahead of proof</div>
+                  <div style={h3Style}>
+                    {interpretation.planningAheadAreas[0] || "No major gap yet"}
+                  </div>
                 </div>
 
                 <div style={softCardStyle}>
-                  <div style={labelStyle}>Coverage balance</div>
+                  <div style={labelStyle}>Evidence ahead of planning</div>
                   <div style={h3Style}>
-                    {interpretation.weakAreas.length === 0
-                      ? "Balanced"
-                      : interpretation.weakAreas.length <= 2
-                      ? "Mostly balanced"
-                      : "Unbalanced"}
+                    {interpretation.evidenceAheadAreas[0] || "Well aligned"}
                   </div>
                 </div>
               </div>
