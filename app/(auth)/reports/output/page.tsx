@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import UpgradeCard from "@/app/components/premium/UpgradeCard";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   loadReportDraftById,
   marketLabel,
@@ -12,74 +11,646 @@ import {
   periodLabel,
   type ReportDraftRow,
 } from "@/lib/reportDrafts";
-import { familyStyles as S } from "@/lib/theme/familyStyles";
+import {
+  loadLearnerCurriculumPageData,
+  type LearnerCurriculumPageData,
+} from "@/lib/familyCurriculum";
+import {
+  loadFamilyWeeklyPlan,
+  type FamilyWeeklyPlan,
+} from "@/lib/familyPlanner";
+import {
+  buildCurriculumCoverage,
+  buildParentLanguageSummary,
+  buildReportReadinessScore,
+  coverageTone,
+  interpretReadiness,
+} from "@/lib/reportPresentation";
 
-type EvidenceRow = {
-  id: string;
-  student_id?: string | null;
-  class_id?: string | null;
-  title?: string | null;
-  summary?: string | null;
-  body?: string | null;
-  note?: string | null;
-  learning_area?: string | null;
-  evidence_type?: string | null;
-  occurred_on?: string | null;
-  created_at?: string | null;
-  attachment_urls?: string[] | string | null;
-  image_url?: string | null;
-  photo_url?: string | null;
-  file_url?: string | null;
-  audio_url?: string | null;
-  is_deleted?: boolean | null;
-  [k: string]: any;
-};
-
-function safe(v: unknown) {
-  return String(v ?? "").trim();
+function safe(value: unknown) {
+  return typeof value === "string" ? value.trim() : String(value ?? "").trim();
 }
 
-function isMissingRelationOrColumn(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
+function getCurrentWeekKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const start = new Date(year, 0, 1);
+  const diffDays = Math.floor((date.getTime() - start.getTime()) / 86400000);
+  const week = Math.ceil((diffDays + start.getDay() + 1) / 7);
+  return `${year}-W${String(week).padStart(2, "0")}`;
+}
+
+function shortDate(value?: string | null) {
+  const s = safe(value);
+  if (!s) return "—";
+  try {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s.slice(0, 10);
+    return d.toLocaleDateString();
+  } catch {
+    return s.slice(0, 10);
+  }
+}
+
+function learnerLabel(input: {
+  draft: ReportDraftRow | null;
+  workspaceLearners: Array<{ id: string; label: string }>;
+}) {
+  const draftStudentId = safe(input.draft?.student_id || input.draft?.child_id);
+  const matched = input.workspaceLearners.find((row) => row.id === draftStudentId);
+  return matched?.label || safe(input.draft?.child_name) || "Learner";
+}
+
+const pageStyle: React.CSSProperties = {
+  minHeight: "100%",
+  display: "grid",
+  gap: 20,
+};
+
+const cardStyle: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 18,
+  background: "#ffffff",
+  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+  padding: 20,
+};
+
+const softCardStyle: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  background: "#f8fafc",
+  padding: 14,
+};
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: 1,
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const h1Style: React.CSSProperties = {
+  margin: 0,
+  fontSize: 34,
+  lineHeight: 1.08,
+  fontWeight: 950,
+  color: "#0f172a",
+};
+
+const h2Style: React.CSSProperties = {
+  margin: 0,
+  fontSize: 22,
+  fontWeight: 950,
+  color: "#0f172a",
+};
+
+const h3Style: React.CSSProperties = {
+  margin: 0,
+  fontSize: 16,
+  fontWeight: 900,
+  color: "#0f172a",
+};
+
+const bodyStyle: React.CSSProperties = {
+  marginTop: 10,
+  fontSize: 15,
+  lineHeight: 1.7,
+  color: "#475569",
+};
+
+const smallStyle: React.CSSProperties = {
+  fontSize: 13,
+  lineHeight: 1.6,
+  color: "#64748b",
+};
+
+const pillStyle = (tone: "success" | "info" | "warning" | "danger" | "secondary"): React.CSSProperties => {
+  const map: Record<string, { bg: string; bd: string; fg: string }> = {
+    success: { bg: "#f0fdf4", bd: "#bbf7d0", fg: "#166534" },
+    info: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
+    warning: { bg: "#fffbeb", bd: "#fde68a", fg: "#92400e" },
+    danger: { bg: "#fff1f2", bd: "#fecdd3", fg: "#be123c" },
+    secondary: { bg: "#f8fafc", bd: "#e2e8f0", fg: "#475569" },
+  };
+  const t = map[tone];
+  return {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: t.bg,
+    border: `1px solid ${t.bd}`,
+    color: t.fg,
+    fontSize: 12,
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  };
+};
+
+const statStyle: React.CSSProperties = {
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  background: "#f8fafc",
+  padding: 14,
+  display: "grid",
+  gap: 6,
+};
+
+export default function ReportsOutputPage() {
   return (
-    msg.includes("does not exist") &&
-    (msg.includes("relation") || msg.includes("column"))
+    <Suspense fallback={null}>
+      <ReportsOutputPageContent />
+    </Suspense>
   );
 }
 
-async function loadEvidence(): Promise<EvidenceRow[]> {
-  const variants = [
-    "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,audio_url,is_deleted",
-    "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,is_deleted",
-    "id,student_id,class_id,title,summary,note,learning_area,occurred_on,created_at,is_deleted",
-  ];
+function ReportsOutputPageContent() {
+  const searchParams = useSearchParams();
+  const { workspace, activeLearnerId, setActiveLearner, error: workspaceError } =
+    useFamilyWorkspace();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [draft, setDraft] = useState<ReportDraftRow | null>(null);
+  const [curriculumData, setCurriculumData] =
+    useState<LearnerCurriculumPageData | null>(null);
+  const [plannerData, setPlannerData] = useState<FamilyWeeklyPlan | null>(null);
 
-  let lastErr: any = null;
+  const weekKey = useMemo(() => getCurrentWeekKey(), []);
+  const draftId = safe(searchParams.get("draftId"));
 
-  for (const select of variants) {
-    const res = await supabase
-      .from("evidence_entries")
-      .select(select)
-      .order("occurred_on", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
+  useEffect(() => {
+    let mounted = true;
 
-    // ✅ FIXED CAST (THIS WAS THE ERROR)
-    if (!res.error) {
-      return (((res.data || []) as unknown) as EvidenceRow[]).filter(
-        (x) => !x.is_deleted
-      );
+    async function hydrateDraft() {
+      if (!draftId) {
+        if (mounted) {
+          setDraft(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError("");
+        const nextDraft = await loadReportDraftById(draftId);
+        if (!mounted) return;
+        setDraft(nextDraft);
+      } catch (err: any) {
+        if (!mounted) return;
+        setError(String(err?.message || err || "Failed to load report output."));
+        setDraft(null);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
 
-    lastErr = res.error;
-    if (!isMissingRelationOrColumn(res.error)) break;
+    void hydrateDraft();
+    return () => {
+      mounted = false;
+    };
+  }, [draftId]);
+
+  useEffect(() => {
+    const learnerId = safe(draft?.student_id || draft?.child_id);
+    if (!learnerId) return;
+    if (learnerId === activeLearnerId) return;
+    void setActiveLearner(learnerId);
+  }, [activeLearnerId, draft?.child_id, draft?.student_id, setActiveLearner]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateSummaries() {
+      const learnerId = safe(draft?.student_id || draft?.child_id);
+      if (
+        !learnerId ||
+        !workspace.profile?.id ||
+        safe(workspace.profile.id) === "local"
+      ) {
+        if (mounted) {
+          setCurriculumData(null);
+          setPlannerData(null);
+        }
+        return;
+      }
+
+      try {
+        const [nextCurriculum, nextPlanner] = await Promise.all([
+          loadLearnerCurriculumPageData({
+            studentId: learnerId,
+            familyPreferences: workspace.profile.curriculum_preferences,
+          }),
+          loadFamilyWeeklyPlan({
+            familyProfileId: workspace.profile.id,
+            studentId: learnerId,
+            weekKey,
+          }),
+        ]);
+
+        if (!mounted) return;
+        setCurriculumData(nextCurriculum);
+        setPlannerData(nextPlanner);
+      } catch (err) {
+        if (!mounted) return;
+        console.error("reports output summary hydrate failed", err);
+        setCurriculumData(null);
+        setPlannerData(null);
+      }
+    }
+
+    void hydrateSummaries();
+    return () => {
+      mounted = false;
+    };
+  }, [draft?.child_id, draft?.student_id, weekKey, workspace.profile]);
+
+  const selectedStudentId = safe(draft?.student_id || draft?.child_id);
+  const studentLabel = learnerLabel({
+    draft,
+    workspaceLearners: workspace.learners.map((learner) => ({
+      id: learner.id,
+      label: learner.label,
+    })),
+  });
+
+  const selectedEvidenceIds = draft?.selected_evidence_ids ?? [];
+  const selectedCoreCount = useMemo(
+    () =>
+      selectedEvidenceIds.filter(
+        (id) => draft?.selection_meta?.[id]?.role !== "appendix",
+      ).length,
+    [draft?.selection_meta, selectedEvidenceIds],
+  );
+  const selectedAppendixCount = useMemo(
+    () =>
+      selectedEvidenceIds.filter(
+        (id) => draft?.selection_meta?.[id]?.role === "appendix",
+      ).length,
+    [draft?.selection_meta, selectedEvidenceIds],
+  );
+
+  const curriculumCoverage = useMemo(
+    () => buildCurriculumCoverage({ selectedStudentId, curriculumData }),
+    [curriculumData, selectedStudentId],
+  );
+
+  const readinessScore = useMemo(
+    () =>
+      buildReportReadinessScore({
+        selectedStudentId,
+        curriculumCoverage,
+        plannerActionCount: plannerData?.actions.length ?? 0,
+        selectedAreasCount: draft?.selected_areas?.length ?? 0,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        selectedCoreCount,
+        selectedAppendixCount,
+        includeAppendix: Boolean(draft?.include_appendix),
+        includeReadinessNotes: Boolean(draft?.include_readiness_notes),
+        notesText: draft?.notes ?? "",
+        draftId: draft?.id ?? "",
+        reportMode: draft?.report_mode ?? "family-summary",
+      }),
+    [
+      curriculumCoverage,
+      draft?.id,
+      draft?.include_appendix,
+      draft?.include_readiness_notes,
+      draft?.notes,
+      draft?.report_mode,
+      draft?.selected_areas?.length,
+      plannerData?.actions.length,
+      selectedAppendixCount,
+      selectedCoreCount,
+      selectedEvidenceIds.length,
+      selectedStudentId,
+    ],
+  );
+
+  const readiness = useMemo(() => interpretReadiness(readinessScore), [readinessScore]);
+
+  const parentLanguage = useMemo(
+    () =>
+      buildParentLanguageSummary({
+        selectedStudentId,
+        curriculumCoverage,
+        studentEvidenceCount: selectedEvidenceIds.length,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        notesText: draft?.notes ?? "",
+        draftId: draft?.id ?? "",
+      }),
+    [curriculumCoverage, draft?.id, draft?.notes, selectedEvidenceIds.length, selectedStudentId],
+  );
+
+  const strongestAreas = curriculumCoverage.strongestAreas.slice(0, 3);
+  const planningAheadAreas = curriculumCoverage.planningAheadAreas.slice(0, 3);
+  const evidenceAheadAreas = curriculumCoverage.evidenceAheadAreas.slice(0, 3);
+  const weakestAreas = curriculumCoverage.weakestAreas.slice(0, 3);
+
+  if (loading) {
+    return (
+      <main style={pageStyle}>
+        <section style={cardStyle}>
+          <div style={h2Style}>Loading report output...</div>
+          <div style={bodyStyle}>
+            Pulling together the saved draft and canonical family signals now.
+          </div>
+        </section>
+      </main>
+    );
   }
 
-  if (lastErr) throw lastErr;
-  return [];
-}
+  if (workspaceError || error) {
+    return (
+      <main style={pageStyle}>
+        <section style={cardStyle}>
+          <div style={h2Style}>Report output is not available yet</div>
+          <div style={bodyStyle}>
+            {error || workspaceError || "The canonical report output could not be loaded."}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>
+              Return to the report hub
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
-/* --- REST OF YOUR FILE REMAINS IDENTICAL --- */
+  if (!draftId) {
+    return (
+      <main style={pageStyle}>
+        <section style={cardStyle}>
+          <div style={h2Style}>No report draft selected</div>
+          <div style={bodyStyle}>
+            There is not enough canonical report context yet to build an output page.
+            Return to the report hub to build or select a saved draft first.
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>
+              Return to /reports
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
-export default function ReportsOutputPage() {
-  return <div>Report Output Page</div>;
+  if (!draft) {
+    return (
+      <main style={pageStyle}>
+        <section style={cardStyle}>
+          <div style={h2Style}>Draft not found</div>
+          <div style={bodyStyle}>
+            This report draft could not be found or is not available to the current
+            signed-in user.
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>
+              Return to /reports
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!selectedStudentId) {
+    return (
+      <main style={pageStyle}>
+        <section style={cardStyle}>
+          <div style={h2Style}>No learner is attached to this draft yet</div>
+          <div style={bodyStyle}>
+            There is not enough canonical learner context to produce a trustworthy
+            report output. Return to the report hub and save the draft against a
+            learner first.
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main style={pageStyle}>
+      <section style={cardStyle}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+          }}
+        >
+          <div style={{ maxWidth: 780 }}>
+            <div style={labelStyle}>Report output</div>
+            <h1 style={h1Style}>{safe(draft.title) || "Family report output"}</h1>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {studentLabel} · {modeLabel(draft.report_mode)} ·{" "}
+              {periodLabel(draft.period_mode)} · {marketLabel(draft.preferred_market)}
+            </div>
+            <div style={{ ...smallStyle, marginTop: 8 }}>
+              Updated {shortDate(draft.updated_at || draft.created_at)} · Draft ID{" "}
+              <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
+                {draft.id}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>
+            <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
+            <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
+            {curriculumCoverage.ready ? (
+              <span style={pillStyle(coverageTone(
+                curriculumCoverage.plannedAndEvidencedOutcomes > 0
+                  ? "strong"
+                  : curriculumCoverage.linkedOutcomes > 0
+                    ? "developing"
+                    : "attention",
+              ))}>
+                {curriculumCoverage.plannedAndEvidencedOutcomes > 0
+                  ? "Planned and evidenced"
+                  : curriculumCoverage.linkedOutcomes > 0
+                    ? "Evidence building"
+                    : "Early coverage"}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      <section style={cardStyle}>
+        <div style={h2Style}>Overall summary</div>
+        <div style={bodyStyle}>{parentLanguage.overall}</div>
+      </section>
+
+      <section style={cardStyle}>
+        <div style={h2Style}>Coverage snapshot</div>
+        <div style={smallStyle}>
+          This output uses the same canonical curriculum coverage signals as the report
+          hub, shown here in a calmer summary format.
+        </div>
+
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div style={statStyle}>
+            <div style={labelStyle}>Outcomes planned</div>
+            <div style={h3Style}>{curriculumCoverage.plannedOutcomes}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Outcomes with evidence</div>
+            <div style={h3Style}>{curriculumCoverage.linkedOutcomes}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Planned and evidenced</div>
+            <div style={h3Style}>{curriculumCoverage.plannedAndEvidencedOutcomes}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Secure outcomes</div>
+            <div style={h3Style}>{curriculumCoverage.secureOutcomes}</div>
+          </div>
+        </div>
+
+        <div style={{ ...softCardStyle, marginTop: 14 }}>
+          <div style={labelStyle}>Readiness language</div>
+          <div style={bodyStyle}>{readiness.message}</div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.2fr 1fr",
+          gap: 20,
+        }}
+      >
+        <div style={cardStyle}>
+          <div style={h2Style}>What is going well</div>
+          <div style={bodyStyle}>{parentLanguage.strengths}</div>
+
+          <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+            <div style={softCardStyle}>
+              <div style={labelStyle}>Strongest curriculum areas</div>
+              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                {strongestAreas.length
+                  ? strongestAreas.join(", ")
+                  : "No curriculum areas are strongly supported yet."}
+              </div>
+            </div>
+
+            <div style={softCardStyle}>
+              <div style={labelStyle}>Current evidence base</div>
+              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                {selectedEvidenceIds.length
+                  ? `${selectedEvidenceIds.length} evidence item${
+                      selectedEvidenceIds.length === 1 ? "" : "s"
+                    } are attached to this draft, including ${selectedCoreCount} core anchor${
+                      selectedCoreCount === 1 ? "" : "s"
+                    }.`
+                  : "No evidence is attached to this draft yet."}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={h2Style}>Best next step</div>
+          <div style={bodyStyle}>{parentLanguage.nextStep}</div>
+
+          <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+            <div style={softCardStyle}>
+              <div style={labelStyle}>Planning ahead of proof</div>
+              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                {planningAheadAreas.length
+                  ? planningAheadAreas.join(", ")
+                  : "No major planning gap is standing out yet."}
+              </div>
+            </div>
+
+            <div style={softCardStyle}>
+              <div style={labelStyle}>Evidence ahead of planning</div>
+              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                {evidenceAheadAreas.length
+                  ? evidenceAheadAreas.join(", ")
+                  : "Planning and evidence are reasonably aligned so far."}
+              </div>
+            </div>
+
+            <div style={softCardStyle}>
+              <div style={labelStyle}>Areas still thin</div>
+              <div style={{ ...bodyStyle, marginTop: 8 }}>
+                {weakestAreas.length
+                  ? weakestAreas.join(", ")
+                  : "No obvious zero-coverage area is standing out yet."}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {(!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") ||
+      (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") ||
+      (curriculumCoverage.ready &&
+        curriculumCoverage.plannedOutcomes === 0 &&
+        curriculumCoverage.linkedOutcomes === 0) ||
+      (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) ? (
+        <section style={cardStyle}>
+          <div style={h2Style}>What is still missing</div>
+          <div style={bodyStyle}>
+            {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
+              ? "There is not enough curriculum-linked context yet to build a strong report output."
+              : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
+                ? "The learner's curriculum is selected, but no seeded outcomes are available yet for this level."
+                : curriculumCoverage.plannedOutcomes === 0 && curriculumCoverage.linkedOutcomes === 0
+                  ? "There is not enough curriculum-linked planning and evidence yet to build a strong report output."
+                  : "Planning exists, but evidence support is still limited."}
+          </div>
+          <div style={{ ...smallStyle, marginTop: 10 }}>
+            Return to <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>/reports</Link>{" "}
+            to refine the draft, add planning in{" "}
+            <Link href="/planner" style={{ color: "#2563eb", fontWeight: 900 }}>/planner</Link>,
+            and capture more evidence in{" "}
+            <Link href="/capture" style={{ color: "#2563eb", fontWeight: 900 }}>/capture</Link>.
+          </div>
+        </section>
+      ) : null}
+
+      <section style={cardStyle}>
+        <div style={h2Style}>Report context</div>
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div style={statStyle}>
+            <div style={labelStyle}>Tracked outcomes</div>
+            <div style={h3Style}>{curriculumCoverage.trackedOutcomes}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Plan links</div>
+            <div style={h3Style}>{curriculumCoverage.planLinks}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Evidence links</div>
+            <div style={h3Style}>{curriculumCoverage.evidenceLinks}</div>
+          </div>
+          <div style={statStyle}>
+            <div style={labelStyle}>Weekly plan actions</div>
+            <div style={h3Style}>{plannerData?.actions.length ?? 0}</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
 }
