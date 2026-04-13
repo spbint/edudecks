@@ -951,6 +951,13 @@ function ReportsOutputPageContent() {
                       {item.linkedOutcomes.length === 1 ? "" : "s"}
                     </span>
                   ) : null}
+                  {item.attachmentCount > 0 ? (
+                    <span style={pillStyle("secondary")}>
+                      {item.attachmentCount === 1
+                        ? "1 attachment"
+                        : `${item.attachmentCount} attachments`}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div style={bodyStyle}>
@@ -972,6 +979,14 @@ function ReportsOutputPageContent() {
                         .join(" • ")}`
                     : "No linked outcome labels are available for this evidence item yet."}
                 </div>
+                {item.attachmentCount > 0 ? (
+                  <div style={{ ...smallStyle, marginTop: 8 }}>
+                    {item.attachmentLabel || "Attachment available"}
+                    {item.attachmentNames.length
+                      ? `: ${item.attachmentNames.join(", ")}`
+                      : ""}
+                  </div>
+                ) : null}
                 <div style={{ ...smallStyle, marginTop: 8, fontWeight: 800 }}>
                   Reference: Evidence {index + 1}
                 </div>

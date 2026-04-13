@@ -23,12 +23,47 @@ export type ReportSupportingEvidenceItem = {
   summary: string;
   occurredOn: string | null;
   learningArea: string;
+  attachmentCount: number;
+  attachmentNames: string[];
+  attachmentLabel: string | null;
   linkedOutcomes: Array<{
     outcomeId: string;
     outcomeCode: string;
     outcomeLabel: string;
   }>;
 };
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function parseAttachmentArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => safe(entry)).filter(Boolean);
+  }
+
+  const single = safe(value);
+  return single ? [single] : [];
+}
+
+function extractAttachmentName(value: string) {
+  const trimmed = safe(value);
+  if (!trimmed) return "";
+
+  const normalized = trimmed.split("?")[0] ?? trimmed;
+  const pieces = normalized.split(/[\\/]/).filter(Boolean);
+  return pieces[pieces.length - 1] ?? trimmed;
+}
+
+function mimeToAttachmentLabel(mimeType: string) {
+  const mime = safe(mimeType).toLowerCase();
+  if (!mime) return null;
+  if (mime.includes("pdf")) return "PDF attached";
+  if (mime.startsWith("image/")) return "Image attached";
+  if (mime.startsWith("audio/")) return "Audio attached";
+  if (mime.startsWith("video/")) return "Video attached";
+  return "Attachment available";
+}
 
 export async function loadEvidenceEntriesWithVariants<T>(
   selectVariants: string[],
@@ -178,7 +213,7 @@ export async function loadReportSupportingEvidence(input: {
   const evidenceResponse = await supabase
     .from("evidence_entries")
     .select(
-      "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted",
+      "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
     )
     .in("id", evidenceIds)
     .eq("is_deleted", false)
@@ -200,6 +235,11 @@ export async function loadReportSupportingEvidence(input: {
     learning_area?: string | null;
     student_id?: string | null;
     is_deleted?: boolean | null;
+    attachment_urls?: string[] | string | null;
+    image_url?: string | null;
+    photo_url?: string | null;
+    file_url?: string | null;
+    audio_url?: string | null;
   }>).filter((row) => {
     if (input.studentId && String(row.student_id ?? "").trim() !== input.studentId.trim()) {
       return false;
@@ -246,9 +286,25 @@ export async function loadReportSupportingEvidence(input: {
     throw outcomeResponse.error;
   }
 
+  const evidenceFileResponse = await supabase
+    .from("evidence_files")
+    .select("evidence_id,original_filename,mime_type,file_size_bytes,object_path")
+    .in(
+      "evidence_id",
+      orderedEvidenceRows.map((row) => String(row.id ?? "").trim()).filter(Boolean),
+    );
+
+  if (evidenceFileResponse.error) {
+    throw evidenceFileResponse.error;
+  }
+
   const outcomeMap = new Map<
     string,
     Array<{ outcomeId: string; outcomeCode: string; outcomeLabel: string }>
+  >();
+  const attachmentMap = new Map<
+    string,
+    Array<{ name: string; mimeType: string; objectPath: string }>
   >();
 
   for (const row of (outcomeResponse.data ?? []) as Array<{
@@ -287,21 +343,65 @@ export async function loadReportSupportingEvidence(input: {
     outcomeMap.set(evidenceId, [...(outcomeMap.get(evidenceId) ?? []), next]);
   }
 
+  for (const row of (evidenceFileResponse.data ?? []) as Array<{
+    evidence_id?: string | null;
+    original_filename?: string | null;
+    mime_type?: string | null;
+    object_path?: string | null;
+  }>) {
+    const evidenceId = safe(row.evidence_id);
+    if (!evidenceId) continue;
+
+    const objectPath = safe(row.object_path);
+    const fileName = safe(row.original_filename) || extractAttachmentName(objectPath);
+    const next = {
+      name: fileName || "Attached file",
+      mimeType: safe(row.mime_type),
+      objectPath,
+    };
+
+    attachmentMap.set(evidenceId, [...(attachmentMap.get(evidenceId) ?? []), next]);
+  }
+
   const limit = input.limit ?? 4;
 
   return orderedEvidenceRows.slice(0, limit).map((row) => {
-    const id = String(row.id ?? "").trim();
-    const summary =
-      String(row.summary ?? "").trim() ||
-      String(row.note ?? "").trim() ||
-      String(row.body ?? "").trim();
+    const id = safe(row.id);
+    const summary = safe(row.summary) || safe(row.note) || safe(row.body);
+    const storedAttachments = attachmentMap.get(id) ?? [];
+    const legacyAttachmentValues = [
+      ...parseAttachmentArray(row.attachment_urls),
+      safe(row.image_url),
+      safe(row.photo_url),
+      safe(row.file_url),
+      safe(row.audio_url),
+    ].filter(Boolean);
+    const legacyAttachmentNames = legacyAttachmentValues
+      .map((value) => extractAttachmentName(value))
+      .filter(Boolean);
+    const attachmentCount = storedAttachments.length || legacyAttachmentValues.length;
+    const attachmentNames =
+      storedAttachments.length > 0
+        ? storedAttachments.map((file) => file.name).filter(Boolean).slice(0, 3)
+        : legacyAttachmentNames.slice(0, 3);
+    const attachmentLabel =
+      storedAttachments.length > 0
+        ? mimeToAttachmentLabel(storedAttachments[0]?.mimeType ?? "")
+        : attachmentCount > 0
+          ? attachmentCount === 1
+            ? "Attachment available"
+            : `${attachmentCount} attachments`
+          : null;
 
     return {
       id,
-      title: String(row.title ?? "").trim() || "Saved evidence",
+      title: safe(row.title) || "Saved evidence",
       summary,
-      occurredOn: String(row.occurred_on ?? row.created_at ?? "").trim() || null,
-      learningArea: String(row.learning_area ?? "").trim() || "Learning area not set",
+      occurredOn: safe(row.occurred_on) || safe(row.created_at) || null,
+      learningArea: safe(row.learning_area) || "Learning area not set",
+      attachmentCount,
+      attachmentNames,
+      attachmentLabel,
       linkedOutcomes: (outcomeMap.get(id) ?? []).slice(0, 3),
     };
   });
