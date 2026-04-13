@@ -20,6 +20,10 @@ import {
   type FamilyWeeklyPlan,
 } from "@/lib/familyPlanner";
 import {
+  loadReportSupportingEvidence,
+  type ReportSupportingEvidenceItem,
+} from "@/lib/familyEvidence";
+import {
   buildCurriculumCoverage,
   buildParentLanguageSummary,
   buildReportReadinessScore,
@@ -198,6 +202,9 @@ function ReportsOutputPageContent() {
   const [curriculumData, setCurriculumData] =
     useState<LearnerCurriculumPageData | null>(null);
   const [plannerData, setPlannerData] = useState<FamilyWeeklyPlan | null>(null);
+  const [supportingEvidence, setSupportingEvidence] = useState<
+    ReportSupportingEvidenceItem[]
+  >([]);
 
   const weekKey = useMemo(() => getCurrentWeekKey(), []);
   const draftId = safe(searchParams.get("draftId"));
@@ -288,6 +295,40 @@ function ReportsOutputPageContent() {
       mounted = false;
     };
   }, [draft?.child_id, draft?.student_id, weekKey, workspace.profile]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateSupportingEvidence() {
+      const evidenceIds = draft?.selected_evidence_ids ?? [];
+      const learnerId = safe(draft?.student_id || draft?.child_id);
+
+      if (!evidenceIds.length || !learnerId) {
+        if (mounted) setSupportingEvidence([]);
+        return;
+      }
+
+      try {
+        const nextEvidence = await loadReportSupportingEvidence({
+          evidenceIds,
+          studentId: learnerId,
+          limit: 4,
+        });
+
+        if (!mounted) return;
+        setSupportingEvidence(nextEvidence);
+      } catch (err) {
+        if (!mounted) return;
+        console.error("reports output supporting evidence hydrate failed", err);
+        setSupportingEvidence([]);
+      }
+    }
+
+    void hydrateSupportingEvidence();
+    return () => {
+      mounted = false;
+    };
+  }, [draft?.child_id, draft?.selected_evidence_ids, draft?.student_id]);
 
   const selectedStudentId = safe(draft?.student_id || draft?.child_id);
   const studentLabel = learnerLabel({
@@ -700,6 +741,80 @@ function ReportsOutputPageContent() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section style={cardStyle} className="reports-output-card">
+        <div style={h2Style}>Supporting Evidence</div>
+        <div style={smallStyle}>
+          This section shows a small set of linked learning records that support the
+          report summary and curriculum coverage described above.
+        </div>
+
+        {supportingEvidence.length ? (
+          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+            {supportingEvidence.map((item) => (
+              <div key={item.id} style={softCardStyle}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={h3Style}>{item.title}</div>
+                    <div style={{ ...smallStyle, marginTop: 4 }}>
+                      {item.learningArea} · {shortDate(item.occurredOn)}
+                    </div>
+                  </div>
+
+                  {item.linkedOutcomes.length ? (
+                    <span style={pillStyle("info")}>
+                      {item.linkedOutcomes.length} linked outcome
+                      {item.linkedOutcomes.length === 1 ? "" : "s"}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div style={bodyStyle}>
+                  {item.summary
+                    ? item.summary.length > 220
+                      ? `${item.summary.slice(0, 220)}...`
+                      : item.summary
+                    : "No written summary was saved with this evidence item."}
+                </div>
+
+                <div style={{ ...smallStyle, marginTop: 8 }}>
+                  {item.linkedOutcomes.length
+                    ? `Linked outcomes: ${item.linkedOutcomes
+                        .map((outcome) =>
+                          outcome.outcomeCode
+                            ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
+                            : outcome.outcomeLabel,
+                        )
+                        .join(" · ")}`
+                    : "No linked outcome labels are available for this evidence item yet."}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ ...softCardStyle, marginTop: 14 }}>
+            <div style={bodyStyle}>
+              No supporting evidence has been linked to this report yet.
+            </div>
+            <div style={{ ...smallStyle, marginTop: 8 }}>
+              Add linked evidence in{" "}
+              <Link href="/capture" style={{ color: "#2563eb", fontWeight: 900 }}>
+                /capture
+              </Link>{" "}
+              to strengthen this report. Linked evidence will appear here once learning
+              records have been connected to curriculum outcomes.
+            </div>
+          </div>
+        )}
       </section>
 
       <section style={cardStyle} className="reports-output-card">

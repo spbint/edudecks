@@ -17,6 +17,19 @@ export type EvidenceOutcomeLink = {
   outcomeId: string;
 };
 
+export type ReportSupportingEvidenceItem = {
+  id: string;
+  title: string;
+  summary: string;
+  occurredOn: string | null;
+  learningArea: string;
+  linkedOutcomes: Array<{
+    outcomeId: string;
+    outcomeCode: string;
+    outcomeLabel: string;
+  }>;
+};
+
 export async function loadEvidenceEntriesWithVariants<T>(
   selectVariants: string[],
   options?: {
@@ -149,4 +162,124 @@ export async function linkEvidenceToOutcomes(input: {
   if (response.error) {
     throw response.error;
   }
+}
+
+export async function loadReportSupportingEvidence(input: {
+  evidenceIds: string[];
+  studentId?: string | null;
+  limit?: number;
+}): Promise<ReportSupportingEvidenceItem[]> {
+  const evidenceIds = Array.from(
+    new Set(input.evidenceIds.map((value) => String(value ?? "").trim()).filter(Boolean)),
+  );
+
+  if (!evidenceIds.length) return [];
+
+  const evidenceResponse = await supabase
+    .from("evidence_entries")
+    .select(
+      "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted",
+    )
+    .in("id", evidenceIds)
+    .eq("is_deleted", false)
+    .order("occurred_on", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (evidenceResponse.error) {
+    throw evidenceResponse.error;
+  }
+
+  const evidenceRows = ((evidenceResponse.data ?? []) as Array<{
+    id?: string | null;
+    title?: string | null;
+    summary?: string | null;
+    body?: string | null;
+    note?: string | null;
+    occurred_on?: string | null;
+    created_at?: string | null;
+    learning_area?: string | null;
+    student_id?: string | null;
+    is_deleted?: boolean | null;
+  }>).filter((row) => {
+    if (input.studentId && String(row.student_id ?? "").trim() !== input.studentId.trim()) {
+      return false;
+    }
+    return row.is_deleted !== true;
+  });
+
+  if (!evidenceRows.length) return [];
+
+  const outcomeResponse = await supabase
+    .from("evidence_outcomes")
+    .select(
+      "evidence_id,outcome_id,curriculum_outcomes!inner(code,short_label,full_text)",
+    )
+    .in(
+      "evidence_id",
+      evidenceRows.map((row) => String(row.id ?? "").trim()).filter(Boolean),
+    );
+
+  if (outcomeResponse.error) {
+    throw outcomeResponse.error;
+  }
+
+  const outcomeMap = new Map<
+    string,
+    Array<{ outcomeId: string; outcomeCode: string; outcomeLabel: string }>
+  >();
+
+  for (const row of (outcomeResponse.data ?? []) as Array<{
+    evidence_id?: string | null;
+    outcome_id?: string | null;
+    curriculum_outcomes?:
+      | {
+          code?: string | null;
+          short_label?: string | null;
+          full_text?: string | null;
+        }
+      | Array<{
+          code?: string | null;
+          short_label?: string | null;
+          full_text?: string | null;
+        }>
+      | null;
+  }>) {
+    const evidenceId = String(row.evidence_id ?? "").trim();
+    const outcomeId = String(row.outcome_id ?? "").trim();
+    if (!evidenceId || !outcomeId) continue;
+
+    const curriculumOutcome = Array.isArray(row.curriculum_outcomes)
+      ? row.curriculum_outcomes[0]
+      : row.curriculum_outcomes ?? null;
+
+    const next = {
+      outcomeId,
+      outcomeCode: String(curriculumOutcome?.code ?? "").trim(),
+      outcomeLabel:
+        String(curriculumOutcome?.short_label ?? "").trim() ||
+        String(curriculumOutcome?.full_text ?? "").trim() ||
+        "Outcome",
+    };
+
+    outcomeMap.set(evidenceId, [...(outcomeMap.get(evidenceId) ?? []), next]);
+  }
+
+  const limit = input.limit ?? 4;
+
+  return evidenceRows.slice(0, limit).map((row) => {
+    const id = String(row.id ?? "").trim();
+    const summary =
+      String(row.summary ?? "").trim() ||
+      String(row.note ?? "").trim() ||
+      String(row.body ?? "").trim();
+
+    return {
+      id,
+      title: String(row.title ?? "").trim() || "Saved evidence",
+      summary,
+      occurredOn: String(row.occurred_on ?? row.created_at ?? "").trim() || null,
+      learningArea: String(row.learning_area ?? "").trim() || "Learning area not set",
+      linkedOutcomes: (outcomeMap.get(id) ?? []).slice(0, 3),
+    };
+  });
 }
