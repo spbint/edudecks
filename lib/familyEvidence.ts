@@ -209,6 +209,29 @@ export async function loadReportSupportingEvidence(input: {
 
   if (!evidenceRows.length) return [];
 
+  const explicitOrder = new Map(evidenceIds.map((id, index) => [id, index]));
+  const orderedEvidenceRows = [...evidenceRows].sort((a, b) => {
+    const aId = String(a.id ?? "").trim();
+    const bId = String(b.id ?? "").trim();
+    const aIndex = explicitOrder.get(aId);
+    const bIndex = explicitOrder.get(bId);
+
+    if (typeof aIndex === "number" && typeof bIndex === "number") {
+      return aIndex - bIndex;
+    }
+
+    if (typeof aIndex === "number") return -1;
+    if (typeof bIndex === "number") return 1;
+
+    const aDate = String(a.occurred_on ?? a.created_at ?? "").trim();
+    const bDate = String(b.occurred_on ?? b.created_at ?? "").trim();
+    if (aDate && bDate && aDate !== bDate) {
+      return bDate.localeCompare(aDate);
+    }
+
+    return aId.localeCompare(bId);
+  });
+
   const outcomeResponse = await supabase
     .from("evidence_outcomes")
     .select(
@@ -266,7 +289,7 @@ export async function loadReportSupportingEvidence(input: {
 
   const limit = input.limit ?? 4;
 
-  return evidenceRows.slice(0, limit).map((row) => {
+  return orderedEvidenceRows.slice(0, limit).map((row) => {
     const id = String(row.id ?? "").trim();
     const summary =
       String(row.summary ?? "").trim() ||

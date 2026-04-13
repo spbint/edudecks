@@ -255,6 +255,19 @@ const sectionHeaderStyle: React.CSSProperties = {
   marginBottom: 16,
 };
 
+const appendixReferenceStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "4px 8px",
+  borderRadius: 999,
+  background: "#e2e8f0",
+  color: "#0f172a",
+  fontSize: 12,
+  fontWeight: 900,
+  letterSpacing: 0.3,
+  textTransform: "uppercase",
+};
+
 export default function ReportsOutputPage() {
   return (
     <Suspense fallback={null}>
@@ -629,6 +642,11 @@ function ReportsOutputPageContent() {
             page-break-inside: avoid;
           }
 
+          .reports-output-evidence-item {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
           .reports-output-grid-two,
           .reports-output-grid-three,
           .reports-output-grid-four,
@@ -893,18 +911,23 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div style={sectionHeaderStyle}>
-          <div style={sectionEyebrowStyle}>Supporting Records</div>
-          <div style={h2Style}>Supporting Evidence</div>
+          <div style={sectionEyebrowStyle}>Appendix A</div>
+          <div style={h2Style}>Supporting Evidence Appendix</div>
         </div>
         <div style={smallStyle}>
-          This section shows a small set of linked learning records that support the
-          report summary and curriculum coverage described above.
+          This appendix presents a small set of linked learning records in a stable,
+          referenceable order so they can support the report summary and later
+          attachment workflows without changing the report structure.
         </div>
 
         {supportingEvidence.length ? (
           <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
-            {supportingEvidence.map((item) => (
-              <div key={item.id} style={softCardStyle}>
+            {supportingEvidence.map((item, index) => (
+              <div
+                key={item.id}
+                style={softCardStyle}
+                className="reports-output-evidence-item"
+              >
                 <div
                   style={{
                     display: "flex",
@@ -915,6 +938,7 @@ function ReportsOutputPageContent() {
                   }}
                 >
                   <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={appendixReferenceStyle}>{`Evidence ${index + 1}`}</div>
                     <div style={h3Style}>{item.title}</div>
                     <div style={{ ...smallStyle, marginTop: 4 }}>
                       {item.learningArea} {" • "} {shortDate(item.occurredOn)}
@@ -947,6 +971,9 @@ function ReportsOutputPageContent() {
                         )
                         .join(" • ")}`
                     : "No linked outcome labels are available for this evidence item yet."}
+                </div>
+                <div style={{ ...smallStyle, marginTop: 8, fontWeight: 800 }}>
+                  Reference: Evidence {index + 1}
                 </div>
               </div>
             ))}
