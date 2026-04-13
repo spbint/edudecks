@@ -64,6 +64,9 @@ const pageStyle: React.CSSProperties = {
   minHeight: "100%",
   display: "grid",
   gap: 24,
+  maxWidth: 980,
+  margin: "0 auto",
+  paddingBottom: 32,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -157,6 +160,17 @@ const statStyle: React.CSSProperties = {
   padding: 14,
   display: "grid",
   gap: 6,
+};
+
+const actionButtonStyle: React.CSSProperties = {
+  minHeight: 40,
+  padding: "10px 14px",
+  borderRadius: 12,
+  border: "1px solid #d1d5db",
+  background: "#ffffff",
+  color: "#0f172a",
+  fontWeight: 900,
+  cursor: "pointer",
 };
 
 export default function ReportsOutputPage() {
@@ -454,8 +468,57 @@ function ReportsOutputPageContent() {
   }
 
   return (
-    <main style={pageStyle}>
-      <section style={cardStyle}>
+    <main style={pageStyle} className="reports-output-page">
+      <style jsx global>{`
+        @page {
+          size: auto;
+          margin: 14mm 12mm;
+        }
+
+        @media print {
+          html,
+          body {
+            background: #ffffff !important;
+          }
+
+          .reports-output-page {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            gap: 14px !important;
+          }
+
+          .reports-output-card {
+            border: 1px solid #d7dee8 !important;
+            box-shadow: none !important;
+            border-radius: 10px !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+
+          .reports-output-grid-two,
+          .reports-output-grid-three,
+          .reports-output-grid-four {
+            display: block !important;
+          }
+
+          .reports-output-grid-two > *,
+          .reports-output-grid-three > *,
+          .reports-output-grid-four > * {
+            margin-bottom: 12px !important;
+          }
+
+          .reports-output-print-actions {
+            display: none !important;
+          }
+
+          a {
+            color: inherit !important;
+            text-decoration: none !important;
+          }
+        }
+      `}</style>
+      <section style={cardStyle} className="reports-output-card">
         <div
           style={{
             display: "flex",
@@ -481,6 +544,15 @@ function ReportsOutputPageContent() {
           </div>
 
           <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>
+            <div className="reports-output-print-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={actionButtonStyle}
+              >
+                Print / Save as PDF
+              </button>
+            </div>
             <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
             <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
             {curriculumCoverage.ready ? (
@@ -506,7 +578,7 @@ function ReportsOutputPageContent() {
         </div>
       </section>
 
-      <section style={cardStyle}>
+      <section style={cardStyle} className="reports-output-card">
         <div style={h2Style}>Learning Overview</div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
         {draft.notes ? (
@@ -517,11 +589,12 @@ function ReportsOutputPageContent() {
         ) : null}
       </section>
 
-      <section style={cardStyle}>
+      <section style={cardStyle} className="reports-output-card">
         <div style={h2Style}>Curriculum Coverage</div>
         <div style={smallStyle}>{coverageExplanation}</div>
 
         <div
+          className="reports-output-grid-four"
           style={{
             marginTop: 14,
             display: "grid",
@@ -554,13 +627,14 @@ function ReportsOutputPageContent() {
       </section>
 
       <section
+        className="reports-output-grid-two"
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 20,
         }}
       >
-        <div style={cardStyle}>
+        <div style={cardStyle} className="reports-output-card">
           <div style={h2Style}>Evidence of Learning</div>
           <div style={bodyStyle}>
             {selectedEvidenceIds.length
@@ -583,7 +657,7 @@ function ReportsOutputPageContent() {
           </div>
         </div>
 
-        <div style={cardStyle}>
+        <div style={cardStyle} className="reports-output-card">
           <div style={h2Style}>Strengths</div>
           <div style={bodyStyle}>{parentLanguage.strengths}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
@@ -597,11 +671,12 @@ function ReportsOutputPageContent() {
         </div>
       </section>
 
-      <section style={cardStyle}>
+      <section style={cardStyle} className="reports-output-card">
         <div style={h2Style}>Next Steps</div>
         <div style={bodyStyle}>{parentLanguage.nextStep}</div>
 
         <div
+          className="reports-output-grid-three"
           style={{
             marginTop: 14,
             display: "grid",
@@ -644,7 +719,7 @@ function ReportsOutputPageContent() {
         curriculumCoverage.plannedOutcomes === 0 &&
         curriculumCoverage.linkedOutcomes === 0) ||
       (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) ? (
-        <section style={cardStyle}>
+        <section style={cardStyle} className="reports-output-card">
           <div style={h2Style}>What Is Still Missing</div>
           <div style={bodyStyle}>
             {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
@@ -666,13 +741,14 @@ function ReportsOutputPageContent() {
         </section>
       ) : null}
 
-      <section style={cardStyle}>
+      <section style={cardStyle} className="reports-output-card">
         <div style={h2Style}>Report Context</div>
         <div style={smallStyle}>
           This section keeps the underlying report inputs visible without turning the
           page into a dashboard.
         </div>
         <div
+          className="reports-output-grid-four"
           style={{
             marginTop: 14,
             display: "grid",
