@@ -688,9 +688,7 @@ function ReportsOutputPageContent() {
             <div style={labelStyle}>{marketOverlay.reportEyebrow}</div>
             <h1 style={h1Style}>{safe(draft.title) || "Learning Report"}</h1>
             <div style={{ ...bodyStyle, marginTop: 8, maxWidth: 720 }}>
-              A structured summary of planned learning, captured evidence, and
-              curriculum coverage prepared for family review, sharing, and future
-              submission workflows.
+              {marketOverlay.reportSubtitle}
             </div>
             <div
               style={{
@@ -919,11 +917,7 @@ function ReportsOutputPageContent() {
           <div style={sectionEyebrowStyle}>{reportSectionCopy.appendix.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.appendix.title}</div>
         </div>
-        <div style={smallStyle}>
-          This appendix presents a small set of linked learning records in a stable,
-          referenceable order so they can support the report summary and later
-          attachment workflows without changing the report structure.
-        </div>
+        <div style={smallStyle}>{marketOverlay.appendixIntro}</div>
 
         {supportingEvidence.length ? (
           <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
@@ -1173,8 +1167,7 @@ function ReportsOutputPageContent() {
           <div style={{ display: "grid", gap: 6 }}>
             <div style={labelStyle}>{reportSectionCopy.end.title}</div>
             <div style={{ ...smallStyle, color: "#475569" }}>
-              This document reflects the current saved draft, linked curriculum
-              records, and supporting evidence available on {shortDate(new Date().toISOString())}.
+              {marketOverlay.endNote} Available on {shortDate(new Date().toISOString())}.
             </div>
           </div>
           <div style={{ ...smallStyle, textAlign: "right" }}>

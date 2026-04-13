@@ -49,11 +49,14 @@ export type ParentLanguageSummary = {
 
 export type ReportDocumentOverlay = {
   reportEyebrow: string;
+  reportSubtitle: string;
   preparedLinePrefix: string;
   periodLabel: string;
   marketLabelText: string;
   coverageNote: string;
   backgroundNote: string;
+  appendixIntro: string;
+  endNote: string;
   outputRoleNote: string;
 };
 
@@ -97,6 +100,8 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
   if (market === "au") {
     return {
       reportEyebrow: "Australian homeschool learning report",
+      reportSubtitle:
+        "A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.",
       preparedLinePrefix: "Prepared for",
       periodLabel: "Learning period",
       marketLabelText: "National context",
@@ -104,6 +109,10 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
         "This summary is presented in an Australian homeschool reporting context while remaining parent-friendly.",
       backgroundNote:
         "The document background reflects the current curriculum, planning, and evidence picture in an Australian family reporting context.",
+      appendixIntro:
+        "This appendix presents linked learning records in a stable order so they can support the report summary and future attachment workflows in an Australian family reporting context.",
+      endNote:
+        "This document reflects the current saved draft, linked curriculum records, and supporting evidence available for this Australian family reporting view.",
       outputRoleNote:
         "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
     };
@@ -112,6 +121,8 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
   if (market === "uk") {
     return {
       reportEyebrow: "UK home education report",
+      reportSubtitle:
+        "A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.",
       preparedLinePrefix: "Prepared for",
       periodLabel: "Learning period",
       marketLabelText: "UK context",
@@ -119,6 +130,10 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
         "This summary is presented in a UK home education context while remaining clear and parent-friendly.",
       backgroundNote:
         "The document background reflects the current curriculum, planning, and evidence picture in a UK home education context.",
+      appendixIntro:
+        "This appendix presents linked learning records in a stable order so they can support the report summary and future attachment workflows in a UK home education context.",
+      endNote:
+        "This document reflects the current saved draft, linked curriculum records, and supporting evidence available for this UK home education view.",
       outputRoleNote:
         "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
     };
@@ -127,6 +142,8 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
   if (market === "us") {
     return {
       reportEyebrow: "US home education report",
+      reportSubtitle:
+        "A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.",
       preparedLinePrefix: "Prepared for",
       periodLabel: "Reporting period",
       marketLabelText: "US context",
@@ -134,6 +151,10 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
         "This summary is presented in a US home education context while remaining clear and parent-friendly.",
       backgroundNote:
         "The document background reflects the current curriculum, planning, and evidence picture in a US family reporting context.",
+      appendixIntro:
+        "This appendix presents linked learning records in a stable order so they can support the report summary and future attachment workflows in a US home education context.",
+      endNote:
+        "This document reflects the current saved draft, linked curriculum records, and supporting evidence available for this US home education view.",
       outputRoleNote:
         "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
     };
@@ -141,6 +162,8 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
 
   return {
     reportEyebrow: "Homeschool learning report",
+    reportSubtitle:
+      "A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.",
     preparedLinePrefix: "Prepared for",
     periodLabel: "Reporting period",
     marketLabelText: "Market context",
@@ -148,6 +171,10 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
       "This summary is designed to stay calm, readable, and useful across family reporting contexts.",
     backgroundNote:
       "This document background reflects the current curriculum, planning, and evidence picture without adding market-specific rules.",
+    appendixIntro:
+      "This appendix presents linked learning records in a stable order so they can support the report summary and future attachment workflows.",
+    endNote:
+      "This document reflects the current saved draft, linked curriculum records, and supporting evidence available at the time of viewing.",
     outputRoleNote:
       "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
   };

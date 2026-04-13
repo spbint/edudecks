@@ -359,7 +359,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
           <div class="header-inner">
             <div class="eyebrow">${escapeHtml(marketOverlay.reportEyebrow)}</div>
             <h1>${escapeHtml(safe(draft.title) || "Learning Report")}</h1>
-            <p>A structured summary of planned learning, captured evidence, curriculum coverage, and supporting records prepared for family review and sharing.</p>
+            <p>${escapeHtml(marketOverlay.reportSubtitle)}</p>
             <div class="summary-line muted">
               ${escapeHtml(marketOverlay.preparedLinePrefix)} <strong style="color:#0f172a">${escapeHtml(safe(draft.child_name) || "Learner")}</strong> &bull;
               ${escapeHtml(modeLabel(draft.report_mode))} &bull;
@@ -425,8 +425,15 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         <section class="card">
           <div class="eyebrow">${escapeHtml(reportSectionCopy.appendix.eyebrow)}</div>
           <h2>${escapeHtml(reportSectionCopy.appendix.title)}</h2>
-          <p>This appendix presents the linked learning records in stable order so they can support the report summary and future attachment workflows.</p>
+          <p>${escapeHtml(marketOverlay.appendixIntro)}</p>
           ${evidenceItems}
+        </section>
+
+        <section class="card">
+          <div class="eyebrow">${escapeHtml(reportSectionCopy.end.eyebrow)}</div>
+          <h2>${escapeHtml(reportSectionCopy.end.title)}</h2>
+          <p>${escapeHtml(marketOverlay.endNote)}</p>
+          <div class="muted strong">Reference ${escapeHtml(draft.id)}</div>
         </section>
       </main>
     </body>
