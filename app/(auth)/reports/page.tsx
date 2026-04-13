@@ -1130,6 +1130,10 @@ function ReportsPageContent() {
     () => buildBuilderValueSignal(readinessScore, draftId, selectedEvidenceIds.length),
     [draftId, readinessScore, selectedEvidenceIds.length]
   );
+  const outputHref = useMemo(
+    () => (draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : ""),
+    [draftId]
+  );
 
   useEffect(() => {
     if (!selectedStudentId) return;
@@ -1433,6 +1437,30 @@ function ReportsPageContent() {
                 <strong>Why this matters:</strong> {builderValueSignal.valueText}
               </div>
               <div style={{ ...smallStyle, marginTop: 6 }}>{builderValueSignal.conversionText}</div>
+              {draftId ? (
+                <div
+                  style={{
+                    ...softCardStyle,
+                    marginTop: 14,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={labelStyle}>Saved draft handoff</div>
+                    <div style={{ ...smallStyle, marginTop: 6 }}>
+                      Open the polished report output for this saved draft, then print
+                      or save it as PDF when you are ready.
+                    </div>
+                  </div>
+                  <Link href={outputHref} style={buttonStyle(true)}>
+                    Open print-ready output
+                  </Link>
+                </div>
+              ) : null}
 
               <div style={{ height: 18 }} />
 
@@ -2224,7 +2252,16 @@ function ReportsPageContent() {
                   <div style={{ ...smallStyle, marginTop: 8 }}>
                     No canonical report draft exists yet for this working report. Save the draft when the evidence base feels trustworthy.
                   </div>
-                ) : null}
+                ) : (
+                  <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link href={outputHref} style={buttonStyle(true)}>
+                      Open report output
+                    </Link>
+                    <div style={{ ...smallStyle, alignSelf: "center" }}>
+                      This opens the share-ready version of the current saved draft.
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           </aside>

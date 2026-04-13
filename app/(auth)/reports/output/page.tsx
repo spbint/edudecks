@@ -219,6 +219,10 @@ function ReportsOutputPageContent() {
 
   const weekKey = useMemo(() => getCurrentWeekKey(), []);
   const draftId = safe(searchParams.get("draftId"));
+  const builderHref = useMemo(
+    () => (draftId ? `/reports?draftId=${encodeURIComponent(draftId)}` : "/reports"),
+    [draftId],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -660,6 +664,9 @@ function ReportsOutputPageContent() {
 
           <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>
             <div className="reports-output-print-actions" style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Link href={builderHref} style={{ ...actionButtonStyle, textDecoration: "none" }}>
+                Return to builder
+              </Link>
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -667,6 +674,9 @@ function ReportsOutputPageContent() {
               >
                 Print / Save as PDF
               </button>
+            </div>
+            <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
+              This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.
             </div>
             <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
             <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
