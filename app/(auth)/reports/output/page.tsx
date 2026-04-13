@@ -63,7 +63,7 @@ function learnerLabel(input: {
 const pageStyle: React.CSSProperties = {
   minHeight: "100%",
   display: "grid",
-  gap: 20,
+  gap: 24,
 };
 
 const cardStyle: React.CSSProperties = {
@@ -71,7 +71,7 @@ const cardStyle: React.CSSProperties = {
   borderRadius: 18,
   background: "#ffffff",
   boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-  padding: 20,
+  padding: 24,
 };
 
 const softCardStyle: React.CSSProperties = {
@@ -124,7 +124,9 @@ const smallStyle: React.CSSProperties = {
   color: "#64748b",
 };
 
-const pillStyle = (tone: "success" | "info" | "warning" | "danger" | "secondary"): React.CSSProperties => {
+const pillStyle = (
+  tone: "success" | "info" | "warning" | "danger" | "secondary",
+): React.CSSProperties => {
   const map: Record<string, { bg: string; bd: string; fg: string }> = {
     success: { bg: "#f0fdf4", bd: "#bbf7d0", fg: "#166534" },
     info: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
@@ -340,13 +342,32 @@ function ReportsOutputPageContent() {
         notesText: draft?.notes ?? "",
         draftId: draft?.id ?? "",
       }),
-    [curriculumCoverage, draft?.id, draft?.notes, selectedEvidenceIds.length, selectedStudentId],
+    [
+      curriculumCoverage,
+      draft?.id,
+      draft?.notes,
+      selectedEvidenceIds.length,
+      selectedStudentId,
+    ],
   );
 
   const strongestAreas = curriculumCoverage.strongestAreas.slice(0, 3);
   const planningAheadAreas = curriculumCoverage.planningAheadAreas.slice(0, 3);
   const evidenceAheadAreas = curriculumCoverage.evidenceAheadAreas.slice(0, 3);
   const weakestAreas = curriculumCoverage.weakestAreas.slice(0, 3);
+  const selectedAreas = draft?.selected_areas ?? [];
+  const hasMeaningfulCoverage =
+    curriculumCoverage.ready &&
+    (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
+  const coverageExplanation = !curriculumCoverage.ready
+    ? "Curriculum coverage will appear here once the learner has a linked curriculum setup and seeded outcomes."
+    : curriculumCoverage.plannedAndEvidencedOutcomes > 0
+      ? "This report already shows areas where planned learning and captured evidence are lining up well."
+      : curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0
+        ? "Planning is visible, but evidence still needs to catch up before the report feels fully supported."
+        : curriculumCoverage.linkedOutcomes > 0 && curriculumCoverage.plannedOutcomes === 0
+          ? "Evidence is present, though some of it is arriving before planning has been linked clearly."
+          : "Coverage is still early and building.";
 
   if (loading) {
     return (
@@ -445,8 +466,8 @@ function ReportsOutputPageContent() {
           }}
         >
           <div style={{ maxWidth: 780 }}>
-            <div style={labelStyle}>Report output</div>
-            <h1 style={h1Style}>{safe(draft.title) || "Family report output"}</h1>
+            <div style={labelStyle}>Learning report</div>
+            <h1 style={h1Style}>{safe(draft.title) || "Learning Report"}</h1>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {studentLabel} · {modeLabel(draft.report_mode)} ·{" "}
               {periodLabel(draft.period_mode)} · {marketLabel(draft.preferred_market)}
@@ -463,13 +484,17 @@ function ReportsOutputPageContent() {
             <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
             <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
             {curriculumCoverage.ready ? (
-              <span style={pillStyle(coverageTone(
-                curriculumCoverage.plannedAndEvidencedOutcomes > 0
-                  ? "strong"
-                  : curriculumCoverage.linkedOutcomes > 0
-                    ? "developing"
-                    : "attention",
-              ))}>
+              <span
+                style={pillStyle(
+                  coverageTone(
+                    curriculumCoverage.plannedAndEvidencedOutcomes > 0
+                      ? "strong"
+                      : curriculumCoverage.linkedOutcomes > 0
+                        ? "developing"
+                        : "attention",
+                  ),
+                )}
+              >
                 {curriculumCoverage.plannedAndEvidencedOutcomes > 0
                   ? "Planned and evidenced"
                   : curriculumCoverage.linkedOutcomes > 0
@@ -482,16 +507,19 @@ function ReportsOutputPageContent() {
       </section>
 
       <section style={cardStyle}>
-        <div style={h2Style}>Overall summary</div>
+        <div style={h2Style}>Learning Overview</div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
+        {draft.notes ? (
+          <div style={{ ...softCardStyle, marginTop: 16 }}>
+            <div style={labelStyle}>Family note</div>
+            <div style={bodyStyle}>{draft.notes}</div>
+          </div>
+        ) : null}
       </section>
 
       <section style={cardStyle}>
-        <div style={h2Style}>Coverage snapshot</div>
-        <div style={smallStyle}>
-          This output uses the same canonical curriculum coverage signals as the report
-          hub, shown here in a calmer summary format.
-        </div>
+        <div style={h2Style}>Curriculum Coverage</div>
+        <div style={smallStyle}>{coverageExplanation}</div>
 
         <div
           style={{
@@ -506,7 +534,7 @@ function ReportsOutputPageContent() {
             <div style={h3Style}>{curriculumCoverage.plannedOutcomes}</div>
           </div>
           <div style={statStyle}>
-            <div style={labelStyle}>Outcomes with evidence</div>
+            <div style={labelStyle}>Evidence-backed outcomes</div>
             <div style={h3Style}>{curriculumCoverage.linkedOutcomes}</div>
           </div>
           <div style={statStyle}>
@@ -520,7 +548,7 @@ function ReportsOutputPageContent() {
         </div>
 
         <div style={{ ...softCardStyle, marginTop: 14 }}>
-          <div style={labelStyle}>Readiness language</div>
+          <div style={labelStyle}>Coverage summary</div>
           <div style={bodyStyle}>{readiness.message}</div>
         </div>
       </section>
@@ -528,69 +556,83 @@ function ReportsOutputPageContent() {
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "1.2fr 1fr",
+          gridTemplateColumns: "1fr 1fr",
           gap: 20,
         }}
       >
         <div style={cardStyle}>
-          <div style={h2Style}>What is going well</div>
-          <div style={bodyStyle}>{parentLanguage.strengths}</div>
-
-          <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-            <div style={softCardStyle}>
-              <div style={labelStyle}>Strongest curriculum areas</div>
-              <div style={{ ...bodyStyle, marginTop: 8 }}>
-                {strongestAreas.length
-                  ? strongestAreas.join(", ")
-                  : "No curriculum areas are strongly supported yet."}
-              </div>
-            </div>
-
-            <div style={softCardStyle}>
-              <div style={labelStyle}>Current evidence base</div>
-              <div style={{ ...bodyStyle, marginTop: 8 }}>
-                {selectedEvidenceIds.length
-                  ? `${selectedEvidenceIds.length} evidence item${
-                      selectedEvidenceIds.length === 1 ? "" : "s"
-                    } are attached to this draft, including ${selectedCoreCount} core anchor${
-                      selectedCoreCount === 1 ? "" : "s"
-                    }.`
-                  : "No evidence is attached to this draft yet."}
-              </div>
+          <div style={h2Style}>Evidence of Learning</div>
+          <div style={bodyStyle}>
+            {selectedEvidenceIds.length
+              ? `${selectedEvidenceIds.length} linked evidence item${
+                  selectedEvidenceIds.length === 1 ? "" : "s"
+                } are attached to this draft, including ${selectedCoreCount} core anchor${
+                  selectedCoreCount === 1 ? "" : "s"
+                } and ${selectedAppendixCount} appendix item${
+                  selectedAppendixCount === 1 ? "" : "s"
+                }.`
+              : "No linked evidence is attached to this draft yet."}
+          </div>
+          <div style={{ ...softCardStyle, marginTop: 14 }}>
+            <div style={labelStyle}>Current focus areas</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {selectedAreas.length
+                ? selectedAreas.join(", ")
+                : "No specific area focus is attached to this draft yet."}
             </div>
           </div>
         </div>
 
         <div style={cardStyle}>
-          <div style={h2Style}>Best next step</div>
-          <div style={bodyStyle}>{parentLanguage.nextStep}</div>
-
-          <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-            <div style={softCardStyle}>
-              <div style={labelStyle}>Planning ahead of proof</div>
-              <div style={{ ...bodyStyle, marginTop: 8 }}>
-                {planningAheadAreas.length
-                  ? planningAheadAreas.join(", ")
-                  : "No major planning gap is standing out yet."}
-              </div>
+          <div style={h2Style}>Strengths</div>
+          <div style={bodyStyle}>{parentLanguage.strengths}</div>
+          <div style={{ ...softCardStyle, marginTop: 14 }}>
+            <div style={labelStyle}>Strongest curriculum areas</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {strongestAreas.length
+                ? strongestAreas.join(", ")
+                : "No curriculum areas are strongly supported yet."}
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div style={softCardStyle}>
-              <div style={labelStyle}>Evidence ahead of planning</div>
-              <div style={{ ...bodyStyle, marginTop: 8 }}>
-                {evidenceAheadAreas.length
-                  ? evidenceAheadAreas.join(", ")
-                  : "Planning and evidence are reasonably aligned so far."}
-              </div>
+      <section style={cardStyle}>
+        <div style={h2Style}>Next Steps</div>
+        <div style={bodyStyle}>{parentLanguage.nextStep}</div>
+
+        <div
+          style={{
+            marginTop: 14,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gap: 12,
+          }}
+        >
+          <div style={softCardStyle}>
+            <div style={labelStyle}>Planning still ahead of evidence</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {planningAheadAreas.length
+                ? planningAheadAreas.join(", ")
+                : "No major planning gap is standing out yet."}
             </div>
+          </div>
 
-            <div style={softCardStyle}>
-              <div style={labelStyle}>Areas still thin</div>
-              <div style={{ ...bodyStyle, marginTop: 8 }}>
-                {weakestAreas.length
-                  ? weakestAreas.join(", ")
-                  : "No obvious zero-coverage area is standing out yet."}
-              </div>
+          <div style={softCardStyle}>
+            <div style={labelStyle}>Evidence arriving ahead of planning</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {evidenceAheadAreas.length
+                ? evidenceAheadAreas.join(", ")
+                : "Planning and evidence are reasonably aligned so far."}
+            </div>
+          </div>
+
+          <div style={softCardStyle}>
+            <div style={labelStyle}>Areas still thin</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>
+              {weakestAreas.length
+                ? weakestAreas.join(", ")
+                : "No obvious zero-coverage area is standing out yet."}
             </div>
           </div>
         </div>
@@ -603,13 +645,14 @@ function ReportsOutputPageContent() {
         curriculumCoverage.linkedOutcomes === 0) ||
       (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) ? (
         <section style={cardStyle}>
-          <div style={h2Style}>What is still missing</div>
+          <div style={h2Style}>What Is Still Missing</div>
           <div style={bodyStyle}>
             {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
               ? "There is not enough curriculum-linked context yet to build a strong report output."
               : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
                 ? "The learner's curriculum is selected, but no seeded outcomes are available yet for this level."
-                : curriculumCoverage.plannedOutcomes === 0 && curriculumCoverage.linkedOutcomes === 0
+                : curriculumCoverage.plannedOutcomes === 0 &&
+                    curriculumCoverage.linkedOutcomes === 0
                   ? "There is not enough curriculum-linked planning and evidence yet to build a strong report output."
                   : "Planning exists, but evidence support is still limited."}
           </div>
@@ -624,7 +667,11 @@ function ReportsOutputPageContent() {
       ) : null}
 
       <section style={cardStyle}>
-        <div style={h2Style}>Report context</div>
+        <div style={h2Style}>Report Context</div>
+        <div style={smallStyle}>
+          This section keeps the underlying report inputs visible without turning the
+          page into a dashboard.
+        </div>
         <div
           style={{
             marginTop: 14,
@@ -650,6 +697,22 @@ function ReportsOutputPageContent() {
             <div style={h3Style}>{plannerData?.actions.length ?? 0}</div>
           </div>
         </div>
+        {!hasMeaningfulCoverage ? (
+          <div style={{ ...softCardStyle, marginTop: 14 }}>
+            <div style={bodyStyle}>
+              There is not enough information yet to build a fuller report. Add
+              planning in{" "}
+              <Link href="/planner" style={{ color: "#2563eb", fontWeight: 900 }}>
+                /planner
+              </Link>{" "}
+              and evidence in{" "}
+              <Link href="/capture" style={{ color: "#2563eb", fontWeight: 900 }}>
+                /capture
+              </Link>{" "}
+              to strengthen this report.
+            </div>
+          </div>
+        ) : null}
       </section>
     </main>
   );
