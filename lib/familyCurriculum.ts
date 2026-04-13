@@ -136,11 +136,12 @@ async function maybeSingle<T>(query: PromiseLike<{ data: T | null; error: unknow
 
 export async function loadActiveLearnerCurriculumProfile(
   studentId: string,
+  client: typeof supabase = supabase,
 ): Promise<LearnerCurriculumProfileRow | null> {
   if (!hasSupabaseEnv || !safe(studentId)) return null;
 
   return maybeSingle(
-    supabase
+    client
       .from("learner_curriculum_profiles")
       .select(
         "id,student_id,framework_id,level_id,jurisdiction,reporting_mode,is_active,started_on,created_at,updated_at",
@@ -155,11 +156,12 @@ export async function loadActiveLearnerCurriculumProfile(
 
 async function loadFrameworkSummary(
   frameworkId: string,
+  client: typeof supabase = supabase,
 ): Promise<CurriculumFrameworkSummary | null> {
   if (!safe(frameworkId)) return null;
 
   return maybeSingle(
-    supabase
+    client
       .from("curriculum_frameworks")
       .select("id,code,name,country,jurisdiction,version")
       .eq("id", frameworkId)
@@ -169,11 +171,12 @@ async function loadFrameworkSummary(
 
 async function loadLevelSummary(
   levelId: string,
+  client: typeof supabase = supabase,
 ): Promise<CurriculumLevelSummary | null> {
   if (!safe(levelId)) return null;
 
   return maybeSingle(
-    supabase
+    client
       .from("curriculum_levels")
       .select("id,framework_id,level_code,level_label,level_type,sort_order")
       .eq("id", levelId)
@@ -184,10 +187,12 @@ async function loadLevelSummary(
 export async function loadLearnerCurriculumPageData(input: {
   studentId: string;
   familyPreferences: CurriculumPreferences;
+  client?: typeof supabase;
 }): Promise<LearnerCurriculumPageData | null> {
+  const client = input.client ?? supabase;
   if (!hasSupabaseEnv || !safe(input.studentId)) return null;
 
-  const learnerProfile = await loadActiveLearnerCurriculumProfile(input.studentId);
+  const learnerProfile = await loadActiveLearnerCurriculumProfile(input.studentId, client);
   const frameworkId =
     safe(learnerProfile?.framework_id) || safe(input.familyPreferences.framework_id);
   const levelId =
@@ -214,20 +219,20 @@ export async function loadLearnerCurriculumPageData(input: {
 
   const [framework, level, areasResponse, strandsResponse, outcomesResponse] =
     await Promise.all([
-      loadFrameworkSummary(frameworkId),
-      loadLevelSummary(levelId),
-      supabase
+      loadFrameworkSummary(frameworkId, client),
+      loadLevelSummary(levelId, client),
+      client
         .from("curriculum_learning_areas")
         .select("id,code,name,sort_order")
         .eq("framework_id", frameworkId)
         .order("sort_order", { ascending: true })
         .order("name", { ascending: true }),
-      supabase
+      client
         .from("curriculum_strands")
         .select("id,learning_area_id,code,name,sort_order")
         .order("sort_order", { ascending: true })
         .order("name", { ascending: true }),
-      supabase
+      client
         .from("curriculum_outcomes")
         .select("id,code,short_label,full_text,learning_area_id,strand_id,sort_order")
         .eq("framework_id", frameworkId)
@@ -270,19 +275,19 @@ export async function loadLearnerCurriculumPageData(input: {
 
   if (outcomeIds.length) {
     const [statusesResponse, plannerLinksResponse, evidenceLinksResponse] = await Promise.all([
-      supabase
+      client
         .from("learner_outcome_status")
         .select("outcome_id,status")
         .eq("student_id", input.studentId)
         .in("outcome_id", outcomeIds),
-      supabase
+      client
         .from("learning_plan_item_outcomes")
         .select(
           "outcome_id,learning_plan_items!inner(id,student_id,status,updated_at,title)",
         )
         .in("outcome_id", outcomeIds)
         .eq("learning_plan_items.student_id", input.studentId),
-      supabase
+      client
         .from("evidence_outcomes")
         .select("outcome_id,evidence_entries!inner(id,title,student_id,is_deleted,occurred_on,created_at)")
         .in("outcome_id", outcomeIds)

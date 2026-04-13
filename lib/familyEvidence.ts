@@ -203,14 +203,16 @@ export async function loadReportSupportingEvidence(input: {
   evidenceIds: string[];
   studentId?: string | null;
   limit?: number;
+  client?: typeof supabase;
 }): Promise<ReportSupportingEvidenceItem[]> {
+  const client = input.client ?? supabase;
   const evidenceIds = Array.from(
     new Set(input.evidenceIds.map((value) => String(value ?? "").trim()).filter(Boolean)),
   );
 
   if (!evidenceIds.length) return [];
 
-  const evidenceResponse = await supabase
+  const evidenceResponse = await client
     .from("evidence_entries")
     .select(
       "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
@@ -272,7 +274,7 @@ export async function loadReportSupportingEvidence(input: {
     return aId.localeCompare(bId);
   });
 
-  const outcomeResponse = await supabase
+  const outcomeResponse = await client
     .from("evidence_outcomes")
     .select(
       "evidence_id,outcome_id,curriculum_outcomes!inner(code,short_label,full_text)",
@@ -286,7 +288,7 @@ export async function loadReportSupportingEvidence(input: {
     throw outcomeResponse.error;
   }
 
-  const evidenceFileResponse = await supabase
+  const evidenceFileResponse = await client
     .from("evidence_files")
     .select("evidence_id,original_filename,mime_type,file_size_bytes,object_path")
     .in(

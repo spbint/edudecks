@@ -30,6 +30,7 @@ import {
   coverageTone,
   interpretReadiness,
 } from "@/lib/reportPresentation";
+import { supabase } from "@/lib/supabaseClient";
 
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value ?? "").trim();
@@ -289,6 +290,8 @@ function ReportsOutputPageContent() {
   const [supportingEvidence, setSupportingEvidence] = useState<
     ReportSupportingEvidenceItem[]
   >([]);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState("");
 
   const weekKey = useMemo(() => getCurrentWeekKey(), []);
   const draftId = safe(searchParams.get("draftId"));
@@ -296,6 +299,56 @@ function ReportsOutputPageContent() {
     () => (draftId ? `/reports?draftId=${encodeURIComponent(draftId)}` : "/reports"),
     [draftId],
   );
+
+  async function handleDownloadPdf() {
+    if (!draftId || downloadingPdf) return;
+
+    try {
+      setDownloadingPdf(true);
+      setPdfError("");
+
+      const sessionResponse = await supabase.auth.getSession();
+      const accessToken = safe(sessionResponse.data.session?.access_token);
+      if (!accessToken) {
+        throw new Error("You need to be signed in to download this PDF.");
+      }
+
+      const response = await fetch(`/api/reports/pdf?draftId=${encodeURIComponent(draftId)}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        let message = "Failed to generate report PDF.";
+        try {
+          const payload = await response.json();
+          message = safe(payload?.error) || message;
+        } catch {
+          // ignore non-json failures
+        }
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const disposition = safe(response.headers.get("content-disposition"));
+      const filenameMatch = disposition.match(/filename="([^"]+)"/i);
+      const filename = filenameMatch?.[1] || "report.pdf";
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (err: any) {
+      setPdfError(String(err?.message || err || "Failed to generate report PDF."));
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -754,6 +807,14 @@ function ReportsOutputPageContent() {
               </Link>
               <button
                 type="button"
+                onClick={() => void handleDownloadPdf()}
+                style={actionButtonStyle}
+                disabled={downloadingPdf}
+              >
+                {downloadingPdf ? "Preparing PDF…" : "Download PDF"}
+              </button>
+              <button
+                type="button"
                 onClick={() => window.print()}
                 style={actionButtonStyle}
               >
@@ -763,6 +824,11 @@ function ReportsOutputPageContent() {
             <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
               This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.
             </div>
+            {pdfError ? (
+              <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
+                {pdfError}
+              </div>
+            ) : null}
             <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
             <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
             {curriculumCoverage.ready ? (
