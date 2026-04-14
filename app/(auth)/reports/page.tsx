@@ -911,6 +911,51 @@ function ReportsPageContent() {
         : "Add two calm sentences about this learning.",
     };
   }, [hasFamilyNote, highlightFamilyNote]);
+  const reportsEvidenceMomentum = useMemo(() => {
+    if (!highlightEvidenceSelection) return null;
+    if (!hasReportEvidence || !hasReportSelection) {
+      return {
+        label: "Getting started",
+        text: hasReportEvidence
+          ? "you have the right material in view."
+          : "the evidence base is still beginning.",
+      };
+    }
+    if (reportsFocus === "core-anchors") {
+      return hasCoreAnchors
+        ? { label: "Nearly ready", text: "your report backbone is almost there." }
+        : { label: "Taking shape", text: "the evidence set is starting to settle." };
+    }
+    return selectedEvidenceIds.length >= 3
+      ? { label: "Nearly ready", text: "one small refinement will help." }
+      : { label: "Taking shape", text: "this already has enough to build from." };
+  }, [
+    hasCoreAnchors,
+    hasReportEvidence,
+    hasReportSelection,
+    highlightEvidenceSelection,
+    reportsFocus,
+    selectedEvidenceIds.length,
+  ]);
+  const reportsDraftMomentum = useMemo(() => {
+    if (!highlightDraftPosition) return null;
+    if (!hasReportSelection) {
+      return { label: "Getting started", text: "the draft base is opening up." };
+    }
+    if (hasCoreAnchors && draftId) {
+      return { label: "Nearly ready", text: "this is close to being usable." };
+    }
+    return { label: "Taking shape", text: "the draft now has something real behind it." };
+  }, [draftId, hasCoreAnchors, hasReportSelection, highlightDraftPosition]);
+  const reportsFamilyNoteMomentum = useMemo(() => {
+    if (!highlightFamilyNote) return null;
+    if (!hasFamilyNote) {
+      return { label: "Getting started", text: "the report voice can begin here." };
+    }
+    return notes.trim().length >= 40
+      ? { label: "Nearly ready", text: "the note is almost settled." }
+      : { label: "Taking shape", text: "the note has a real start now." };
+  }, [hasFamilyNote, highlightFamilyNote, notes]);
 
   const evidenceCoverageCount = useMemo(() => {
     const set = new Set(
@@ -2239,6 +2284,8 @@ function ReportsPageContent() {
               {reportsEvidenceCompletion ? (
                 <div style={{ marginTop: 14 }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={reportsEvidenceMomentum?.label}
+                    momentumText={reportsEvidenceMomentum?.text}
                     inPlaceText={reportsEvidenceCompletion.inPlaceText}
                     stillNeededText={reportsEvidenceCompletion.stillNeededText}
                     nextStepText={reportsEvidenceCompletion.nextStepText}
@@ -2401,6 +2448,8 @@ function ReportsPageContent() {
               {reportsDraftCompletion ? (
                 <div style={{ marginTop: 14 }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={reportsDraftMomentum?.label}
+                    momentumText={reportsDraftMomentum?.text}
                     inPlaceText={reportsDraftCompletion.inPlaceText}
                     stillNeededText={reportsDraftCompletion.stillNeededText}
                     nextStepText={reportsDraftCompletion.nextStepText}
@@ -2443,6 +2492,8 @@ function ReportsPageContent() {
               {reportsFamilyNoteCompletion ? (
                 <div style={{ marginTop: 12 }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={reportsFamilyNoteMomentum?.label}
+                    momentumText={reportsFamilyNoteMomentum?.text}
                     inPlaceText={reportsFamilyNoteCompletion.inPlaceText}
                     stillNeededText={reportsFamilyNoteCompletion.stillNeededText}
                     nextStepText={reportsFamilyNoteCompletion.nextStepText}

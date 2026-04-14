@@ -284,6 +284,31 @@ export default function CurriculumPage() {
     hasCurriculumTracking,
     highlightOutcomesSection,
   ]);
+  const curriculumSetupMomentum = useMemo(() => {
+    if (!highlightSetupSection) return null;
+    if (!activeLearner && !hasCurriculumSetup) {
+      return { label: "Getting started", text: "the setup path begins here." };
+    }
+    return hasCurriculumSetup
+      ? { label: "Taking shape", text: "the setup foundation is already there." }
+      : { label: "Getting started", text: "the learner is in place now." };
+  }, [activeLearner, hasCurriculumSetup, highlightSetupSection]);
+  const curriculumOutcomesMomentum = useMemo(() => {
+    if (!highlightOutcomesSection) return null;
+    if (!hasCurriculumOutcomes) {
+      return hasCurriculumSetup
+        ? { label: "Getting started", text: "the setup is ready for outcomes next." }
+        : { label: "Getting started", text: "setup needs one more step first." };
+    }
+    return hasCurriculumTracking
+      ? { label: "Nearly ready", text: "this is usable for deeper alignment now." }
+      : { label: "Taking shape", text: "the outcome map is beginning to settle." };
+  }, [
+    hasCurriculumOutcomes,
+    hasCurriculumSetup,
+    hasCurriculumTracking,
+    highlightOutcomesSection,
+  ]);
 
   return (
     <FamilyTopNavShell
@@ -357,6 +382,8 @@ export default function CurriculumPage() {
           {curriculumSetupCompletion ? (
             <div style={{ marginTop: 14 }}>
               <GuidedCompletionFeedback
+                momentumLabel={curriculumSetupMomentum?.label}
+                momentumText={curriculumSetupMomentum?.text}
                 inPlaceText={curriculumSetupCompletion.inPlaceText}
                 stillNeededText={curriculumSetupCompletion.stillNeededText}
                 nextStepText={curriculumSetupCompletion.nextStepText}
@@ -399,6 +426,8 @@ export default function CurriculumPage() {
           >
             {curriculumOutcomesCompletion ? (
               <GuidedCompletionFeedback
+                momentumLabel={curriculumOutcomesMomentum?.label}
+                momentumText={curriculumOutcomesMomentum?.text}
                 inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                 stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                 nextStepText={curriculumOutcomesCompletion.nextStepText}
@@ -434,6 +463,8 @@ export default function CurriculumPage() {
               {curriculumOutcomesCompletion ? (
                 <div style={{ gridColumn: "1 / -1" }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={curriculumOutcomesMomentum?.label}
+                    momentumText={curriculumOutcomesMomentum?.text}
                     inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                     stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                     nextStepText={curriculumOutcomesCompletion.nextStepText}

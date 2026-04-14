@@ -558,6 +558,36 @@ export default function PlannerPage() {
     highlightChecklistSection,
     plannerFocus,
   ]);
+  const plannerFocusMomentum = useMemo(() => {
+    if (!highlightFocusSection) return null;
+    if (!hasPlanDirection) {
+      return { label: "Getting started", text: "the week is just opening up." };
+    }
+    if (hasPlanDirection && hasPlannerActions) {
+      return { label: "Taking shape", text: "you have a real weekly direction now." };
+    }
+    return { label: "Getting started", text: "the focus is in place now." };
+  }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
+  const plannerChecklistMomentum = useMemo(() => {
+    if (!highlightChecklistSection) return null;
+    if (!hasPlannerActions) {
+      return { label: "Getting started", text: "one action will create momentum." };
+    }
+    if (plannerFocus === "alignment") {
+      return hasPlannerLinks
+        ? { label: "Nearly ready", text: "planning and links are close to usable." }
+        : { label: "Taking shape", text: "the plan is there and linking comes next." };
+    }
+    return actions.length >= 2
+      ? { label: "Nearly ready", text: "the week has enough structure to use." }
+      : { label: "Taking shape", text: "this plan already has something to build from." };
+  }, [
+    actions.length,
+    hasPlannerActions,
+    hasPlannerLinks,
+    highlightChecklistSection,
+    plannerFocus,
+  ]);
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
@@ -1125,6 +1155,8 @@ export default function PlannerPage() {
               {plannerFocusCompletion ? (
                 <div style={{ marginBottom: 14 }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={plannerFocusMomentum?.label}
+                    momentumText={plannerFocusMomentum?.text}
                     inPlaceText={plannerFocusCompletion.inPlaceText}
                     stillNeededText={plannerFocusCompletion.stillNeededText}
                     nextStepText={plannerFocusCompletion.nextStepText}
@@ -1229,6 +1261,8 @@ export default function PlannerPage() {
               {plannerChecklistCompletion ? (
                 <div style={{ marginBottom: 14 }}>
                   <GuidedCompletionFeedback
+                    momentumLabel={plannerChecklistMomentum?.label}
+                    momentumText={plannerChecklistMomentum?.text}
                     inPlaceText={plannerChecklistCompletion.inPlaceText}
                     stillNeededText={plannerChecklistCompletion.stillNeededText}
                     nextStepText={plannerChecklistCompletion.nextStepText}

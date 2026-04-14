@@ -1149,6 +1149,30 @@ export default function CapturePage() {
     linkContext?.level,
     linkContext?.outcomes.length,
   ]);
+  const captureDetailsMomentum = useMemo(() => {
+    if (!highlightCaptureDetails) return null;
+    if (!hasCaptureDraft && !hasSavedCapture) {
+      return { label: "Getting started", text: "one clear example will help quickly." };
+    }
+    if (hasSavedCapture && hasCaptureLinks) {
+      return { label: "Nearly ready", text: "this is already usable in reporting." };
+    }
+    return { label: "Taking shape", text: "this learning record is coming together." };
+  }, [
+    hasCaptureDraft,
+    hasCaptureLinks,
+    hasSavedCapture,
+    highlightCaptureDetails,
+  ]);
+  const captureLinkingMomentum = useMemo(() => {
+    if (!highlightCurriculumLinking) return null;
+    if (!hasSavedCapture) {
+      return { label: "Getting started", text: "save first, then linking will open up." };
+    }
+    return hasCaptureLinks
+      ? { label: "Nearly ready", text: "the evidence is already connected." }
+      : { label: "Taking shape", text: "the saved evidence is ready for one link." };
+  }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1559,6 +1583,8 @@ export default function CapturePage() {
                 {captureDetailsCompletion ? (
                   <div style={{ marginTop: 14 }}>
                     <GuidedCompletionFeedback
+                      momentumLabel={captureDetailsMomentum?.label}
+                      momentumText={captureDetailsMomentum?.text}
                       inPlaceText={captureDetailsCompletion.inPlaceText}
                       stillNeededText={captureDetailsCompletion.stillNeededText}
                       nextStepText={captureDetailsCompletion.nextStepText}
@@ -1831,6 +1857,8 @@ export default function CapturePage() {
 
                     {captureLinkingCompletion ? (
                       <GuidedCompletionFeedback
+                        momentumLabel={captureLinkingMomentum?.label}
+                        momentumText={captureLinkingMomentum?.text}
                         inPlaceText={captureLinkingCompletion.inPlaceText}
                         stillNeededText={captureLinkingCompletion.stillNeededText}
                         nextStepText={captureLinkingCompletion.nextStepText}
