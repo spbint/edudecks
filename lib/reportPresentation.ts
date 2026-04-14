@@ -47,6 +47,13 @@ export type ParentLanguageSummary = {
   nextStep: string;
 };
 
+export type ReportStrengtheningAction = {
+  headline: string;
+  detail: string;
+  href?: string;
+  hrefLabel?: string;
+};
+
 export type ReportDocumentOverlay = {
   reportEyebrow: string;
   reportSubtitle: string;
@@ -621,5 +628,249 @@ export function buildParentLanguageSummary(input: {
     nextStep: notesText.trim() && draftId
       ? "Keep strengthening the thinner areas so the saved draft feels calmer and more complete."
       : "Once a little more planning and evidence are linked, save the draft so you have a reusable report base to keep improving.",
+  };
+}
+
+export function buildStrengthenReportGuidance(input: {
+  selectedStudentId: string;
+  curriculumCoverage: CurriculumCoverage;
+  studentEvidenceCount: number;
+  selectedEvidenceCount: number;
+  selectedCoreCount: number;
+  selectedAreasCount: number;
+  draftId: string;
+  notesText: string;
+  readinessScore: number;
+}): {
+  title: string;
+  intro: string;
+  actions: ReportStrengtheningAction[];
+} {
+  const {
+    selectedStudentId,
+    curriculumCoverage,
+    studentEvidenceCount,
+    selectedEvidenceCount,
+    selectedCoreCount,
+    selectedAreasCount,
+    draftId,
+    notesText,
+    readinessScore,
+  } = input;
+
+  const actions: ReportStrengtheningAction[] = [];
+
+  if (!selectedStudentId) {
+    return {
+      title: "Strengthen This Report",
+      intro:
+        "There is not yet enough canonical learner context to generate tailored recommendations.",
+      actions: [
+        {
+          headline: "Choose the learner first",
+          detail:
+            "Once a learner is selected, EduDecks can turn the existing curriculum, planning, and evidence signals into more specific guidance.",
+          href: "/reports",
+          hrefLabel: "Stay in /reports",
+        },
+      ],
+    };
+  }
+
+  if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+    return {
+      title: "Strengthen This Report",
+      intro:
+        "The report is still missing the curriculum context needed for stronger recommendations.",
+      actions: [
+        {
+          headline: "Finish curriculum setup",
+          detail:
+            "A canonical curriculum selection is the next step so planning and evidence can be interpreted against the right outcomes.",
+          href: "/curriculum",
+          hrefLabel: "Open /curriculum",
+        },
+      ],
+    };
+  }
+
+  if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+    return {
+      title: "Strengthen This Report",
+      intro:
+        "The learner has a curriculum selection, but there are no seeded outcomes available yet for stronger guidance.",
+      actions: [
+        {
+          headline: "Seed the selected curriculum level",
+          detail:
+            "Once outcomes are available, EduDecks can show where planning and evidence are lining up and where the report still needs support.",
+          href: "/curriculum",
+          hrefLabel: "Open /curriculum",
+        },
+      ],
+    };
+  }
+
+  if (
+    curriculumCoverage.ready &&
+    curriculumCoverage.plannedOutcomes === 0 &&
+    curriculumCoverage.linkedOutcomes === 0
+  ) {
+    return {
+      title: "Strengthen This Report",
+      intro:
+        "There is not yet enough curriculum-linked planning and evidence to generate tailored recommendations.",
+      actions: [
+        {
+          headline: "Link a few planned activities first",
+          detail:
+            "A small amount of curriculum-linked planning gives the report a clearer structure to work from.",
+          href: "/planner",
+          hrefLabel: "Open /planner",
+        },
+        {
+          headline: "Capture one or two pieces of proof",
+          detail:
+            "Once some evidence is linked to outcomes, the report can move beyond a very early-stage profile.",
+          href: "/capture",
+          hrefLabel: "Open /capture",
+        },
+      ],
+    };
+  }
+
+  if (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0) {
+    const focusAreas = joinNatural(curriculumCoverage.planningAheadAreas.slice(0, 2));
+    actions.push({
+      headline: focusAreas
+        ? `Capture evidence for ${focusAreas}`
+        : "Capture evidence for planned work",
+      detail: focusAreas
+        ? `These areas already have planning in place. A little proof here would make the report much stronger.`
+        : "Planning is visible, but the report still needs some captured proof before it will feel well supported.",
+      href: "/capture",
+      hrefLabel: "Open /capture",
+    });
+  }
+
+  if (curriculumCoverage.ready && curriculumCoverage.evidenceOnlyOutcomes > 0) {
+    const focusAreas = joinNatural(curriculumCoverage.evidenceAheadAreas.slice(0, 2));
+    actions.push({
+      headline: focusAreas
+        ? `Add planning around ${focusAreas}`
+        : "Link planning around recent evidence",
+      detail: "A little more forward planning will help the report show intention as clearly as proof.",
+      href: "/planner",
+      hrefLabel: "Open /planner",
+    });
+  }
+
+  if (curriculumCoverage.ready && curriculumCoverage.plannedOnlyOutcomes > 0) {
+    const weakPlannedAreas = joinNatural(curriculumCoverage.planningAheadAreas.slice(0, 2));
+    actions.push({
+      headline: weakPlannedAreas
+        ? `Close the proof gap in ${weakPlannedAreas}`
+        : "Close the proof gap in planned areas",
+      detail:
+        "Some outcomes are already planned but not yet evidenced. Closing that gap is one of the fastest ways to strengthen the report.",
+      href: "/capture",
+      hrefLabel: "Open /capture",
+    });
+  }
+
+  if (
+    curriculumCoverage.ready &&
+    (curriculumCoverage.weakestAreas.length > 0 || selectedAreasCount < 4)
+  ) {
+    const thinAreas = joinNatural(curriculumCoverage.weakestAreas.slice(0, 2));
+    actions.push({
+      headline: thinAreas
+        ? `Broaden coverage in ${thinAreas}`
+        : "Broaden the report slightly",
+      detail:
+        "A little extra coverage in thinner areas will help the report feel more balanced and less narrow.",
+      href: "/planner",
+      hrefLabel: "Open /planner",
+    });
+  }
+
+  if (studentEvidenceCount === 0) {
+    actions.push({
+      headline: "Add evidence for this learner",
+      detail:
+        "There is not enough learner evidence in the current filter to build a strong report position yet.",
+      href: "/capture",
+      hrefLabel: "Open /capture",
+    });
+  }
+
+  if (selectedEvidenceCount < 3) {
+    actions.push({
+      headline: "Choose a few stronger evidence items",
+      detail:
+        "Selecting two or three good anchor pieces will make the saved report easier to trust and easier to review.",
+      href: "/reports",
+      hrefLabel: "Refine selection here",
+    });
+  }
+
+  if (selectedCoreCount < 2 && selectedEvidenceCount > 0) {
+    actions.push({
+      headline: "Mark two items as core anchors",
+      detail:
+        "A small core evidence base helps the report read more clearly before the appendix does the supporting work.",
+      href: "/reports",
+      hrefLabel: "Refine selection here",
+    });
+  }
+
+  if (!notesText.trim() && draftId) {
+    actions.push({
+      headline: "Add a short family note",
+      detail:
+        "A brief note can make the final output feel more human and more intentional without changing the evidence base.",
+      href: "/reports",
+      hrefLabel: "Add note here",
+    });
+  }
+
+  if (actions.length === 0) {
+    actions.push({
+      headline: "Review the saved output",
+      detail:
+        "Most of the core pieces are in place. The next step is to review the output and decide whether it is ready to export.",
+      href: draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : "/reports",
+      hrefLabel: draftId ? "Open /reports/output" : "Stay in /reports",
+    });
+  }
+
+  if (readinessScore >= 65 && actions.length < 4) {
+    actions.push({
+      headline: "Move into output once these gaps are closed",
+      detail:
+        "This report is already taking shape well. One or two small improvements should be enough before reviewing the output.",
+      href: draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : "/reports",
+      hrefLabel: draftId ? "Open /reports/output" : "Stay in /reports",
+    });
+  }
+
+  const uniqueActions: ReportStrengtheningAction[] = [];
+  const seen = new Set<string>();
+
+  for (const action of actions) {
+    const key = `${action.headline}::${action.href ?? ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    uniqueActions.push(action);
+    if (uniqueActions.length >= 4) break;
+  }
+
+  return {
+    title: "Strengthen This Report",
+    intro:
+      readinessScore >= 65
+        ? "This report is close. These are the clearest next steps that would strengthen it further."
+        : "These are the most useful next actions based on the current planning, evidence, and curriculum signals.",
+    actions: uniqueActions,
   };
 }

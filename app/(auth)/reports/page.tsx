@@ -32,6 +32,7 @@ import {
   type FamilyWeeklyPlan,
 } from "@/lib/familyPlanner";
 import {
+  buildStrengthenReportGuidance,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
   buildReportReadinessScore,
@@ -1130,6 +1131,31 @@ function ReportsPageContent() {
     () => buildBuilderValueSignal(readinessScore, draftId, selectedEvidenceIds.length),
     [draftId, readinessScore, selectedEvidenceIds.length]
   );
+  const strengthenGuidance = useMemo(
+    () =>
+      buildStrengthenReportGuidance({
+        selectedStudentId,
+        curriculumCoverage,
+        studentEvidenceCount: studentEvidence.length,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        selectedCoreCount,
+        selectedAreasCount: selectedAreas.length,
+        draftId,
+        notesText: notes,
+        readinessScore,
+      }),
+    [
+      curriculumCoverage,
+      draftId,
+      notes,
+      readinessScore,
+      selectedAreas.length,
+      selectedCoreCount,
+      selectedEvidenceIds.length,
+      selectedStudentId,
+      studentEvidence.length,
+    ]
+  );
   const outputHref = useMemo(
     () => (draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : ""),
     [draftId]
@@ -2001,6 +2027,27 @@ function ReportsPageContent() {
                           : "Coverage is still early and building."}
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={h2Style}>{strengthenGuidance.title}</div>
+              <div style={smallStyle}>{strengthenGuidance.intro}</div>
+
+              <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                {strengthenGuidance.actions.map((action) => (
+                  <div key={`${action.headline}-${action.href || "local"}`} style={softCardStyle}>
+                    <div style={h3Style}>{action.headline}</div>
+                    <div style={bodyStyle}>{action.detail}</div>
+                    {action.href ? (
+                      <div style={{ marginTop: 10 }}>
+                        <Link href={action.href} style={{ color: "#2563eb", fontWeight: 900 }}>
+                          {action.hrefLabel || "Open next step"}
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             </section>
 
