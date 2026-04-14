@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   loadLearnerCurriculumPageData,
@@ -81,16 +82,19 @@ function EmptyState({
   text,
   href,
   linkLabel,
+  children,
 }: {
   title: string;
   text: string;
   href?: string;
   linkLabel?: string;
+  children?: React.ReactNode;
 }) {
   return (
     <section style={S.emptyCard}>
       <div style={S.emptyTitle}>{title}</div>
       <div style={S.emptyText}>{text}</div>
+      {children}
       {href && linkLabel ? (
         <Link href={href} style={S.primaryLink}>
           {linkLabel}
@@ -234,6 +238,55 @@ export default function CurriculumPage() {
   );
   const highlightSetupSection = curriculumFocus === "curriculum-setup";
   const highlightOutcomesSection = curriculumFocus === "no-outcomes";
+  const curriculumSetupCompletion = useMemo(() => {
+    if (!highlightSetupSection) return null;
+
+    return {
+      inPlaceText: activeLearner
+        ? "The learner context is already in place."
+        : "This page is ready for a learner once one is selected.",
+      stillNeededText: hasSelectedCurriculum
+        ? "The main setup pieces are present, though deeper alignment still depends on outcomes and linked progress."
+        : "This learner still needs a framework and level before the curriculum map can do useful work.",
+      nextStepText: hasSelectedCurriculum
+        ? "Once the setup looks right, use the outcome map below to begin tracking or linking learning."
+        : "Confirm the learner, then choose the family curriculum framework and level first.",
+    };
+  }, [activeLearner, hasSelectedCurriculum, highlightSetupSection]);
+  const curriculumOutcomesCompletion = useMemo(() => {
+    if (!highlightOutcomesSection) return null;
+
+    const totalOutcomes = pageData?.totalOutcomes ?? 0;
+    const trackedCount = pageData?.trackedOutcomeCount ?? 0;
+
+    return {
+      inPlaceText:
+        totalOutcomes > 0
+          ? `${totalOutcomes} canonical outcome${totalOutcomes === 1 ? "" : "s"} are available for this learner's setup.`
+          : hasSelectedCurriculum
+            ? "The learner's framework and level are already selected."
+            : "The page is ready for outcome targeting once setup is complete.",
+      stillNeededText:
+        totalOutcomes > 0
+          ? trackedCount > 0
+            ? "Some progress is already visible, but weaker areas may still need more deliberate tracking."
+            : "Outcomes are available, but tracking has not really started yet."
+          : hasSelectedCurriculum
+            ? "This setup still needs seeded outcomes before deeper targeting becomes possible."
+            : "Deeper outcome targeting will stay limited until curriculum setup is finished.",
+      nextStepText:
+        totalOutcomes > 0
+          ? "Start with one or two outcomes that matter most right now and update them gently."
+          : hasSelectedCurriculum
+            ? "Seed or confirm the outcomes for this framework and level, then come back to track them."
+            : "Finish curriculum setup first so outcome targeting has something real to attach to.",
+    };
+  }, [
+    hasSelectedCurriculum,
+    highlightOutcomesSection,
+    pageData?.totalOutcomes,
+    pageData?.trackedOutcomeCount,
+  ]);
 
   return (
     <FamilyTopNavShell
@@ -304,6 +357,15 @@ export default function CurriculumPage() {
           {curriculumSetupCue ? (
             <div style={S.guidedInlineNote}>{curriculumSetupCue}</div>
           ) : null}
+          {curriculumSetupCompletion ? (
+            <div style={{ marginTop: 14 }}>
+              <GuidedCompletionFeedback
+                inPlaceText={curriculumSetupCompletion.inPlaceText}
+                stillNeededText={curriculumSetupCompletion.stillNeededText}
+                nextStepText={curriculumSetupCompletion.nextStepText}
+              />
+            </div>
+          ) : null}
         </section>
 
         {workspaceError ? <section style={S.warningCard}>{workspaceError}</section> : null}
@@ -337,7 +399,15 @@ export default function CurriculumPage() {
           <EmptyState
             title="No outcomes are seeded for this framework and level"
             text="The learner's framework is selected, but no canonical outcomes were found for this level yet."
-          />
+          >
+            {curriculumOutcomesCompletion ? (
+              <GuidedCompletionFeedback
+                inPlaceText={curriculumOutcomesCompletion.inPlaceText}
+                stillNeededText={curriculumOutcomesCompletion.stillNeededText}
+                nextStepText={curriculumOutcomesCompletion.nextStepText}
+              />
+            ) : null}
+          </EmptyState>
         ) : (
           <>
             <section
@@ -362,6 +432,15 @@ export default function CurriculumPage() {
                   }}
                 >
                   {curriculumOutcomesCue}
+                </div>
+              ) : null}
+              {curriculumOutcomesCompletion ? (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <GuidedCompletionFeedback
+                    inPlaceText={curriculumOutcomesCompletion.inPlaceText}
+                    stillNeededText={curriculumOutcomesCompletion.stillNeededText}
+                    nextStepText={curriculumOutcomesCompletion.nextStepText}
+                  />
                 </div>
               ) : null}
               <div style={S.summaryCard}>

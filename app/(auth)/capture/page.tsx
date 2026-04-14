@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
 import {
   createFamilyEvidenceEntry,
   linkEvidenceToOutcomes,
@@ -1080,6 +1081,78 @@ export default function CapturePage() {
   const highlightCaptureDetails =
     captureFocus === "start-evidence" || captureFocus === "planned-without-evidence";
   const highlightCurriculumLinking = captureFocus === "planned-without-evidence";
+  const captureDetailsCompletion = useMemo(() => {
+    if (!highlightCaptureDetails) return null;
+
+    const hasUsableDraft = Boolean(safe(title) && safe(summary));
+    const hasSavedEvidence = Boolean(savedEvidenceId) || saveState === "success";
+
+    return {
+      inPlaceText: hasSavedEvidence
+        ? "You already have a saved learning moment to work from here."
+        : hasUsableDraft
+          ? "You already have the beginnings of a usable learning record."
+          : "This page is ready for one clear learning moment.",
+      stillNeededText: hasSavedEvidence
+        ? linkedOutcomeIds.length > 0
+          ? "The evidence is captured and linked well enough to support reporting."
+          : "The learning moment is saved, but it still needs curriculum linking to be more useful in reporting."
+        : hasUsableDraft
+          ? "A quick save will turn this into a real evidence record."
+          : "The report still needs one short, specific capture before this step is doing useful work.",
+      nextStepText: hasSavedEvidence
+        ? linkedOutcomeIds.length > 0
+          ? "Capture another small moment only if it adds something new."
+          : "Save or review one curriculum link so this evidence can flow into coverage and reports."
+        : hasUsableDraft
+          ? "Save this record, then decide whether it should be linked to curriculum."
+          : "Add a short title, a summary of what happened, and one learning domain.",
+    };
+  }, [
+    highlightCaptureDetails,
+    linkedOutcomeIds.length,
+    saveState,
+    savedEvidenceId,
+    summary,
+    title,
+  ]);
+  const captureLinkingCompletion = useMemo(() => {
+    if (!highlightCurriculumLinking) return null;
+
+    const hasSavedEvidence = Boolean(savedEvidenceId) || saveState === "success";
+    const hasSetup = Boolean(linkContext?.framework && linkContext?.level);
+    const hasOutcomes = Boolean(linkContext?.outcomes.length);
+
+    return {
+      inPlaceText: hasSavedEvidence
+        ? "You have a saved evidence record ready to connect."
+        : "The linking step is ready as soon as one learning moment is saved.",
+      stillNeededText: !hasSavedEvidence
+        ? "Curriculum linking cannot happen until the evidence is saved first."
+        : linkedOutcomeIds.length > 0
+          ? "A linked outcome is already in place."
+          : !hasSetup
+            ? "This learner still needs curriculum setup before deeper linking is possible."
+            : !hasOutcomes
+              ? "This framework still needs seeded outcomes before linking can go further."
+              : "The evidence is saved, but it is not linked to an outcome yet.",
+      nextStepText: !hasSavedEvidence
+        ? "Save this capture first, then return to the linking step just below."
+        : linkedOutcomeIds.length > 0
+          ? "Keep the link if it fits, or add one more only if it makes the record clearer."
+          : hasSetup && hasOutcomes
+            ? "Choose one outcome that best matches what the learner showed, then save the link."
+            : "Finish the learner's curriculum setup so linking becomes available.",
+    };
+  }, [
+    highlightCurriculumLinking,
+    linkContext?.framework,
+    linkContext?.level,
+    linkContext?.outcomes.length,
+    linkedOutcomeIds.length,
+    saveState,
+    savedEvidenceId,
+  ]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1487,6 +1560,16 @@ export default function CapturePage() {
                   </div>
                 ) : null}
 
+                {captureDetailsCompletion ? (
+                  <div style={{ marginTop: 14 }}>
+                    <GuidedCompletionFeedback
+                      inPlaceText={captureDetailsCompletion.inPlaceText}
+                      stillNeededText={captureDetailsCompletion.stillNeededText}
+                      nextStepText={captureDetailsCompletion.nextStepText}
+                    />
+                  </div>
+                ) : null}
+
                 <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
                   <div>
                     <label style={labelStyle()}>Learner</label>
@@ -1748,6 +1831,14 @@ export default function CapturePage() {
                       >
                         {captureLinkingCue}
                       </div>
+                    ) : null}
+
+                    {captureLinkingCompletion ? (
+                      <GuidedCompletionFeedback
+                        inPlaceText={captureLinkingCompletion.inPlaceText}
+                        stillNeededText={captureLinkingCompletion.stillNeededText}
+                        nextStepText={captureLinkingCompletion.nextStepText}
+                      />
                     ) : null}
 
                     {!workspace.userId || !hasSupabaseEnv ? (

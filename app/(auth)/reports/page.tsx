@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
@@ -842,6 +843,99 @@ function ReportsPageContent() {
         .length,
     [selectedEvidenceIds, selectionMeta]
   );
+  const reportsEvidenceCompletion = useMemo(() => {
+    if (!highlightEvidenceSelection) return null;
+
+    const selectedCount = selectedEvidenceIds.length;
+    const availableCount = studentEvidence.length;
+    const coreCount = selectedCoreCount;
+
+    if (reportsFocus === "core-anchors") {
+      return {
+        inPlaceText:
+          selectedCount > 0
+            ? `${selectedCount} evidence item${selectedCount === 1 ? "" : "s"} are already in the draft.`
+            : availableCount > 0
+              ? `${availableCount} evidence item${availableCount === 1 ? "" : "s"} are available to choose from.`
+              : "You have a report space ready for evidence once learning records are chosen.",
+        stillNeededText:
+          coreCount >= 2
+            ? "Your main anchors are in place, though you can still tighten the set if needed."
+            : coreCount === 1
+              ? "One more core anchor will make the report feel steadier."
+              : "The draft still needs clear core anchors before it will feel well-supported.",
+        nextStepText:
+          coreCount >= 2
+            ? "Keep the core set calm and trustworthy, then move on to the family note or output."
+            : selectedCount > 0
+              ? "Mark one or two of the clearest selected items as core."
+              : "Choose one or two strong evidence items first, then mark them as core.",
+      };
+    }
+
+    return {
+      inPlaceText:
+        selectedCount > 0
+          ? `${selectedCount} evidence item${selectedCount === 1 ? "" : "s"} are already selected for this draft.`
+          : availableCount > 0
+            ? `${availableCount} evidence item${availableCount === 1 ? "" : "s"} are visible here and ready to review.`
+            : "You have the report builder open and ready for an evidence base.",
+      stillNeededText:
+        selectedCount >= 3
+          ? "The draft has a usable evidence base, though you may still want to trim it to the clearest pieces."
+          : selectedCount > 0
+            ? "A little more selection would make the draft easier to trust and export."
+            : "The draft still needs a small, clear set of evidence before it will feel grounded.",
+      nextStepText:
+        selectedCount >= 3
+          ? "Keep the set focused on the evidence that shows the learning most clearly."
+          : availableCount > 0
+            ? "Choose one or two pieces that show the learning clearly, then save the draft."
+            : "Capture or link one useful learning moment first, then come back to choose it here.",
+    };
+  }, [
+    highlightEvidenceSelection,
+    reportsFocus,
+    selectedEvidenceIds.length,
+    selectedCoreCount,
+    studentEvidence.length,
+  ]);
+  const reportsDraftCompletion = useMemo(() => {
+    if (!highlightDraftPosition) return null;
+
+    return {
+      inPlaceText:
+        draftId
+          ? "A saved draft is already in place for this report."
+          : "You already have enough here to start shaping a real draft.",
+      stillNeededText:
+        selectedCoreCount >= 2
+          ? "The core anchors are in place, but you may still want a short note before exporting."
+          : selectedCoreCount === 1
+            ? "One more strong core anchor would make this draft feel more stable."
+            : "The draft still needs a clearer backbone of core evidence.",
+      nextStepText:
+        selectedCoreCount >= 2
+          ? "Save or reopen the draft, then move into the print-ready output when you are ready."
+          : "Choose and mark one or two core evidence items before treating the draft as settled.",
+    };
+  }, [draftId, highlightDraftPosition, selectedCoreCount]);
+  const reportsFamilyNoteCompletion = useMemo(() => {
+    if (!highlightFamilyNote) return null;
+
+    const trimmedNotes = notes.trim();
+    return {
+      inPlaceText: trimmedNotes
+        ? "You already have a family note started here."
+        : "The draft structure is in place and ready for a short family-facing note.",
+      stillNeededText: trimmedNotes
+        ? "You may only need a light final pass so the note reads clearly."
+        : "The report still needs a brief human note to sound more intentional and complete.",
+      nextStepText: trimmedNotes
+        ? "Tighten the note so it says simply what matters most in this report."
+        : "Add two or three calm sentences about what feels most important in this season of learning.",
+    };
+  }, [highlightFamilyNote, notes]);
 
   const evidenceCoverageCount = useMemo(() => {
     const set = new Set(
@@ -2167,6 +2261,16 @@ function ReportsPageContent() {
                 </div>
               ) : null}
 
+              {reportsEvidenceCompletion ? (
+                <div style={{ marginTop: 14 }}>
+                  <GuidedCompletionFeedback
+                    inPlaceText={reportsEvidenceCompletion.inPlaceText}
+                    stillNeededText={reportsEvidenceCompletion.stillNeededText}
+                    nextStepText={reportsEvidenceCompletion.nextStepText}
+                  />
+                </div>
+              ) : null}
+
               <div style={{ height: 14 }} />
 
               {selectedStudentId ? (
@@ -2318,6 +2422,16 @@ function ReportsPageContent() {
                   A saved draft gives you a clearer next step, a reusable report base, and a calmer review flow.
                 </div>
               </div>
+
+              {reportsDraftCompletion ? (
+                <div style={{ marginTop: 14 }}>
+                  <GuidedCompletionFeedback
+                    inPlaceText={reportsDraftCompletion.inPlaceText}
+                    stillNeededText={reportsDraftCompletion.stillNeededText}
+                    nextStepText={reportsDraftCompletion.nextStepText}
+                  />
+                </div>
+              ) : null}
             </section>
 
             <section
@@ -2349,6 +2463,15 @@ function ReportsPageContent() {
                   }}
                 >
                   Start here. A short family note gives the report a clearer voice and makes the final output feel more intentional.
+                </div>
+              ) : null}
+              {reportsFamilyNoteCompletion ? (
+                <div style={{ marginTop: 12 }}>
+                  <GuidedCompletionFeedback
+                    inPlaceText={reportsFamilyNoteCompletion.inPlaceText}
+                    stillNeededText={reportsFamilyNoteCompletion.stillNeededText}
+                    nextStepText={reportsFamilyNoteCompletion.nextStepText}
+                  />
                 </div>
               ) : null}
               <textarea
