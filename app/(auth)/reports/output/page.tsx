@@ -28,6 +28,7 @@ import {
   buildReportDocumentOverlay,
   buildCurriculumCoverage,
   formatEvidenceReference,
+  getAuCompliancePhrases,
   getReportComplianceContext,
   buildParentLanguageSummary,
   buildReportReadinessScore,
@@ -508,6 +509,10 @@ function ReportsOutputPageContent() {
       workspace.profile?.preferred_market,
     ],
   );
+  const compliancePhrases = useMemo(
+    () => getAuCompliancePhrases(complianceContext.state),
+    [complianceContext.state],
+  );
   const selectedCoreCount = useMemo(
     () =>
       selectedEvidenceIds.filter(
@@ -918,8 +923,7 @@ function ReportsOutputPageContent() {
             </div>
             {complianceContext.isAU ? (
               <div style={{ ...smallStyle, marginTop: 10, maxWidth: 720 }}>
-                This report reflects ongoing learning aligned with your selected
-                curriculum.
+                {compliancePhrases.subtitle}
               </div>
             ) : null}
             <div
@@ -1132,7 +1136,7 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
         </div>
         {complianceContext.isAU ? (
-          <div style={smallStyle}>This summary reflects learning captured over this period.</div>
+          <div style={smallStyle}>{compliancePhrases.evidenceSummaryFraming}</div>
         ) : null}
         <div style={bodyStyle}>{evidenceSummaryLead}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
@@ -1141,7 +1145,9 @@ function ReportsOutputPageContent() {
           </div>
         <div style={{ ...softCardStyle, marginTop: 14 }}>
           <div style={labelStyle}>
-            {complianceContext.isAU ? "Linked learning areas" : "Learning focus noted here"}
+            {complianceContext.isAU
+              ? compliancePhrases.learningAreasLabel
+              : "Learning focus noted here"}
           </div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {selectedAreas.length
@@ -1183,7 +1189,7 @@ function ReportsOutputPageContent() {
         <div style={smallStyle}>{marketOverlay.appendixIntro}</div>
         {complianceContext.isAU ? (
           <div style={{ ...smallStyle, marginTop: 8 }}>
-            Supporting records linked to this summary are included below.
+            {compliancePhrases.appendixFraming}
           </div>
         ) : null}
         <div style={{ ...bodyStyle, marginTop: 10 }}>{appendixLead}</div>
@@ -1238,7 +1244,7 @@ function ReportsOutputPageContent() {
 
                 <div style={{ ...smallStyle, marginTop: 8 }}>
                   {item.linkedOutcomes.length
-                    ? `${complianceContext.isAU ? "Observed outcomes (where available)" : "Linked outcomes"}: ${item.linkedOutcomes
+                    ? `${complianceContext.isAU ? compliancePhrases.observedOutcomesLabel : "Linked outcomes"}: ${item.linkedOutcomes
                         .map((outcome) =>
                           outcome.outcomeCode
                             ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
@@ -1382,7 +1388,9 @@ function ReportsOutputPageContent() {
           </div>
           <div style={statStyle}>
             <div style={labelStyle}>
-              {complianceContext.isAU ? "Evidence links recorded" : "Evidence links"}
+              {complianceContext.isAU
+                ? compliancePhrases.evidenceLinksLabel
+                : "Evidence links"}
             </div>
             <div style={h3Style}>{curriculumCoverage.evidenceLinks}</div>
           </div>

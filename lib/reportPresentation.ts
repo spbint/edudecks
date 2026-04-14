@@ -88,6 +88,15 @@ export type ReportComplianceContext = {
   country: string | null;
 };
 
+export type AuCompliancePhrases = {
+  subtitle: string;
+  evidenceSummaryFraming: string;
+  appendixFraming: string;
+  learningAreasLabel: string;
+  observedOutcomesLabel: string;
+  evidenceLinksLabel: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -126,6 +135,32 @@ export function normalizeReportMarket(value?: string | null) {
   return "";
 }
 
+export function normalizeAuState(value?: string | null) {
+  const state = safe(value).toLowerCase();
+  if (!state) return null;
+
+  const map: Record<string, string> = {
+    nsw: "NSW",
+    "new south wales": "NSW",
+    qld: "QLD",
+    queensland: "QLD",
+    tas: "TAS",
+    tasmania: "TAS",
+    vic: "VIC",
+    victoria: "VIC",
+    wa: "WA",
+    "western australia": "WA",
+    sa: "SA",
+    "south australia": "SA",
+    act: "ACT",
+    "australian capital territory": "ACT",
+    nt: "NT",
+    "northern territory": "NT",
+  };
+
+  return map[state] ?? null;
+}
+
 export function getReportComplianceContext(input: {
   market?: string | null;
   curriculumPreferences?: CurriculumPreferences | null;
@@ -135,11 +170,10 @@ export function getReportComplianceContext(input: {
     input.curriculumPreferences?.compliance_profile?.country ||
       input.curriculumPreferences?.country_id,
   ).toLowerCase();
-  const state =
-    safe(
-      input.curriculumPreferences?.compliance_profile?.state ||
-        input.curriculumPreferences?.region_id,
-    ) || null;
+  const state = normalizeAuState(
+    input.curriculumPreferences?.compliance_profile?.state ||
+      input.curriculumPreferences?.region_id,
+  );
 
   const isAU = market === "au" || country === "au" || country === "australia";
 
@@ -147,6 +181,61 @@ export function getReportComplianceContext(input: {
     isAU,
     state,
     country: country || null,
+  };
+}
+
+export function getAuCompliancePhrases(state?: string | null): AuCompliancePhrases {
+  const normalizedState = normalizeAuState(state);
+
+  if (normalizedState === "NSW") {
+    return {
+      subtitle:
+        "This report reflects ongoing learning aligned with your selected curriculum and current learning goals.",
+      evidenceSummaryFraming:
+        "This summary reflects learning captured over this period and the goals guiding it.",
+      appendixFraming:
+        "Supporting records linked to this summary are included below alongside the current learning goals.",
+      learningAreasLabel: "Linked learning areas",
+      observedOutcomesLabel: "Observed outcomes (where available)",
+      evidenceLinksLabel: "Evidence links recorded",
+    };
+  }
+
+  if (normalizedState === "QLD") {
+    return {
+      subtitle:
+        "This report reflects ongoing learning aligned with your selected curriculum and the learning taking shape over time.",
+      evidenceSummaryFraming:
+        "This summary reflects learning captured and taking shape over this period.",
+      appendixFraming:
+        "Supporting records linked to this summary are included below as the learning picture builds over time.",
+      learningAreasLabel: "Linked learning areas",
+      observedOutcomesLabel: "Observed outcomes (where available)",
+      evidenceLinksLabel: "Evidence links recorded",
+    };
+  }
+
+  if (normalizedState === "TAS") {
+    return {
+      subtitle:
+        "This report reflects ongoing learning aligned with your selected curriculum and the progress being documented over time.",
+      evidenceSummaryFraming:
+        "This summary reflects learning captured over this period and the progress being documented.",
+      appendixFraming:
+        "Supporting records linked to this summary are included below as part of the documented learning picture.",
+      learningAreasLabel: "Linked learning areas",
+      observedOutcomesLabel: "Observed outcomes (where available)",
+      evidenceLinksLabel: "Evidence links recorded",
+    };
+  }
+
+  return {
+    subtitle: "This report reflects ongoing learning aligned with your selected curriculum.",
+    evidenceSummaryFraming: "This summary reflects learning captured over this period.",
+    appendixFraming: "Supporting records linked to this summary are included below.",
+    learningAreasLabel: "Linked learning areas",
+    observedOutcomesLabel: "Observed outcomes (where available)",
+    evidenceLinksLabel: "Evidence links recorded",
   };
 }
 
