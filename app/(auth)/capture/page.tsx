@@ -1279,6 +1279,31 @@ export default function CapturePage() {
     highlightCurriculumLinking,
     previousCaptureContinuity,
   ]);
+  const captureDetailsConfidence = useMemo(() => {
+    if (!highlightCaptureDetails) return null;
+    if (!hasSavedCapture) {
+      return hasCaptureDraft
+        ? { label: "Confidence", text: "This looks usable soon." }
+        : { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return hasCaptureLinks
+      ? { label: "Confidence", text: "This is ready to use for the next move." }
+      : { label: "Confidence", text: "One more strong piece will help." };
+  }, [
+    hasCaptureDraft,
+    hasCaptureLinks,
+    hasSavedCapture,
+    highlightCaptureDetails,
+  ]);
+  const captureLinkingConfidence = useMemo(() => {
+    if (!highlightCurriculumLinking) return null;
+    if (!hasSavedCapture) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return hasCaptureLinks
+      ? { label: "Confidence", text: "This is ready to use for the next move." }
+      : { label: "Confidence", text: "This looks usable soon." };
+  }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const captureDetailsNextMove = useMemo(() => {
     if (!highlightCaptureDetails) return null;
     if (!hasSavedCapture) {
@@ -1723,6 +1748,8 @@ export default function CapturePage() {
                       momentumText={captureDetailsMomentum?.text}
                       continuityLabel={captureDetailsContinuity?.label}
                       continuityText={captureDetailsContinuity?.text}
+                      confidenceLabel={captureDetailsConfidence?.label}
+                      confidenceText={captureDetailsConfidence?.text}
                       nextValidMoveLabel="Next valid move"
                       nextValidMoveText={captureDetailsNextMove?.text}
                       nextValidMoveHref={captureDetailsNextMove?.href}
@@ -2002,6 +2029,8 @@ export default function CapturePage() {
                         momentumText={captureLinkingMomentum?.text}
                         continuityLabel={captureLinkingContinuity?.label}
                         continuityText={captureLinkingContinuity?.text}
+                        confidenceLabel={captureLinkingConfidence?.label}
+                        confidenceText={captureLinkingConfidence?.text}
                         nextValidMoveLabel="Next valid move"
                         nextValidMoveText={captureLinkingNextMove?.text}
                         nextValidMoveHref={captureLinkingNextMove?.href}

@@ -8,6 +8,8 @@ type GuidedCompletionFeedbackProps = {
   momentumText?: string;
   continuityLabel?: string;
   continuityText?: string;
+  confidenceLabel?: string;
+  confidenceText?: string;
   nextValidMoveLabel?: string;
   nextValidMoveText?: string;
   nextValidMoveHref?: string;
@@ -31,6 +33,8 @@ export default function GuidedCompletionFeedback({
   momentumText,
   continuityLabel,
   continuityText,
+  confidenceLabel,
+  confidenceText,
   nextValidMoveLabel,
   nextValidMoveText,
   nextValidMoveHref,
@@ -84,6 +88,18 @@ export default function GuidedCompletionFeedback({
           }}
         >
           <strong>{continuityLabel}:</strong> {continuityText}
+        </div>
+      ) : null}
+      {confidenceLabel && confidenceText ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "#64748b",
+            fontWeight: 700,
+          }}
+        >
+          <strong>{confidenceLabel}:</strong> {confidenceText}
         </div>
       ) : null}
       <div style={rowLabelStyle}>

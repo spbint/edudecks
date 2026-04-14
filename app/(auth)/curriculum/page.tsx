@@ -415,6 +415,31 @@ export default function CurriculumPage() {
     highlightOutcomesSection,
     previousCurriculumContinuity,
   ]);
+  const curriculumSetupConfidence = useMemo(() => {
+    if (!highlightSetupSection) return null;
+    if (!hasCurriculumSetup) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return hasCurriculumOutcomes
+      ? { label: "Confidence", text: "This looks usable for the next step." }
+      : { label: "Confidence", text: "This looks usable soon." };
+  }, [hasCurriculumOutcomes, hasCurriculumSetup, highlightSetupSection]);
+  const curriculumOutcomesConfidence = useMemo(() => {
+    if (!highlightOutcomesSection) return null;
+    if (!hasCurriculumOutcomes) {
+      return hasCurriculumSetup
+        ? { label: "Confidence", text: "One more strong piece will help." }
+        : { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return hasCurriculumTracking
+      ? { label: "Confidence", text: "This is ready to use for the next move." }
+      : { label: "Confidence", text: "This looks usable soon." };
+  }, [
+    hasCurriculumOutcomes,
+    hasCurriculumSetup,
+    hasCurriculumTracking,
+    highlightOutcomesSection,
+  ]);
   const curriculumSetupNextMove = useMemo(() => {
     if (!highlightSetupSection) return null;
     if (!hasCurriculumSetup) {
@@ -518,6 +543,8 @@ export default function CurriculumPage() {
                 momentumText={curriculumSetupMomentum?.text}
                 continuityLabel={curriculumSetupContinuity?.label}
                 continuityText={curriculumSetupContinuity?.text}
+                confidenceLabel={curriculumSetupConfidence?.label}
+                confidenceText={curriculumSetupConfidence?.text}
                 nextValidMoveLabel="Next valid move"
                 nextValidMoveText={curriculumSetupNextMove?.text}
                 nextValidMoveHref={curriculumSetupNextMove?.href}
@@ -567,6 +594,8 @@ export default function CurriculumPage() {
                 momentumText={curriculumOutcomesMomentum?.text}
                 continuityLabel={curriculumOutcomesContinuity?.label}
                 continuityText={curriculumOutcomesContinuity?.text}
+                confidenceLabel={curriculumOutcomesConfidence?.label}
+                confidenceText={curriculumOutcomesConfidence?.text}
                 nextValidMoveLabel="Next valid move"
                 nextValidMoveText={curriculumOutcomesNextMove?.text}
                 nextValidMoveHref={curriculumOutcomesNextMove?.href}
@@ -609,6 +638,8 @@ export default function CurriculumPage() {
                     momentumText={curriculumOutcomesMomentum?.text}
                     continuityLabel={curriculumOutcomesContinuity?.label}
                     continuityText={curriculumOutcomesContinuity?.text}
+                    confidenceLabel={curriculumOutcomesConfidence?.label}
+                    confidenceText={curriculumOutcomesConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={curriculumOutcomesNextMove?.text}
                     nextValidMoveHref={curriculumOutcomesNextMove?.href}

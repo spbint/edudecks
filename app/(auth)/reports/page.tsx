@@ -1104,6 +1104,53 @@ function ReportsPageContent() {
     }
     return { label: "Not much changed yet", text: "this section is still about where it was." };
   }, [hasDraft, hasFamilyNote, highlightFamilyNote, previousReportsContinuity]);
+  const reportsEvidenceConfidence = useMemo(() => {
+    if (!highlightEvidenceSelection) return null;
+    if (!hasReportEvidence || !hasReportSelection) {
+      return {
+        label: "Confidence",
+        text: hasReportEvidence
+          ? "One more strong choice will help this feel usable."
+          : "Still light so far, but the next step is clear.",
+      };
+    }
+    if (reportsFocus === "core-anchors") {
+      return hasCoreAnchors
+        ? { label: "Confidence", text: "This is ready to use for the next move." }
+        : { label: "Confidence", text: "This looks usable soon." };
+    }
+    return selectedEvidenceIds.length >= 3
+      ? { label: "Confidence", text: "This looks usable for the next step." }
+      : { label: "Confidence", text: "This looks usable soon." };
+  }, [
+    hasCoreAnchors,
+    hasReportEvidence,
+    hasReportSelection,
+    highlightEvidenceSelection,
+    reportsFocus,
+    selectedEvidenceIds.length,
+  ]);
+  const reportsDraftConfidence = useMemo(() => {
+    if (!highlightDraftPosition) return null;
+    if (!hasReportSelection) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    if (hasCoreAnchors && hasDraft) {
+      return { label: "Confidence", text: "This is ready to use for the next move." };
+    }
+    return hasCoreAnchors
+      ? { label: "Confidence", text: "This looks usable soon." }
+      : { label: "Confidence", text: "Needs one more strong piece." };
+  }, [hasCoreAnchors, hasDraft, hasReportSelection, highlightDraftPosition]);
+  const reportsFamilyNoteConfidence = useMemo(() => {
+    if (!highlightFamilyNote) return null;
+    if (!hasFamilyNote) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return notes.trim().length >= 40
+      ? { label: "Confidence", text: "This looks usable for the next step." }
+      : { label: "Confidence", text: "One more strong piece will help." };
+  }, [hasFamilyNote, highlightFamilyNote, notes]);
   const reportsEvidenceNextMove = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
     if (!hasReportEvidence) {
@@ -2466,6 +2513,8 @@ function ReportsPageContent() {
                     momentumText={reportsEvidenceMomentum?.text}
                     continuityLabel={reportsEvidenceContinuity?.label}
                     continuityText={reportsEvidenceContinuity?.text}
+                    confidenceLabel={reportsEvidenceConfidence?.label}
+                    confidenceText={reportsEvidenceConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={reportsEvidenceNextMove?.text}
                     nextValidMoveHref={reportsEvidenceNextMove?.href}
@@ -2635,6 +2684,8 @@ function ReportsPageContent() {
                     momentumText={reportsDraftMomentum?.text}
                     continuityLabel={reportsDraftContinuity?.label}
                     continuityText={reportsDraftContinuity?.text}
+                    confidenceLabel={reportsDraftConfidence?.label}
+                    confidenceText={reportsDraftConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={reportsDraftNextMove?.text}
                     nextValidMoveHref={reportsDraftNextMove?.href}
@@ -2684,6 +2735,8 @@ function ReportsPageContent() {
                     momentumText={reportsFamilyNoteMomentum?.text}
                     continuityLabel={reportsFamilyNoteContinuity?.label}
                     continuityText={reportsFamilyNoteContinuity?.text}
+                    confidenceLabel={reportsFamilyNoteConfidence?.label}
+                    confidenceText={reportsFamilyNoteConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={reportsFamilyNoteNextMove?.text}
                     nextValidMoveHref={reportsFamilyNoteNextMove?.href}

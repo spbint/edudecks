@@ -698,6 +698,35 @@ export default function PlannerPage() {
     plannerFocus,
     previousPlannerContinuity,
   ]);
+  const plannerFocusConfidence = useMemo(() => {
+    if (!highlightFocusSection) return null;
+    if (!hasPlanDirection) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    return hasPlannerActions
+      ? { label: "Confidence", text: "This looks usable for the next step." }
+      : { label: "Confidence", text: "One more strong piece will help." };
+  }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
+  const plannerChecklistConfidence = useMemo(() => {
+    if (!highlightChecklistSection) return null;
+    if (!hasPlannerActions) {
+      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+    }
+    if (plannerFocus === "alignment") {
+      return hasPlannerLinks
+        ? { label: "Confidence", text: "This is ready to use for the next move." }
+        : { label: "Confidence", text: "This looks usable soon." };
+    }
+    return actions.length >= 2
+      ? { label: "Confidence", text: "This looks usable for the next step." }
+      : { label: "Confidence", text: "This looks usable soon." };
+  }, [
+    actions.length,
+    hasPlannerActions,
+    hasPlannerLinks,
+    highlightChecklistSection,
+    plannerFocus,
+  ]);
   const plannerFocusNextMove = useMemo(() => {
     if (!highlightFocusSection) return null;
     if (!hasPlanDirection) {
@@ -1289,6 +1318,8 @@ export default function PlannerPage() {
                     momentumText={plannerFocusMomentum?.text}
                     continuityLabel={plannerFocusContinuity?.label}
                     continuityText={plannerFocusContinuity?.text}
+                    confidenceLabel={plannerFocusConfidence?.label}
+                    confidenceText={plannerFocusConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={plannerFocusNextMove?.text}
                     nextValidMoveHref={plannerFocusNextMove?.href}
@@ -1400,6 +1431,8 @@ export default function PlannerPage() {
                     momentumText={plannerChecklistMomentum?.text}
                     continuityLabel={plannerChecklistContinuity?.label}
                     continuityText={plannerChecklistContinuity?.text}
+                    confidenceLabel={plannerChecklistConfidence?.label}
+                    confidenceText={plannerChecklistConfidence?.text}
                     nextValidMoveLabel="Next valid move"
                     nextValidMoveText={plannerChecklistNextMove?.text}
                     nextValidMoveHref={plannerChecklistNextMove?.href}
