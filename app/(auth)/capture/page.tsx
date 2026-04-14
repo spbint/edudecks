@@ -1287,8 +1287,13 @@ export default function CapturePage() {
     if (!hasCaptureLinks) {
       return { text: "Link it to curriculum here." };
     }
-    return { text: "Go to Reports", href: "/reports" };
-  }, [hasCaptureLinks, hasSavedCapture, highlightCaptureDetails]);
+    return {
+      text: "Go to Reports",
+      href: activeChildId
+        ? `/reports?studentId=${encodeURIComponent(activeChildId)}`
+        : "/reports",
+    };
+  }, [activeChildId, hasCaptureLinks, hasSavedCapture, highlightCaptureDetails]);
   const captureLinkingNextMove = useMemo(() => {
     if (!highlightCurriculumLinking) return null;
     if (!hasSavedCapture) {
@@ -1297,8 +1302,13 @@ export default function CapturePage() {
     if (!hasCaptureLinks) {
       return { text: "Choose one outcome here." };
     }
-    return { text: "Go to Reports", href: "/reports" };
-  }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
+    return {
+      text: "Go to Reports",
+      href: activeChildId
+        ? `/reports?studentId=${encodeURIComponent(activeChildId)}`
+        : "/reports",
+    };
+  }, [activeChildId, hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
