@@ -202,6 +202,79 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
   const weakestAreas = curriculumCoverage.weakestAreas.slice(0, 3);
   const planningAheadAreas = curriculumCoverage.planningAheadAreas.slice(0, 3);
   const evidenceAheadAreas = curriculumCoverage.evidenceAheadAreas.slice(0, 3);
+  const selectedEvidenceIds = draft.selected_evidence_ids ?? [];
+  const selectedCoreCount = selectedEvidenceIds.filter(
+    (id) => draft.selection_meta?.[id]?.role !== "appendix",
+  ).length;
+  const selectedAppendixCount = selectedEvidenceIds.filter(
+    (id) => draft.selection_meta?.[id]?.role === "appendix",
+  ).length;
+  const hasMeaningfulCoverage =
+    curriculumCoverage.ready &&
+    (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
+  const outputStatusLine = !selectedEvidenceIds.length
+    ? "Building evidence base."
+    : !hasMeaningfulCoverage
+      ? "Picture still forming."
+      : strongestAreas.length
+        ? `Grounded summary with stronger coverage in ${joinNatural(strongestAreas.slice(0, 2))}.`
+        : "Grounded summary with a clearer evidence base.";
+  const evidenceBaseSummary = !selectedEvidenceIds.length
+    ? "This draft is still forming around a very small evidence base."
+    : hasMeaningfulCoverage
+      ? `This summary currently draws on ${selectedEvidenceIds.length} selected evidence item${
+          selectedEvidenceIds.length === 1 ? "" : "s"
+        }, including ${selectedCoreCount} core anchor${
+          selectedCoreCount === 1 ? "" : "s"
+        } and ${selectedAppendixCount} appendix item${
+          selectedAppendixCount === 1 ? "" : "s"
+        }.`
+      : `This draft currently includes ${selectedEvidenceIds.length} selected evidence item${
+          selectedEvidenceIds.length === 1 ? "" : "s"
+        }, with ${selectedCoreCount} core anchor${
+          selectedCoreCount === 1 ? "" : "s"
+        } and ${selectedAppendixCount} appendix item${
+          selectedAppendixCount === 1 ? "" : "s"
+        }.`;
+  const overviewSupportNote = !selectedEvidenceIds.length
+    ? "The learning picture is only just beginning. A few well-chosen examples will make the report easier to trust."
+    : !hasMeaningfulCoverage
+      ? "The story is starting to show, but a little more linked planning and evidence will make it clearer and steadier."
+      : selectedCoreCount < 2
+        ? "The learning story is visible now, and a couple of clear anchors will make it easier to follow."
+        : "The current summary is grounded in visible evidence and curriculum links, so it reads as a connected picture rather than a loose set of notes.";
+  const coverageInterpretationText = !curriculumCoverage.ready &&
+    curriculumCoverage.reason === "no-curriculum"
+    ? "Curriculum context is still being set up, so this section can only show an early picture of learning so far."
+    : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
+      ? "The curriculum path is chosen, but the outcome map is still taking shape. More structure here will make the report clearer."
+      : !hasMeaningfulCoverage
+        ? "This section is beginning to take shape. More linked planning and evidence will make the coverage picture clearer over time."
+        : buildCoverageExplanation(curriculumCoverage);
+  const strengthsSupportText = strongestAreas.length
+    ? `Current evidence feels most settled in ${joinNatural(strongestAreas)}.`
+    : hasMeaningfulCoverage
+      ? "Some areas are starting to read as steadier than others, even if no single area is dominant yet."
+      : "Strengths will read more clearly once a few more linked examples are in place.";
+  const evidenceSummaryLead = !selectedEvidenceIds.length
+    ? "The report is still waiting on a clearer evidence base before the learning story can feel settled."
+    : !hasMeaningfulCoverage
+      ? "The draft already has material to work from, though the overall picture is still modest and building."
+      : "The selected evidence gives this report a clear base to read from, especially where the strongest anchors are already visible.";
+  const nextStepsLead = !hasMeaningfulCoverage
+    ? "The next useful step is to keep building the record gently so the report grows clearer from real examples."
+    : parentLanguage.nextStep;
+  const appendixLead = supportingEvidence.length
+    ? "These records show the learning moments currently supporting the summary above."
+    : "Supporting records will appear here as more linked evidence is added to the draft.";
+  const furtherDevelopmentText = !curriculumCoverage.ready &&
+    curriculumCoverage.reason === "no-curriculum"
+    ? "This report is still waiting on curriculum context, so the learning picture can only stay broad for now."
+    : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
+      ? "The learner's curriculum path is chosen, but the outcomes for this level are still not in place yet."
+      : curriculumCoverage.plannedOutcomes === 0 && curriculumCoverage.linkedOutcomes === 0
+        ? "This report is still at an early stage. More linked planning and evidence will help the picture feel clearer and more useful."
+        : "Planning is visible, though some parts of the report still need stronger evidence support to feel settled.";
 
   const evidenceItems = supportingEvidence.length
     ? supportingEvidence
@@ -217,7 +290,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
                   )
                   .join(" | "),
               ).replace(/\s\|\s/g, " &bull; ")}`
-            : "No linked outcome labels are available for this evidence item yet.";
+            : "Outcome labels have not been linked here yet.";
 
           const attachmentLine =
             item.attachmentCount > 0
@@ -255,7 +328,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
                   }
                 </div>
               </div>
-              <p>${escapeHtml(item.summary || "No written summary was saved with this evidence item.")}</p>
+              <p>${escapeHtml(item.summary || "No written note was saved with this evidence item yet.")}</p>
               <div class="muted">${linkedOutcomes}</div>
               ${attachmentLine}
               <div class="muted strong">Reference: ${escapeHtml(referenceLabel)}</div>
@@ -266,7 +339,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
     : `
       <div class="panel">
         <p>No supporting evidence has been linked to this report yet.</p>
-        <div class="muted">Linked evidence will appear here once learning records have been connected.</div>
+        <div class="muted">Supporting records will appear here as more linked evidence is added to the draft.</div>
       </div>
     `;
 
@@ -293,9 +366,10 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
           padding: 18px;
           break-inside: avoid;
           page-break-inside: avoid;
+          background: #ffffff;
         }
         .header { padding: 0; overflow: hidden; }
-        .header-band { height: 8px; background: linear-gradient(90deg, #0f172a 0%, #3b82f6 45%, #34d399 100%); }
+        .header-band { height: 4px; background: #cbd5e1; }
         .header-inner { padding: 22px; }
         .eyebrow {
           font-size: 11px;
@@ -312,6 +386,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         .muted { color: #64748b; font-size: 12px; }
         .strong { font-weight: 800; }
         .summary-line { margin-top: 14px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+        .document-note { margin-top: 10px; color: #475569; }
         .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .stat, .panel, .evidence-card {
@@ -350,6 +425,8 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
           text-transform: uppercase;
           margin-bottom: 8px;
         }
+        .section-header { break-after: avoid; page-break-after: avoid; }
+        .keep-with-next { break-after: avoid; page-break-after: avoid; }
       </style>
     </head>
     <body>
@@ -365,6 +442,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
               ${escapeHtml(modeLabel(draft.report_mode))} &bull;
               ${escapeHtml(periodLabel(draft.period_mode))}
             </div>
+            <div class="document-note muted">${escapeHtml(outputStatusLine)}</div>
             <div class="grid-4">
               <div class="stat"><div class="eyebrow">Learner</div><div class="strong">${escapeHtml(safe(draft.child_name) || "Learner")}</div></div>
               <div class="stat"><div class="eyebrow">Report mode</div><div class="strong">${escapeHtml(modeLabel(draft.report_mode))}</div></div>
@@ -375,9 +453,16 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         </section>
 
         <section class="card">
-          <div class="eyebrow">${escapeHtml(reportSectionCopy.overview.eyebrow)}</div>
-          <h2>${escapeHtml(reportSectionCopy.overview.title)}</h2>
-          <p>${escapeHtml(parentLanguage.overall)}</p>
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.overview.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.overview.title)}</h2>
+          </div>
+          <p class="keep-with-next">${escapeHtml(parentLanguage.overall)}</p>
+          <div class="panel keep-with-next">
+            <div class="eyebrow">What this summary is drawing from</div>
+            <p>${escapeHtml(evidenceBaseSummary)}</p>
+            <div class="muted">${escapeHtml(overviewSupportNote)}</div>
+          </div>
           ${
             safe(draft.notes)
               ? `<div class="panel"><div class="eyebrow">Family context note</div><p>${escapeHtml(draft.notes)}</p></div>`
@@ -386,8 +471,10 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         </section>
 
         <section class="card">
-          <div class="eyebrow">${escapeHtml(reportSectionCopy.coverage.eyebrow)}</div>
-          <h2>${escapeHtml(reportSectionCopy.coverage.title)}</h2>
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.coverage.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.coverage.title)}</h2>
+          </div>
           <p>${escapeHtml(buildCoverageExplanation(curriculumCoverage))}</p>
           <div class="muted">${escapeHtml(marketOverlay.coverageNote)}</div>
           <div class="grid-4">
@@ -396,42 +483,87 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
             <div class="stat"><div class="eyebrow">Planned and evidenced</div><div class="strong">${curriculumCoverage.plannedAndEvidencedOutcomes}</div></div>
             <div class="stat"><div class="eyebrow">Secure outcomes</div><div class="strong">${curriculumCoverage.secureOutcomes}</div></div>
           </div>
+          <div class="panel keep-with-next">
+            <div class="eyebrow">Current picture</div>
+            <p>${escapeHtml(coverageInterpretationText)}</p>
+          </div>
           <div class="grid-2">
+            <div class="panel">
+              <div class="eyebrow">${escapeHtml(reportSectionCopy.evidenceSummary.title)}</div>
+              <p>${escapeHtml(evidenceSummaryLead)}</p>
+              <div class="muted">${escapeHtml(evidenceBaseSummary)}</div>
+            </div>
             <div class="panel">
               <div class="eyebrow">${escapeHtml(reportSectionCopy.strengths.title)}</div>
               <p>${escapeHtml(parentLanguage.strengths)}</p>
               <div class="muted">${escapeHtml(
-                strongestAreas.length
-                  ? `Strongest curriculum areas: ${joinNatural(strongestAreas)}`
-                  : "No curriculum areas are strongly supported yet.",
-              )}</div>
-            </div>
-            <div class="panel">
-              <div class="eyebrow">${escapeHtml(reportSectionCopy.nextSteps.title)}</div>
-              <p>${escapeHtml(parentLanguage.nextStep)}</p>
-              <div class="muted">${escapeHtml(
-                planningAheadAreas.length
-                  ? `Planning still leads in ${joinNatural(planningAheadAreas)}.`
-                  : evidenceAheadAreas.length
-                    ? `Evidence is arriving ahead of planning in ${joinNatural(evidenceAheadAreas)}.`
-                    : weakestAreas.length
-                      ? `Thinner areas currently include ${joinNatural(weakestAreas)}.`
-                      : "Planning and evidence are reasonably aligned so far.",
+                strengthsSupportText,
               )}</div>
             </div>
           </div>
         </section>
 
         <section class="card">
-          <div class="eyebrow">${escapeHtml(reportSectionCopy.appendix.eyebrow)}</div>
-          <h2>${escapeHtml(reportSectionCopy.appendix.title)}</h2>
-          <p>${escapeHtml(marketOverlay.appendixIntro)}</p>
-          ${evidenceItems}
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.nextSteps.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.nextSteps.title)}</h2>
+          </div>
+          <p>${escapeHtml(nextStepsLead)}</p>
+          <div class="grid-2">
+            <div class="panel">
+              <div class="eyebrow">Planning still ahead of evidence</div>
+              <div class="muted">${escapeHtml(
+                planningAheadAreas.length
+                  ? joinNatural(planningAheadAreas)
+                  : "No major planning gap is standing out right now.",
+              )}</div>
+            </div>
+            <div class="panel">
+              <div class="eyebrow">Evidence arriving ahead of planning</div>
+              <div class="muted">${escapeHtml(
+                evidenceAheadAreas.length
+                  ? joinNatural(evidenceAheadAreas)
+                  : weakestAreas.length
+                    ? `Thinner areas currently include ${joinNatural(weakestAreas)}.`
+                    : "Planning and evidence are reasonably aligned so far.",
+              )}</div>
+            </div>
+          </div>
         </section>
 
         <section class="card">
-          <div class="eyebrow">${escapeHtml(reportSectionCopy.end.eyebrow)}</div>
-          <h2>${escapeHtml(reportSectionCopy.end.title)}</h2>
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.appendix.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.appendix.title)}</h2>
+          </div>
+          <p>${escapeHtml(marketOverlay.appendixIntro)}</p>
+          <div class="muted">${escapeHtml(appendixLead)}</div>
+          ${evidenceItems}
+        </section>
+
+        ${
+          (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") ||
+          (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") ||
+          (curriculumCoverage.ready &&
+            curriculumCoverage.plannedOutcomes === 0 &&
+            curriculumCoverage.linkedOutcomes === 0) ||
+          (curriculumCoverage.ready && curriculumCoverage.linkedOutcomes === 0)
+            ? `
+        <section class="card">
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.furtherDevelopment.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.furtherDevelopment.title)}</h2>
+          </div>
+          <p>${escapeHtml(furtherDevelopmentText)}</p>
+        </section>`
+            : ""
+        }
+
+        <section class="card">
+          <div class="section-header">
+            <div class="eyebrow">${escapeHtml(reportSectionCopy.end.eyebrow)}</div>
+            <h2>${escapeHtml(reportSectionCopy.end.title)}</h2>
+          </div>
           <p>${escapeHtml(marketOverlay.endNote)}</p>
           <div class="muted strong">Reference ${escapeHtml(draft.id)}</div>
         </section>
