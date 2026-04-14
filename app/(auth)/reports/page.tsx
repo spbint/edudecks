@@ -864,6 +864,10 @@ function ReportsPageContent() {
   const hasFamilyNote = Boolean(notes.trim());
   const hasCoreAnchors = selectedCoreCount >= 2;
   const hasDraft = Boolean(draftId);
+  const outputHref = useMemo(
+    () => (draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : ""),
+    [draftId]
+  );
   const reportsContinuitySnapshot = useMemo<ReportsContinuitySnapshot>(
     () => ({
       hasReportEvidence,
@@ -1100,6 +1104,41 @@ function ReportsPageContent() {
     }
     return { label: "Not much changed yet", text: "this section is still about where it was." };
   }, [hasDraft, hasFamilyNote, highlightFamilyNote, previousReportsContinuity]);
+  const reportsEvidenceNextMove = useMemo(() => {
+    if (!highlightEvidenceSelection) return null;
+    if (!hasReportEvidence) {
+      return { text: "Go to Capture", href: "/capture" };
+    }
+    if (!hasReportSelection || (reportsFocus === "core-anchors" && !hasCoreAnchors)) {
+      return { text: "You can keep refining this here." };
+    }
+    return { text: "Open report output", href: outputHref };
+  }, [
+    hasCoreAnchors,
+    hasReportEvidence,
+    hasReportSelection,
+    highlightEvidenceSelection,
+    outputHref,
+    reportsFocus,
+  ]);
+  const reportsDraftNextMove = useMemo(() => {
+    if (!highlightDraftPosition) return null;
+    if (!hasCoreAnchors) {
+      return { text: "You can keep refining this here." };
+    }
+    return hasDraft
+      ? { text: "Open report output", href: outputHref }
+      : { text: "Save draft, then open output." };
+  }, [hasCoreAnchors, hasDraft, highlightDraftPosition, outputHref]);
+  const reportsFamilyNoteNextMove = useMemo(() => {
+    if (!highlightFamilyNote) return null;
+    if (!hasFamilyNote) {
+      return { text: "You can keep refining this here." };
+    }
+    return hasDraft
+      ? { text: "Open report output", href: outputHref }
+      : { text: "Save draft, then open output." };
+  }, [hasDraft, hasFamilyNote, highlightFamilyNote, outputHref]);
 
   const evidenceCoverageCount = useMemo(() => {
     const set = new Set(
@@ -1437,11 +1476,6 @@ function ReportsPageContent() {
       studentEvidence.length,
     ]
   );
-  const outputHref = useMemo(
-    () => (draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : ""),
-    [draftId]
-  );
-
   useEffect(() => {
     if (!selectedStudentId) return;
     if (!studentEvidence.length) return;
@@ -2432,6 +2466,9 @@ function ReportsPageContent() {
                     momentumText={reportsEvidenceMomentum?.text}
                     continuityLabel={reportsEvidenceContinuity?.label}
                     continuityText={reportsEvidenceContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={reportsEvidenceNextMove?.text}
+                    nextValidMoveHref={reportsEvidenceNextMove?.href}
                     inPlaceText={reportsEvidenceCompletion.inPlaceText}
                     stillNeededText={reportsEvidenceCompletion.stillNeededText}
                     nextStepText={reportsEvidenceCompletion.nextStepText}
@@ -2598,6 +2635,9 @@ function ReportsPageContent() {
                     momentumText={reportsDraftMomentum?.text}
                     continuityLabel={reportsDraftContinuity?.label}
                     continuityText={reportsDraftContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={reportsDraftNextMove?.text}
+                    nextValidMoveHref={reportsDraftNextMove?.href}
                     inPlaceText={reportsDraftCompletion.inPlaceText}
                     stillNeededText={reportsDraftCompletion.stillNeededText}
                     nextStepText={reportsDraftCompletion.nextStepText}
@@ -2644,6 +2684,9 @@ function ReportsPageContent() {
                     momentumText={reportsFamilyNoteMomentum?.text}
                     continuityLabel={reportsFamilyNoteContinuity?.label}
                     continuityText={reportsFamilyNoteContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={reportsFamilyNoteNextMove?.text}
+                    nextValidMoveHref={reportsFamilyNoteNextMove?.href}
                     inPlaceText={reportsFamilyNoteCompletion.inPlaceText}
                     stillNeededText={reportsFamilyNoteCompletion.stillNeededText}
                     nextStepText={reportsFamilyNoteCompletion.nextStepText}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React from "react";
 
 type GuidedCompletionFeedbackProps = {
@@ -7,6 +8,9 @@ type GuidedCompletionFeedbackProps = {
   momentumText?: string;
   continuityLabel?: string;
   continuityText?: string;
+  nextValidMoveLabel?: string;
+  nextValidMoveText?: string;
+  nextValidMoveHref?: string;
   inPlaceLabel?: string;
   inPlaceText: string;
   stillNeededLabel?: string;
@@ -27,6 +31,9 @@ export default function GuidedCompletionFeedback({
   momentumText,
   continuityLabel,
   continuityText,
+  nextValidMoveLabel,
+  nextValidMoveText,
+  nextValidMoveHref,
   inPlaceLabel = "In place",
   inPlaceText,
   stillNeededLabel = "Still needed",
@@ -88,6 +95,28 @@ export default function GuidedCompletionFeedback({
       <div style={rowLabelStyle}>
         <strong>{nextStepLabel}:</strong> {nextStepText}
       </div>
+      {nextValidMoveLabel && nextValidMoveText ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "#64748b",
+            fontWeight: 700,
+          }}
+        >
+          <strong>{nextValidMoveLabel}:</strong>{" "}
+          {nextValidMoveHref ? (
+            <Link
+              href={nextValidMoveHref}
+              style={{ color: "#2563eb", textDecoration: "none", fontWeight: 800 }}
+            >
+              {nextValidMoveText}
+            </Link>
+          ) : (
+            nextValidMoveText
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

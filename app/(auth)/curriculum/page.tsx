@@ -415,6 +415,26 @@ export default function CurriculumPage() {
     highlightOutcomesSection,
     previousCurriculumContinuity,
   ]);
+  const curriculumSetupNextMove = useMemo(() => {
+    if (!highlightSetupSection) return null;
+    if (!hasCurriculumSetup) {
+      return { text: "You can keep refining this here." };
+    }
+    return { text: "Go to Capture", href: "/capture" };
+  }, [hasCurriculumSetup, highlightSetupSection]);
+  const curriculumOutcomesNextMove = useMemo(() => {
+    if (!highlightOutcomesSection) return null;
+    if (!hasCurriculumOutcomes) {
+      return { text: "You can keep refining this here." };
+    }
+    return hasCurriculumTracking
+      ? { text: "Go to Capture", href: "/capture" }
+      : { text: "Go to Planner", href: "/planner" };
+  }, [
+    hasCurriculumOutcomes,
+    hasCurriculumTracking,
+    highlightOutcomesSection,
+  ]);
 
   return (
     <FamilyTopNavShell
@@ -492,6 +512,9 @@ export default function CurriculumPage() {
                 momentumText={curriculumSetupMomentum?.text}
                 continuityLabel={curriculumSetupContinuity?.label}
                 continuityText={curriculumSetupContinuity?.text}
+                nextValidMoveLabel="Next valid move"
+                nextValidMoveText={curriculumSetupNextMove?.text}
+                nextValidMoveHref={curriculumSetupNextMove?.href}
                 inPlaceText={curriculumSetupCompletion.inPlaceText}
                 stillNeededText={curriculumSetupCompletion.stillNeededText}
                 nextStepText={curriculumSetupCompletion.nextStepText}
@@ -538,6 +561,9 @@ export default function CurriculumPage() {
                 momentumText={curriculumOutcomesMomentum?.text}
                 continuityLabel={curriculumOutcomesContinuity?.label}
                 continuityText={curriculumOutcomesContinuity?.text}
+                nextValidMoveLabel="Next valid move"
+                nextValidMoveText={curriculumOutcomesNextMove?.text}
+                nextValidMoveHref={curriculumOutcomesNextMove?.href}
                 inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                 stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                 nextStepText={curriculumOutcomesCompletion.nextStepText}
@@ -577,6 +603,9 @@ export default function CurriculumPage() {
                     momentumText={curriculumOutcomesMomentum?.text}
                     continuityLabel={curriculumOutcomesContinuity?.label}
                     continuityText={curriculumOutcomesContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={curriculumOutcomesNextMove?.text}
+                    nextValidMoveHref={curriculumOutcomesNextMove?.href}
                     inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                     stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                     nextStepText={curriculumOutcomesCompletion.nextStepText}

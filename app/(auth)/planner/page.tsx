@@ -698,6 +698,26 @@ export default function PlannerPage() {
     plannerFocus,
     previousPlannerContinuity,
   ]);
+  const plannerFocusNextMove = useMemo(() => {
+    if (!highlightFocusSection) return null;
+    if (!hasPlanDirection) {
+      return { text: "You can keep refining this here." };
+    }
+    if (!hasPlannerActions) {
+      return { text: "Add one planned action here." };
+    }
+    return { text: "Go to Capture", href: "/capture" };
+  }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
+  const plannerChecklistNextMove = useMemo(() => {
+    if (!highlightChecklistSection) return null;
+    if (!hasPlannerActions) {
+      return { text: "You can keep refining this here." };
+    }
+    if (plannerFocus === "alignment" && !hasPlannerLinks) {
+      return { text: "Link one action here first." };
+    }
+    return { text: "Go to Capture", href: "/capture" };
+  }, [hasPlannerActions, hasPlannerLinks, highlightChecklistSection, plannerFocus]);
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
@@ -1269,6 +1289,9 @@ export default function PlannerPage() {
                     momentumText={plannerFocusMomentum?.text}
                     continuityLabel={plannerFocusContinuity?.label}
                     continuityText={plannerFocusContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={plannerFocusNextMove?.text}
+                    nextValidMoveHref={plannerFocusNextMove?.href}
                     inPlaceText={plannerFocusCompletion.inPlaceText}
                     stillNeededText={plannerFocusCompletion.stillNeededText}
                     nextStepText={plannerFocusCompletion.nextStepText}
@@ -1377,6 +1400,9 @@ export default function PlannerPage() {
                     momentumText={plannerChecklistMomentum?.text}
                     continuityLabel={plannerChecklistContinuity?.label}
                     continuityText={plannerChecklistContinuity?.text}
+                    nextValidMoveLabel="Next valid move"
+                    nextValidMoveText={plannerChecklistNextMove?.text}
+                    nextValidMoveHref={plannerChecklistNextMove?.href}
                     inPlaceText={plannerChecklistCompletion.inPlaceText}
                     stillNeededText={plannerChecklistCompletion.stillNeededText}
                     nextStepText={plannerChecklistCompletion.nextStepText}

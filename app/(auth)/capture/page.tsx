@@ -1279,6 +1279,26 @@ export default function CapturePage() {
     highlightCurriculumLinking,
     previousCaptureContinuity,
   ]);
+  const captureDetailsNextMove = useMemo(() => {
+    if (!highlightCaptureDetails) return null;
+    if (!hasSavedCapture) {
+      return { text: "You can keep refining this here." };
+    }
+    if (!hasCaptureLinks) {
+      return { text: "Link it to curriculum here." };
+    }
+    return { text: "Go to Reports", href: "/reports" };
+  }, [hasCaptureLinks, hasSavedCapture, highlightCaptureDetails]);
+  const captureLinkingNextMove = useMemo(() => {
+    if (!highlightCurriculumLinking) return null;
+    if (!hasSavedCapture) {
+      return { text: "Save this here first." };
+    }
+    if (!hasCaptureLinks) {
+      return { text: "Choose one outcome here." };
+    }
+    return { text: "Go to Reports", href: "/reports" };
+  }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1693,6 +1713,9 @@ export default function CapturePage() {
                       momentumText={captureDetailsMomentum?.text}
                       continuityLabel={captureDetailsContinuity?.label}
                       continuityText={captureDetailsContinuity?.text}
+                      nextValidMoveLabel="Next valid move"
+                      nextValidMoveText={captureDetailsNextMove?.text}
+                      nextValidMoveHref={captureDetailsNextMove?.href}
                       inPlaceText={captureDetailsCompletion.inPlaceText}
                       stillNeededText={captureDetailsCompletion.stillNeededText}
                       nextStepText={captureDetailsCompletion.nextStepText}
@@ -1969,6 +1992,9 @@ export default function CapturePage() {
                         momentumText={captureLinkingMomentum?.text}
                         continuityLabel={captureLinkingContinuity?.label}
                         continuityText={captureLinkingContinuity?.text}
+                        nextValidMoveLabel="Next valid move"
+                        nextValidMoveText={captureLinkingNextMove?.text}
+                        nextValidMoveHref={captureLinkingNextMove?.href}
                         inPlaceText={captureLinkingCompletion.inPlaceText}
                         stillNeededText={captureLinkingCompletion.stillNeededText}
                         nextStepText={captureLinkingCompletion.nextStepText}
