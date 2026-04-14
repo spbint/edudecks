@@ -890,10 +890,10 @@ function ReportsPageContent() {
     if (reportsFocus === "core-anchors") {
       return {
         inPlaceText: hasReportSelection
-          ? "You have evidence selected already."
-          : "You have evidence ready to choose.",
+          ? "Selections are in place."
+          : "Evidence is ready to choose.",
         stillNeededText: hasCoreAnchors
-          ? "Your anchors are already clear."
+          ? "Anchors are already clear."
           : "Add one or two core anchors.",
         nextStepText: hasReportSelection
           ? "Mark the clearest items as core."
@@ -903,13 +903,13 @@ function ReportsPageContent() {
 
     return {
       inPlaceText: hasReportEvidence
-        ? "You have evidence ready to work with."
-        : "You do not have evidence here yet.",
+        ? "Evidence is visible."
+        : "No evidence is visible yet.",
       stillNeededText: hasReportSelection
-        ? "You can refine this evidence set."
+        ? "Refine these selections."
         : "Choose one or two strong pieces.",
       nextStepText: hasReportEvidence
-        ? "Select the clearest evidence first."
+        ? "Choose your strongest example."
         : "Capture or link one learning moment.",
     };
   }, [
@@ -924,11 +924,11 @@ function ReportsPageContent() {
 
     return {
       inPlaceText: draftId
-        ? "A saved draft is already in place."
-        : "You have a draft base started.",
+        ? "A saved draft is in place."
+        : "A draft base is started.",
       stillNeededText: hasCoreAnchors
-        ? "Only light refinement may remain."
-        : "The draft still needs core anchors.",
+        ? "Only light refinement remains."
+        : "Add core anchors.",
       nextStepText: hasCoreAnchors
         ? "Save it, then open the output."
         : "Choose one or two core items.",
@@ -938,13 +938,13 @@ function ReportsPageContent() {
     if (!highlightFamilyNote) return null;
     return {
       inPlaceText: hasFamilyNote
-        ? "You have started the family note."
-        : "The note space is ready here.",
+        ? "The family note has started."
+        : "The note space is ready.",
       stillNeededText: hasFamilyNote
         ? "It may only need a light edit."
-        : "The report still needs a short note.",
+        : "Add a short family note.",
       nextStepText: hasFamilyNote
-        ? "Tighten the note and keep it simple."
+        ? "Tighten the note."
         : "Add two calm sentences about this learning.",
     };
   }, [hasFamilyNote, highlightFamilyNote]);
@@ -1012,7 +1012,7 @@ function ReportsPageContent() {
     if (!highlightEvidenceSelection) return null;
     if (!previousReportsContinuity) {
       return hasReportEvidence || hasReportSelection
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const previousCount = countTrue([
@@ -1033,18 +1033,18 @@ function ReportsPageContent() {
         : previousReportsContinuity.hasReportSelection;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (currentCount > previousCount) {
       return {
         label: previousCount === 0 ? "New progress" : "Stronger now",
         text:
           previousCount === 0
-            ? "you made a useful start since your last visit."
-            : "this is stronger than it was recently.",
+            ? "new progress since your last visit."
+            : "stronger than before.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasCoreAnchors,
     hasReportEvidence,
@@ -1058,7 +1058,7 @@ function ReportsPageContent() {
     if (!highlightDraftPosition) return null;
     if (!previousReportsContinuity) {
       return hasDraft || hasCoreAnchors
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const previousCount = countTrue([
@@ -1073,36 +1073,36 @@ function ReportsPageContent() {
       previousReportsContinuity.hasCoreAnchors;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (currentCount > previousCount) {
       return {
         label: previousCount === 0 ? "New progress" : "Stronger now",
         text:
           previousCount === 0
-            ? "you added something useful here."
-            : "this is stronger than it was recently.",
+            ? "new progress since your last visit."
+            : "stronger than before.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [hasCoreAnchors, hasDraft, hasReportSelection, highlightDraftPosition, previousReportsContinuity]);
 
   const reportsFamilyNoteContinuity = useMemo(() => {
     if (!highlightFamilyNote) return null;
     if (!previousReportsContinuity) {
       return hasFamilyNote
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     if (!previousReportsContinuity.hasFamilyNote && hasFamilyNote) {
       return {
         label: hasDraft ? "Ready to move forward" : "Stronger now",
         text: hasDraft
-          ? "you now have enough here to keep moving."
-          : "this is stronger than it was recently.",
+          ? "now enough to keep moving."
+          : "stronger than before.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [hasDraft, hasFamilyNote, highlightFamilyNote, previousReportsContinuity]);
   const reportsEvidenceConfidence = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
@@ -1110,18 +1110,18 @@ function ReportsPageContent() {
       return {
         label: "Confidence",
         text: hasReportEvidence
-          ? "One more strong choice will help this feel usable."
-          : "Still light so far, but the next step is clear.",
+          ? "One more strong piece will help."
+          : "Still light so far, with a clear next step.",
       };
     }
     if (reportsFocus === "core-anchors") {
       return hasCoreAnchors
-        ? { label: "Confidence", text: "This is ready to use for the next move." }
-        : { label: "Confidence", text: "This looks usable soon." };
+        ? { label: "Confidence", text: "Ready for the next move." }
+        : { label: "Confidence", text: "Usable soon." };
     }
     return selectedEvidenceIds.length >= 3
-      ? { label: "Confidence", text: "This looks usable for the next step." }
-      : { label: "Confidence", text: "This looks usable soon." };
+      ? { label: "Confidence", text: "Usable for the next step." }
+      : { label: "Confidence", text: "Usable soon." };
   }, [
     hasCoreAnchors,
     hasReportEvidence,
@@ -1133,22 +1133,22 @@ function ReportsPageContent() {
   const reportsDraftConfidence = useMemo(() => {
     if (!highlightDraftPosition) return null;
     if (!hasReportSelection) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     if (hasCoreAnchors && hasDraft) {
-      return { label: "Confidence", text: "This is ready to use for the next move." };
+      return { label: "Confidence", text: "Ready for the next move." };
     }
     return hasCoreAnchors
-      ? { label: "Confidence", text: "This looks usable soon." }
+      ? { label: "Confidence", text: "Usable soon." }
       : { label: "Confidence", text: "Needs one more strong piece." };
   }, [hasCoreAnchors, hasDraft, hasReportSelection, highlightDraftPosition]);
   const reportsFamilyNoteConfidence = useMemo(() => {
     if (!highlightFamilyNote) return null;
     if (!hasFamilyNote) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return notes.trim().length >= 40
-      ? { label: "Confidence", text: "This looks usable for the next step." }
+      ? { label: "Confidence", text: "Usable for the next step." }
       : { label: "Confidence", text: "One more strong piece will help." };
   }, [hasFamilyNote, highlightFamilyNote, notes]);
   const reportsEvidenceNextMove = useMemo(() => {
@@ -1157,7 +1157,7 @@ function ReportsPageContent() {
       return { text: "Go to Capture", href: "/capture" };
     }
     if (!hasReportSelection || (reportsFocus === "core-anchors" && !hasCoreAnchors)) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     return { text: "Open report output", href: outputHref };
   }, [
@@ -1171,7 +1171,7 @@ function ReportsPageContent() {
   const reportsDraftNextMove = useMemo(() => {
     if (!highlightDraftPosition) return null;
     if (!hasCoreAnchors) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     return hasDraft
       ? { text: "Open report output", href: outputHref }
@@ -1180,7 +1180,7 @@ function ReportsPageContent() {
   const reportsFamilyNoteNextMove = useMemo(() => {
     if (!highlightFamilyNote) return null;
     if (!hasFamilyNote) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     return hasDraft
       ? { text: "Open report output", href: outputHref }

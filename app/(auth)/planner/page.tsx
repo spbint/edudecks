@@ -543,13 +543,13 @@ export default function PlannerPage() {
     if (!highlightFocusSection) return null;
     return {
       inPlaceText: hasPlanDirection
-        ? "You have a weekly focus started."
-        : "This week is ready for a focus.",
+        ? "A weekly focus is in place."
+        : "This week is ready for focus.",
       stillNeededText: hasPlanDirection
         ? "A little more structure will help."
-        : "The week still needs one clear direction.",
+        : "Add one clear direction.",
       nextStepText: hasPlannerActions
-        ? "Keep the checklist matched to it."
+        ? "Keep the checklist aligned."
         : "Set one focus, then add actions.",
     };
   }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
@@ -558,15 +558,15 @@ export default function PlannerPage() {
 
     return {
       inPlaceText: hasPlannerActions
-        ? "You have planned actions here."
+        ? "Planned actions are in place."
         : "The checklist is ready to use.",
       stillNeededText: plannerFocus === "alignment"
         ? hasPlannerLinks
           ? "One or two more links may help."
-          : "The plan still needs curriculum links."
+          : "Link this plan to outcomes."
         : hasPlannerActions
           ? "One more clear step may help."
-          : "The week still needs one or two actions.",
+          : "Add one or two actions.",
       nextStepText: plannerFocus === "alignment"
         ? hasPlannerLinks
           ? "Link the next useful action."
@@ -630,7 +630,7 @@ export default function PlannerPage() {
     if (!highlightFocusSection) return null;
     if (!previousPlannerContinuity) {
       return hasPlanDirection
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const readyNow = hasPlanDirection && hasPlannerActions;
@@ -639,15 +639,15 @@ export default function PlannerPage() {
       previousPlannerContinuity.hasPlannerActions;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (!previousPlannerContinuity.hasPlanDirection && hasPlanDirection) {
-      return { label: "New progress", text: "you made a useful start since your last visit." };
+      return { label: "New progress", text: "new progress since your last visit." };
     }
     if (!previousPlannerContinuity.hasPlannerActions && hasPlannerActions) {
-      return { label: "Stronger now", text: "this is stronger than it was recently." };
+      return { label: "Stronger now", text: "stronger than before." };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasPlanDirection,
     hasPlannerActions,
@@ -659,7 +659,7 @@ export default function PlannerPage() {
     if (!highlightChecklistSection) return null;
     if (!previousPlannerContinuity) {
       return hasPlannerActions
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const readyNow =
@@ -673,7 +673,7 @@ export default function PlannerPage() {
         : previousPlannerContinuity.hasPlannerActions;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (
       (!previousPlannerContinuity.hasPlannerActions && hasPlannerActions) ||
@@ -686,11 +686,11 @@ export default function PlannerPage() {
             : "Stronger now",
         text:
           !previousPlannerContinuity.hasPlannerActions && hasPlannerActions
-            ? "you added something useful here."
-            : "this is stronger than it was recently.",
+            ? "new progress since your last visit."
+            : "stronger than before.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasPlannerActions,
     hasPlannerLinks,
@@ -701,25 +701,25 @@ export default function PlannerPage() {
   const plannerFocusConfidence = useMemo(() => {
     if (!highlightFocusSection) return null;
     if (!hasPlanDirection) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return hasPlannerActions
-      ? { label: "Confidence", text: "This looks usable for the next step." }
+      ? { label: "Confidence", text: "Usable for the next step." }
       : { label: "Confidence", text: "One more strong piece will help." };
   }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
   const plannerChecklistConfidence = useMemo(() => {
     if (!highlightChecklistSection) return null;
     if (!hasPlannerActions) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     if (plannerFocus === "alignment") {
       return hasPlannerLinks
-        ? { label: "Confidence", text: "This is ready to use for the next move." }
-        : { label: "Confidence", text: "This looks usable soon." };
+        ? { label: "Confidence", text: "Ready for the next move." }
+        : { label: "Confidence", text: "Usable soon." };
     }
     return actions.length >= 2
-      ? { label: "Confidence", text: "This looks usable for the next step." }
-      : { label: "Confidence", text: "This looks usable soon." };
+      ? { label: "Confidence", text: "Usable for the next step." }
+      : { label: "Confidence", text: "Usable soon." };
   }, [
     actions.length,
     hasPlannerActions,
@@ -730,7 +730,7 @@ export default function PlannerPage() {
   const plannerFocusNextMove = useMemo(() => {
     if (!highlightFocusSection) return null;
     if (!hasPlanDirection) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     if (!hasPlannerActions) {
       return { text: "Add one planned action here." };
@@ -740,7 +740,7 @@ export default function PlannerPage() {
   const plannerChecklistNextMove = useMemo(() => {
     if (!highlightChecklistSection) return null;
     if (!hasPlannerActions) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     if (plannerFocus === "alignment" && !hasPlannerLinks) {
       return { text: "Link one action here first." };

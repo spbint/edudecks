@@ -271,13 +271,13 @@ export default function CurriculumPage() {
 
     return {
       inPlaceText: activeLearner
-        ? "The learner is already selected."
+        ? "The learner is selected."
         : "This page is ready for a learner.",
       stillNeededText: hasCurriculumSetup
-        ? "Deeper alignment still needs outcomes."
-        : "This learner still needs framework setup.",
+        ? "Add outcomes for deeper alignment."
+        : "Finish framework setup.",
       nextStepText: hasCurriculumSetup
-        ? "Use the map below to start gently."
+        ? "Use the map below."
         : "Choose the framework and level first.",
     };
   }, [activeLearner, hasCurriculumSetup, highlightSetupSection]);
@@ -288,14 +288,14 @@ export default function CurriculumPage() {
       inPlaceText: hasCurriculumOutcomes
         ? "Outcomes are available here."
         : hasCurriculumSetup
-          ? "The setup is already in place."
+          ? "Setup is already in place."
           : "This area is ready after setup.",
       stillNeededText: hasCurriculumOutcomes
         ? hasCurriculumTracking
-          ? "A few areas may still need attention."
-          : "Tracking has not really started yet."
+          ? "A few areas may need attention."
+          : "Tracking has not started yet."
         : hasCurriculumSetup
-          ? "This setup still needs seeded outcomes."
+          ? "Add seeded outcomes."
           : "Outcome targeting still needs setup.",
       nextStepText: hasCurriculumOutcomes
         ? "Start with one or two outcomes."
@@ -358,19 +358,19 @@ export default function CurriculumPage() {
     if (!highlightSetupSection) return null;
     if (!previousCurriculumContinuity) {
       return hasCurriculumSetup
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     if (!previousCurriculumContinuity.hasCurriculumSetup && hasCurriculumSetup) {
-      return { label: "New progress", text: "you made a useful start since your last visit." };
+      return { label: "New progress", text: "new progress since your last visit." };
     }
     if (
       !previousCurriculumContinuity.hasCurriculumOutcomes &&
       hasCurriculumOutcomes
     ) {
-      return { label: "Stronger now", text: "this is stronger than it was recently." };
+      return { label: "Stronger now", text: "stronger than before." };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasCurriculumOutcomes,
     hasCurriculumSetup,
@@ -382,7 +382,7 @@ export default function CurriculumPage() {
     if (!highlightOutcomesSection) return null;
     if (!previousCurriculumContinuity) {
       return hasCurriculumOutcomes || hasCurriculumTracking
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const readyNow = hasCurriculumOutcomes && hasCurriculumTracking;
@@ -391,7 +391,7 @@ export default function CurriculumPage() {
       previousCurriculumContinuity.hasCurriculumTracking;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (
       (!previousCurriculumContinuity.hasCurriculumOutcomes && hasCurriculumOutcomes) ||
@@ -404,11 +404,11 @@ export default function CurriculumPage() {
             : "New progress",
         text:
           !previousCurriculumContinuity.hasCurriculumOutcomes && hasCurriculumOutcomes
-            ? "this is stronger than it was recently."
-            : "you added something useful here.",
+            ? "stronger than before."
+            : "new progress since your last visit.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasCurriculumOutcomes,
     hasCurriculumTracking,
@@ -418,22 +418,22 @@ export default function CurriculumPage() {
   const curriculumSetupConfidence = useMemo(() => {
     if (!highlightSetupSection) return null;
     if (!hasCurriculumSetup) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return hasCurriculumOutcomes
-      ? { label: "Confidence", text: "This looks usable for the next step." }
-      : { label: "Confidence", text: "This looks usable soon." };
+      ? { label: "Confidence", text: "Usable for the next step." }
+      : { label: "Confidence", text: "Usable soon." };
   }, [hasCurriculumOutcomes, hasCurriculumSetup, highlightSetupSection]);
   const curriculumOutcomesConfidence = useMemo(() => {
     if (!highlightOutcomesSection) return null;
     if (!hasCurriculumOutcomes) {
       return hasCurriculumSetup
         ? { label: "Confidence", text: "One more strong piece will help." }
-        : { label: "Confidence", text: "Still light so far, but the next step is clear." };
+        : { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return hasCurriculumTracking
-      ? { label: "Confidence", text: "This is ready to use for the next move." }
-      : { label: "Confidence", text: "This looks usable soon." };
+      ? { label: "Confidence", text: "Ready for the next move." }
+      : { label: "Confidence", text: "Usable soon." };
   }, [
     hasCurriculumOutcomes,
     hasCurriculumSetup,
@@ -443,14 +443,14 @@ export default function CurriculumPage() {
   const curriculumSetupNextMove = useMemo(() => {
     if (!highlightSetupSection) return null;
     if (!hasCurriculumSetup) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     return { text: "Go to Capture", href: "/capture" };
   }, [hasCurriculumSetup, highlightSetupSection]);
   const curriculumOutcomesNextMove = useMemo(() => {
     if (!highlightOutcomesSection) return null;
     if (!hasCurriculumOutcomes) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     return hasCurriculumTracking
       ? { text: "Go to Capture", href: "/capture" }

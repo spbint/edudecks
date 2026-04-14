@@ -1113,17 +1113,17 @@ export default function CapturePage() {
 
     return {
       inPlaceText: hasSavedCapture
-        ? "You have saved a learning moment."
+        ? "A learning moment is saved."
         : hasCaptureDraft
-          ? "You have a usable capture started."
+          ? "A usable capture has started."
           : "This form is ready for one example.",
       stillNeededText: hasSavedCapture
         ? hasCaptureLinks
-          ? "The record is linked well enough."
-          : "The record still needs linking."
+          ? "Links are in place."
+          : "Link this to outcomes."
         : hasCaptureDraft
-          ? "It still needs to be saved."
-          : "The report still needs one clear example.",
+          ? "Save this capture next."
+          : "Add one clear example.",
       nextStepText: hasSavedCapture
         ? hasCaptureLinks
           ? "Keep this one if it fits."
@@ -1146,17 +1146,17 @@ export default function CapturePage() {
 
     return {
       inPlaceText: hasSavedCapture
-        ? "You have something ready to link."
+        ? "Something is ready to link."
         : "Linking is ready after saving.",
       stillNeededText: !hasSavedCapture
-        ? "The evidence still needs saving first."
+        ? "Save the evidence first."
         : hasCaptureLinks
-          ? "A curriculum link is already in place."
+          ? "A curriculum link is in place."
           : !hasSetup
-            ? "This learner still needs curriculum setup."
+            ? "Finish curriculum setup."
             : !hasOutcomes
-              ? "This setup still needs outcomes."
-              : "This evidence still needs linking.",
+              ? "Add outcomes to this setup."
+              : "Link this evidence to outcomes.",
       nextStepText: !hasSavedCapture
         ? "Save the capture first."
         : hasCaptureLinks
@@ -1216,7 +1216,7 @@ export default function CapturePage() {
     if (!highlightCaptureDetails) return null;
     if (!previousCaptureContinuity) {
       return hasCaptureDraft || hasSavedCapture
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const readyNow = hasSavedCapture;
@@ -1226,14 +1226,14 @@ export default function CapturePage() {
       return {
         label: hasCaptureLinks ? "Ready to move forward" : "Stronger now",
         text: hasCaptureLinks
-          ? "you now have enough here to keep moving."
-          : "this is stronger than it was recently.",
+          ? "now enough to keep moving."
+          : "stronger than before.",
       };
     }
     if (!previousCaptureContinuity.hasCaptureDraft && hasCaptureDraft) {
-      return { label: "New progress", text: "you made a useful start since your last visit." };
+      return { label: "New progress", text: "new progress since your last visit." };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasCaptureDraft,
     hasCaptureLinks,
@@ -1246,7 +1246,7 @@ export default function CapturePage() {
     if (!highlightCurriculumLinking) return null;
     if (!previousCaptureContinuity) {
       return hasSavedCapture || hasCaptureLinks
-        ? { label: "New progress", text: "you have a useful start here." }
+        ? { label: "New progress", text: "new progress since your last visit." }
         : null;
     }
     const readyNow = hasSavedCapture && hasCaptureLinks;
@@ -1255,7 +1255,7 @@ export default function CapturePage() {
       previousCaptureContinuity.hasCaptureLinks;
 
     if (!readyBefore && readyNow) {
-      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+      return { label: "Ready to move forward", text: "now enough to keep moving." };
     }
     if (
       (!previousCaptureContinuity.hasSavedCapture && hasSavedCapture) ||
@@ -1268,11 +1268,11 @@ export default function CapturePage() {
             : "New progress",
         text:
           !previousCaptureContinuity.hasSavedCapture && hasSavedCapture
-            ? "this is stronger than it was recently."
-            : "you added something useful here.",
+            ? "stronger than before."
+            : "new progress since your last visit.",
       };
     }
-    return { label: "Not much changed yet", text: "this section is still about where it was." };
+    return { label: "Not much changed yet", text: "not much has changed yet." };
   }, [
     hasCaptureLinks,
     hasSavedCapture,
@@ -1283,11 +1283,11 @@ export default function CapturePage() {
     if (!highlightCaptureDetails) return null;
     if (!hasSavedCapture) {
       return hasCaptureDraft
-        ? { label: "Confidence", text: "This looks usable soon." }
-        : { label: "Confidence", text: "Still light so far, but the next step is clear." };
+        ? { label: "Confidence", text: "Usable soon." }
+        : { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return hasCaptureLinks
-      ? { label: "Confidence", text: "This is ready to use for the next move." }
+      ? { label: "Confidence", text: "Ready for the next move." }
       : { label: "Confidence", text: "One more strong piece will help." };
   }, [
     hasCaptureDraft,
@@ -1298,16 +1298,16 @@ export default function CapturePage() {
   const captureLinkingConfidence = useMemo(() => {
     if (!highlightCurriculumLinking) return null;
     if (!hasSavedCapture) {
-      return { label: "Confidence", text: "Still light so far, but the next step is clear." };
+      return { label: "Confidence", text: "Still light so far, with a clear next step." };
     }
     return hasCaptureLinks
-      ? { label: "Confidence", text: "This is ready to use for the next move." }
-      : { label: "Confidence", text: "This looks usable soon." };
+      ? { label: "Confidence", text: "Ready for the next move." }
+      : { label: "Confidence", text: "Usable soon." };
   }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const captureDetailsNextMove = useMemo(() => {
     if (!highlightCaptureDetails) return null;
     if (!hasSavedCapture) {
-      return { text: "You can keep refining this here." };
+      return { text: "Refine this here." };
     }
     if (!hasCaptureLinks) {
       return { text: "Link it to curriculum here." };
@@ -1322,7 +1322,7 @@ export default function CapturePage() {
   const captureLinkingNextMove = useMemo(() => {
     if (!highlightCurriculumLinking) return null;
     if (!hasSavedCapture) {
-      return { text: "Save this here first." };
+      return { text: "Save this first." };
     }
     if (!hasCaptureLinks) {
       return { text: "Choose one outcome here." };
