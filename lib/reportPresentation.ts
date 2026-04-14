@@ -1,4 +1,5 @@
 import type { LearnerCurriculumPageData } from "@/lib/familyCurriculum";
+import type { CurriculumPreferences } from "@/lib/familySettings";
 import type { ReportMode } from "@/lib/reportDrafts";
 
 export type CoverageStatus = "strong" | "developing" | "attention";
@@ -81,6 +82,12 @@ export type ReportDocumentOverlay = {
   outputRoleNote: string;
 };
 
+export type ReportComplianceContext = {
+  isAU: boolean;
+  state: string | null;
+  country: string | null;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -117,6 +124,30 @@ export function normalizeReportMarket(value?: string | null) {
   const market = String(value ?? "").trim().toLowerCase();
   if (market === "au" || market === "uk" || market === "us") return market;
   return "";
+}
+
+export function getReportComplianceContext(input: {
+  market?: string | null;
+  curriculumPreferences?: CurriculumPreferences | null;
+}): ReportComplianceContext {
+  const market = normalizeReportMarket(input.market);
+  const country = safe(
+    input.curriculumPreferences?.compliance_profile?.country ||
+      input.curriculumPreferences?.country_id,
+  ).toLowerCase();
+  const state =
+    safe(
+      input.curriculumPreferences?.compliance_profile?.state ||
+        input.curriculumPreferences?.region_id,
+    ) || null;
+
+  const isAU = market === "au" || country === "au" || country === "australia";
+
+  return {
+    isAU,
+    state,
+    country: country || null,
+  };
 }
 
 export function buildReportDocumentOverlay(value?: string | null): ReportDocumentOverlay {

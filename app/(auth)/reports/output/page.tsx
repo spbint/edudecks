@@ -28,6 +28,7 @@ import {
   buildReportDocumentOverlay,
   buildCurriculumCoverage,
   formatEvidenceReference,
+  getReportComplianceContext,
   buildParentLanguageSummary,
   buildReportReadinessScore,
   coverageTone,
@@ -495,6 +496,18 @@ function ReportsOutputPageContent() {
       ),
     [draft?.preferred_market, workspace.profile?.preferred_market],
   );
+  const complianceContext = useMemo(
+    () =>
+      getReportComplianceContext({
+        market: draft?.preferred_market || workspace.profile?.preferred_market,
+        curriculumPreferences: workspace.profile?.curriculum_preferences ?? null,
+      }),
+    [
+      draft?.preferred_market,
+      workspace.profile?.curriculum_preferences,
+      workspace.profile?.preferred_market,
+    ],
+  );
   const selectedCoreCount = useMemo(
     () =>
       selectedEvidenceIds.filter(
@@ -903,6 +916,12 @@ function ReportsOutputPageContent() {
             <div style={{ ...bodyStyle, marginTop: 8, maxWidth: 720 }}>
               {marketOverlay.reportSubtitle}
             </div>
+            {complianceContext.isAU ? (
+              <div style={{ ...smallStyle, marginTop: 10, maxWidth: 720 }}>
+                This report reflects ongoing learning aligned with your selected
+                curriculum.
+              </div>
+            ) : null}
             <div
               style={{
                 ...smallStyle,
@@ -1108,17 +1127,22 @@ function ReportsOutputPageContent() {
           style={{ ...cardStyle, paddingTop: 22 }}
           className="reports-output-card reports-output-section"
         >
-          <div className="reports-output-section-header" style={sectionHeaderStyle}>
-            <div style={sectionEyebrowStyle}>{reportSectionCopy.evidenceSummary.eyebrow}</div>
-            <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
-          </div>
-          <div style={bodyStyle}>{evidenceSummaryLead}</div>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
+          <div style={sectionEyebrowStyle}>{reportSectionCopy.evidenceSummary.eyebrow}</div>
+          <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
+        </div>
+        {complianceContext.isAU ? (
+          <div style={smallStyle}>This summary reflects learning captured over this period.</div>
+        ) : null}
+        <div style={bodyStyle}>{evidenceSummaryLead}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
             <div style={labelStyle}>Evidence base in this draft</div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>{evidenceBaseSummary}</div>
           </div>
-          <div style={{ ...softCardStyle, marginTop: 14 }}>
-            <div style={labelStyle}>Learning focus noted here</div>
+        <div style={{ ...softCardStyle, marginTop: 14 }}>
+          <div style={labelStyle}>
+            {complianceContext.isAU ? "Linked learning areas" : "Learning focus noted here"}
+          </div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {selectedAreas.length
                 ? selectedAreas.join(", ")
@@ -1157,6 +1181,11 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.appendix.title}</div>
         </div>
         <div style={smallStyle}>{marketOverlay.appendixIntro}</div>
+        {complianceContext.isAU ? (
+          <div style={{ ...smallStyle, marginTop: 8 }}>
+            Supporting records linked to this summary are included below.
+          </div>
+        ) : null}
         <div style={{ ...bodyStyle, marginTop: 10 }}>{appendixLead}</div>
 
         {supportingEvidence.length ? (
@@ -1209,7 +1238,7 @@ function ReportsOutputPageContent() {
 
                 <div style={{ ...smallStyle, marginTop: 8 }}>
                   {item.linkedOutcomes.length
-                    ? `Linked outcomes: ${item.linkedOutcomes
+                    ? `${complianceContext.isAU ? "Observed outcomes (where available)" : "Linked outcomes"}: ${item.linkedOutcomes
                         .map((outcome) =>
                           outcome.outcomeCode
                             ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
@@ -1352,7 +1381,9 @@ function ReportsOutputPageContent() {
             <div style={h3Style}>{curriculumCoverage.planLinks}</div>
           </div>
           <div style={statStyle}>
-            <div style={labelStyle}>Evidence links</div>
+            <div style={labelStyle}>
+              {complianceContext.isAU ? "Evidence links recorded" : "Evidence links"}
+            </div>
             <div style={h3Style}>{curriculumCoverage.evidenceLinks}</div>
           </div>
           <div style={statStyle}>
