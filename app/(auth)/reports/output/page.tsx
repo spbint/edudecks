@@ -800,11 +800,22 @@ function ReportsOutputPageContent() {
             border-radius: 10px !important;
             break-inside: avoid;
             page-break-inside: avoid;
+            background: #ffffff !important;
           }
 
           .reports-output-section {
             break-inside: avoid;
             page-break-inside: avoid;
+          }
+
+          .reports-output-section-header {
+            break-after: avoid;
+            page-break-after: avoid;
+          }
+
+          .reports-output-keep-with-next {
+            break-after: avoid;
+            page-break-after: avoid;
           }
 
           .reports-output-evidence-item {
@@ -830,6 +841,34 @@ function ReportsOutputPageContent() {
             display: none !important;
           }
 
+          .reports-output-screen-status {
+            display: none !important;
+          }
+
+          .reports-output-print-note {
+            display: block !important;
+          }
+
+          .reports-output-page h1 {
+            font-size: 28px !important;
+            line-height: 1.15 !important;
+          }
+
+          .reports-output-page h2 {
+            font-size: 19px !important;
+            line-height: 1.2 !important;
+          }
+
+          .reports-output-page h3 {
+            font-size: 15px !important;
+            line-height: 1.3 !important;
+          }
+
+          .reports-output-hero-bar {
+            height: 4px !important;
+            background: #cbd5e1 !important;
+          }
+
           a {
             color: inherit !important;
             text-decoration: none !important;
@@ -841,6 +880,7 @@ function ReportsOutputPageContent() {
         className="reports-output-card reports-output-section"
       >
         <div
+          className="reports-output-hero-bar"
           style={{
             height: 8,
             background:
@@ -908,6 +948,12 @@ function ReportsOutputPageContent() {
                 {draft.id}
               </span>
             </div>
+            <div
+              className="reports-output-print-note"
+              style={{ ...smallStyle, marginTop: 10, display: "none", color: "#475569" }}
+            >
+              Formatted for printing or saving as a family report.
+            </div>
           </div>
 
           <div style={{ display: "grid", gap: 10, justifyItems: "start" }}>
@@ -952,12 +998,17 @@ function ReportsOutputPageContent() {
                 {packError}
               </div>
             ) : null}
-            <span style={pillStyle(outputStatus.tone)}>{outputStatus.label}</span>
+            <span className="reports-output-screen-status" style={pillStyle(outputStatus.tone)}>
+              {outputStatus.label}
+            </span>
             {hasMeaningfulCoverage ? (
-              <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
+              <span className="reports-output-screen-status" style={pillStyle(readiness.tone)}>
+                {readiness.label}
+              </span>
             ) : null}
             {curriculumCoverage.ready ? (
               <span
+                className="reports-output-screen-status"
                 style={pillStyle(
                   coverageTone(
                     curriculumCoverage.plannedAndEvidencedOutcomes > 0
@@ -983,12 +1034,12 @@ function ReportsOutputPageContent() {
         style={{ ...cardStyle, paddingTop: 22 }}
         className="reports-output-card reports-output-section"
       >
-        <div style={sectionHeaderStyle}>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
           <div style={sectionEyebrowStyle}>{reportSectionCopy.overview.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.overview.title}</div>
         </div>
-        <div style={bodyStyle}>{parentLanguage.overall}</div>
-        <div style={{ ...softCardStyle, marginTop: 16 }}>
+        <div className="reports-output-keep-with-next" style={bodyStyle}>{parentLanguage.overall}</div>
+        <div className="reports-output-keep-with-next" style={{ ...softCardStyle, marginTop: 16 }}>
           <div style={labelStyle}>What this summary is drawing from</div>
           <div style={bodyStyle}>{evidenceBaseSummary}</div>
           <div style={{ ...smallStyle, marginTop: 8 }}>{overviewSupportNote}</div>
@@ -1005,7 +1056,7 @@ function ReportsOutputPageContent() {
         style={{ ...cardStyle, paddingTop: 22 }}
         className="reports-output-card reports-output-section"
       >
-        <div style={sectionHeaderStyle}>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
           <div style={sectionEyebrowStyle}>{reportSectionCopy.coverage.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.coverage.title}</div>
         </div>
@@ -1039,7 +1090,7 @@ function ReportsOutputPageContent() {
           </div>
         </div>
 
-        <div style={{ ...softCardStyle, marginTop: 14 }}>
+        <div className="reports-output-keep-with-next" style={{ ...softCardStyle, marginTop: 14 }}>
           <div style={labelStyle}>Current picture</div>
           <div style={bodyStyle}>{coverageInterpretationText}</div>
         </div>
@@ -1057,7 +1108,7 @@ function ReportsOutputPageContent() {
           style={{ ...cardStyle, paddingTop: 22 }}
           className="reports-output-card reports-output-section"
         >
-          <div style={sectionHeaderStyle}>
+          <div className="reports-output-section-header" style={sectionHeaderStyle}>
             <div style={sectionEyebrowStyle}>{reportSectionCopy.evidenceSummary.eyebrow}</div>
             <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
           </div>
@@ -1080,7 +1131,7 @@ function ReportsOutputPageContent() {
           style={{ ...cardStyle, paddingTop: 22 }}
           className="reports-output-card reports-output-section"
         >
-          <div style={sectionHeaderStyle}>
+          <div className="reports-output-section-header" style={sectionHeaderStyle}>
             <div style={sectionEyebrowStyle}>{reportSectionCopy.strengths.eyebrow}</div>
             <div style={h2Style}>{reportSectionCopy.strengths.title}</div>
           </div>
@@ -1101,7 +1152,7 @@ function ReportsOutputPageContent() {
         style={{ ...cardStyle, paddingTop: 22 }}
         className="reports-output-card reports-output-section"
       >
-        <div style={sectionHeaderStyle}>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
           <div style={sectionEyebrowStyle}>{reportSectionCopy.appendix.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.appendix.title}</div>
         </div>
@@ -1202,7 +1253,7 @@ function ReportsOutputPageContent() {
         style={{ ...cardStyle, paddingTop: 22 }}
         className="reports-output-card reports-output-section"
       >
-        <div style={sectionHeaderStyle}>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
           <div style={sectionEyebrowStyle}>{reportSectionCopy.nextSteps.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.nextSteps.title}</div>
         </div>
@@ -1256,7 +1307,7 @@ function ReportsOutputPageContent() {
           style={{ ...cardStyle, paddingTop: 22 }}
           className="reports-output-card reports-output-section"
         >
-          <div style={sectionHeaderStyle}>
+          <div className="reports-output-section-header" style={sectionHeaderStyle}>
             <div style={sectionEyebrowStyle}>{reportSectionCopy.furtherDevelopment.eyebrow}</div>
             <div style={h2Style}>{reportSectionCopy.furtherDevelopment.title}</div>
           </div>
@@ -1275,7 +1326,7 @@ function ReportsOutputPageContent() {
         style={{ ...cardStyle, paddingTop: 22 }}
         className="reports-output-card reports-output-section"
       >
-        <div style={sectionHeaderStyle}>
+        <div className="reports-output-section-header" style={sectionHeaderStyle}>
           <div style={sectionEyebrowStyle}>{reportSectionCopy.background.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.background.title}</div>
         </div>
