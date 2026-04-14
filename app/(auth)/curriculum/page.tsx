@@ -12,6 +12,10 @@ import {
   type LearnerCurriculumPageData,
   type LearnerOutcomeStatusKey,
 } from "@/lib/familyCurriculum";
+import {
+  readGuidedCompletionSnapshot,
+  writeGuidedCompletionSnapshot,
+} from "@/lib/guidedCompletionSnapshot";
 
 const STATUS_OPTIONS: Array<{
   value: LearnerOutcomeStatusKey;
@@ -76,6 +80,12 @@ function buildCurriculumSectionCue(
   }
   return "";
 }
+
+type CurriculumContinuitySnapshot = {
+  hasCurriculumSetup: boolean;
+  hasCurriculumOutcomes: boolean;
+  hasCurriculumTracking: boolean;
+};
 
 function EmptyState({
   title,
@@ -241,6 +251,21 @@ export default function CurriculumPage() {
   const hasCurriculumSetup = Boolean(activeLearner && hasSelectedCurriculum);
   const hasCurriculumOutcomes = Boolean((pageData?.totalOutcomes ?? 0) > 0);
   const hasCurriculumTracking = Boolean((pageData?.trackedOutcomeCount ?? 0) > 0);
+  const curriculumContinuitySnapshot = useMemo<CurriculumContinuitySnapshot>(
+    () => ({
+      hasCurriculumSetup,
+      hasCurriculumOutcomes,
+      hasCurriculumTracking,
+    }),
+    [hasCurriculumOutcomes, hasCurriculumSetup, hasCurriculumTracking],
+  );
+  const curriculumContinuityKey = useMemo(
+    () =>
+      `edudecks_guided_completion_v3_curriculum_${activeLearner?.id || "none"}_${curriculumFocus || "none"}`,
+    [activeLearner?.id, curriculumFocus],
+  );
+  const [previousCurriculumContinuity, setPreviousCurriculumContinuity] =
+    useState<CurriculumContinuitySnapshot | null>(null);
   const curriculumSetupCompletion = useMemo(() => {
     if (!highlightSetupSection) return null;
 
@@ -308,6 +333,87 @@ export default function CurriculumPage() {
     hasCurriculumSetup,
     hasCurriculumTracking,
     highlightOutcomesSection,
+  ]);
+  useEffect(() => {
+    if (!curriculumFocus) {
+      setPreviousCurriculumContinuity(null);
+      return;
+    }
+    setPreviousCurriculumContinuity(
+      readGuidedCompletionSnapshot<CurriculumContinuitySnapshot>(
+        curriculumContinuityKey,
+      ),
+    );
+  }, [curriculumContinuityKey, curriculumFocus]);
+
+  useEffect(() => {
+    if (!curriculumFocus) return;
+    writeGuidedCompletionSnapshot(
+      curriculumContinuityKey,
+      curriculumContinuitySnapshot,
+    );
+  }, [curriculumContinuityKey, curriculumContinuitySnapshot, curriculumFocus]);
+
+  const curriculumSetupContinuity = useMemo(() => {
+    if (!highlightSetupSection) return null;
+    if (!previousCurriculumContinuity) {
+      return hasCurriculumSetup
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    if (!previousCurriculumContinuity.hasCurriculumSetup && hasCurriculumSetup) {
+      return { label: "New progress", text: "you made a useful start since your last visit." };
+    }
+    if (
+      !previousCurriculumContinuity.hasCurriculumOutcomes &&
+      hasCurriculumOutcomes
+    ) {
+      return { label: "Stronger now", text: "this is stronger than it was recently." };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasCurriculumOutcomes,
+    hasCurriculumSetup,
+    highlightSetupSection,
+    previousCurriculumContinuity,
+  ]);
+
+  const curriculumOutcomesContinuity = useMemo(() => {
+    if (!highlightOutcomesSection) return null;
+    if (!previousCurriculumContinuity) {
+      return hasCurriculumOutcomes || hasCurriculumTracking
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const readyNow = hasCurriculumOutcomes && hasCurriculumTracking;
+    const readyBefore =
+      previousCurriculumContinuity.hasCurriculumOutcomes &&
+      previousCurriculumContinuity.hasCurriculumTracking;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (
+      (!previousCurriculumContinuity.hasCurriculumOutcomes && hasCurriculumOutcomes) ||
+      (!previousCurriculumContinuity.hasCurriculumTracking && hasCurriculumTracking)
+    ) {
+      return {
+        label:
+          !previousCurriculumContinuity.hasCurriculumOutcomes && hasCurriculumOutcomes
+            ? "Stronger now"
+            : "New progress",
+        text:
+          !previousCurriculumContinuity.hasCurriculumOutcomes && hasCurriculumOutcomes
+            ? "this is stronger than it was recently."
+            : "you added something useful here.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasCurriculumOutcomes,
+    hasCurriculumTracking,
+    highlightOutcomesSection,
+    previousCurriculumContinuity,
   ]);
 
   return (
@@ -384,6 +490,8 @@ export default function CurriculumPage() {
               <GuidedCompletionFeedback
                 momentumLabel={curriculumSetupMomentum?.label}
                 momentumText={curriculumSetupMomentum?.text}
+                continuityLabel={curriculumSetupContinuity?.label}
+                continuityText={curriculumSetupContinuity?.text}
                 inPlaceText={curriculumSetupCompletion.inPlaceText}
                 stillNeededText={curriculumSetupCompletion.stillNeededText}
                 nextStepText={curriculumSetupCompletion.nextStepText}
@@ -428,6 +536,8 @@ export default function CurriculumPage() {
               <GuidedCompletionFeedback
                 momentumLabel={curriculumOutcomesMomentum?.label}
                 momentumText={curriculumOutcomesMomentum?.text}
+                continuityLabel={curriculumOutcomesContinuity?.label}
+                continuityText={curriculumOutcomesContinuity?.text}
                 inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                 stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                 nextStepText={curriculumOutcomesCompletion.nextStepText}
@@ -465,6 +575,8 @@ export default function CurriculumPage() {
                   <GuidedCompletionFeedback
                     momentumLabel={curriculumOutcomesMomentum?.label}
                     momentumText={curriculumOutcomesMomentum?.text}
+                    continuityLabel={curriculumOutcomesContinuity?.label}
+                    continuityText={curriculumOutcomesContinuity?.text}
                     inPlaceText={curriculumOutcomesCompletion.inPlaceText}
                     stillNeededText={curriculumOutcomesCompletion.stillNeededText}
                     nextStepText={curriculumOutcomesCompletion.nextStepText}

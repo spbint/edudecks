@@ -5,6 +5,8 @@ import React from "react";
 type GuidedCompletionFeedbackProps = {
   momentumLabel?: string;
   momentumText?: string;
+  continuityLabel?: string;
+  continuityText?: string;
   inPlaceLabel?: string;
   inPlaceText: string;
   stillNeededLabel?: string;
@@ -23,6 +25,8 @@ const rowLabelStyle: React.CSSProperties = {
 export default function GuidedCompletionFeedback({
   momentumLabel,
   momentumText,
+  continuityLabel,
+  continuityText,
   inPlaceLabel = "In place",
   inPlaceText,
   stillNeededLabel = "Still needed",
@@ -61,6 +65,18 @@ export default function GuidedCompletionFeedback({
         >
           <strong>{momentumLabel}</strong>
           <span>{momentumText}</span>
+        </div>
+      ) : null}
+      {continuityLabel && continuityText ? (
+        <div
+          style={{
+            fontSize: 12,
+            lineHeight: 1.5,
+            color: "#64748b",
+            fontWeight: 700,
+          }}
+        >
+          <strong>{continuityLabel}:</strong> {continuityText}
         </div>
       ) : null}
       <div style={rowLabelStyle}>

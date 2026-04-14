@@ -45,6 +45,10 @@ import {
   type ParentLanguageSummary,
   type ReadinessTone,
 } from "@/lib/reportPresentation";
+import {
+  readGuidedCompletionSnapshot,
+  writeGuidedCompletionSnapshot,
+} from "@/lib/guidedCompletionSnapshot";
 
 type StudentRow = {
   id: string;
@@ -94,6 +98,14 @@ type BuilderValueSignal = {
   conversionText: string;
   primaryIntent: string;
   secondaryIntent: string;
+};
+
+type ReportsContinuitySnapshot = {
+  hasReportEvidence: boolean;
+  hasReportSelection: boolean;
+  hasCoreAnchors: boolean;
+  hasDraft: boolean;
+  hasFamilyNote: boolean;
 };
 
 const AREA_OPTIONS = [
@@ -372,6 +384,10 @@ function buildReportsGuidanceNote(focus: string) {
     return "Add a short family note here to make the report output feel more human and intentional.";
   }
   return "";
+}
+
+function countTrue(values: boolean[]) {
+  return values.filter(Boolean).length;
 }
 
 
@@ -847,6 +863,23 @@ function ReportsPageContent() {
   const hasReportSelection = selectedEvidenceIds.length > 0;
   const hasFamilyNote = Boolean(notes.trim());
   const hasCoreAnchors = selectedCoreCount >= 2;
+  const hasDraft = Boolean(draftId);
+  const reportsContinuitySnapshot = useMemo<ReportsContinuitySnapshot>(
+    () => ({
+      hasReportEvidence,
+      hasReportSelection,
+      hasCoreAnchors,
+      hasDraft,
+      hasFamilyNote,
+    }),
+    [hasCoreAnchors, hasDraft, hasFamilyNote, hasReportEvidence, hasReportSelection],
+  );
+  const reportsContinuityKey = useMemo(
+    () => `edudecks_guided_completion_v3_reports_${selectedStudentId || "none"}_${reportsFocus || "none"}`,
+    [reportsFocus, selectedStudentId],
+  );
+  const [previousReportsContinuity, setPreviousReportsContinuity] =
+    useState<ReportsContinuitySnapshot | null>(null);
   const reportsEvidenceCompletion = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
 
@@ -956,6 +989,117 @@ function ReportsPageContent() {
       ? { label: "Nearly ready", text: "the note is almost settled." }
       : { label: "Taking shape", text: "the note has a real start now." };
   }, [hasFamilyNote, highlightFamilyNote, notes]);
+  useEffect(() => {
+    if (!reportsFocus) {
+      setPreviousReportsContinuity(null);
+      return;
+    }
+    setPreviousReportsContinuity(
+      readGuidedCompletionSnapshot<ReportsContinuitySnapshot>(reportsContinuityKey),
+    );
+  }, [reportsContinuityKey, reportsFocus]);
+
+  useEffect(() => {
+    if (!reportsFocus) return;
+    writeGuidedCompletionSnapshot(reportsContinuityKey, reportsContinuitySnapshot);
+  }, [reportsContinuityKey, reportsContinuitySnapshot, reportsFocus]);
+
+  const reportsEvidenceContinuity = useMemo(() => {
+    if (!highlightEvidenceSelection) return null;
+    if (!previousReportsContinuity) {
+      return hasReportEvidence || hasReportSelection
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const previousCount = countTrue([
+      previousReportsContinuity.hasReportEvidence,
+      previousReportsContinuity.hasReportSelection,
+      previousReportsContinuity.hasCoreAnchors,
+    ]);
+    const currentCount = countTrue([
+      hasReportEvidence,
+      hasReportSelection,
+      hasCoreAnchors,
+    ]);
+    const readyNow =
+      reportsFocus === "core-anchors" ? hasCoreAnchors : hasReportSelection;
+    const readyBefore =
+      reportsFocus === "core-anchors"
+        ? previousReportsContinuity.hasCoreAnchors
+        : previousReportsContinuity.hasReportSelection;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (currentCount > previousCount) {
+      return {
+        label: previousCount === 0 ? "New progress" : "Stronger now",
+        text:
+          previousCount === 0
+            ? "you made a useful start since your last visit."
+            : "this is stronger than it was recently.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasCoreAnchors,
+    hasReportEvidence,
+    hasReportSelection,
+    highlightEvidenceSelection,
+    previousReportsContinuity,
+    reportsFocus,
+  ]);
+
+  const reportsDraftContinuity = useMemo(() => {
+    if (!highlightDraftPosition) return null;
+    if (!previousReportsContinuity) {
+      return hasDraft || hasCoreAnchors
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const previousCount = countTrue([
+      previousReportsContinuity.hasReportSelection,
+      previousReportsContinuity.hasCoreAnchors,
+      previousReportsContinuity.hasDraft,
+    ]);
+    const currentCount = countTrue([hasReportSelection, hasCoreAnchors, hasDraft]);
+    const readyNow = hasDraft && hasCoreAnchors;
+    const readyBefore =
+      previousReportsContinuity.hasDraft &&
+      previousReportsContinuity.hasCoreAnchors;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (currentCount > previousCount) {
+      return {
+        label: previousCount === 0 ? "New progress" : "Stronger now",
+        text:
+          previousCount === 0
+            ? "you added something useful here."
+            : "this is stronger than it was recently.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [hasCoreAnchors, hasDraft, hasReportSelection, highlightDraftPosition, previousReportsContinuity]);
+
+  const reportsFamilyNoteContinuity = useMemo(() => {
+    if (!highlightFamilyNote) return null;
+    if (!previousReportsContinuity) {
+      return hasFamilyNote
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    if (!previousReportsContinuity.hasFamilyNote && hasFamilyNote) {
+      return {
+        label: hasDraft ? "Ready to move forward" : "Stronger now",
+        text: hasDraft
+          ? "you now have enough here to keep moving."
+          : "this is stronger than it was recently.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [hasDraft, hasFamilyNote, highlightFamilyNote, previousReportsContinuity]);
 
   const evidenceCoverageCount = useMemo(() => {
     const set = new Set(
@@ -2286,6 +2430,8 @@ function ReportsPageContent() {
                   <GuidedCompletionFeedback
                     momentumLabel={reportsEvidenceMomentum?.label}
                     momentumText={reportsEvidenceMomentum?.text}
+                    continuityLabel={reportsEvidenceContinuity?.label}
+                    continuityText={reportsEvidenceContinuity?.text}
                     inPlaceText={reportsEvidenceCompletion.inPlaceText}
                     stillNeededText={reportsEvidenceCompletion.stillNeededText}
                     nextStepText={reportsEvidenceCompletion.nextStepText}
@@ -2450,6 +2596,8 @@ function ReportsPageContent() {
                   <GuidedCompletionFeedback
                     momentumLabel={reportsDraftMomentum?.label}
                     momentumText={reportsDraftMomentum?.text}
+                    continuityLabel={reportsDraftContinuity?.label}
+                    continuityText={reportsDraftContinuity?.text}
                     inPlaceText={reportsDraftCompletion.inPlaceText}
                     stillNeededText={reportsDraftCompletion.stillNeededText}
                     nextStepText={reportsDraftCompletion.nextStepText}
@@ -2494,6 +2642,8 @@ function ReportsPageContent() {
                   <GuidedCompletionFeedback
                     momentumLabel={reportsFamilyNoteMomentum?.label}
                     momentumText={reportsFamilyNoteMomentum?.text}
+                    continuityLabel={reportsFamilyNoteContinuity?.label}
+                    continuityText={reportsFamilyNoteContinuity?.text}
                     inPlaceText={reportsFamilyNoteCompletion.inPlaceText}
                     stillNeededText={reportsFamilyNoteCompletion.stillNeededText}
                     nextStepText={reportsFamilyNoteCompletion.nextStepText}

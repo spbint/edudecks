@@ -23,6 +23,10 @@ import {
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 import { hasSupabaseEnv } from "@/lib/supabaseClient";
+import {
+  readGuidedCompletionSnapshot,
+  writeGuidedCompletionSnapshot,
+} from "@/lib/guidedCompletionSnapshot";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
@@ -87,6 +91,12 @@ type SearchableSelectProps = {
   placeholder: string;
   onChange: (value: string) => void;
   helperText?: string;
+};
+
+type CaptureContinuitySnapshot = {
+  hasCaptureDraft: boolean;
+  hasSavedCapture: boolean;
+  hasCaptureLinks: boolean;
 };
 
 function safe(v: any) {
@@ -1084,6 +1094,20 @@ export default function CapturePage() {
   const hasCaptureDraft = Boolean(safe(title) && safe(summary));
   const hasSavedCapture = Boolean(savedEvidenceId) || saveState === "success";
   const hasCaptureLinks = linkedOutcomeIds.length > 0;
+  const captureContinuitySnapshot = useMemo<CaptureContinuitySnapshot>(
+    () => ({
+      hasCaptureDraft,
+      hasSavedCapture,
+      hasCaptureLinks,
+    }),
+    [hasCaptureDraft, hasCaptureLinks, hasSavedCapture],
+  );
+  const captureContinuityKey = useMemo(
+    () => `edudecks_guided_completion_v3_capture_${activeChildId || "none"}_${captureFocus || "none"}`,
+    [activeChildId, captureFocus],
+  );
+  const [previousCaptureContinuity, setPreviousCaptureContinuity] =
+    useState<CaptureContinuitySnapshot | null>(null);
   const captureDetailsCompletion = useMemo(() => {
     if (!highlightCaptureDetails) return null;
 
@@ -1173,6 +1197,88 @@ export default function CapturePage() {
       ? { label: "Nearly ready", text: "the evidence is already connected." }
       : { label: "Taking shape", text: "the saved evidence is ready for one link." };
   }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
+  useEffect(() => {
+    if (!captureFocus) {
+      setPreviousCaptureContinuity(null);
+      return;
+    }
+    setPreviousCaptureContinuity(
+      readGuidedCompletionSnapshot<CaptureContinuitySnapshot>(captureContinuityKey),
+    );
+  }, [captureContinuityKey, captureFocus]);
+
+  useEffect(() => {
+    if (!captureFocus) return;
+    writeGuidedCompletionSnapshot(captureContinuityKey, captureContinuitySnapshot);
+  }, [captureContinuityKey, captureContinuitySnapshot, captureFocus]);
+
+  const captureDetailsContinuity = useMemo(() => {
+    if (!highlightCaptureDetails) return null;
+    if (!previousCaptureContinuity) {
+      return hasCaptureDraft || hasSavedCapture
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const readyNow = hasSavedCapture;
+    const readyBefore = previousCaptureContinuity.hasSavedCapture;
+
+    if (!readyBefore && readyNow) {
+      return {
+        label: hasCaptureLinks ? "Ready to move forward" : "Stronger now",
+        text: hasCaptureLinks
+          ? "you now have enough here to keep moving."
+          : "this is stronger than it was recently.",
+      };
+    }
+    if (!previousCaptureContinuity.hasCaptureDraft && hasCaptureDraft) {
+      return { label: "New progress", text: "you made a useful start since your last visit." };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasCaptureDraft,
+    hasCaptureLinks,
+    hasSavedCapture,
+    highlightCaptureDetails,
+    previousCaptureContinuity,
+  ]);
+
+  const captureLinkingContinuity = useMemo(() => {
+    if (!highlightCurriculumLinking) return null;
+    if (!previousCaptureContinuity) {
+      return hasSavedCapture || hasCaptureLinks
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const readyNow = hasSavedCapture && hasCaptureLinks;
+    const readyBefore =
+      previousCaptureContinuity.hasSavedCapture &&
+      previousCaptureContinuity.hasCaptureLinks;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (
+      (!previousCaptureContinuity.hasSavedCapture && hasSavedCapture) ||
+      (!previousCaptureContinuity.hasCaptureLinks && hasCaptureLinks)
+    ) {
+      return {
+        label:
+          !previousCaptureContinuity.hasSavedCapture && hasSavedCapture
+            ? "Stronger now"
+            : "New progress",
+        text:
+          !previousCaptureContinuity.hasSavedCapture && hasSavedCapture
+            ? "this is stronger than it was recently."
+            : "you added something useful here.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasCaptureLinks,
+    hasSavedCapture,
+    highlightCurriculumLinking,
+    previousCaptureContinuity,
+  ]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1585,6 +1691,8 @@ export default function CapturePage() {
                     <GuidedCompletionFeedback
                       momentumLabel={captureDetailsMomentum?.label}
                       momentumText={captureDetailsMomentum?.text}
+                      continuityLabel={captureDetailsContinuity?.label}
+                      continuityText={captureDetailsContinuity?.text}
                       inPlaceText={captureDetailsCompletion.inPlaceText}
                       stillNeededText={captureDetailsCompletion.stillNeededText}
                       nextStepText={captureDetailsCompletion.nextStepText}
@@ -1859,6 +1967,8 @@ export default function CapturePage() {
                       <GuidedCompletionFeedback
                         momentumLabel={captureLinkingMomentum?.label}
                         momentumText={captureLinkingMomentum?.text}
+                        continuityLabel={captureLinkingContinuity?.label}
+                        continuityText={captureLinkingContinuity?.text}
                         inPlaceText={captureLinkingCompletion.inPlaceText}
                         stillNeededText={captureLinkingCompletion.stillNeededText}
                         nextStepText={captureLinkingCompletion.nextStepText}

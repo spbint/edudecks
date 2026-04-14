@@ -21,6 +21,10 @@ import {
   loadLinkableOutcomesForStudent,
   type LearnerCurriculumLinkContext,
 } from "@/lib/familyCurriculum";
+import {
+  readGuidedCompletionSnapshot,
+  writeGuidedCompletionSnapshot,
+} from "@/lib/guidedCompletionSnapshot";
 
 type ChildRecord = {
   id: string;
@@ -62,6 +66,11 @@ type PlannerCalendarSyncPayload = {
 };
 
 type PlannerCalendarSyncMap = Record<string, PlannerCalendarSyncPayload>;
+type PlannerContinuitySnapshot = {
+  hasPlanDirection: boolean;
+  hasPlannerActions: boolean;
+  hasPlannerLinks: boolean;
+};
 
 const STORAGE_KEYS = {
   PLAN: "edudecks_plan",
@@ -516,6 +525,20 @@ export default function PlannerPage() {
     [actions, plannerOutcomeLinks],
   );
   const hasPlannerLinks = plannerLinkedActionCount > 0;
+  const plannerContinuitySnapshot = useMemo<PlannerContinuitySnapshot>(
+    () => ({
+      hasPlanDirection,
+      hasPlannerActions,
+      hasPlannerLinks,
+    }),
+    [hasPlanDirection, hasPlannerActions, hasPlannerLinks],
+  );
+  const plannerContinuityKey = useMemo(
+    () => `edudecks_guided_completion_v3_planner_${activeStudentId || "none"}_${plannerFocus || "none"}`,
+    [activeStudentId, plannerFocus],
+  );
+  const [previousPlannerContinuity, setPreviousPlannerContinuity] =
+    useState<PlannerContinuitySnapshot | null>(null);
   const plannerFocusCompletion = useMemo(() => {
     if (!highlightFocusSection) return null;
     return {
@@ -587,6 +610,93 @@ export default function PlannerPage() {
     hasPlannerLinks,
     highlightChecklistSection,
     plannerFocus,
+  ]);
+  useEffect(() => {
+    if (!plannerFocus) {
+      setPreviousPlannerContinuity(null);
+      return;
+    }
+    setPreviousPlannerContinuity(
+      readGuidedCompletionSnapshot<PlannerContinuitySnapshot>(plannerContinuityKey),
+    );
+  }, [plannerContinuityKey, plannerFocus]);
+
+  useEffect(() => {
+    if (!plannerFocus) return;
+    writeGuidedCompletionSnapshot(plannerContinuityKey, plannerContinuitySnapshot);
+  }, [plannerContinuityKey, plannerContinuitySnapshot, plannerFocus]);
+
+  const plannerFocusContinuity = useMemo(() => {
+    if (!highlightFocusSection) return null;
+    if (!previousPlannerContinuity) {
+      return hasPlanDirection
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const readyNow = hasPlanDirection && hasPlannerActions;
+    const readyBefore =
+      previousPlannerContinuity.hasPlanDirection &&
+      previousPlannerContinuity.hasPlannerActions;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (!previousPlannerContinuity.hasPlanDirection && hasPlanDirection) {
+      return { label: "New progress", text: "you made a useful start since your last visit." };
+    }
+    if (!previousPlannerContinuity.hasPlannerActions && hasPlannerActions) {
+      return { label: "Stronger now", text: "this is stronger than it was recently." };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasPlanDirection,
+    hasPlannerActions,
+    highlightFocusSection,
+    previousPlannerContinuity,
+  ]);
+
+  const plannerChecklistContinuity = useMemo(() => {
+    if (!highlightChecklistSection) return null;
+    if (!previousPlannerContinuity) {
+      return hasPlannerActions
+        ? { label: "New progress", text: "you have a useful start here." }
+        : null;
+    }
+    const readyNow =
+      plannerFocus === "alignment"
+        ? hasPlannerActions && hasPlannerLinks
+        : hasPlannerActions;
+    const readyBefore =
+      plannerFocus === "alignment"
+        ? previousPlannerContinuity.hasPlannerActions &&
+          previousPlannerContinuity.hasPlannerLinks
+        : previousPlannerContinuity.hasPlannerActions;
+
+    if (!readyBefore && readyNow) {
+      return { label: "Ready to move forward", text: "you now have enough here to keep moving." };
+    }
+    if (
+      (!previousPlannerContinuity.hasPlannerActions && hasPlannerActions) ||
+      (!previousPlannerContinuity.hasPlannerLinks && hasPlannerLinks)
+    ) {
+      return {
+        label:
+          !previousPlannerContinuity.hasPlannerActions && hasPlannerActions
+            ? "New progress"
+            : "Stronger now",
+        text:
+          !previousPlannerContinuity.hasPlannerActions && hasPlannerActions
+            ? "you added something useful here."
+            : "this is stronger than it was recently.",
+      };
+    }
+    return { label: "Not much changed yet", text: "this section is still about where it was." };
+  }, [
+    hasPlannerActions,
+    hasPlannerLinks,
+    highlightChecklistSection,
+    plannerFocus,
+    previousPlannerContinuity,
   ]);
 
   useEffect(() => {
@@ -1157,6 +1267,8 @@ export default function PlannerPage() {
                   <GuidedCompletionFeedback
                     momentumLabel={plannerFocusMomentum?.label}
                     momentumText={plannerFocusMomentum?.text}
+                    continuityLabel={plannerFocusContinuity?.label}
+                    continuityText={plannerFocusContinuity?.text}
                     inPlaceText={plannerFocusCompletion.inPlaceText}
                     stillNeededText={plannerFocusCompletion.stillNeededText}
                     nextStepText={plannerFocusCompletion.nextStepText}
@@ -1263,6 +1375,8 @@ export default function PlannerPage() {
                   <GuidedCompletionFeedback
                     momentumLabel={plannerChecklistMomentum?.label}
                     momentumText={plannerChecklistMomentum?.text}
+                    continuityLabel={plannerChecklistContinuity?.label}
+                    continuityText={plannerChecklistContinuity?.text}
                     inPlaceText={plannerChecklistCompletion.inPlaceText}
                     stillNeededText={plannerChecklistCompletion.stillNeededText}
                     nextStepText={plannerChecklistCompletion.nextStepText}
