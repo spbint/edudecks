@@ -591,6 +591,10 @@ function ReportsPageContent() {
     () => buildReportsGuidanceNote(reportsFocus),
     [reportsFocus],
   );
+  const highlightEvidenceSelection =
+    reportsFocus === "refine-evidence" || reportsFocus === "core-anchors";
+  const highlightDraftPosition = reportsFocus === "core-anchors";
+  const highlightFamilyNote = reportsFocus === "family-note";
   const autoSelectedStudentRef = useRef<string>("");
 
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -2085,7 +2089,19 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section
+              style={{
+                ...cardStyle,
+                ...(highlightEvidenceSelection
+                  ? {
+                      border: "1px solid #93c5fd",
+                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
+                      background:
+                        "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+                    }
+                  : {}),
+              }}
+            >
               <div
                 style={{
                   display: "flex",
@@ -2120,6 +2136,36 @@ function ReportsPageContent() {
                   </button>
                 </div>
               </div>
+
+              {reportsFocus === "refine-evidence" ? (
+                <div
+                  style={{
+                    ...softCardStyle,
+                    marginTop: 14,
+                    border: "1px solid #dbeafe",
+                    background: "#eff6ff",
+                    color: "#1e3a8a",
+                    fontWeight: 700,
+                  }}
+                >
+                  Start here. Refine the selected evidence set until it feels small, clear, and trustworthy.
+                </div>
+              ) : null}
+
+              {reportsFocus === "core-anchors" ? (
+                <div
+                  style={{
+                    ...softCardStyle,
+                    marginTop: 14,
+                    border: "1px solid #dbeafe",
+                    background: "#eff6ff",
+                    color: "#1e3a8a",
+                    fontWeight: 700,
+                  }}
+                >
+                  Start here. Mark at least two selected items as core so the report has a stronger backbone before export.
+                </div>
+              ) : null}
 
               <div style={{ height: 14 }} />
 
@@ -2231,7 +2277,17 @@ function ReportsPageContent() {
           </div>
 
           <aside style={{ display: "grid", gap: 18 }}>
-            <section style={cardStyle}>
+            <section
+              style={{
+                ...cardStyle,
+                ...(highlightDraftPosition
+                  ? {
+                      border: "1px solid #93c5fd",
+                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
+                    }
+                  : {}),
+              }}
+            >
               <div style={h2Style}>Draft position</div>
 
               <div style={{ height: 12 }} />
@@ -2264,11 +2320,37 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section
+              style={{
+                ...cardStyle,
+                ...(highlightFamilyNote
+                  ? {
+                      border: "1px solid #93c5fd",
+                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
+                      background:
+                        "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+                    }
+                  : {}),
+              }}
+            >
               <div style={h2Style}>Family note</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 Add a short note so the draft feels clear, human, and easy to return to later.
               </div>
+              {highlightFamilyNote ? (
+                <div
+                  style={{
+                    ...softCardStyle,
+                    marginTop: 12,
+                    border: "1px solid #dbeafe",
+                    background: "#eff6ff",
+                    color: "#1e3a8a",
+                    fontWeight: 700,
+                  }}
+                >
+                  Start here. A short family note gives the report a clearer voice and makes the final output feel more intentional.
+                </div>
+              ) : null}
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}

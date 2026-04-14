@@ -719,6 +719,23 @@ function buildCaptureGuidanceNote(focus: string) {
   return "";
 }
 
+function buildCaptureSectionCue(
+  focus: string,
+  section: "details" | "linking",
+) {
+  const value = safe(focus).toLowerCase();
+  if (section === "details" && value === "start-evidence") {
+    return "Start here. A short title, a clear summary, and one learning domain are enough to strengthen the report.";
+  }
+  if (section === "details" && value === "planned-without-evidence") {
+    return "Start with one concrete learning moment that shows what the learner actually did or understood.";
+  }
+  if (section === "linking" && value === "planned-without-evidence") {
+    return "Once this evidence is saved, link it to a curriculum outcome so planned work and proof sit together in reporting.";
+  }
+  return "";
+}
+
 function getPremiumFromStorage() {
   if (typeof window === "undefined") return false;
   return safe(localStorage.getItem(PLAN_STORAGE_KEY)).toLowerCase() === "premium";
@@ -1052,6 +1069,17 @@ export default function CapturePage() {
     () => buildCaptureGuidanceNote(captureFocus),
     [captureFocus],
   );
+  const captureDetailsCue = useMemo(
+    () => buildCaptureSectionCue(captureFocus, "details"),
+    [captureFocus],
+  );
+  const captureLinkingCue = useMemo(
+    () => buildCaptureSectionCue(captureFocus, "linking"),
+    [captureFocus],
+  );
+  const highlightCaptureDetails =
+    captureFocus === "start-evidence" || captureFocus === "planned-without-evidence";
+  const highlightCurriculumLinking = captureFocus === "planned-without-evidence";
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1416,7 +1444,19 @@ export default function CapturePage() {
             }}
           >
             <div style={{ display: "grid", gap: 18 }}>
-              <section style={mainCard()}>
+              <section
+                style={{
+                  ...mainCard(),
+                  ...(highlightCaptureDetails
+                    ? {
+                        border: "1px solid #93c5fd",
+                        boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
+                        background:
+                          "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+                      }
+                    : {}),
+                }}
+              >
                 <div style={eyebrowStyle()}>Main capture</div>
                 <div
                   style={{
@@ -1429,6 +1469,23 @@ export default function CapturePage() {
                 >
                   Capture details
                 </div>
+
+                {captureDetailsCue ? (
+                  <div
+                    style={{
+                      ...softCard(),
+                      marginTop: 16,
+                      border: "1px solid #dbeafe",
+                      background: "#eff6ff",
+                      color: "#1e3a8a",
+                      fontSize: 13,
+                      lineHeight: 1.6,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {captureDetailsCue}
+                  </div>
+                ) : null}
 
                 <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
                   <div>
@@ -1650,8 +1707,12 @@ export default function CapturePage() {
                   <div
                     style={{
                       ...softCard(),
-                      border: "1px solid #dbeafe",
-                      background: "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
+                      border: highlightCurriculumLinking
+                        ? "1px solid #93c5fd"
+                        : "1px solid #dbeafe",
+                      background: highlightCurriculumLinking
+                        ? "linear-gradient(135deg, #dbeafe 0%, #f8fbff 100%)"
+                        : "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
                       display: "grid",
                       gap: 14,
                     }}
@@ -1671,6 +1732,23 @@ export default function CapturePage() {
                         After you save this evidence, you can attach it to a canonical curriculum outcome for the current learner.
                       </div>
                     </div>
+
+                    {captureLinkingCue ? (
+                      <div
+                        style={{
+                          border: "1px solid #bfdbfe",
+                          borderRadius: 12,
+                          background: "#ffffff",
+                          color: "#1e3a8a",
+                          padding: 12,
+                          fontSize: 13,
+                          lineHeight: 1.6,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {captureLinkingCue}
+                      </div>
+                    ) : null}
 
                     {!workspace.userId || !hasSupabaseEnv ? (
                       <div style={{ fontSize: 13, lineHeight: 1.6, color: "#475569" }}>

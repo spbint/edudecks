@@ -62,6 +62,20 @@ function buildCurriculumGuidanceNote(focus: string) {
   return "";
 }
 
+function buildCurriculumSectionCue(
+  focus: string,
+  section: "setup" | "outcomes",
+) {
+  const value = safe(focus).toLowerCase();
+  if (section === "setup" && value === "curriculum-setup") {
+    return "Start here. Confirm the learner, framework, and level first so the rest of the curriculum map becomes meaningful.";
+  }
+  if (section === "outcomes" && value === "no-outcomes") {
+    return "The next useful check is whether canonical outcomes exist for this framework and level. Until they do, deeper coverage targeting will stay limited.";
+  }
+  return "";
+}
+
 function EmptyState({
   title,
   text,
@@ -210,6 +224,16 @@ export default function CurriculumPage() {
     () => buildCurriculumGuidanceNote(curriculumFocus),
     [curriculumFocus],
   );
+  const curriculumSetupCue = useMemo(
+    () => buildCurriculumSectionCue(curriculumFocus, "setup"),
+    [curriculumFocus],
+  );
+  const curriculumOutcomesCue = useMemo(
+    () => buildCurriculumSectionCue(curriculumFocus, "outcomes"),
+    [curriculumFocus],
+  );
+  const highlightSetupSection = curriculumFocus === "curriculum-setup";
+  const highlightOutcomesSection = curriculumFocus === "no-outcomes";
 
   return (
     <FamilyTopNavShell
@@ -234,7 +258,17 @@ export default function CurriculumPage() {
             <div style={{ ...S.cardText, color: "#1e3a8a" }}>{curriculumGuidanceNote}</div>
           </section>
         ) : null}
-        <section style={S.topCard}>
+        <section
+          style={{
+            ...S.topCard,
+            ...(highlightSetupSection
+              ? {
+                  border: "1px solid #93c5fd",
+                  boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
+                }
+              : {}),
+          }}
+        >
           <div style={S.topRow}>
             <div>
               <div style={S.eyebrow}>Learner</div>
@@ -267,6 +301,9 @@ export default function CurriculumPage() {
               </Link>
             </div>
           </div>
+          {curriculumSetupCue ? (
+            <div style={S.guidedInlineNote}>{curriculumSetupCue}</div>
+          ) : null}
         </section>
 
         {workspaceError ? <section style={S.warningCard}>{workspaceError}</section> : null}
@@ -303,7 +340,30 @@ export default function CurriculumPage() {
           />
         ) : (
           <>
-            <section style={S.summaryGrid}>
+            <section
+              style={{
+                ...S.summaryGrid,
+                ...(highlightOutcomesSection
+                  ? {
+                      padding: 14,
+                      border: "1px solid #93c5fd",
+                      borderRadius: 18,
+                      background: "#f8fbff",
+                    }
+                  : {}),
+              }}
+            >
+              {curriculumOutcomesCue ? (
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    ...S.guidedInlineNote,
+                    marginBottom: 0,
+                  }}
+                >
+                  {curriculumOutcomesCue}
+                </div>
+              ) : null}
               <div style={S.summaryCard}>
                 <div style={S.summaryLabel}>Framework</div>
                 <div style={S.summaryValue}>{currentFrameworkLabel}</div>
@@ -598,6 +658,17 @@ const S: Record<string, React.CSSProperties> = {
     background: "#ffffff",
     padding: 20,
     boxShadow: "0 10px 26px rgba(15,23,42,0.04)",
+  },
+  guidedInlineNote: {
+    marginTop: 14,
+    border: "1px solid #dbeafe",
+    borderRadius: 14,
+    background: "#eff6ff",
+    color: "#1e3a8a",
+    padding: "12px 14px",
+    fontSize: 13,
+    lineHeight: 1.6,
+    fontWeight: 700,
   },
   emptyCard: {
     border: "1px solid #e5e7eb",

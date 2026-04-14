@@ -420,6 +420,29 @@ function buildPlannerGuidanceNote(focus: string) {
   return "";
 }
 
+function buildPlannerSectionCue(
+  focus: string,
+  section: "focus" | "checklist",
+) {
+  const value = safe(focus).toLowerCase();
+  if (section === "focus" && value === "start-planning") {
+    return "Start here. Set one clear weekly direction, then keep the rest of the plan light.";
+  }
+  if (section === "focus" && value === "coverage-gap") {
+    return "Name the thinner area you want this week to support so coverage grows more evenly.";
+  }
+  if (section === "checklist" && value === "start-planning") {
+    return "Add one or two concrete actions here so the report has real planned learning to work from.";
+  }
+  if (section === "checklist" && value === "coverage-gap") {
+    return "Use the checklist to add a small amount of activity in the weaker area first.";
+  }
+  if (section === "checklist" && value === "alignment") {
+    return "Start here. Save and link one or two checklist actions so planning lines up with the evidence you already have.";
+  }
+  return "";
+}
+
 export default function PlannerPage() {
   const searchParams = useSearchParams();
   const {
@@ -468,6 +491,20 @@ export default function PlannerPage() {
     () => buildPlannerGuidanceNote(plannerFocus),
     [plannerFocus],
   );
+  const focusSectionCue = useMemo(
+    () => buildPlannerSectionCue(plannerFocus, "focus"),
+    [plannerFocus],
+  );
+  const checklistSectionCue = useMemo(
+    () => buildPlannerSectionCue(plannerFocus, "checklist"),
+    [plannerFocus],
+  );
+  const highlightFocusSection =
+    plannerFocus === "start-planning" || plannerFocus === "coverage-gap";
+  const highlightChecklistSection =
+    plannerFocus === "start-planning" ||
+    plannerFocus === "coverage-gap" ||
+    plannerFocus === "alignment";
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
@@ -1012,7 +1049,12 @@ export default function PlannerPage() {
 
         <section style={styles.grid}>
           <div style={styles.leftColumn}>
-            <section style={styles.card}>
+            <section
+              style={{
+                ...styles.card,
+                ...(highlightFocusSection ? styles.guidedCard : {}),
+              }}
+            >
               <div style={styles.cardHeader}>
                 <div>
                   <h2 style={styles.cardTitle}>This week’s focus</h2>
@@ -1022,6 +1064,10 @@ export default function PlannerPage() {
                   </p>
                 </div>
               </div>
+
+              {focusSectionCue ? (
+                <div style={styles.guidedInlineNote}>{focusSectionCue}</div>
+              ) : null}
 
               <div style={styles.formGrid}>
                 <div style={styles.field}>
@@ -1094,7 +1140,12 @@ export default function PlannerPage() {
               </div>
             </section>
 
-            <section style={styles.card}>
+            <section
+              style={{
+                ...styles.card,
+                ...(highlightChecklistSection ? styles.guidedCard : {}),
+              }}
+            >
               <div style={styles.cardHeaderRow}>
                 <div>
                   <h2 style={styles.cardTitle}>Weekly checklist</h2>
@@ -1107,6 +1158,10 @@ export default function PlannerPage() {
                   Add action
                 </button>
               </div>
+
+              {checklistSectionCue ? (
+                <div style={styles.guidedInlineNote}>{checklistSectionCue}</div>
+              ) : null}
 
               <div style={styles.checklistWrap}>
                 {actions.length === 0 ? (
@@ -1489,6 +1544,22 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 24,
     padding: 24,
     boxShadow: "0 12px 34px rgba(15, 23, 42, 0.05)",
+  },
+  guidedCard: {
+    borderColor: "#93c5fd",
+    boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.10)",
+    background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+  },
+  guidedInlineNote: {
+    marginBottom: 14,
+    border: "1px solid #dbeafe",
+    borderRadius: 14,
+    background: "#eff6ff",
+    color: "#1e3a8a",
+    padding: "12px 14px",
+    fontSize: 13,
+    lineHeight: 1.6,
+    fontWeight: 700,
   },
   errorCard: {
     background: "#fff7ed",
