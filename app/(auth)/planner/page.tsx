@@ -406,6 +406,20 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
   }
 }
 
+function buildPlannerGuidanceNote(focus: string) {
+  const value = safe(focus).toLowerCase();
+  if (value === "start-planning") {
+    return "This report needs a little more curriculum-linked planning. Start with one or two simple activities you can save this week.";
+  }
+  if (value === "coverage-gap") {
+    return "This report is still thin in a few areas. Use the planner here to broaden coverage gently rather than adding too much at once.";
+  }
+  if (value === "alignment") {
+    return "Some evidence is arriving ahead of planning. Add a little forward planning here so intention and proof stay aligned.";
+  }
+  return "";
+}
+
 export default function PlannerPage() {
   const searchParams = useSearchParams();
   const {
@@ -449,6 +463,11 @@ export default function PlannerPage() {
 
   const goalFromQuery = safe(searchParams.get("goal"));
   const studentFromQuery = safe(searchParams.get("student"));
+  const plannerFocus = safe(searchParams.get("focus"));
+  const plannerGuidanceNote = useMemo(
+    () => buildPlannerGuidanceNote(plannerFocus),
+    [plannerFocus],
+  );
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
@@ -943,6 +962,23 @@ export default function PlannerPage() {
           </div>
 
           <FamilyHandoffNote handoff={shellHandoff} acted={plannerStepTaken} marginTop={18} marginBottom={14} />
+          {plannerGuidanceNote ? (
+            <div
+              style={{
+                marginBottom: 14,
+                border: "1px solid #bfdbfe",
+                background: "#eff6ff",
+                color: "#1e3a8a",
+                borderRadius: 16,
+                padding: "12px 14px",
+                fontSize: 14,
+                lineHeight: 1.6,
+                fontWeight: 700,
+              }}
+            >
+              {plannerGuidanceNote}
+            </div>
+          ) : null}
 
           <div style={styles.heroStatsRow}>
             <div style={styles.statPill}>

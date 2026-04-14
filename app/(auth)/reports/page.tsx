@@ -359,6 +359,20 @@ function joinNatural(items: string[]) {
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 }
 
+function buildReportsGuidanceNote(focus: string) {
+  const value = safe(focus).toLowerCase();
+  if (value === "refine-evidence") {
+    return "This report would benefit from a slightly stronger evidence base. Refine the selected evidence here before saving or exporting.";
+  }
+  if (value === "core-anchors") {
+    return "Mark at least two selected items as core anchors so the main report has a clearer evidence backbone.";
+  }
+  if (value === "family-note") {
+    return "Add a short family note here to make the report output feel more human and intentional.";
+  }
+  return "";
+}
+
 
 async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
   return loadEvidenceEntriesWithVariants<EvidenceRow>([
@@ -571,6 +585,11 @@ function ReportsPageContent() {
         "/reports"
       ),
     [searchParams]
+  );
+  const reportsFocus = safe(searchParams.get("focus"));
+  const reportsGuidanceNote = useMemo(
+    () => buildReportsGuidanceNote(reportsFocus),
+    [reportsFocus],
   );
   const autoSelectedStudentRef = useRef<string>("");
 
@@ -1386,6 +1405,21 @@ function ReportsPageContent() {
     <main style={pageStyle}>
       <div style={innerStyle}>
         <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
+        {reportsGuidanceNote ? (
+          <section
+            style={{
+              ...cardStyle,
+              marginBottom: 18,
+              border: "1px solid #bfdbfe",
+              background: "#eff6ff",
+            }}
+          >
+            <div style={{ ...labelStyle, color: "#1e3a8a" }}>Guided next step</div>
+            <div style={{ ...bodyStyle, color: "#1e3a8a", marginTop: 8 }}>
+              {reportsGuidanceNote}
+            </div>
+          </section>
+        ) : null}
         {workspaceError && !error ? (
           <div
             style={{

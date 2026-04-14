@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -50,6 +51,17 @@ function chipColors(status: LearnerOutcomeStatusKey) {
   return { bg: "#ffffff", border: "#e5e7eb", text: "#64748b" };
 }
 
+function buildCurriculumGuidanceNote(focus: string) {
+  const value = safe(focus).toLowerCase();
+  if (value === "curriculum-setup") {
+    return "This report is waiting on a clearer curriculum setup. Review the learner's framework and level here before relying on report coverage.";
+  }
+  if (value === "no-outcomes") {
+    return "This report cannot give stronger curriculum guidance until seeded outcomes are available for the selected framework and level.";
+  }
+  return "";
+}
+
 function EmptyState({
   title,
   text,
@@ -75,6 +87,7 @@ function EmptyState({
 }
 
 export default function CurriculumPage() {
+  const searchParams = useSearchParams();
   const {
     workspace,
     activeLearnerId,
@@ -192,6 +205,11 @@ export default function CurriculumPage() {
     safe(familyPreferences.compliance_profile?.curriculum_framework) ||
     "Not selected";
   const currentLevelLabel = pageData?.level?.level_label || "Not selected";
+  const curriculumFocus = safe(searchParams.get("focus"));
+  const curriculumGuidanceNote = useMemo(
+    () => buildCurriculumGuidanceNote(curriculumFocus),
+    [curriculumFocus],
+  );
 
   return (
     <FamilyTopNavShell
@@ -203,6 +221,19 @@ export default function CurriculumPage() {
       heroAsideText="This is the first live curriculum map surface backed by the canonical family settings and learner mapper tables."
     >
       <div style={S.page}>
+        {curriculumGuidanceNote ? (
+          <section
+            style={{
+              ...S.card,
+              border: "1px solid #bfdbfe",
+              background: "#eff6ff",
+              color: "#1e3a8a",
+              fontWeight: 700,
+            }}
+          >
+            <div style={{ ...S.cardText, color: "#1e3a8a" }}>{curriculumGuidanceNote}</div>
+          </section>
+        ) : null}
         <section style={S.topCard}>
           <div style={S.topRow}>
             <div>

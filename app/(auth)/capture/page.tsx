@@ -708,6 +708,17 @@ function buildSummaryPreview(childName: string, summary: string, learningArea: s
   return `${intro}showed learning${areaText} by ${s.charAt(0).toLowerCase()}${s.slice(1)}`;
 }
 
+function buildCaptureGuidanceNote(focus: string) {
+  const value = safe(focus).toLowerCase();
+  if (value === "start-evidence") {
+    return "This report needs a little more linked evidence. Capture one clear learning moment here so the report has something real to support it.";
+  }
+  if (value === "planned-without-evidence") {
+    return "Planning is already in place for some outcomes. A small amount of proof here would make the report much stronger.";
+  }
+  return "";
+}
+
 function getPremiumFromStorage() {
   if (typeof window === "undefined") return false;
   return safe(localStorage.getItem(PLAN_STORAGE_KEY)).toLowerCase() === "premium";
@@ -1036,6 +1047,11 @@ export default function CapturePage() {
       ),
     [searchParams]
   );
+  const captureFocus = safe(searchParams.get("focus"));
+  const captureGuidanceNote = useMemo(
+    () => buildCaptureGuidanceNote(captureFocus),
+    [captureFocus],
+  );
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -1287,6 +1303,23 @@ export default function CapturePage() {
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
+      {captureGuidanceNote ? (
+        <section
+          style={{
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
+            color: "#1e3a8a",
+            borderRadius: 16,
+            padding: "12px 14px",
+            fontSize: 14,
+            lineHeight: 1.6,
+            fontWeight: 700,
+            marginBottom: 18,
+          }}
+        >
+          {captureGuidanceNote}
+        </section>
+      ) : null}
       {busy || workspaceLoading ? (
         <div style={{ ...mainCard(), marginBottom: 18 }}>Loading family learners…</div>
       ) : err ? (

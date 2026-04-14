@@ -50,9 +50,23 @@ export type ParentLanguageSummary = {
 export type ReportStrengtheningAction = {
   headline: string;
   detail: string;
+  targetRoute?: string;
+  focus?: string;
   href?: string;
   hrefLabel?: string;
 };
+
+function buildGuidanceHref(
+  route: string,
+  params?: Record<string, string | null | undefined>,
+) {
+  const entries = Object.entries(params ?? {}).filter(([, value]) => safe(value));
+  if (!entries.length) return route;
+  const query = entries
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(safe(value))}`)
+    .join("&");
+  return `${route}?${query}`;
+}
 
 export type ReportDocumentOverlay = {
   reportEyebrow: string;
@@ -87,6 +101,10 @@ export const reportSectionCopy = {
   background: { eyebrow: "Document Background", title: "Report Background" },
   end: { eyebrow: "End of Report", title: "End of Report" },
 } as const;
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
 
 function joinNatural(items: string[]) {
   if (!items.length) return "";
@@ -670,6 +688,7 @@ export function buildStrengthenReportGuidance(input: {
           headline: "Choose the learner first",
           detail:
             "Once a learner is selected, EduDecks can turn the existing curriculum, planning, and evidence signals into more specific guidance.",
+          targetRoute: "/reports",
           href: "/reports",
           hrefLabel: "Stay in /reports",
         },
@@ -687,8 +706,10 @@ export function buildStrengthenReportGuidance(input: {
           headline: "Finish curriculum setup",
           detail:
             "A canonical curriculum selection is the next step so planning and evidence can be interpreted against the right outcomes.",
-          href: "/curriculum",
-          hrefLabel: "Open /curriculum",
+          targetRoute: "/curriculum",
+          focus: "curriculum-setup",
+          href: buildGuidanceHref("/curriculum", { focus: "curriculum-setup" }),
+          hrefLabel: "Review curriculum setup",
         },
       ],
     };
@@ -704,8 +725,10 @@ export function buildStrengthenReportGuidance(input: {
           headline: "Seed the selected curriculum level",
           detail:
             "Once outcomes are available, EduDecks can show where planning and evidence are lining up and where the report still needs support.",
-          href: "/curriculum",
-          hrefLabel: "Open /curriculum",
+          targetRoute: "/curriculum",
+          focus: "no-outcomes",
+          href: buildGuidanceHref("/curriculum", { focus: "no-outcomes" }),
+          hrefLabel: "Review curriculum map",
         },
       ],
     };
@@ -725,15 +748,22 @@ export function buildStrengthenReportGuidance(input: {
           headline: "Link a few planned activities first",
           detail:
             "A small amount of curriculum-linked planning gives the report a clearer structure to work from.",
-          href: "/planner",
-          hrefLabel: "Open /planner",
+          targetRoute: "/planner",
+          focus: "start-planning",
+          href: buildGuidanceHref("/planner", {
+            focus: "start-planning",
+            student: selectedStudentId,
+          }),
+          hrefLabel: "Go to Planner",
         },
         {
           headline: "Capture one or two pieces of proof",
           detail:
             "Once some evidence is linked to outcomes, the report can move beyond a very early-stage profile.",
-          href: "/capture",
-          hrefLabel: "Open /capture",
+          targetRoute: "/capture",
+          focus: "start-evidence",
+          href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+          hrefLabel: "Capture evidence",
         },
       ],
     };
@@ -748,8 +778,10 @@ export function buildStrengthenReportGuidance(input: {
       detail: focusAreas
         ? `These areas already have planning in place. A little proof here would make the report much stronger.`
         : "Planning is visible, but the report still needs some captured proof before it will feel well supported.",
-      href: "/capture",
-      hrefLabel: "Open /capture",
+      targetRoute: "/capture",
+      focus: "planned-without-evidence",
+      href: buildGuidanceHref("/capture", { focus: "planned-without-evidence" }),
+      hrefLabel: "Capture evidence",
     });
   }
 
@@ -760,8 +792,13 @@ export function buildStrengthenReportGuidance(input: {
         ? `Add planning around ${focusAreas}`
         : "Link planning around recent evidence",
       detail: "A little more forward planning will help the report show intention as clearly as proof.",
-      href: "/planner",
-      hrefLabel: "Open /planner",
+      targetRoute: "/planner",
+      focus: "alignment",
+      href: buildGuidanceHref("/planner", {
+        focus: "alignment",
+        student: selectedStudentId,
+      }),
+      hrefLabel: "Go to Planner",
     });
   }
 
@@ -773,8 +810,10 @@ export function buildStrengthenReportGuidance(input: {
         : "Close the proof gap in planned areas",
       detail:
         "Some outcomes are already planned but not yet evidenced. Closing that gap is one of the fastest ways to strengthen the report.",
-      href: "/capture",
-      hrefLabel: "Open /capture",
+      targetRoute: "/capture",
+      focus: "planned-without-evidence",
+      href: buildGuidanceHref("/capture", { focus: "planned-without-evidence" }),
+      hrefLabel: "Capture evidence",
     });
   }
 
@@ -789,8 +828,13 @@ export function buildStrengthenReportGuidance(input: {
         : "Broaden the report slightly",
       detail:
         "A little extra coverage in thinner areas will help the report feel more balanced and less narrow.",
-      href: "/planner",
-      hrefLabel: "Open /planner",
+      targetRoute: "/planner",
+      focus: "coverage-gap",
+      href: buildGuidanceHref("/planner", {
+        focus: "coverage-gap",
+        student: selectedStudentId,
+      }),
+      hrefLabel: "Plan coverage",
     });
   }
 
@@ -799,8 +843,10 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Add evidence for this learner",
       detail:
         "There is not enough learner evidence in the current filter to build a strong report position yet.",
-      href: "/capture",
-      hrefLabel: "Open /capture",
+      targetRoute: "/capture",
+      focus: "start-evidence",
+      href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+      hrefLabel: "Capture evidence",
     });
   }
 
@@ -809,7 +855,9 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Choose a few stronger evidence items",
       detail:
         "Selecting two or three good anchor pieces will make the saved report easier to trust and easier to review.",
-      href: "/reports",
+      targetRoute: "/reports",
+      focus: "refine-evidence",
+      href: buildGuidanceHref("/reports", { focus: "refine-evidence" }),
       hrefLabel: "Refine selection here",
     });
   }
@@ -819,7 +867,9 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Mark two items as core anchors",
       detail:
         "A small core evidence base helps the report read more clearly before the appendix does the supporting work.",
-      href: "/reports",
+      targetRoute: "/reports",
+      focus: "core-anchors",
+      href: buildGuidanceHref("/reports", { focus: "core-anchors" }),
       hrefLabel: "Refine selection here",
     });
   }
@@ -829,7 +879,9 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Add a short family note",
       detail:
         "A brief note can make the final output feel more human and more intentional without changing the evidence base.",
-      href: "/reports",
+      targetRoute: "/reports",
+      focus: "family-note",
+      href: buildGuidanceHref("/reports", { focus: "family-note" }),
       hrefLabel: "Add note here",
     });
   }
@@ -839,6 +891,8 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Review the saved output",
       detail:
         "Most of the core pieces are in place. The next step is to review the output and decide whether it is ready to export.",
+      targetRoute: "/reports/output",
+      focus: "review-output",
       href: draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : "/reports",
       hrefLabel: draftId ? "Open /reports/output" : "Stay in /reports",
     });
@@ -849,6 +903,8 @@ export function buildStrengthenReportGuidance(input: {
       headline: "Move into output once these gaps are closed",
       detail:
         "This report is already taking shape well. One or two small improvements should be enough before reviewing the output.",
+      targetRoute: "/reports/output",
+      focus: "review-output",
       href: draftId ? `/reports/output?draftId=${encodeURIComponent(draftId)}` : "/reports",
       hrefLabel: draftId ? "Open /reports/output" : "Stay in /reports",
     });
