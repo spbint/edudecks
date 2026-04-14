@@ -843,99 +843,74 @@ function ReportsPageContent() {
         .length,
     [selectedEvidenceIds, selectionMeta]
   );
+  const hasReportEvidence = studentEvidence.length > 0;
+  const hasReportSelection = selectedEvidenceIds.length > 0;
+  const hasFamilyNote = Boolean(notes.trim());
+  const hasCoreAnchors = selectedCoreCount >= 2;
   const reportsEvidenceCompletion = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
 
-    const selectedCount = selectedEvidenceIds.length;
-    const availableCount = studentEvidence.length;
-    const coreCount = selectedCoreCount;
-
     if (reportsFocus === "core-anchors") {
       return {
-        inPlaceText:
-          selectedCount > 0
-            ? `${selectedCount} evidence item${selectedCount === 1 ? "" : "s"} are already in the draft.`
-            : availableCount > 0
-              ? `${availableCount} evidence item${availableCount === 1 ? "" : "s"} are available to choose from.`
-              : "You have a report space ready for evidence once learning records are chosen.",
-        stillNeededText:
-          coreCount >= 2
-            ? "Your main anchors are in place, though you can still tighten the set if needed."
-            : coreCount === 1
-              ? "One more core anchor will make the report feel steadier."
-              : "The draft still needs clear core anchors before it will feel well-supported.",
-        nextStepText:
-          coreCount >= 2
-            ? "Keep the core set calm and trustworthy, then move on to the family note or output."
-            : selectedCount > 0
-              ? "Mark one or two of the clearest selected items as core."
-              : "Choose one or two strong evidence items first, then mark them as core.",
+        inPlaceText: hasReportSelection
+          ? "You have evidence selected already."
+          : "You have evidence ready to choose.",
+        stillNeededText: hasCoreAnchors
+          ? "Your anchors are already clear."
+          : "Add one or two core anchors.",
+        nextStepText: hasReportSelection
+          ? "Mark the clearest items as core."
+          : "Choose evidence, then mark core anchors.",
       };
     }
 
     return {
-      inPlaceText:
-        selectedCount > 0
-          ? `${selectedCount} evidence item${selectedCount === 1 ? "" : "s"} are already selected for this draft.`
-          : availableCount > 0
-            ? `${availableCount} evidence item${availableCount === 1 ? "" : "s"} are visible here and ready to review.`
-            : "You have the report builder open and ready for an evidence base.",
-      stillNeededText:
-        selectedCount >= 3
-          ? "The draft has a usable evidence base, though you may still want to trim it to the clearest pieces."
-          : selectedCount > 0
-            ? "A little more selection would make the draft easier to trust and export."
-            : "The draft still needs a small, clear set of evidence before it will feel grounded.",
-      nextStepText:
-        selectedCount >= 3
-          ? "Keep the set focused on the evidence that shows the learning most clearly."
-          : availableCount > 0
-            ? "Choose one or two pieces that show the learning clearly, then save the draft."
-            : "Capture or link one useful learning moment first, then come back to choose it here.",
+      inPlaceText: hasReportEvidence
+        ? "You have evidence ready to work with."
+        : "You do not have evidence here yet.",
+      stillNeededText: hasReportSelection
+        ? "You can refine this evidence set."
+        : "Choose one or two strong pieces.",
+      nextStepText: hasReportEvidence
+        ? "Select the clearest evidence first."
+        : "Capture or link one learning moment.",
     };
   }, [
+    hasCoreAnchors,
+    hasReportEvidence,
+    hasReportSelection,
     highlightEvidenceSelection,
     reportsFocus,
-    selectedEvidenceIds.length,
-    selectedCoreCount,
-    studentEvidence.length,
   ]);
   const reportsDraftCompletion = useMemo(() => {
     if (!highlightDraftPosition) return null;
 
     return {
-      inPlaceText:
-        draftId
-          ? "A saved draft is already in place for this report."
-          : "You already have enough here to start shaping a real draft.",
-      stillNeededText:
-        selectedCoreCount >= 2
-          ? "The core anchors are in place, but you may still want a short note before exporting."
-          : selectedCoreCount === 1
-            ? "One more strong core anchor would make this draft feel more stable."
-            : "The draft still needs a clearer backbone of core evidence.",
-      nextStepText:
-        selectedCoreCount >= 2
-          ? "Save or reopen the draft, then move into the print-ready output when you are ready."
-          : "Choose and mark one or two core evidence items before treating the draft as settled.",
+      inPlaceText: draftId
+        ? "A saved draft is already in place."
+        : "You have a draft base started.",
+      stillNeededText: hasCoreAnchors
+        ? "Only light refinement may remain."
+        : "The draft still needs core anchors.",
+      nextStepText: hasCoreAnchors
+        ? "Save it, then open the output."
+        : "Choose one or two core items.",
     };
-  }, [draftId, highlightDraftPosition, selectedCoreCount]);
+  }, [draftId, hasCoreAnchors, highlightDraftPosition]);
   const reportsFamilyNoteCompletion = useMemo(() => {
     if (!highlightFamilyNote) return null;
-
-    const trimmedNotes = notes.trim();
     return {
-      inPlaceText: trimmedNotes
-        ? "You already have a family note started here."
-        : "The draft structure is in place and ready for a short family-facing note.",
-      stillNeededText: trimmedNotes
-        ? "You may only need a light final pass so the note reads clearly."
-        : "The report still needs a brief human note to sound more intentional and complete.",
-      nextStepText: trimmedNotes
-        ? "Tighten the note so it says simply what matters most in this report."
-        : "Add two or three calm sentences about what feels most important in this season of learning.",
+      inPlaceText: hasFamilyNote
+        ? "You have started the family note."
+        : "The note space is ready here.",
+      stillNeededText: hasFamilyNote
+        ? "It may only need a light edit."
+        : "The report still needs a short note.",
+      nextStepText: hasFamilyNote
+        ? "Tighten the note and keep it simple."
+        : "Add two calm sentences about this learning.",
     };
-  }, [highlightFamilyNote, notes]);
+  }, [hasFamilyNote, highlightFamilyNote]);
 
   const evidenceCoverageCount = useMemo(() => {
     const set = new Set(

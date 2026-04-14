@@ -238,54 +238,51 @@ export default function CurriculumPage() {
   );
   const highlightSetupSection = curriculumFocus === "curriculum-setup";
   const highlightOutcomesSection = curriculumFocus === "no-outcomes";
+  const hasCurriculumSetup = Boolean(activeLearner && hasSelectedCurriculum);
+  const hasCurriculumOutcomes = Boolean((pageData?.totalOutcomes ?? 0) > 0);
+  const hasCurriculumTracking = Boolean((pageData?.trackedOutcomeCount ?? 0) > 0);
   const curriculumSetupCompletion = useMemo(() => {
     if (!highlightSetupSection) return null;
 
     return {
       inPlaceText: activeLearner
-        ? "The learner context is already in place."
-        : "This page is ready for a learner once one is selected.",
-      stillNeededText: hasSelectedCurriculum
-        ? "The main setup pieces are present, though deeper alignment still depends on outcomes and linked progress."
-        : "This learner still needs a framework and level before the curriculum map can do useful work.",
-      nextStepText: hasSelectedCurriculum
-        ? "Once the setup looks right, use the outcome map below to begin tracking or linking learning."
-        : "Confirm the learner, then choose the family curriculum framework and level first.",
+        ? "The learner is already selected."
+        : "This page is ready for a learner.",
+      stillNeededText: hasCurriculumSetup
+        ? "Deeper alignment still needs outcomes."
+        : "This learner still needs framework setup.",
+      nextStepText: hasCurriculumSetup
+        ? "Use the map below to start gently."
+        : "Choose the framework and level first.",
     };
-  }, [activeLearner, hasSelectedCurriculum, highlightSetupSection]);
+  }, [activeLearner, hasCurriculumSetup, highlightSetupSection]);
   const curriculumOutcomesCompletion = useMemo(() => {
     if (!highlightOutcomesSection) return null;
 
-    const totalOutcomes = pageData?.totalOutcomes ?? 0;
-    const trackedCount = pageData?.trackedOutcomeCount ?? 0;
-
     return {
-      inPlaceText:
-        totalOutcomes > 0
-          ? `${totalOutcomes} canonical outcome${totalOutcomes === 1 ? "" : "s"} are available for this learner's setup.`
-          : hasSelectedCurriculum
-            ? "The learner's framework and level are already selected."
-            : "The page is ready for outcome targeting once setup is complete.",
-      stillNeededText:
-        totalOutcomes > 0
-          ? trackedCount > 0
-            ? "Some progress is already visible, but weaker areas may still need more deliberate tracking."
-            : "Outcomes are available, but tracking has not really started yet."
-          : hasSelectedCurriculum
-            ? "This setup still needs seeded outcomes before deeper targeting becomes possible."
-            : "Deeper outcome targeting will stay limited until curriculum setup is finished.",
-      nextStepText:
-        totalOutcomes > 0
-          ? "Start with one or two outcomes that matter most right now and update them gently."
-          : hasSelectedCurriculum
-            ? "Seed or confirm the outcomes for this framework and level, then come back to track them."
-            : "Finish curriculum setup first so outcome targeting has something real to attach to.",
+      inPlaceText: hasCurriculumOutcomes
+        ? "Outcomes are available here."
+        : hasCurriculumSetup
+          ? "The setup is already in place."
+          : "This area is ready after setup.",
+      stillNeededText: hasCurriculumOutcomes
+        ? hasCurriculumTracking
+          ? "A few areas may still need attention."
+          : "Tracking has not really started yet."
+        : hasCurriculumSetup
+          ? "This setup still needs seeded outcomes."
+          : "Outcome targeting still needs setup.",
+      nextStepText: hasCurriculumOutcomes
+        ? "Start with one or two outcomes."
+        : hasCurriculumSetup
+          ? "Confirm outcomes for this level."
+          : "Finish setup, then come back.",
     };
   }, [
-    hasSelectedCurriculum,
+    hasCurriculumOutcomes,
+    hasCurriculumSetup,
+    hasCurriculumTracking,
     highlightOutcomesSection,
-    pageData?.totalOutcomes,
-    pageData?.trackedOutcomeCount,
   ]);
 
   return (

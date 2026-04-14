@@ -506,56 +506,58 @@ export default function PlannerPage() {
     plannerFocus === "start-planning" ||
     plannerFocus === "coverage-gap" ||
     plannerFocus === "alignment";
+  const hasPlanDirection = Boolean(
+    safe(selectedGoal) || safe(focusTitle) || safe(focusSummary),
+  );
+  const hasPlannerActions = actions.length > 0;
   const plannerLinkedActionCount = useMemo(
     () =>
       actions.filter((action) => (plannerOutcomeLinks[action.id] ?? []).length > 0).length,
     [actions, plannerOutcomeLinks],
   );
+  const hasPlannerLinks = plannerLinkedActionCount > 0;
   const plannerFocusCompletion = useMemo(() => {
     if (!highlightFocusSection) return null;
-
-    const hasDirection = Boolean(safe(selectedGoal) || safe(focusTitle) || safe(focusSummary));
     return {
-      inPlaceText: hasDirection
-        ? "You already have a weekly direction taking shape here."
-        : "The planner is ready for a simple weekly direction.",
-      stillNeededText: hasDirection
-        ? "A little more structure will make the week easier to follow."
-        : "The week still needs one clear focus before the rest will feel simple.",
-      nextStepText:
-        actions.length > 0
-          ? "Keep the focus steady, then make sure the checklist matches it."
-          : "Name one useful focus for the week, then add one or two actions beneath it.",
+      inPlaceText: hasPlanDirection
+        ? "You have a weekly focus started."
+        : "This week is ready for a focus.",
+      stillNeededText: hasPlanDirection
+        ? "A little more structure will help."
+        : "The week still needs one clear direction.",
+      nextStepText: hasPlannerActions
+        ? "Keep the checklist matched to it."
+        : "Set one focus, then add actions.",
     };
-  }, [actions.length, focusSummary, focusTitle, highlightFocusSection, selectedGoal]);
+  }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
   const plannerChecklistCompletion = useMemo(() => {
     if (!highlightChecklistSection) return null;
 
     return {
-      inPlaceText:
-        actions.length > 0
-          ? `${actions.length} checklist item${actions.length === 1 ? "" : "s"} are already in place.`
-          : "The checklist area is ready for a small weekly plan.",
-      stillNeededText:
-        plannerFocus === "alignment"
-          ? plannerLinkedActionCount > 0
-            ? "Some planning is already linked, though one or two more links would make the week easier to trace."
-            : "Planning is still not linked clearly enough to curriculum."
-          : actions.length >= 2
-            ? "You have enough to move forward, though one clear linked action is still worth saving."
-            : actions.length === 1
-              ? "One more simple action would make the week easier to carry."
-              : "The week still needs a small checklist before it will feel grounded.",
-      nextStepText:
-        plannerFocus === "alignment"
-          ? plannerLinkedActionCount > 0
-            ? "Open the curriculum links on the most useful remaining action and align it too."
-            : "Save the planner, then link one or two checklist actions to curriculum."
-          : actions.length >= 2
-            ? "Save the planner once the checklist feels realistic for this week."
-            : "Add one or two simple actions you can actually follow through this week.",
+      inPlaceText: hasPlannerActions
+        ? "You have planned actions here."
+        : "The checklist is ready to use.",
+      stillNeededText: plannerFocus === "alignment"
+        ? hasPlannerLinks
+          ? "One or two more links may help."
+          : "The plan still needs curriculum links."
+        : hasPlannerActions
+          ? "One more clear step may help."
+          : "The week still needs one or two actions.",
+      nextStepText: plannerFocus === "alignment"
+        ? hasPlannerLinks
+          ? "Link the next useful action."
+          : "Save and link one planned action."
+        : hasPlannerActions
+          ? "Save the plan when it feels clear."
+          : "Add one small action you can keep.",
     };
-  }, [actions.length, highlightChecklistSection, plannerFocus, plannerLinkedActionCount]);
+  }, [
+    hasPlannerActions,
+    hasPlannerLinks,
+    highlightChecklistSection,
+    plannerFocus,
+  ]);
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
