@@ -69,6 +69,14 @@ function learnerLabel(input: {
   return matched?.label || safe(input.draft?.child_name) || "Learner";
 }
 
+function naturalList(values: string[]) {
+  const items = values.map((value) => safe(value)).filter(Boolean);
+  if (!items.length) return "";
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
 const pageStyle: React.CSSProperties = {
   minHeight: "100%",
   display: "grid",
@@ -569,6 +577,116 @@ function ReportsOutputPageContent() {
     curriculumCoverage.ready &&
     (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
   const coverageExplanation = buildCoverageExplanation(curriculumCoverage);
+  const outputStatus = useMemo(() => {
+    if (!selectedEvidenceIds.length) {
+      return { label: "Building evidence base", tone: "warning" as const };
+    }
+    if (!hasMeaningfulCoverage) {
+      return { label: "Picture still forming", tone: "secondary" as const };
+    }
+    if (readinessScore >= 85) {
+      return { label: "Grounded summary", tone: "success" as const };
+    }
+    if (readinessScore >= 65) {
+      return { label: "Useful working draft", tone: "info" as const };
+    }
+    return { label: "Early summary", tone: "warning" as const };
+  }, [hasMeaningfulCoverage, readinessScore, selectedEvidenceIds.length]);
+  const evidenceBaseSummary = useMemo(() => {
+    if (!selectedEvidenceIds.length) {
+      return "This draft is still forming around a very small evidence base.";
+    }
+    const pieces = `${selectedEvidenceIds.length} selected evidence item${
+      selectedEvidenceIds.length === 1 ? "" : "s"
+    }`;
+    const coreSummary = selectedCoreCount
+      ? `${selectedCoreCount} core anchor${selectedCoreCount === 1 ? "" : "s"}`
+      : "no clear core anchors yet";
+    const appendixSummary = selectedAppendixCount
+      ? `${selectedAppendixCount} appendix item${selectedAppendixCount === 1 ? "" : "s"}`
+      : "no appendix items yet";
+
+    return hasMeaningfulCoverage
+      ? `This summary currently draws on ${pieces}, including ${coreSummary} and ${appendixSummary}.`
+      : `This draft currently includes ${pieces}, with ${coreSummary} and ${appendixSummary}.`;
+  }, [
+    hasMeaningfulCoverage,
+    selectedAppendixCount,
+    selectedCoreCount,
+    selectedEvidenceIds.length,
+  ]);
+  const overviewSupportNote = useMemo(() => {
+    if (!selectedEvidenceIds.length) {
+      return "The learning picture is only just beginning. A few well-chosen examples will make the report easier to trust.";
+    }
+    if (!hasMeaningfulCoverage) {
+      return "The story is starting to show, but a little more linked planning and evidence will make it clearer and steadier.";
+    }
+    if (selectedCoreCount < 2) {
+      return "The learning story is visible now, and a couple of clear anchors will make it easier to follow.";
+    }
+    return "The current summary is grounded in visible evidence and curriculum links, so it reads as a connected picture rather than a loose set of notes.";
+  }, [hasMeaningfulCoverage, selectedCoreCount, selectedEvidenceIds.length]);
+  const coverageInterpretationText = useMemo(() => {
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+      return "Curriculum context is still being set up, so this section can only show an early picture of learning so far.";
+    }
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+      return "The curriculum path is chosen, but the outcome map is still taking shape. More structure here will make the report clearer.";
+    }
+    if (!hasMeaningfulCoverage) {
+      return "This section is beginning to take shape. More linked planning and evidence will make the coverage picture clearer over time.";
+    }
+    return readiness.message;
+  }, [curriculumCoverage, hasMeaningfulCoverage, readiness.message]);
+  const strengthsSupportText = useMemo(() => {
+    if (strongestAreas.length) {
+      return `Current evidence feels most settled in ${naturalList(strongestAreas)}.`;
+    }
+    if (hasMeaningfulCoverage) {
+      return "Some areas are starting to read as steadier than others, even if no single area is dominant yet.";
+    }
+    return "Strengths will read more clearly once a few more linked examples are in place.";
+  }, [hasMeaningfulCoverage, strongestAreas]);
+  const appendixLead = useMemo(() => {
+    if (supportingEvidence.length) {
+      return "These records show the learning moments currently supporting the summary above.";
+    }
+    return "Supporting records will appear here as more linked evidence is added to the draft.";
+  }, [supportingEvidence.length]);
+  const evidenceSummaryLead = useMemo(() => {
+    if (!selectedEvidenceIds.length) {
+      return "The report is still waiting on a clearer evidence base before the learning story can feel settled.";
+    }
+    if (!hasMeaningfulCoverage) {
+      return "The draft already has material to work from, though the overall picture is still modest and building.";
+    }
+    return "The selected evidence gives this report a clear base to read from, especially where the strongest anchors are already visible.";
+  }, [hasMeaningfulCoverage, selectedEvidenceIds.length]);
+  const nextStepsLead = useMemo(() => {
+    if (!hasMeaningfulCoverage) {
+      return "The next useful step is to keep building the record gently so the report grows clearer from real examples.";
+    }
+    return parentLanguage.nextStep;
+  }, [hasMeaningfulCoverage, parentLanguage.nextStep]);
+  const furtherDevelopmentText = useMemo(() => {
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum") {
+      return "This report is still waiting on curriculum context, so the learning picture can only stay broad for now.";
+    }
+    if (!curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes") {
+      return "The learner's curriculum path is chosen, but the outcomes for this level are still not in place yet.";
+    }
+    if (curriculumCoverage.plannedOutcomes === 0 && curriculumCoverage.linkedOutcomes === 0) {
+      return "This report is still at an early stage. More linked planning and evidence will help the picture feel clearer and more useful.";
+    }
+    return "Planning is visible, though some parts of the report still need stronger evidence support to feel settled.";
+  }, [curriculumCoverage]);
+  const backgroundLead = useMemo(() => {
+    if (!hasMeaningfulCoverage) {
+      return "This background shows the early structure behind the report, even while the fuller picture is still forming.";
+    }
+    return "This background shows how much of the report is already grounded in tracked outcomes, planning links, and evidence links.";
+  }, [hasMeaningfulCoverage]);
 
   if (loading) {
     return (
@@ -834,8 +952,10 @@ function ReportsOutputPageContent() {
                 {packError}
               </div>
             ) : null}
-            <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
-            <span style={pillStyle("secondary")}>{readinessScore}% readiness</span>
+            <span style={pillStyle(outputStatus.tone)}>{outputStatus.label}</span>
+            {hasMeaningfulCoverage ? (
+              <span style={pillStyle(readiness.tone)}>{readiness.label}</span>
+            ) : null}
             {curriculumCoverage.ready ? (
               <span
                 style={pillStyle(
@@ -868,6 +988,11 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.overview.title}</div>
         </div>
         <div style={bodyStyle}>{parentLanguage.overall}</div>
+        <div style={{ ...softCardStyle, marginTop: 16 }}>
+          <div style={labelStyle}>What this summary is drawing from</div>
+          <div style={bodyStyle}>{evidenceBaseSummary}</div>
+          <div style={{ ...smallStyle, marginTop: 8 }}>{overviewSupportNote}</div>
+        </div>
         {draft.notes ? (
           <div style={{ ...softCardStyle, marginTop: 16 }}>
             <div style={labelStyle}>Family context note</div>
@@ -915,8 +1040,8 @@ function ReportsOutputPageContent() {
         </div>
 
         <div style={{ ...softCardStyle, marginTop: 14 }}>
-          <div style={labelStyle}>Coverage interpretation</div>
-          <div style={bodyStyle}>{readiness.message}</div>
+          <div style={labelStyle}>Current picture</div>
+          <div style={bodyStyle}>{coverageInterpretationText}</div>
         </div>
       </section>
 
@@ -936,23 +1061,17 @@ function ReportsOutputPageContent() {
             <div style={sectionEyebrowStyle}>{reportSectionCopy.evidenceSummary.eyebrow}</div>
             <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
           </div>
-          <div style={bodyStyle}>
-            {selectedEvidenceIds.length
-              ? `${selectedEvidenceIds.length} linked evidence item${
-                  selectedEvidenceIds.length === 1 ? "" : "s"
-                } are attached to this draft, including ${selectedCoreCount} core anchor${
-                  selectedCoreCount === 1 ? "" : "s"
-                } and ${selectedAppendixCount} appendix item${
-                  selectedAppendixCount === 1 ? "" : "s"
-                }.`
-              : "No linked evidence is attached to this draft yet."}
+          <div style={bodyStyle}>{evidenceSummaryLead}</div>
+          <div style={{ ...softCardStyle, marginTop: 14 }}>
+            <div style={labelStyle}>Evidence base in this draft</div>
+            <div style={{ ...bodyStyle, marginTop: 8 }}>{evidenceBaseSummary}</div>
           </div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
-            <div style={labelStyle}>Learning focus noted in this draft</div>
+            <div style={labelStyle}>Learning focus noted here</div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {selectedAreas.length
                 ? selectedAreas.join(", ")
-                : "No specific area focus is attached to this draft yet."}
+                : "No specific learning area focus is attached to this draft yet."}
             </div>
           </div>
         </div>
@@ -966,12 +1085,13 @@ function ReportsOutputPageContent() {
             <div style={h2Style}>{reportSectionCopy.strengths.title}</div>
           </div>
           <div style={bodyStyle}>{parentLanguage.strengths}</div>
+          <div style={{ ...smallStyle, marginTop: 8 }}>{strengthsSupportText}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
             <div style={labelStyle}>Strongest curriculum areas</div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {strongestAreas.length
                 ? strongestAreas.join(", ")
-                : "No curriculum areas are strongly supported yet."}
+                : "No area stands out strongly yet, though the picture is beginning to form."}
             </div>
           </div>
         </div>
@@ -986,6 +1106,7 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.appendix.title}</div>
         </div>
         <div style={smallStyle}>{marketOverlay.appendixIntro}</div>
+        <div style={{ ...bodyStyle, marginTop: 10 }}>{appendixLead}</div>
 
         {supportingEvidence.length ? (
           <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
@@ -1032,7 +1153,7 @@ function ReportsOutputPageContent() {
                     ? item.summary.length > 220
                       ? `${item.summary.slice(0, 220)}...`
                       : item.summary
-                    : "No written summary was saved with this evidence item."}
+                    : "No written note was saved with this evidence item yet."}
                 </div>
 
                 <div style={{ ...smallStyle, marginTop: 8 }}>
@@ -1044,7 +1165,7 @@ function ReportsOutputPageContent() {
                             : outcome.outcomeLabel,
                         )
                         .join(" • ")}`
-                    : "No linked outcome labels are available for this evidence item yet."}
+                    : "Outcome labels have not been linked here yet."}
                 </div>
                 {item.attachmentCount > 0 ? (
                   <div style={{ ...smallStyle, marginTop: 8 }}>
@@ -1085,7 +1206,7 @@ function ReportsOutputPageContent() {
           <div style={sectionEyebrowStyle}>{reportSectionCopy.nextSteps.eyebrow}</div>
           <div style={h2Style}>{reportSectionCopy.nextSteps.title}</div>
         </div>
-        <div style={bodyStyle}>{parentLanguage.nextStep}</div>
+        <div style={bodyStyle}>{nextStepsLead}</div>
 
         <div
           className="reports-output-grid-three"
@@ -1101,7 +1222,7 @@ function ReportsOutputPageContent() {
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {planningAheadAreas.length
                 ? planningAheadAreas.join(", ")
-                : "No major planning gap is standing out yet."}
+                : "No major planning gap is standing out right now."}
             </div>
           </div>
 
@@ -1119,7 +1240,7 @@ function ReportsOutputPageContent() {
             <div style={{ ...bodyStyle, marginTop: 8 }}>
               {weakestAreas.length
                 ? weakestAreas.join(", ")
-                : "No obvious zero-coverage area is standing out yet."}
+                : "No obvious thin area is standing out right now."}
             </div>
           </div>
         </div>
@@ -1139,16 +1260,7 @@ function ReportsOutputPageContent() {
             <div style={sectionEyebrowStyle}>{reportSectionCopy.furtherDevelopment.eyebrow}</div>
             <div style={h2Style}>{reportSectionCopy.furtherDevelopment.title}</div>
           </div>
-          <div style={bodyStyle}>
-            {!curriculumCoverage.ready && curriculumCoverage.reason === "no-curriculum"
-              ? "There is currently insufficient curriculum-linked context to build a strong report summary."
-              : !curriculumCoverage.ready && curriculumCoverage.reason === "no-outcomes"
-                ? "The learner's curriculum is selected, but no seeded outcomes are available yet for this level."
-                : curriculumCoverage.plannedOutcomes === 0 &&
-                    curriculumCoverage.linkedOutcomes === 0
-                  ? "There is currently insufficient curriculum-linked planning and evidence to generate a strong report summary."
-                  : "Planning is present, though evidence support remains limited in parts of the report."}
-          </div>
+          <div style={bodyStyle}>{furtherDevelopmentText}</div>
           <div style={{ ...smallStyle, marginTop: 10 }}>
             Return to <Link href="/reports" style={{ color: "#2563eb", fontWeight: 900 }}>/reports</Link>{" "}
             to refine the draft, add planning in{" "}
@@ -1170,6 +1282,7 @@ function ReportsOutputPageContent() {
         <div style={smallStyle}>
           {marketOverlay.backgroundNote}
         </div>
+        <div style={{ ...bodyStyle, marginTop: 10 }}>{backgroundLead}</div>
         <div
           className="reports-output-grid-four"
           style={{
@@ -1199,8 +1312,7 @@ function ReportsOutputPageContent() {
         {!hasMeaningfulCoverage ? (
           <div style={{ ...softCardStyle, marginTop: 14 }}>
             <div style={bodyStyle}>
-              There is not enough information yet to build a fuller report. Add
-              planning in{" "}
+              The report is still building its base. Add planning in{" "}
               <Link href="/planner" style={{ color: "#2563eb", fontWeight: 900 }}>
                 /planner
               </Link>{" "}
@@ -1208,7 +1320,7 @@ function ReportsOutputPageContent() {
               <Link href="/capture" style={{ color: "#2563eb", fontWeight: 900 }}>
                 /capture
               </Link>{" "}
-              to strengthen this report.
+              to make the picture clearer over time.
             </div>
           </div>
         ) : null}
