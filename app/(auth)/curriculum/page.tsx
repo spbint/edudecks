@@ -429,8 +429,14 @@ export default function CurriculumPage() {
     }
     return hasCurriculumTracking
       ? { text: "Go to Capture", href: "/capture" }
-      : { text: "Go to Planner", href: "/planner" };
+      : {
+          text: "Go to Planner",
+          href: activeLearner?.id
+            ? `/planner?student=${encodeURIComponent(activeLearner.id)}`
+            : "/planner",
+        };
   }, [
+    activeLearner?.id,
     hasCurriculumOutcomes,
     hasCurriculumTracking,
     highlightOutcomesSection,
