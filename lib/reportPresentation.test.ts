@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildReportDocumentOverlay,
   buildReportExportPackCopy,
+  buildReportPeriodPresentation,
   buildReportSubmissionWorkflow,
   getAuCompliancePhrases,
   getReportComplianceContext,
@@ -314,5 +315,85 @@ describe("buildReportSubmissionWorkflow", () => {
 
     expect(result?.state).toBe("prepared");
     expect(result?.label).toBe("Prepared for records");
+  });
+});
+
+describe("buildReportPeriodPresentation", () => {
+  it("maps term mode to a calm term presentation", () => {
+    const result = buildReportPeriodPresentation({
+      periodMode: "term",
+      periodLabel: "Term",
+    });
+
+    expect(result.kind).toBe("term");
+    expect(result.label).toBe("Term");
+    expect(result.heading).toBe("Reporting period");
+    expect(result.note).toBe("This report reflects the learning captured in this term.");
+    expect(result.exportNote).toBe(
+      "Use this report as part of your record for this term.",
+    );
+  });
+
+  it("maps semester mode to a semester presentation", () => {
+    const result = buildReportPeriodPresentation({
+      periodMode: "semester",
+      periodLabel: "Semester",
+    });
+
+    expect(result.kind).toBe("semester");
+    expect(result.label).toBe("Semester");
+    expect(result.note).toContain("this semester");
+    expect(result.exportNote).toContain("for this semester");
+  });
+
+  it("maps year mode to annual review wording", () => {
+    const result = buildReportPeriodPresentation({
+      periodMode: "year",
+      periodLabel: "Year",
+    });
+
+    expect(result.kind).toBe("annual");
+    expect(result.label).toBe("Annual review");
+    expect(result.note).toContain("annual review");
+    expect(result.exportNote).toContain("annual review");
+  });
+
+  it("falls back to a custom learning period for unknown modes", () => {
+    const result = buildReportPeriodPresentation({
+      periodMode: "all",
+      periodLabel: "All Time",
+    });
+
+    expect(result.kind).toBe("custom");
+    expect(result.label).toBe("All Time");
+    expect(result.note).toBe("This report reflects the learning captured in this period so far.");
+    expect(result.exportNote).toBe(
+      "Use this report as part of your record for this period.",
+    );
+  });
+
+  it("falls back safely when period inputs are missing", () => {
+    const result = buildReportPeriodPresentation({});
+
+    expect(result.kind).toBe("custom");
+    expect(result.label).toBe("Custom learning period");
+    expect(result.heading).toBe("Reporting period");
+    expect(result.note).toContain("this period so far");
+  });
+
+  it("keeps period wording modest and non-bureaucratic", () => {
+    const result = buildReportPeriodPresentation({
+      periodMode: "term",
+      periodLabel: "Term",
+    });
+
+    const combinedCopy = `${result.heading} ${result.note} ${result.exportNote}`.toLowerCase();
+
+    expect(combinedCopy).not.toContain("official");
+    expect(combinedCopy).not.toContain("complete");
+    expect(combinedCopy).not.toContain("required");
+    expect(combinedCopy).not.toContain("validated");
+    expect(combinedCopy).not.toContain("compliant");
+    expect(combinedCopy).not.toContain("authority");
   });
 });
