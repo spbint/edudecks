@@ -11,6 +11,7 @@ import {
   buildCoverageExplanation,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
+  buildReportExportPackCopy,
   getReportComplianceContext,
   buildReportDocumentOverlay,
   formatEvidenceReference,
@@ -227,6 +228,14 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
   const hasMeaningfulCoverage =
     curriculumCoverage.ready &&
     (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
+  const exportPackCopy = buildReportExportPackCopy({
+    complianceContext,
+    hasMeaningfulCoverage,
+    selectedEvidenceCount: selectedEvidenceIds.length,
+    selectedAreasCount: (draft.selected_areas ?? []).length,
+    includeAppendix: Boolean(draft.include_appendix),
+    supportingEvidenceCount: supportingEvidence.length,
+  });
   const outputStatusLine = !selectedEvidenceIds.length
     ? "Building evidence base."
     : !hasMeaningfulCoverage
@@ -459,6 +468,13 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
                   )}</div>`
                 : ""
             }
+            ${
+              exportPackCopy
+                ? `<div class="muted document-note">${escapeHtml(
+                    exportPackCopy.headerFraming,
+                  )}</div>`
+                : ""
+            }
             <div class="summary-line muted">
               ${escapeHtml(marketOverlay.preparedLinePrefix)} <strong style="color:#0f172a">${escapeHtml(safe(draft.child_name) || "Learner")}</strong> &bull;
               ${escapeHtml(modeLabel(draft.report_mode))} &bull;
@@ -480,6 +496,13 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
             <h2>${escapeHtml(reportSectionCopy.overview.title)}</h2>
           </div>
           <p class="keep-with-next">${escapeHtml(parentLanguage.overall)}</p>
+          ${
+            exportPackCopy
+              ? `<div class="panel keep-with-next"><div class="eyebrow">${escapeHtml(
+                  exportPackCopy.includedHeading,
+                )}</div><p>${escapeHtml(exportPackCopy.includedSummary)}</p></div>`
+              : ""
+          }
           <div class="panel keep-with-next">
             <div class="eyebrow">What this summary is drawing from</div>
             <p>${escapeHtml(evidenceBaseSummary)}</p>
@@ -569,6 +592,11 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
               ? `<div class="muted">${escapeHtml(compliancePhrases.appendixFraming)}</div>`
               : ""
           }
+          ${
+            exportPackCopy
+              ? `<div class="muted">${escapeHtml(exportPackCopy.appendixFraming)}</div>`
+              : ""
+          }
           <div class="muted">${escapeHtml(appendixLead)}</div>
           ${evidenceItems}
         </section>
@@ -597,7 +625,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
             <h2>${escapeHtml(reportSectionCopy.end.title)}</h2>
           </div>
           <p>${escapeHtml(marketOverlay.endNote)}</p>
-          <div class="muted strong">Reference ${escapeHtml(draft.id)}</div>
+          <div class="muted strong">${escapeHtml(exportPackCopy?.referenceLabel || "Reference")} ${escapeHtml(draft.id)}</div>
         </section>
       </main>
     </body>

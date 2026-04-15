@@ -1058,14 +1058,6 @@ function ReportsOutputPageContent() {
                 {marketOverlay.outputRoleNote}
               </div>
             ) : null}
-            {exportPackCopy ? (
-              <div
-                className="reports-output-print-actions"
-                style={{ ...smallStyle, maxWidth: 260 }}
-              >
-                Use this version for printing, saving, or sharing alongside your learning records.
-              </div>
-            ) : null}
             {pdfError ? (
               <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
                 {pdfError}
