@@ -27,6 +27,7 @@ import {
   buildCoverageExplanation,
   buildReportDocumentOverlay,
   buildReportExportPackCopy,
+  buildReportPeriodPresentation,
   buildReportSubmissionWorkflow,
   buildCurriculumCoverage,
   formatEvidenceReference,
@@ -638,6 +639,14 @@ function ReportsOutputPageContent() {
       supportingEvidence.length,
     ],
   );
+  const periodPresentation = useMemo(
+    () =>
+      buildReportPeriodPresentation({
+        periodMode: draft?.period_mode,
+        periodLabel: periodLabel(draft?.period_mode),
+      }),
+    [draft?.period_mode],
+  );
   const coverageExplanation = buildCoverageExplanation(curriculumCoverage);
   const outputStatus = useMemo(() => {
     if (!selectedEvidenceIds.length) {
@@ -992,6 +1001,12 @@ function ReportsOutputPageContent() {
                 <div style={{ ...smallStyle, marginTop: 8 }}>{submissionWorkflow.periodNote}</div>
               </div>
             ) : null}
+            <div style={{ ...smallStyle, marginTop: 10, maxWidth: 720 }}>
+              <strong>{periodPresentation.heading}:</strong> {periodPresentation.label}
+            </div>
+            <div style={{ ...smallStyle, marginTop: 6, maxWidth: 720 }}>
+              {periodPresentation.note}
+            </div>
             <div
               style={{
                 ...smallStyle,
@@ -1087,6 +1102,9 @@ function ReportsOutputPageContent() {
               {submissionWorkflow?.actionFraming ||
                 exportPackCopy?.actionFraming ||
                 marketOverlay.outputRoleNote}
+            </div>
+            <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 260 }}>
+              {periodPresentation.exportNote}
             </div>
             {exportPackCopy ? (
               <div

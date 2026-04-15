@@ -36,6 +36,7 @@ import {
   buildStrengthenReportGuidance,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
+  buildReportPeriodPresentation,
   buildReportReadinessScore,
   buildReportSubmissionWorkflow,
   coverageStatusLabel,
@@ -1273,6 +1274,14 @@ function ReportsPageContent() {
       selectedEvidenceIds.length,
     ],
   );
+  const periodPresentation = useMemo(
+    () =>
+      buildReportPeriodPresentation({
+        periodMode,
+        periodLabel: periodLabel(periodMode),
+      }),
+    [periodMode],
+  );
 
   const curriculumStatusSummary = useMemo(() => {
     if (!curriculumData) return [];
@@ -1890,6 +1899,10 @@ function ReportsPageContent() {
                   </div>
                 </div>
               ) : null}
+              <div style={{ ...smallStyle, marginTop: 10 }}>
+                <strong>{periodPresentation.heading}:</strong> {periodPresentation.label}
+              </div>
+              <div style={{ ...smallStyle, marginTop: 6 }}>{periodPresentation.note}</div>
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 <strong>Why this matters:</strong> {builderValueSignal.valueText}
               </div>
@@ -2829,6 +2842,7 @@ function ReportsPageContent() {
                   {submissionWorkflow.actionFraming}
                 </div>
               ) : null}
+              <div style={{ ...smallStyle, marginTop: 8 }}>{periodPresentation.exportNote}</div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
                 <button
@@ -2884,6 +2898,9 @@ function ReportsPageContent() {
                     {submissionWorkflow.label} {"—"} {submissionWorkflow.periodNote}
                   </div>
                 ) : null}
+                <div style={{ ...smallStyle, marginTop: 8 }}>
+                  {periodPresentation.heading}: {periodPresentation.label}
+                </div>
               </div>
             </section>
           </aside>

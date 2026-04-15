@@ -115,6 +115,14 @@ export type ReportSubmissionWorkflow = {
   periodNote: string;
 };
 
+export type ReportPeriodPresentation = {
+  kind: "term" | "semester" | "annual" | "custom";
+  label: string;
+  heading: string;
+  note: string;
+  exportNote: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -460,6 +468,55 @@ export function buildReportSubmissionWorkflow(input: {
     tone: "secondary",
     actionFraming: "This report is still being shaped before record-keeping.",
     periodNote: `Still building for this ${safePeriodLabel} before you save it with your records.`,
+  };
+}
+
+export function buildReportPeriodPresentation(input: {
+  periodMode?: string | null;
+  periodLabel?: string | null;
+}): ReportPeriodPresentation {
+  const periodMode = safe(input.periodMode).toLowerCase();
+  const normalizedLabel = safe(input.periodLabel);
+
+  if (periodMode === "term") {
+    return {
+      kind: "term",
+      label: normalizedLabel || "Term",
+      heading: "Reporting period",
+      note: "This report reflects the learning captured in this term.",
+      exportNote: "Use this report as part of your record for this term.",
+    };
+  }
+
+  if (periodMode === "semester") {
+    return {
+      kind: "semester",
+      label: normalizedLabel || "Semester",
+      heading: "Reporting period",
+      note: "This report reflects the learning captured in this semester.",
+      exportNote: "Use this report as part of your record for this semester.",
+    };
+  }
+
+  if (periodMode === "year") {
+    return {
+      kind: "annual",
+      label: "Annual review",
+      heading: "Reporting period",
+      note: "This report reflects the learning captured across this annual review.",
+      exportNote: "Use this report as part of your record for this annual review.",
+    };
+  }
+
+  return {
+    kind: "custom",
+    label:
+      normalizedLabel && normalizedLabel.toLowerCase() !== "unknown"
+        ? normalizedLabel
+        : "Custom learning period",
+    heading: "Reporting period",
+    note: "This report reflects the learning captured in this period so far.",
+    exportNote: "Use this report as part of your record for this period.",
   };
 }
 
