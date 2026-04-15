@@ -97,6 +97,15 @@ export type AuCompliancePhrases = {
   evidenceLinksLabel: string;
 };
 
+export type ReportExportPackCopy = {
+  headerFraming: string;
+  actionFraming: string;
+  includedHeading: string;
+  includedSummary: string;
+  appendixFraming: string;
+  referenceLabel: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -322,6 +331,62 @@ export function buildReportDocumentOverlay(value?: string | null): ReportDocumen
       "This document reflects the current saved draft, linked curriculum records, and supporting evidence available at the time of viewing.",
     outputRoleNote:
       "This is the print-ready version of the saved report draft. Return to the builder if you need to keep editing.",
+  };
+}
+
+export function buildReportExportPackCopy(input: {
+  complianceContext: ReportComplianceContext;
+  hasMeaningfulCoverage: boolean;
+  selectedEvidenceCount: number;
+  selectedAreasCount: number;
+  includeAppendix: boolean;
+  supportingEvidenceCount: number;
+}): ReportExportPackCopy | null {
+  const {
+    complianceContext,
+    hasMeaningfulCoverage,
+    selectedEvidenceCount,
+    selectedAreasCount,
+    includeAppendix,
+    supportingEvidenceCount,
+  } = input;
+
+  if (!complianceContext.isAU) return null;
+
+  const headerFraming =
+    selectedEvidenceCount === 0
+      ? "Prepared as part of your family learning record. This report captures the current picture of learning so far."
+      : hasMeaningfulCoverage
+        ? "Prepared as part of your family learning record. Use this version for printing, saving, or sharing alongside your homeschool documentation."
+        : "Prepared as part of your family learning record. Use this version for printing, saving, or sharing alongside your homeschool documentation as the learning picture continues to build.";
+
+  const actionFraming =
+    selectedEvidenceCount === 0
+      ? "Print or save this report as part of your documentation as the learning picture grows."
+      : "Print or save this report as part of your documentation.";
+
+  const includedLearningAreas = selectedAreasCount > 0;
+  const includedSupportingRecords = includeAppendix || supportingEvidenceCount > 0;
+  const includedSummary = includedSupportingRecords
+    ? `This report includes the current summary${
+        includedLearningAreas ? ", linked learning areas where available," : ","
+      } and supporting records included below.`
+    : `This report includes the current summary${
+        includedLearningAreas ? " and linked learning areas where available," : ","
+      } with space for supporting records as more linked evidence is added.`;
+
+  const appendixFraming =
+    supportingEvidenceCount > 0
+      ? "Supporting records linked to this summary are included below as part of the same report pack."
+      : "Supporting records will appear below as they are linked to this summary over time.";
+
+  return {
+    headerFraming,
+    actionFraming,
+    includedHeading: "Included in this report",
+    includedSummary,
+    appendixFraming,
+    referenceLabel: "Record reference",
   };
 }
 

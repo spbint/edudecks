@@ -26,6 +26,7 @@ import {
 import {
   buildCoverageExplanation,
   buildReportDocumentOverlay,
+  buildReportExportPackCopy,
   buildCurriculumCoverage,
   formatEvidenceReference,
   getAuCompliancePhrases,
@@ -594,6 +595,25 @@ function ReportsOutputPageContent() {
   const hasMeaningfulCoverage =
     curriculumCoverage.ready &&
     (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
+  const exportPackCopy = useMemo(
+    () =>
+      buildReportExportPackCopy({
+        complianceContext,
+        hasMeaningfulCoverage,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        selectedAreasCount: selectedAreas.length,
+        includeAppendix: Boolean(draft?.include_appendix),
+        supportingEvidenceCount: supportingEvidence.length,
+      }),
+    [
+      complianceContext,
+      draft?.include_appendix,
+      hasMeaningfulCoverage,
+      selectedAreas.length,
+      selectedEvidenceIds.length,
+      supportingEvidence.length,
+    ],
+  );
   const coverageExplanation = buildCoverageExplanation(curriculumCoverage);
   const outputStatus = useMemo(() => {
     if (!selectedEvidenceIds.length) {
@@ -926,6 +946,11 @@ function ReportsOutputPageContent() {
                 {compliancePhrases.subtitle}
               </div>
             ) : null}
+            {exportPackCopy ? (
+              <div style={{ ...smallStyle, marginTop: 10, maxWidth: 720, color: "#475569" }}>
+                {exportPackCopy.headerFraming}
+              </div>
+            ) : null}
             <div
               style={{
                 ...smallStyle,
@@ -966,7 +991,8 @@ function ReportsOutputPageContent() {
             </div>
             <div style={{ ...smallStyle, marginTop: 12 }}>
               Viewed {shortDate(new Date().toISOString())} {" • "} Updated{" "}
-              {shortDate(draft.updated_at || draft.created_at)} {" • "} Draft reference{" "}
+              {shortDate(draft.updated_at || draft.created_at)} {" • "}{" "}
+              {exportPackCopy?.referenceLabel || "Draft reference"}{" "}
               <span style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
                 {draft.id}
               </span>
@@ -990,7 +1016,11 @@ function ReportsOutputPageContent() {
                 style={actionButtonStyle}
                 disabled={downloadingPdf}
               >
-                {downloadingPdf ? "Preparing PDF…" : "Download PDF"}
+                {downloadingPdf
+                  ? "Preparing PDF..."
+                  : exportPackCopy
+                    ? "Download report PDF"
+                    : "Download PDF"}
               </button>
               <button
                 type="button"
@@ -998,19 +1028,44 @@ function ReportsOutputPageContent() {
                 style={actionButtonStyle}
                 disabled={downloadingPack}
               >
-                {downloadingPack ? "Preparing pack…" : "Download Submission Pack"}
+                {downloadingPack
+                  ? "Preparing pack..."
+                  : exportPackCopy
+                    ? "Download report pack"
+                    : "Download Submission Pack"}
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
                 style={actionButtonStyle}
               >
-                Print / Save as PDF
+                {exportPackCopy ? "Print or save PDF" : "Print / Save as PDF"}
               </button>
             </div>
             <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
-              {marketOverlay.outputRoleNote}
+              {exportPackCopy?.actionFraming || marketOverlay.outputRoleNote}
             </div>
+            {exportPackCopy ? (
+              <div
+                className="reports-output-print-actions"
+                style={{ ...smallStyle, maxWidth: 260 }}
+              >
+                {marketOverlay.outputRoleNote}
+              </div>
+            ) : null}
+            {!exportPackCopy ? (
+              <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
+                {marketOverlay.outputRoleNote}
+              </div>
+            ) : null}
+            {exportPackCopy ? (
+              <div
+                className="reports-output-print-actions"
+                style={{ ...smallStyle, maxWidth: 260 }}
+              >
+                Use this version for printing, saving, or sharing alongside your learning records.
+              </div>
+            ) : null}
             {pdfError ? (
               <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
                 {pdfError}
@@ -1062,6 +1117,12 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.overview.title}</div>
         </div>
         <div className="reports-output-keep-with-next" style={bodyStyle}>{parentLanguage.overall}</div>
+        {exportPackCopy ? (
+          <div className="reports-output-keep-with-next" style={{ ...softCardStyle, marginTop: 16 }}>
+            <div style={labelStyle}>{exportPackCopy.includedHeading}</div>
+            <div style={bodyStyle}>{exportPackCopy.includedSummary}</div>
+          </div>
+        ) : null}
         <div className="reports-output-keep-with-next" style={{ ...softCardStyle, marginTop: 16 }}>
           <div style={labelStyle}>What this summary is drawing from</div>
           <div style={bodyStyle}>{evidenceBaseSummary}</div>
@@ -1191,6 +1252,9 @@ function ReportsOutputPageContent() {
           <div style={{ ...smallStyle, marginTop: 8 }}>
             {compliancePhrases.appendixFraming}
           </div>
+        ) : null}
+        {exportPackCopy ? (
+          <div style={{ ...smallStyle, marginTop: 8 }}>{exportPackCopy.appendixFraming}</div>
         ) : null}
         <div style={{ ...bodyStyle, marginTop: 10 }}>{appendixLead}</div>
 
@@ -1450,3 +1514,5 @@ function ReportsOutputPageContent() {
     </main>
   );
 }
+
+
