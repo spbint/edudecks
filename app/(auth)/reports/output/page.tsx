@@ -27,6 +27,7 @@ import {
   buildCoverageExplanation,
   buildReportDocumentOverlay,
   buildReportExportPackCopy,
+  buildReportSubmissionWorkflow,
   buildCurriculumCoverage,
   formatEvidenceReference,
   getAuCompliancePhrases,
@@ -614,6 +615,29 @@ function ReportsOutputPageContent() {
       supportingEvidence.length,
     ],
   );
+  const submissionWorkflow = useMemo(
+    () =>
+      buildReportSubmissionWorkflow({
+        complianceContext,
+        isSavedDraft: Boolean(draft?.id),
+        hasMeaningfulCoverage,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        selectedCoreCount,
+        includeAppendix: Boolean(draft?.include_appendix),
+        supportingRecordsCount: supportingEvidence.length,
+        periodLabel: periodLabel(draft?.period_mode),
+      }),
+    [
+      complianceContext,
+      draft?.id,
+      draft?.include_appendix,
+      draft?.period_mode,
+      hasMeaningfulCoverage,
+      selectedCoreCount,
+      selectedEvidenceIds.length,
+      supportingEvidence.length,
+    ],
+  );
   const coverageExplanation = buildCoverageExplanation(curriculumCoverage);
   const outputStatus = useMemo(() => {
     if (!selectedEvidenceIds.length) {
@@ -951,6 +975,23 @@ function ReportsOutputPageContent() {
                 {exportPackCopy.headerFraming}
               </div>
             ) : null}
+            {submissionWorkflow ? (
+              <div
+                style={{
+                  ...softCardStyle,
+                  marginTop: 12,
+                  maxWidth: 720,
+                  borderColor: "#dbeafe",
+                  background: "#f8fbff",
+                }}
+              >
+                <div style={labelStyle}>Submission workflow</div>
+                <div style={{ ...bodyStyle, marginTop: 8 }}>
+                  {submissionWorkflow.label} {" • "} {submissionWorkflow.detail}
+                </div>
+                <div style={{ ...smallStyle, marginTop: 8 }}>{submissionWorkflow.periodNote}</div>
+              </div>
+            ) : null}
             <div
               style={{
                 ...smallStyle,
@@ -1043,7 +1084,9 @@ function ReportsOutputPageContent() {
               </button>
             </div>
             <div className="reports-output-print-actions" style={{ ...smallStyle, maxWidth: 220 }}>
-              {exportPackCopy?.actionFraming || marketOverlay.outputRoleNote}
+              {submissionWorkflow?.actionFraming ||
+                exportPackCopy?.actionFraming ||
+                marketOverlay.outputRoleNote}
             </div>
             {exportPackCopy ? (
               <div
@@ -1067,6 +1110,14 @@ function ReportsOutputPageContent() {
               <div className="reports-output-print-actions" style={{ ...smallStyle, color: "#be123c", maxWidth: 260 }}>
                 {packError}
               </div>
+            ) : null}
+            {submissionWorkflow ? (
+              <span
+                className="reports-output-screen-status"
+                style={pillStyle(submissionWorkflow.tone)}
+              >
+                {submissionWorkflow.label}
+              </span>
             ) : null}
             <span className="reports-output-screen-status" style={pillStyle(outputStatus.tone)}>
               {outputStatus.label}

@@ -37,9 +37,11 @@ import {
   buildCurriculumCoverage,
   buildParentLanguageSummary,
   buildReportReadinessScore,
+  buildReportSubmissionWorkflow,
   coverageStatusLabel,
   coverageTone,
   getCoverageStatus,
+  getReportComplianceContext,
   interpretReadiness,
   type CurriculumCoverageArea,
   type ParentLanguageSummary,
@@ -1237,6 +1239,40 @@ function ReportsPageContent() {
     () => interpretReadiness(readinessScore),
     [readinessScore]
   );
+  const complianceContext = useMemo(
+    () =>
+      getReportComplianceContext({
+        market: preferredMarket,
+        curriculumPreferences: workspace.profile?.curriculum_preferences ?? null,
+      }),
+    [preferredMarket, workspace.profile?.curriculum_preferences],
+  );
+  const hasMeaningfulCoverage =
+    curriculumCoverage.ready &&
+    (curriculumCoverage.plannedOutcomes > 0 || curriculumCoverage.linkedOutcomes > 0);
+  const submissionWorkflow = useMemo(
+    () =>
+      buildReportSubmissionWorkflow({
+        complianceContext,
+        isSavedDraft: Boolean(draftId),
+        hasMeaningfulCoverage,
+        selectedEvidenceCount: selectedEvidenceIds.length,
+        selectedCoreCount,
+        includeAppendix,
+        supportingRecordsCount: selectedAppendixCount,
+        periodLabel: periodLabel(periodMode),
+      }),
+    [
+      complianceContext,
+      draftId,
+      hasMeaningfulCoverage,
+      includeAppendix,
+      periodMode,
+      selectedAppendixCount,
+      selectedCoreCount,
+      selectedEvidenceIds.length,
+    ],
+  );
 
   const curriculumStatusSummary = useMemo(() => {
     if (!curriculumData) return [];
@@ -1836,6 +1872,24 @@ function ReportsPageContent() {
               </div>
 
               <div style={{ ...smallStyle, marginTop: 10 }}>{builderStage.detail}</div>
+              {submissionWorkflow ? (
+                <div
+                  style={{
+                    ...softCardStyle,
+                    marginTop: 12,
+                    borderColor: "#dbeafe",
+                    background: "#f8fbff",
+                  }}
+                >
+                  <div style={labelStyle}>Submission workflow</div>
+                  <div style={{ ...h3Style, marginTop: 8, fontSize: 15 }}>
+                    {submissionWorkflow.label} {"—"} {submissionWorkflow.detail}
+                  </div>
+                  <div style={{ ...smallStyle, marginTop: 8 }}>
+                    {submissionWorkflow.periodNote}
+                  </div>
+                </div>
+              ) : null}
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 <strong>Why this matters:</strong> {builderValueSignal.valueText}
               </div>
@@ -2770,6 +2824,11 @@ function ReportsPageContent() {
               <div style={{ ...smallStyle, marginTop: 8 }}>
                 The goal here is not perfection in one sitting. It is getting to a report you can trust and return to.
               </div>
+              {submissionWorkflow ? (
+                <div style={{ ...smallStyle, marginTop: 8 }}>
+                  {submissionWorkflow.actionFraming}
+                </div>
+              ) : null}
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
                 <button
@@ -2820,6 +2879,11 @@ function ReportsPageContent() {
                     </div>
                   </div>
                 )}
+                {submissionWorkflow ? (
+                  <div style={{ ...smallStyle, marginTop: 10 }}>
+                    {submissionWorkflow.label} {"—"} {submissionWorkflow.periodNote}
+                  </div>
+                ) : null}
               </div>
             </section>
           </aside>

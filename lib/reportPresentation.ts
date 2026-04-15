@@ -106,6 +106,15 @@ export type ReportExportPackCopy = {
   referenceLabel: string;
 };
 
+export type ReportSubmissionWorkflow = {
+  state: "draft" | "review" | "prepared";
+  label: string;
+  detail: string;
+  tone: "secondary" | "info" | "success";
+  actionFraming: string;
+  periodNote: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -387,6 +396,70 @@ export function buildReportExportPackCopy(input: {
     includedSummary,
     appendixFraming,
     referenceLabel: "Record reference",
+  };
+}
+
+export function buildReportSubmissionWorkflow(input: {
+  complianceContext: ReportComplianceContext;
+  isSavedDraft: boolean;
+  hasMeaningfulCoverage: boolean;
+  selectedEvidenceCount: number;
+  selectedCoreCount: number;
+  includeAppendix: boolean;
+  supportingRecordsCount: number;
+  periodLabel: string;
+}): ReportSubmissionWorkflow | null {
+  const {
+    complianceContext,
+    isSavedDraft,
+    hasMeaningfulCoverage,
+    selectedEvidenceCount,
+    selectedCoreCount,
+    includeAppendix,
+    supportingRecordsCount,
+    periodLabel,
+  } = input;
+
+  if (!complianceContext.isAU) return null;
+
+  const safePeriodLabel = safe(periodLabel).toLowerCase() || "reporting period";
+  const hasRecordSupport =
+    includeAppendix || supportingRecordsCount > 0 || selectedCoreCount >= 2;
+
+  if (isSavedDraft && hasMeaningfulCoverage && selectedEvidenceCount > 0 && hasRecordSupport) {
+    return {
+      state: "prepared",
+      label: "Prepared for records",
+      detail: "Organized for saving or sharing.",
+      tone: "success",
+      actionFraming:
+        "This report has been prepared for saving or sharing alongside your records.",
+      periodNote: `Prepared for this ${safePeriodLabel} as part of your family learning record.`,
+    };
+  }
+
+  if (
+    (isSavedDraft && selectedEvidenceCount > 0) ||
+    (hasMeaningfulCoverage && selectedEvidenceCount >= 2)
+  ) {
+    return {
+      state: "review",
+      label: "Ready for review",
+      detail: "Enough is in place to review this report.",
+      tone: "info",
+      actionFraming:
+        "Use this report as part of your family learning record while you review, save, or share it.",
+      periodNote: `This report belongs to this ${safePeriodLabel} and is ready to review before record-keeping.`,
+    };
+  }
+
+  return {
+    state: "draft",
+    label: "Draft",
+    detail: "Still being shaped.",
+    tone: "secondary",
+    actionFraming: "This report is still being shaped before record-keeping.",
+    periodNote: `Still building for this ${safePeriodLabel} before you save it with your records.`,
   };
 }
 
