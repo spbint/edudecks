@@ -4,6 +4,7 @@ import {
   buildReportExportPackCopy,
   buildReportPeriodPresentation,
   buildReportSubmissionWorkflow,
+  groupReportsByPeriod,
   getAuCompliancePhrases,
   getReportComplianceContext,
 } from "@/lib/reportPresentation";
@@ -395,5 +396,117 @@ describe("buildReportPeriodPresentation", () => {
     expect(combinedCopy).not.toContain("validated");
     expect(combinedCopy).not.toContain("compliant");
     expect(combinedCopy).not.toContain("authority");
+  });
+});
+
+describe("groupReportsByPeriod", () => {
+  type ReportFixture = {
+    id: string;
+    periodMode?: string | null;
+    periodLabel?: string | null;
+  };
+
+  const getPeriodInput = (item: ReportFixture) => ({
+    periodMode: item.periodMode,
+    periodLabel: item.periodLabel,
+  });
+
+  it("groups term reports under the term bucket", () => {
+    const reports: ReportFixture[] = [
+      { id: "r1", periodMode: "term", periodLabel: "Term" },
+      { id: "r2", periodMode: "term", periodLabel: "Term" },
+    ];
+
+    const result = groupReportsByPeriod(reports, getPeriodInput);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.key).toBe("term");
+    expect(result[0]?.label).toBe("Term");
+    expect(result[0]?.items.map((item) => item.id)).toEqual(["r1", "r2"]);
+  });
+
+  it("groups semester and annual review reports into their own buckets", () => {
+    const reports: ReportFixture[] = [
+      { id: "semester-report", periodMode: "semester", periodLabel: "Semester" },
+      { id: "annual-report", periodMode: "year", periodLabel: "Year" },
+    ];
+
+    const result = groupReportsByPeriod(reports, getPeriodInput);
+
+    expect(result).toHaveLength(2);
+    expect(result[0]?.key).toBe("semester");
+    expect(result[0]?.label).toBe("Semester");
+    expect(result[0]?.items[0]?.id).toBe("semester-report");
+    expect(result[1]?.key).toBe("annual");
+    expect(result[1]?.label).toBe("Annual review");
+    expect(result[1]?.items[0]?.id).toBe("annual-report");
+  });
+
+  it("falls back unknown and missing period modes into the custom bucket", () => {
+    const reports: ReportFixture[] = [
+      { id: "unknown-period", periodMode: "all", periodLabel: "All Time" },
+      { id: "missing-period", periodMode: null, periodLabel: null },
+    ];
+
+    const result = groupReportsByPeriod(reports, getPeriodInput);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.key).toBe("custom");
+    expect(result[0]?.label).toBe("All Time");
+    expect(result[0]?.description).toBe("Reports grouped for this learning period.");
+    expect(result[0]?.items.map((item) => item.id)).toEqual([
+      "unknown-period",
+      "missing-period",
+    ]);
+  });
+
+  it("splits a mixed list into stable period groups while preserving assignment", () => {
+    const reports: ReportFixture[] = [
+      { id: "term-a", periodMode: "term", periodLabel: "Term" },
+      { id: "custom-a", periodMode: "all", periodLabel: "All Time" },
+      { id: "semester-a", periodMode: "semester", periodLabel: "Semester" },
+      { id: "term-b", periodMode: "term", periodLabel: "Term" },
+      { id: "annual-a", periodMode: "year", periodLabel: "Year" },
+    ];
+
+    const result = groupReportsByPeriod(reports, getPeriodInput);
+
+    expect(result.map((group) => group.key)).toEqual([
+      "term",
+      "custom",
+      "semester",
+      "annual",
+    ]);
+    expect(result.find((group) => group.key === "term")?.items.map((item) => item.id)).toEqual([
+      "term-a",
+      "term-b",
+    ]);
+    expect(
+      result.find((group) => group.key === "custom")?.items.map((item) => item.id),
+    ).toEqual(["custom-a"]);
+    expect(
+      result.find((group) => group.key === "semester")?.items.map((item) => item.id),
+    ).toEqual(["semester-a"]);
+    expect(
+      result.find((group) => group.key === "annual")?.items.map((item) => item.id),
+    ).toEqual(["annual-a"]);
+  });
+
+  it("keeps grouping descriptions calm and non-bureaucratic", () => {
+    const reports: ReportFixture[] = [
+      { id: "term-a", periodMode: "term", periodLabel: "Term" },
+      { id: "custom-a", periodMode: "all", periodLabel: "All Time" },
+    ];
+
+    const result = groupReportsByPeriod(reports, getPeriodInput);
+    const combinedCopy = result
+      .map((group) => `${group.label} ${group.description}`)
+      .join(" ")
+      .toLowerCase();
+
+    expect(combinedCopy).not.toContain("required");
+    expect(combinedCopy).not.toContain("validated");
+    expect(combinedCopy).not.toContain("authority");
+    expect(combinedCopy).not.toContain("compliant");
   });
 });
