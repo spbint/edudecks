@@ -123,6 +123,13 @@ export type ReportPeriodPresentation = {
   exportNote: string;
 };
 
+export type ReportPeriodGroup<T> = {
+  key: string;
+  label: string;
+  description: string;
+  items: T[];
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -518,6 +525,36 @@ export function buildReportPeriodPresentation(input: {
     note: "This report reflects the learning captured in this period so far.",
     exportNote: "Use this report as part of your record for this period.",
   };
+}
+
+export function groupReportsByPeriod<T>(
+  items: T[],
+  getPeriodInput: (item: T) => { periodMode?: string | null; periodLabel?: string | null },
+): ReportPeriodGroup<T>[] {
+  const groups = new Map<string, ReportPeriodGroup<T>>();
+
+  for (const item of items) {
+    const periodPresentation = buildReportPeriodPresentation(getPeriodInput(item));
+    const key = periodPresentation.kind;
+    const existing = groups.get(key);
+
+    if (existing) {
+      existing.items.push(item);
+      continue;
+    }
+
+    groups.set(key, {
+      key,
+      label: periodPresentation.label,
+      description:
+        periodPresentation.kind === "custom"
+          ? "Reports grouped for this learning period."
+          : "These reports belong to the same reporting window.",
+      items: [item],
+    });
+  }
+
+  return Array.from(groups.values());
 }
 
 export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage) {

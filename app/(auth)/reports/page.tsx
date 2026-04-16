@@ -8,11 +8,13 @@ import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback"
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
 import {
+  listReportDrafts,
   marketLabel,
   modeLabel,
   periodLabel,
   saveReportDraft,
   loadReportDraftById,
+  type ReportDraftRow,
   type PreferredMarket,
   type PeriodMode,
   type ReportMode,
@@ -43,6 +45,7 @@ import {
   coverageTone,
   getCoverageStatus,
   getReportComplianceContext,
+  groupReportsByPeriod,
   interpretReadiness,
   type CurriculumCoverageArea,
   type ParentLanguageSummary,
@@ -393,7 +396,6 @@ function countTrue(values: boolean[]) {
   return values.filter(Boolean).length;
 }
 
-
 async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
   return loadEvidenceEntriesWithVariants<EvidenceRow>([
     "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,audio_url,is_deleted",
@@ -619,6 +621,7 @@ function ReportsPageContent() {
 
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
+  const [savedDrafts, setSavedDrafts] = useState<ReportDraftRow[]>([]);
   const [curriculumData, setCurriculumData] =
     useState<LearnerCurriculumPageData | null>(null);
   const [plannerData, setPlannerData] = useState<FamilyWeeklyPlan | null>(null);
@@ -660,7 +663,10 @@ function ReportsPageContent() {
 
         const canonicalStudents = buildWorkspaceStudents(workspace.learners);
         const learnerIds = canonicalStudents.map((student) => student.id).filter(Boolean);
-        const evidenceRows = learnerIds.length ? await loadEvidence(learnerIds) : [];
+        const [evidenceRows, reportDraftRows] = await Promise.all([
+          learnerIds.length ? loadEvidence(learnerIds) : Promise.resolve([]),
+          listReportDrafts(),
+        ]);
 
         const requestedDraftId = safe(searchParams.get("draftId"));
         const requestedStudentId = safe(searchParams.get("studentId"));
@@ -676,6 +682,7 @@ function ReportsPageContent() {
             "au") as PreferredMarket;
         setStudents(canonicalStudents);
         setEvidence(evidenceRows);
+        setSavedDrafts(reportDraftRows);
 
         const validRequestedStudent =
           requestedStudentId &&
@@ -1281,6 +1288,14 @@ function ReportsPageContent() {
         periodLabel: periodLabel(periodMode),
       }),
     [periodMode],
+  );
+  const groupedSavedDrafts = useMemo(
+    () =>
+      groupReportsByPeriod(savedDrafts, (draft) => ({
+        periodMode: draft.period_mode,
+        periodLabel: periodLabel(draft.period_mode),
+      })),
+    [savedDrafts],
   );
 
   const curriculumStatusSummary = useMemo(() => {
@@ -2902,6 +2917,129 @@ function ReportsPageContent() {
                   {periodPresentation.heading}: {periodPresentation.label}
                 </div>
               </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={h2Style}>Saved reports</div>
+              <div style={{ ...smallStyle, marginTop: 8 }}>
+                {savedDrafts.length > 1
+                  ? "Review saved reports grouped by reporting period."
+                  : "Review the saved report for this reporting period."}
+              </div>
+
+              {!savedDrafts.length ? (
+                <div style={{ ...softCardStyle, marginTop: 12 }}>
+                  <div style={smallStyle}>
+                    Saved drafts will appear here once you create them. Grouping stays light and follows the reporting period already attached to each report.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
+                  {groupedSavedDrafts.map((group) => (
+                    <div key={group.key} style={{ display: "grid", gap: 10 }}>
+                      <div style={{ ...softCardStyle, background: "#fcfcfd" }}>
+                        <div style={labelStyle}>Reporting period: {group.label}</div>
+                        <div style={{ ...smallStyle, marginTop: 6 }}>{group.description}</div>
+                      </div>
+
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {group.items.map((savedDraft) => {
+                          const savedPeriodPresentation = buildReportPeriodPresentation({
+                            periodMode: savedDraft.period_mode,
+                            periodLabel: periodLabel(savedDraft.period_mode),
+                          });
+                          const savedComplianceContext = getReportComplianceContext({
+                            market:
+                              savedDraft.preferred_market ||
+                              workspace.profile?.preferred_market,
+                            curriculumPreferences:
+                              workspace.profile?.curriculum_preferences ?? null,
+                          });
+                          const savedSelectedEvidenceIds =
+                            savedDraft.selected_evidence_ids ?? [];
+                          const savedSelectedCoreCount = savedSelectedEvidenceIds.filter(
+                            (id) => savedDraft.selection_meta?.[id]?.role !== "appendix",
+                          ).length;
+                          const savedAppendixCount = savedSelectedEvidenceIds.filter(
+                            (id) => savedDraft.selection_meta?.[id]?.role === "appendix",
+                          ).length;
+                          const savedWorkflow = buildReportSubmissionWorkflow({
+                            complianceContext: savedComplianceContext,
+                            isSavedDraft: true,
+                            hasMeaningfulCoverage:
+                              savedDraft.selected_areas.length > 0 &&
+                              savedSelectedEvidenceIds.length > 0,
+                            selectedEvidenceCount: savedSelectedEvidenceIds.length,
+                            selectedCoreCount: savedSelectedCoreCount,
+                            includeAppendix: Boolean(savedDraft.include_appendix),
+                            supportingRecordsCount: savedAppendixCount,
+                            periodLabel: periodLabel(savedDraft.period_mode),
+                          });
+                          const savedOutputHref = `/reports/output?draftId=${encodeURIComponent(
+                            savedDraft.id,
+                          )}`;
+                          const savedBuilderHref = `/reports?draftId=${encodeURIComponent(
+                            savedDraft.id,
+                          )}`;
+
+                          return (
+                            <div key={savedDraft.id} style={softCardStyle}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  flexWrap: "wrap",
+                                  alignItems: "flex-start",
+                                }}
+                              >
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={h3Style}>{savedDraft.title}</div>
+                                  <div style={{ ...smallStyle, marginTop: 6 }}>
+                                    {safe(savedDraft.child_name) || "Learner"} {" • "}{" "}
+                                    {modeLabel(savedDraft.report_mode)} {" • "}{" "}
+                                    {savedPeriodPresentation.label}
+                                  </div>
+                                  <div style={{ ...smallStyle, marginTop: 6 }}>
+                                    Updated {shortDate(savedDraft.updated_at || savedDraft.created_at)}
+                                  </div>
+                                </div>
+
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  {savedWorkflow ? (
+                                    <span style={pillStyle(savedWorkflow.tone)}>
+                                      {savedWorkflow.label}
+                                    </span>
+                                  ) : null}
+                                  {savedDraft.id === draftId ? (
+                                    <span style={pillStyle("success")}>Current draft</span>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              <div style={{ ...smallStyle, marginTop: 10 }}>
+                                {savedWorkflow?.periodNote || savedPeriodPresentation.note}
+                              </div>
+                              <div style={{ ...smallStyle, marginTop: 6 }}>
+                                {savedPeriodPresentation.exportNote}
+                              </div>
+
+                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                                <Link href={savedBuilderHref} style={buttonStyle(false)}>
+                                  Open in builder
+                                </Link>
+                                <Link href={savedOutputHref} style={buttonStyle(true)}>
+                                  Open output
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </aside>
         </div>
