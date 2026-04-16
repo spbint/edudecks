@@ -130,6 +130,12 @@ export type ReportPeriodGroup<T> = {
   items: T[];
 };
 
+export type PeriodReviewSummary = {
+  summary: string;
+  statusShape: string;
+  nextStep: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -555,6 +561,54 @@ export function groupReportsByPeriod<T>(
   }
 
   return Array.from(groups.values());
+}
+
+function formatPeriodReviewCount(count: number, phrase: string) {
+  if (count <= 0) return "";
+  return `${count} ${phrase}`;
+}
+
+export function buildPeriodReviewSummary(input: {
+  periodLabel: string;
+  reportCount: number;
+  preparedCount: number;
+  reviewCount: number;
+  draftCount: number;
+}): PeriodReviewSummary {
+  const { periodLabel, reportCount, preparedCount, reviewCount, draftCount } = input;
+  const safePeriodLabel = safe(periodLabel).toLowerCase() || "period";
+
+  const summary =
+    reportCount <= 1
+      ? "This report reflects the learning captured in this period."
+      : "These reports reflect the learning captured in this period.";
+
+  let statusShape = "This period is still being shaped.";
+  if (preparedCount > 0 || reviewCount > 0 || draftCount > 0) {
+    const parts = [
+      formatPeriodReviewCount(preparedCount, "prepared for records"),
+      formatPeriodReviewCount(reviewCount, "ready for review"),
+      formatPeriodReviewCount(draftCount, "still being shaped"),
+    ].filter(Boolean);
+
+    statusShape =
+      parts.length > 1
+        ? `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}.`
+        : `${parts[0]}.`;
+  }
+
+  let nextStep = "Use these reports together as this period develops.";
+  if (preparedCount > 0) {
+    nextStep = "You can save or share the reports that are already prepared.";
+  } else if (reviewCount > 0) {
+    nextStep = `You can review these reports together for this ${safePeriodLabel}.`;
+  }
+
+  return {
+    summary,
+    statusShape,
+    nextStep,
+  };
 }
 
 export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage) {

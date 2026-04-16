@@ -35,6 +35,7 @@ import {
   type FamilyWeeklyPlan,
 } from "@/lib/familyPlanner";
 import {
+  buildPeriodReviewSummary,
   buildStrengthenReportGuidance,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
@@ -2935,54 +2936,86 @@ function ReportsPageContent() {
                 </div>
               ) : (
                 <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
-                  {groupedSavedDrafts.map((group) => (
-                    <div key={group.key} style={{ display: "grid", gap: 10 }}>
-                      <div style={{ ...softCardStyle, background: "#fcfcfd" }}>
-                        <div style={labelStyle}>Reporting period: {group.label}</div>
-                        <div style={{ ...smallStyle, marginTop: 6 }}>{group.description}</div>
-                      </div>
+                  {groupedSavedDrafts.map((group) => {
+                    const groupDraftViews = group.items.map((savedDraft) => {
+                      const savedPeriodPresentation = buildReportPeriodPresentation({
+                        periodMode: savedDraft.period_mode,
+                        periodLabel: periodLabel(savedDraft.period_mode),
+                      });
+                      const savedComplianceContext = getReportComplianceContext({
+                        market:
+                          savedDraft.preferred_market ||
+                          workspace.profile?.preferred_market,
+                        curriculumPreferences:
+                          workspace.profile?.curriculum_preferences ?? null,
+                      });
+                      const savedSelectedEvidenceIds = savedDraft.selected_evidence_ids ?? [];
+                      const savedSelectedCoreCount = savedSelectedEvidenceIds.filter(
+                        (id) => savedDraft.selection_meta?.[id]?.role !== "appendix",
+                      ).length;
+                      const savedAppendixCount = savedSelectedEvidenceIds.filter(
+                        (id) => savedDraft.selection_meta?.[id]?.role === "appendix",
+                      ).length;
+                      const savedWorkflow = buildReportSubmissionWorkflow({
+                        complianceContext: savedComplianceContext,
+                        isSavedDraft: true,
+                        hasMeaningfulCoverage:
+                          savedDraft.selected_areas.length > 0 &&
+                          savedSelectedEvidenceIds.length > 0,
+                        selectedEvidenceCount: savedSelectedEvidenceIds.length,
+                        selectedCoreCount: savedSelectedCoreCount,
+                        includeAppendix: Boolean(savedDraft.include_appendix),
+                        supportingRecordsCount: savedAppendixCount,
+                        periodLabel: periodLabel(savedDraft.period_mode),
+                      });
 
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {group.items.map((savedDraft) => {
-                          const savedPeriodPresentation = buildReportPeriodPresentation({
-                            periodMode: savedDraft.period_mode,
-                            periodLabel: periodLabel(savedDraft.period_mode),
-                          });
-                          const savedComplianceContext = getReportComplianceContext({
-                            market:
-                              savedDraft.preferred_market ||
-                              workspace.profile?.preferred_market,
-                            curriculumPreferences:
-                              workspace.profile?.curriculum_preferences ?? null,
-                          });
-                          const savedSelectedEvidenceIds =
-                            savedDraft.selected_evidence_ids ?? [];
-                          const savedSelectedCoreCount = savedSelectedEvidenceIds.filter(
-                            (id) => savedDraft.selection_meta?.[id]?.role !== "appendix",
-                          ).length;
-                          const savedAppendixCount = savedSelectedEvidenceIds.filter(
-                            (id) => savedDraft.selection_meta?.[id]?.role === "appendix",
-                          ).length;
-                          const savedWorkflow = buildReportSubmissionWorkflow({
-                            complianceContext: savedComplianceContext,
-                            isSavedDraft: true,
-                            hasMeaningfulCoverage:
-                              savedDraft.selected_areas.length > 0 &&
-                              savedSelectedEvidenceIds.length > 0,
-                            selectedEvidenceCount: savedSelectedEvidenceIds.length,
-                            selectedCoreCount: savedSelectedCoreCount,
-                            includeAppendix: Boolean(savedDraft.include_appendix),
-                            supportingRecordsCount: savedAppendixCount,
-                            periodLabel: periodLabel(savedDraft.period_mode),
-                          });
-                          const savedOutputHref = `/reports/output?draftId=${encodeURIComponent(
-                            savedDraft.id,
-                          )}`;
-                          const savedBuilderHref = `/reports?draftId=${encodeURIComponent(
-                            savedDraft.id,
-                          )}`;
+                      return {
+                        savedDraft,
+                        savedPeriodPresentation,
+                        savedWorkflow,
+                        savedOutputHref: `/reports/output?draftId=${encodeURIComponent(
+                          savedDraft.id,
+                        )}`,
+                        savedBuilderHref: `/reports?draftId=${encodeURIComponent(
+                          savedDraft.id,
+                        )}`,
+                      };
+                    });
+                    const periodReview = buildPeriodReviewSummary({
+                      periodLabel: group.label,
+                      reportCount: groupDraftViews.length,
+                      preparedCount: groupDraftViews.filter(
+                        ({ savedWorkflow }) => savedWorkflow?.state === "prepared",
+                      ).length,
+                      reviewCount: groupDraftViews.filter(
+                        ({ savedWorkflow }) => savedWorkflow?.state === "review",
+                      ).length,
+                      draftCount: groupDraftViews.filter(
+                        ({ savedWorkflow }) => !savedWorkflow || savedWorkflow.state === "draft",
+                      ).length,
+                    });
 
-                          return (
+                    return (
+                      <div key={group.key} style={{ display: "grid", gap: 10 }}>
+                        <div style={{ ...softCardStyle, background: "#fcfcfd" }}>
+                          <div style={labelStyle}>Reporting period: {group.label}</div>
+                          <div style={{ ...smallStyle, marginTop: 6 }}>{group.description}</div>
+                          <div style={{ ...smallStyle, marginTop: 8 }}>{periodReview.summary}</div>
+                          <div style={{ ...smallStyle, marginTop: 6 }}>
+                            {periodReview.statusShape}
+                          </div>
+                          <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.nextStep}</div>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 10 }}>
+                          {groupDraftViews.map(
+                            ({
+                              savedDraft,
+                              savedPeriodPresentation,
+                              savedWorkflow,
+                              savedBuilderHref,
+                              savedOutputHref,
+                            }) => (
                             <div key={savedDraft.id} style={softCardStyle}>
                               <div
                                 style={{
@@ -3033,11 +3066,12 @@ function ReportsPageContent() {
                                 </Link>
                               </div>
                             </div>
-                          );
-                        })}
+                          )
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>
