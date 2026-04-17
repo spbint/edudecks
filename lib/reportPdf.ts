@@ -7,7 +7,7 @@ import type { CurriculumPreferences } from "@/lib/familySettings";
 import { loadLearnerCurriculumPageData } from "@/lib/familyCurriculum";
 import { loadReportSupportingEvidence } from "@/lib/familyEvidence";
 import {
-  getAuCompliancePhrases,
+  getAuFormattingOverlay,
   buildCoverageExplanation,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
@@ -213,7 +213,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
     market: preferredMarket,
     curriculumPreferences: familyPreferences,
   });
-  const compliancePhrases = getAuCompliancePhrases(complianceContext.state);
+  const auFormattingOverlay = getAuFormattingOverlay(complianceContext.state);
   const strongestAreas = curriculumCoverage.strongestAreas.slice(0, 3);
   const weakestAreas = curriculumCoverage.weakestAreas.slice(0, 3);
   const planningAheadAreas = curriculumCoverage.planningAheadAreas.slice(0, 3);
@@ -305,7 +305,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
         .map((item, index) => {
           const referenceLabel = formatEvidenceReference(index);
           const linkedOutcomes = item.linkedOutcomes.length
-            ? `${complianceContext.isAU ? compliancePhrases.observedOutcomesLabel : "Linked outcomes"}: ${escapeHtml(
+            ? `${complianceContext.isAU ? auFormattingOverlay.labelOverrides.outcomes : "Linked outcomes"}: ${escapeHtml(
                 item.linkedOutcomes
                   .map((outcome) =>
                     outcome.outcomeCode
@@ -464,7 +464,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
             ${
               complianceContext.isAU
                 ? `<div class="muted document-note">${escapeHtml(
-                    compliancePhrases.subtitle,
+                    auFormattingOverlay.subtitle,
                   )}</div>`
                 : ""
             }
@@ -537,7 +537,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
               <div class="eyebrow">${escapeHtml(reportSectionCopy.evidenceSummary.title)}</div>
               ${
                 complianceContext.isAU
-                  ? `<div class="muted">${escapeHtml(compliancePhrases.evidenceSummaryFraming)}</div>`
+                  ? `<div class="muted">${escapeHtml(auFormattingOverlay.sectionIntro.evidence)}</div>`
                   : ""
               }
               <p>${escapeHtml(evidenceSummaryLead)}</p>
@@ -589,7 +589,7 @@ export function buildReportPdfHtml(data: Awaited<ReturnType<typeof loadCanonical
           <p>${escapeHtml(marketOverlay.appendixIntro)}</p>
           ${
             complianceContext.isAU
-              ? `<div class="muted">${escapeHtml(compliancePhrases.appendixFraming)}</div>`
+              ? `<div class="muted">${escapeHtml(auFormattingOverlay.sectionIntro.appendix)}</div>`
               : ""
           }
           ${

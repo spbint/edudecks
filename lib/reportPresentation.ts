@@ -97,6 +97,24 @@ export type AuCompliancePhrases = {
   evidenceLinksLabel: string;
 };
 
+export type AuFormattingOverlay = {
+  subtitle: string;
+  sectionIntro: {
+    evidence: string;
+    appendix: string;
+  };
+  labelOverrides: {
+    learningFocus: string;
+    outcomes: string;
+    evidence: string;
+  };
+  subtleEmphasis: {
+    highlightEvidence: boolean;
+    highlightOutcomes: boolean;
+    highlightAppendix: boolean;
+  };
+};
+
 export type ReportExportPackCopy = {
   headerFraming: string;
   actionFraming: string;
@@ -226,17 +244,40 @@ export function getReportComplianceContext(input: {
 export function getAuCompliancePhrases(state?: string | null): AuCompliancePhrases {
   const normalizedState = normalizeAuState(state);
 
+  const overlay = getAuFormattingOverlay(normalizedState);
+
+  return {
+    subtitle: overlay.subtitle,
+    evidenceSummaryFraming: overlay.sectionIntro.evidence,
+    appendixFraming: overlay.sectionIntro.appendix,
+    learningAreasLabel: overlay.labelOverrides.learningFocus,
+    observedOutcomesLabel: overlay.labelOverrides.outcomes,
+    evidenceLinksLabel: overlay.labelOverrides.evidence,
+  };
+}
+
+export function getAuFormattingOverlay(state?: string | null): AuFormattingOverlay {
+  const normalizedState = normalizeAuState(state);
+
   if (normalizedState === "NSW") {
     return {
       subtitle:
         "This report reflects ongoing learning aligned with your selected curriculum and current learning goals.",
-      evidenceSummaryFraming:
-        "This summary reflects learning captured over this period and the goals guiding it.",
-      appendixFraming:
-        "Supporting records linked to this summary are included below alongside the current learning goals.",
-      learningAreasLabel: "Linked learning areas",
-      observedOutcomesLabel: "Observed outcomes (where available)",
-      evidenceLinksLabel: "Evidence links recorded",
+      sectionIntro: {
+        evidence: "This summary reflects learning guided by current goals.",
+        appendix:
+          "Supporting records linked to this summary sit alongside the learning goals guiding this period.",
+      },
+      labelOverrides: {
+        learningFocus: "Linked learning areas",
+        outcomes: "Observed outcomes",
+        evidence: "Evidence links recorded",
+      },
+      subtleEmphasis: {
+        highlightEvidence: false,
+        highlightOutcomes: true,
+        highlightAppendix: false,
+      },
     };
   }
 
@@ -244,13 +285,21 @@ export function getAuCompliancePhrases(state?: string | null): AuCompliancePhras
     return {
       subtitle:
         "This report reflects ongoing learning aligned with your selected curriculum and the learning taking shape over time.",
-      evidenceSummaryFraming:
-        "This summary reflects learning captured and taking shape over this period.",
-      appendixFraming:
-        "Supporting records linked to this summary are included below as the learning picture builds over time.",
-      learningAreasLabel: "Linked learning areas",
-      observedOutcomesLabel: "Observed outcomes (where available)",
-      evidenceLinksLabel: "Evidence links recorded",
+      sectionIntro: {
+        evidence: "This summary shows learning developing over time.",
+        appendix:
+          "These records help show the learning developing across this period.",
+      },
+      labelOverrides: {
+        learningFocus: "Learning focus",
+        outcomes: "Observed outcomes",
+        evidence: "Learning evidence",
+      },
+      subtleEmphasis: {
+        highlightEvidence: true,
+        highlightOutcomes: false,
+        highlightAppendix: false,
+      },
     };
   }
 
@@ -258,23 +307,40 @@ export function getAuCompliancePhrases(state?: string | null): AuCompliancePhras
     return {
       subtitle:
         "This report reflects ongoing learning aligned with your selected curriculum and the progress being documented over time.",
-      evidenceSummaryFraming:
-        "This summary reflects learning captured over this period and the progress being documented.",
-      appendixFraming:
-        "Supporting records linked to this summary are included below as part of the documented learning picture.",
-      learningAreasLabel: "Linked learning areas",
-      observedOutcomesLabel: "Observed outcomes (where available)",
-      evidenceLinksLabel: "Evidence links recorded",
+      sectionIntro: {
+        evidence: "This summary reflects documented learning across this period.",
+        appendix:
+          "Supporting records form part of the documented learning for this period.",
+      },
+      labelOverrides: {
+        learningFocus: "Linked learning areas",
+        outcomes: "Learning outcomes",
+        evidence: "Supporting records",
+      },
+      subtleEmphasis: {
+        highlightEvidence: false,
+        highlightOutcomes: false,
+        highlightAppendix: true,
+      },
     };
   }
 
   return {
     subtitle: "This report reflects ongoing learning aligned with your selected curriculum.",
-    evidenceSummaryFraming: "This summary reflects learning captured over this period.",
-    appendixFraming: "Supporting records linked to this summary are included below.",
-    learningAreasLabel: "Linked learning areas",
-    observedOutcomesLabel: "Observed outcomes (where available)",
-    evidenceLinksLabel: "Evidence links recorded",
+    sectionIntro: {
+      evidence: "This summary reflects learning captured over this period.",
+      appendix: "Supporting records linked to this summary are included below.",
+    },
+    labelOverrides: {
+      learningFocus: "Linked learning areas",
+      outcomes: "Observed outcomes (where available)",
+      evidence: "Evidence links recorded",
+    },
+    subtleEmphasis: {
+      highlightEvidence: false,
+      highlightOutcomes: false,
+      highlightAppendix: false,
+    },
   };
 }
 

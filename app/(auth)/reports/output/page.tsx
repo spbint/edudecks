@@ -31,7 +31,7 @@ import {
   buildReportSubmissionWorkflow,
   buildCurriculumCoverage,
   formatEvidenceReference,
-  getAuCompliancePhrases,
+  getAuFormattingOverlay,
   getReportComplianceContext,
   buildParentLanguageSummary,
   buildReportReadinessScore,
@@ -512,8 +512,8 @@ function ReportsOutputPageContent() {
       workspace.profile?.preferred_market,
     ],
   );
-  const compliancePhrases = useMemo(
-    () => getAuCompliancePhrases(complianceContext.state),
+  const auFormattingOverlay = useMemo(
+    () => getAuFormattingOverlay(complianceContext.state),
     [complianceContext.state],
   );
   const selectedCoreCount = useMemo(
@@ -976,7 +976,7 @@ function ReportsOutputPageContent() {
             </div>
             {complianceContext.isAU ? (
               <div style={{ ...smallStyle, marginTop: 10, maxWidth: 720 }}>
-                {compliancePhrases.subtitle}
+                {auFormattingOverlay.subtitle}
               </div>
             ) : null}
             {exportPackCopy ? (
@@ -1258,7 +1258,7 @@ function ReportsOutputPageContent() {
           <div style={h2Style}>{reportSectionCopy.evidenceSummary.title}</div>
         </div>
         {complianceContext.isAU ? (
-          <div style={smallStyle}>{compliancePhrases.evidenceSummaryFraming}</div>
+          <div style={smallStyle}>{auFormattingOverlay.sectionIntro.evidence}</div>
         ) : null}
         <div style={bodyStyle}>{evidenceSummaryLead}</div>
           <div style={{ ...softCardStyle, marginTop: 14 }}>
@@ -1268,7 +1268,7 @@ function ReportsOutputPageContent() {
         <div style={{ ...softCardStyle, marginTop: 14 }}>
           <div style={labelStyle}>
             {complianceContext.isAU
-              ? compliancePhrases.learningAreasLabel
+              ? auFormattingOverlay.labelOverrides.learningFocus
               : "Learning focus noted here"}
           </div>
             <div style={{ ...bodyStyle, marginTop: 8 }}>
@@ -1311,7 +1311,7 @@ function ReportsOutputPageContent() {
         <div style={smallStyle}>{marketOverlay.appendixIntro}</div>
         {complianceContext.isAU ? (
           <div style={{ ...smallStyle, marginTop: 8 }}>
-            {compliancePhrases.appendixFraming}
+            {auFormattingOverlay.sectionIntro.appendix}
           </div>
         ) : null}
         {exportPackCopy ? (
@@ -1369,7 +1369,7 @@ function ReportsOutputPageContent() {
 
                 <div style={{ ...smallStyle, marginTop: 8 }}>
                   {item.linkedOutcomes.length
-                    ? `${complianceContext.isAU ? compliancePhrases.observedOutcomesLabel : "Linked outcomes"}: ${item.linkedOutcomes
+                    ? `${complianceContext.isAU ? auFormattingOverlay.labelOverrides.outcomes : "Linked outcomes"}: ${item.linkedOutcomes
                         .map((outcome) =>
                           outcome.outcomeCode
                             ? `${outcome.outcomeCode} ${outcome.outcomeLabel}`
@@ -1514,7 +1514,7 @@ function ReportsOutputPageContent() {
           <div style={statStyle}>
             <div style={labelStyle}>
               {complianceContext.isAU
-                ? compliancePhrases.evidenceLinksLabel
+                ? auFormattingOverlay.labelOverrides.evidence
                 : "Evidence links"}
             </div>
             <div style={h3Style}>{curriculumCoverage.evidenceLinks}</div>
