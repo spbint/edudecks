@@ -189,6 +189,11 @@ export type CurriculumEvidenceCoherence = {
   nextStep?: string;
 };
 
+export type PlannerActionEvidenceCue = {
+  cue: string;
+  nextStep?: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -1044,6 +1049,27 @@ export function buildCurriculumEvidenceCoherence(input: {
   return {
     summary: "Planning and evidence will begin to connect here over time.",
   };
+}
+
+export function buildPlannerActionEvidenceCue(input: {
+  evidencedLinkedOutcomeCount: number;
+}): PlannerActionEvidenceCue | null {
+  const { evidencedLinkedOutcomeCount } = input;
+
+  if (evidencedLinkedOutcomeCount >= 2) {
+    return {
+      cue: "This action already has some supporting evidence.",
+      nextStep: "Another saved example here would help round it out.",
+    };
+  }
+
+  if (evidencedLinkedOutcomeCount === 1) {
+    return {
+      cue: "Saved evidence is beginning to connect here.",
+    };
+  }
+
+  return null;
 }
 
 export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage) {

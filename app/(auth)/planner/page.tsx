@@ -27,7 +27,10 @@ import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
-import { buildPlannerEvidenceCoherence } from "@/lib/reportPresentation";
+import {
+  buildPlannerActionEvidenceCue,
+  buildPlannerEvidenceCoherence,
+} from "@/lib/reportPresentation";
 
 type ChildRecord = {
   id: string;
@@ -1062,6 +1065,32 @@ export default function PlannerPage() {
       evidencedLinkedPlannerOutcomeCount,
     ],
   );
+  const evidencedLinkedOutcomeIds = useMemo(() => {
+    if (!plannerCurriculumData) return new Set<string>();
+
+    return new Set(
+      plannerCurriculumData.areas
+        .flatMap((area) => area.strands)
+        .flatMap((strand) => strand.outcomes)
+        .filter((outcome) => outcome.evidenceCount > 0)
+        .map((outcome) => safe(outcome.id))
+        .filter(Boolean),
+    );
+  }, [plannerCurriculumData]);
+  const actionEvidenceCueById = useMemo(() => {
+    const cues: Record<string, ReturnType<typeof buildPlannerActionEvidenceCue>> = {};
+
+    actions.forEach((action) => {
+      const evidencedLinkedOutcomeCount = (plannerOutcomeLinks[action.id] ?? []).filter((link) =>
+        evidencedLinkedOutcomeIds.has(safe(link.outcomeId)),
+      ).length;
+      cues[action.id] = buildPlannerActionEvidenceCue({
+        evidencedLinkedOutcomeCount,
+      });
+    });
+
+    return cues;
+  }, [actions, plannerOutcomeLinks, evidencedLinkedOutcomeIds]);
 
   const completedCount = useMemo(
     () => actions.filter((action) => action.completed).length,
@@ -1612,6 +1641,14 @@ export default function PlannerPage() {
                           Link to curriculum
                         </button>
                       </div>
+                      {actionEvidenceCueById[action.id] ? (
+                        <div style={{ ...styles.linkSummaryText, marginTop: 8, color: "#475569" }}>
+                          {actionEvidenceCueById[action.id]?.cue}
+                          {actionEvidenceCueById[action.id]?.nextStep
+                            ? ` ${actionEvidenceCueById[action.id]?.nextStep}`
+                            : ""}
+                        </div>
+                      ) : null}
 
                       {activeLinkActionId === action.id ? (
                         <div style={styles.linkPanel}>
