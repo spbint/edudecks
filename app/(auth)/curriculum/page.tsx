@@ -771,11 +771,11 @@ export default function CurriculumPage() {
               <section style={S.card}>
                 <div style={S.cardHeader}>
                   <div>
-                    <div style={S.cardTitle}>No evidence is linked yet</div>
+                    <div style={S.cardTitle}>Evidence is still beginning to connect</div>
                     <div style={S.cardText}>
-                      The curriculum map is ready, but no saved evidence has been linked to
-                      outcomes for this learner yet. Capture a learning record and link it to
-                      curriculum to make progress feel more grounded.
+                      The curriculum map is ready, and saved learning will begin to
+                      appear here as evidence is linked to outcomes for this learner.
+                      Capture a learning record and link it to curriculum to make progress feel more grounded.
                     </div>
                   </div>
                 </div>
@@ -849,7 +849,7 @@ export default function CurriculumPage() {
                                   >
                                     {outcome.evidenceCount > 0
                                       ? `Evidence linked: ${outcome.evidenceCount}`
-                                      : "No evidence yet"}
+                                      : "This area is beginning to take shape."}
                                   </span>
                                   {outcome.recentEvidenceTitles.length > 0 ? (
                                     <span style={S.outcomeMetaText}>
@@ -860,10 +860,10 @@ export default function CurriculumPage() {
                                     {outcome.plannedCount > 0 && outcome.evidenceCount > 0
                                       ? "Both planned and evidenced"
                                       : outcome.plannedCount > 0
-                                        ? "Planned but not evidenced yet"
+                                        ? "Planning is in place and evidence is beginning to build."
                                         : outcome.evidenceCount > 0
-                                          ? "Evidenced without much prior planning"
-                                          : "No linked planning or evidence yet"}
+                                          ? "Captured learning is beginning to connect here."
+                                          : "Planning and captured learning are still beginning to connect here."}
                                   </span>
                                 </div>
                               </div>

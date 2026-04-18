@@ -1080,7 +1080,7 @@ export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage)
     return "This report already shows areas where planned learning and captured evidence are lining up well.";
   }
   if (curriculumCoverage.plannedOutcomes > 0 && curriculumCoverage.linkedOutcomes === 0) {
-    return "Planning is visible, but evidence still needs to catch up before the report feels fully supported.";
+    return "Planning is visible, and captured learning is still beginning to connect here.";
   }
   if (curriculumCoverage.linkedOutcomes > 0 && curriculumCoverage.plannedOutcomes === 0) {
     return "Evidence is present, though some of it is arriving before planning has been linked clearly.";
@@ -1101,7 +1101,7 @@ export function getCoverageStatus(count: number): CoverageStatus {
 export function coverageStatusLabel(status: CoverageStatus) {
   if (status === "strong") return "Strong";
   if (status === "developing") return "Developing";
-  return "Needs evidence";
+  return "Beginning to build";
 }
 
 export function coverageTone(status: CoverageStatus): ReadinessTone {
