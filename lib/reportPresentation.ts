@@ -167,6 +167,17 @@ export type EvidenceClaritySummary = {
   nextStep?: string;
 };
 
+export type PerReportEvidenceNote = {
+  note: string;
+};
+
+export type EvidenceBrowsingSummary = {
+  summaryLine: string;
+  spreadLine?: string;
+  nextStep?: string;
+  reportHint?: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -821,6 +832,108 @@ export function buildCaptureReportFeedback(input: {
   return {
     cue: "Captures like this help build your report over time.",
     nextStep: "A short learning note and one clear domain will make this easier to use in reports.",
+  };
+}
+
+export function buildPerReportEvidenceNote(input: {
+  selectedEvidenceCount: number;
+  selectedAreaCount: number;
+  supportingRecordsCount: number;
+  periodLabel?: string | null;
+}): PerReportEvidenceNote {
+  const {
+    selectedEvidenceCount,
+    selectedAreaCount,
+    supportingRecordsCount,
+    periodLabel,
+  } = input;
+
+  const hasPeriodContext = Boolean(safe(periodLabel));
+
+  if (selectedEvidenceCount >= 3 && selectedAreaCount >= 2) {
+    return {
+      note: hasPeriodContext
+        ? "This report is already drawing on linked evidence for this period."
+        : "This report is already drawing on linked evidence.",
+    };
+  }
+
+  if (selectedEvidenceCount >= 2 && supportingRecordsCount > 0) {
+    return {
+      note: "Linked records are helping shape this report.",
+    };
+  }
+
+  if (selectedEvidenceCount >= 1) {
+    return {
+      note:
+        selectedAreaCount >= 1
+          ? "A small base of linked evidence is beginning to support this report."
+          : "This report is beginning to build its evidence picture.",
+    };
+  }
+
+  return {
+    note: "This report is still building its evidence picture.",
+  };
+}
+
+export function buildEvidenceBrowsingSummary(input: {
+  evidenceCount: number;
+  linkedEvidenceCount?: number;
+  areaCount?: number;
+  recentEvidenceCount?: number;
+  reportSupportingCount?: number;
+}): EvidenceBrowsingSummary {
+  const {
+    evidenceCount,
+    linkedEvidenceCount = 0,
+    areaCount = 0,
+    recentEvidenceCount = 0,
+    reportSupportingCount = 0,
+  } = input;
+
+  let summaryLine = "This portfolio is beginning to take shape.";
+  if (evidenceCount >= 4 && areaCount >= 2) {
+    summaryLine = "Your evidence is building a broader picture of learning.";
+  } else if (evidenceCount >= 2) {
+    summaryLine = "Saved evidence is beginning to build a clearer picture of learning.";
+  } else if (evidenceCount === 0) {
+    summaryLine = "This portfolio is ready for its first learning moments.";
+  }
+
+  let spreadLine: string | undefined;
+  if (linkedEvidenceCount >= 2 && areaCount >= 3) {
+    spreadLine = "Linked evidence is beginning to show a broader spread of learning.";
+  } else if (areaCount >= 3) {
+    spreadLine = "Evidence is spread across several learning areas.";
+  } else if (areaCount <= 1 && evidenceCount >= 2) {
+    spreadLine = "Most evidence is focused in one or two areas so far.";
+  }
+
+  let reportHint: string | undefined;
+  if (reportSupportingCount >= 2) {
+    reportHint = "Some evidence here is already supporting reports.";
+  }
+
+  let nextStep: string | undefined;
+  if (evidenceCount === 0) {
+    nextStep = "One clear learning moment is enough to begin.";
+  } else if (linkedEvidenceCount === 0) {
+    nextStep = "Another saved example with clearer learning links would strengthen this picture.";
+  } else if (areaCount <= 1 && evidenceCount >= 2) {
+    nextStep = "More varied evidence could help round out this period.";
+  } else if (recentEvidenceCount === 0 && evidenceCount > 0) {
+    nextStep = "Another recent learning moment would help keep this picture current.";
+  } else if (evidenceCount < 4 || linkedEvidenceCount < 2) {
+    nextStep = "A few more linked examples across different learning areas would help.";
+  }
+
+  return {
+    summaryLine,
+    spreadLine,
+    nextStep,
+    reportHint,
   };
 }
 

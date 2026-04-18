@@ -22,7 +22,7 @@ import {
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
-import { buildEvidenceClaritySummary } from "@/lib/reportPresentation";
+import { buildEvidenceBrowsingSummary } from "@/lib/reportPresentation";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -813,9 +813,9 @@ function PortfolioPageContent() {
   }, [student, evidence, readinessBand]);
 
   const curriculumLinkedCount = useMemo(() => countCurriculumLinked(evidence), [evidence]);
-  const portfolioClarity = useMemo(
+  const portfolioBrowsing = useMemo(
     () =>
-      buildEvidenceClaritySummary({
+      buildEvidenceBrowsingSummary({
         evidenceCount: evidence.length,
         linkedEvidenceCount: curriculumLinkedCount,
         areaCount: portfolio.areas.length,
@@ -1357,11 +1357,21 @@ function PortfolioPageContent() {
                 {portfolio.summary}
               </div>
               <div style={{ ...UI.body(), marginTop: 10, fontSize: 13 }}>
-                {portfolioClarity.visibilityCue}
+                {portfolioBrowsing.summaryLine}
               </div>
-              {portfolioClarity.nextStep ? (
+              {portfolioBrowsing.spreadLine ? (
+                <div style={{ ...UI.body(), marginTop: 6, fontSize: 13 }}>
+                  {portfolioBrowsing.spreadLine}
+                </div>
+              ) : null}
+              {portfolioBrowsing.reportHint ? (
+                <div style={{ ...UI.body(), marginTop: 6, fontSize: 13 }}>
+                  {portfolioBrowsing.reportHint}
+                </div>
+              ) : null}
+              {portfolioBrowsing.nextStep ? (
                 <div style={{ ...UI.body(), marginTop: 6, fontSize: 13, color: "#64748b" }}>
-                  {portfolioClarity.nextStep}
+                  {portfolioBrowsing.nextStep}
                 </div>
               ) : null}
             </div>
@@ -2000,8 +2010,12 @@ function PortfolioPageContent() {
 
               {blockEnabled("grouped_areas") ? (
                 <section style={UI.card()}>
-                  <div style={UI.label()}>Portfolio by learning area</div>
+                  <div style={UI.label()}>Browse evidence by learning area</div>
                   <div style={UI.h2()}>Grouped evidence view</div>
+                  <div style={{ ...UI.body(), marginTop: 8 }}>
+                    {portfolioBrowsing.spreadLine ||
+                      "Browse learning moments in calmer groups so the wider learning picture is easier to scan."}
+                  </div>
 
                   {groupedEvidence.length === 0 ? (
                     <div style={{ ...UI.softCard(), marginTop: 14 }}>
@@ -2044,6 +2058,16 @@ function PortfolioPageContent() {
                                 </div>
                                 <div style={{ fontSize: 12, lineHeight: 1.5, color: "#475569" }}>
                                   {clip(textOfEvidence(item), 90) || "Reflection recorded."}
+                                </div>
+
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
+                                  {safe(item.curriculum_subject) || safe(item.curriculum_skill) ? (
+                                    <span style={UI.chip("blue")}>Linked to learning</span>
+                                  ) : null}
+                                  {daysSince(item.occurred_on || item.created_at) <= 30 ? (
+                                    <span style={UI.chip("green")}>Recent</span>
+                                  ) : null}
                                 </div>
 
                                 {(tagMap[item.id] || []).length > 0 ? (

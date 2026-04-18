@@ -36,6 +36,7 @@ import {
 } from "@/lib/familyPlanner";
 import {
   buildPeriodReviewSummary,
+  buildPerReportEvidenceNote,
   buildStrengthenReportGuidance,
   buildCurriculumCoverage,
   buildParentLanguageSummary,
@@ -2968,9 +2969,16 @@ function ReportsPageContent() {
                         supportingRecordsCount: savedAppendixCount,
                         periodLabel: periodLabel(savedDraft.period_mode),
                       });
+                      const savedEvidenceNote = buildPerReportEvidenceNote({
+                        selectedEvidenceCount: savedSelectedEvidenceIds.length,
+                        selectedAreaCount: savedDraft.selected_areas.length,
+                        supportingRecordsCount: savedAppendixCount,
+                        periodLabel: savedPeriodPresentation.label,
+                      });
 
                       return {
                         savedDraft,
+                        savedEvidenceNote,
                         savedPeriodPresentation,
                         savedWorkflow,
                         savedOutputHref: `/reports/output?draftId=${encodeURIComponent(
@@ -3038,6 +3046,7 @@ function ReportsPageContent() {
                           {groupDraftViews.map(
                             ({
                               savedDraft,
+                              savedEvidenceNote,
                               savedPeriodPresentation,
                               savedWorkflow,
                               savedBuilderHref,
@@ -3082,6 +3091,9 @@ function ReportsPageContent() {
                               </div>
                               <div style={{ ...smallStyle, marginTop: 6 }}>
                                 {savedPeriodPresentation.exportNote}
+                              </div>
+                              <div style={{ ...smallStyle, marginTop: 6 }}>
+                                {savedEvidenceNote.note}
                               </div>
 
                               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
