@@ -179,6 +179,16 @@ export type EvidenceBrowsingSummary = {
   recentFraming?: string;
 };
 
+export type PlannerEvidenceCoherence = {
+  cue: string;
+  nextStep?: string;
+};
+
+export type CurriculumEvidenceCoherence = {
+  summary: string;
+  nextStep?: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -939,6 +949,100 @@ export function buildEvidenceBrowsingSummary(input: {
       recentEvidenceCount > 0
         ? "Recent evidence is easy to revisit here."
         : "Start here when you want to revisit recently saved evidence.",
+  };
+}
+
+export function buildPlannerEvidenceCoherence(input: {
+  plannerActionCount: number;
+  linkedActionCount: number;
+  linkedOutcomeCount: number;
+  evidencedLinkedOutcomeCount: number;
+}): PlannerEvidenceCoherence {
+  const {
+    plannerActionCount,
+    linkedActionCount,
+    linkedOutcomeCount,
+    evidencedLinkedOutcomeCount,
+  } = input;
+
+  if (linkedActionCount === 0 || linkedOutcomeCount === 0) {
+    return {
+      cue:
+        plannerActionCount > 0
+          ? "Captured learning can start to connect with this plan as you save and link actions."
+          : "Captured learning will begin to connect here as this weekly plan takes shape.",
+      nextStep:
+        plannerActionCount > 0
+          ? "Linking one action and capturing one learning moment here would help connect the picture."
+          : "One small planned action is enough to begin building the picture.",
+    };
+  }
+
+  if (evidencedLinkedOutcomeCount >= 2) {
+    return {
+      cue: "Captured learning is starting to connect with this part of the plan.",
+      nextStep: "A few more saved examples across linked areas would help round out the picture.",
+    };
+  }
+
+  if (evidencedLinkedOutcomeCount === 1) {
+    return {
+      cue: "This part of the plan already has some supporting evidence.",
+      nextStep: "Another saved example here would help round out the picture.",
+    };
+  }
+
+  return {
+    cue: "This part of the plan is ready for saved evidence to connect.",
+    nextStep: "Capturing one learning moment here would help connect the plan.",
+  };
+}
+
+export function buildCurriculumEvidenceCoherence(input: {
+  plannedLinkedOutcomeCount: number;
+  evidenceLinkedOutcomeCount: number;
+  plannedAndEvidencedOutcomeCount: number;
+  totalPlanLinks: number;
+  totalEvidenceLinks: number;
+}): CurriculumEvidenceCoherence {
+  const {
+    plannedLinkedOutcomeCount,
+    evidenceLinkedOutcomeCount,
+    plannedAndEvidencedOutcomeCount,
+    totalPlanLinks,
+    totalEvidenceLinks,
+  } = input;
+
+  if (plannedAndEvidencedOutcomeCount > 0) {
+    return {
+      summary: "Some planned learning areas already have supporting evidence.",
+      nextStep: "A few more linked examples across different areas would help round out the picture.",
+    };
+  }
+
+  if (totalPlanLinks > 0 && totalEvidenceLinks > 0) {
+    return {
+      summary: "Captured learning is beginning to connect with your curriculum choices.",
+      nextStep: "Another linked learning moment would help strengthen this picture.",
+    };
+  }
+
+  if (plannedLinkedOutcomeCount > 0 || totalPlanLinks > 0) {
+    return {
+      summary: "Your curriculum plan is in place and ready for saved evidence to connect.",
+      nextStep: "Capturing one more learning moment here would help connect the picture.",
+    };
+  }
+
+  if (evidenceLinkedOutcomeCount > 0 || totalEvidenceLinks > 0) {
+    return {
+      summary: "Saved evidence is beginning to show how this curriculum is taking shape.",
+      nextStep: "Linking planned learning here would help connect the picture.",
+    };
+  }
+
+  return {
+    summary: "Planning and evidence will begin to connect here over time.",
   };
 }
 

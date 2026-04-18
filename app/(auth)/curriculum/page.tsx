@@ -12,6 +12,7 @@ import {
   type LearnerCurriculumPageData,
   type LearnerOutcomeStatusKey,
 } from "@/lib/familyCurriculum";
+import { buildCurriculumEvidenceCoherence } from "@/lib/reportPresentation";
 import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
@@ -245,6 +246,23 @@ export default function CurriculumPage() {
   const curriculumOutcomesCue = useMemo(
     () => buildCurriculumSectionCue(curriculumFocus, "outcomes"),
     [curriculumFocus],
+  );
+  const curriculumEvidenceCoherence = useMemo(
+    () =>
+      buildCurriculumEvidenceCoherence({
+        plannedLinkedOutcomeCount: pageData?.plannedLinkedOutcomeCount ?? 0,
+        evidenceLinkedOutcomeCount: pageData?.evidenceLinkedOutcomeCount ?? 0,
+        plannedAndEvidencedOutcomeCount: pageData?.plannedAndEvidencedOutcomeCount ?? 0,
+        totalPlanLinks: pageData?.totalPlanLinks ?? 0,
+        totalEvidenceLinks: pageData?.totalEvidenceLinks ?? 0,
+      }),
+    [
+      pageData?.evidenceLinkedOutcomeCount,
+      pageData?.plannedAndEvidencedOutcomeCount,
+      pageData?.plannedLinkedOutcomeCount,
+      pageData?.totalEvidenceLinks,
+      pageData?.totalPlanLinks,
+    ],
   );
   const highlightSetupSection = curriculumFocus === "curriculum-setup";
   const highlightOutcomesSection = curriculumFocus === "no-outcomes";
@@ -708,6 +726,14 @@ export default function CurriculumPage() {
                             ? "No saved learner outcome rows exist yet, but linked evidence is now visible below so progress is grounded in real captured work."
                             : "No saved learner outcome rows exist yet. Outcomes below are currently shown as not introduced until you begin tracking."}
                   </div>
+                  <div style={{ ...S.cardText, marginTop: 10 }}>
+                    {curriculumEvidenceCoherence.summary}
+                  </div>
+                  {curriculumEvidenceCoherence.nextStep ? (
+                    <div style={{ ...S.cardText, marginTop: 6, color: "#64748b" }}>
+                      {curriculumEvidenceCoherence.nextStep}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               <div style={S.statusGrid}>

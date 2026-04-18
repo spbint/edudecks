@@ -19,12 +19,15 @@ import {
 } from "@/lib/familyPlanner";
 import {
   loadLinkableOutcomesForStudent,
+  loadLearnerCurriculumPageData,
+  type LearnerCurriculumPageData,
   type LearnerCurriculumLinkContext,
 } from "@/lib/familyCurriculum";
 import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
+import { buildPlannerEvidenceCoherence } from "@/lib/reportPresentation";
 
 type ChildRecord = {
   id: string;
@@ -486,6 +489,8 @@ export default function PlannerPage() {
     useState<FamilyPlannerOutcomeLinkMap>({});
   const [curriculumLinkContext, setCurriculumLinkContext] =
     useState<LearnerCurriculumLinkContext | null>(null);
+  const [plannerCurriculumData, setPlannerCurriculumData] =
+    useState<LearnerCurriculumPageData | null>(null);
   const [activeLinkActionId, setActiveLinkActionId] = useState("");
   const [linkDraftOutcomeIds, setLinkDraftOutcomeIds] = useState<string[]>([]);
   const [linkMessage, setLinkMessage] = useState("");
@@ -939,6 +944,48 @@ export default function PlannerPage() {
   useEffect(() => {
     let mounted = true;
 
+    async function hydratePlannerCurriculumData() {
+      if (
+        !activeStudentId ||
+        !workspace.userId ||
+        !workspace.profile.id ||
+        workspace.profile.id === "local" ||
+        activeStudentId.startsWith("local-")
+      ) {
+        if (mounted) {
+          setPlannerCurriculumData(null);
+        }
+        return;
+      }
+
+      try {
+        const nextData = await loadLearnerCurriculumPageData({
+          studentId: activeStudentId,
+          familyPreferences: workspace.profile.curriculum_preferences,
+        });
+        if (!mounted) return;
+        setPlannerCurriculumData(nextData);
+      } catch (error) {
+        console.error("planner curriculum data hydrate failed", error);
+        if (!mounted) return;
+        setPlannerCurriculumData(null);
+      }
+    }
+
+    void hydratePlannerCurriculumData();
+    return () => {
+      mounted = false;
+    };
+  }, [
+    activeStudentId,
+    workspace.profile.curriculum_preferences,
+    workspace.profile.id,
+    workspace.userId,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
     async function hydratePlannerOutcomeLinks() {
       const persistedActionIds = actions
         .map((action) => safe(action.id))
@@ -978,6 +1025,43 @@ export default function PlannerPage() {
   const activeChild = useMemo(() => {
     return children.find((child) => child.id === activeStudentId) || null;
   }, [children, activeStudentId]);
+  const linkedPlannerOutcomeIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          Object.values(plannerOutcomeLinks)
+            .flat()
+            .map((link) => safe(link.outcomeId))
+            .filter(Boolean),
+        ),
+      ),
+    [plannerOutcomeLinks],
+  );
+  const evidencedLinkedPlannerOutcomeCount = useMemo(() => {
+    if (!plannerCurriculumData || linkedPlannerOutcomeIds.length === 0) return 0;
+
+    const linkedOutcomeIdSet = new Set(linkedPlannerOutcomeIds);
+    return plannerCurriculumData.areas
+      .flatMap((area) => area.strands)
+      .flatMap((strand) => strand.outcomes)
+      .filter((outcome) => linkedOutcomeIdSet.has(safe(outcome.id)) && outcome.evidenceCount > 0)
+      .length;
+  }, [linkedPlannerOutcomeIds, plannerCurriculumData]);
+  const plannerEvidenceCoherence = useMemo(
+    () =>
+      buildPlannerEvidenceCoherence({
+        plannerActionCount: actions.length,
+        linkedActionCount: plannerLinkedActionCount,
+        linkedOutcomeCount: linkedPlannerOutcomeIds.length,
+        evidencedLinkedOutcomeCount: evidencedLinkedPlannerOutcomeCount,
+      }),
+    [
+      actions.length,
+      plannerLinkedActionCount,
+      linkedPlannerOutcomeIds.length,
+      evidencedLinkedPlannerOutcomeCount,
+    ],
+  );
 
   const completedCount = useMemo(
     () => actions.filter((action) => action.completed).length,
@@ -1423,6 +1507,14 @@ export default function PlannerPage() {
               {checklistSectionCue ? (
                 <div style={styles.guidedInlineNote}>{checklistSectionCue}</div>
               ) : null}
+              <div style={styles.guidedInlineNote}>
+                <div>{plannerEvidenceCoherence.cue}</div>
+                {plannerEvidenceCoherence.nextStep ? (
+                  <div style={{ marginTop: 6, color: "#64748b" }}>
+                    {plannerEvidenceCoherence.nextStep}
+                  </div>
+                ) : null}
+              </div>
 
               {plannerChecklistCompletion ? (
                 <div style={{ marginBottom: 14 }}>
