@@ -1990,8 +1990,11 @@ function PortfolioPageContent() {
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <span style={UI.chip("slate")}>{guessArea(item.learning_area)}</span>
                             {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
-                            {safe(item.curriculum_subject) ? (
-                              <span style={UI.chip("blue")}>{safe(item.curriculum_subject)}</span>
+                            {safe(item.curriculum_subject) || safe(item.curriculum_skill) ? (
+                              <span style={UI.chip("blue")}>Linked to learning</span>
+                            ) : null}
+                            {daysSince(item.occurred_on || item.created_at) <= 30 ? (
+                              <span style={UI.chip("green")}>Recent</span>
                             ) : null}
                             {item.id === highlightEvidenceId ? (
                               <span style={UI.chip("green")}>Fresh capture</span>
