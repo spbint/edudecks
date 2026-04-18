@@ -793,6 +793,15 @@ function PortfolioPageContent() {
   );
   const portfolioStepTaken =
     Boolean(highlightedEvidence) || Object.values(tagMap).some((tags) => tags.length > 0);
+  const buildEvidenceRevisitHref = useMemo(
+    () => (evidenceId: string) =>
+      student
+        ? `/portfolio?studentId=${encodeURIComponent(student.id)}&highlightEvidenceId=${encodeURIComponent(
+            evidenceId
+          )}`
+        : `/portfolio?highlightEvidenceId=${encodeURIComponent(evidenceId)}`,
+    [student]
+  );
 
   const groupedEvidence = useMemo(() => {
     const groups = new Map<string, EvidenceRow[]>();
@@ -1695,6 +1704,7 @@ function PortfolioPageContent() {
                 tagMap={tagMap}
                 toggleSampleTag={toggleSampleTag}
                 highlightEvidenceId={highlightEvidenceId}
+                buildEvidenceRevisitHref={buildEvidenceRevisitHref}
               />
             </section>
           ) : null}
@@ -1728,6 +1738,7 @@ function PortfolioPageContent() {
                   tagMap={tagMap}
                   toggleSampleTag={toggleSampleTag}
                   highlightEvidenceId={highlightEvidenceId}
+                  buildEvidenceRevisitHref={buildEvidenceRevisitHref}
                 />
               ) : null}
 
@@ -1949,6 +1960,9 @@ function PortfolioPageContent() {
                 <section style={UI.card()}>
                   <div style={UI.label()}>Portfolio timeline</div>
                   <div style={UI.h2()}>Recent learning moments shaping the story</div>
+                  <div style={{ ...UI.body(), marginTop: 8 }}>
+                    {portfolioBrowsing.recentFraming}
+                  </div>
                   {timelineItems.length === 0 ? (
                     <div style={{ ...UI.softCard(), marginTop: 14 }}>
                       <div style={UI.body()}>No learning moments yet.</div>
@@ -2003,6 +2017,20 @@ function PortfolioPageContent() {
 
                           <div style={{ ...UI.body(), fontSize: 13 }}>
                             {clip(textOfEvidence(item), 120) || "Learning reflection recorded."}
+                          </div>
+
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                            <Link
+                              href={buildEvidenceRevisitHref(item.id)}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#2563eb",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Revisit
+                            </Link>
                           </div>
                         </div>
                       ))}
@@ -2082,6 +2110,20 @@ function PortfolioPageContent() {
                                     ))}
                                   </div>
                                 ) : null}
+
+                                <div>
+                                  <Link
+                                    href={buildEvidenceRevisitHref(item.id)}
+                                    style={{
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                      color: "#2563eb",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    Revisit
+                                  </Link>
+                                </div>
 
                                 <div style={{ fontSize: 11, color: "#64748b", fontWeight: 700 }}>
                                   {shortDate(item.occurred_on || item.created_at)}
@@ -2618,11 +2660,13 @@ function LearningFeed({
   tagMap,
   toggleSampleTag,
   highlightEvidenceId,
+  buildEvidenceRevisitHref,
 }: {
   items: EvidenceRow[];
   tagMap: TagMap;
   toggleSampleTag: (evidenceId: string, tag: SampleTag) => void;
   highlightEvidenceId?: string;
+  buildEvidenceRevisitHref: (evidenceId: string) => string;
 }) {
   return (
     <section style={UI.card()}>
@@ -2686,6 +2730,20 @@ function LearningFeed({
 
                   <div style={{ ...UI.body(), fontSize: 13 }}>
                     {clip(textOfEvidence(item), 130) || "Learning reflection recorded."}
+                  </div>
+
+                  <div>
+                    <Link
+                      href={buildEvidenceRevisitHref(item.id)}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#2563eb",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Revisit
+                    </Link>
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

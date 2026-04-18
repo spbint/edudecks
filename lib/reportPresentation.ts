@@ -176,6 +176,7 @@ export type EvidenceBrowsingSummary = {
   spreadLine?: string;
   nextStep?: string;
   reportHint?: string;
+  recentFraming?: string;
 };
 
 export const reportSectionCopy = {
@@ -934,6 +935,10 @@ export function buildEvidenceBrowsingSummary(input: {
     spreadLine,
     nextStep,
     reportHint,
+    recentFraming:
+      recentEvidenceCount > 0
+        ? "Recent evidence is easy to revisit here."
+        : "Start here when you want to revisit recently saved evidence.",
   };
 }
 
