@@ -1508,7 +1508,7 @@ export default function CapturePage() {
   async function saveEvidence() {
     if (!canSave) {
       setSaveState("error");
-      setFeedback("Please choose a learner, add a title, and include a short summary.");
+      setFeedback("Choose a learner, add a short title, and include a quick note to save this learning.");
       return;
     }
 
@@ -1648,7 +1648,7 @@ export default function CapturePage() {
       heroTitle="Capture one useful learning moment"
       heroText="Save learning as it happens, one simple example at a time."
       heroAsideTitle="Best family move"
-      heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
+      heroAsideText="A quick title, a short note, and one learning domain are enough to get started."
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
       <p style={{ marginBottom: 18, fontSize: 14, lineHeight: 1.65, color: "#64748b" }}>
@@ -1842,6 +1842,16 @@ export default function CapturePage() {
                       Started from your planner. You can change any of this before saving.
                     </div>
                   ) : null}
+                  <div
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                      color: "#64748b",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Start with a quick title or note, and you can add more later.
+                  </div>
                   <div>
                     <label style={labelStyle()}>Learner</label>
                     <select
@@ -2002,7 +2012,7 @@ export default function CapturePage() {
                       ) : null}
 
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
-                        Link this to curriculum after saving so the same evidence can flow into curriculum coverage and later reports.
+                        You can link this after saving if you want it to support curriculum and later reports.
                       </div>
                       <div style={{ marginTop: 8, fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
                         {captureReportFeedback.cue}
@@ -2322,7 +2332,7 @@ export default function CapturePage() {
                       }}
                     >
                       <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 0.4, textTransform: "uppercase", marginBottom: 4 }}>
-                        {saveState === "success" ? "Saved to family record" : "Could not save yet"}
+                        {saveState === "success" ? "Saved learning" : "Could not save yet"}
                       </div>
                       {feedback}
                     </div>
@@ -2337,12 +2347,12 @@ export default function CapturePage() {
                       fontSize: 13,
                       lineHeight: 1.55,
                       color: "#334155",
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
                     {quality.score >= 3
                       ? "This is strong enough to support later reporting."
-                      : "You can save this now, or add a little more detail to make it even stronger later."}
+                      : "You can save this with the basics now, and add more detail later."}
                   </div>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -2357,7 +2367,7 @@ export default function CapturePage() {
                         minWidth: 190,
                       }}
                     >
-                      {saveState === "saving" ? "Saving..." : "Save to family record"}
+                      {saveState === "saving" ? "Saving..." : "Save learning"}
                     </button>
 
                     <button
