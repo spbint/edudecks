@@ -608,6 +608,8 @@ export default function PortfolioPage() {
 function PortfolioPageContent() {
   const { workspace, activeLearnerId, setActiveLearner } = useFamilyWorkspace();
   const searchParams = useSearchParams();
+  const [evidenceFilter, setEvidenceFilter] = useState<"all" | "recent" | "linked">("all");
+  const [areaFilter, setAreaFilter] = useState<string>("all");
   const shellHandoff = useMemo(
     () =>
       resolveFamilyShellHandoff(
@@ -874,6 +876,42 @@ function PortfolioPageContent() {
   }, [evidence, tagMap]);
 
   const timelineItems = useMemo(() => evidence.slice(0, 6), [evidence]);
+
+  const areaFilterOptions = useMemo(
+    () => Array.from(new Set(evidence.map((item) => guessArea(item.learning_area)).filter(Boolean))).sort(),
+    [evidence],
+  );
+
+  const filteredEvidence = useMemo(() => {
+    return evidence.filter((item) => {
+      if (evidenceFilter === "recent" && daysSince(item.occurred_on || item.created_at) > 30) {
+        return false;
+      }
+      if (
+        evidenceFilter === "linked" &&
+        !safe(item.curriculum_subject) &&
+        !safe(item.curriculum_skill)
+      ) {
+        return false;
+      }
+      if (areaFilter !== "all" && guessArea(item.learning_area) !== areaFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [areaFilter, evidence, evidenceFilter]);
+
+  const filteredTimelineItems = useMemo(() => filteredEvidence.slice(0, 6), [filteredEvidence]);
+
+  const filteredGroupedEvidence = useMemo(() => {
+    const groups = new Map<string, EvidenceRow[]>();
+    filteredEvidence.forEach((item) => {
+      const key = guessArea(item.learning_area);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    });
+    return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
+  }, [filteredEvidence]);
 
   const mediaItems = useMemo(
     () => evidence.filter((e) => hasAnyMedia(e)).slice(0, 8),
@@ -2002,6 +2040,52 @@ function PortfolioPageContent() {
                 </section>
               ) : null}
 
+              {((blockEnabled("timeline") || blockEnabled("grouped_areas")) && evidence.length > 0) ? (
+                <section style={UI.card()}>
+                  <div style={UI.label()}>Filter evidence</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                    {[
+                      { key: "all", label: "All" },
+                      { key: "recent", label: "Recent" },
+                      { key: "linked", label: "Linked to learning" },
+                    ].map((filter) => {
+                      const active = evidenceFilter === filter.key;
+                      return (
+                        <button
+                          key={filter.key}
+                          type="button"
+                          onClick={() => setEvidenceFilter(filter.key as "all" | "recent" | "linked")}
+                          style={{
+                            ...UI.chip(active ? "blue" : "slate"),
+                            cursor: "pointer",
+                            background: active ? "#eff6ff" : "#ffffff",
+                          }}
+                        >
+                          {filter.label}
+                        </button>
+                      );
+                    })}
+                    {areaFilterOptions.map((area) => {
+                      const active = areaFilter === area;
+                      return (
+                        <button
+                          key={area}
+                          type="button"
+                          onClick={() => setAreaFilter((current) => (current === area ? "all" : area))}
+                          style={{
+                            ...UI.chip(active ? "green" : "slate"),
+                            cursor: "pointer",
+                            background: active ? "#ecfdf5" : "#ffffff",
+                          }}
+                        >
+                          {area}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
+
               {blockEnabled("timeline") ? (
                 <section style={UI.card()}>
                   <div style={UI.label()}>Portfolio timeline</div>
@@ -2009,13 +2093,17 @@ function PortfolioPageContent() {
                   <div style={{ ...UI.body(), marginTop: 8 }}>
                     {portfolioBrowsing.recentFraming}
                   </div>
-                  {timelineItems.length === 0 ? (
+                  {filteredTimelineItems.length === 0 ? (
                     <div style={{ ...UI.softCard(), marginTop: 14 }}>
-                      <div style={UI.body()}>No learning moments yet.</div>
+                      <div style={UI.body()}>
+                        {evidence.length === 0
+                          ? "No learning moments yet."
+                          : "No matching learning yet - try another view."}
+                      </div>
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-                      {timelineItems.map((item) => (
+                      {filteredTimelineItems.map((item) => (
                         <div
                           key={safe(item.id)}
                           style={{
@@ -2094,13 +2182,17 @@ function PortfolioPageContent() {
                       "Browse learning moments in calmer groups so the wider learning picture is easier to scan."}
                   </div>
 
-                  {groupedEvidence.length === 0 ? (
+                  {filteredGroupedEvidence.length === 0 ? (
                     <div style={{ ...UI.softCard(), marginTop: 14 }}>
-                      <div style={UI.body()}>No learning moments grouped yet.</div>
+                      <div style={UI.body()}>
+                        {evidence.length === 0
+                          ? "No learning moments grouped yet."
+                          : "No matching learning yet - try another view."}
+                      </div>
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
-                      {groupedEvidence.map(([area, items]) => (
+                      {filteredGroupedEvidence.map(([area, items]) => (
                         <div
                           key={area}
                           style={{
