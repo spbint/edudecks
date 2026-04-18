@@ -22,6 +22,7 @@ import {
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
+import { buildEvidenceClaritySummary } from "@/lib/reportPresentation";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -812,6 +813,16 @@ function PortfolioPageContent() {
   }, [student, evidence, readinessBand]);
 
   const curriculumLinkedCount = useMemo(() => countCurriculumLinked(evidence), [evidence]);
+  const portfolioClarity = useMemo(
+    () =>
+      buildEvidenceClaritySummary({
+        evidenceCount: evidence.length,
+        linkedEvidenceCount: curriculumLinkedCount,
+        areaCount: portfolio.areas.length,
+        recentEvidenceCount: recentCount,
+      }),
+    [curriculumLinkedCount, evidence.length, portfolio.areas.length, recentCount]
+  );
 
   const showcaseItems = useMemo<ShowcaseItem[]>(() => {
     return [...evidence]
@@ -1345,6 +1356,14 @@ function PortfolioPageContent() {
               <div style={{ ...UI.body(), marginTop: 8 }}>
                 {portfolio.summary}
               </div>
+              <div style={{ ...UI.body(), marginTop: 10, fontSize: 13 }}>
+                {portfolioClarity.visibilityCue}
+              </div>
+              {portfolioClarity.nextStep ? (
+                <div style={{ ...UI.body(), marginTop: 6, fontSize: 13, color: "#64748b" }}>
+                  {portfolioClarity.nextStep}
+                </div>
+              ) : null}
             </div>
           </section>
 

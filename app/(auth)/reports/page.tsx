@@ -3024,6 +3024,11 @@ function ReportsPageContent() {
                           {periodReview.evidenceShape ? (
                             <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.evidenceShape}</div>
                           ) : null}
+                          {periodReview.supportingReports ? (
+                            <div style={{ ...smallStyle, marginTop: 6 }}>
+                              {periodReview.supportingReports}
+                            </div>
+                          ) : null}
                           {periodReview.nextStep ? (
                             <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.nextStep}</div>
                           ) : null}

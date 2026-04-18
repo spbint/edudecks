@@ -152,11 +152,18 @@ export type PeriodReviewSummary = {
   summary: string;
   statusShape: string;
   evidenceShape?: string;
+  supportingReports?: string;
   nextStep?: string;
 };
 
 export type CaptureReportFeedback = {
   cue: string;
+  nextStep?: string;
+};
+
+export type EvidenceClaritySummary = {
+  visibilityCue: string;
+  supportingReports?: string;
   nextStep?: string;
 };
 
@@ -677,17 +684,17 @@ export function buildPeriodReviewSummary(input: {
     statusShape = `${parts.join(", ")}.`;
   }
 
-  let evidenceShape = "Learning evidence is still beginning to build across this period.";
-  if (linkedEvidenceCount >= Math.max(3, reportCount * 2) && linkedAreaCount >= Math.max(2, reportCount)) {
-    evidenceShape = "This period already has a growing base of linked evidence.";
-  } else if (linkedEvidenceCount >= 2 && linkedAreaCount >= 1) {
-    evidenceShape = "Learning evidence is beginning to build across this period.";
-  } else if (linkedEvidenceCount >= 1) {
-    evidenceShape =
-      supportingRecordsCount > 0
-        ? "This period is starting to build from linked records and supporting examples."
-        : "This period is starting to build from linked evidence.";
-  }
+  const evidenceClarity = buildEvidenceClaritySummary({
+    evidenceCount: linkedEvidenceCount,
+    linkedEvidenceCount,
+    areaCount: linkedAreaCount,
+    reportSupportingCount: linkedEvidenceCount,
+    periodLabel,
+  });
+  const evidenceShape =
+    linkedEvidenceCount >= 1 && supportingRecordsCount > 0
+      ? "Saved evidence is starting to build a clearer record for this period."
+      : evidenceClarity.visibilityCue;
 
   let nextStep: string | undefined;
   if (preparedCount > 0) {
@@ -704,6 +711,78 @@ export function buildPeriodReviewSummary(input: {
     summary,
     statusShape,
     evidenceShape,
+    supportingReports: evidenceClarity.supportingReports,
+    nextStep,
+  };
+}
+
+export function buildEvidenceClaritySummary(input: {
+  evidenceCount: number;
+  linkedEvidenceCount?: number;
+  areaCount?: number;
+  recentEvidenceCount?: number;
+  reportSupportingCount?: number;
+  periodLabel?: string | null;
+}): EvidenceClaritySummary {
+  const {
+    evidenceCount,
+    linkedEvidenceCount = 0,
+    areaCount = 0,
+    recentEvidenceCount = 0,
+    reportSupportingCount = 0,
+    periodLabel,
+  } = input;
+
+  const hasPeriodContext = Boolean(safe(periodLabel));
+  let visibilityCue = hasPeriodContext
+    ? "This period is still building its picture."
+    : "This portfolio is beginning to take shape.";
+
+  if (hasPeriodContext) {
+    if (evidenceCount >= 3 && linkedEvidenceCount >= 1 && areaCount >= 2) {
+      visibilityCue = "Saved evidence is beginning to build a clearer picture for this period.";
+    } else if (linkedEvidenceCount >= 1) {
+      visibilityCue = "Some evidence in this period is already linked to learning areas.";
+    } else if (evidenceCount >= 1) {
+      visibilityCue = "Saved evidence is starting to build a clearer record for this period.";
+    }
+  } else {
+    if (evidenceCount >= 4 && areaCount >= 2) {
+      visibilityCue = "This portfolio is beginning to show a broader picture of learning.";
+    } else if (linkedEvidenceCount >= 1) {
+      visibilityCue = "Some evidence is already linked to learning areas.";
+    } else if (evidenceCount >= 1) {
+      visibilityCue = "Saved evidence is starting to build a clearer record.";
+    }
+  }
+
+  let supportingReports: string | undefined;
+  if (reportSupportingCount >= 2) {
+    supportingReports = hasPeriodContext
+      ? "Linked records are helping shape this reporting period."
+      : "Some of this evidence is already supporting your reports.";
+  } else if (reportSupportingCount >= 1) {
+    supportingReports = hasPeriodContext
+      ? "Saved examples here are already contributing to this reporting period."
+      : "Saved examples here are already contributing to your reporting picture.";
+  }
+
+  let nextStep: string | undefined;
+  if (evidenceCount === 0) {
+    nextStep = "One clear learning moment is enough to begin.";
+  } else if (linkedEvidenceCount === 0) {
+    nextStep = "Another saved example with clearer learning links would strengthen this picture.";
+  } else if (areaCount <= 1 && evidenceCount >= 2) {
+    nextStep = "More varied evidence could help round out this picture.";
+  } else if (recentEvidenceCount === 0 && evidenceCount > 0) {
+    nextStep = "Another recent learning moment would help keep this picture current.";
+  } else if (evidenceCount < 4 || linkedEvidenceCount < 2) {
+    nextStep = "A few more linked examples across different learning areas would help.";
+  }
+
+  return {
+    visibilityCue,
+    supportingReports,
     nextStep,
   };
 }
