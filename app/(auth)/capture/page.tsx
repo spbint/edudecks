@@ -1646,7 +1646,7 @@ export default function CapturePage() {
       title="EduDecks Family"
       subtitle="Quick Capture"
       heroTitle="Capture one useful learning moment"
-      heroText="Start with what happened, what it showed, and why it matters. That is enough to build a calm, trustworthy learning record over time."
+      heroText="Save learning as it happens, one simple example at a time."
       heroAsideTitle="Best family move"
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >

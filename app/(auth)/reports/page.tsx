@@ -1897,8 +1897,7 @@ function ReportsPageContent() {
                 Build once, save once, and use evidence-led drafts that feel calm and trustworthy
               </div>
               <div style={bodyStyle}>
-                This builder creates a durable report draft object with saved child, market, mode, areas, selected evidence, and report notes.
-                Quick Build can choose strong evidence automatically so the reporting flow feels faster and more guided.
+                Bring saved learning together into a report you can review and share.
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>

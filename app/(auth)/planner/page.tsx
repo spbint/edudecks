@@ -1356,10 +1356,7 @@ export default function PlannerPage() {
             <div>
               <div style={styles.eyebrow}>Family Planner</div>
               <h1 style={styles.heroTitle}>A calm, simple plan for {heroStudentName}</h1>
-              <p style={styles.heroText}>
-                Keep this week light and purposeful. Choose a gentle focus, take a
-                few meaningful steps, and let the story build naturally.
-              </p>
+              <p style={styles.heroText}>Plan the learning you want to notice and grow over time.</p>
             </div>
 
             <div style={styles.heroMetaCard}>

@@ -1099,7 +1099,7 @@ function PortfolioPageContent() {
       heroTitle="Your first learning record is ready"
       workflowCurrentHref="/portfolio"
       workflowHelperText="Portfolio is the final step in the family journey. Keep this record now, print it, or continue building gently over time."
-      heroText="A growing record of learning, reflection, and progress — built from everyday moments."
+      heroText="Browse the learning you've saved and see the picture building."
       hideHeroAside={true}
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={portfolioStepTaken} />

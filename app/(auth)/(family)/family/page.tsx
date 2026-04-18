@@ -291,7 +291,7 @@ export default function FamilyHomePage() {
       title="EduDecks Family"
       subtitle="Family Home"
       heroTitle="A calm view of this reporting period"
-      heroText="See what has been happening in learning, where this period is sitting, and what is worth noticing next."
+      heroText="Get a calm view of how recent learning, planning, and reporting are coming together."
       heroAsideTitle="Overview"
       heroAsideText="Recent learning and reporting stay lightly connected here so the family record remains easy to follow."
     >
