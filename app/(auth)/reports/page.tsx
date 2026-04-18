@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import FamilyWorkflowRibbon from "@/app/components/FamilyWorkflowRibbon";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
@@ -1823,6 +1824,7 @@ function ReportsPageContent() {
   return (
     <main style={pageStyle}>
       <div style={innerStyle}>
+        <FamilyWorkflowRibbon currentRoute="/reports" style={{ marginBottom: 20 }} />
         <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
         {reportsGuidanceNote ? (
           <section

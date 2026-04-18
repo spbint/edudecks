@@ -7,6 +7,7 @@ import { useAuthUser } from "@/app/components/AuthUserProvider";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import FamilyProfileMenu from "@/app/components/FamilyProfileMenu";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import FamilyWorkflowRibbon from "@/app/components/FamilyWorkflowRibbon";
 
 type FamilyTopNavShellProps = {
   children: React.ReactNode;
@@ -173,6 +174,8 @@ export default function FamilyTopNavShell({
           </div>
         </div>
       </header>
+
+      <FamilyWorkflowRibbon currentRoute={pathname} />
 
       <div className={cx("mx-auto w-full max-w-[1440px] px-6 py-6", contentClassName)}>
         {!hideHero ? (
