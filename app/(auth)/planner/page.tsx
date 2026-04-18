@@ -1100,11 +1100,13 @@ export default function PlannerPage() {
         category: action.category,
         title: action.title,
         description: action.description,
+        learnerId: activeStudentId,
+        outcomeId: plannerOutcomeLinks[action.id]?.[0]?.outcomeId ?? "",
       });
     });
 
     return guidance;
-  }, [actions]);
+  }, [actions, activeStudentId, plannerOutcomeLinks]);
 
   const completedCount = useMemo(
     () => actions.filter((action) => action.completed).length,

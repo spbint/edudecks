@@ -883,6 +883,8 @@ export default function CapturePage() {
   const searchParams = useSearchParams();
   const { workspace, activeLearnerId, setActiveLearner, loading: workspaceLoading } =
     useFamilyWorkspace();
+  const plannerPrefillAppliedRef = useRef(false);
+  const plannerOutcomePrefillAppliedRef = useRef(false);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState("");
   const [children, setChildren] = useState<ChildRow[]>([]);
@@ -1079,6 +1081,15 @@ export default function CapturePage() {
     [searchParams]
   );
   const captureFocus = safe(searchParams.get("focus"));
+  const plannerPrefill = useMemo(
+    () => ({
+      active: safe(searchParams.get("from")) === "planner",
+      title: safe(searchParams.get("prefillTitle")),
+      learnerId: safe(searchParams.get("prefillLearnerId")),
+      outcomeId: safe(searchParams.get("prefillOutcomeId")),
+    }),
+    [searchParams],
+  );
   const captureGuidanceNote = useMemo(
     () => buildCaptureGuidanceNote(captureFocus),
     [captureFocus],
@@ -1091,6 +1102,49 @@ export default function CapturePage() {
     () => buildCaptureSectionCue(captureFocus, "linking"),
     [captureFocus],
   );
+  useEffect(() => {
+    if (plannerPrefillAppliedRef.current) return;
+
+    let applied = false;
+
+    if (plannerPrefill.title && !safe(title)) {
+      setTitle(plannerPrefill.title);
+      applied = true;
+    }
+
+    if (plannerPrefill.learnerId) {
+      const matchedChild = children.find((child) => child.id === plannerPrefill.learnerId);
+      if (matchedChild) {
+        setActiveChildId(plannerPrefill.learnerId);
+        setActiveLearner(plannerPrefill.learnerId);
+        applied = true;
+      } else if (children.length > 0) {
+        applied = true;
+      }
+    }
+
+    if (applied || (!plannerPrefill.title && !plannerPrefill.learnerId)) {
+      plannerPrefillAppliedRef.current = true;
+    }
+  }, [children, plannerPrefill, setActiveLearner, title]);
+
+  useEffect(() => {
+    if (plannerOutcomePrefillAppliedRef.current) return;
+    if (!plannerPrefill.outcomeId || !linkContext?.outcomes.length) return;
+
+    const matchedOutcome = linkContext.outcomes.find(
+      (outcome) => outcome.id === plannerPrefill.outcomeId,
+    );
+
+    plannerOutcomePrefillAppliedRef.current = true;
+
+    if (!matchedOutcome) return;
+
+    setSelectedOutcomeId(matchedOutcome.id);
+    if (!safe(learningArea) && safe(matchedOutcome.learningAreaName)) {
+      setLearningArea(safe(matchedOutcome.learningAreaName));
+    }
+  }, [learningArea, linkContext, plannerPrefill.outcomeId]);
   const highlightCaptureDetails =
     captureFocus === "start-evidence" || captureFocus === "planned-without-evidence";
   const highlightCurriculumLinking = captureFocus === "planned-without-evidence";
@@ -1773,6 +1827,18 @@ export default function CapturePage() {
                 ) : null}
 
                 <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
+                  {plannerPrefill.active ? (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: "#64748b",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Started from your planner. You can change any of this before saving.
+                    </div>
+                  ) : null}
                   <div>
                     <label style={labelStyle()}>Learner</label>
                     <select

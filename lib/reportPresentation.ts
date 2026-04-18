@@ -1082,10 +1082,19 @@ export function buildPlannerCaptureGuidance(input: {
   category: "observe" | "do" | "capture" | "reflect";
   title?: string | null;
   description?: string | null;
+  learnerId?: string | null;
+  outcomeId?: string | null;
 }): PlannerCaptureGuidance {
   const title = safe(input.title).toLowerCase();
   const description = safe(input.description).toLowerCase();
   const context = `${title} ${description}`;
+  const href = buildGuidanceHref("/capture", {
+    focus: "start-evidence",
+    from: "planner",
+    prefillTitle: safe(input.title).slice(0, 120),
+    prefillLearnerId: safe(input.learnerId),
+    prefillOutcomeId: safe(input.outcomeId),
+  });
 
   const practicalKeywords = [
     "build",
@@ -1123,7 +1132,7 @@ export function buildPlannerCaptureGuidance(input: {
   if (input.category === "reflect" || matchesKeyword(reflectiveKeywords)) {
     return {
       cue: "A short note or reflection would capture this learning.",
-      href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+      href,
       hrefLabel: "Capture",
     };
   }
@@ -1131,14 +1140,14 @@ export function buildPlannerCaptureGuidance(input: {
   if (input.category === "do" || input.category === "capture" || matchesKeyword(practicalKeywords)) {
     return {
       cue: "A quick photo or short note would capture this learning.",
-      href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+      href,
       hrefLabel: "Capture",
     };
   }
 
   return {
     cue: "This could be captured as a simple learning example.",
-    href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+    href,
     hrefLabel: "Save example",
   };
 }
