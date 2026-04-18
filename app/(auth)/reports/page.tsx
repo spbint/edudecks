@@ -3004,7 +3004,9 @@ function ReportsPageContent() {
                           <div style={{ ...smallStyle, marginTop: 6 }}>
                             {periodReview.statusShape}
                           </div>
-                          <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.nextStep}</div>
+                          {periodReview.nextStep ? (
+                            <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.nextStep}</div>
+                          ) : null}
                         </div>
 
                         <div style={{ display: "grid", gap: 10 }}>

@@ -151,7 +151,7 @@ export type ReportPeriodGroup<T> = {
 export type PeriodReviewSummary = {
   summary: string;
   statusShape: string;
-  nextStep: string;
+  nextStep?: string;
 };
 
 export const reportSectionCopy = {
@@ -642,7 +642,6 @@ export function buildPeriodReviewSummary(input: {
   draftCount: number;
 }): PeriodReviewSummary {
   const { periodLabel, reportCount, preparedCount, reviewCount, draftCount } = input;
-  const safePeriodLabel = safe(periodLabel).toLowerCase() || "period";
 
   const summary =
     reportCount <= 1
@@ -657,17 +656,18 @@ export function buildPeriodReviewSummary(input: {
       formatPeriodReviewCount(draftCount, "still being shaped"),
     ].filter(Boolean);
 
-    statusShape =
-      parts.length > 1
-        ? `${parts.slice(0, -1).join(", ")}, and ${parts[parts.length - 1]}.`
-        : `${parts[0]}.`;
+    statusShape = `${parts.join(", ")}.`;
   }
 
-  let nextStep = "Use these reports together as this period develops.";
+  let nextStep: string | undefined;
   if (preparedCount > 0) {
     nextStep = "You can save or share the reports that are already prepared.";
+  } else if (reviewCount > 0 && reportCount > 1) {
+    nextStep = "You can review these reports together for this period.";
   } else if (reviewCount > 0) {
-    nextStep = `You can review these reports together for this ${safePeriodLabel}.`;
+    nextStep = "You can review this report as part of this period.";
+  } else if (draftCount === reportCount && reportCount > 1) {
+    nextStep = "Use these reports together as this period develops.";
   }
 
   return {
