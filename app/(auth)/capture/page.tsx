@@ -24,6 +24,9 @@ import {
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 import { hasSupabaseEnv } from "@/lib/supabaseClient";
 import {
+  buildCaptureReportFeedback,
+} from "@/lib/reportPresentation";
+import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
@@ -1197,6 +1200,15 @@ export default function CapturePage() {
       ? { label: "Nearly ready", text: "the evidence is already connected." }
       : { label: "Taking shape", text: "the saved evidence is ready for one link." };
   }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
+  const captureReportFeedback = useMemo(
+    () =>
+      buildCaptureReportFeedback({
+        hasSavedCapture,
+        hasCaptureLinks,
+        hasLearningArea: Boolean(safe(learningArea)),
+      }),
+    [hasCaptureLinks, hasSavedCapture, learningArea],
+  );
   useEffect(() => {
     if (!captureFocus) {
       setPreviousCaptureContinuity(null);
@@ -1923,6 +1935,14 @@ export default function CapturePage() {
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
                         Link this to curriculum after saving so the same evidence can flow into curriculum coverage and later reports.
                       </div>
+                      <div style={{ marginTop: 8, fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
+                        {captureReportFeedback.cue}
+                      </div>
+                      {captureReportFeedback.nextStep ? (
+                        <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
+                          {captureReportFeedback.nextStep}
+                        </div>
+                      ) : null}
                     </div>
 
                     <div>

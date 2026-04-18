@@ -151,6 +151,12 @@ export type ReportPeriodGroup<T> = {
 export type PeriodReviewSummary = {
   summary: string;
   statusShape: string;
+  evidenceShape?: string;
+  nextStep?: string;
+};
+
+export type CaptureReportFeedback = {
+  cue: string;
   nextStep?: string;
 };
 
@@ -640,8 +646,20 @@ export function buildPeriodReviewSummary(input: {
   preparedCount: number;
   reviewCount: number;
   draftCount: number;
+  linkedEvidenceCount?: number;
+  linkedAreaCount?: number;
+  supportingRecordsCount?: number;
 }): PeriodReviewSummary {
-  const { periodLabel, reportCount, preparedCount, reviewCount, draftCount } = input;
+  const {
+    periodLabel,
+    reportCount,
+    preparedCount,
+    reviewCount,
+    draftCount,
+    linkedEvidenceCount = 0,
+    linkedAreaCount = 0,
+    supportingRecordsCount = 0,
+  } = input;
 
   const summary =
     reportCount <= 1
@@ -659,6 +677,18 @@ export function buildPeriodReviewSummary(input: {
     statusShape = `${parts.join(", ")}.`;
   }
 
+  let evidenceShape = "Learning evidence is still beginning to build across this period.";
+  if (linkedEvidenceCount >= Math.max(3, reportCount * 2) && linkedAreaCount >= Math.max(2, reportCount)) {
+    evidenceShape = "This period already has a growing base of linked evidence.";
+  } else if (linkedEvidenceCount >= 2 && linkedAreaCount >= 1) {
+    evidenceShape = "Learning evidence is beginning to build across this period.";
+  } else if (linkedEvidenceCount >= 1) {
+    evidenceShape =
+      supportingRecordsCount > 0
+        ? "This period is starting to build from linked records and supporting examples."
+        : "This period is starting to build from linked evidence.";
+  }
+
   let nextStep: string | undefined;
   if (preparedCount > 0) {
     nextStep = "You can save or share the reports that are already prepared.";
@@ -673,7 +703,45 @@ export function buildPeriodReviewSummary(input: {
   return {
     summary,
     statusShape,
+    evidenceShape,
     nextStep,
+  };
+}
+
+export function buildCaptureReportFeedback(input: {
+  hasSavedCapture: boolean;
+  hasCaptureLinks: boolean;
+  hasLearningArea: boolean;
+  periodLabel?: string | null;
+}): CaptureReportFeedback {
+  const normalizedPeriod = safe(input.periodLabel).toLowerCase();
+  const periodPhrase = normalizedPeriod ? `your ${normalizedPeriod}` : "this period";
+
+  if (input.hasSavedCapture && input.hasCaptureLinks) {
+    return {
+      cue: `This saved evidence can help strengthen reports for ${periodPhrase}.`,
+      nextStep:
+        "Another real learning moment from a different learning area would help round out the picture.",
+    };
+  }
+
+  if (input.hasSavedCapture && input.hasLearningArea) {
+    return {
+      cue: `This saved evidence can help build your report for ${periodPhrase}.`,
+      nextStep: "One curriculum link would make this capture easier to carry into reporting.",
+    };
+  }
+
+  if (input.hasLearningArea) {
+    return {
+      cue: "Linked learning areas here can strengthen your reporting picture.",
+      nextStep: "Saving this with a clear learning link will make it more useful in reports.",
+    };
+  }
+
+  return {
+    cue: "Captures like this help build your report over time.",
+    nextStep: "A short learning note and one clear domain will make this easier to use in reports.",
   };
 }
 

@@ -2993,6 +2993,23 @@ function ReportsPageContent() {
                       draftCount: groupDraftViews.filter(
                         ({ savedWorkflow }) => !savedWorkflow || savedWorkflow.state === "draft",
                       ).length,
+                      linkedEvidenceCount: groupDraftViews.reduce(
+                        (total, { savedDraft }) =>
+                          total + (savedDraft.selected_evidence_ids?.length ?? 0),
+                        0,
+                      ),
+                      linkedAreaCount: groupDraftViews.reduce(
+                        (total, { savedDraft }) => total + (savedDraft.selected_areas?.length ?? 0),
+                        0,
+                      ),
+                      supportingRecordsCount: groupDraftViews.reduce(
+                        (total, { savedDraft }) =>
+                          total +
+                          (savedDraft.selected_evidence_ids ?? []).filter(
+                            (id) => savedDraft.selection_meta?.[id]?.role === "appendix",
+                          ).length,
+                        0,
+                      ),
                     });
 
                     return (
@@ -3004,6 +3021,9 @@ function ReportsPageContent() {
                           <div style={{ ...smallStyle, marginTop: 6 }}>
                             {periodReview.statusShape}
                           </div>
+                          {periodReview.evidenceShape ? (
+                            <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.evidenceShape}</div>
+                          ) : null}
                           {periodReview.nextStep ? (
                             <div style={{ ...smallStyle, marginTop: 6 }}>{periodReview.nextStep}</div>
                           ) : null}
