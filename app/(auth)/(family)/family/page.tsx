@@ -1,242 +1,216 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
-import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import {
-  resolveEffectiveActiveLearnerId,
-  type FamilyLearner,
-} from "@/lib/familyWorkspace";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
-import {
-  type FamilySettings,
-} from "@/lib/familySettings";
-import { supabase } from "@/lib/supabaseClient";
+import { getReportComplianceContext, buildReportPeriodPresentation, buildReportSubmissionWorkflow, type ReportSubmissionWorkflow } from "@/lib/reportPresentation";
+import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
+import { getEvidenceText, safeText } from "@/lib/system";
 
 type EvidenceRow = {
   id: string;
-  student_id: string | null;
+  student_id?: string | null;
+  title?: string | null;
+  summary?: string | null;
+  body?: string | null;
+  note?: string | null;
+  learning_area?: string | null;
+  curriculum_subject?: string | null;
+  curriculum_skill?: string | null;
+  occurred_on?: string | null;
   created_at?: string | null;
+  is_deleted?: boolean | null;
 };
-
-type ReportRow = {
-  id: string;
-  updated_at?: string | null;
-};
-
-type LearnerTile = {
-  id: string;
-  name: string;
-  year: string;
-  captures: number;
-  readiness: string;
-};
-
-type PlannerRow = {
-  studentId: string;
-  updatedAt?: string;
-};
-
-const LOCAL_PLAN_KEY = "edudecks_plan";
-
-async function withTimeout<T>(
-  promise: PromiseLike<T> | Promise<T>,
-  label: string,
-  ms = 8000,
-): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-
-  try {
-    return await Promise.race([
-      Promise.resolve(promise),
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => {
-          reject(new Error(`${label} timed out after ${ms}ms.`));
-        }, ms);
-      }),
-    ]);
-  } finally {
-    if (timer) clearTimeout(timer);
-  }
-}
 
 function safe(value: unknown) {
-  return typeof value === "string" ? value.trim() : "";
+  return safeText(typeof value === "string" ? value : String(value ?? ""));
 }
 
-function loadPlannerRows(): PlannerRow[] {
-  if (typeof window === "undefined") return [];
+function clip(value: string | null | undefined, max = 130) {
+  const text = safe(value);
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max).trimEnd()}...` : text;
+}
 
-  try {
-    const raw = window.localStorage.getItem(LOCAL_PLAN_KEY);
-    if (!raw) return [];
+function daysSince(value?: string | null) {
+  const text = safe(value);
+  if (!text) return Number.POSITIVE_INFINITY;
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return Number.POSITIVE_INFINITY;
+  return Math.floor((Date.now() - parsed.getTime()) / 86_400_000);
+}
 
-    return Object.values(
-      JSON.parse(raw) as Record<string, { studentId?: string; updatedAt?: string }>,
-    )
-      .map((item) => ({
-        studentId: safe(item.studentId),
-        updatedAt: safe(item.updatedAt),
-      }))
-      .filter((item) => item.studentId);
-  } catch {
-    return [];
+function evidenceSummary(row: EvidenceRow) {
+  const title = safe(row.title);
+  if (title) return title;
+
+  const detail = clip(getEvidenceText(row), 110);
+  if (detail) return detail;
+
+  const area = safe(row.learning_area);
+  return area ? `${area} learning moment` : "Learning moment";
+}
+
+function hasLearningLink(row: EvidenceRow) {
+  return Boolean(safe(row.curriculum_subject) || safe(row.curriculum_skill));
+}
+
+function buildEvidenceRevisitHref(row: EvidenceRow) {
+  const evidenceId = encodeURIComponent(row.id);
+  const studentId = safe(row.student_id);
+  return studentId
+    ? `/portfolio?studentId=${encodeURIComponent(studentId)}&highlightEvidenceId=${evidenceId}`
+    : `/portfolio?highlightEvidenceId=${evidenceId}`;
+}
+
+function buildPeriodContextLine(input: {
+  periodKind: "term" | "semester" | "annual" | "custom";
+  hasEvidence: boolean;
+  hasReports: boolean;
+}) {
+  const { periodKind, hasEvidence, hasReports } = input;
+  const isTakingShape = hasEvidence || hasReports;
+
+  if (periodKind === "term") {
+    return isTakingShape
+      ? "You are building your term learning record."
+      : "This reporting period is beginning to build.";
   }
+
+  if (periodKind === "semester") {
+    return isTakingShape
+      ? "This semester's learning is taking shape."
+      : "This reporting period is beginning to build.";
+  }
+
+  if (periodKind === "annual") {
+    return isTakingShape
+      ? "This year's learning record is taking shape."
+      : "This reporting period is beginning to build.";
+  }
+
+  return isTakingShape
+    ? "Your learning record is beginning to take shape."
+    : "This reporting period is beginning to build.";
 }
 
-function ChildTile({ child, isDefault }: { child: LearnerTile; isDefault: boolean }) {
-  return (
-    <div style={S.childCard}>
-      <div style={S.childHeader}>
-        <div>
-          <div style={S.childName}>{child.name}</div>
-          <div style={S.childMeta}>{child.year}</div>
-        </div>
-        {isDefault ? <span style={S.defaultChip}>Default learner</span> : null}
-      </div>
+function buildReportingShapeLine(workflows: ReportSubmissionWorkflow[], draftCount: number) {
+  if (workflows.some((workflow) => workflow.state === "prepared")) {
+    return "You have reports prepared for your records.";
+  }
 
-      <div style={S.childStats}>
-        <div style={S.statPill}>
-          <span style={S.statLabel}>Captures</span>
-          <span style={S.statValue}>{child.captures}</span>
-        </div>
-        <div style={S.statPill}>
-          <span style={S.statLabel}>Readiness</span>
-          <span style={S.statValue}>{child.readiness}</span>
-        </div>
-      </div>
+  if (workflows.some((workflow) => workflow.state === "review")) {
+    return "Some reports are ready for review.";
+  }
 
-      <div style={S.childActions}>
-        <Link href="/calendar" style={S.smallPrimaryButton}>
-          Build learning block
-        </Link>
-        <Link href="/capture" style={S.smallSecondaryButton}>
-          Capture learning
-        </Link>
-      </div>
-    </div>
-  );
+  if (draftCount > 0) {
+    return "Your reports are beginning to take shape.";
+  }
+
+  return "Your reports will take shape as you continue capturing learning.";
 }
 
-function WorkflowRibbon() {
-  const items = [
-    { label: "Home", href: "/family", active: true },
-    { label: "Calendar", href: "/calendar" },
-    { label: "Planner", href: "/planner" },
-    { label: "Capture", href: "/capture" },
-    { label: "Portfolio", href: "/portfolio" },
-    { label: "Reports", href: "/reports" },
-    { label: "Output", href: "/reports/output" },
-  ];
+function buildFamilyGuidance(input: {
+  evidenceCount: number;
+  linkedEvidenceCount: number;
+  recentEvidenceCount: number;
+  workflows: ReportSubmissionWorkflow[];
+  draftCount: number;
+}) {
+  const { evidenceCount, linkedEvidenceCount, recentEvidenceCount, workflows, draftCount } = input;
 
-  return (
-    <div style={S.ribbon}>
-      {items.map((item, index) => (
-        <React.Fragment key={item.label}>
-          <Link
-            href={item.href}
-            style={item.active ? S.ribbonItemActive : S.ribbonItem}
-          >
-            <span style={S.ribbonIndex}>{index + 1}</span>
-            {item.label}
-          </Link>
-          {index < items.length - 1 ? <span style={S.ribbonArrow}>→</span> : null}
-        </React.Fragment>
-      ))}
-    </div>
-  );
+  if (
+    recentEvidenceCount > 0 &&
+    workflows.some((workflow) => workflow.state === "review" || workflow.state === "prepared")
+  ) {
+    return "Recent learning is building well. Reviewing your reports next could help connect the picture.";
+  }
+
+  if (draftCount > 0 && recentEvidenceCount > 0) {
+    return "You already have recent evidence. Revisiting your reports could help round out this period.";
+  }
+
+  if (evidenceCount > 0 && linkedEvidenceCount > 0 && draftCount === 0) {
+    return "Your learning record is beginning to build. Capturing one more linked example would help next.";
+  }
+
+  if (evidenceCount > 0 && linkedEvidenceCount === 0) {
+    return "Recent learning is helping this period take shape. Another linked example would help connect it further.";
+  }
+
+  if (evidenceCount >= 1 && draftCount >= 1) {
+    return "Recent learning and reporting are beginning to connect. Revisiting your evidence could help shape this period.";
+  }
+
+  if (evidenceCount === 0) {
+    return "Keep building your learning record one step at a time.";
+  }
+
+  if (draftCount === 0) {
+    return "Recent learning and reporting will become clearer as you continue adding evidence.";
+  }
+
+  return "Keep building your learning record one step at a time.";
 }
 
 export default function FamilyHomePage() {
-  const { workspace, activeLearnerId, loading: workspaceLoading, error: workspaceError } =
-    useFamilyWorkspace();
-  const [busy, setBusy] = useState(true);
+  const { workspace, loading: workspaceLoading, error: workspaceError } = useFamilyWorkspace();
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [learners, setLearners] = useState<FamilyLearner[]>([]);
-  const [defaultLearnerId, setDefaultLearnerId] = useState("");
-  const [captureRows, setCaptureRows] = useState<EvidenceRow[]>([]);
-  const [reportRows, setReportRows] = useState<ReportRow[]>([]);
+  const [recentEvidence, setRecentEvidence] = useState<EvidenceRow[]>([]);
+  const [reportDrafts, setReportDrafts] = useState<ReportDraftRow[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
     async function hydrate() {
-      setBusy(true);
+      setLoading(true);
       setError("");
 
       try {
-        const nextLearners = workspace.learners ?? [];
-        const nextProfile = workspace.profile as FamilySettings;
-
-        if (!mounted) return;
-
-        if (!nextLearners.length) {
-          setLearners([]);
-
-          const effectiveLearnerId = resolveEffectiveActiveLearnerId(nextLearners, nextProfile);
-          setDefaultLearnerId(effectiveLearnerId);
-
-          setCaptureRows([]);
-          setReportRows([]);
-          setError(workspaceError);
-          return;
-        }
-
-        setLearners(nextLearners);
-
-        const effectiveLearnerId = resolveEffectiveActiveLearnerId(
-          nextLearners,
-          nextProfile,
-        );
-        setDefaultLearnerId(effectiveLearnerId);
-
-        if (!workspace.userId) {
-          setCaptureRows([]);
-          setReportRows([]);
-          return;
-        }
-
-        const learnerIds = nextLearners
+        const learnerIds = (workspace.learners ?? [])
           .map((learner) => learner.id)
-          .filter((id) => !id.startsWith("local-"));
+          .filter((id) => id && !id.startsWith("local-"));
 
-        if (!learnerIds.length) {
-          setCaptureRows([]);
-          setReportRows([]);
+        if (!workspace.userId || learnerIds.length === 0) {
+          if (!mounted) return;
+          setRecentEvidence([]);
+          setReportDrafts([]);
+          setError(workspaceError || "");
           return;
         }
 
-        const [evidenceRes, reportRes] = await withTimeout(
-          Promise.all([
-            loadEvidenceEntriesWithVariants<EvidenceRow>(
-              ["id,student_id,created_at,is_deleted"],
-              { studentIds: learnerIds, limit: 24 },
-            ),
-            supabase
-              .from("report_drafts")
-              .select("id,updated_at")
-              .eq("user_id", workspace.userId)
-              .order("updated_at", { ascending: false })
-              .limit(12),
-          ]),
-          "load family evidence and reports",
-        );
+        const [evidenceRows, draftRows] = await Promise.all([
+          loadEvidenceEntriesWithVariants<EvidenceRow>(
+            [
+              "id,student_id,title,summary,body,note,learning_area,curriculum_subject,curriculum_skill,occurred_on,created_at,is_deleted",
+              "id,student_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
+            ],
+            { studentIds: learnerIds, limit: 5 },
+          ),
+          listReportDrafts(),
+        ]);
 
         if (!mounted) return;
 
-        setCaptureRows(evidenceRes);
-        setReportRows((reportRes.data ?? []) as ReportRow[]);
-      } catch (err) {
-        console.error("Family workspace load failed", err);
+        const learnerIdSet = new Set(learnerIds);
+        const familyDrafts = draftRows.filter((draft) => {
+          const linkedIds = [safe(draft.student_id), safe(draft.child_id)].filter(Boolean);
+          return linkedIds.length === 0 || linkedIds.some((id) => learnerIdSet.has(id));
+        });
+
+        setRecentEvidence(evidenceRows.slice(0, 5));
+        setReportDrafts(familyDrafts);
+      } catch (loadError) {
+        console.error("family overview hydrate failed", loadError);
         if (!mounted) return;
-        setLearners(workspace.learners);
-        setDefaultLearnerId(activeLearnerId);
-        setCaptureRows([]);
-        setReportRows([]);
-        setError(workspaceError || "We could not load the family workspace right now.");
+        setRecentEvidence([]);
+        setReportDrafts([]);
+        setError(workspaceError || "We could not load this family overview right now.");
       } finally {
-        if (mounted) setBusy(false);
+        if (mounted) setLoading(false);
       }
     }
 
@@ -245,371 +219,174 @@ export default function FamilyHomePage() {
     return () => {
       mounted = false;
     };
-  }, [workspace.learners, workspace.profile, workspace.userId, workspaceError, activeLearnerId]);
+  }, [workspace.learners, workspace.profile, workspace.userId, workspaceError]);
 
-  useEffect(() => {
-    if (activeLearnerId) {
-      setDefaultLearnerId(activeLearnerId);
-    }
-  }, [activeLearnerId]);
+  const latestDraft = reportDrafts[0] ?? null;
 
-  const learnerTiles = useMemo(() => {
-    return learners.map((learner) => {
-      const captures = captureRows.filter(
-        (row) => row.student_id === learner.id,
-      ).length;
+  const periodPresentation = useMemo(
+    () =>
+      buildReportPeriodPresentation({
+        periodMode: latestDraft?.period_mode,
+      }),
+    [latestDraft?.period_mode],
+  );
 
-      const readiness =
-        captures >= 4 ? "Strong" : captures >= 1 ? "Building" : "Ready to begin";
+  const workflows = useMemo(() => {
+    return reportDrafts
+      .map((draft) => {
+        const selectedEvidenceIds = draft.selected_evidence_ids ?? [];
+        const selectedCoreCount = selectedEvidenceIds.filter(
+          (id) => draft.selection_meta?.[id]?.role !== "appendix",
+        ).length;
+        const appendixCount = selectedEvidenceIds.filter(
+          (id) => draft.selection_meta?.[id]?.role === "appendix",
+        ).length;
 
-      return {
-        id: learner.id,
-        name: learner.label,
-        year: learner.yearLabel || "Year level not set",
-        captures,
-        readiness,
-      } satisfies LearnerTile;
-    });
-  }, [captureRows, learners]);
+        return buildReportSubmissionWorkflow({
+          complianceContext: getReportComplianceContext({
+            market: draft.preferred_market || workspace.profile?.preferred_market,
+            curriculumPreferences: workspace.profile?.curriculum_preferences ?? null,
+          }),
+          isSavedDraft: true,
+          hasMeaningfulCoverage:
+            draft.selected_areas.length > 0 && selectedEvidenceIds.length > 0,
+          selectedEvidenceCount: selectedEvidenceIds.length,
+          selectedCoreCount,
+          includeAppendix: Boolean(draft.include_appendix),
+          supportingRecordsCount: appendixCount,
+          periodLabel: periodPresentation.label,
+        });
+      })
+      .filter((workflow): workflow is ReportSubmissionWorkflow => Boolean(workflow));
+  }, [periodPresentation.label, reportDrafts, workspace.profile?.curriculum_preferences, workspace.profile?.preferred_market]);
+  const linkedEvidenceCount = useMemo(
+    () => recentEvidence.filter((item) => hasLearningLink(item)).length,
+    [recentEvidence],
+  );
+  const recentEvidenceCount = useMemo(
+    () =>
+      recentEvidence.filter((item) => daysSince(item.occurred_on || item.created_at) <= 30)
+        .length,
+    [recentEvidence],
+  );
 
-  const plannerRows = useMemo(() => loadPlannerRows(), []);
-  const recentCaptureCount = captureRows.length;
-  const recentPlanCount = plannerRows.length;
-  const recentReportCount = reportRows.length;
+  const periodContextLine = buildPeriodContextLine({
+    periodKind: periodPresentation.kind,
+    hasEvidence: recentEvidence.length > 0,
+    hasReports: reportDrafts.length > 0,
+  });
+  const reportingShapeLine = buildReportingShapeLine(workflows, reportDrafts.length);
+  const guidanceLine = buildFamilyGuidance({
+    evidenceCount: recentEvidence.length,
+    linkedEvidenceCount,
+    recentEvidenceCount,
+    workflows,
+    draftCount: reportDrafts.length,
+  });
 
-  const nextLearner =
-    learnerTiles.find((learner) => learner.id === defaultLearnerId) ||
-    learnerTiles[0] ||
-    null;
+  const pageState = loading || workspaceLoading;
 
   return (
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Family Home"
-      heroTitle="Keep the family rhythm calm and connected"
-      heroText="Keep the next step visible across capture, planning, portfolio, and reporting without losing the wider family picture."
-      heroAsideTitle="Family snapshot"
-      heroAsideText="A calm, clear view of the current family workspace and the next connected step."
+      heroTitle="A calm view of this reporting period"
+      heroText="See what has been happening in learning, where this period is sitting, and what is worth noticing next."
+      heroAsideTitle="Overview"
+      heroAsideText="Recent learning and reporting stay lightly connected here so the family record remains easy to follow."
     >
-      <div style={S.page}>
-        <WorkflowRibbon />
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-10">
+        <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Current period
+          </div>
+          <p className="mt-2 text-[15px] leading-8 text-slate-600">{periodContextLine}</p>
+        </section>
 
-        <section style={S.section}>
-          <div style={S.sectionTitle}>Your learners</div>
+        <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Recent learning
+          </div>
+          <p className="mt-2 text-sm leading-7 text-slate-500">
+            {recentEvidence.length
+              ? "A few recent moments are easy to revisit here."
+              : "Recent activity will appear here as you add learning."}
+          </p>
 
-          {busy || workspaceLoading ? (
-            <div style={S.card}>
-              <div style={S.cardText}>Loading linked learners…</div>
-            </div>
-          ) : learnerTiles.length ? (
-            <div style={S.childGrid}>
-              {learnerTiles.map((child) => (
-                <ChildTile
-                  key={child.id}
-                  child={child}
-                  isDefault={child.id === defaultLearnerId}
-                />
+          {pageState ? (
+            <p className="mt-3 text-sm leading-7 text-slate-500">Loading recent learning...</p>
+          ) : recentEvidence.length ? (
+            <div className="mt-3 flex flex-col gap-2.5">
+              {recentEvidence.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3.5"
+                >
+                  <div className="text-sm font-semibold leading-6 text-slate-900">
+                    {evidenceSummary(item)}
+                  </div>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    {clip(getEvidenceText(item), 150) || "Learning reflection recorded."}
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {hasLearningLink(item) ? (
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                        Linked to learning
+                      </span>
+                    ) : null}
+                    {daysSince(item.occurred_on || item.created_at) <= 30 ? (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+                        Recent
+                      </span>
+                    ) : null}
+                    <Link
+                      href={buildEvidenceRevisitHref(item)}
+                      className="text-[12px] font-bold text-blue-700 no-underline"
+                    >
+                      Revisit
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
-          ) : error ? (
-            <div style={S.errorCard}>{error}</div>
-          ) : (
-            <div style={S.card}>
-              <div style={S.cardText}>
-                No learners are linked yet. Add a learner once in profile and the
-                family workspace will follow everywhere.
-              </div>
-              <div style={S.nextStepActions}>
-                <Link href="/profile#manage-family" style={S.smallPrimaryButton}>
-                  Add your first learner
-                </Link>
-              </div>
-            </div>
-          )}
+          ) : null}
         </section>
 
-        <section style={S.section}>
-          <div style={S.sectionTitle}>This week</div>
-
-          <div style={S.summaryGrid}>
-            <div style={S.summaryCard}>
-              <div style={S.summaryTitle}>Planning</div>
-              <div style={S.summaryText}>
-                {recentPlanCount > 0
-                  ? `${recentPlanCount} saved planner moment(s)`
-                  : "No planner work saved yet"}
-              </div>
-            </div>
-
-            <div style={S.summaryCard}>
-              <div style={S.summaryTitle}>Recent captures</div>
-              <div style={S.summaryText}>
-                {recentCaptureCount > 0
-                  ? `${recentCaptureCount} capture(s) linked`
-                  : "No captures linked yet"}
-              </div>
-            </div>
-
-            <div style={S.summaryCard}>
-              <div style={S.summaryTitle}>Portfolio</div>
-              <div style={S.summaryText}>
-                {recentCaptureCount > 0
-                  ? "Building from captured learning"
-                  : "Waiting for the first captured moment"}
-              </div>
-            </div>
-
-            <div style={S.summaryCard}>
-              <div style={S.summaryTitle}>Reports</div>
-              <div style={S.summaryText}>
-                {recentReportCount > 0
-                  ? `${recentReportCount} report draft(s)`
-                  : "Not started"}
-              </div>
-            </div>
+        <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+            Reporting shape
+          </div>
+          <p className="mt-2 text-[15px] leading-8 text-slate-600">{reportingShapeLine}</p>
+          <div className="mt-2.5">
+            <Link href="/reports" className="text-sm font-bold text-blue-700 no-underline">
+              View reports
+            </Link>
           </div>
         </section>
 
-        <section style={S.section}>
-          <div style={S.sectionTitle}>Next best step</div>
-          <div style={S.nextStepCard}>
-            <div style={S.cardText}>
-              {nextLearner
-                ? `Next, place one calm learning block for ${nextLearner.name} in Calendar, then capture one real moment from the week.`
-                : "Add one learner in profile to begin shaping the week."}
+        {guidanceLine ? (
+          <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              Guidance
             </div>
+            <p className="mt-2 text-[15px] leading-8 text-slate-600">{guidanceLine}</p>
+          </section>
+        ) : null}
 
-            <div style={S.nextStepActions}>
-              {nextLearner ? (
-                <>
-                  <Link href="/calendar" style={S.smallPrimaryButton}>
-                    Go to calendar
-                  </Link>
-                  <Link href="/capture" style={S.smallSecondaryButton}>
-                    Capture learning
-                  </Link>
-                </>
-              ) : (
-                <Link href="/profile#manage-family" style={S.smallPrimaryButton}>
-                  Manage family
-                </Link>
-              )}
-            </div>
-          </div>
-        </section>
+        {!pageState && !recentEvidence.length && !reportDrafts.length && !error ? (
+          <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+            <p className="text-sm leading-7 text-slate-500">
+              Your learning journey is just beginning. Your reports will begin to take shape as you capture learning.
+            </p>
+          </section>
+        ) : null}
 
-        <section style={S.section}>
-          <div style={S.sectionTitle}>Recent learning</div>
-          <div style={S.card}>
-            <div style={S.cardText}>
-              {recentCaptureCount > 0
-                ? `You have ${recentCaptureCount} captured learning moment(s). Open Portfolio to review the strongest record.`
-                : "No recent learning yet. Capture one real moment to begin your story."}
-            </div>
-          </div>
-        </section>
+        {error ? (
+          <section className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
+            <p className="text-sm leading-7 text-amber-900">{error}</p>
+          </section>
+        ) : null}
       </div>
     </FamilyTopNavShell>
   );
 }
-
-const S: Record<string, React.CSSProperties> = {
-  page: { display: "grid", gap: 18, paddingBottom: 64 },
-  ribbon: {
-    display: "flex",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 10,
-  },
-  ribbonItem: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    textDecoration: "none",
-    borderRadius: 14,
-    border: "1px solid #dbe3f0",
-    background: "#ffffff",
-    color: "#0f172a",
-    padding: "10px 14px",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  ribbonItemActive: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    textDecoration: "none",
-    borderRadius: 14,
-    border: "1px solid #0f172a",
-    background: "#0f172a",
-    color: "#ffffff",
-    padding: "10px 14px",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  ribbonIndex: {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: 18,
-    height: 18,
-    borderRadius: 999,
-    background: "rgba(255,255,255,0.18)",
-    fontSize: 11,
-    fontWeight: 900,
-  },
-  ribbonArrow: {
-    color: "#94a3b8",
-    fontWeight: 700,
-  },
-  section: { display: "grid", gap: 12 },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-  card: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    background: "#ffffff",
-    padding: 16,
-  },
-  errorCard: {
-    border: "1px solid #fdba74",
-    borderRadius: 18,
-    background: "#fff7ed",
-    color: "#9a3412",
-    padding: 16,
-    fontSize: 14,
-  },
-  cardText: {
-    fontSize: 14,
-    lineHeight: 1.65,
-    color: "#475569",
-  },
-  childGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-    gap: 14,
-  },
-  childCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    background: "#ffffff",
-    padding: 16,
-    display: "grid",
-    gap: 12,
-    boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
-  },
-  childHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "flex-start",
-  },
-  childName: {
-    fontSize: 16,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-  childMeta: {
-    marginTop: 4,
-    fontSize: 13,
-    color: "#64748b",
-  },
-  defaultChip: {
-    display: "inline-flex",
-    alignItems: "center",
-    borderRadius: 999,
-    padding: "6px 10px",
-    fontSize: 12,
-    fontWeight: 800,
-    background: "#eff6ff",
-    border: "1px solid #bfdbfe",
-    color: "#1d4ed8",
-  },
-  childStats: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  statPill: {
-    display: "inline-flex",
-    gap: 8,
-    alignItems: "center",
-    borderRadius: 999,
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    padding: "8px 10px",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#64748b",
-    fontWeight: 700,
-  },
-  statValue: {
-    fontSize: 12,
-    color: "#0f172a",
-    fontWeight: 900,
-  },
-  childActions: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  summaryGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))",
-    gap: 14,
-  },
-  summaryCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    background: "#ffffff",
-    padding: 16,
-    display: "grid",
-    gap: 8,
-  },
-  summaryTitle: {
-    fontSize: 15,
-    fontWeight: 900,
-    color: "#0f172a",
-  },
-  summaryText: {
-    fontSize: 14,
-    color: "#475569",
-    lineHeight: 1.55,
-  },
-  nextStepCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: 18,
-    background: "#ffffff",
-    padding: 16,
-    display: "grid",
-    gap: 14,
-  },
-  nextStepActions: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  smallPrimaryButton: {
-    textDecoration: "none",
-    borderRadius: 12,
-    background: "#0f172a",
-    color: "#ffffff",
-    padding: "10px 14px",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-  smallSecondaryButton: {
-    textDecoration: "none",
-    borderRadius: 12,
-    border: "1px solid #d1d5db",
-    background: "#ffffff",
-    color: "#0f172a",
-    padding: "10px 14px",
-    fontWeight: 800,
-    fontSize: 14,
-  },
-};
