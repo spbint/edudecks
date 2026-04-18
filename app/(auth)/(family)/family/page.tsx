@@ -296,6 +296,9 @@ export default function FamilyHomePage() {
       heroAsideText="Recent learning and reporting stay lightly connected here so the family record remains easy to follow."
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 pb-10">
+        <p className="text-sm leading-7 text-slate-500">
+          Everything here builds gradually as you capture and revisit learning.
+        </p>
         <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
             Current period

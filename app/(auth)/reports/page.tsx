@@ -1826,6 +1826,9 @@ function ReportsPageContent() {
       <div style={innerStyle}>
         <FamilyWorkflowRibbon currentRoute="/reports" style={{ marginBottom: 20 }} />
         <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
+        <div style={{ ...smallStyle, marginBottom: 18, color: "#64748b" }}>
+          Reports take shape over time as your learning builds.
+        </div>
         {reportsGuidanceNote ? (
           <section
             style={{

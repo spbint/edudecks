@@ -1357,6 +1357,9 @@ export default function PlannerPage() {
               <div style={styles.eyebrow}>Family Planner</div>
               <h1 style={styles.heroTitle}>A calm, simple plan for {heroStudentName}</h1>
               <p style={styles.heroText}>Plan the learning you want to notice and grow over time.</p>
+              <p style={{ ...styles.cardText, marginTop: 10 }}>
+                Plans don’t need to be perfect, and one simple focus is enough.
+              </p>
             </div>
 
             <div style={styles.heroMetaCard}>

@@ -1103,6 +1103,9 @@ function PortfolioPageContent() {
       hideHeroAside={true}
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={portfolioStepTaken} />
+      <p style={{ ...UI.body(), marginBottom: 16, color: "#64748b" }}>
+        Revisiting saved learning helps the bigger picture come into view.
+      </p>
       {err ? (
         <section
           style={{

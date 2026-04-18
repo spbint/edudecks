@@ -1651,6 +1651,9 @@ export default function CapturePage() {
       heroAsideText="A useful title, a short summary of what the learner showed, and one learning domain are enough to create a strong starting record."
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
+      <p style={{ marginBottom: 18, fontSize: 14, lineHeight: 1.65, color: "#64748b" }}>
+        Even a quick note or photo is enough to capture real learning.
+      </p>
       {captureGuidanceNote ? (
         <section
           style={{
