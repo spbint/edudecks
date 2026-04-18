@@ -1694,6 +1694,7 @@ function PortfolioPageContent() {
             <FeaturedShowcase
               showcaseItems={showcaseItems}
               tagMap={tagMap}
+              buildEvidenceRevisitHref={buildEvidenceRevisitHref}
             />
           ) : null}
 
@@ -1729,7 +1730,11 @@ function PortfolioPageContent() {
           >
             <div style={{ display: "grid", gap: 16 }}>
               {blockEnabled("featured_showcase") && layout.topFeature !== "featured_showcase" ? (
-                <FeaturedShowcase showcaseItems={showcaseItems} tagMap={tagMap} />
+                <FeaturedShowcase
+                  showcaseItems={showcaseItems}
+                  tagMap={tagMap}
+                  buildEvidenceRevisitHref={buildEvidenceRevisitHref}
+                />
               ) : null}
 
               {blockEnabled("learning_feed") && layout.topFeature !== "learning_feed" ? (
@@ -1948,6 +1953,19 @@ function PortfolioPageContent() {
                           </div>
                           <div style={{ ...UI.body(), fontSize: 13 }}>
                             {clip(textOfEvidence(item), 110) || "Representative milestone moment."}
+                          </div>
+                          <div>
+                            <Link
+                              href={buildEvidenceRevisitHref(item.id)}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#2563eb",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Revisit
+                            </Link>
                           </div>
                         </div>
                       ))}
@@ -2567,9 +2585,11 @@ function TrendRow({ label, value, max }: { label: string; value: number; max: nu
 function FeaturedShowcase({
   showcaseItems,
   tagMap,
+  buildEvidenceRevisitHref,
 }: {
   showcaseItems: ShowcaseItem[];
   tagMap: TagMap;
+  buildEvidenceRevisitHref: (evidenceId: string) => string;
 }) {
   if (!showcaseItems.length) return null;
 
@@ -2643,6 +2663,20 @@ function FeaturedShowcase({
                   ))}
                 </div>
               ) : null}
+
+              <div>
+                <Link
+                  href={buildEvidenceRevisitHref(item.id)}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#2563eb",
+                    textDecoration: "none",
+                  }}
+                >
+                  Revisit
+                </Link>
+              </div>
 
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
                 {fullDate(item.occurred_on || item.created_at)}
