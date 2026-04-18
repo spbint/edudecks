@@ -29,6 +29,7 @@ import {
 } from "@/lib/guidedCompletionSnapshot";
 import {
   buildPlannerActionEvidenceCue,
+  buildPlannerCaptureGuidance,
   buildPlannerEvidenceCoherence,
 } from "@/lib/reportPresentation";
 
@@ -1091,6 +1092,19 @@ export default function PlannerPage() {
 
     return cues;
   }, [actions, plannerOutcomeLinks, evidencedLinkedOutcomeIds]);
+  const actionCaptureGuidanceById = useMemo(() => {
+    const guidance: Record<string, ReturnType<typeof buildPlannerCaptureGuidance>> = {};
+
+    actions.forEach((action) => {
+      guidance[action.id] = buildPlannerCaptureGuidance({
+        category: action.category,
+        title: action.title,
+        description: action.description,
+      });
+    });
+
+    return guidance;
+  }, [actions]);
 
   const completedCount = useMemo(
     () => actions.filter((action) => action.completed).length,
@@ -1649,6 +1663,15 @@ export default function PlannerPage() {
                             : ""}
                         </div>
                       ) : null}
+                      <div style={{ ...styles.linkSummaryText, marginTop: 6, color: "#64748b" }}>
+                        {actionCaptureGuidanceById[action.id]?.cue}{" "}
+                        <Link
+                          href={actionCaptureGuidanceById[action.id]?.href ?? "/capture"}
+                          style={styles.inlineCaptureLink}
+                        >
+                          {actionCaptureGuidanceById[action.id]?.hrefLabel}
+                        </Link>
+                      </div>
 
                       {activeLinkActionId === action.id ? (
                         <div style={styles.linkPanel}>
@@ -2258,6 +2281,11 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
     color: "#64748b",
     fontWeight: 600,
+  },
+  inlineCaptureLink: {
+    color: "#1d4ed8",
+    textDecoration: "none",
+    fontWeight: 700,
   },
   linkPanel: {
     marginTop: 14,

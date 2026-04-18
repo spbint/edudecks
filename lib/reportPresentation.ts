@@ -194,6 +194,12 @@ export type PlannerActionEvidenceCue = {
   nextStep?: string;
 };
 
+export type PlannerCaptureGuidance = {
+  cue: string;
+  href: string;
+  hrefLabel: string;
+};
+
 export const reportSectionCopy = {
   overview: { eyebrow: "Learning Overview", title: "Summary of Learning" },
   coverage: {
@@ -1070,6 +1076,71 @@ export function buildPlannerActionEvidenceCue(input: {
   }
 
   return null;
+}
+
+export function buildPlannerCaptureGuidance(input: {
+  category: "observe" | "do" | "capture" | "reflect";
+  title?: string | null;
+  description?: string | null;
+}): PlannerCaptureGuidance {
+  const title = safe(input.title).toLowerCase();
+  const description = safe(input.description).toLowerCase();
+  const context = `${title} ${description}`;
+
+  const practicalKeywords = [
+    "build",
+    "make",
+    "create",
+    "cook",
+    "draw",
+    "paint",
+    "measure",
+    "count",
+    "read together",
+    "read",
+    "write",
+    "garden",
+    "experiment",
+    "play",
+    "sport",
+  ];
+  const reflectiveKeywords = [
+    "reflect",
+    "notice",
+    "think",
+    "talk",
+    "discuss",
+    "question",
+    "retell",
+    "explain",
+    "idea",
+    "understanding",
+    "response",
+  ];
+
+  const matchesKeyword = (keywords: string[]) => keywords.some((keyword) => context.includes(keyword));
+
+  if (input.category === "reflect" || matchesKeyword(reflectiveKeywords)) {
+    return {
+      cue: "A short note or reflection would capture this learning.",
+      href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+      hrefLabel: "Capture",
+    };
+  }
+
+  if (input.category === "do" || input.category === "capture" || matchesKeyword(practicalKeywords)) {
+    return {
+      cue: "A quick photo or short note would capture this learning.",
+      href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+      hrefLabel: "Capture",
+    };
+  }
+
+  return {
+    cue: "This could be captured as a simple learning example.",
+    href: buildGuidanceHref("/capture", { focus: "start-evidence" }),
+    hrefLabel: "Save example",
+  };
 }
 
 export function buildCoverageExplanation(curriculumCoverage: CurriculumCoverage) {
