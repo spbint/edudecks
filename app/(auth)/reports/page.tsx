@@ -1299,6 +1299,20 @@ function ReportsPageContent() {
       })),
     [savedDrafts],
   );
+  const reportReuseEvidenceIds = useMemo(() => {
+    if (!selectedStudentId) return new Set<string>();
+
+    return new Set(
+      savedDrafts
+        .filter((draft) => {
+          const linkedIds = [safe(draft.student_id), safe(draft.child_id)].filter(Boolean);
+          return linkedIds.includes(selectedStudentId);
+        })
+        .flatMap((draft) => draft.selected_evidence_ids ?? [])
+        .map((id) => safe(id))
+        .filter(Boolean),
+    );
+  }, [savedDrafts, selectedStudentId]);
 
   const curriculumStatusSummary = useMemo(() => {
     if (!curriculumData) return [];
@@ -2625,6 +2639,7 @@ function ReportsPageContent() {
                       const meta = selectionMeta[row.id];
                       const score = evidenceScore(row);
                       const highlighted = highlightEvidenceId === row.id;
+                      const alreadySupportingReports = reportReuseEvidenceIds.has(row.id);
 
                       return (
                         <div
@@ -2666,6 +2681,11 @@ function ReportsPageContent() {
                               <div style={smallStyle}>
                                 {guessArea(row.learning_area)} • {shortDate(row.occurred_on || row.created_at)}
                               </div>
+                              {alreadySupportingReports ? (
+                                <div style={{ marginTop: 8 }}>
+                                  <span style={pillStyle("secondary")}>Already supporting reports</span>
+                                </div>
+                              ) : null}
                               <div style={{ ...bodyStyle, marginTop: 8 }}>
                                 {clip(evidenceText(row), 220) || "No written summary yet."}
                               </div>

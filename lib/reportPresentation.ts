@@ -913,8 +913,8 @@ export function buildEvidenceBrowsingSummary(input: {
   }
 
   let reportHint: string | undefined;
-  if (reportSupportingCount >= 2) {
-    reportHint = "Some evidence here is already supporting reports.";
+  if (reportSupportingCount >= 1) {
+    reportHint = "Some of this evidence is already helping your reports.";
   }
 
   let nextStep: string | undefined;

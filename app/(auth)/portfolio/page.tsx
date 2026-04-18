@@ -23,6 +23,7 @@ import {
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
 import { buildEvidenceBrowsingSummary } from "@/lib/reportPresentation";
+import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 
 /* ──────────────────────────────────────────────────────────────
    TYPES
@@ -622,6 +623,7 @@ function PortfolioPageContent() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [allEvidence, setAllEvidence] = useState<EvidenceRow[]>([]);
+  const [savedDrafts, setSavedDrafts] = useState<ReportDraftRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -660,18 +662,22 @@ function PortfolioPageContent() {
           ? loadedStudents
           : seedStudents;
 
-        const loadedEvidence = await loadEvidenceEntriesWithVariants<EvidenceRow>(
-          [
-            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url,curriculum_country,curriculum_framework,curriculum_year,curriculum_subject,curriculum_strand,curriculum_skill",
-            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
-            "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted",
-            "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
-          ],
-          { studentIds: linkedStudentIds },
-        );
+        const [loadedEvidence, loadedDrafts] = await Promise.all([
+          loadEvidenceEntriesWithVariants<EvidenceRow>(
+            [
+              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url,curriculum_country,curriculum_framework,curriculum_year,curriculum_subject,curriculum_strand,curriculum_skill",
+              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
+              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted",
+              "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
+            ],
+            { studentIds: linkedStudentIds },
+          ),
+          listReportDrafts().catch(() => []),
+        ]);
 
         setStudents(mergedStudents);
         setAllEvidence(loadedEvidence);
+        setSavedDrafts(loadedDrafts);
 
         const validQueryStudent =
           queryStudentId && mergedStudents.some((s) => s.id === queryStudentId)
@@ -781,6 +787,24 @@ function PortfolioPageContent() {
     if (!student) return [] as EvidenceRow[];
     return allEvidence.filter((e) => safe(e.student_id) === student.id);
   }, [allEvidence, student]);
+  const reportSupportingEvidenceIds = useMemo(() => {
+    if (!student) return new Set<string>();
+
+    return new Set(
+      savedDrafts
+        .filter((draft) => {
+          const linkedStudentIds = [safe(draft.student_id), safe(draft.child_id)].filter(Boolean);
+          return linkedStudentIds.includes(student.id);
+        })
+        .flatMap((draft) => draft.selected_evidence_ids ?? [])
+        .map((id) => safe(id))
+        .filter(Boolean),
+    );
+  }, [savedDrafts, student]);
+  const reportSupportingCount = useMemo(
+    () => evidence.filter((item) => reportSupportingEvidenceIds.has(item.id)).length,
+    [evidence, reportSupportingEvidenceIds],
+  );
 
   const highlightedEvidence = useMemo(() => {
     if (!highlightEvidenceId) return null;
@@ -829,8 +853,9 @@ function PortfolioPageContent() {
         linkedEvidenceCount: curriculumLinkedCount,
         areaCount: portfolio.areas.length,
         recentEvidenceCount: recentCount,
+        reportSupportingCount,
       }),
-    [curriculumLinkedCount, evidence.length, portfolio.areas.length, recentCount]
+    [curriculumLinkedCount, evidence.length, portfolio.areas.length, recentCount, reportSupportingCount]
   );
 
   const showcaseItems = useMemo<ShowcaseItem[]>(() => {
