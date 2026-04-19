@@ -489,24 +489,23 @@ function buildPortfolioItemClarity(item: EvidenceRow) {
   const isLinked = Boolean(safe(item.curriculum_subject) || safe(item.curriculum_skill));
   const area = guessArea(item.learning_area);
 
-  let hint = "Could be a strong portfolio piece";
-  if (isRecent && isLinked) {
-    hint = "Already useful as a linked example";
-  } else if (isRecent && !isLinked) {
+  let hint: string | null = null;
+  if (isRecent && !isLinked) {
     hint = "Could be linked to learning";
-  } else if (!isRecent && isLinked) {
-    hint = "Already useful as a linked example";
-  } else if (!isRecent && !isLinked) {
+  } else if (!isRecent) {
     hint = "Worth revisiting if you want a newer example";
   }
 
   return {
     area,
+    isRecent,
+    isLinked,
     recencyLabel: isRecent ? "Recent" : "Earlier",
     linkageLabel: isLinked ? "Linked to learning" : "Not linked yet",
     recencyTone: isRecent ? "green" : "slate",
     linkageTone: isLinked ? "blue" : "slate",
     hint,
+    showHint: Boolean(hint),
   } as const;
 }
 
@@ -2295,19 +2294,29 @@ function PortfolioPageContent() {
                             </div>
                           </div>
 
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              columnGap: 8,
+                              rowGap: 6,
+                            }}
+                          >
                             <span style={UI.chip("slate")}>{clarity.area}</span>
                             {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
-                            <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
                             <span style={UI.chip(clarity.recencyTone)}>{clarity.recencyLabel}</span>
+                            <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
                             {item.id === highlightEvidenceId ? (
                               <span style={UI.chip("green")}>Fresh capture</span>
                             ) : null}
                           </div>
 
-                          <div style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", fontWeight: 700 }}>
-                            {clarity.hint}
-                          </div>
+                          {clarity.showHint ? (
+                            <div style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", fontWeight: 600 }}>
+                              {clarity.hint}
+                            </div>
+                          ) : null}
 
                           <div style={{ ...UI.body(), fontSize: 13 }}>
                             {clip(textOfEvidence(item), 120) || "Learning reflection recorded."}
@@ -2409,16 +2418,26 @@ function PortfolioPageContent() {
                                   {clip(textOfEvidence(item), 90) || "Reflection recorded."}
                                 </div>
 
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    columnGap: 8,
+                                    rowGap: 6,
+                                  }}
+                                >
                                   <span style={UI.chip("slate")}>{clarity.area}</span>
                                   {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
-                                  <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
                                   <span style={UI.chip(clarity.recencyTone)}>{clarity.recencyLabel}</span>
+                                  <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
                                 </div>
 
-                                <div style={{ fontSize: 11, lineHeight: 1.5, color: "#64748b", fontWeight: 700 }}>
-                                  {clarity.hint}
-                                </div>
+                                {clarity.showHint ? (
+                                  <div style={{ fontSize: 11, lineHeight: 1.5, color: "#64748b", fontWeight: 600 }}>
+                                    {clarity.hint}
+                                  </div>
+                                ) : null}
 
                                 {(tagMap[item.id] || []).length > 0 ? (
                                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
