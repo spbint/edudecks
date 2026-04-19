@@ -338,6 +338,10 @@ export default function ChildWorkspacePage() {
   const evidenceCount = evidence.length;
   const coverageAreaCount = coverageRows.length;
   const hasSavedDraft = savedDrafts.length > 0;
+  const hasReportSelection = useMemo(
+    () => savedDrafts.some((draft) => draft.selectedEvidenceIds.length > 0),
+    [savedDrafts],
+  );
   const latestEvidenceId = latestEvidence?.id;
   const learnerWorkflowSignals = useMemo<LearningIntelligenceInput>(
     () => ({
@@ -347,11 +351,13 @@ export default function ChildWorkspacePage() {
       recentEvidenceCount,
       coverageAreaCount,
       hasSavedDraft,
+      hasReportSelection,
     }),
     [
       childId,
       coverageAreaCount,
       evidenceCount,
+      hasReportSelection,
       hasSavedDraft,
       latestEvidenceId,
       recentEvidenceCount,

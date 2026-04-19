@@ -276,6 +276,10 @@ export default function FamilyHomePage() {
     () => reportDrafts.some((draft) => draft.selected_evidence_ids.length > 0),
     [reportDrafts],
   );
+  const hasFamilyNote = useMemo(
+    () => reportDrafts.some((draft) => safe(draft.notes).length > 0),
+    [reportDrafts],
+  );
   const familyStudentId = useMemo(() => {
     const learnerIds = (workspace.learners ?? [])
       .map((learner) => safe(learner.id))
@@ -294,9 +298,11 @@ export default function FamilyHomePage() {
       coverageAreaCount,
       hasSavedDraft: reportDrafts.length > 0,
       hasReportSelection,
+      hasFamilyNote,
     }),
     [
       coverageAreaCount,
+      hasFamilyNote,
       familyStudentId,
       hasReportSelection,
       latestEvidenceId,

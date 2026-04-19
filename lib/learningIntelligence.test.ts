@@ -99,9 +99,9 @@ describe("deriveLearningIntelligence", () => {
   it("prefers reports when stronger report-shaping signals are present", () => {
     const result = deriveLearningIntelligence(
       makeInput({
-        evidenceCount: 4,
+        evidenceCount: 3,
         recentEvidenceCount: 2,
-        linkedEvidenceCount: 2,
+        hasReportSelection: true,
         coverageAreaCount: 2,
       }),
     );
@@ -114,14 +114,28 @@ describe("deriveLearningIntelligence", () => {
     expect(result.thinAreaLabel).toBe("A short report draft would help next");
   });
 
+  it("does not treat a bare saved draft with thin evidence as report-ready", () => {
+    const result = deriveLearningIntelligence(
+      makeInput({
+        evidenceCount: 1,
+        recentEvidenceCount: 1,
+        hasSavedDraft: true,
+      }),
+    );
+
+    expect(result.targetPage).toBe("capture");
+    expect(result.momentumLabel).toBe("Building momentum");
+    expect(result.thinAreaLabel).toBe("Evidence is still thin");
+  });
+
   it("does not let report-ready signals fall through to the portfolio branch", () => {
     const result = deriveLearningIntelligence(
       makeInput({
-        evidenceCount: 5,
+        evidenceCount: 3,
         recentEvidenceCount: 2,
-        linkedEvidenceCount: 3,
-        coverageAreaCount: 3,
         hasSavedDraft: true,
+        hasReportSelection: true,
+        coverageAreaCount: 3,
       }),
     );
 

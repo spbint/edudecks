@@ -124,9 +124,13 @@ function hasReviewableEvidence(signals: NormalizedSignals) {
   return signals.evidenceCount >= 2;
 }
 
+function hasDraftWithEvidence(signals: NormalizedSignals) {
+  return signals.hasSavedDraft && (signals.hasReportSelection || signals.evidenceCount >= 2);
+}
+
 function hasReportShapingSignals(signals: NormalizedSignals) {
   return (
-    signals.hasSavedDraft ||
+    hasDraftWithEvidence(signals) ||
     signals.hasReportSelection ||
     signals.linkedEvidenceCount >= 2 ||
     (signals.evidenceCount >= 4 && signals.hasFamilyNote)
@@ -178,6 +182,7 @@ export function deriveLearningIntelligence(
   const hasPlanningButNoEvidence = planningIsVisible && !evidenceIsVisible;
   const canShapeReportNow = closeToUsable;
   const shouldReviewPortfolio = readyToReview;
+  const reportSelectionIsVisible = signals.hasReportSelection;
 
   if (isStartingFromScratch) {
     return buildSummary(
@@ -206,7 +211,9 @@ export function deriveLearningIntelligence(
       "reports",
       buildReportsHref(signals),
       "Shape this into a report",
-      "You already have enough here to begin shaping a report.",
+      reportSelectionIsVisible
+        ? "You already have evidence gathered for a report, so shaping it is the clearest next move."
+        : "You already have enough here to begin shaping a report.",
       "Close to usable",
       "A short report draft would help next",
     );
