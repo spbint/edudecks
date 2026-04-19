@@ -21,6 +21,7 @@ export default function FamilyProfileMenu({
 }: FamilyProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -56,14 +57,20 @@ export default function FamilyProfileMenu({
 
   async function handleSignOut() {
     if (signingOut) return;
+    setSignOutError("");
     setSigningOut(true);
 
     try {
-      await supabase.auth.signOut();
-      window.location.href = "/";
-      return;
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        throw error;
+      }
+
+      setOpen(false);
+      window.location.replace("/");
     } catch (error) {
       console.error("FamilyProfileMenu sign out failed", error);
+      setSignOutError("We couldn't sign you out just yet. Please try again.");
     } finally {
       setSigningOut(false);
     }
@@ -83,7 +90,10 @@ export default function FamilyProfileMenu({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          setSignOutError("");
+          setOpen((prev) => !prev);
+        }}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -235,6 +245,22 @@ export default function FamilyProfileMenu({
           >
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
+          {signOutError ? (
+            <div
+              role="alert"
+              style={{
+                borderRadius: 12,
+                border: "1px solid #fdba74",
+                background: "#fff7ed",
+                color: "#9a3412",
+                padding: "10px 12px",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              {signOutError}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

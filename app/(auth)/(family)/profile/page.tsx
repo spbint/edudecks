@@ -190,9 +190,9 @@ export default function FamilyProfilePage() {
       setActiveLearner(childId);
       setStatus("Active learner updated for this family workspace.");
     } catch (saveError) {
-      console.error("profile set default learner failed", saveError);
+      console.error("profile set active learner failed", saveError);
       await reloadWorkspace();
-      setError("We could not update the default learner right now.");
+      setError("We could not update the active learner right now.");
     } finally {
       setBusyChildId("");
     }
@@ -255,9 +255,9 @@ export default function FamilyProfilePage() {
             nextProfile = saved;
             setWorkspacePatch({ profile: saved });
           } catch (defaultError) {
-            console.error("profile set default after add failed", defaultError);
+            console.error("profile set active learner after add failed", defaultError);
             defaultWarning =
-              "We added the learner, but couldn't update the default just yet.";
+              "We added the learner, but couldn't update the active learner just yet.";
           }
         }
 
