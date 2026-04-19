@@ -14,8 +14,10 @@ import {
   sendMagicLink,
 } from "@/lib/authMagicLink";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { supabase } from "@/lib/supabaseClient";
 
 type SaveState = "idle" | "saving" | "success" | "error";
+type AuthMode = "link" | "password";
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
@@ -108,11 +110,14 @@ export default function EmailAuthPage() {
 function EmailAuthPageContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authMode, setAuthMode] = useState<AuthMode>("link");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [diagnosticCode, setDiagnosticCode] = useState("");
   const [retryBlockedUntil, setRetryBlockedUntil] = useState<number | null>(null);
   const [retryCountdown, setRetryCountdown] = useState(0);
+  const devAuthModeEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_MODE === "true";
 
   useEffect(() => {
     const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
@@ -170,8 +175,20 @@ function EmailAuthPageContent() {
 
   const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
   const retryBlocked = retryCountdown > 0;
+  const passwordValid = safe(password).length > 0;
+  const passwordModeBusy = authMode === "password" && saveState === "saving";
 
-  async function handleContinue() {
+  function resetFeedback() {
+    if (saveState !== "idle") {
+      setSaveState("idle");
+      setMessage("");
+    }
+    if (diagnosticCode) {
+      setDiagnosticCode("");
+    }
+  }
+
+  async function handleContinueWithLink() {
     if (saveState === "saving" || retryBlocked) {
       return;
     }
@@ -208,6 +225,88 @@ function EmailAuthPageContent() {
       if (isMagicLinkRateLimited(err)) {
         setRetryBlockedUntil(Date.now() + MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS);
       }
+    }
+  }
+
+  async function handleContinueWithPassword() {
+    if (saveState === "saving") {
+      return;
+    }
+
+    if (!emailValid) {
+      setSaveState("error");
+      setMessage("Please enter a valid email address first.");
+      return;
+    }
+
+    if (!passwordValid) {
+      setSaveState("error");
+      setMessage("Please enter your password first.");
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setMessage("");
+      setDiagnosticCode("");
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: safe(email).toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      window.location.assign("/family");
+    } catch (err: unknown) {
+      setSaveState("error");
+      setMessage(
+        safe((err as { message?: unknown })?.message) ||
+          "We couldn't sign you in with that password just yet. Please try again.",
+      );
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (saveState === "saving") {
+      return;
+    }
+
+    if (!emailValid) {
+      setSaveState("error");
+      setMessage("Enter a valid email first so we know where to send the reset link.");
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setMessage("");
+      setDiagnosticCode("");
+
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/reset-password`
+          : "/reset-password";
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        safe(email).toLowerCase(),
+        { redirectTo },
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      setSaveState("success");
+      setMessage("We’ve sent a password reset link to your email.");
+    } catch (err: unknown) {
+      setSaveState("error");
+      setMessage(
+        safe((err as { message?: unknown })?.message) ||
+          "We couldn't send the password reset email just yet. Please try again.",
+      );
     }
   }
 
@@ -276,23 +375,63 @@ function EmailAuthPageContent() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              void handleContinue();
+              if (authMode === "password") {
+                void handleContinueWithPassword();
+                return;
+              }
+              void handleContinueWithLink();
             }}
             style={{ display: "grid", gap: 16 }}
           >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, minmax(0,1fr))",
+                gap: 10,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("link");
+                  setPassword("");
+                  resetFeedback();
+                }}
+                style={{
+                  ...secondaryButtonStyle(),
+                  minHeight: 44,
+                  borderColor: authMode === "link" ? "#2563eb" : "#e5e7eb",
+                  background: authMode === "link" ? "#eff6ff" : "#ffffff",
+                  color: authMode === "link" ? "#1d4ed8" : "#0f172a",
+                }}
+              >
+                Email link
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthMode("password");
+                  resetFeedback();
+                }}
+                style={{
+                  ...secondaryButtonStyle(),
+                  minHeight: 44,
+                  borderColor: authMode === "password" ? "#2563eb" : "#e5e7eb",
+                  background: authMode === "password" ? "#eff6ff" : "#ffffff",
+                  color: authMode === "password" ? "#1d4ed8" : "#0f172a",
+                }}
+              >
+                Password
+              </button>
+            </div>
+
             <div>
               <label style={labelStyle()}>Email address</label>
               <input
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
-                  if (saveState !== "idle") {
-                    setSaveState("idle");
-                    setMessage("");
-                  }
-                  if (diagnosticCode) {
-                    setDiagnosticCode("");
-                  }
+                  resetFeedback();
                 }}
                 placeholder="Enter your email"
                 style={{
@@ -317,6 +456,24 @@ function EmailAuthPageContent() {
               ) : null}
             </div>
 
+            {authMode === "password" ? (
+              <div>
+                <label style={labelStyle()}>Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    resetFeedback();
+                  }}
+                  placeholder="Enter your password"
+                  style={inputStyle()}
+                  autoComplete="current-password"
+                  disabled={passwordModeBusy}
+                />
+              </div>
+            ) : null}
+
             {saveState === "success" ? (
               <div
                 style={{
@@ -332,7 +489,9 @@ function EmailAuthPageContent() {
                 <div style={{ fontSize: 16, fontWeight: 900 }}>Check your email</div>
                 <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.6 }}>{message}</div>
                 <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.6 }}>
-                  Refreshing this page will not send another link. Use the resend button only if you need a new email.
+                  {authMode === "password"
+                    ? "Use the reset link from your inbox to choose a new password."
+                    : "Refreshing this page will not send another link. Use the resend button only if you need a new email."}
                 </div>
               </div>
             ) : message ? (
@@ -364,17 +523,50 @@ function EmailAuthPageContent() {
 
             <button
               type="submit"
-              disabled={!emailValid || saveState === "saving" || retryBlocked}
-              style={primaryButtonStyle(!emailValid || saveState === "saving" || retryBlocked)}
+              disabled={
+                authMode === "password"
+                  ? !emailValid || !passwordValid || saveState === "saving"
+                  : !emailValid || saveState === "saving" || retryBlocked
+              }
+              style={primaryButtonStyle(
+                authMode === "password"
+                  ? !emailValid || !passwordValid || saveState === "saving"
+                  : !emailValid || saveState === "saving" || retryBlocked,
+              )}
             >
-              {saveState === "saving"
-                ? "Sending your secure link..."
-                : retryBlocked
-                  ? `Wait ${retryCountdown}s before retrying`
-                : saveState === "success"
-                  ? "Resend link"
-                  : "Continue"}
+              {authMode === "password"
+                ? saveState === "saving"
+                  ? "Signing you in..."
+                  : "Continue with password"
+                : saveState === "saving"
+                  ? "Sending your secure link..."
+                  : retryBlocked
+                    ? `Wait ${retryCountdown}s before retrying`
+                    : saveState === "success"
+                      ? "Resend link"
+                      : "Continue"}
             </button>
+
+            {authMode === "password" ? (
+              <button
+                type="button"
+                onClick={() => void handleForgotPassword()}
+                disabled={!emailValid || saveState === "saving"}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#2563eb",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textAlign: "center",
+                  cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
+                  opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
+                  padding: 0,
+                }}
+              >
+                Forgot password?
+              </button>
+            ) : null}
 
             <div
               style={{
@@ -386,8 +578,28 @@ function EmailAuthPageContent() {
                 textAlign: "center",
               }}
             >
-              Password-free entry. One secure link. No extra decisions.
+              {authMode === "password"
+                ? "Password sign-in is available for development and returning families."
+                : "Password-free entry. One secure link. No extra decisions."}
             </div>
+
+            {devAuthModeEnabled ? (
+              <div
+                style={{
+                  border: "1px solid #bfdbfe",
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderRadius: 14,
+                  padding: 12,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  lineHeight: 1.6,
+                  textAlign: "center",
+                }}
+              >
+                Dev mode: use password login to avoid OTP rate limits.
+              </div>
+            ) : null}
 
             <Link href="/get-started" style={secondaryButtonStyle()}>
               See how EduDecks works
@@ -471,15 +683,15 @@ function EmailAuthPageContent() {
               One simple way in
             </div>
 
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              New accounts and returning families use the same calm flow, so there is nothing to remember and nothing to reset later.
-            </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  color: "#475569",
+                }}
+              >
+              Families can still use the simple email link, and development teams can switch to password entry when they need a steadier local sign-in path.
+              </div>
           </div>
         </div>
       </section>
