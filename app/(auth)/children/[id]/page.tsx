@@ -322,21 +322,37 @@ export default function ChildWorkspacePage() {
     [coverageRows, evidence.length, reportReadiness, savedDrafts.length]
   );
 
-  const bestNextMove = useMemo(() => {
-    const recentEvidenceCount = evidence.filter((item) => {
-      const age = daysSince(item.occurred_on || item.created_at);
-      return age != null && age <= 30;
-    }).length;
+  const recentEvidenceCount = useMemo(
+    () =>
+      evidence.filter((item) => {
+        const age = daysSince(item.occurred_on || item.created_at);
+        return age != null && age <= 30;
+      }).length,
+    [evidence],
+  );
 
-    return deriveLearningIntelligence({
+  const learnerWorkflowSignals = useMemo(
+    () => ({
       studentId: childId,
       highlightEvidenceId: latestEvidence?.id,
       evidenceCount: evidence.length,
       recentEvidenceCount,
       coverageAreaCount: coverageRows.length,
       hasSavedDraft: savedDrafts.length > 0,
-    });
-  }, [childId, coverageRows.length, evidence, latestEvidence?.id, savedDrafts.length]);
+    }),
+    [
+      childId,
+      coverageRows.length,
+      evidence.length,
+      latestEvidence?.id,
+      recentEvidenceCount,
+      savedDrafts.length,
+    ],
+  );
+
+  const bestNextMove = useMemo(() => {
+    return deriveLearningIntelligence(learnerWorkflowSignals);
+  }, [learnerWorkflowSignals]);
 
   const latestDraft = savedDrafts[0] || null;
 

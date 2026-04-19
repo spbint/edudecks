@@ -23,119 +23,173 @@ export type LearningIntelligenceSummary = {
   thinAreaLabel?: string;
 };
 
-function withStudent(path: string, studentId?: string) {
-  if (!studentId) return path;
-  const separator = path.includes("?") ? "&" : "?";
-  return `${path}${separator}studentId=${encodeURIComponent(studentId)}`;
+type NormalizedSignals = {
+  studentId?: string;
+  highlightEvidenceId?: string;
+  hasPlanDirection: boolean;
+  hasPlannerActions: boolean;
+  evidenceCount: number;
+  recentEvidenceCount: number;
+  linkedEvidenceCount: number;
+  coverageAreaCount: number;
+  hasSavedDraft: boolean;
+  hasReportSelection: boolean;
+  hasFamilyNote: boolean;
+};
+
+function normalizeSignals(input: LearningIntelligenceInput): NormalizedSignals {
+  return {
+    studentId: input.studentId,
+    highlightEvidenceId: input.highlightEvidenceId,
+    hasPlanDirection: Boolean(input.hasPlanDirection),
+    hasPlannerActions: Boolean(input.hasPlannerActions),
+    evidenceCount: input.evidenceCount ?? 0,
+    recentEvidenceCount: input.recentEvidenceCount ?? 0,
+    linkedEvidenceCount: input.linkedEvidenceCount ?? 0,
+    coverageAreaCount: input.coverageAreaCount ?? 0,
+    hasSavedDraft: Boolean(input.hasSavedDraft),
+    hasReportSelection: Boolean(input.hasReportSelection),
+    hasFamilyNote: Boolean(input.hasFamilyNote),
+  };
 }
 
-function buildCaptureHref(input: LearningIntelligenceInput) {
+function buildPlannerHref(signals: NormalizedSignals) {
+  if (!signals.studentId) return "/planner?focus=start-planning";
+  return `/planner?focus=start-planning&student=${encodeURIComponent(signals.studentId)}`;
+}
+
+function buildCaptureHref(signals: NormalizedSignals) {
   const params = new URLSearchParams();
   params.set("focus", "start-evidence");
-  if (input.studentId) params.set("prefillLearnerId", input.studentId);
+  if (signals.studentId) params.set("prefillLearnerId", signals.studentId);
   return `/capture?${params.toString()}`;
 }
 
-function buildPortfolioHref(input: LearningIntelligenceInput) {
+function buildPortfolioHref(signals: NormalizedSignals) {
   const params = new URLSearchParams();
-  if (input.studentId) params.set("studentId", input.studentId);
-  if (input.highlightEvidenceId) {
-    params.set("highlightEvidenceId", input.highlightEvidenceId);
+  if (signals.studentId) params.set("studentId", signals.studentId);
+  if (signals.highlightEvidenceId) {
+    params.set("highlightEvidenceId", signals.highlightEvidenceId);
   }
   const query = params.toString();
   return query ? `/portfolio?${query}` : "/portfolio";
 }
 
-function buildReportsHref(input: LearningIntelligenceInput) {
+function buildReportsHref(signals: NormalizedSignals) {
   const params = new URLSearchParams();
   params.set("focus", "refine-evidence");
-  if (input.studentId) params.set("studentId", input.studentId);
-  if (input.highlightEvidenceId) {
-    params.set("highlightEvidenceId", input.highlightEvidenceId);
+  if (signals.studentId) params.set("studentId", signals.studentId);
+  if (signals.highlightEvidenceId) {
+    params.set("highlightEvidenceId", signals.highlightEvidenceId);
   }
   return `/reports?${params.toString()}`;
+}
+
+function hasAnyPlanning(signals: NormalizedSignals) {
+  return signals.hasPlanDirection || signals.hasPlannerActions;
+}
+
+function hasAnyEvidence(signals: NormalizedSignals) {
+  return signals.evidenceCount > 0;
+}
+
+function hasThinEvidence(signals: NormalizedSignals) {
+  return signals.evidenceCount <= 1;
+}
+
+function hasNarrowStory(signals: NormalizedSignals) {
+  return signals.coverageAreaCount > 0 && signals.coverageAreaCount <= 1;
+}
+
+function isReadyToReview(signals: NormalizedSignals) {
+  return signals.evidenceCount >= 2;
+}
+
+function isCloseToUsable(signals: NormalizedSignals) {
+  return (
+    signals.hasSavedDraft ||
+    signals.hasReportSelection ||
+    signals.linkedEvidenceCount >= 2 ||
+    (signals.evidenceCount >= 4 && signals.hasFamilyNote)
+  );
 }
 
 export function deriveLearningIntelligence(
   input: LearningIntelligenceInput,
 ): LearningIntelligenceSummary {
-  const evidenceCount = input.evidenceCount ?? 0;
-  const recentEvidenceCount = input.recentEvidenceCount ?? 0;
-  const linkedEvidenceCount = input.linkedEvidenceCount ?? 0;
-  const coverageAreaCount = input.coverageAreaCount ?? 0;
-  const hasPlanDirection = Boolean(input.hasPlanDirection);
-  const hasPlannerActions = Boolean(input.hasPlannerActions);
-  const hasSavedDraft = Boolean(input.hasSavedDraft);
-  const hasReportSelection = Boolean(input.hasReportSelection);
-  const hasFamilyNote = Boolean(input.hasFamilyNote);
+  const signals = normalizeSignals(input);
+  const planningIsVisible = hasAnyPlanning(signals);
+  const evidenceIsVisible = hasAnyEvidence(signals);
+  const evidenceIsThin = hasThinEvidence(signals);
+  const storyIsNarrow = hasNarrowStory(signals);
+  const readyToReview = isReadyToReview(signals);
+  const closeToUsable = isCloseToUsable(signals);
 
-  if (hasPlanDirection && evidenceCount === 0) {
+  if (!planningIsVisible && !evidenceIsVisible) {
+    return {
+      targetPage: "planner",
+      targetHref: buildPlannerHref(signals),
+      ctaLabel: "Set a weekly direction",
+      reason:
+        "Things are still light here, so one small weekly direction is the clearest place to begin.",
+      momentumLabel: "Getting started",
+      thinAreaLabel: "The week needs a starting point",
+    };
+  }
+
+  if (planningIsVisible && !evidenceIsVisible) {
     return {
       targetPage: "capture",
-      targetHref: buildCaptureHref(input),
+      targetHref: buildCaptureHref(signals),
       ctaLabel: "Capture a learning moment",
-      reason: "You already have a direction in place, and one saved moment would make it easier to shape.",
+      reason:
+        "You already have a direction in place, and one saved moment would make it easier to shape.",
       momentumLabel: "Building momentum",
       thinAreaLabel: "Evidence is still thin",
     };
   }
 
-  if (evidenceCount === 0) {
-    return {
-      targetPage: hasPlanDirection || hasPlannerActions ? "capture" : "planner",
-      targetHref:
-        hasPlanDirection || hasPlannerActions
-          ? buildCaptureHref(input)
-          : withStudent("/planner?focus=start-planning", input.studentId),
-      ctaLabel:
-        hasPlanDirection || hasPlannerActions
-          ? "Capture a learning moment"
-          : "Set a weekly direction",
-      reason:
-        hasPlanDirection || hasPlannerActions
-          ? "Things are still light here, so a simple capture is the best next step."
-          : "Things are still light here, so one small weekly direction is the clearest place to begin.",
-      momentumLabel: "Getting started",
-      thinAreaLabel: hasPlanDirection || hasPlannerActions ? "Evidence is still thin" : "The week needs a starting point",
-    };
-  }
-
-  if (hasSavedDraft || hasReportSelection || linkedEvidenceCount >= 2 || (evidenceCount >= 4 && hasFamilyNote)) {
+  if (closeToUsable) {
     return {
       targetPage: "reports",
-      targetHref: buildReportsHref(input),
+      targetHref: buildReportsHref(signals),
       ctaLabel: "Shape this into a report",
       reason: "You already have enough here to begin shaping a report.",
       momentumLabel: "Close to usable",
-      thinAreaLabel: hasFamilyNote ? "A short draft would help next" : "A short report draft would help next",
+      thinAreaLabel: "A short report draft would help next",
     };
   }
 
-  if (evidenceCount >= 2) {
+  if (readyToReview) {
     return {
       targetPage: "portfolio",
-      targetHref: buildPortfolioHref(input),
+      targetHref: buildPortfolioHref(signals),
       ctaLabel: "Browse the portfolio",
+      reason: storyIsNarrow
+        ? "You already have evidence here. Reviewing the portfolio is the clearest next move before adding more."
+        : "You already have evidence here. Reviewing the portfolio is the clearest next move.",
+      momentumLabel: "Ready to review",
+      thinAreaLabel: storyIsNarrow ? "The learning story is still narrow" : undefined,
+    };
+  }
+
+  if (evidenceIsThin) {
+    return {
+      targetPage: "capture",
+      targetHref: buildCaptureHref(signals),
+      ctaLabel: "Capture another learning moment",
       reason:
-        coverageAreaCount <= 1
-          ? "You already have evidence here. Reviewing the portfolio is the clearest next move before adding more."
-          : "You already have evidence here. Reviewing the portfolio is the clearest next move.",
-      momentumLabel: recentEvidenceCount > 0 ? "Building momentum" : "Ready to review",
-      thinAreaLabel:
-        coverageAreaCount <= 1
-          ? "The learning story is still narrow"
-          : linkedEvidenceCount === 0
-            ? "The record would benefit from a clearer review"
-            : undefined,
+        "You have a starting point, and one more clear example would make this easier to shape.",
+      momentumLabel: "Building momentum",
+      thinAreaLabel: "Evidence is still thin",
     };
   }
 
   return {
-    targetPage: "capture",
-    targetHref: buildCaptureHref(input),
-    ctaLabel: "Capture another learning moment",
-    reason: "You have a starting point, and one more clear example would make this easier to shape.",
-    momentumLabel: "Building momentum",
-    thinAreaLabel: recentEvidenceCount > 0 ? "The record is still light" : "A newer example would help",
+    targetPage: "portfolio",
+    targetHref: buildPortfolioHref(signals),
+    ctaLabel: "Browse the portfolio",
+    reason: "You already have evidence here. Reviewing the portfolio is the clearest next move.",
+    momentumLabel: "Ready to review",
   };
 }
