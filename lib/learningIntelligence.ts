@@ -37,6 +37,15 @@ type NormalizedSignals = {
   hasFamilyNote: boolean;
 };
 
+type WorkflowStateFlags = {
+  planningIsVisible: boolean;
+  evidenceIsVisible: boolean;
+  evidenceIsThin: boolean;
+  storyIsNarrow: boolean;
+  readyToReview: boolean;
+  closeToUsable: boolean;
+};
+
 function normalizeSignals(input: LearningIntelligenceInput): NormalizedSignals {
   return {
     studentId: input.studentId,
@@ -114,82 +123,110 @@ function isCloseToUsable(signals: NormalizedSignals) {
   );
 }
 
+function classifyWorkflowState(signals: NormalizedSignals): WorkflowStateFlags {
+  return {
+    planningIsVisible: hasAnyPlanning(signals),
+    evidenceIsVisible: hasAnyEvidence(signals),
+    evidenceIsThin: hasThinEvidence(signals),
+    storyIsNarrow: hasNarrowStory(signals),
+    readyToReview: isReadyToReview(signals),
+    closeToUsable: isCloseToUsable(signals),
+  };
+}
+
+function buildSummary(
+  targetPage: WorkflowPage,
+  targetHref: string,
+  ctaLabel: string,
+  reason: string,
+  momentumLabel: string,
+  thinAreaLabel?: string,
+): LearningIntelligenceSummary {
+  return {
+    targetPage,
+    targetHref,
+    ctaLabel,
+    reason,
+    momentumLabel,
+    thinAreaLabel,
+  };
+}
+
 export function deriveLearningIntelligence(
   input: LearningIntelligenceInput,
 ): LearningIntelligenceSummary {
   const signals = normalizeSignals(input);
-  const planningIsVisible = hasAnyPlanning(signals);
-  const evidenceIsVisible = hasAnyEvidence(signals);
-  const evidenceIsThin = hasThinEvidence(signals);
-  const storyIsNarrow = hasNarrowStory(signals);
-  const readyToReview = isReadyToReview(signals);
-  const closeToUsable = isCloseToUsable(signals);
+  const {
+    planningIsVisible,
+    evidenceIsVisible,
+    evidenceIsThin,
+    storyIsNarrow,
+    readyToReview,
+    closeToUsable,
+  } = classifyWorkflowState(signals);
 
   if (!planningIsVisible && !evidenceIsVisible) {
-    return {
-      targetPage: "planner",
-      targetHref: buildPlannerHref(signals),
-      ctaLabel: "Set a weekly direction",
-      reason:
-        "Things are still light here, so one small weekly direction is the clearest place to begin.",
-      momentumLabel: "Getting started",
-      thinAreaLabel: "The week needs a starting point",
-    };
+    return buildSummary(
+      "planner",
+      buildPlannerHref(signals),
+      "Set a weekly direction",
+      "Things are still light here, so one small weekly direction is the clearest place to begin.",
+      "Getting started",
+      "The week needs a starting point",
+    );
   }
 
   if (planningIsVisible && !evidenceIsVisible) {
-    return {
-      targetPage: "capture",
-      targetHref: buildCaptureHref(signals),
-      ctaLabel: "Capture a learning moment",
-      reason:
-        "You already have a direction in place, and one saved moment would make it easier to shape.",
-      momentumLabel: "Building momentum",
-      thinAreaLabel: "Evidence is still thin",
-    };
+    return buildSummary(
+      "capture",
+      buildCaptureHref(signals),
+      "Capture a learning moment",
+      "You already have a direction in place, and one saved moment would make it easier to shape.",
+      "Building momentum",
+      "Evidence is still thin",
+    );
   }
 
   if (closeToUsable) {
-    return {
-      targetPage: "reports",
-      targetHref: buildReportsHref(signals),
-      ctaLabel: "Shape this into a report",
-      reason: "You already have enough here to begin shaping a report.",
-      momentumLabel: "Close to usable",
-      thinAreaLabel: "A short report draft would help next",
-    };
+    return buildSummary(
+      "reports",
+      buildReportsHref(signals),
+      "Shape this into a report",
+      "You already have enough here to begin shaping a report.",
+      "Close to usable",
+      "A short report draft would help next",
+    );
   }
 
   if (readyToReview) {
-    return {
-      targetPage: "portfolio",
-      targetHref: buildPortfolioHref(signals),
-      ctaLabel: "Browse the portfolio",
-      reason: storyIsNarrow
+    return buildSummary(
+      "portfolio",
+      buildPortfolioHref(signals),
+      "Browse the portfolio",
+      storyIsNarrow
         ? "You already have evidence here. Reviewing the portfolio is the clearest next move before adding more."
         : "You already have evidence here. Reviewing the portfolio is the clearest next move.",
-      momentumLabel: "Ready to review",
-      thinAreaLabel: storyIsNarrow ? "The learning story is still narrow" : undefined,
-    };
+      "Ready to review",
+      storyIsNarrow ? "The learning story is still narrow" : undefined,
+    );
   }
 
   if (evidenceIsThin) {
-    return {
-      targetPage: "capture",
-      targetHref: buildCaptureHref(signals),
-      ctaLabel: "Capture another learning moment",
-      reason:
-        "You have a starting point, and one more clear example would make this easier to shape.",
-      momentumLabel: "Building momentum",
-      thinAreaLabel: "Evidence is still thin",
-    };
+    return buildSummary(
+      "capture",
+      buildCaptureHref(signals),
+      "Capture another learning moment",
+      "You have a starting point, and one more clear example would make this easier to shape.",
+      "Building momentum",
+      "Evidence is still thin",
+    );
   }
 
-  return {
-    targetPage: "portfolio",
-    targetHref: buildPortfolioHref(signals),
-    ctaLabel: "Browse the portfolio",
-    reason: "You already have evidence here. Reviewing the portfolio is the clearest next move.",
-    momentumLabel: "Ready to review",
-  };
+  return buildSummary(
+    "portfolio",
+    buildPortfolioHref(signals),
+    "Browse the portfolio",
+    "You already have evidence here. Reviewing the portfolio is the clearest next move.",
+    "Ready to review",
+  );
 }

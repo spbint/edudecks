@@ -330,23 +330,26 @@ export default function ChildWorkspacePage() {
       }).length,
     [evidence],
   );
+  const evidenceCount = evidence.length;
+  const coverageAreaCount = coverageRows.length;
+  const hasSavedDraft = savedDrafts.length > 0;
 
   const learnerWorkflowSignals = useMemo(
     () => ({
       studentId: childId,
       highlightEvidenceId: latestEvidence?.id,
-      evidenceCount: evidence.length,
+      evidenceCount,
       recentEvidenceCount,
-      coverageAreaCount: coverageRows.length,
-      hasSavedDraft: savedDrafts.length > 0,
+      coverageAreaCount,
+      hasSavedDraft,
     }),
     [
       childId,
-      coverageRows.length,
-      evidence.length,
+      coverageAreaCount,
+      evidenceCount,
+      hasSavedDraft,
       latestEvidence?.id,
       recentEvidenceCount,
-      savedDrafts.length,
     ],
   );
 
