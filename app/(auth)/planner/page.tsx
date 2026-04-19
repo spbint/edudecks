@@ -426,13 +426,13 @@ function getActionCategoryLabel(category: PlannerAction["category"]) {
 function buildPlannerGuidanceNote(focus: string) {
   const value = safe(focus).toLowerCase();
   if (value === "start-planning") {
-    return "This report needs a little more curriculum-linked planning. Start with one or two simple activities you can save this week.";
+    return "You already have a starting point here. A small weekly direction and one or two simple actions are enough to begin.";
   }
   if (value === "coverage-gap") {
-    return "This report is still thin in a few areas. Use the planner here to broaden coverage gently rather than adding too much at once.";
+    return "Some areas still feel lighter here. Use the planner to broaden the week gently rather than trying to add too much at once.";
   }
   if (value === "alignment") {
-    return "Some evidence is arriving ahead of planning. Add a little forward planning here so intention and proof stay aligned.";
+    return "Some evidence is already in place. A little forward planning here will help intention and proof sit together more clearly.";
   }
   return "";
 }
@@ -443,19 +443,19 @@ function buildPlannerSectionCue(
 ) {
   const value = safe(focus).toLowerCase();
   if (section === "focus" && value === "start-planning") {
-    return "Start here. Set one clear weekly direction, then keep the rest of the plan light.";
+    return "Set one clear weekly direction, then keep the rest of the plan light.";
   }
   if (section === "focus" && value === "coverage-gap") {
-    return "Name the thinner area you want this week to support so coverage grows more evenly.";
+    return "Name the area you want this week to support so coverage grows more evenly.";
   }
   if (section === "checklist" && value === "start-planning") {
-    return "Add one or two concrete actions here so the report has real planned learning to work from.";
+    return "Next, add one or two clear actions you can actually use this week.";
   }
   if (section === "checklist" && value === "coverage-gap") {
-    return "Use the checklist to add a small amount of activity in the weaker area first.";
+    return "Use the checklist to add a small amount of activity in the lighter area first.";
   }
   if (section === "checklist" && value === "alignment") {
-    return "Start here. Save and link one or two checklist actions so planning lines up with the evidence you already have.";
+    return "Save and link one or two checklist actions so planning lines up with the evidence you already have.";
   }
   return "";
 }
@@ -558,8 +558,8 @@ export default function PlannerPage() {
         ? "A little more structure will help."
         : "Add one clear direction.",
       nextStepText: hasPlannerActions
-        ? "Keep the checklist aligned."
-        : "Set one focus, then add actions.",
+        ? "Keep the checklist close to this focus."
+        : "Set one focus, then add one or two actions.",
     };
   }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
   const plannerChecklistCompletion = useMemo(() => {
@@ -571,14 +571,14 @@ export default function PlannerPage() {
         : "The checklist is ready to use.",
       stillNeededText: plannerFocus === "alignment"
         ? hasPlannerLinks
-          ? "One or two more links may help."
-          : "Link this plan to outcomes."
+          ? "A light review may be enough."
+          : "Link one useful action."
         : hasPlannerActions
-          ? "One more clear step may help."
+          ? "A small review may help."
           : "Add one or two actions.",
       nextStepText: plannerFocus === "alignment"
         ? hasPlannerLinks
-          ? "Link the next useful action."
+          ? "Keep the next link only if it helps."
           : "Save and link one planned action."
         : hasPlannerActions
           ? "Save the plan when it feels clear."
@@ -739,17 +739,17 @@ export default function PlannerPage() {
   const plannerFocusNextMove = useMemo(() => {
     if (!highlightFocusSection) return null;
     if (!hasPlanDirection) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     if (!hasPlannerActions) {
-      return { text: "Add one planned action here." };
+      return { text: "Open the checklist below." };
     }
     return { text: "Go to Capture", href: "/capture" };
   }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
   const plannerChecklistNextMove = useMemo(() => {
     if (!highlightChecklistSection) return null;
     if (!hasPlannerActions) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     if (plannerFocus === "alignment" && !hasPlannerLinks) {
       return { text: "Link one action here first." };
@@ -1374,14 +1374,14 @@ export default function PlannerPage() {
             <div
               style={{
                 marginBottom: 14,
-                border: "1px solid #bfdbfe",
-                background: "#eff6ff",
+                border: "1px solid #dbeafe",
+                background: "#f8fbff",
                 color: "#1e3a8a",
                 borderRadius: 16,
                 padding: "12px 14px",
                 fontSize: 14,
                 lineHeight: 1.6,
-                fontWeight: 700,
+                fontWeight: 600,
               }}
             >
               {plannerGuidanceNote}
@@ -1552,7 +1552,13 @@ export default function PlannerPage() {
               {checklistSectionCue ? (
                 <div style={styles.guidedInlineNote}>{checklistSectionCue}</div>
               ) : null}
-              <div style={styles.guidedInlineNote}>
+              <div
+                style={{
+                  ...styles.guidedInlineNote,
+                  background: "#ffffff",
+                  color: "#334155",
+                }}
+              >
                 <div>{plannerEvidenceCoherence.cue}</div>
                 {plannerEvidenceCoherence.nextStep ? (
                   <div style={{ marginTop: 6, color: "#64748b" }}>
@@ -1980,20 +1986,20 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 12px 34px rgba(15, 23, 42, 0.05)",
   },
   guidedCard: {
-    borderColor: "#93c5fd",
-    boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.10)",
-    background: "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
+    borderColor: "#bfdbfe",
+    boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.08)",
+    background: "#fcfdff",
   },
   guidedInlineNote: {
     marginBottom: 14,
     border: "1px solid #dbeafe",
     borderRadius: 14,
-    background: "#eff6ff",
+    background: "#f8fbff",
     color: "#1e3a8a",
     padding: "12px 14px",
     fontSize: 13,
     lineHeight: 1.6,
-    fontWeight: 700,
+    fontWeight: 600,
   },
   errorCard: {
     background: "#fff7ed",
