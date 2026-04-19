@@ -181,14 +181,14 @@ export default function FamilyProfilePage() {
         persistSettingsToLocalStorage(nextProfile);
         setWorkspacePatch({ profile: nextProfile });
         setActiveLearner(childId);
-        setStatus("Active learner updated for this family workspace.");
+        setStatus("Currently viewing was updated for this family workspace.");
         return;
       }
 
       const saved = await setDefaultLearner(profile, childId);
       setWorkspacePatch({ profile: saved });
       setActiveLearner(childId);
-      setStatus("Active learner updated for this family workspace.");
+      setStatus("Currently viewing was updated for this family workspace.");
     } catch (saveError) {
       console.error("profile set active learner failed", saveError);
       await reloadWorkspace();
@@ -400,7 +400,7 @@ export default function FamilyProfilePage() {
               <div style={S.summaryValue}>{profile.family_display_name || "Your family"}</div>
             </div>
             <div style={S.summaryCard}>
-              <div style={S.summaryLabel}>Active learner</div>
+              <div style={S.summaryLabel}>Currently viewing</div>
               <div style={S.summaryValue}>{activeLearner?.label || "Not set yet"}</div>
             </div>
             <div style={S.summaryCard}>
@@ -459,7 +459,7 @@ export default function FamilyProfilePage() {
                       <div style={S.cardTitle}>{learnerName(child)}</div>
                       <div style={S.helperText}>{child.yearLabel || "Year level not set"}</div>
                     </div>
-                    {isDefault ? <span style={S.chip}>Active learner</span> : null}
+                    {isDefault ? <span style={S.chip}>Currently viewing</span> : null}
                   </div>
 
                   {isEditing ? (
@@ -490,8 +490,8 @@ export default function FamilyProfilePage() {
                       </>
                     ) : (
                       <>
-                        <button type="button" onClick={() => void handleSetDefaultChild(child.id)} disabled={isBusy || isDefault} style={isBusy || isDefault ? S.buttonDisabled : S.primaryButton}>
-                          {isDefault ? "Current active learner" : "Make active"}
+                        <button type="button" onClick={() => void handleSetDefaultChild(child.id)} disabled={isBusy || isDefault} style={isBusy || isDefault ? S.buttonDisabled : S.secondaryButton}>
+                          {isDefault ? "Currently viewing" : "Switch to"}
                         </button>
                         <button type="button" onClick={() => setEditingChildId(child.id)} style={S.secondaryButton}>
                           Edit

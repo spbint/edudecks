@@ -1097,7 +1097,7 @@ export default function TriagePage() {
 
                     <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Link href={`/admin/students/${encodeURIComponent(row.studentId)}`} style={S.btnGhost}>
-                        Open learner
+                        Open profile
                       </Link>
                       <Link href={`/admin/evidence-entry?studentId=${encodeURIComponent(row.studentId)}`} style={S.btnGhost}>
                         Add evidence

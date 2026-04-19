@@ -220,7 +220,7 @@ export default function ReportPresetsPage() {
         }}
       >
         <div>
-          <strong>Active learner</strong>
+          <strong>Currently viewing</strong>
           <div style={{ color: "#4b5563", marginTop: 4 }}>
             {workspaceLoading
               ? "Loading learner context..."

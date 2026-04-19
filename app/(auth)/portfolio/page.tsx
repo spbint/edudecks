@@ -1085,8 +1085,8 @@ function PortfolioPageContent() {
     if (!student) {
       return {
         title: "Add your first learner",
-        text: "Start by adding a child so you can begin collecting learning moments and building a meaningful portfolio.",
-        href: "/children",
+        text: "Start by adding a learner so you can begin collecting learning moments and building a meaningful portfolio.",
+        href: "/profile",
         cta: "Add learner",
       };
     }
@@ -1284,10 +1284,10 @@ function PortfolioPageContent() {
         <section style={UI.card()}>
           <div style={UI.h2()}>Your story is just beginning</div>
           <div style={{ ...UI.body(), marginTop: 8 }}>
-            Add a child first so you can begin capturing learning and building a calm portfolio over time.
+            Add a learner first so you can begin capturing learning and building a calm portfolio over time.
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            <Link href="/children" style={UI.button(true)}>
+            <Link href="/profile" style={UI.button(true)}>
               Add learner
             </Link>
             <Link href="/family" style={UI.button(false)}>

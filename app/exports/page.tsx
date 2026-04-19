@@ -329,7 +329,7 @@ export default function ExportsPage() {
 
   function requireChild(next: () => void) {
     if (!activeStudentId) {
-      router.push("/children");
+      router.push("/profile");
       return;
     }
     next();
@@ -642,11 +642,11 @@ export default function ExportsPage() {
 
               <button
                 style={S.actionCard}
-                onClick={() => router.push("/children")}
+                onClick={() => router.push("/profile")}
               >
                 <div style={S.actionTitle}>Switch learner</div>
                 <div style={S.actionText}>
-                  Change the active child before preparing the export.
+                  Change who you are currently viewing before preparing the export.
                 </div>
               </button>
             </div>

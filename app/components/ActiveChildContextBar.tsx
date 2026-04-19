@@ -123,13 +123,13 @@ export default function ActiveChildContextBar({
   const { busy, err, student } = useActiveStudent();
 
   if (busy) {
-    return <div style={S.info}>Loading active child…</div>;
+    return <div style={S.info}>Loading learner context…</div>;
   }
 
   if (!student) {
     return (
       <div style={S.warn}>
-        No active child selected yet. Go to the parent dashboard or children page and choose a child first.
+        No learner is selected yet. Open profile and choose who you are currently viewing first.
       </div>
     );
   }
@@ -138,7 +138,7 @@ export default function ActiveChildContextBar({
     <div style={S.card}>
       <div style={S.row}>
         <div style={S.left}>
-          <div style={S.subtle}>Active Child Context</div>
+          <div style={S.subtle}>Current learner context</div>
           <div style={S.title}>{activeStudentDisplayName(student)}</div>
           <div style={S.text}>
             Actions on this page can be guided by the currently selected learner.
@@ -183,8 +183,8 @@ export default function ActiveChildContextBar({
             </button>
           ) : null}
 
-          <button style={S.btn} onClick={() => router.push("/children")}>
-            Switch child
+          <button style={S.btn} onClick={() => router.push("/profile")}>
+            Switch learner
           </button>
         </div>
       </div>
