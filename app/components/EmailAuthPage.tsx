@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   isValidMagicLinkEmail,
   mapMagicLinkError,
+  resetMagicLinkClientState,
   sendMagicLink,
 } from "@/lib/authMagicLink";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
@@ -109,6 +110,16 @@ function EmailAuthPageContent() {
   useEffect(() => {
     const authError = safe(searchParams.get("authError"));
     const authMessage = safe(searchParams.get("authMessage"));
+    const hasAuthFeedback = Boolean(authError || authMessage);
+
+    if (hasAuthFeedback && typeof window !== "undefined") {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete("authError");
+      nextUrl.searchParams.delete("authMessage");
+      const nextSearch = nextUrl.searchParams.toString();
+      const nextHref = `${nextUrl.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextUrl.hash}`;
+      window.history.replaceState({}, "", nextHref);
+    }
 
     if (authError) {
       setSaveState("error");
@@ -122,6 +133,10 @@ function EmailAuthPageContent() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    resetMagicLinkClientState();
+  }, []);
+
   const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
 
   async function handleContinue() {
@@ -134,6 +149,7 @@ function EmailAuthPageContent() {
     try {
       setSaveState("saving");
       setMessage("");
+      resetMagicLinkClientState();
 
       await sendMagicLink({
         email,

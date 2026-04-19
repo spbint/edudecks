@@ -24,7 +24,7 @@ export function mapMagicLinkError(error: unknown) {
   if (!normalized) return "";
 
   if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
-    return "You’ve requested a couple of login links already. Give it a few minutes before trying again so the next one arrives reliably.";
+    return "We couldn't send another sign-in link right now. If you already requested one, use the latest email we sent. Otherwise try again shortly.";
   }
 
   if (
@@ -36,6 +36,30 @@ export function mapMagicLinkError(error: unknown) {
   }
 
   return raw;
+}
+
+export function resetMagicLinkClientState() {
+  if (typeof window === "undefined") return;
+
+  const auth = supabase.auth as unknown as {
+    storageKey?: string;
+    stopAutoRefresh?: () => void;
+  };
+
+  const storageKey = safe(auth.storageKey);
+  auth.stopAutoRefresh?.();
+
+  if (!storageKey) return;
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    try {
+      storage.removeItem(storageKey);
+      storage.removeItem(`${storageKey}-code-verifier`);
+      storage.removeItem(`${storageKey}-user`);
+    } catch {
+      // ignore browser storage cleanup failures
+    }
+  }
 }
 
 export async function sendMagicLink(input: {
