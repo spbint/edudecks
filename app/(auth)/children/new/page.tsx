@@ -69,7 +69,7 @@ export default function AddChildPage() {
           });
         }
         setActiveLearnerId(learner.id);
-        router.replace("/children");
+        router.replace(`/children?created=${encodeURIComponent(learner.label)}`);
         router.refresh();
         return;
       }
@@ -96,7 +96,7 @@ export default function AddChildPage() {
       };
       persistSettingsToLocalStorage(nextSettings);
       setActiveLearnerId(localId);
-      router.replace("/children");
+      router.replace(`/children?created=${encodeURIComponent(safe(childName))}`);
       router.refresh();
     } catch (e: unknown) {
       console.error("add child save failed", e);
@@ -153,6 +153,7 @@ export default function AddChildPage() {
               if (err) setErr("");
             }}
             placeholder="e.g. 4"
+            inputMode="numeric"
             style={{
               width: "100%",
               padding: "12px 14px",
@@ -161,6 +162,9 @@ export default function AddChildPage() {
               marginTop: 6,
             }}
           />
+          <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+            Leave blank or enter a whole number.
+          </div>
         </div>
 
         {err ? (

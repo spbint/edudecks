@@ -416,7 +416,9 @@ export default function FamilyProfilePage() {
           <div style={S.addCard}>
             <div style={S.addHeader}>
               <div style={S.cardTitle}>Add learner</div>
-              <div style={S.helperText}>This writes through the shared family workspace path.</div>
+              <div style={S.helperText}>
+                This writes through the shared family workspace path. Leave year blank or enter a whole number.
+              </div>
             </div>
             <div style={S.formRow}>
               <input
@@ -438,6 +440,7 @@ export default function FamilyProfilePage() {
                 }}
                 placeholder="Year"
                 inputMode="numeric"
+                aria-label="Year level"
                 style={S.inputSmall}
               />
               <button type="button" onClick={handleAddLearner} disabled={adding} style={adding ? S.buttonDisabled : S.primaryButton}>

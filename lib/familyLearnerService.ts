@@ -23,7 +23,6 @@ type ValidatedLearnerInput = {
   firstName: string;
   surname: string | null;
   yearLabel: string;
-  yearLevelNumber: number | null;
 };
 
 type StudentInsertRow = {
@@ -95,7 +94,6 @@ function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInp
     firstName,
     surname,
     yearLabel,
-    yearLevelNumber: parseYearLevelNumber(yearLabel),
   };
 }
 

@@ -269,6 +269,9 @@ function EmailAuthPageContent() {
               >
                 <div style={{ fontSize: 16, fontWeight: 900 }}>Check your email</div>
                 <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.6 }}>{message}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.6 }}>
+                  Refreshing this page will not send another link. Use the resend button only if you need a new email.
+                </div>
               </div>
             ) : message ? (
               <div

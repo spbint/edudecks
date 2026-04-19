@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -22,6 +23,7 @@ type ChildCard = {
 };
 
 export default function ChildrenPage() {
+  const searchParams = useSearchParams();
   const { workspace, loading, error, reloadWorkspace, setWorkspacePatch, setActiveLearner } =
     useFamilyWorkspace();
   const [busyChildId, setBusyChildId] = useState("");
@@ -36,6 +38,12 @@ export default function ChildrenPage() {
       })),
     [workspace.learners],
   );
+
+  useEffect(() => {
+    const createdLearner = String(searchParams.get("created") ?? "").trim();
+    if (!createdLearner) return;
+    setStatus(`${createdLearner} was added and is now visible here.`);
+  }, [searchParams]);
 
   async function handleSetDefaultChild(id: string) {
     setBusyChildId(id);
@@ -67,8 +75,8 @@ export default function ChildrenPage() {
       });
       setActiveLearner(id);
       setStatus("Default learner updated.");
-    } catch (err) {
-      console.error("Set default child failed", err);
+    } catch (setDefaultError) {
+      console.error("Set default child failed", setDefaultError);
       const nextSettings: FamilySettings = {
         ...workspace.profile,
         default_child_id: id,
@@ -126,8 +134,8 @@ export default function ChildrenPage() {
       }
 
       setStatus("Learner removed.");
-    } catch (err) {
-      console.error("Delete child failed", err);
+    } catch (deleteError) {
+      console.error("Delete child failed", deleteError);
       await reloadWorkspace();
       setStatus("Learner could not be removed.");
     } finally {
