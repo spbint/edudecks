@@ -120,7 +120,7 @@ export async function loadCanonicalReportPdfData(input: {
 
   const familyProfileResponse = await client
     .from("family_profiles")
-    .select("preferred_market,curriculum_preferences")
+    .select("preferred_market")
     .eq("owner_user_id", userId)
     .limit(1)
     .maybeSingle();
@@ -150,14 +150,13 @@ export async function loadCanonicalReportPdfData(input: {
     throw new Error("No learner is attached to this draft.");
   }
 
-  const familyPreferences =
-    ((familyProfileResponse.data?.curriculum_preferences as CurriculumPreferences | null) ?? {
-      country_id: null,
-      region_id: null,
-      framework_id: null,
-      level_id: null,
-      subject_ids: [],
-    }) as CurriculumPreferences;
+  const familyPreferences: CurriculumPreferences = {
+    country_id: null,
+    region_id: null,
+    framework_id: null,
+    level_id: null,
+    subject_ids: [],
+  };
 
   const [curriculumData, supportingEvidence] = await Promise.all([
     loadLearnerCurriculumPageData({

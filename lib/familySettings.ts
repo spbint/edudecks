@@ -72,9 +72,38 @@ export type FamilyProfileRow = FamilySettings & {
   updated_at?: string;
 };
 
-type FamilyProfileWritePayload = Omit<FamilyProfileRow, "id"> & {
+type FamilyProfileWritePayload = Omit<
+  FamilyProfileRow,
+  "id" | "curriculum_preferences"
+> & {
   id?: string;
 };
+
+const FAMILY_PROFILE_SELECT_COLUMNS = [
+  "id",
+  "user_id",
+  "owner_user_id",
+  "family_display_name",
+  "preferred_market",
+  "experience_mode",
+  "default_child_id",
+  "default_child_landing",
+  "week_start",
+  "compact_mode",
+  "show_advanced_insights",
+  "show_authority_guidance",
+  "auto_open_last_child",
+  "evidence_privacy_default",
+  "planner_auto_carry_forward",
+  "planner_show_weekend",
+  "portfolio_print_style",
+  "report_tone_default",
+  "notifications_weekly_digest",
+  "notifications_readiness_alerts",
+  "notifications_planner_nudges",
+  "created_at",
+  "updated_at",
+].join(",");
 
 /* ============================================================
    DEFAULTS
@@ -336,50 +365,6 @@ function asCurriculumPreferences(value: unknown): CurriculumPreferences {
   };
 }
 
-function toDbCurriculumPreferences(
-  value: CurriculumPreferences | null | undefined,
-): CurriculumPreferences {
-  const normalized = asCurriculumPreferences(value);
-
-  return {
-    country_id: normalized.country_id,
-    region_id: normalized.region_id,
-    framework_id: normalized.framework_id,
-    level_id: normalized.level_id,
-    subject_ids: [...normalized.subject_ids],
-    compliance_profile: normalized.compliance_profile
-      ? {
-          country: normalized.compliance_profile.country,
-          state: normalized.compliance_profile.state,
-          curriculum_framework:
-            normalized.compliance_profile.curriculum_framework,
-          compliance_mode: normalized.compliance_profile.compliance_mode,
-          template_version: normalized.compliance_profile.template_version,
-          required_fields: [...normalized.compliance_profile.required_fields],
-          recommended_fields: [
-            ...normalized.compliance_profile.recommended_fields,
-          ],
-          optional_fields: [...normalized.compliance_profile.optional_fields],
-          custom_labels: {
-            ...normalized.compliance_profile.custom_labels,
-          },
-          last_reviewed_at: normalized.compliance_profile.last_reviewed_at,
-        }
-      : {
-          country: null,
-          state: null,
-          curriculum_framework: null,
-          compliance_mode: null,
-          template_version: null,
-          required_fields: [],
-          recommended_fields: [],
-          optional_fields: [],
-          custom_labels: {},
-          last_reviewed_at: null,
-        },
-  };
-}
-
 function toFamilyProfilePayload(
   settings: FamilySettings,
   userId: string,
@@ -420,9 +405,6 @@ function toFamilyProfilePayload(
     ),
     notifications_planner_nudges: Boolean(
       settings.notifications_planner_nudges,
-    ),
-    curriculum_preferences: toDbCurriculumPreferences(
-      settings.curriculum_preferences,
     ),
     updated_at: new Date().toISOString(),
   };
@@ -707,7 +689,7 @@ async function selectFamilyProfileRow(
   const response = await withTimeout(
     supabase
       .from("family_profiles")
-      .select("*")
+      .select(FAMILY_PROFILE_SELECT_COLUMNS)
       .eq("owner_user_id", userId)
       .limit(1)
       .maybeSingle(),
@@ -728,7 +710,7 @@ async function selectFamilyProfileRow(
     return null;
   }
 
-  const data = response.data as FamilyProfileRow;
+  const data = response.data as unknown as Partial<FamilyProfileRow>;
   console.info("selectFamilyProfileRow success", {
     label: "family_profiles select by owner_user_id",
     durationMs: Date.now() - startedAt,
