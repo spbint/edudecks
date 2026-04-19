@@ -1,4 +1,14 @@
 export type WorkflowPage = "planner" | "capture" | "portfolio" | "reports";
+export type LearningMomentumLabel =
+  | "Getting started"
+  | "Building momentum"
+  | "Ready to review"
+  | "Close to usable";
+export type LearningThinAreaLabel =
+  | "Evidence is still thin"
+  | "The week needs a starting point"
+  | "The learning story is still narrow"
+  | "A short report draft would help next";
 
 export type LearningIntelligenceInput = {
   studentId?: string;
@@ -19,8 +29,8 @@ export type LearningIntelligenceSummary = {
   targetHref: string;
   ctaLabel: string;
   reason: string;
-  momentumLabel: string;
-  thinAreaLabel?: string;
+  momentumLabel: LearningMomentumLabel;
+  thinAreaLabel?: LearningThinAreaLabel;
 };
 
 type NormalizedSignals = {
@@ -139,8 +149,8 @@ function buildSummary(
   targetHref: string,
   ctaLabel: string,
   reason: string,
-  momentumLabel: string,
-  thinAreaLabel?: string,
+  momentumLabel: LearningMomentumLabel,
+  thinAreaLabel?: LearningThinAreaLabel,
 ): LearningIntelligenceSummary {
   return {
     targetPage,

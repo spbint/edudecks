@@ -339,7 +339,6 @@ export default function ChildWorkspacePage() {
   const coverageAreaCount = coverageRows.length;
   const hasSavedDraft = savedDrafts.length > 0;
   const latestEvidenceId = latestEvidence?.id;
-
   const learnerWorkflowSignals = useMemo<LearningIntelligenceInput>(
     () => ({
       studentId: childId,
