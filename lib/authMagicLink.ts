@@ -3,6 +3,22 @@ import { supabase } from "@/lib/supabaseClient";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export type MagicLinkErrorCategory =
+  | "provider_rate_limit"
+  | "redirect_config"
+  | "network"
+  | "auth_client"
+  | "unknown";
+
+export type MagicLinkErrorDetails = {
+  category: MagicLinkErrorCategory;
+  message: string;
+  rawMessage: string;
+  provider: "supabase" | "browser" | "app";
+  isRetryable: boolean;
+  diagnosticCode: string;
+};
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -16,26 +32,7 @@ export function isValidMagicLinkEmail(email: string) {
 }
 
 export function mapMagicLinkError(error: unknown) {
-  const raw = normalizeMagicLinkFeedback(
-    error && typeof error === "object" ? (error as { message?: unknown }).message : error,
-  );
-  const normalized = raw.toLowerCase();
-
-  if (!normalized) return "";
-
-  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
-    return "We couldn't send another sign-in link right now. If you already requested one, use the latest email we sent. Otherwise try again shortly.";
-  }
-
-  if (
-    normalized.includes("redirect") ||
-    normalized.includes("site url") ||
-    normalized.includes("not allowed")
-  ) {
-    return "We couldn't send your sign-in link because the return URL is not configured correctly yet.";
-  }
-
-  return raw;
+  return getMagicLinkErrorDetails(error).message;
 }
 
 export function normalizeMagicLinkFeedback(message: unknown) {
@@ -53,6 +50,93 @@ export function normalizeMagicLinkFeedback(message: unknown) {
   }
 
   return raw;
+}
+
+export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails {
+  const rawMessage = normalizeMagicLinkFeedback(
+    error && typeof error === "object" ? (error as { message?: unknown }).message : error,
+  );
+  const normalized = rawMessage.toLowerCase();
+
+  if (!normalized) {
+    return {
+      category: "unknown",
+      message: "We couldn't send your sign-in link for an unknown reason. Please try again.",
+      rawMessage,
+      provider: "app",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-UNKNOWN",
+    };
+  }
+
+  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
+    return {
+      category: "provider_rate_limit",
+      message:
+        "Sign-in email is currently being rate-limited by the auth provider. Please wait briefly, then try again.",
+      rawMessage,
+      provider: "supabase",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-RATE-LIMIT",
+    };
+  }
+
+  if (
+    normalized.includes("redirect") ||
+    normalized.includes("site url") ||
+    normalized.includes("not allowed")
+  ) {
+    return {
+      category: "redirect_config",
+      message:
+        "We couldn't send your sign-in link because the return URL is not configured correctly yet.",
+      rawMessage,
+      provider: "supabase",
+      isRetryable: false,
+      diagnosticCode: "AUTH-SEND-REDIRECT",
+    };
+  }
+
+  if (
+    normalized.includes("network") ||
+    normalized.includes("failed to fetch") ||
+    normalized.includes("load failed") ||
+    normalized.includes("timed out")
+  ) {
+    return {
+      category: "network",
+      message: "We couldn't reach the auth service just now. Please try again.",
+      rawMessage,
+      provider: "browser",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-NETWORK",
+    };
+  }
+
+  if (
+    normalized.includes("invalid") ||
+    normalized.includes("jwt") ||
+    normalized.includes("auth") ||
+    normalized.includes("otp")
+  ) {
+    return {
+      category: "auth_client",
+      message: "The sign-in request was rejected by the auth service. Please try again.",
+      rawMessage,
+      provider: "supabase",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-AUTH",
+    };
+  }
+
+  return {
+    category: "unknown",
+    message: "We couldn't send your sign-in link because the auth service returned an unexpected error.",
+    rawMessage,
+    provider: "supabase",
+    isRetryable: true,
+    diagnosticCode: "AUTH-SEND-UNEXPECTED",
+  };
 }
 
 export function resetMagicLinkClientState() {
@@ -111,10 +195,16 @@ export async function sendMagicLink(input: {
   });
 
   if (error) {
+    const details = getMagicLinkErrorDetails(error);
     console.error("[auth] magic link failed", {
       source: input.source,
       nextPath,
+      category: details.category,
+      diagnosticCode: details.diagnosticCode,
+      provider: details.provider,
+      retryable: details.isRetryable,
       message: safe(error.message),
+      rawMessage: details.rawMessage,
     });
     throw error;
   }

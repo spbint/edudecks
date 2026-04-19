@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  getMagicLinkErrorDetails,
   isValidMagicLinkEmail,
   mapMagicLinkError,
   normalizeMagicLinkFeedback,
@@ -107,6 +108,7 @@ function EmailAuthPageContent() {
   const [email, setEmail] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
+  const [diagnosticCode, setDiagnosticCode] = useState("");
 
   useEffect(() => {
     const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
@@ -125,12 +127,14 @@ function EmailAuthPageContent() {
     if (authError) {
       setSaveState("error");
       setMessage(authError);
+      setDiagnosticCode("AUTH-SEND-URL");
       return;
     }
 
     if (authMessage) {
       setSaveState("success");
       setMessage(authMessage);
+      setDiagnosticCode("");
     }
   }, [searchParams]);
 
@@ -150,6 +154,7 @@ function EmailAuthPageContent() {
     try {
       setSaveState("saving");
       setMessage("");
+      setDiagnosticCode("");
       resetMagicLinkClientState();
 
       await sendMagicLink({
@@ -160,12 +165,15 @@ function EmailAuthPageContent() {
 
       setSaveState("success");
       setMessage("We’ve sent you a secure link to continue.");
+      setDiagnosticCode("");
     } catch (err: unknown) {
+      const details = getMagicLinkErrorDetails(err);
       setSaveState("error");
       setMessage(
         mapMagicLinkError(err) ||
           "We couldn't send your secure link just yet. Please try again.",
       );
+      setDiagnosticCode(details.diagnosticCode);
     }
   }
 
@@ -304,6 +312,11 @@ function EmailAuthPageContent() {
                 }}
               >
                 {message}
+                {diagnosticCode ? (
+                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>
+                    Diagnostic: {diagnosticCode}
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

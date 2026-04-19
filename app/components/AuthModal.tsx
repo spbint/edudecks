@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  getMagicLinkErrorDetails,
   mapMagicLinkError,
   resetMagicLinkClientState,
   sendMagicLink,
@@ -22,6 +23,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
+  const [diagnosticCode, setDiagnosticCode] = useState("");
 
   const resolvedNextPath = useMemo(
     () =>
@@ -39,6 +41,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
     }
 
     setError("");
+    setDiagnosticCode("");
     setSendingEmail(true);
 
     try {
@@ -51,10 +54,12 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
 
       setSentEmail(nextEmail);
     } catch (sendError: unknown) {
+      const details = getMagicLinkErrorDetails(sendError);
       setError(
         mapMagicLinkError(sendError) ||
           "We couldn't send your sign-in link just now. Please try again.",
       );
+      setDiagnosticCode(details.diagnosticCode);
     } finally {
       setSendingEmail(false);
     }
@@ -233,6 +238,11 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
             }}
           >
             {error}
+            {diagnosticCode ? (
+              <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.55 }}>
+                Diagnostic: {diagnosticCode}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
