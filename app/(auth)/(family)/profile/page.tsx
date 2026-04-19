@@ -225,19 +225,37 @@ export default function FamilyProfilePage() {
         setWorkspacePatch({ learners: nextLearners, profile: nextProfile, storageMode: "local" });
         setActiveLearner(localLearner.id);
       } else {
-        const studentId = await createLinkedLearner(
+        const createdLearner = await createLinkedLearner(
           workspace.userId,
           learnerNameInput,
           safe(addYear),
         );
+        const nextLearners = [...children, createdLearner];
+        let nextProfile = profile;
+
+        setWorkspacePatch({
+          learners: nextLearners,
+          storageMode: "database",
+        });
+        setActiveLearner(createdLearner.id);
 
         if (!profile.default_child_id) {
-          const saved = await setDefaultLearner(profile, studentId);
-          setWorkspacePatch({ profile: saved });
+          try {
+            const saved = await setDefaultLearner(profile, createdLearner.id);
+            nextProfile = saved;
+            setWorkspacePatch({ profile: saved });
+          } catch (defaultError) {
+            console.error("profile set default after add failed", defaultError);
+          }
         }
 
         await reloadWorkspace();
-        setActiveLearner(studentId);
+        setWorkspacePatch({
+          learners: nextLearners,
+          profile: nextProfile,
+          storageMode: "database",
+        });
+        setActiveLearner(createdLearner.id);
       }
 
       setAddName("");
@@ -245,7 +263,7 @@ export default function FamilyProfilePage() {
       setStatus("Learner added to the family workspace.");
     } catch (saveError) {
       console.error("profile add learner failed", saveError);
-      setError("We could not add that learner right now.");
+      setError("We couldn't add this learner yet. Please try again.");
     } finally {
       setAdding(false);
     }

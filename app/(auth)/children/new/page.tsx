@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   DEFAULT_FAMILY_SETTINGS,
@@ -18,7 +19,27 @@ function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
+async function getSessionUserId() {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    const response = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error("Something went wrong while saving. Please try again."));
+        }, 8000);
+      }),
+    ]);
+
+    return response.data.session?.user?.id ?? null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default function AddChildPage() {
+  const router = useRouter();
   const [childName, setChildName] = useState("");
   const [yearLevel, setYearLevel] = useState("");
   const [saving, setSaving] = useState(false);
@@ -34,13 +55,13 @@ export default function AddChildPage() {
     setErr("");
 
     try {
-      const authResp = await supabase.auth.getSession();
-      const user = authResp.data.session?.user ?? null;
+      const userId = await getSessionUserId();
 
-      if (user?.id && hasSupabaseEnv) {
-        const id = await createLinkedLearner(user.id, childName, yearLevel);
-        setActiveLearnerId(id);
-        window.location.href = "/family";
+      if (userId && hasSupabaseEnv) {
+        const learner = await createLinkedLearner(userId, childName, yearLevel);
+        setActiveLearnerId(learner.id);
+        router.replace("/family");
+        router.refresh();
         return;
       }
 
@@ -63,9 +84,11 @@ export default function AddChildPage() {
       };
       persistSettingsToLocalStorage(nextSettings);
       setActiveLearnerId(localId);
-      window.location.href = "/family";
+      router.replace("/family");
+      router.refresh();
     } catch (e: unknown) {
-      setErr(String((e as { message?: unknown })?.message ?? e ?? "Add child failed."));
+      const message = String((e as { message?: unknown })?.message ?? e ?? "").trim();
+      setErr(message || "Something went wrong while saving. Please try again.");
     } finally {
       setSaving(false);
     }

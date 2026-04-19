@@ -391,12 +391,18 @@ export async function createLinkedLearner(
   userId: string,
   learnerName: string,
   yearLevel: string,
-): Promise<string> {
+): Promise<FamilyLearner> {
   const cleanName = safe(learnerName);
+  if (!cleanName) {
+    throw new Error("Add a name before saving.");
+  }
+
   const parts = cleanName.split(/\s+/).filter(Boolean);
   const firstName = parts[0] || cleanName;
   const surname = parts.slice(1).join(" ") || null;
-  const numericYear = Number(safe(yearLevel));
+  const cleanYear = safe(yearLevel);
+  const numericYear = Number(cleanYear);
+  const normalizedYearLevel = Number.isFinite(numericYear) && cleanYear ? numericYear : null;
 
   const studentPayloadVariants: Array<Record<string, unknown>> = [
     {
@@ -404,7 +410,7 @@ export async function createLinkedLearner(
       first_name: firstName,
       preferred_name: firstName,
       surname,
-      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      year_level: normalizedYearLevel,
       class_id: null,
       is_ilp: false,
     },
@@ -413,7 +419,7 @@ export async function createLinkedLearner(
       first_name: firstName,
       preferred_name: firstName,
       family_name: surname,
-      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      year_level: normalizedYearLevel,
       class_id: null,
       is_ilp: false,
     },
@@ -421,7 +427,7 @@ export async function createLinkedLearner(
       user_id: userId,
       first_name: firstName,
       preferred_name: firstName,
-      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      year_level: normalizedYearLevel,
       class_id: null,
       is_ilp: false,
     },
@@ -429,13 +435,13 @@ export async function createLinkedLearner(
       user_id: userId,
       first_name: firstName,
       preferred_name: firstName,
-      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      year_level: normalizedYearLevel,
     },
     {
       first_name: firstName,
       preferred_name: firstName,
       surname,
-      year_level: Number.isFinite(numericYear) ? numericYear : null,
+      year_level: normalizedYearLevel,
     },
   ];
 
@@ -482,8 +488,19 @@ export async function createLinkedLearner(
     throw linkInsert.error;
   }
 
+  const createdLearner: FamilyLearner = {
+    id: studentId,
+    label: cleanName,
+    yearLabel: buildYearLabel(normalizedYearLevel),
+    year_level: normalizedYearLevel,
+    connectedAt: new Date().toISOString(),
+  };
+
+  persistLearnersToLocalCache(
+    mergeLearners([createdLearner], loadLearnersFromLocalCache()),
+  );
   dispatchFamilyWorkspaceEvent({ childId: studentId });
-  return studentId;
+  return createdLearner;
 }
 
 export async function updateLinkedLearner(
