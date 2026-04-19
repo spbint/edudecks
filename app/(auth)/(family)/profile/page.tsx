@@ -341,6 +341,12 @@ export default function FamilyProfilePage() {
     setWarning("");
 
     try {
+      console.log("CAPTURE_SUBMIT", {
+        learnerId: currentLearnerId,
+        title,
+        description,
+      });
+
       const created = await createFamilyEvidenceEntry({
         familyProfileId,
         studentId: activeLearner.id,
@@ -468,7 +474,7 @@ export default function FamilyProfilePage() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Profile"
-      heroTitle="TEST DEPLOY – PROFILE UPDATED"
+      heroTitle="Keep learner details tidy and connected"
       heroText="Manage learners, confirm the active learner for the wider workflow, and keep a read-only view of the current family setup."
       heroAsideTitle="Family workspace"
       heroAsideText="Profile now consumes the shared family workspace. Curriculum setup stays in settings."
