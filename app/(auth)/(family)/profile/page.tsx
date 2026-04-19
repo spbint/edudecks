@@ -193,7 +193,9 @@ export default function FamilyProfilePage() {
     [children],
   );
 
-  async function handleSetDefaultChild(childId: string) {
+  const currentLearnerId = activeLearnerId || profile.default_child_id || null;
+
+  async function handleSwitchLearner(childId: string) {
     setBusyChildId(childId);
     setStatus("");
     setError("");
@@ -477,6 +479,9 @@ export default function FamilyProfilePage() {
             <div>
               <div style={S.eyebrow}>Family profile</div>
               <h2 style={S.sectionTitle}>Manage learners</h2>
+              <div style={S.helperText}>
+                Keep learner details, switching context, and quick learning capture in one family workspace.
+              </div>
             </div>
           </div>
 
@@ -615,7 +620,7 @@ export default function FamilyProfilePage() {
               const draft = editDrafts[child.id] ?? { name: learnerName(child), year: yearInputValue(child) };
               const isEditing = editingChildId === child.id;
               const isBusy = busyChildId === child.id;
-              const isDefault = profile.default_child_id === child.id;
+              const isCurrentLearner = currentLearnerId === child.id;
 
               return (
                 <article key={child.id} style={S.learnerCard}>
@@ -624,7 +629,7 @@ export default function FamilyProfilePage() {
                       <div style={S.cardTitle}>{learnerName(child)}</div>
                       <div style={S.helperText}>{child.yearLabel || "Year level not set"}</div>
                     </div>
-                    {isDefault ? <span style={S.chip}>Currently viewing</span> : null}
+                    {isCurrentLearner ? <span style={S.chip}>Currently viewing</span> : null}
                   </div>
 
                   {isEditing ? (
@@ -655,8 +660,8 @@ export default function FamilyProfilePage() {
                       </>
                     ) : (
                       <>
-                        <button type="button" onClick={() => void handleSetDefaultChild(child.id)} disabled={isBusy || isDefault} style={isBusy || isDefault ? S.buttonDisabled : S.secondaryButton}>
-                          {isDefault ? "Currently viewing" : "Switch to"}
+                        <button type="button" onClick={() => void handleSwitchLearner(child.id)} disabled={isBusy || isCurrentLearner} style={isBusy || isCurrentLearner ? S.buttonDisabled : S.secondaryButton}>
+                          {isCurrentLearner ? "Currently viewing" : "Switch to"}
                         </button>
                         <button type="button" onClick={() => setEditingChildId(child.id)} style={S.secondaryButton}>
                           Edit
