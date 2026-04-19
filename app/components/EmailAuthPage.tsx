@@ -21,9 +21,47 @@ import { supabase } from "@/lib/supabaseClient";
 
 type SaveState = "idle" | "saving" | "success" | "error";
 type AuthMode = "link" | "password";
+const AUTH_MODE_STORAGE_KEY = "edudecks_login_auth_mode";
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
+}
+
+function readStoredAuthMode(): AuthMode | null {
+  if (typeof window === "undefined") return null;
+  const raw = safe(window.localStorage.getItem(AUTH_MODE_STORAGE_KEY));
+  return raw === "password" || raw === "link" ? raw : null;
+}
+
+function persistAuthMode(mode: AuthMode) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function passwordSignInMessage(error: unknown) {
+  const original = safe((error as { message?: unknown })?.message);
+  const message = original.toLowerCase();
+
+  if (!message) {
+    return "We couldn't sign you in with that password just yet. Please try again.";
+  }
+
+  if (
+    message.includes("invalid login credentials") ||
+    message.includes("invalid credentials")
+  ) {
+    return "That email and password combination didn't match our records.";
+  }
+
+  if (message.includes("email not confirmed")) {
+    return "This account still needs email confirmation before password sign-in can continue.";
+  }
+
+  return original;
 }
 
 function cardStyle(): React.CSSProperties {
@@ -114,13 +152,29 @@ function EmailAuthPageContent() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [authMode, setAuthMode] = useState<AuthMode>("link");
+  const devAuthModeEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_MODE === "true";
+  const [authMode, setAuthMode] = useState<AuthMode>(
+    () => (devAuthModeEnabled ? "password" : "link"),
+  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [diagnosticCode, setDiagnosticCode] = useState("");
   const [retryBlockedUntil, setRetryBlockedUntil] = useState<number | null>(null);
   const [retryCountdown, setRetryCountdown] = useState(0);
-  const devAuthModeEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_MODE === "true";
+
+  useEffect(() => {
+    const requestedMode = safe(searchParams.get("authMode"));
+    const nextMode =
+      requestedMode === "password" || requestedMode === "link"
+        ? (requestedMode as AuthMode)
+        : readStoredAuthMode() ?? (devAuthModeEnabled ? "password" : "link");
+
+    setAuthMode(nextMode);
+  }, [devAuthModeEnabled, searchParams]);
+
+  useEffect(() => {
+    persistAuthMode(authMode);
+  }, [authMode]);
 
   useEffect(() => {
     const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
@@ -285,10 +339,7 @@ function EmailAuthPageContent() {
       window.location.assign("/family");
     } catch (err: unknown) {
       setSaveState("error");
-      setMessage(
-        safe((err as { message?: unknown })?.message) ||
-          "We couldn't sign you in with that password just yet. Please try again.",
-      );
+      setMessage(passwordSignInMessage(err));
     }
   }
 
@@ -335,17 +386,17 @@ function EmailAuthPageContent() {
 
   return (
     <PublicSiteShell
-      eyebrow="Passwordless entry"
-      heroTitle="Start your first learning moment"
-      heroText="Enter your email and we’ll guide you from there."
+      eyebrow="Sign in to EduDecks"
+      heroTitle="Sign in without testing friction"
+      heroText="Password sign-in is the steady path for repeated manual testing, while email-link access stays available when you need it."
       heroBadges={[]}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
-      footerPrimaryCta={{ label: "Continue with your email", href: "/login" }}
+      footerPrimaryCta={{ label: "Continue to login", href: "/login?authMode=password" }}
       footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
-      asideTitle="A calm way to begin"
-      asideText="There is no password to manage. EduDecks sends one secure link, then guides you into the next step."
+      asideTitle="Two sign-in paths"
+      asideText="Use password sign-in for repeat testing cycles. Keep the secure email link as a secondary option for families who prefer it."
       showWorkflowStrip={false}
     >
       <section
@@ -368,7 +419,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Continue with your email
+            Sign in to EduDecks
           </div>
 
           <div
@@ -380,7 +431,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Start with your email
+            Choose your sign-in path
           </div>
 
           <div
@@ -392,7 +443,7 @@ function EmailAuthPageContent() {
               maxWidth: 720,
             }}
           >
-            Use the same email flow whether you are new to EduDecks or returning to continue where you left off.
+            Password sign-in is ready for repeated product testing. Email-link access remains available as a secondary path.
           </div>
 
           <form
@@ -602,8 +653,8 @@ function EmailAuthPageContent() {
               }}
             >
               {authMode === "password"
-                ? "Password sign-in is available for development and returning families."
-                : "Password-free entry. One secure link. No extra decisions."}
+                ? "Password sign-in stays available across refresh, sign-out, and immediate sign-in again."
+                : "Email-link sign-in stays available, but repeated testing should use password sign-in to avoid provider throttling."}
             </div>
 
             {devAuthModeEnabled ? (
@@ -648,10 +699,10 @@ function EmailAuthPageContent() {
 
             <div style={{ display: "grid", gap: 10 }}>
               {[
-                "Enter your email once.",
-                "Open the secure link we send.",
-                "Continue into EduDecks without a password.",
-                "Pick up the next guided step from there.",
+                "Choose Password for repeated testing.",
+                "Use Email link only when you want a secure inbox hand-off.",
+                "Reset your password if you need to establish the testing path.",
+                "Sign out and back in again without waiting on email delivery.",
               ].map((item, index) => (
                 <div
                   key={item}
@@ -703,7 +754,7 @@ function EmailAuthPageContent() {
                 marginBottom: 10,
               }}
             >
-              One simple way in
+              Testing-safe sign-in
             </div>
 
               <div
@@ -713,7 +764,7 @@ function EmailAuthPageContent() {
                   color: "#475569",
                 }}
               >
-              Families can still use the simple email link, and development teams can switch to password entry when they need a steadier local sign-in path.
+              Password mode now stays selected across refresh and return visits, so manual testing can repeat cleanly without falling back to magic links.
               </div>
           </div>
         </div>
