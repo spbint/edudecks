@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import {
   createLinkedLearner,
   persistLearnersToLocalCache,
@@ -16,19 +17,20 @@ import {
   persistSettingsToLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
-import { ReportDraftStatus } from "@/lib/reportDrafts";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
   id: string;
+  student_id?: string | null;
   title?: string | null;
+  summary?: string | null;
   created_at?: string | null;
 };
 
 type ReportRow = {
   id: string;
   title?: string | null;
-  status?: ReportDraftStatus | null;
+  status?: string | null;
   updated_at?: string | null;
 };
 
@@ -57,6 +59,19 @@ function statusLabel(status?: string | null) {
   return "Draft";
 }
 
+function formatTimestamp(value: string | null | undefined) {
+  const clean = safe(value);
+  if (!clean) return "Just now";
+
+  const parsed = new Date(clean);
+  if (Number.isNaN(parsed.getTime())) return clean;
+
+  return parsed.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export default function FamilyProfilePage() {
   const {
     workspace,
@@ -72,6 +87,10 @@ export default function FamilyProfilePage() {
   const [warning, setWarning] = useState("");
   const [busyChildId, setBusyChildId] = useState("");
   const [adding, setAdding] = useState(false);
+  const [showCaptureForm, setShowCaptureForm] = useState(false);
+  const [captureTitle, setCaptureTitle] = useState("");
+  const [captureDescription, setCaptureDescription] = useState("");
+  const [savingCapture, setSavingCapture] = useState(false);
   const [addName, setAddName] = useState("");
   const [addYear, setAddYear] = useState("");
   const [editingChildId, setEditingChildId] = useState("");
@@ -115,11 +134,11 @@ export default function FamilyProfilePage() {
         const [evidenceRes, reportRes] = await Promise.all([
           supabase
             .from("evidence_entries")
-            .select("id,title,created_at")
+            .select("id,student_id,title,summary,created_at")
             .in("student_id", learnerIds)
             .eq("is_deleted", false)
             .order("created_at", { ascending: false })
-            .limit(4),
+            .limit(6),
           supabase
             .from("report_drafts")
             .select("id,title,status,updated_at")
@@ -167,6 +186,11 @@ export default function FamilyProfilePage() {
   const activeLearner = useMemo(
     () => children.find((child) => child.id === activeLearnerId) ?? null,
     [children, activeLearnerId],
+  );
+
+  const learnerNameById = useMemo(
+    () => new Map(children.map((child) => [child.id, learnerName(child)])),
+    [children],
   );
 
   async function handleSetDefaultChild(childId: string) {
@@ -283,6 +307,72 @@ export default function FamilyProfilePage() {
       );
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleCaptureLearning() {
+    const title = safe(captureTitle);
+    const description = safe(captureDescription);
+    const familyProfileId = safe((profile as { id?: unknown }).id);
+
+    if (!activeLearner) {
+      setError("Choose who you are currently viewing before capturing learning.");
+      setWarning("");
+      return;
+    }
+
+    if (!title) {
+      setError("Add a title before saving this learning moment.");
+      setWarning("");
+      return;
+    }
+
+    if (!workspace.userId || !hasSupabaseEnv || !familyProfileId || familyProfileId === "local") {
+      setError("Family evidence capture needs a signed-in family workspace with a saved profile.");
+      setWarning("");
+      return;
+    }
+
+    setSavingCapture(true);
+    setStatus("");
+    setError("");
+    setWarning("");
+
+    try {
+      const created = await createFamilyEvidenceEntry({
+        familyProfileId,
+        studentId: activeLearner.id,
+        createdByUserId: workspace.userId,
+        title,
+        summary: description,
+        evidenceType: "note",
+        visibility: profile.evidence_privacy_default,
+      });
+
+      setRecentEvidence((current) =>
+        [
+          {
+            id: created.id,
+            student_id: activeLearner.id,
+            title,
+            summary: description,
+            created_at: new Date().toISOString(),
+          },
+          ...current,
+        ].slice(0, 6),
+      );
+      setCaptureTitle("");
+      setCaptureDescription("");
+      setShowCaptureForm(false);
+      setStatus("Learning captured and added to Recent learning.");
+    } catch (saveError) {
+      console.error("profile capture learning failed", saveError);
+      setError(
+        safe((saveError as { message?: unknown })?.message) ||
+          "We couldn't save this learning moment yet. Please try again.",
+      );
+    } finally {
+      setSavingCapture(false);
     }
   }
 
@@ -445,6 +535,81 @@ export default function FamilyProfilePage() {
             </div>
           </div>
 
+          <div style={S.addCard}>
+            <div style={S.addHeader}>
+              <div style={S.cardTitle}>Capture learning</div>
+              <div style={S.helperText}>
+                Save one learning moment for who you are currently viewing without leaving profile.
+              </div>
+            </div>
+            <div style={S.captureHeaderRow}>
+              <div style={S.captureContext}>
+                <div style={S.summaryLabel}>Currently viewing</div>
+                <div style={S.summaryValue}>{activeLearner?.label || "Choose a learner first"}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCaptureForm((current) => !current);
+                  setError("");
+                  setWarning("");
+                }}
+                disabled={!activeLearner || savingCapture}
+                style={!activeLearner || savingCapture ? S.buttonDisabled : S.secondaryButton}
+              >
+                {showCaptureForm ? "Close" : "Capture learning"}
+              </button>
+            </div>
+
+            {showCaptureForm ? (
+              <div style={S.captureForm}>
+                <input
+                  value={captureTitle}
+                  onChange={(e) => {
+                    setCaptureTitle(e.target.value);
+                    if (error) setError("");
+                  }}
+                  placeholder="Title"
+                  aria-label="Learning title"
+                  style={S.input}
+                />
+                <textarea
+                  value={captureDescription}
+                  onChange={(e) => {
+                    setCaptureDescription(e.target.value);
+                    if (error) setError("");
+                  }}
+                  placeholder="Description (optional)"
+                  aria-label="Learning description"
+                  rows={4}
+                  style={S.textarea}
+                />
+                <div style={S.captureActions}>
+                  <button
+                    type="button"
+                    onClick={handleCaptureLearning}
+                    disabled={savingCapture}
+                    style={savingCapture ? S.buttonDisabled : S.primaryButton}
+                  >
+                    {savingCapture ? "Saving..." : "Save learning"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCaptureForm(false);
+                      setCaptureTitle("");
+                      setCaptureDescription("");
+                    }}
+                    disabled={savingCapture}
+                    style={S.secondaryButton}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <div style={S.learnerList}>
             {children.map((child) => {
               const draft = editDrafts[child.id] ?? { name: learnerName(child), year: yearInputValue(child) };
@@ -521,17 +686,24 @@ export default function FamilyProfilePage() {
         <section style={S.section}>
           <div style={S.sectionHeader}>
             <div>
-              <div style={S.eyebrow}>Read-only activity</div>
-              <h2 style={S.sectionTitle}>Recent family activity</h2>
+              <div style={S.eyebrow}>Learning record</div>
+              <h2 style={S.sectionTitle}>Recent learning</h2>
             </div>
           </div>
           <div style={S.activityGrid}>
-            <div style={S.activityCard}>
-              <div style={S.cardTitle}>Recent captures</div>
-              {recentEvidence.length ? recentEvidence.map((row) => (
-                <div key={row.id} style={S.activityRow}>{safe(row.title) || "Untitled capture"}</div>
-              )) : <div style={S.helperText}>No recent evidence yet.</div>}
-            </div>
+            {recentEvidence.length ? recentEvidence.map((row) => (
+              <div key={row.id} style={S.learningRow}>
+                <div style={S.learningRowText}>
+                  <div style={S.cardTitle}>{safe(row.title) || "Untitled learning"}</div>
+                  <div style={S.helperText}>
+                    {learnerNameById.get(safe(row.student_id)) || "Unknown learner"}
+                    {" · "}
+                    {formatTimestamp(row.created_at)}
+                  </div>
+                  {safe(row.summary) ? <div style={S.activityRow}>{safe(row.summary)}</div> : null}
+                </div>
+              </div>
+            )) : <div style={S.helperText}>No learning has been captured yet.</div>}
             <div style={S.activityCard}>
               <div style={S.cardTitle}>Recent reports</div>
               {recentReports.length ? recentReports.map((row) => (
@@ -559,6 +731,10 @@ const S: Record<string, React.CSSProperties> = {
   summaryValue: { fontSize: 16, fontWeight: 900, color: "#0f172a" },
   addCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
   addHeader: { display: "grid", gap: 4 },
+  captureHeaderRow: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" },
+  captureContext: { display: "grid", gap: 6 },
+  captureForm: { display: "grid", gap: 10 },
+  captureActions: { display: "flex", gap: 10, flexWrap: "wrap" },
   learnerList: { display: "grid", gap: 12 },
   learnerCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
   learnerHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" },
@@ -568,6 +744,7 @@ const S: Record<string, React.CSSProperties> = {
   actionRow: { display: "flex", gap: 10, flexWrap: "wrap" },
   input: { flex: "1 1 220px", minWidth: 0, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
   inputSmall: { width: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
+  textarea: { width: "100%", minHeight: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14, resize: "vertical" },
   primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
@@ -579,4 +756,6 @@ const S: Record<string, React.CSSProperties> = {
   activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
   activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },
   activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
+  learningRow: { border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc", padding: 14, display: "grid", gap: 8 },
+  learningRowText: { display: "grid", gap: 4 },
 };
