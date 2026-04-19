@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { resetAuthClientStateImmediately } from "@/lib/familySignOut";
 
 type SignOutButtonProps = {
   redirectTo?: string;
@@ -25,14 +25,9 @@ export default function SignOutButton({
     setBusy(true);
 
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out failed", error);
-      }
-    } catch (error) {
-      console.error("Sign out failed", error);
+      resetAuthClientStateImmediately();
     } finally {
-      const target = safe(redirectTo) || "/";
+      const target = safe(redirectTo) || "/sign-out";
       window.location.assign(target);
     }
   }

@@ -1,8 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export const FAMILY_SIGN_OUT_TIMEOUT_MS = 8000;
-const FAMILY_SIGN_OUT_API_TIMEOUT_MS = 3000;
-const FAMILY_SIGN_OUT_VERIFY_TIMEOUT_MS = 2000;
+export const FAMILY_SIGN_OUT_TIMEOUT_MS = 3000;
+const FAMILY_SIGN_OUT_VERIFY_TIMEOUT_MS = 1200;
+const FAMILY_SIGN_OUT_MARKER_KEY = "edudecks_auth_signed_out_at";
+const FAMILY_SIGN_OUT_EVENT = "edudecks:auth-signed-out";
 
 function createTimeoutError(label: string, ms: number) {
   return new Error(`${label} timed out after ${ms}ms.`);
@@ -31,34 +32,104 @@ async function withTimeout<T>(promise: Promise<T>, label: string, ms: number) {
   }
 }
 
-function removeStoredSession(key: string) {
-  if (typeof window === "undefined" || !key) return;
+function authStorageKeys(storageKey: string) {
+  if (!storageKey) return [];
+  return [storageKey, `${storageKey}-code-verifier`, `${storageKey}-user`];
+}
+
+function clearStorageKey(storage: Storage, key: string) {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // ignore browser storage cleanup failures
+  }
+}
+
+function clearSupabaseBrowserStorage(storageKey: string) {
+  if (typeof window === "undefined") return;
 
   for (const storage of [window.localStorage, window.sessionStorage]) {
-    try {
-      storage.removeItem(key);
-      storage.removeItem(`${key}-code-verifier`);
-      storage.removeItem(`${key}-user`);
-    } catch {
-      // ignore storage cleanup failures
+    for (const key of authStorageKeys(storageKey)) {
+      clearStorageKey(storage, key);
     }
   }
 }
 
-async function forceClearBrowserSession() {
+function markSignedOut() {
+  if (typeof window === "undefined") return;
+
+  const stamp = String(Date.now());
+
+  try {
+    window.localStorage.setItem(FAMILY_SIGN_OUT_MARKER_KEY, stamp);
+  } catch {
+    // ignore storage failures
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(FAMILY_SIGN_OUT_EVENT, {
+      detail: { signedOutAt: stamp },
+    }),
+  );
+}
+
+export function clearSignedOutMarker() {
+  if (typeof window === "undefined") return;
+
+  clearStorageKey(window.localStorage, FAMILY_SIGN_OUT_MARKER_KEY);
+}
+
+export function hasRecentSignedOutMarker() {
+  if (typeof window === "undefined") return false;
+  return Boolean(safeString(window.localStorage.getItem(FAMILY_SIGN_OUT_MARKER_KEY)));
+}
+
+export function getFamilySignedOutEventName() {
+  return FAMILY_SIGN_OUT_EVENT;
+}
+
+export function resetAuthClientStateImmediately() {
+  if (typeof window === "undefined") return;
+
   const auth = supabase.auth as unknown as {
     storageKey?: string;
     stopAutoRefresh?: () => void;
     _removeSession?: () => Promise<void>;
+    _notifyAllSubscribers?: (
+      event: string,
+      session: null,
+      broadcast?: boolean,
+    ) => void | Promise<void>;
   };
 
+  const storageKey = safeString(auth.storageKey);
+
   auth.stopAutoRefresh?.();
+  clearSupabaseBrowserStorage(storageKey);
+  markSignedOut();
 
-  if (typeof auth._removeSession === "function") {
-    await auth._removeSession();
+  void auth._removeSession?.().catch((error) => {
+    console.warn("Local auth session removal failed", error);
+  });
+
+  try {
+    void auth._notifyAllSubscribers?.("SIGNED_OUT", null, false);
+  } catch (error) {
+    console.warn("Auth subscriber notification failed", error);
   }
+}
 
-  removeStoredSession(safeString(auth.storageKey));
+function requestSupabaseSignOutInBackground() {
+  void supabase.auth
+    .signOut({ scope: "local" })
+    .then((result) => {
+      if (result.error) {
+        console.warn("Supabase sign-out request reported an error", result.error);
+      }
+    })
+    .catch((error) => {
+      console.warn("Supabase sign-out request failed", error);
+    });
 }
 
 async function isBrowserSessionCleared() {
@@ -72,28 +143,12 @@ async function isBrowserSessionCleared() {
 }
 
 export async function completeFamilySignOut() {
-  let lastError: unknown = null;
-
-  try {
-    const result = await withTimeout(
-      supabase.auth.signOut({ scope: "local" }),
-      "Sign-out request",
-      FAMILY_SIGN_OUT_API_TIMEOUT_MS,
-    );
-
-    if (result.error) {
-      throw result.error;
-    }
-  } catch (error) {
-    lastError = error;
-    console.warn("Family sign-out request fell back to local session clear", error);
-  }
-
-  await forceClearBrowserSession();
+  resetAuthClientStateImmediately();
+  requestSupabaseSignOutInBackground();
 
   const cleared = await isBrowserSessionCleared();
   if (!cleared) {
-    throw lastError ?? createTimeoutError("Sign-out verification", FAMILY_SIGN_OUT_TIMEOUT_MS);
+    throw createTimeoutError("Sign-out verification", FAMILY_SIGN_OUT_TIMEOUT_MS);
   }
 }
 

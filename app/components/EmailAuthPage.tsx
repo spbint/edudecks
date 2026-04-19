@@ -14,6 +14,7 @@ import {
   sendMagicLink,
 } from "@/lib/authMagicLink";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { clearSignedOutMarker } from "@/lib/familySignOut";
 import { supabase } from "@/lib/supabaseClient";
 
 type SaveState = "idle" | "saving" | "success" | "error";
@@ -148,6 +149,7 @@ function EmailAuthPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    clearSignedOutMarker();
     resetMagicLinkClientState();
   }, []);
 
@@ -203,6 +205,7 @@ function EmailAuthPageContent() {
       setSaveState("saving");
       setMessage("");
       setDiagnosticCode("");
+      clearSignedOutMarker();
       resetMagicLinkClientState();
 
       await sendMagicLink({
@@ -249,6 +252,8 @@ function EmailAuthPageContent() {
       setSaveState("saving");
       setMessage("");
       setDiagnosticCode("");
+      clearSignedOutMarker();
+      resetMagicLinkClientState();
 
       const { error } = await supabase.auth.signInWithPassword({
         email: safe(email).toLowerCase(),

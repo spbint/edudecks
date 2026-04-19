@@ -9,6 +9,7 @@ import {
   resetMagicLinkClientState,
   sendMagicLink,
 } from "@/lib/authMagicLink";
+import { clearSignedOutMarker } from "@/lib/familySignOut";
 
 type AuthModalProps = {
   open: boolean;
@@ -76,6 +77,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
     setSendingEmail(true);
 
     try {
+      clearSignedOutMarker();
       resetMagicLinkClientState();
       await sendMagicLink({
         email: nextEmail,

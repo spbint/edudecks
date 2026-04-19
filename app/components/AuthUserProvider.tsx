@@ -4,6 +4,11 @@ import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import {
+  clearSignedOutMarker,
+  getFamilySignedOutEventName,
+  hasRecentSignedOutMarker,
+} from "@/lib/familySignOut";
 
 type ProfileRow = {
   is_admin?: boolean | null;
@@ -53,17 +58,36 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 
     let active = true;
     let subscription: { unsubscribe: () => void } | null = null;
+    const signedOutEventName = getFamilySignedOutEventName();
+
+    function applySignedOutState() {
+      if (!active) return;
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+    }
 
     async function hydrate() {
+      if (hasRecentSignedOutMarker()) {
+        applySignedOutState();
+        return;
+      }
+
       try {
         const sessionResp = await supabase.auth.getSession();
         const sessionUser = sessionResp.data.session?.user ?? null;
         if (!active) return;
 
+        if (hasRecentSignedOutMarker()) {
+          applySignedOutState();
+          return;
+        }
+
         setUser(sessionUser);
         setLoading(false);
 
         if (sessionUser) {
+          clearSignedOutMarker();
           void hydrateProfile(sessionUser.id, (profileRow) => {
             if (!active) return;
             setProfile(profileRow);
@@ -82,6 +106,12 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange((_, session) => {
       if (!active) return;
+      if (!session) {
+        applySignedOutState();
+        return;
+      }
+
+      clearSignedOutMarker();
       setUser(session?.user ?? null);
       setLoading(false);
 
@@ -97,8 +127,15 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 
     subscription = authSubscription;
 
+    function handleForcedSignOut() {
+      applySignedOutState();
+    }
+
+    window.addEventListener(signedOutEventName, handleForcedSignOut);
+
     return () => {
       active = false;
+      window.removeEventListener(signedOutEventName, handleForcedSignOut);
       subscription?.unsubscribe();
     };
   }, []);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
+import { resetAuthClientStateImmediately } from "@/lib/familySignOut";
 
 type FamilyProfileMenuProps = {
   mobile?: boolean;
@@ -54,6 +55,7 @@ export default function FamilyProfileMenu({
 
   function handleSignOut() {
     setOpen(false);
+    resetAuthClientStateImmediately();
     window.location.assign("/sign-out");
   }
 
