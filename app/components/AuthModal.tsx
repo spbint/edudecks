@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { buildAuthCallbackUrl } from "@/lib/authRedirect";
+import { mapMagicLinkError, sendMagicLink } from "@/lib/authMagicLink";
 
 type AuthModalProps = {
   open: boolean;
@@ -14,36 +13,17 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
-function userFacingAuthError(error: any) {
-  const message = safe(error?.message || error);
-  if (!message) {
-    return "We couldn't send your sign-in link just now. Please try again.";
-  }
-
-  if (
-    message.toLowerCase().includes("redirect") ||
-    message.toLowerCase().includes("site url") ||
-    message.toLowerCase().includes("not allowed")
-  ) {
-    return "We couldn't send your sign-in link because the return URL is not configured correctly yet.";
-  }
-
-  return message;
-}
-
 export default function AuthModal({ open, onClose, returnPath }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
 
-  const resolvedCallbackUrl = useMemo(
+  const resolvedNextPath = useMemo(
     () =>
-      buildAuthCallbackUrl(
-        returnPath ||
-          (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/")
-      ),
-    [returnPath]
+      returnPath ||
+      (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"),
+    [returnPath],
   );
 
   async function continueWithEmail() {
@@ -58,22 +38,18 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
     setSendingEmail(true);
 
     try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
+      await sendMagicLink({
         email: nextEmail,
-        options: {
-          emailRedirectTo: resolvedCallbackUrl,
-          shouldCreateUser: true,
-        },
+        nextPath: resolvedNextPath,
+        source: "auth-modal",
       });
 
-      if (authError) {
-        throw authError;
-      }
-
       setSentEmail(nextEmail);
-    } catch (error: any) {
-      console.error("OTP sign-in failed", error);
-      setError(userFacingAuthError(error));
+    } catch (sendError: unknown) {
+      setError(
+        mapMagicLinkError(sendError) ||
+          "We couldn't send your sign-in link just now. Please try again.",
+      );
     } finally {
       setSendingEmail(false);
     }
@@ -221,7 +197,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
               opacity: sendingEmail ? 0.7 : 1,
             }}
           >
-            {sendingEmail ? "Sending..." : "Continue"}
+            {sendingEmail ? "Sending..." : sentEmail ? "Resend link" : "Continue"}
           </button>
 
           {sentEmail ? (

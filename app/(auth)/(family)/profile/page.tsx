@@ -278,7 +278,10 @@ export default function FamilyProfilePage() {
       setStatus("This learner was added.");
     } catch (saveError) {
       console.error("profile add learner failed", saveError);
-      setError("We couldn't add this learner yet. Please try again.");
+      setError(
+        safe((saveError as { message?: unknown })?.message) ||
+          "We couldn't add this learner yet. Please try again.",
+      );
     } finally {
       setAdding(false);
     }

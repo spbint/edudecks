@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthModal from "@/app/components/AuthModal";
+import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
 import { saveReportDraft } from "@/lib/reportDrafts";
@@ -29,7 +30,6 @@ const STEP_KEY = "edudecks_guided_start_step_v1";
 const PENDING_SAVE_KEY = "edudecks_guided_start_pending_save_v1";
 
 const CHILDREN_KEY = "edudecks_children_seed_v1";
-const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const CALENDAR_BLOCKS_KEY = "edudecks_calendar_blocks_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
 const REPORTS_HIGHLIGHT_EVIDENCE_KEY = "edudecks_reports_highlight_evidence_id";
@@ -90,16 +90,6 @@ function parseJson<T>(value: string | null, fallback: T): T {
   } catch {
     return fallback;
   }
-}
-
-function splitName(fullName: string) {
-  const clean = safe(fullName);
-  if (!clean) return { first_name: "", surname: "" };
-  const parts = clean.split(/\s+/).filter(Boolean);
-  return {
-    first_name: parts[0] || "",
-    surname: parts.slice(1).join(" "),
-  };
 }
 
 function todayIso() {
@@ -210,40 +200,8 @@ async function createStudentRecord(childName: string, yearLevel: string) {
   const authResp = await supabase.auth.getUser();
   const user = authResp.data.user;
   if (!user) throw new Error("Please sign in to save your progress.");
-
-  const nameBits = splitName(childName);
-  const yearNum = Number(safe(yearLevel));
-  const usableYear = Number.isFinite(yearNum) ? yearNum : null;
-
-  const payload = {
-    user_id: user.id,
-    first_name: nameBits.first_name || safe(childName),
-    preferred_name: nameBits.first_name || safe(childName),
-    surname: nameBits.surname || null,
-    year_level: usableYear,
-  };
-
-  const r = await supabase.from("students").insert(payload).select("id").single();
-  if (r.error) throw r.error;
-  return String(r.data.id);
-}
-
-async function linkStudent(studentId: string) {
-  const authResp = await supabase.auth.getUser();
-  const userId = authResp.data.user?.id;
-  if (!userId) throw new Error("Please sign in to save your progress.");
-
-  const r = await supabase.from("parent_student_links").upsert(
-    {
-      parent_user_id: userId,
-      student_id: studentId,
-      relationship_label: "child",
-      sort_order: 0,
-    },
-    { onConflict: "parent_user_id,student_id" }
-  );
-
-  if (r.error) throw r.error;
+  const learner = await createLinkedLearner(user.id, childName, yearLevel);
+  return learner;
 }
 
 function learningAreaForPlan(planTitle: string) {
@@ -530,8 +488,8 @@ function GuidedStartPageContent() {
 
     try {
       const childName = safe(session.child.name) || "Child";
-      const childId = await createStudentRecord(childName, safe(session.child.yearLevel));
-      await linkStudent(childId);
+      const learner = await createStudentRecord(childName, safe(session.child.yearLevel));
+      const childId = learner.id;
 
       const seedChildren = parseJson<any[]>(
         typeof window !== "undefined" ? window.localStorage.getItem(CHILDREN_KEY) : null,
@@ -541,17 +499,17 @@ function GuidedStartPageContent() {
         {
           id: childId,
           name: childName,
-          preferred_name: splitName(childName).first_name || childName,
-          surname: splitName(childName).surname || null,
-          yearLabel: safe(session.child.yearLevel) || null,
+          label: learner.label,
+          yearLabel: learner.yearLabel || null,
+          year_level: learner.year_level,
         },
         ...seedChildren.filter((row) => safe(row?.id) !== childId),
       ];
 
       if (typeof window !== "undefined") {
         window.localStorage.setItem(CHILDREN_KEY, JSON.stringify(nextChildren));
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, childId);
       }
+      setActiveLearnerId(childId);
 
       const plannedFor = todayIso();
       const learningArea = learningAreaForPlan(session.plan.title);

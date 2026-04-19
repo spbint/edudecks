@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
 import { supabase } from "@/lib/supabaseClient";
 
 type ChildForm = {
@@ -300,18 +301,8 @@ function safe(v: any) {
   return String(v ?? "").trim();
 }
 
-function splitName(fullName: string) {
-  const clean = safe(fullName);
-  if (!clean) return { first_name: "", surname: "" };
-  const parts = clean.split(/\s+/).filter(Boolean);
-  return {
-    first_name: parts[0] || "",
-    surname: parts.slice(1).join(" "),
-  };
-}
-
-function isMissingColumnError(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
+function isMissingColumnError(err: unknown) {
+  const msg = String((err as { message?: unknown })?.message ?? "").toLowerCase();
   return msg.includes("does not exist") && msg.includes("column");
 }
 
@@ -319,65 +310,8 @@ async function createStudentRecord(child: ChildForm) {
   const authResp = await supabase.auth.getUser();
   const user = authResp.data.user;
   if (!user) throw new Error("You must be signed in.");
-
-  const nameBits = splitName(child.childName);
-
-  const payloadVariants: Array<Record<string, any>> = [
-    {
-      user_id: user.id,
-      first_name: nameBits.first_name || safe(child.childName),
-      preferred_name: nameBits.first_name || safe(child.childName),
-      surname: nameBits.surname || null,
-      class_id: null,
-      is_ilp: false,
-    },
-    {
-      user_id: user.id,
-      first_name: nameBits.first_name || safe(child.childName),
-      preferred_name: nameBits.first_name || safe(child.childName),
-      family_name: nameBits.surname || null,
-      class_id: null,
-      is_ilp: false,
-    },
-    {
-      user_id: user.id,
-      first_name: nameBits.first_name || safe(child.childName),
-      preferred_name: nameBits.first_name || safe(child.childName),
-      class_id: null,
-      is_ilp: false,
-    },
-    {
-      user_id: user.id,
-      first_name: nameBits.first_name || safe(child.childName),
-      preferred_name: nameBits.first_name || safe(child.childName),
-    },
-  ];
-
-  for (const payload of payloadVariants) {
-    const r = await supabase.from("students").insert(payload).select("id").single();
-    if (!r.error && r.data?.id) return r.data.id as string;
-    if (!isMissingColumnError(r.error)) throw r.error;
-  }
-
-  throw new Error("Could not create student record.");
-}
-
-async function linkStudentToCurrentParent(studentId: string) {
-  const authResp = await supabase.auth.getUser();
-  const userId = authResp.data.user?.id;
-  if (!userId) return;
-
-  const r = await supabase.from("parent_student_links").upsert(
-    {
-      parent_user_id: userId,
-      student_id: studentId,
-      relationship_label: "child",
-      sort_order: 0,
-    },
-    { onConflict: "parent_user_id,student_id" }
-  );
-
-  if (r.error) throw r.error;
+  const learner = await createLinkedLearner(user.id, child.childName, child.yearLevel);
+  return learner.id;
 }
 
 async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
@@ -509,8 +443,7 @@ export default function OnboardingFirstEntryPage() {
         studentId = await createStudentRecord(child);
         window.localStorage.setItem(STUDENT_ID_KEY, studentId);
       }
-
-      await linkStudentToCurrentParent(studentId!);
+      setActiveLearnerId(studentId);
 
       let firstEntryId = window.localStorage.getItem(FIRST_ENTRY_ID_KEY);
       if (!safe(firstEntryId)) {

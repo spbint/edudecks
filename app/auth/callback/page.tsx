@@ -1,6 +1,7 @@
 "use client";
 
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeNextPath } from "@/lib/authRedirect";
@@ -47,9 +48,8 @@ function AuthCallbackPageContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Signing you in and returning you to EduDecks...");
   const [error, setError] = useState("");
-  const [manualRetryVisible, setManualRetryVisible] = useState(false);
-  const [manualLinking, setManualLinking] = useState(false);
   const redirectInProgress = useRef(false);
+  const callbackHandled = useRef(false);
 
   const requestedNextPath = useMemo(() => {
     const fallback = normalizeNextPath("/family");
@@ -60,25 +60,26 @@ function AuthCallbackPageContent() {
   const errorParam = useMemo(() => safe(searchParams.get("error")), [searchParams]);
   const errorDescription = useMemo(
     () => safe(searchParams.get("error_description")),
-    [searchParams]
+    [searchParams],
   );
   const codeParam = useMemo(() => safe(searchParams.get("code")), [searchParams]);
   const accessTokenParam = useMemo(() => safe(searchParams.get("access_token")), [searchParams]);
   const refreshTokenParam = useMemo(() => safe(searchParams.get("refresh_token")), [searchParams]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const timer = window.setTimeout(() => setManualRetryVisible(true), 7000);
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, []);
-
-  useEffect(() => {
     let mounted = true;
+    if (callbackHandled.current) return;
+    callbackHandled.current = true;
 
     async function completeAuth() {
       try {
+        console.info("[auth] callback entered", {
+          requestedNextPath,
+          hasCode: Boolean(codeParam),
+          hasAccessToken: Boolean(accessTokenParam),
+          hasRefreshToken: Boolean(refreshTokenParam),
+        });
+
         if (errorParam) {
           throw new Error(errorDescription || errorParam);
         }
@@ -124,16 +125,16 @@ function AuthCallbackPageContent() {
               sessionPayload.provider_refresh_token = hashProviderRefresh;
             }
 
-            const { error: sessionError } = await supabase.auth.setSession(sessionPayload as any);
+            const { error: sessionError } = await supabase.auth.setSession(sessionPayload as never);
             if (sessionError) {
               throw sessionError;
             }
-          } else {
-            const { data } = await supabase.auth.getSession();
-            if (!data.session) {
-              throw new Error("We could not complete sign-in from that link. Please try again.");
-            }
           }
+        }
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          throw new Error("We could not complete sign-in from that link. Please try again.");
         }
 
         const { data: userData } = await supabase.auth.getUser();
@@ -164,46 +165,45 @@ function AuthCallbackPageContent() {
             const linksResp = await supabase
               .from("parent_student_links")
               .select("student_id", { count: "exact", head: true })
-              .eq("parent_user_id", user.id);
+              .eq("user_id", user.id);
 
             const linkedChildrenCount = linksResp.count ?? 0;
 
             if (requestedNextPath === "/family" && !onboardingComplete && linkedChildrenCount === 0) {
               resolvedNextPath = "/welcome";
             }
-          } catch {
-            // Non-blocking. Session completion matters more than profile hydration here.
+          } catch (profileError) {
+            console.error("[auth] callback profile hydration failed", profileError);
           }
         }
 
         if (!mounted) return;
 
+        console.info("[auth] callback session established", {
+          requestedNextPath,
+          resolvedNextPath,
+          userId: safe(user?.id),
+        });
+
         setMessage(
           resolvedNextPath === "/start"
             ? "You're signed in. Returning you to your learning record..."
             : resolvedNextPath === "/welcome"
-            ? "You're signed in. Getting your first step ready..."
-            : "You're signed in. Taking you back to EduDecks..."
+              ? "You're signed in. Getting your first step ready..."
+              : "You're signed in. Taking you back to EduDecks...",
         );
 
         if (redirectInProgress.current) return;
         redirectInProgress.current = true;
         router.replace(resolvedNextPath);
-        if (typeof window !== "undefined") {
-          window.setTimeout(() => {
-            window.location.replace(resolvedNextPath);
-          }, 800);
-        }
-      } catch (err: any) {
-        console.error("Auth callback failed", err);
+      } catch (authError: unknown) {
+        console.error("[auth] callback failed", authError);
         if (!mounted) return;
-        const safeMessage =
-          safe(err?.message) || "We could not complete sign-in. Please try again.";
-        setError(safeMessage);
-
-        window.setTimeout(() => {
-          router.replace(`/login?authError=${encodeURIComponent(safeMessage)}`);
-        }, 900);
+        setMessage("");
+        setError(
+          safe((authError as { message?: unknown })?.message) ||
+            "We could not complete sign-in. Please try again.",
+        );
       }
     }
 
@@ -223,15 +223,9 @@ function AuthCallbackPageContent() {
   ]);
 
   function handleManualContinue() {
-    setManualLinking(true);
     if (redirectInProgress.current) return;
     redirectInProgress.current = true;
     router.replace(requestedNextPath);
-    if (typeof window !== "undefined") {
-      window.setTimeout(() => {
-        window.location.replace(requestedNextPath);
-      }, 800);
-    }
   }
 
   return (
@@ -296,16 +290,35 @@ function AuthCallbackPageContent() {
             }}
           >
             {error
-              ? "We hit a problem while completing sign-in. We're sending you back to a safe place now."
+              ? "We hit a problem while completing sign-in. No new login link has been sent."
               : requestedNextPath === "/start"
-              ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
-              : "You'll be returned to the right EduDecks page automatically."}
+                ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
+                : "You'll be returned to the right EduDecks page automatically."}
           </div>
-          {!error && manualRetryVisible ? (
+
+          {error ? (
+            <Link
+              href="/login"
+              style={{
+                marginTop: 12,
+                width: "100%",
+                borderRadius: 12,
+                border: "1px solid #e2e8f0",
+                background: "#ffffff",
+                color: "#0f172a",
+                fontWeight: 700,
+                padding: "10px",
+                display: "inline-flex",
+                justifyContent: "center",
+                textDecoration: "none",
+              }}
+            >
+              Back to login
+            </Link>
+          ) : (
             <button
               type="button"
               onClick={handleManualContinue}
-              disabled={manualLinking}
               style={{
                 marginTop: 12,
                 width: "100%",
@@ -315,12 +328,12 @@ function AuthCallbackPageContent() {
                 color: "#fff",
                 fontWeight: 700,
                 padding: "10px",
-                cursor: manualLinking ? "wait" : "pointer",
+                cursor: "pointer",
               }}
             >
-              {manualLinking ? "Returning..." : "Continue to EduDecks"}
+              Continue to EduDecks
             </button>
-          ) : null}
+          )}
         </div>
       </section>
     </main>

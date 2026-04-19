@@ -69,7 +69,7 @@ export default function AddChildPage() {
           });
         }
         setActiveLearnerId(learner.id);
-        router.replace("/family");
+        router.replace("/children");
         router.refresh();
         return;
       }
@@ -96,16 +96,12 @@ export default function AddChildPage() {
       };
       persistSettingsToLocalStorage(nextSettings);
       setActiveLearnerId(localId);
-      router.replace("/family");
+      router.replace("/children");
       router.refresh();
     } catch (e: unknown) {
       console.error("add child save failed", e);
       const message = String((e as { message?: unknown })?.message ?? e ?? "").trim();
-      setErr(
-        message === "Add a name before saving."
-          ? message
-          : "We couldn't add this learner yet. Please try again.",
-      );
+      setErr(message || "We couldn't add this learner yet. Please try again.");
     } finally {
       setSaving(false);
     }

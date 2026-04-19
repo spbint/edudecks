@@ -3,8 +3,11 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import { buildAuthCallbackUrl } from "@/lib/authRedirect";
+import {
+  isValidMagicLinkEmail,
+  mapMagicLinkError,
+  sendMagicLink,
+} from "@/lib/authMagicLink";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 
 type SaveState = "idle" | "saving" | "success" | "error";
@@ -89,19 +92,6 @@ function secondaryButtonStyle(): React.CSSProperties {
   };
 }
 
-function mapAuthError(error: unknown) {
-  const raw = safe(error && typeof error === "object" ? (error as any).message : error);
-  const normalized = raw.toLowerCase();
-
-  if (!normalized) return "";
-
-  if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
-    return "You’ve requested a couple of login links already. Give it a few minutes before trying again so the next one arrives reliably.";
-  }
-
-  return raw;
-}
-
 export default function EmailAuthPage() {
   return (
     <Suspense fallback={null}>
@@ -115,8 +105,6 @@ function EmailAuthPageContent() {
   const [email, setEmail] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
-
-  const authRedirectTo = useMemo(() => buildAuthCallbackUrl("/family"), []);
 
   useEffect(() => {
     const authError = safe(searchParams.get("authError"));
@@ -134,10 +122,7 @@ function EmailAuthPageContent() {
     }
   }, [searchParams]);
 
-  const emailValid = useMemo(() => {
-    const nextEmail = safe(email);
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail);
-  }, [email]);
+  const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
 
   async function handleContinue() {
     if (!emailValid) {
@@ -150,29 +135,20 @@ function EmailAuthPageContent() {
       setSaveState("saving");
       setMessage("");
 
-      const normalizedEmail = safe(email).toLowerCase();
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email: normalizedEmail,
-        options: {
-          emailRedirectTo: authRedirectTo,
-          shouldCreateUser: true,
-          data: {
-            user_type: "family",
-            onboarding_state: "new",
-          },
-        },
+      await sendMagicLink({
+        email,
+        nextPath: "/family",
+        source: "login-page",
       });
-
-      if (error) {
-        throw error;
-      }
 
       setSaveState("success");
       setMessage("We’ve sent you a secure link to continue.");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSaveState("error");
-      setMessage(mapAuthError(err) || "We couldn’t send your secure link just yet. Please try again.");
+      setMessage(
+        mapMagicLinkError(err) ||
+          "We couldn't send your secure link just yet. Please try again.",
+      );
     }
   }
 
@@ -249,7 +225,13 @@ function EmailAuthPageContent() {
               <label style={labelStyle()}>Email address</label>
               <input
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (saveState !== "idle") {
+                    setSaveState("idle");
+                    setMessage("");
+                  }
+                }}
                 placeholder="Enter your email"
                 style={{
                   ...inputStyle(),
@@ -310,7 +292,11 @@ function EmailAuthPageContent() {
               disabled={!emailValid || saveState === "saving"}
               style={primaryButtonStyle(!emailValid || saveState === "saving")}
             >
-              {saveState === "saving" ? "Sending your secure link..." : "Continue"}
+              {saveState === "saving"
+                ? "Sending your secure link..."
+                : saveState === "success"
+                  ? "Resend link"
+                  : "Continue"}
             </button>
 
             <div
