@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
@@ -11,11 +11,8 @@ import {
   loadLinkedFamilyStudentIds,
 } from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import {
-  listSavedDrafts,
-  setActiveDraftId,
-  type SavedReportDraft,
-} from "@/lib/reporting/reportDraftStorage";
+import { listSavedDrafts, type SavedReportDraft } from "@/lib/reporting/reportDraftStorage";
+import { deriveLearningIntelligence } from "@/lib/learningIntelligence";
 
 type ChildRow = {
   id: string;
@@ -119,7 +116,6 @@ function pillStyle(bg: string, fg: string): React.CSSProperties {
 
 export default function ChildWorkspacePage() {
   const params = useParams();
-  const router = useRouter();
   const { setActiveLearner } = useFamilyWorkspace();
   const childId = safe(params?.id);
 
@@ -327,31 +323,20 @@ export default function ChildWorkspacePage() {
   );
 
   const bestNextMove = useMemo(() => {
-    if (!evidence.length) {
-      return {
-        title: "Capture the first learning moment",
-        text: "One calm snapshot gives this workspace a thread the whole family can follow.",
-        href: "/capture",
-        cta: "Open Quick Capture",
-      };
-    }
+    const recentEvidenceCount = evidence.filter((item) => {
+      const age = daysSince(item.occurred_on || item.created_at);
+      return age != null && age <= 30;
+    }).length;
 
-    if (!savedDrafts.length) {
-      return {
-        title: "Shape the first report path",
-        text: "There is already enough evidence to start curating a calm report draft and see what the next step feels like.",
-        href: "/reports",
-        cta: "Open Reports",
-      };
-    }
-
-    return {
-      title: "Deepen the learning record",
-      text: `The strongest evidence is around ${strongestArea}. Consider adding one more piece in ${weakestArea} or reopening the latest draft so the story stays fresh.`,
-      href: "/portfolio",
-      cta: "Open Portfolio",
-    };
-  }, [evidence.length, savedDrafts.length, strongestArea, weakestArea]);
+    return deriveLearningIntelligence({
+      studentId: childId,
+      highlightEvidenceId: latestEvidence?.id,
+      evidenceCount: evidence.length,
+      recentEvidenceCount,
+      coverageAreaCount: coverageRows.length,
+      hasSavedDraft: savedDrafts.length > 0,
+    });
+  }, [childId, coverageRows.length, evidence, latestEvidence?.id, savedDrafts.length]);
 
   const latestDraft = savedDrafts[0] || null;
 
@@ -500,36 +485,28 @@ export default function ChildWorkspacePage() {
             <div
               style={{
                 border: "1px solid #dbeafe",
-                background: "#eff6ff",
+                background: "#f8fbff",
                 borderRadius: 16,
                 padding: 16,
+                display: "grid",
+                gap: 10,
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
-                {bestNextMove.title}
-              </div>
-
-              <div style={{ marginBottom: 12, color: "#334155", lineHeight: 1.6 }}>
-                {bestNextMove.text}
-              </div>
-
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <Link href={bestNextMove.href} style={buttonStyle(true)}>
-                  {bestNextMove.cta}
-                </Link>
-
-                {latestDraft ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveDraftId(latestDraft.id);
-                      router.push(`/reports/output?draft=${encodeURIComponent(latestDraft.id)}`);
-                    }}
-                    style={buttonStyle(false)}
-                  >
-                    Open latest draft
-                  </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <span style={pillStyle("#eff6ff", "#1d4ed8")}>{bestNextMove.momentumLabel}</span>
+                {bestNextMove.thinAreaLabel ? (
+                  <span style={pillStyle("#f8fafc", "#475569")}>{bestNextMove.thinAreaLabel}</span>
                 ) : null}
+              </div>
+
+              <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                {bestNextMove.reason}
+              </div>
+
+              <div>
+                <Link href={bestNextMove.targetHref} style={buttonStyle(true)}>
+                  {bestNextMove.ctaLabel}
+                </Link>
               </div>
             </div>
           </section>
