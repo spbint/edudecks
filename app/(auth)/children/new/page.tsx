@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   DEFAULT_FAMILY_SETTINGS,
+  loadSettingsFromLocalStorage,
   persistSettingsToLocalStorage,
 } from "@/lib/familySettings";
 import {
@@ -55,10 +56,18 @@ export default function AddChildPage() {
     setErr("");
 
     try {
+      const existingLearners = loadLearnersFromLocalCache();
+      const existingSettings = loadSettingsFromLocalStorage();
       const userId = await getSessionUserId();
 
       if (userId && hasSupabaseEnv) {
         const learner = await createLinkedLearner(userId, childName, yearLevel);
+        if (!safe(existingSettings.default_child_id) && existingLearners.length === 0) {
+          persistSettingsToLocalStorage({
+            ...existingSettings,
+            default_child_id: learner.id,
+          });
+        }
         setActiveLearnerId(learner.id);
         router.replace("/family");
         router.refresh();
@@ -66,7 +75,6 @@ export default function AddChildPage() {
       }
 
       const localId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const existingLearners = loadLearnersFromLocalCache();
       persistLearnersToLocalCache([
         ...existingLearners,
         {
@@ -80,7 +88,11 @@ export default function AddChildPage() {
 
       const nextSettings = {
         ...DEFAULT_FAMILY_SETTINGS,
-        default_child_id: localId,
+        ...existingSettings,
+        default_child_id:
+          !safe(existingSettings.default_child_id) && existingLearners.length === 0
+            ? localId
+            : existingSettings.default_child_id,
       };
       persistSettingsToLocalStorage(nextSettings);
       setActiveLearnerId(localId);

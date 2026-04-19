@@ -231,21 +231,28 @@ export default function FamilyProfilePage() {
           safe(addYear),
         );
         const nextLearners = [...children, createdLearner];
-        let nextProfile = profile;
+        const shouldAssignDefault = !safe(profile.default_child_id) && children.length === 0;
+        let nextProfile = shouldAssignDefault
+          ? { ...profile, default_child_id: createdLearner.id }
+          : profile;
+        let defaultWarning = "";
 
         setWorkspacePatch({
           learners: nextLearners,
+          profile: nextProfile,
           storageMode: "database",
         });
         setActiveLearner(createdLearner.id);
 
-        if (!profile.default_child_id) {
+        if (shouldAssignDefault) {
           try {
             const saved = await setDefaultLearner(profile, createdLearner.id);
             nextProfile = saved;
             setWorkspacePatch({ profile: saved });
           } catch (defaultError) {
             console.error("profile set default after add failed", defaultError);
+            defaultWarning =
+              "We added the learner, but couldn't update the default just yet.";
           }
         }
 
@@ -256,6 +263,10 @@ export default function FamilyProfilePage() {
           storageMode: "database",
         });
         setActiveLearner(createdLearner.id);
+
+        if (defaultWarning) {
+          setError(defaultWarning);
+        }
       }
 
       setAddName("");
