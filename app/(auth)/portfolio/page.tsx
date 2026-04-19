@@ -949,6 +949,46 @@ function PortfolioPageContent() {
     return `Showing ${visible} of ${total} ${total === 1 ? "piece" : "pieces"}`;
   }, [areaFilter, evidence.length, evidenceFilter, filteredEvidence.length]);
 
+  const portfolioCurationGuidance = useMemo(() => {
+    const recentLine =
+      recentEvidenceCount >= 3
+        ? "Recent learning is already visible here."
+        : recentEvidenceCount >= 1
+          ? "You already have some recent learning here."
+          : "Most of this portfolio is drawing on older saved learning so far.";
+
+    const linkedLine =
+      linkedEvidenceCount >= 3
+        ? "Several pieces are already linked to learning."
+        : linkedEvidenceCount >= 1
+          ? "A few pieces are already linked to learning."
+          : "Most pieces here are still sitting as general learning moments.";
+
+    const breadthLine =
+      groupedEvidence.length >= 3
+        ? "This portfolio is starting to show learning across a few areas."
+        : groupedEvidence.length === 2
+          ? "This portfolio is beginning to spread across more than one area."
+          : "Most of this portfolio is sitting in one area so far.";
+
+    const nextLine =
+      recentEvidenceCount === 0
+        ? "Next, choose one or two newer pieces that show the learning clearly."
+        : linkedEvidenceCount === 0
+          ? "Next, choose one or two pieces that feel clear and easy to revisit."
+          : groupedEvidence.length <= 1
+            ? "Next, choose one or two pieces that show a slightly wider picture."
+            : "Next, choose one or two pieces that best show the learning clearly.";
+
+    return {
+      heading: "Building a useful portfolio",
+      recentLine,
+      linkedLine,
+      breadthLine,
+      nextLine,
+    };
+  }, [groupedEvidence.length, linkedEvidenceCount, recentEvidenceCount]);
+
   function resetEvidenceFilterView() {
     setEvidenceFilter("all");
     setAreaFilter("all");
@@ -2132,6 +2172,30 @@ function PortfolioPageContent() {
                   </div>
                   <div style={{ ...UI.body(), marginTop: 10, fontSize: 12, color: "#64748b" }}>
                     {activeResultsSummary}
+                  </div>
+                </section>
+              ) : null}
+
+              {evidence.length > 0 ? (
+                <section
+                  style={{
+                    ...UI.softCard(),
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={UI.label()}>{portfolioCurationGuidance.heading}</div>
+                  <div style={{ ...UI.body(), marginTop: 8, fontSize: 13 }}>
+                    {portfolioCurationGuidance.recentLine}
+                  </div>
+                  <div style={{ ...UI.body(), marginTop: 6, fontSize: 13 }}>
+                    {portfolioCurationGuidance.linkedLine}
+                  </div>
+                  <div style={{ ...UI.body(), marginTop: 6, fontSize: 13 }}>
+                    {portfolioCurationGuidance.breadthLine}
+                  </div>
+                  <div style={{ ...UI.body(), marginTop: 8, fontSize: 12, color: "#64748b" }}>
+                    {portfolioCurationGuidance.nextLine}
                   </div>
                 </section>
               ) : null}
