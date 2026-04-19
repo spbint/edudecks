@@ -63,6 +63,8 @@ describe("deriveLearningIntelligence", () => {
     expect(result.ctaLabel).toBe("Capture a learning moment");
     expect(result.momentumLabel).toBe("Building momentum");
     expect(result.thinAreaLabel).toBe("Evidence is still thin");
+    expect(result.reason.toLowerCase()).toContain("weekly direction");
+    expect(result.reason.toLowerCase()).toContain("evidence is still light");
   });
 
   it("routes reviewable evidence to portfolio", () => {
@@ -94,6 +96,7 @@ describe("deriveLearningIntelligence", () => {
     expect(result.targetPage).toBe("portfolio");
     expect(result.thinAreaLabel).toBe("The learning story is still narrow");
     expect(result.momentumLabel).toBe("Ready to review");
+    expect(result.reason.toLowerCase()).toContain("story is still narrow");
   });
 
   it("prefers reports when stronger report-shaping signals are present", () => {
@@ -112,6 +115,7 @@ describe("deriveLearningIntelligence", () => {
     expect(result.ctaLabel).toBe("Shape this into a report");
     expect(result.momentumLabel).toBe("Close to usable");
     expect(result.thinAreaLabel).toBe("A short report draft would help next");
+    expect(result.reason.toLowerCase()).toContain("evidence gathered");
   });
 
   it("does not treat a bare saved draft with thin evidence as report-ready", () => {
@@ -156,6 +160,20 @@ describe("deriveLearningIntelligence", () => {
     expect(result.ctaLabel).toBe("Capture another learning moment");
     expect(result.momentumLabel).toBe("Building momentum");
     expect(result.thinAreaLabel).toBe("Evidence is still thin");
+    expect(result.reason.toLowerCase()).toContain("starting point");
+  });
+
+  it("grounds the portfolio reason in recent evidence when the story is not narrow", () => {
+    const result = deriveLearningIntelligence(
+      makeInput({
+        evidenceCount: 3,
+        recentEvidenceCount: 2,
+        coverageAreaCount: 2,
+      }),
+    );
+
+    expect(result.targetPage).toBe("portfolio");
+    expect(result.reason.toLowerCase()).toContain("recent evidence");
   });
 
   it("keeps labels inside the intended calm families for covered scenarios", () => {

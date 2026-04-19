@@ -166,6 +166,46 @@ function buildSummary(
   };
 }
 
+function buildPlannerReason(signals: NormalizedSignals) {
+  if (signals.hasPlanDirection || signals.hasPlannerActions) {
+    return "Things are still light here, and one small weekly direction would help bring the week into view.";
+  }
+
+  return "Things are still light here, so one small weekly direction is the clearest place to begin.";
+}
+
+function buildCaptureReason(signals: NormalizedSignals) {
+  if (signals.hasPlanDirection || signals.hasPlannerActions) {
+    return "You have a weekly direction, but evidence is still light.";
+  }
+
+  if (signals.recentEvidenceCount > 0) {
+    return "You have a starting point, but one more recent example would make this easier to shape.";
+  }
+
+  return "You have a starting point, and one more clear example would make this easier to shape.";
+}
+
+function buildPortfolioReason(signals: NormalizedSignals, storyIsNarrow: boolean) {
+  if (storyIsNarrow) {
+    return "You already have evidence here, but the learning story is still narrow.";
+  }
+
+  if (signals.recentEvidenceCount > 0) {
+    return "You already have recent evidence here. Reviewing the portfolio is the clearest next move.";
+  }
+
+  return "You already have evidence here. Reviewing the portfolio is the clearest next move.";
+}
+
+function buildReportsReason(signals: NormalizedSignals) {
+  if (signals.hasReportSelection) {
+    return "You already have evidence gathered for a report, so shaping it is the clearest next move.";
+  }
+
+  return "You already have enough here to begin shaping a report.";
+}
+
 export function deriveLearningIntelligence(
   input: LearningIntelligenceInput,
 ): LearningIntelligenceSummary {
@@ -182,14 +222,13 @@ export function deriveLearningIntelligence(
   const hasPlanningButNoEvidence = planningIsVisible && !evidenceIsVisible;
   const canShapeReportNow = closeToUsable;
   const shouldReviewPortfolio = readyToReview;
-  const reportSelectionIsVisible = signals.hasReportSelection;
 
   if (isStartingFromScratch) {
     return buildSummary(
       "planner",
       buildPlannerHref(signals),
       "Set a weekly direction",
-      "Things are still light here, so one small weekly direction is the clearest place to begin.",
+      buildPlannerReason(signals),
       "Getting started",
       "The week needs a starting point",
     );
@@ -200,7 +239,7 @@ export function deriveLearningIntelligence(
       "capture",
       buildCaptureHref(signals),
       "Capture a learning moment",
-      "You already have a direction in place, and one saved moment would make it easier to shape.",
+      buildCaptureReason(signals),
       "Building momentum",
       "Evidence is still thin",
     );
@@ -211,9 +250,7 @@ export function deriveLearningIntelligence(
       "reports",
       buildReportsHref(signals),
       "Shape this into a report",
-      reportSelectionIsVisible
-        ? "You already have evidence gathered for a report, so shaping it is the clearest next move."
-        : "You already have enough here to begin shaping a report.",
+      buildReportsReason(signals),
       "Close to usable",
       "A short report draft would help next",
     );
@@ -224,9 +261,7 @@ export function deriveLearningIntelligence(
       "portfolio",
       buildPortfolioHref(signals),
       "Browse the portfolio",
-      storyIsNarrow
-        ? "You already have evidence here. Reviewing the portfolio is the clearest next move before adding more."
-        : "You already have evidence here. Reviewing the portfolio is the clearest next move.",
+      buildPortfolioReason(signals, storyIsNarrow),
       "Ready to review",
       storyIsNarrow ? "The learning story is still narrow" : undefined,
     );
@@ -237,17 +272,17 @@ export function deriveLearningIntelligence(
       "capture",
       buildCaptureHref(signals),
       "Capture another learning moment",
-      "You have a starting point, and one more clear example would make this easier to shape.",
+      buildCaptureReason(signals),
       "Building momentum",
       "Evidence is still thin",
     );
   }
 
-  return buildSummary(
-    "portfolio",
-    buildPortfolioHref(signals),
-    "Browse the portfolio",
-    "You already have evidence here. Reviewing the portfolio is the clearest next move.",
-    "Ready to review",
+    return buildSummary(
+      "portfolio",
+      buildPortfolioHref(signals),
+      "Browse the portfolio",
+      buildPortfolioReason(signals, false),
+      "Ready to review",
   );
 }
