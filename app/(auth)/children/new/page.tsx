@@ -99,8 +99,13 @@ export default function AddChildPage() {
       router.replace("/family");
       router.refresh();
     } catch (e: unknown) {
+      console.error("add child save failed", e);
       const message = String((e as { message?: unknown })?.message ?? e ?? "").trim();
-      setErr(message || "Something went wrong while saving. Please try again.");
+      setErr(
+        message === "Add a name before saving."
+          ? message
+          : "We couldn't add this learner yet. Please try again.",
+      );
     } finally {
       setSaving(false);
     }

@@ -62,7 +62,6 @@ export default function FamilyProfilePage() {
   const {
     workspace,
     activeLearnerId,
-    loading,
     error: workspaceError,
     reloadWorkspace,
     setWorkspacePatch,
@@ -417,9 +416,28 @@ export default function FamilyProfilePage() {
               <div style={S.helperText}>This writes through the shared family workspace path.</div>
             </div>
             <div style={S.formRow}>
-              <input value={addName} onChange={(e) => setAddName(e.target.value)} placeholder="Learner name" style={S.input} />
-              <input value={addYear} onChange={(e) => setAddYear(e.target.value)} placeholder="Year" inputMode="numeric" style={S.inputSmall} />
-              <button type="button" onClick={handleAddLearner} disabled={adding || loading} style={adding || loading ? S.buttonDisabled : S.primaryButton}>
+              <input
+                value={addName}
+                onChange={(e) => {
+                  setAddName(e.target.value);
+                  if (error) setError("");
+                  if (warning) setWarning("");
+                }}
+                placeholder="Learner name"
+                style={S.input}
+              />
+              <input
+                value={addYear}
+                onChange={(e) => {
+                  setAddYear(e.target.value);
+                  if (error) setError("");
+                  if (warning) setWarning("");
+                }}
+                placeholder="Year"
+                inputMode="numeric"
+                style={S.inputSmall}
+              />
+              <button type="button" onClick={handleAddLearner} disabled={adding} style={adding ? S.buttonDisabled : S.primaryButton}>
                 {adding ? "Saving..." : "Add learner"}
               </button>
             </div>

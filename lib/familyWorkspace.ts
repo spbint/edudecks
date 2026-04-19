@@ -217,10 +217,14 @@ export async function loadLinkedLearners(
   if (!orderedIds.length) return [];
 
   const studentSelectVariants = [
-    "id,preferred_name,first_name,surname,family_name,year_level",
-    "id,preferred_name,first_name,surname,year_level",
-    "id,preferred_name,first_name,family_name,year_level",
-    "id,preferred_name,first_name,year_level",
+    "id,preferred_name,first_name,surname,family_name,year_level,year_level_label",
+    "id,preferred_name,first_name,surname,year_level,year_level_label",
+    "id,preferred_name,first_name,family_name,year_level,year_level_label",
+    "id,preferred_name,first_name,year_level,year_level_label",
+    "id,preferred_name,first_name,surname,family_name,year_level_label",
+    "id,preferred_name,first_name,surname,year_level_label",
+    "id,preferred_name,first_name,family_name,year_level_label",
+    "id,preferred_name,first_name,year_level_label",
   ];
 
   let students: Array<Record<string, unknown>> = [];
@@ -265,9 +269,19 @@ export async function loadLinkedLearners(
         .trim() ||
       "Unnamed learner";
 
-    const yearLabel = Number.isFinite(Number(student.year_level))
-      ? `Year ${student.year_level}`
-      : "";
+    const yearLevel =
+      Number.isFinite(Number(student.year_level))
+        ? Number(student.year_level)
+        : parseYearLevel(
+            (student as { year_level_label?: string | number | null })
+              .year_level_label,
+          );
+    const yearLabel =
+      safe(
+        (student as { year_level_label?: string | number | null })
+          .year_level_label,
+      ) ||
+      (yearLevel != null ? `Year ${yearLevel}` : "");
 
     const linkRow = links.find((row) => safe(row.student_id) === id);
 
@@ -275,9 +289,7 @@ export async function loadLinkedLearners(
       id,
       label,
       yearLabel,
-      year_level: Number.isFinite(Number(student.year_level))
-        ? Number(student.year_level)
-        : null,
+      year_level: yearLevel,
       connectedAt: linkRow?.created_at ?? null,
     } satisfies FamilyLearner;
   });
@@ -403,44 +415,57 @@ export async function createLinkedLearner(
   const cleanYear = safe(yearLevel);
   const numericYear = Number(cleanYear);
   const normalizedYearLevel = Number.isFinite(numericYear) && cleanYear ? numericYear : null;
+  const normalizedYearLevelLabel = buildYearLabel(cleanYear);
+  const existingProfile = await loadFamilyProfile();
+  const familyProfile =
+    safe(existingProfile.id) && existingProfile.id !== "local"
+      ? existingProfile
+      : await upsertFamilyProfile(loadSettingsFromLocalStorage());
+  const familyProfileId = safe(familyProfile.id);
+
+  if (!familyProfileId || familyProfileId === "local") {
+    throw new Error("We couldn't add this learner yet. Please try again.");
+  }
 
   const studentPayloadVariants: Array<Record<string, unknown>> = [
     {
-      user_id: userId,
+      family_profile_id: familyProfileId,
       first_name: firstName,
       preferred_name: firstName,
       surname,
-      year_level: normalizedYearLevel,
-      class_id: null,
-      is_ilp: false,
+      year_level_label: normalizedYearLevelLabel || null,
     },
     {
-      user_id: userId,
+      family_profile_id: familyProfileId,
       first_name: firstName,
       preferred_name: firstName,
       family_name: surname,
-      year_level: normalizedYearLevel,
-      class_id: null,
-      is_ilp: false,
+      year_level_label: normalizedYearLevelLabel || null,
     },
     {
-      user_id: userId,
+      family_profile_id: familyProfileId,
       first_name: firstName,
       preferred_name: firstName,
-      year_level: normalizedYearLevel,
-      class_id: null,
-      is_ilp: false,
+      year_level_label: normalizedYearLevelLabel || null,
     },
     {
-      user_id: userId,
+      family_profile_id: familyProfileId,
       first_name: firstName,
       preferred_name: firstName,
       year_level: normalizedYearLevel,
     },
     {
+      family_profile_id: familyProfileId,
       first_name: firstName,
       preferred_name: firstName,
       surname,
+      year_level: normalizedYearLevel,
+    },
+    {
+      family_profile_id: familyProfileId,
+      first_name: firstName,
+      preferred_name: firstName,
+      family_name: surname,
       year_level: normalizedYearLevel,
     },
   ];
@@ -448,7 +473,7 @@ export async function createLinkedLearner(
   let studentId = "";
   let lastInsertError: unknown = null;
 
-  for (const payload of studentPayloadVariants) {
+  for (const [index, payload] of studentPayloadVariants.entries()) {
     const response = (await withTimeout(
       supabase.from("students").insert(payload).select("id").single(),
       "create student",
@@ -461,37 +486,88 @@ export async function createLinkedLearner(
     }
 
     lastInsertError = response.error;
+    console.error("createLinkedLearner student insert failed", {
+      variant: index,
+      payload,
+      error: response.error,
+    });
 
     if (!isMissingColumnError(response.error)) {
-      throw response.error;
+      throw new Error("We couldn't add this learner yet. Please try again.");
     }
   }
 
   if (!studentId) {
-    throw lastInsertError ?? new Error("Could not create learner record.");
+    console.error("createLinkedLearner student insert exhausted variants", {
+      learnerName: cleanName,
+      familyProfileId,
+      error: lastInsertError,
+    });
+    throw new Error("We couldn't add this learner yet. Please try again.");
   }
 
-  const linkInsert = (await withTimeout(
-    supabase.from("parent_student_links").upsert(
-      {
-        parent_user_id: userId,
-        student_id: studentId,
-        relationship_label: "child",
-        sort_order: 0,
-      },
-      { onConflict: "parent_user_id,student_id" },
-    ),
-    "link learner",
-  )) as QueryResponse<unknown>;
+  const linkPayloadVariants: Array<Record<string, unknown>> = [
+    {
+      family_profile_id: familyProfileId,
+      user_id: userId,
+      parent_user_id: userId,
+      student_id: studentId,
+      relationship_role: "parent",
+    },
+    {
+      family_profile_id: familyProfileId,
+      user_id: userId,
+      student_id: studentId,
+      relationship_role: "parent",
+    },
+    {
+      family_profile_id: familyProfileId,
+      parent_user_id: userId,
+      student_id: studentId,
+      relationship_role: "parent",
+    },
+  ];
 
-  if (linkInsert.error) {
-    throw linkInsert.error;
+  let linkInserted = false;
+  let lastLinkError: unknown = null;
+
+  for (const [index, payload] of linkPayloadVariants.entries()) {
+    const linkInsert = (await withTimeout(
+      supabase.from("parent_student_links").insert(payload),
+      "link learner",
+    )) as QueryResponse<unknown>;
+
+    if (!linkInsert.error) {
+      linkInserted = true;
+      lastLinkError = null;
+      break;
+    }
+
+    lastLinkError = linkInsert.error;
+    console.error("createLinkedLearner link insert failed", {
+      variant: index,
+      payload,
+      error: linkInsert.error,
+    });
+
+    if (!isMissingColumnError(linkInsert.error)) {
+      throw new Error("We couldn't add this learner yet. Please try again.");
+    }
+  }
+
+  if (!linkInserted) {
+    console.error("createLinkedLearner link insert exhausted variants", {
+      studentId,
+      familyProfileId,
+      error: lastLinkError,
+    });
+    throw new Error("We couldn't add this learner yet. Please try again.");
   }
 
   const createdLearner: FamilyLearner = {
     id: studentId,
     label: cleanName,
-    yearLabel: buildYearLabel(normalizedYearLevel),
+    yearLabel: normalizedYearLevelLabel,
     year_level: normalizedYearLevel,
     connectedAt: new Date().toISOString(),
   };
