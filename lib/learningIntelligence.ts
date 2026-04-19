@@ -164,8 +164,12 @@ export function deriveLearningIntelligence(
     readyToReview,
     closeToUsable,
   } = classifyWorkflowState(signals);
+  const isStartingFromScratch = !planningIsVisible && !evidenceIsVisible;
+  const hasPlanningButNoEvidence = planningIsVisible && !evidenceIsVisible;
+  const canShapeReportNow = closeToUsable;
+  const shouldReviewPortfolio = readyToReview;
 
-  if (!planningIsVisible && !evidenceIsVisible) {
+  if (isStartingFromScratch) {
     return buildSummary(
       "planner",
       buildPlannerHref(signals),
@@ -176,7 +180,7 @@ export function deriveLearningIntelligence(
     );
   }
 
-  if (planningIsVisible && !evidenceIsVisible) {
+  if (hasPlanningButNoEvidence) {
     return buildSummary(
       "capture",
       buildCaptureHref(signals),
@@ -187,7 +191,7 @@ export function deriveLearningIntelligence(
     );
   }
 
-  if (closeToUsable) {
+  if (canShapeReportNow) {
     return buildSummary(
       "reports",
       buildReportsHref(signals),
@@ -198,7 +202,7 @@ export function deriveLearningIntelligence(
     );
   }
 
-  if (readyToReview) {
+  if (shouldReviewPortfolio) {
     return buildSummary(
       "portfolio",
       buildPortfolioHref(signals),
