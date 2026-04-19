@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 
 type FamilyProfileMenuProps = {
   mobile?: boolean;
@@ -20,8 +19,6 @@ export default function FamilyProfileMenu({
   curriculum = "Australian Curriculum v9",
 }: FamilyProfileMenuProps) {
   const [open, setOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const [signOutError, setSignOutError] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -55,25 +52,9 @@ export default function FamilyProfileMenu({
     .slice(0, 2)
     .toUpperCase();
 
-  async function handleSignOut() {
-    if (signingOut) return;
-    setSignOutError("");
-    setSigningOut(true);
-
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
-
-      setOpen(false);
-      window.location.replace("/");
-    } catch (error) {
-      console.error("FamilyProfileMenu sign out failed", error);
-      setSignOutError("We couldn't sign you out just yet. Please try again.");
-    } finally {
-      setSigningOut(false);
-    }
+  function handleSignOut() {
+    setOpen(false);
+    window.location.assign("/sign-out");
   }
 
   return (
@@ -90,10 +71,7 @@ export default function FamilyProfileMenu({
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => {
-          setSignOutError("");
-          setOpen((prev) => !prev);
-        }}
+        onClick={() => setOpen((prev) => !prev)}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -230,7 +208,6 @@ export default function FamilyProfileMenu({
           <button
             type="button"
             onClick={handleSignOut}
-            disabled={signingOut}
             style={{
               marginTop: 10,
               borderRadius: 12,
@@ -240,27 +217,11 @@ export default function FamilyProfileMenu({
               fontSize: 14,
               background: "#1d4ed8",
               color: "#ffffff",
-              cursor: signingOut ? "not-allowed" : "pointer",
+              cursor: "pointer",
             }}
           >
-            {signingOut ? "Signing out..." : "Sign out"}
+            Sign out
           </button>
-          {signOutError ? (
-            <div
-              role="alert"
-              style={{
-                borderRadius: 12,
-                border: "1px solid #fdba74",
-                background: "#fff7ed",
-                color: "#9a3412",
-                padding: "10px 12px",
-                fontSize: 13,
-                lineHeight: 1.5,
-              }}
-            >
-              {signOutError}
-            </div>
-          ) : null}
         </div>
       ) : null}
     </div>
