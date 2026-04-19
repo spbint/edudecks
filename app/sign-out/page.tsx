@@ -88,7 +88,7 @@ export default function SignOutPage() {
           </h1>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#475569" }}>
             {status === "pending"
-              ? "Please wait a moment while we clear this family session."
+              ? "Please wait a moment while we clear this family session and confirm that it is gone."
               : errorMessage}
           </p>
         </div>
