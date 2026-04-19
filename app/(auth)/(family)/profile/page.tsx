@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -182,14 +181,14 @@ export default function FamilyProfilePage() {
         persistSettingsToLocalStorage(nextProfile);
         setWorkspacePatch({ profile: nextProfile });
         setActiveLearner(childId);
-        setStatus("Default learner updated for this family workspace.");
+        setStatus("Active learner updated for this family workspace.");
         return;
       }
 
       const saved = await setDefaultLearner(profile, childId);
       setWorkspacePatch({ profile: saved });
       setActiveLearner(childId);
-      setStatus("Default learner updated for this family workspace.");
+      setStatus("Active learner updated for this family workspace.");
     } catch (saveError) {
       console.error("profile set default learner failed", saveError);
       await reloadWorkspace();
@@ -378,7 +377,7 @@ export default function FamilyProfilePage() {
       title="EduDecks Family"
       subtitle="Profile"
       heroTitle="Keep learner details tidy and connected"
-      heroText="Manage learners, confirm the default child for the wider workflow, and keep a read-only view of the current family setup."
+      heroText="Manage learners, confirm the active learner for the wider workflow, and keep a read-only view of the current family setup."
       heroAsideTitle="Family workspace"
       heroAsideText="Profile now consumes the shared family workspace. Curriculum setup stays in settings."
     >
@@ -389,9 +388,6 @@ export default function FamilyProfilePage() {
               <div style={S.eyebrow}>Family profile</div>
               <h2 style={S.sectionTitle}>Manage learners</h2>
             </div>
-            <Link href="/children/new" style={S.secondaryLink}>
-              Open full child form
-            </Link>
           </div>
 
           {status ? <div style={S.successBanner}>{status}</div> : null}
@@ -404,7 +400,7 @@ export default function FamilyProfilePage() {
               <div style={S.summaryValue}>{profile.family_display_name || "Your family"}</div>
             </div>
             <div style={S.summaryCard}>
-              <div style={S.summaryLabel}>Default learner</div>
+              <div style={S.summaryLabel}>Active learner</div>
               <div style={S.summaryValue}>{activeLearner?.label || "Not set yet"}</div>
             </div>
             <div style={S.summaryCard}>
@@ -463,7 +459,7 @@ export default function FamilyProfilePage() {
                       <div style={S.cardTitle}>{learnerName(child)}</div>
                       <div style={S.helperText}>{child.yearLabel || "Year level not set"}</div>
                     </div>
-                    {isDefault ? <span style={S.chip}>Default learner</span> : null}
+                    {isDefault ? <span style={S.chip}>Active learner</span> : null}
                   </div>
 
                   {isEditing ? (
@@ -495,14 +491,11 @@ export default function FamilyProfilePage() {
                     ) : (
                       <>
                         <button type="button" onClick={() => void handleSetDefaultChild(child.id)} disabled={isBusy || isDefault} style={isBusy || isDefault ? S.buttonDisabled : S.primaryButton}>
-                          {isDefault ? "Current default" : "Make default"}
+                          {isDefault ? "Current active learner" : "Make active"}
                         </button>
                         <button type="button" onClick={() => setEditingChildId(child.id)} style={S.secondaryButton}>
                           Edit
                         </button>
-                        <Link href={`/children/${child.id}`} style={S.secondaryLink}>
-                          Open learner
-                        </Link>
                         <button type="button" onClick={() => void handleRemoveChild(child)} disabled={isBusy} style={S.dangerButton}>
                           Remove
                         </button>
@@ -579,7 +572,6 @@ const S: Record<string, React.CSSProperties> = {
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  secondaryLink: { display: "inline-flex", alignItems: "center", textDecoration: "none", borderRadius: 12, border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14 },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
   warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
   errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },

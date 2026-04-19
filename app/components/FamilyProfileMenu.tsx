@@ -172,7 +172,7 @@ export default function FamilyProfileMenu({
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>
-                Default learner
+                Active learner
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{defaultLearner}</div>
             </div>
