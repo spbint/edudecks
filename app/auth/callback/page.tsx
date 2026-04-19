@@ -35,6 +35,21 @@ function parseNumber(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Timed out after ${ms}ms.`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default function AuthCallbackPage() {
   return (
     <Suspense fallback={null}>
@@ -143,33 +158,45 @@ function AuthCallbackPageContent() {
 
         if (user?.id) {
           try {
-            const profileResp = await supabase
-              .from("profiles")
-              .select("id,onboarding_complete")
-              .eq("id", user.id)
-              .maybeSingle();
+            const profileAndRouting = await withTimeout(
+              (async () => {
+                const profileResp = await supabase
+                  .from("profiles")
+                  .select("id,onboarding_complete")
+                  .eq("id", user.id)
+                  .maybeSingle();
 
-            const onboardingComplete = Boolean(profileResp.data?.onboarding_complete);
+                const onboardingComplete = Boolean(profileResp.data?.onboarding_complete);
 
-            await supabase.from("profiles").upsert({
-              id: user.id,
-              email: user.email?.toLowerCase() || null,
-              full_name:
-                safe(user.user_metadata?.full_name) ||
-                safe(user.user_metadata?.name) ||
-                null,
-              user_type: safe(user.user_metadata?.user_type) || "family",
-              onboarding_complete: onboardingComplete,
-            });
+                await supabase.from("profiles").upsert({
+                  id: user.id,
+                  email: user.email?.toLowerCase() || null,
+                  full_name:
+                    safe(user.user_metadata?.full_name) ||
+                    safe(user.user_metadata?.name) ||
+                    null,
+                  user_type: safe(user.user_metadata?.user_type) || "family",
+                  onboarding_complete: onboardingComplete,
+                });
 
-            const linksResp = await supabase
-              .from("parent_student_links")
-              .select("student_id", { count: "exact", head: true })
-              .eq("user_id", user.id);
+                const linksResp = await supabase
+                  .from("parent_student_links")
+                  .select("student_id", { count: "exact", head: true })
+                  .eq("user_id", user.id);
 
-            const linkedChildrenCount = linksResp.count ?? 0;
+                return {
+                  onboardingComplete,
+                  linkedChildrenCount: linksResp.count ?? 0,
+                };
+              })(),
+              1200,
+            );
 
-            if (requestedNextPath === "/family" && !onboardingComplete && linkedChildrenCount === 0) {
+            if (
+              requestedNextPath === "/family" &&
+              !profileAndRouting.onboardingComplete &&
+              profileAndRouting.linkedChildrenCount === 0
+            ) {
               resolvedNextPath = "/welcome";
             }
           } catch (profileError) {

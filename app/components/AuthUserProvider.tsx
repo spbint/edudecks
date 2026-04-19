@@ -30,18 +30,20 @@ async function fetchProfile(userId: string) {
   return data ?? null;
 }
 
+async function hydrateProfile(userId: string, onResolved: (profile: ProfileRow | null) => void) {
+  try {
+    const profileRow = await fetchProfile(userId);
+    onResolved(profileRow);
+  } catch (profileError) {
+    console.error("AuthUserProvider profile hydrate failed", profileError);
+    onResolved(null);
+  }
+}
+
 export function AuthUserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const name = "AuthUserProvider";
-      console.log(`[${name}] mounted on ${window.location.pathname}`);
-      return () => console.log(`[${name}] unmounted`);
-    }
-    return () => {};
-  }, []);
 
   useEffect(() => {
     if (!hasSupabaseEnv) {
@@ -56,22 +58,21 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
       try {
         const sessionResp = await supabase.auth.getSession();
         const sessionUser = sessionResp.data.session?.user ?? null;
-        const data = sessionUser
-          ? { user: sessionUser }
-          : (await supabase.auth.getUser()).data;
         if (!active) return;
-        setUser(data.user ?? null);
-        if (data.user) {
-          const profileRow = await fetchProfile(data.user.id);
-          if (!active) return;
-          setProfile(profileRow);
+
+        setUser(sessionUser);
+        setLoading(false);
+
+        if (sessionUser) {
+          void hydrateProfile(sessionUser.id, (profileRow) => {
+            if (!active) return;
+            setProfile(profileRow);
+          });
         } else {
           setProfile(null);
         }
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -79,13 +80,16 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange(async (_, session) => {
+    } = supabase.auth.onAuthStateChange((_, session) => {
       if (!active) return;
       setUser(session?.user ?? null);
+      setLoading(false);
+
       if (session?.user) {
-        const profileRow = await fetchProfile(session.user.id);
-        if (!active) return;
-        setProfile(profileRow);
+        void hydrateProfile(session.user.id, (profileRow) => {
+          if (!active) return;
+          setProfile(profileRow);
+        });
       } else {
         setProfile(null);
       }
