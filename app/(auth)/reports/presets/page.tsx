@@ -27,7 +27,6 @@ type SectionKey =
 
 type ReportPresetRow = {
   id: string;
-  parent_user_id?: string;
   student_id?: string | null;
   name?: string | null;
   template_key?: string | null;
@@ -102,9 +101,9 @@ export default function ReportPresetsPage() {
 
     try {
       const tries = [
-        "id,parent_user_id,student_id,name,template_key,date_from,date_to,sections,notes,is_favorite,sort_order,created_at,updated_at",
-        "id,parent_user_id,student_id,name,template_key,date_from,date_to,sections,notes,sort_order,created_at,updated_at",
-        "id,parent_user_id,student_id,name,template_key,date_from,date_to,sections,notes,created_at,updated_at",
+        "id,student_id,name,template_key,date_from,date_to,sections,notes,is_favorite,sort_order,created_at,updated_at",
+        "id,student_id,name,template_key,date_from,date_to,sections,notes,sort_order,created_at,updated_at",
+        "id,student_id,name,template_key,date_from,date_to,sections,notes,created_at,updated_at",
       ];
 
       for (const sel of tries) {

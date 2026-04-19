@@ -1,8 +1,3 @@
-import {
-  loadFamilyProfile,
-  loadSettingsFromLocalStorage,
-  upsertFamilyProfile,
-} from "@/lib/familySettings";
 import { supabase } from "@/lib/supabaseClient";
 
 export type CanonicalLearnerInput = {
@@ -97,26 +92,6 @@ function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInp
   };
 }
 
-async function resolveFamilyProfileId(userId: string) {
-  const existingProfile = await loadFamilyProfile();
-  const familyProfile =
-    safe(existingProfile.id) && existingProfile.id !== "local"
-      ? existingProfile
-      : await upsertFamilyProfile(loadSettingsFromLocalStorage());
-  const familyProfileId = safe(familyProfile.id);
-
-  if (!familyProfileId || familyProfileId === "local") {
-    throw new Error("We couldn't resolve this family's profile yet.");
-  }
-
-  console.info("[learner-create] family profile resolved", {
-    userId,
-    familyProfileId,
-  });
-
-  return familyProfileId;
-}
-
 function toLearnerRecord(row: StudentInsertRow): CanonicalLearnerRecord {
   const label =
     safe(row.preferred_name) ||
@@ -148,10 +123,7 @@ export async function createCanonicalFamilyLearner(
     hasYearLevel: Boolean(validated.yearLabel),
   });
 
-  const familyProfileId = await resolveFamilyProfileId(userId);
-
   const studentPayload = {
-    family_profile_id: familyProfileId,
     first_name: validated.firstName,
     preferred_name: validated.firstName,
     surname: validated.surname,
@@ -160,7 +132,6 @@ export async function createCanonicalFamilyLearner(
 
   console.info("[learner-create] insert attempted", {
     userId,
-    familyProfileId,
   });
 
   const studentResponse = await withTimeout(
@@ -175,7 +146,6 @@ export async function createCanonicalFamilyLearner(
   if (studentResponse.error || !studentResponse.data) {
     console.error("[learner-create] insert failed", {
       userId,
-      familyProfileId,
       message: safe(studentResponse.error?.message),
     });
     throw new Error(
@@ -186,7 +156,6 @@ export async function createCanonicalFamilyLearner(
   const learner = toLearnerRecord(studentResponse.data as StudentInsertRow);
 
   const linkPayload = {
-    family_profile_id: familyProfileId,
     user_id: userId,
     student_id: learner.id,
     relationship_role: "parent",
@@ -202,7 +171,6 @@ export async function createCanonicalFamilyLearner(
   if (linkResponse.error) {
     console.error("[learner-create] link failed", {
       userId,
-      familyProfileId,
       learnerId: learner.id,
       message: safe(linkResponse.error.message),
     });
@@ -214,7 +182,6 @@ export async function createCanonicalFamilyLearner(
 
   console.info("[learner-create] insert succeeded", {
     userId,
-    familyProfileId,
     learnerId: learner.id,
   });
 

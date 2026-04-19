@@ -12,9 +12,8 @@ type ChildRow = {
   first_name?: string | null;
   preferred_name?: string | null;
   surname?: string | null;
-  family_name?: string | null;
-  year_level?: number | null;
-  relationship_label?: string | null;
+  year_level_label?: string | null;
+  relationship_role?: string | null;
   [k: string]: any;
 };
 
@@ -50,7 +49,7 @@ function isMissingRelationOrColumn(err: any) {
 function childDisplayName(child: ChildRow | null | undefined) {
   if (!child) return "Child";
   const first = safe(child.preferred_name || child.first_name);
-  const sur = safe(child.surname || child.family_name);
+  const sur = safe(child.surname);
   return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Child";
 }
 
@@ -170,8 +169,8 @@ export default function AuthorityUsPage() {
 
       const linksResp = await supabase
         .from("parent_student_links")
-        .select("student_id,relationship_label,sort_order,created_at")
-        .eq("parent_user_id", userId)
+        .select("student_id,relationship_role,sort_order,created_at")
+        .eq("user_id", userId)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
 
@@ -186,7 +185,7 @@ export default function AuthorityUsPage() {
 
       const links = (linksResp.data ?? []) as Array<{
         student_id: string;
-        relationship_label?: string | null;
+        relationship_role?: string | null;
       }>;
 
       if (!links.length) {
@@ -198,25 +197,16 @@ export default function AuthorityUsPage() {
 
       const ids = links.map((x) => x.student_id).filter(Boolean);
 
-      const studentTries = [
-        "id,first_name,preferred_name,surname,family_name,year_level",
-        "id,first_name,preferred_name,surname,year_level",
-        "id,first_name,preferred_name,family_name,year_level",
-        "id,first_name,preferred_name,year_level",
-        "id,first_name,preferred_name",
-        "id,first_name",
-      ];
+      const studentResponse = await supabase
+        .from("students")
+        .select("id,first_name,preferred_name,surname,year_level_label,created_at")
+        .in("id", ids);
 
-      let students: ChildRow[] = [];
-
-      for (const sel of studentTries) {
-        const r = await supabase.from("students").select(sel).in("id", ids);
-        if (!r.error) {
-          students = ((r.data ?? []) as unknown) as ChildRow[];
-          break;
-        }
-        if (!isMissingColumnError(r.error)) throw r.error;
+      if (studentResponse.error) {
+        throw studentResponse.error;
       }
+
+      const students = ((studentResponse.data ?? []) as unknown) as ChildRow[];
 
       const merged = ids
         .map((id) => {
@@ -225,7 +215,7 @@ export default function AuthorityUsPage() {
           if (!student) return null;
           return {
             ...student,
-            relationship_label: link?.relationship_label ?? null,
+            relationship_role: link?.relationship_role ?? null,
           } as ChildRow;
         })
         .filter(Boolean) as ChildRow[];
@@ -512,7 +502,7 @@ export default function AuthorityUsPage() {
                   {children.map((child) => (
                     <option key={child.id} value={child.id}>
                       {childDisplayName(child)}
-                      {child.year_level != null ? ` — Year ${child.year_level}` : ""}
+                      {safe(child.year_level_label) ? ` — ${safe(child.year_level_label)}` : ""}
                     </option>
                   ))}
                 </select>
