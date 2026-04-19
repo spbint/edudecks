@@ -4,9 +4,11 @@ import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  getMagicLinkCooldownRemainingMs,
   getMagicLinkErrorDetails,
+  getMagicLinkRetryAfterMs,
   isValidMagicLinkEmail,
-  isMagicLinkRateLimited,
+  MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
   MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
   mapMagicLinkError,
   normalizeMagicLinkFeedback,
@@ -176,9 +178,19 @@ function EmailAuthPageContent() {
   }, [retryBlockedUntil]);
 
   const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
+  const normalizedEmail = useMemo(() => safe(email).toLowerCase(), [email]);
   const retryBlocked = retryCountdown > 0;
   const passwordValid = safe(password).length > 0;
   const passwordModeBusy = authMode === "password" && saveState === "saving";
+
+  useEffect(() => {
+    if (!normalizedEmail) return;
+
+    const remainingMs = getMagicLinkCooldownRemainingMs(normalizedEmail);
+    if (remainingMs > 0) {
+      setRetryBlockedUntil(Date.now() + remainingMs);
+    }
+  }, [normalizedEmail]);
 
   function resetFeedback() {
     if (saveState !== "idle") {
@@ -214,19 +226,25 @@ function EmailAuthPageContent() {
         source: "login-page",
       });
 
+      setRetryBlockedUntil(Date.now() + MAGIC_LINK_CLIENT_RESEND_DELAY_MS);
       setSaveState("success");
       setMessage("We’ve sent you a secure link to continue.");
       setDiagnosticCode("");
     } catch (err: unknown) {
       const details = getMagicLinkErrorDetails(err);
+      const retryAfterMs =
+        getMagicLinkRetryAfterMs(err) ??
+        (details.category === "provider_rate_limit"
+          ? MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS
+          : undefined);
       setSaveState("error");
       setMessage(
         mapMagicLinkError(err) ||
           "We couldn't send your secure link just yet. Please try again.",
       );
       setDiagnosticCode(details.diagnosticCode);
-      if (isMagicLinkRateLimited(err)) {
-        setRetryBlockedUntil(Date.now() + MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS);
+      if (retryAfterMs) {
+        setRetryBlockedUntil(Date.now() + retryAfterMs);
       }
     }
   }

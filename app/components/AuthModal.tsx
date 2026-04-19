@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  getMagicLinkCooldownRemainingMs,
   getMagicLinkErrorDetails,
-  isMagicLinkRateLimited,
+  getMagicLinkRetryAfterMs,
+  MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
   MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
   mapMagicLinkError,
   resetMagicLinkClientState,
@@ -36,6 +38,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"),
     [returnPath],
   );
+  const normalizedEmail = useMemo(() => safe(email).toLowerCase(), [email]);
   const retryBlocked = retryCountdown > 0;
 
   useEffect(() => {
@@ -59,6 +62,15 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
     const timer = window.setInterval(updateCountdown, 1000);
     return () => window.clearInterval(timer);
   }, [retryBlockedUntil]);
+
+  useEffect(() => {
+    if (!normalizedEmail) return;
+
+    const remainingMs = getMagicLinkCooldownRemainingMs(normalizedEmail);
+    if (remainingMs > 0) {
+      setRetryBlockedUntil(Date.now() + remainingMs);
+    }
+  }, [normalizedEmail]);
 
   async function continueWithEmail() {
     if (sendingEmail || retryBlocked) {
@@ -85,16 +97,22 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
         source: "auth-modal",
       });
 
+      setRetryBlockedUntil(Date.now() + MAGIC_LINK_CLIENT_RESEND_DELAY_MS);
       setSentEmail(nextEmail);
     } catch (sendError: unknown) {
       const details = getMagicLinkErrorDetails(sendError);
+      const retryAfterMs =
+        getMagicLinkRetryAfterMs(sendError) ??
+        (details.category === "provider_rate_limit"
+          ? MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS
+          : undefined);
       setError(
         mapMagicLinkError(sendError) ||
           "We couldn't send your sign-in link just now. Please try again.",
       );
       setDiagnosticCode(details.diagnosticCode);
-      if (isMagicLinkRateLimited(sendError)) {
-        setRetryBlockedUntil(Date.now() + MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS);
+      if (retryAfterMs) {
+        setRetryBlockedUntil(Date.now() + retryAfterMs);
       }
     } finally {
       setSendingEmail(false);

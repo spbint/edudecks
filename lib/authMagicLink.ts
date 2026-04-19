@@ -5,6 +5,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type MagicLinkErrorCategory =
   | "provider_rate_limit"
+  | "cooldown"
+  | "duplicate_request"
   | "redirect_config"
   | "network"
   | "auth_client"
@@ -17,12 +19,40 @@ export type MagicLinkErrorDetails = {
   provider: "supabase" | "browser" | "app";
   isRetryable: boolean;
   diagnosticCode: string;
+  retryAfterMs?: number;
 };
 
 export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 30000;
+export const MAGIC_LINK_CLIENT_RESEND_DELAY_MS = 30000;
+
+const inFlightMagicLinkEmails = new Set<string>();
+const magicLinkCooldowns = new Map<string, number>();
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function createMagicLinkControlError(
+  message: string,
+  code: string,
+  retryAfterMs?: number,
+) {
+  const error = new Error(message) as Error & {
+    code?: string;
+    retryAfterMs?: number;
+  };
+  error.code = code;
+  error.retryAfterMs = retryAfterMs;
+  return error;
+}
+
+function readRetryAfterMs(error: unknown) {
+  const raw = Number((error as { retryAfterMs?: unknown })?.retryAfterMs);
+  return Number.isFinite(raw) && raw > 0 ? raw : undefined;
+}
+
+function readErrorCode(error: unknown) {
+  return safe((error as { code?: unknown })?.code);
 }
 
 export function normalizeMagicLinkEmail(email: string) {
@@ -35,6 +65,16 @@ export function isValidMagicLinkEmail(email: string) {
 
 export function mapMagicLinkError(error: unknown) {
   return getMagicLinkErrorDetails(error).message;
+}
+
+export function getMagicLinkRetryAfterMs(error: unknown) {
+  return getMagicLinkErrorDetails(error).retryAfterMs;
+}
+
+export function getMagicLinkCooldownRemainingMs(email: string) {
+  const normalizedEmail = normalizeMagicLinkEmail(email);
+  const blockedUntil = magicLinkCooldowns.get(normalizedEmail) ?? 0;
+  return Math.max(0, blockedUntil - Date.now());
 }
 
 export function normalizeMagicLinkFeedback(message: unknown) {
@@ -71,6 +111,34 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
     };
   }
 
+  const errorCode = readErrorCode(error);
+  const retryAfterMs = readRetryAfterMs(error);
+
+  if (errorCode === "AUTH-SEND-DUPLICATE") {
+    return {
+      category: "duplicate_request",
+      message: "A sign-in email request is already in progress. Please wait a moment.",
+      rawMessage,
+      provider: "app",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-DUPLICATE",
+      retryAfterMs,
+    };
+  }
+
+  if (errorCode === "AUTH-SEND-COOLDOWN") {
+    return {
+      category: "cooldown",
+      message:
+        "We just sent a sign-in link. Please wait briefly before requesting another one.",
+      rawMessage,
+      provider: "app",
+      isRetryable: true,
+      diagnosticCode: "AUTH-SEND-COOLDOWN",
+      retryAfterMs,
+    };
+  }
+
   if (normalized.includes("rate limit") || normalized.includes("too many requests")) {
     return {
       category: "provider_rate_limit",
@@ -80,6 +148,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "supabase",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-RATE-LIMIT",
+      retryAfterMs: MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
     };
   }
 
@@ -180,6 +249,23 @@ export async function sendMagicLink(input: {
     throw new Error("Please enter a valid email address first.");
   }
 
+  if (inFlightMagicLinkEmails.has(normalizedEmail)) {
+    throw createMagicLinkControlError(
+      "A sign-in email request is already in progress. Please wait a moment.",
+      "AUTH-SEND-DUPLICATE",
+      2000,
+    );
+  }
+
+  const cooldownRemainingMs = getMagicLinkCooldownRemainingMs(normalizedEmail);
+  if (cooldownRemainingMs > 0) {
+    throw createMagicLinkControlError(
+      "We just sent a sign-in link. Please wait briefly before requesting another one.",
+      "AUTH-SEND-COOLDOWN",
+      cooldownRemainingMs,
+    );
+  }
+
   const nextPath = normalizeNextPath(input.nextPath || "/family");
   const emailRedirectTo = buildAuthCallbackUrl(nextPath);
 
@@ -188,40 +274,51 @@ export async function sendMagicLink(input: {
     nextPath,
   });
 
-  const { error } = await supabase.auth.signInWithOtp({
-    email: normalizedEmail,
-    options: {
-      emailRedirectTo,
-      shouldCreateUser: true,
-      data: {
-        user_type: "family",
-        onboarding_state: "new",
-      },
-    },
-  });
+  inFlightMagicLinkEmails.add(normalizedEmail);
 
-  if (error) {
-    const details = getMagicLinkErrorDetails(error);
-    console.error("[auth] magic link failed", {
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: normalizedEmail,
+      options: {
+        emailRedirectTo,
+        shouldCreateUser: true,
+        data: {
+          user_type: "family",
+          onboarding_state: "new",
+        },
+      },
+    });
+
+    if (error) {
+      const details = getMagicLinkErrorDetails(error);
+      console.error("[auth] magic link failed", {
+        source: input.source,
+        nextPath,
+        category: details.category,
+        diagnosticCode: details.diagnosticCode,
+        provider: details.provider,
+        retryable: details.isRetryable,
+        message: safe(error.message),
+        rawMessage: details.rawMessage,
+      });
+      throw error;
+    }
+
+    magicLinkCooldowns.set(
+      normalizedEmail,
+      Date.now() + MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
+    );
+
+    console.info("[auth] magic link sent", {
       source: input.source,
       nextPath,
-      category: details.category,
-      diagnosticCode: details.diagnosticCode,
-      provider: details.provider,
-      retryable: details.isRetryable,
-      message: safe(error.message),
-      rawMessage: details.rawMessage,
     });
-    throw error;
+
+    return {
+      email: normalizedEmail,
+      nextPath,
+    };
+  } finally {
+    inFlightMagicLinkEmails.delete(normalizedEmail);
   }
-
-  console.info("[auth] magic link sent", {
-    source: input.source,
-    nextPath,
-  });
-
-  return {
-    email: normalizedEmail,
-    nextPath,
-  };
 }
