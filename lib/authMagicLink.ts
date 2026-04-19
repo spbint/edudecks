@@ -19,6 +19,8 @@ export type MagicLinkErrorDetails = {
   diagnosticCode: string;
 };
 
+export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 30000;
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -137,6 +139,10 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
     isRetryable: true,
     diagnosticCode: "AUTH-SEND-UNEXPECTED",
   };
+}
+
+export function isMagicLinkRateLimited(error: unknown) {
+  return getMagicLinkErrorDetails(error).category === "provider_rate_limit";
 }
 
 export function resetMagicLinkClientState() {

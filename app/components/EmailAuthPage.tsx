@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import {
   getMagicLinkErrorDetails,
   isValidMagicLinkEmail,
+  isMagicLinkRateLimited,
+  MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
   mapMagicLinkError,
   normalizeMagicLinkFeedback,
   resetMagicLinkClientState,
@@ -109,6 +111,8 @@ function EmailAuthPageContent() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
   const [diagnosticCode, setDiagnosticCode] = useState("");
+  const [retryBlockedUntil, setRetryBlockedUntil] = useState<number | null>(null);
+  const [retryCountdown, setRetryCountdown] = useState(0);
 
   useEffect(() => {
     const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
@@ -142,9 +146,36 @@ function EmailAuthPageContent() {
     resetMagicLinkClientState();
   }, []);
 
+  useEffect(() => {
+    if (!retryBlockedUntil) {
+      setRetryCountdown(0);
+      return;
+    }
+
+    const blockedUntil = retryBlockedUntil;
+
+    function updateCountdown() {
+      const nextSeconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
+      setRetryCountdown(nextSeconds);
+
+      if (nextSeconds === 0) {
+        setRetryBlockedUntil(null);
+      }
+    }
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryBlockedUntil]);
+
   const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
+  const retryBlocked = retryCountdown > 0;
 
   async function handleContinue() {
+    if (saveState === "saving" || retryBlocked) {
+      return;
+    }
+
     if (!emailValid) {
       setSaveState("error");
       setMessage("Please enter a valid email address first.");
@@ -174,6 +205,9 @@ function EmailAuthPageContent() {
           "We couldn't send your secure link just yet. Please try again.",
       );
       setDiagnosticCode(details.diagnosticCode);
+      if (isMagicLinkRateLimited(err)) {
+        setRetryBlockedUntil(Date.now() + MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS);
+      }
     }
   }
 
@@ -256,6 +290,9 @@ function EmailAuthPageContent() {
                     setSaveState("idle");
                     setMessage("");
                   }
+                  if (diagnosticCode) {
+                    setDiagnosticCode("");
+                  }
                 }}
                 placeholder="Enter your email"
                 style={{
@@ -317,16 +354,23 @@ function EmailAuthPageContent() {
                     Diagnostic: {diagnosticCode}
                   </div>
                 ) : null}
+                {retryBlocked ? (
+                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>
+                    Retry available in about {retryCountdown}s.
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
             <button
               type="submit"
-              disabled={!emailValid || saveState === "saving"}
-              style={primaryButtonStyle(!emailValid || saveState === "saving")}
+              disabled={!emailValid || saveState === "saving" || retryBlocked}
+              style={primaryButtonStyle(!emailValid || saveState === "saving" || retryBlocked)}
             >
               {saveState === "saving"
                 ? "Sending your secure link..."
+                : retryBlocked
+                  ? `Wait ${retryCountdown}s before retrying`
                 : saveState === "success"
                   ? "Resend link"
                   : "Continue"}

@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getMagicLinkErrorDetails,
+  isMagicLinkRateLimited,
+  MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
   mapMagicLinkError,
   resetMagicLinkClientState,
   sendMagicLink,
@@ -24,6 +26,8 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
   const [sentEmail, setSentEmail] = useState("");
   const [error, setError] = useState("");
   const [diagnosticCode, setDiagnosticCode] = useState("");
+  const [retryBlockedUntil, setRetryBlockedUntil] = useState<number | null>(null);
+  const [retryCountdown, setRetryCountdown] = useState(0);
 
   const resolvedNextPath = useMemo(
     () =>
@@ -31,8 +35,35 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
       (typeof window !== "undefined" ? window.location.pathname + window.location.search : "/"),
     [returnPath],
   );
+  const retryBlocked = retryCountdown > 0;
+
+  useEffect(() => {
+    if (!retryBlockedUntil) {
+      setRetryCountdown(0);
+      return;
+    }
+
+    const blockedUntil = retryBlockedUntil;
+
+    function updateCountdown() {
+      const nextSeconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
+      setRetryCountdown(nextSeconds);
+
+      if (nextSeconds === 0) {
+        setRetryBlockedUntil(null);
+      }
+    }
+
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryBlockedUntil]);
 
   async function continueWithEmail() {
+    if (sendingEmail || retryBlocked) {
+      return;
+    }
+
     const nextEmail = safe(email).toLowerCase();
 
     if (!nextEmail) {
@@ -60,6 +91,9 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
           "We couldn't send your sign-in link just now. Please try again.",
       );
       setDiagnosticCode(details.diagnosticCode);
+      if (isMagicLinkRateLimited(sendError)) {
+        setRetryBlockedUntil(Date.now() + MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS);
+      }
     } finally {
       setSendingEmail(false);
     }
@@ -173,7 +207,11 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error) setError("");
+              if (diagnosticCode) setDiagnosticCode("");
+            }}
             placeholder="you@example.com"
             autoComplete="email"
             style={{
@@ -193,7 +231,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
           <button
             type="button"
             onClick={() => void continueWithEmail()}
-            disabled={sendingEmail}
+            disabled={sendingEmail || retryBlocked}
             style={{
               width: "100%",
               minHeight: 48,
@@ -203,11 +241,17 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
               color: "#ffffff",
               fontSize: 14,
               fontWeight: 800,
-              cursor: sendingEmail ? "not-allowed" : "pointer",
-              opacity: sendingEmail ? 0.7 : 1,
+              cursor: sendingEmail || retryBlocked ? "not-allowed" : "pointer",
+              opacity: sendingEmail || retryBlocked ? 0.7 : 1,
             }}
           >
-            {sendingEmail ? "Sending..." : sentEmail ? "Resend link" : "Continue"}
+            {sendingEmail
+              ? "Sending..."
+              : retryBlocked
+                ? `Wait ${retryCountdown}s before retrying`
+              : sentEmail
+                ? "Resend link"
+                : "Continue"}
           </button>
 
           {sentEmail ? (
@@ -241,6 +285,11 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
             {diagnosticCode ? (
               <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.55 }}>
                 Diagnostic: {diagnosticCode}
+              </div>
+            ) : null}
+            {retryBlocked ? (
+              <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.55 }}>
+                Retry available in about {retryCountdown}s.
               </div>
             ) : null}
           </div>
