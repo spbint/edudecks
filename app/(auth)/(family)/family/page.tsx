@@ -5,6 +5,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
+import {
+  deriveLearningIntelligence,
+  type LearningIntelligenceInput,
+} from "@/lib/learningIntelligence";
 import { getReportComplianceContext, buildReportPeriodPresentation, buildReportSubmissionWorkflow, type ReportSubmissionWorkflow } from "@/lib/reportPresentation";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 import { getEvidenceText, safeText } from "@/lib/system";
@@ -112,47 +116,12 @@ function buildReportingShapeLine(workflows: ReportSubmissionWorkflow[], draftCou
   return "Your reports will take shape as you continue capturing learning.";
 }
 
-function buildFamilyGuidance(input: {
-  evidenceCount: number;
-  linkedEvidenceCount: number;
-  recentEvidenceCount: number;
-  workflows: ReportSubmissionWorkflow[];
-  draftCount: number;
-}) {
-  const { evidenceCount, linkedEvidenceCount, recentEvidenceCount, workflows, draftCount } = input;
-
-  if (
-    recentEvidenceCount > 0 &&
-    workflows.some((workflow) => workflow.state === "review" || workflow.state === "prepared")
-  ) {
-    return "Recent learning is building well. Reviewing your reports next could help connect the picture.";
-  }
-
-  if (draftCount > 0 && recentEvidenceCount > 0) {
-    return "You already have recent evidence. Revisiting your reports could help round out this period.";
-  }
-
-  if (evidenceCount > 0 && linkedEvidenceCount > 0 && draftCount === 0) {
-    return "Your learning record is beginning to build. Capturing one more linked example would help next.";
-  }
-
-  if (evidenceCount > 0 && linkedEvidenceCount === 0) {
-    return "Recent learning is helping this period take shape. Another linked example would help connect it further.";
-  }
-
-  if (evidenceCount >= 1 && draftCount >= 1) {
-    return "Recent learning and reporting are beginning to connect. Revisiting your evidence could help shape this period.";
-  }
-
-  if (evidenceCount === 0) {
-    return "Keep building your learning record one step at a time.";
-  }
-
-  if (draftCount === 0) {
-    return "Recent learning and reporting will become clearer as you continue adding evidence.";
-  }
-
-  return "Keep building your learning record one step at a time.";
+function countCoverageAreas(rows: EvidenceRow[]) {
+  return new Set(
+    rows
+      .map((row) => safe(row.learning_area))
+      .filter(Boolean),
+  ).size;
 }
 
 export default function FamilyHomePage() {
@@ -263,11 +232,49 @@ export default function FamilyHomePage() {
     () => recentEvidence.filter((item) => hasLearningLink(item)).length,
     [recentEvidence],
   );
+  const coverageAreaCount = useMemo(() => countCoverageAreas(recentEvidence), [recentEvidence]);
   const recentEvidenceCount = useMemo(
     () =>
       recentEvidence.filter((item) => daysSince(item.occurred_on || item.created_at) <= 30)
         .length,
     [recentEvidence],
+  );
+  const hasReportSelection = useMemo(
+    () => reportDrafts.some((draft) => draft.selected_evidence_ids.length > 0),
+    [reportDrafts],
+  );
+  const familyStudentId = useMemo(() => {
+    const learnerIds = (workspace.learners ?? [])
+      .map((learner) => safe(learner.id))
+      .filter(Boolean);
+    return learnerIds.length === 1 ? learnerIds[0] : undefined;
+  }, [workspace.learners]);
+  const latestEvidenceId = recentEvidence[0]?.id;
+  const familyWorkflowSignals = useMemo<LearningIntelligenceInput>(
+    () => ({
+      studentId: familyStudentId,
+      highlightEvidenceId: latestEvidenceId,
+      evidenceCount: recentEvidence.length,
+      recentEvidenceCount,
+      linkedEvidenceCount,
+      coverageAreaCount,
+      hasSavedDraft: reportDrafts.length > 0,
+      hasReportSelection,
+    }),
+    [
+      coverageAreaCount,
+      familyStudentId,
+      hasReportSelection,
+      latestEvidenceId,
+      linkedEvidenceCount,
+      recentEvidence.length,
+      recentEvidenceCount,
+      reportDrafts.length,
+    ],
+  );
+  const bestNextMove = useMemo(
+    () => deriveLearningIntelligence(familyWorkflowSignals),
+    [familyWorkflowSignals],
   );
 
   const periodContextLine = buildPeriodContextLine({
@@ -276,13 +283,6 @@ export default function FamilyHomePage() {
     hasReports: reportDrafts.length > 0,
   });
   const reportingShapeLine = buildReportingShapeLine(workflows, reportDrafts.length);
-  const guidanceLine = buildFamilyGuidance({
-    evidenceCount: recentEvidence.length,
-    linkedEvidenceCount,
-    recentEvidenceCount,
-    workflows,
-    draftCount: reportDrafts.length,
-  });
 
   const pageState = loading || workspaceLoading;
 
@@ -305,6 +305,35 @@ export default function FamilyHomePage() {
           </div>
           <p className="mt-2 text-[15px] leading-8 text-slate-600">{periodContextLine}</p>
         </section>
+
+        {!pageState && !error ? (
+          <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
+            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+              Best next move
+            </div>
+            <div className="mt-3 rounded-[18px] border border-blue-100 bg-sky-50/60 px-4 py-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-bold text-blue-700">
+                  {bestNextMove.momentumLabel}
+                </span>
+                {bestNextMove.thinAreaLabel ? (
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+                    {bestNextMove.thinAreaLabel}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{bestNextMove.reason}</p>
+              <div className="mt-3">
+                <Link
+                  href={bestNextMove.targetHref}
+                  className="text-sm font-bold text-blue-700 no-underline"
+                >
+                  {bestNextMove.ctaLabel}
+                </Link>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
           <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
@@ -366,15 +395,6 @@ export default function FamilyHomePage() {
             </Link>
           </div>
         </section>
-
-        {guidanceLine ? (
-          <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
-              Guidance
-            </div>
-            <p className="mt-2 text-[15px] leading-8 text-slate-600">{guidanceLine}</p>
-          </section>
-        ) : null}
 
         {!pageState && !recentEvidence.length && !reportDrafts.length && !error ? (
           <section className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-[0_8px_24px_rgba(15,23,42,0.03)]">
