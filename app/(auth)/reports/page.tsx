@@ -1191,12 +1191,28 @@ function ReportsPageContent() {
       ? { label: "Confidence", text: "Usable for the next step." }
       : { label: "Confidence", text: "One more strong piece will help." };
   }, [hasFamilyNote, highlightFamilyNote, notes]);
+  const reportsCaptureHref = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("focus", "start-evidence");
+    if (selectedStudentId) params.set("prefillLearnerId", selectedStudentId);
+    return `/capture?${params.toString()}`;
+  }, [selectedStudentId]);
+  const reportsPortfolioHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (selectedStudentId) params.set("studentId", selectedStudentId);
+    if (highlightEvidenceId) params.set("highlightEvidenceId", highlightEvidenceId);
+    const query = params.toString();
+    return query ? `/portfolio?${query}` : "/portfolio";
+  }, [highlightEvidenceId, selectedStudentId]);
   const reportsEvidenceNextMove = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
     if (!hasReportEvidence) {
-      return { text: "Open Capture", href: "/capture" };
+      return { text: "Capture a learning moment", href: reportsCaptureHref };
     }
-    if (!hasReportSelection || (reportsFocus === "core-anchors" && !hasCoreAnchors)) {
+    if (!hasReportSelection) {
+      return { text: "Browse the portfolio", href: reportsPortfolioHref };
+    }
+    if (reportsFocus === "core-anchors" && !hasCoreAnchors) {
       return { text: "Stay in this section." };
     }
     return { text: "Open report output", href: outputHref };
@@ -1206,6 +1222,8 @@ function ReportsPageContent() {
     hasReportSelection,
     highlightEvidenceSelection,
     outputHref,
+    reportsCaptureHref,
+    reportsPortfolioHref,
     reportsFocus,
   ]);
   const reportsDraftNextMove = useMemo(() => {

@@ -1096,7 +1096,7 @@ function PortfolioPageContent() {
         title: `Start ${firstNameOf(student)}'s story`,
         text: "Add one simple learning moment to begin shaping the story you'll later use in reports.",
         href: "/capture",
-        cta: "Capture your first learning moment",
+        cta: "Capture a learning moment",
       };
     }
 
@@ -1105,7 +1105,7 @@ function PortfolioPageContent() {
         title: "Keep the story growing",
         text: "Add a few more learning moments so the portfolio feels broader, more human, and more representative before reporting.",
         href: "/capture",
-        cta: "Capture next learning moment",
+        cta: "Capture another learning moment",
       };
     }
 
@@ -1114,7 +1114,7 @@ function PortfolioPageContent() {
         title: "Broaden the learning story",
         text: "Try adding learning from another domain so the portfolio shows more balance and confidence.",
         href: "/capture",
-        cta: "Capture next learning moment",
+        cta: "Capture another learning moment",
       };
     }
 
@@ -1122,9 +1122,16 @@ function PortfolioPageContent() {
       title: "Keep the story growing",
       text: "This portfolio already shows meaningful progress. Add another learning moment to keep it current, then use Reports when you want a shareable summary.",
       href: "/capture",
-      cta: "Capture next learning moment",
+      cta: "Capture another learning moment",
     };
   }, [student, evidence.length, portfolio.areas.length]);
+  const reportsDraftHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (student?.id) params.set("studentId", student.id);
+    if (highlightEvidenceId) params.set("highlightEvidenceId", highlightEvidenceId);
+    params.set("focus", "refine-evidence");
+    return `/reports?${params.toString()}`;
+  }, [highlightEvidenceId, student?.id]);
 
   const areaBreakdown = useMemo(() => {
     return groupedEvidence.map(([area, items]) => ({
@@ -1670,11 +1677,8 @@ function PortfolioPageContent() {
                       More options
                     </summary>
                     <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                      <Link
-                        href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
-                        style={UI.button(false)}
-                      >
-                        Build report
+                      <Link href={reportsDraftHref} style={UI.button(false)}>
+                        Shape this into a report
                       </Link>
                       <button type="button" onClick={() => setShowCustomize(true)} style={UI.button(false)}>
                         Customize
@@ -1791,10 +1795,10 @@ function PortfolioPageContent() {
                 }}
               >
                 <Link
-                  href={student ? `/reports?studentId=${encodeURIComponent(student.id)}` : "/reports"}
+                  href={reportsDraftHref}
                   style={{ ...UI.button(true), width: isMobile ? "100%" : undefined }}
                 >
-                  Use this in Reports
+                  Shape this into a report
                 </Link>
                 <Link
                   href={nextMove.href}

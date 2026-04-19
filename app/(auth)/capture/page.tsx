@@ -1387,6 +1387,25 @@ export default function CapturePage() {
       ? { label: "Confidence", text: "Ready for the next move." }
       : { label: "Confidence", text: "Usable soon." };
   }, [hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
+  const capturePortfolioHref = useMemo(() => {
+    if (activeChildId && savedEvidenceId) {
+      return `/portfolio?studentId=${encodeURIComponent(activeChildId)}&highlightEvidenceId=${encodeURIComponent(savedEvidenceId)}`;
+    }
+    if (activeChildId) {
+      return `/portfolio?studentId=${encodeURIComponent(activeChildId)}`;
+    }
+    if (savedEvidenceId) {
+      return `/portfolio?highlightEvidenceId=${encodeURIComponent(savedEvidenceId)}`;
+    }
+    return "/portfolio";
+  }, [activeChildId, savedEvidenceId]);
+  const captureReportsHref = useMemo(() => {
+    const params = new URLSearchParams();
+    if (activeChildId) params.set("studentId", activeChildId);
+    if (savedEvidenceId) params.set("highlightEvidenceId", savedEvidenceId);
+    params.set("focus", "refine-evidence");
+    return `/reports?${params.toString()}`;
+  }, [activeChildId, savedEvidenceId]);
   const captureDetailsNextMove = useMemo(() => {
     if (!highlightCaptureDetails) return null;
     if (!hasSavedCapture) {
@@ -1396,12 +1415,10 @@ export default function CapturePage() {
       return { text: "Open linking below." };
     }
     return {
-      text: "Go to Reports",
-      href: activeChildId
-        ? `/reports?studentId=${encodeURIComponent(activeChildId)}`
-        : "/reports",
+      text: "Browse the portfolio",
+      href: capturePortfolioHref,
     };
-  }, [activeChildId, hasCaptureLinks, hasSavedCapture, highlightCaptureDetails]);
+  }, [capturePortfolioHref, hasCaptureLinks, hasSavedCapture, highlightCaptureDetails]);
   const captureLinkingNextMove = useMemo(() => {
     if (!highlightCurriculumLinking) return null;
     if (!hasSavedCapture) {
@@ -1411,12 +1428,10 @@ export default function CapturePage() {
       return { text: "Stay in this section." };
     }
     return {
-      text: "Go to Reports",
-      href: activeChildId
-        ? `/reports?studentId=${encodeURIComponent(activeChildId)}`
-        : "/reports",
+      text: "Browse the portfolio",
+      href: capturePortfolioHref,
     };
-  }, [activeChildId, hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
+  }, [capturePortfolioHref, hasCaptureLinks, hasSavedCapture, highlightCurriculumLinking]);
   const handoffStepTaken = saveState === "success" || savedCount > 0;
 
   const suggestedArea = useMemo(() => suggestLearningArea(summary), [summary]);
@@ -2449,11 +2464,11 @@ export default function CapturePage() {
                   </div>
 
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <Link href="/portfolio" style={buttonStyle(false)}>
-                      Open Portfolio
+                    <Link href={capturePortfolioHref} style={buttonStyle(false)}>
+                      Browse portfolio
                     </Link>
-                    <Link href="/reports" style={buttonStyle(false)}>
-                      Open Reports
+                    <Link href={captureReportsHref} style={buttonStyle(false)}>
+                      Shape this into a report
                     </Link>
                   </div>
                 </div>

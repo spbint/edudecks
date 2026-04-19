@@ -744,8 +744,13 @@ export default function PlannerPage() {
     if (!hasPlannerActions) {
       return { text: "Open the checklist below." };
     }
-    return { text: "Go to Capture", href: "/capture" };
-  }, [hasPlanDirection, hasPlannerActions, highlightFocusSection]);
+    return {
+      text: "Capture a learning moment",
+      href: activeStudentId
+        ? `/capture?focus=start-evidence&from=planner&prefillLearnerId=${encodeURIComponent(activeStudentId)}`
+        : "/capture?focus=start-evidence",
+    };
+  }, [activeStudentId, hasPlanDirection, hasPlannerActions, highlightFocusSection]);
   const plannerChecklistNextMove = useMemo(() => {
     if (!highlightChecklistSection) return null;
     if (!hasPlannerActions) {
@@ -754,8 +759,13 @@ export default function PlannerPage() {
     if (plannerFocus === "alignment" && !hasPlannerLinks) {
       return { text: "Link one action here first." };
     }
-    return { text: "Go to Capture", href: "/capture" };
-  }, [hasPlannerActions, hasPlannerLinks, highlightChecklistSection, plannerFocus]);
+    return {
+      text: "Capture a learning moment",
+      href: activeStudentId
+        ? `/capture?focus=start-evidence&from=planner&prefillLearnerId=${encodeURIComponent(activeStudentId)}`
+        : "/capture?focus=start-evidence",
+    };
+  }, [activeStudentId, hasPlannerActions, hasPlannerLinks, highlightChecklistSection, plannerFocus]);
 
   useEffect(() => {
     const nextChildren = workspace.learners.map((learner) => ({
@@ -1839,19 +1849,40 @@ export default function PlannerPage() {
                   <span style={styles.flowSubtext}>Place your weekly actions into days</span>
                 </Link>
 
-                <Link href="/capture" style={styles.flowLink}>
-                  Go to Capture
-                  <span style={styles.flowSubtext}>Record what happened</span>
+                <Link
+                  href={
+                    activeStudentId
+                      ? `/capture?focus=start-evidence&from=planner&prefillLearnerId=${encodeURIComponent(activeStudentId)}`
+                      : "/capture?focus=start-evidence"
+                  }
+                  style={styles.flowLink}
+                >
+                  Capture a learning moment
+                  <span style={styles.flowSubtext}>Record what happened this week</span>
                 </Link>
 
-                <Link href="/portfolio" style={styles.flowLink}>
-                  Go to Portfolio
-                  <span style={styles.flowSubtext}>See the story building</span>
+                <Link
+                  href={
+                    activeStudentId
+                      ? `/portfolio?studentId=${encodeURIComponent(activeStudentId)}`
+                      : "/portfolio"
+                  }
+                  style={styles.flowLink}
+                >
+                  Browse the portfolio
+                  <span style={styles.flowSubtext}>See the learning story building</span>
                 </Link>
 
-                <Link href="/reports" style={styles.flowLink}>
-                  Go to Reports
-                  <span style={styles.flowSubtext}>Turn evidence into a formal summary</span>
+                <Link
+                  href={
+                    activeStudentId
+                      ? `/reports?studentId=${encodeURIComponent(activeStudentId)}&focus=refine-evidence`
+                      : "/reports?focus=refine-evidence"
+                  }
+                  style={styles.flowLink}
+                >
+                  Shape this into a report
+                  <span style={styles.flowSubtext}>Use the saved evidence when it is ready</span>
                 </Link>
               </div>
             </section>
