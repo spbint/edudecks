@@ -484,6 +484,32 @@ function moveBlock(layout: PortfolioLayout, blockId: PortfolioBlockId, direction
   return { ...layout, blocks };
 }
 
+function buildPortfolioItemClarity(item: EvidenceRow) {
+  const isRecent = daysSince(item.occurred_on || item.created_at) <= 30;
+  const isLinked = Boolean(safe(item.curriculum_subject) || safe(item.curriculum_skill));
+  const area = guessArea(item.learning_area);
+
+  let hint = "Could be a strong portfolio piece";
+  if (isRecent && isLinked) {
+    hint = "Already useful as a linked example";
+  } else if (isRecent && !isLinked) {
+    hint = "Could be linked to learning";
+  } else if (!isRecent && isLinked) {
+    hint = "Already useful as a linked example";
+  } else if (!isRecent && !isLinked) {
+    hint = "Worth revisiting if you want a newer example";
+  }
+
+  return {
+    area,
+    recencyLabel: isRecent ? "Recent" : "Earlier",
+    linkageLabel: isLinked ? "Linked to learning" : "Not linked yet",
+    recencyTone: isRecent ? "green" : "slate",
+    linkageTone: isLinked ? "blue" : "slate",
+    hint,
+  } as const;
+}
+
 function buildSeedStudents(): StudentRow[] {
   if (typeof window === "undefined") return [];
   const raw = parseJson<any[]>(window.localStorage.getItem(CHILDREN_KEY), []);
@@ -2235,7 +2261,9 @@ function PortfolioPageContent() {
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-                      {filteredTimelineItems.map((item) => (
+                      {filteredTimelineItems.map((item) => {
+                        const clarity = buildPortfolioItemClarity(item);
+                        return (
                         <div
                           key={safe(item.id)}
                           style={{
@@ -2268,17 +2296,17 @@ function PortfolioPageContent() {
                           </div>
 
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <span style={UI.chip("slate")}>{guessArea(item.learning_area)}</span>
+                            <span style={UI.chip("slate")}>{clarity.area}</span>
                             {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
-                            {safe(item.curriculum_subject) || safe(item.curriculum_skill) ? (
-                              <span style={UI.chip("blue")}>Linked to learning</span>
-                            ) : null}
-                            {daysSince(item.occurred_on || item.created_at) <= 30 ? (
-                              <span style={UI.chip("green")}>Recent</span>
-                            ) : null}
+                            <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
+                            <span style={UI.chip(clarity.recencyTone)}>{clarity.recencyLabel}</span>
                             {item.id === highlightEvidenceId ? (
                               <span style={UI.chip("green")}>Fresh capture</span>
                             ) : null}
+                          </div>
+
+                          <div style={{ fontSize: 12, lineHeight: 1.5, color: "#64748b", fontWeight: 700 }}>
+                            {clarity.hint}
                           </div>
 
                           <div style={{ ...UI.body(), fontSize: 13 }}>
@@ -2299,7 +2327,7 @@ function PortfolioPageContent() {
                             </Link>
                           </div>
                         </div>
-                      ))}
+                      )})}
                     </div>
                   )}
                 </section>
@@ -2360,7 +2388,9 @@ function PortfolioPageContent() {
                           </div>
 
                           <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                            {items.slice(0, 3).map((item) => (
+                            {items.slice(0, 3).map((item) => {
+                              const clarity = buildPortfolioItemClarity(item);
+                              return (
                               <div
                                 key={safe(item.id)}
                                 style={{
@@ -2380,13 +2410,14 @@ function PortfolioPageContent() {
                                 </div>
 
                                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  <span style={UI.chip("slate")}>{clarity.area}</span>
                                   {mediaLabel(item) ? <span style={UI.chip("slate")}>{mediaLabel(item)}</span> : null}
-                                  {safe(item.curriculum_subject) || safe(item.curriculum_skill) ? (
-                                    <span style={UI.chip("blue")}>Linked to learning</span>
-                                  ) : null}
-                                  {daysSince(item.occurred_on || item.created_at) <= 30 ? (
-                                    <span style={UI.chip("green")}>Recent</span>
-                                  ) : null}
+                                  <span style={UI.chip(clarity.linkageTone)}>{clarity.linkageLabel}</span>
+                                  <span style={UI.chip(clarity.recencyTone)}>{clarity.recencyLabel}</span>
+                                </div>
+
+                                <div style={{ fontSize: 11, lineHeight: 1.5, color: "#64748b", fontWeight: 700 }}>
+                                  {clarity.hint}
                                 </div>
 
                                 {(tagMap[item.id] || []).length > 0 ? (
@@ -2417,7 +2448,7 @@ function PortfolioPageContent() {
                                   {shortDate(item.occurred_on || item.created_at)}
                                 </div>
                               </div>
-                            ))}
+                            )})}
                           </div>
                         </div>
                       ))}
