@@ -154,6 +154,23 @@ function softCard(): React.CSSProperties {
   };
 }
 
+function focusedSectionCard(): React.CSSProperties {
+  return {
+    border: "1px solid #bfdbfe",
+    boxShadow: "0 0 0 2px rgba(59,130,246,0.08)",
+    background: "#fcfdff",
+  };
+}
+
+function guidedInsetCard(): React.CSSProperties {
+  return {
+    ...softCard(),
+    border: "1px solid #dbeafe",
+    background: "#f8fbff",
+    color: "#1e3a8a",
+  };
+}
+
 function subtleCard(): React.CSSProperties {
   return {
     border: "1px solid #eef2f7",
@@ -725,10 +742,10 @@ function buildSummaryPreview(childName: string, summary: string, learningArea: s
 function buildCaptureGuidanceNote(focus: string) {
   const value = safe(focus).toLowerCase();
   if (value === "start-evidence") {
-    return "This report needs a little more linked evidence. Capture one clear learning moment here so the report has something real to support it.";
+    return "You already have a starting point here. Capture one clear learning moment so the report has something real to build from.";
   }
   if (value === "planned-without-evidence") {
-    return "Planning is already in place for some outcomes. A small amount of proof here would make the report much stronger.";
+    return "Planning is already in place here. One saved moment and one link will help that learning feel more grounded.";
   }
   return "";
 }
@@ -739,13 +756,13 @@ function buildCaptureSectionCue(
 ) {
   const value = safe(focus).toLowerCase();
   if (section === "details" && value === "start-evidence") {
-    return "Start here. A short title, a clear summary, and one learning domain are enough to strengthen the report.";
+    return "A quick title, a clear summary, and one learning domain are enough to start.";
   }
   if (section === "details" && value === "planned-without-evidence") {
-    return "Start with one concrete learning moment that shows what the learner actually did or understood.";
+    return "Start with one concrete learning moment that shows what the learner did or understood.";
   }
   if (section === "linking" && value === "planned-without-evidence") {
-    return "Once this evidence is saved, link it to a curriculum outcome so planned work and proof sit together in reporting.";
+    return "After saving, link this moment if you want it connected to the planned learning.";
   }
   return "";
 }
@@ -1176,17 +1193,17 @@ export default function CapturePage() {
           : "This form is ready for one example.",
       stillNeededText: hasSavedCapture
         ? hasCaptureLinks
-          ? "Links are in place."
-          : "Link this to outcomes."
+          ? "A link is already in place."
+          : "A link could be added next."
         : hasCaptureDraft
-          ? "Save this capture next."
+          ? "Save this moment next."
           : "Add one clear example.",
       nextStepText: hasSavedCapture
         ? hasCaptureLinks
-          ? "Keep this one if it fits."
-          : "Link it to one outcome."
+          ? "Keep it simple and move on if it fits."
+          : "Link it if you want it connected to learning."
         : hasCaptureDraft
-          ? "Save this learning moment next."
+          ? "Save this learning moment."
           : "Add a title, summary, and domain.",
     };
   }, [
@@ -1213,13 +1230,13 @@ export default function CapturePage() {
             ? "Finish curriculum setup."
             : !hasOutcomes
               ? "Add outcomes to this setup."
-              : "Link this evidence to outcomes.",
+              : "Choose one matching outcome.",
       nextStepText: !hasSavedCapture
         ? "Save the capture first."
         : hasCaptureLinks
-          ? "Leave it unless another link helps."
+          ? "Leave it unless another link would help."
           : hasSetup && hasOutcomes
-            ? "Choose one matching outcome next."
+            ? "Choose one matching outcome here."
             : "Finish setup, then return here.",
     };
   }, [
@@ -1373,10 +1390,10 @@ export default function CapturePage() {
   const captureDetailsNextMove = useMemo(() => {
     if (!highlightCaptureDetails) return null;
     if (!hasSavedCapture) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     if (!hasCaptureLinks) {
-      return { text: "Link it to curriculum here." };
+      return { text: "Open linking below." };
     }
     return {
       text: "Go to Reports",
@@ -1391,7 +1408,7 @@ export default function CapturePage() {
       return { text: "Save this first." };
     }
     if (!hasCaptureLinks) {
-      return { text: "Choose one outcome here." };
+      return { text: "Stay in this section." };
     }
     return {
       text: "Go to Reports",
@@ -1657,14 +1674,12 @@ export default function CapturePage() {
       {captureGuidanceNote ? (
         <section
           style={{
-            border: "1px solid #bfdbfe",
-            background: "#eff6ff",
-            color: "#1e3a8a",
+            ...guidedInsetCard(),
             borderRadius: 16,
             padding: "12px 14px",
             fontSize: 14,
             lineHeight: 1.6,
-            fontWeight: 700,
+            fontWeight: 600,
             marginBottom: 18,
           }}
         >
@@ -1770,14 +1785,7 @@ export default function CapturePage() {
               <section
                 style={{
                   ...mainCard(),
-                  ...(highlightCaptureDetails
-                    ? {
-                        border: "1px solid #93c5fd",
-                        boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
-                        background:
-                          "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-                      }
-                    : {}),
+                  ...(highlightCaptureDetails ? focusedSectionCard() : {}),
                 }}
               >
                 <div style={eyebrowStyle()}>Main capture</div>
@@ -1796,14 +1804,11 @@ export default function CapturePage() {
                 {captureDetailsCue ? (
                   <div
                     style={{
-                      ...softCard(),
+                      ...guidedInsetCard(),
                       marginTop: 16,
-                      border: "1px solid #dbeafe",
-                      background: "#eff6ff",
-                      color: "#1e3a8a",
                       fontSize: 13,
                       lineHeight: 1.6,
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
                     {captureDetailsCue}
@@ -2012,7 +2017,7 @@ export default function CapturePage() {
                       ) : null}
 
                       <div style={{ marginTop: 8, fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>
-                        You can link this after saving if you want it to support curriculum and later reports.
+                        You can keep this simple now and link it after saving if that would help later.
                       </div>
                       <div style={{ marginTop: 8, fontSize: 12, color: "#475569", lineHeight: 1.5 }}>
                         {captureReportFeedback.cue}
@@ -2078,13 +2083,8 @@ export default function CapturePage() {
 
                   <div
                     style={{
-                      ...softCard(),
-                      border: highlightCurriculumLinking
-                        ? "1px solid #93c5fd"
-                        : "1px solid #dbeafe",
-                      background: highlightCurriculumLinking
-                        ? "linear-gradient(135deg, #dbeafe 0%, #f8fbff 100%)"
-                        : "linear-gradient(135deg, #eff6ff 0%, #f8fbff 100%)",
+                      ...guidedInsetCard(),
+                      ...(highlightCurriculumLinking ? focusedSectionCard() : {}),
                       display: "grid",
                       gap: 14,
                     }}
@@ -2101,21 +2101,21 @@ export default function CapturePage() {
                           color: "#1e3a8a",
                         }}
                       >
-                        After you save this evidence, you can attach it to a canonical curriculum outcome for the current learner.
+                        After saving, you can link this moment to a curriculum outcome for the current learner.
                       </div>
                     </div>
 
                     {captureLinkingCue ? (
                       <div
                         style={{
-                          border: "1px solid #bfdbfe",
+                          border: "1px solid #dbeafe",
                           borderRadius: 12,
                           background: "#ffffff",
                           color: "#1e3a8a",
                           padding: 12,
                           fontSize: 13,
                           lineHeight: 1.6,
-                          fontWeight: 700,
+                          fontWeight: 600,
                         }}
                       >
                         {captureLinkingCue}
@@ -2248,7 +2248,7 @@ export default function CapturePage() {
                             })
                           ) : (
                             <span style={pillStyle("#ffffff", "#64748b", "#d1d5db")}>
-                              Save the evidence first, then link one or more outcomes.
+                              Save first, then link an outcome if it helps.
                             </span>
                           )}
                         </div>
