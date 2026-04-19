@@ -71,6 +71,7 @@ export default function FamilyProfilePage() {
 
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [warning, setWarning] = useState("");
   const [busyChildId, setBusyChildId] = useState("");
   const [adding, setAdding] = useState(false);
   const [addName, setAddName] = useState("");
@@ -85,6 +86,9 @@ export default function FamilyProfilePage() {
 
   useEffect(() => {
     setError(workspaceError);
+    if (workspaceError) {
+      setWarning("");
+    }
   }, [workspaceError]);
 
   useEffect(() => {
@@ -171,6 +175,7 @@ export default function FamilyProfilePage() {
     setBusyChildId(childId);
     setStatus("");
     setError("");
+    setWarning("");
 
     try {
       if (!workspace.userId || childId.startsWith("local-")) {
@@ -199,12 +204,14 @@ export default function FamilyProfilePage() {
     const learnerNameInput = safe(addName);
     if (!learnerNameInput) {
       setError("Enter a learner name before saving.");
+      setWarning("");
       return;
     }
 
     setAdding(true);
     setStatus("");
     setError("");
+    setWarning("");
 
     try {
       if (!workspace.userId || !hasSupabaseEnv) {
@@ -264,14 +271,12 @@ export default function FamilyProfilePage() {
         });
         setActiveLearner(createdLearner.id);
 
-        if (defaultWarning) {
-          setError(defaultWarning);
-        }
+        setWarning(defaultWarning);
       }
 
       setAddName("");
       setAddYear("");
-      setStatus("Learner added to the family workspace.");
+      setStatus("This learner was added.");
     } catch (saveError) {
       console.error("profile add learner failed", saveError);
       setError("We couldn't add this learner yet. Please try again.");
@@ -293,6 +298,7 @@ export default function FamilyProfilePage() {
     setBusyChildId(child.id);
     setStatus("");
     setError("");
+    setWarning("");
 
     try {
       if (!workspace.userId || child.id.startsWith("local-")) {
@@ -327,6 +333,7 @@ export default function FamilyProfilePage() {
     setBusyChildId(child.id);
     setStatus("");
     setError("");
+    setWarning("");
 
     try {
       const nextDefaultId =
@@ -386,6 +393,7 @@ export default function FamilyProfilePage() {
           </div>
 
           {status ? <div style={S.successBanner}>{status}</div> : null}
+          {warning ? <div style={S.warningBanner}>{warning}</div> : null}
           {error ? <div style={S.errorBanner}>{error}</div> : null}
 
           <div style={S.summaryGrid}>
@@ -549,6 +557,7 @@ const S: Record<string, React.CSSProperties> = {
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   secondaryLink: { display: "inline-flex", alignItems: "center", textDecoration: "none", borderRadius: 12, border: "1px solid #cbd5e1", background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14 },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
+  warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
   errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },
   chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
   activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },

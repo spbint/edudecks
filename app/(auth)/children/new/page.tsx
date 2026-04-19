@@ -48,7 +48,7 @@ export default function AddChildPage() {
 
   async function saveChild() {
     if (!safe(childName)) {
-      setErr("Please enter a name.");
+      setErr("Add a name before saving.");
       return;
     }
 
@@ -128,7 +128,10 @@ export default function AddChildPage() {
           <label style={{ fontWeight: 800 }}>Child name</label>
           <input
             value={childName}
-            onChange={(e) => setChildName(e.target.value)}
+            onChange={(e) => {
+              setChildName(e.target.value);
+              if (err) setErr("");
+            }}
             placeholder="e.g. Charlotte Brown"
             style={{
               width: "100%",
@@ -144,7 +147,10 @@ export default function AddChildPage() {
           <label style={{ fontWeight: 800 }}>Year level (optional)</label>
           <input
             value={yearLevel}
-            onChange={(e) => setYearLevel(e.target.value)}
+            onChange={(e) => {
+              setYearLevel(e.target.value);
+              if (err) setErr("");
+            }}
             placeholder="e.g. 4"
             style={{
               width: "100%",
