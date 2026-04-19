@@ -126,7 +126,7 @@ export function FamilyWorkspaceProvider({
       }
 
       if (patch.learners) {
-        persistLearnersToLocalCache(nextWorkspace.learners);
+        persistLearnersToLocalCache(nextWorkspace.learners, { notify: false });
       }
 
       setActiveLearnerIdState(applyActiveLearner(nextWorkspace));

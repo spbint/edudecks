@@ -105,6 +105,20 @@ function mergeLearners(
   return Array.from(map.values());
 }
 
+function resolveWorkspaceDefaultLearnerId(
+  learners: LearnerIdentity[],
+  ...candidates: Array<string | null | undefined>
+) {
+  for (const candidate of candidates) {
+    const clean = safe(candidate);
+    if (clean && learners.some((learner) => learner.id === clean)) {
+      return clean;
+    }
+  }
+
+  return learners[0]?.id || null;
+}
+
 function dispatchFamilyWorkspaceEvent(detail?: {
   childId?: string;
   learners?: FamilyLearner[];
@@ -142,7 +156,10 @@ export function buildLocalFamilyWorkspaceSnapshot(): FamilyWorkspaceState {
   };
 }
 
-export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
+export function persistLearnersToLocalCache(
+  learners: FamilyLearner[],
+  options?: { notify?: boolean },
+) {
   if (typeof window === "undefined") return;
 
   try {
@@ -163,7 +180,9 @@ export function persistLearnersToLocalCache(learners: FamilyLearner[]) {
     // ignore local cache failures
   }
 
-  dispatchFamilyWorkspaceEvent({ learners });
+  if (options?.notify !== false) {
+    dispatchFamilyWorkspaceEvent({ learners });
+  }
 }
 
 export function loadLearnersFromLocalCache(): FamilyLearner[] {
@@ -294,11 +313,11 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     const mergedProfile: FamilyProfileRow = {
       ...localProfile,
       ...profile,
-      default_child_id:
-        profile.default_child_id ||
-        localProfile.default_child_id ||
-        learners[0]?.id ||
-        null,
+      default_child_id: resolveWorkspaceDefaultLearnerId(
+        learners,
+        profile.default_child_id,
+        localProfile.default_child_id,
+      ),
     };
 
     persistSettingsToLocalStorage(mergedProfile);
@@ -400,7 +419,6 @@ export async function updateLinkedLearner(
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
   await removeCanonicalFamilyLearner(userId, learnerId);
-  dispatchFamilyWorkspaceEvent({ childId: learnerId });
 }
 
 export function getStoredActiveLearnerId() {

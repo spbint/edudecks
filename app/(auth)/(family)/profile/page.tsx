@@ -429,19 +429,26 @@ export default function FamilyProfilePage() {
   }
 
   async function handleRemoveChild(child: FamilyLearner) {
+    if (busyChildId) return;
+
     setBusyChildId(child.id);
     setStatus("");
     setError("");
     setWarning("");
 
     try {
+      const nextLearners = children.filter((item) => item.id !== child.id);
       const nextDefaultId =
         profile.default_child_id === child.id
-          ? children.find((item) => item.id !== child.id)?.id ?? null
+          ? nextLearners[0]?.id ?? null
           : null;
+      const deletingCurrentLearner =
+        activeLearnerId === child.id || currentLearnerId === child.id;
+      const nextActiveLearnerId = deletingCurrentLearner
+        ? nextDefaultId || nextLearners[0]?.id || null
+        : activeLearnerId || profile.default_child_id || nextLearners[0]?.id || null;
 
       if (!workspace.userId || child.id.startsWith("local-")) {
-        const nextLearners = children.filter((item) => item.id !== child.id);
         persistLearnersToLocalCache(nextLearners);
         const nextProfile =
           profile.default_child_id === child.id
@@ -449,22 +456,48 @@ export default function FamilyProfilePage() {
             : profile;
         persistSettingsToLocalStorage(nextProfile);
         setWorkspacePatch({ learners: nextLearners, profile: nextProfile, storageMode: "local" });
-        if (activeLearnerId === child.id) {
-          setActiveLearner(nextLearners[0]?.id ?? null);
+        if (deletingCurrentLearner) {
+          setActiveLearner(nextActiveLearnerId);
         }
       } else {
         await removeLinkedLearner(workspace.userId, child.id);
+        let nextProfile: FamilySettings = profile;
+
         if (nextDefaultId !== null || profile.default_child_id === child.id) {
-          const saved = await setDefaultLearner(profile, nextDefaultId);
-          setWorkspacePatch({ profile: saved });
+          try {
+            nextProfile = await setDefaultLearner(profile, nextDefaultId);
+          } catch (defaultError) {
+            console.error("profile default learner update after delete failed", defaultError);
+            nextProfile = { ...profile, default_child_id: nextDefaultId };
+            setWarning(
+              "Learner removed, but we couldn't fully refresh the family default learner just yet.",
+            );
+          }
         }
-        await reloadWorkspace();
+
+        setWorkspacePatch({
+          learners: nextLearners,
+          profile: nextProfile,
+          storageMode: nextLearners.length ? "database" : workspace.storageMode,
+        });
+
+        if (deletingCurrentLearner) {
+          setActiveLearner(nextActiveLearnerId);
+        }
+
+        setRecentEvidence((current) =>
+          current.filter((row) => safe(row.student_id) !== child.id),
+        );
       }
 
       setStatus("Learner removed from the family workspace.");
     } catch (removeError) {
       console.error("profile remove learner failed", removeError);
-      setError("We could not remove that learner right now.");
+      await reloadWorkspace();
+      setError(
+        safe((removeError as { message?: unknown })?.message) ||
+          "We could not remove that learner right now.",
+      );
     } finally {
       setBusyChildId("");
     }
