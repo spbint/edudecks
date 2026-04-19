@@ -384,13 +384,27 @@ function joinNatural(items: string[]) {
 function buildReportsGuidanceNote(focus: string) {
   const value = safe(focus).toLowerCase();
   if (value === "refine-evidence") {
-    return "This report would benefit from a slightly stronger evidence base. Refine the selected evidence here before saving or exporting.";
+    return "You already have a starting point here. Next, choose one or two pieces that show the learning clearly.";
   }
   if (value === "core-anchors") {
-    return "Mark at least two selected items as core anchors so the main report has a clearer evidence backbone.";
+    return "You already have evidence in place here. Next, mark one or two pieces as core anchors so the draft has a clear centre.";
   }
   if (value === "family-note") {
-    return "Add a short family note here to make the report output feel more human and intentional.";
+    return "A short family note can help explain the picture here.";
+  }
+  return "";
+}
+
+function buildReportsSectionLead(focus: string) {
+  const value = safe(focus).toLowerCase();
+  if (value === "refine-evidence") {
+    return "Focus on the smallest trustworthy evidence set first.";
+  }
+  if (value === "core-anchors") {
+    return "Choose the clearest selected pieces as the core anchors.";
+  }
+  if (value === "family-note") {
+    return "Two calm sentences are enough to give this report a clearer voice.";
   }
   return "";
 }
@@ -470,6 +484,19 @@ const softCardStyle: React.CSSProperties = {
   borderRadius: 14,
   background: "#f8fafc",
   padding: 14,
+};
+
+const focusedSectionStyle: React.CSSProperties = {
+  border: "1px solid #bfdbfe",
+  boxShadow: "0 0 0 2px rgba(59,130,246,0.08)",
+  background: "#fcfdff",
+};
+
+const guidedInsetStyle: React.CSSProperties = {
+  ...softCardStyle,
+  border: "1px solid #dbeafe",
+  background: "#f8fbff",
+  color: "#1e3a8a",
 };
 
 const buttonStyle = (primary = false): React.CSSProperties => ({
@@ -903,26 +930,26 @@ function ReportsPageContent() {
     if (reportsFocus === "core-anchors") {
       return {
         inPlaceText: hasReportSelection
-          ? "Selections are in place."
-          : "Evidence is ready to choose.",
+          ? "Selected evidence is in place."
+          : "The evidence space is ready.",
         stillNeededText: hasCoreAnchors
-          ? "Anchors are already clear."
-          : "Add one or two core anchors.",
+          ? "The anchors are already clear."
+          : "Mark one or two pieces as core.",
         nextStepText: hasReportSelection
-          ? "Mark the clearest items as core."
+          ? "Choose the clearest pieces first."
           : "Choose evidence, then mark core anchors.",
       };
     }
 
     return {
       inPlaceText: hasReportEvidence
-        ? "Evidence is visible."
-        : "No evidence is visible yet.",
+        ? "You already have evidence in view."
+        : "The evidence space is ready.",
       stillNeededText: hasReportSelection
-        ? "Refine these selections."
-        : "Choose one or two strong pieces.",
+        ? "A light refinement will help."
+        : "Choose one or two clear pieces.",
       nextStepText: hasReportEvidence
-        ? "Choose your strongest example."
+        ? "Keep the set small and trustworthy."
         : "Capture or link one learning moment.",
     };
   }, [
@@ -938,27 +965,27 @@ function ReportsPageContent() {
     return {
       inPlaceText: draftId
         ? "A saved draft is in place."
-        : "A draft base is started.",
+        : "A draft base is ready to save.",
       stillNeededText: hasCoreAnchors
-        ? "Only light refinement remains."
-        : "Add core anchors.",
+        ? "Only a light check remains."
+        : "Add one or two core anchors.",
       nextStepText: hasCoreAnchors
         ? "Save it, then open the output."
-        : "Choose one or two core items.",
+        : "Choose the clearest core pieces.",
     };
   }, [draftId, hasCoreAnchors, highlightDraftPosition]);
   const reportsFamilyNoteCompletion = useMemo(() => {
     if (!highlightFamilyNote) return null;
     return {
       inPlaceText: hasFamilyNote
-        ? "The family note has started."
+        ? "A family note is in place."
         : "The note space is ready.",
       stillNeededText: hasFamilyNote
-        ? "It may only need a light edit."
+        ? "A light edit may be enough."
         : "Add a short family note.",
       nextStepText: hasFamilyNote
-        ? "Tighten the note."
-        : "Add two calm sentences about this learning.",
+        ? "Tighten the wording if needed."
+        : "Add two calm sentences about what this shows.",
     };
   }, [hasFamilyNote, highlightFamilyNote]);
   const reportsEvidenceMomentum = useMemo(() => {
@@ -1167,10 +1194,10 @@ function ReportsPageContent() {
   const reportsEvidenceNextMove = useMemo(() => {
     if (!highlightEvidenceSelection) return null;
     if (!hasReportEvidence) {
-      return { text: "Go to Capture", href: "/capture" };
+      return { text: "Open Capture", href: "/capture" };
     }
     if (!hasReportSelection || (reportsFocus === "core-anchors" && !hasCoreAnchors)) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     return { text: "Open report output", href: outputHref };
   }, [
@@ -1184,7 +1211,7 @@ function ReportsPageContent() {
   const reportsDraftNextMove = useMemo(() => {
     if (!highlightDraftPosition) return null;
     if (!hasCoreAnchors) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     return hasDraft
       ? { text: "Open report output", href: outputHref }
@@ -1193,7 +1220,7 @@ function ReportsPageContent() {
   const reportsFamilyNoteNextMove = useMemo(() => {
     if (!highlightFamilyNote) return null;
     if (!hasFamilyNote) {
-      return { text: "Refine this here." };
+      return { text: "Stay in this section." };
     }
     return hasDraft
       ? { text: "Open report output", href: outputHref }
@@ -1832,14 +1859,12 @@ function ReportsPageContent() {
         {reportsGuidanceNote ? (
           <section
             style={{
-              ...cardStyle,
+              ...guidedInsetStyle,
               marginBottom: 18,
-              border: "1px solid #bfdbfe",
-              background: "#eff6ff",
             }}
           >
             <div style={{ ...labelStyle, color: "#1e3a8a" }}>Guided next step</div>
-            <div style={{ ...bodyStyle, color: "#1e3a8a", marginTop: 8 }}>
+            <div style={{ ...bodyStyle, color: "#1e3a8a", marginTop: 6 }}>
               {reportsGuidanceNote}
             </div>
           </section>
@@ -2533,14 +2558,7 @@ function ReportsPageContent() {
             <section
               style={{
                 ...cardStyle,
-                ...(highlightEvidenceSelection
-                  ? {
-                      border: "1px solid #93c5fd",
-                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
-                      background:
-                        "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-                    }
-                  : {}),
+                ...(highlightEvidenceSelection ? focusedSectionStyle : {}),
               }}
             >
               <div
@@ -2578,33 +2596,12 @@ function ReportsPageContent() {
                 </div>
               </div>
 
-              {reportsFocus === "refine-evidence" ? (
-                <div
-                  style={{
-                    ...softCardStyle,
-                    marginTop: 14,
-                    border: "1px solid #dbeafe",
-                    background: "#eff6ff",
-                    color: "#1e3a8a",
-                    fontWeight: 700,
-                  }}
-                >
-                  Start here. Refine the selected evidence set until it feels small, clear, and trustworthy.
-                </div>
-              ) : null}
-
-              {reportsFocus === "core-anchors" ? (
-                <div
-                  style={{
-                    ...softCardStyle,
-                    marginTop: 14,
-                    border: "1px solid #dbeafe",
-                    background: "#eff6ff",
-                    color: "#1e3a8a",
-                    fontWeight: 700,
-                  }}
-                >
-                  Start here. Mark at least two selected items as core so the report has a stronger backbone before export.
+              {highlightEvidenceSelection ? (
+                <div style={{ ...guidedInsetStyle, marginTop: 14 }}>
+                  <div style={{ ...labelStyle, color: "#1e3a8a" }}>Section focus</div>
+                  <div style={{ ...smallStyle, color: "#1e3a8a", marginTop: 6 }}>
+                    {buildReportsSectionLead(reportsFocus)}
+                  </div>
                 </div>
               ) : null}
 
@@ -2746,12 +2743,7 @@ function ReportsPageContent() {
             <section
               style={{
                 ...cardStyle,
-                ...(highlightDraftPosition
-                  ? {
-                      border: "1px solid #93c5fd",
-                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
-                    }
-                  : {}),
+                ...(highlightDraftPosition ? focusedSectionStyle : {}),
               }}
             >
               <div style={h2Style}>Draft position</div>
@@ -2808,14 +2800,7 @@ function ReportsPageContent() {
             <section
               style={{
                 ...cardStyle,
-                ...(highlightFamilyNote
-                  ? {
-                      border: "1px solid #93c5fd",
-                      boxShadow: "0 0 0 3px rgba(59,130,246,0.10)",
-                      background:
-                        "linear-gradient(135deg, #f8fbff 0%, #ffffff 100%)",
-                    }
-                  : {}),
+                ...(highlightFamilyNote ? focusedSectionStyle : {}),
               }}
             >
               <div style={h2Style}>Family note</div>
@@ -2823,17 +2808,11 @@ function ReportsPageContent() {
                 Add a short note so the draft feels clear, human, and easy to return to later.
               </div>
               {highlightFamilyNote ? (
-                <div
-                  style={{
-                    ...softCardStyle,
-                    marginTop: 12,
-                    border: "1px solid #dbeafe",
-                    background: "#eff6ff",
-                    color: "#1e3a8a",
-                    fontWeight: 700,
-                  }}
-                >
-                  Start here. A short family note gives the report a clearer voice and makes the final output feel more intentional.
+                <div style={{ ...guidedInsetStyle, marginTop: 12 }}>
+                  <div style={{ ...labelStyle, color: "#1e3a8a" }}>Section focus</div>
+                  <div style={{ ...smallStyle, color: "#1e3a8a", marginTop: 6 }}>
+                    {buildReportsSectionLead(reportsFocus)}
+                  </div>
                 </div>
               ) : null}
               {reportsFamilyNoteCompletion ? (
