@@ -12,7 +12,10 @@ import {
 } from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { listSavedDrafts, type SavedReportDraft } from "@/lib/reporting/reportDraftStorage";
-import { deriveLearningIntelligence } from "@/lib/learningIntelligence";
+import {
+  deriveLearningIntelligence,
+  type LearningIntelligenceInput,
+} from "@/lib/learningIntelligence";
 
 type ChildRow = {
   id: string;
@@ -322,19 +325,21 @@ export default function ChildWorkspacePage() {
     [coverageRows, evidence.length, reportReadiness, savedDrafts.length]
   );
 
+  const countRecentEvidence = (items: EvidenceRow[]) =>
+    items.filter((item) => {
+      const age = daysSince(item.occurred_on || item.created_at);
+      return age != null && age <= 30;
+    }).length;
+
   const recentEvidenceCount = useMemo(
-    () =>
-      evidence.filter((item) => {
-        const age = daysSince(item.occurred_on || item.created_at);
-        return age != null && age <= 30;
-      }).length,
+    () => countRecentEvidence(evidence),
     [evidence],
   );
   const evidenceCount = evidence.length;
   const coverageAreaCount = coverageRows.length;
   const hasSavedDraft = savedDrafts.length > 0;
 
-  const learnerWorkflowSignals = useMemo(
+  const learnerWorkflowSignals = useMemo<LearningIntelligenceInput>(
     () => ({
       studentId: childId,
       highlightEvidenceId: latestEvidence?.id,
