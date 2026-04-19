@@ -41,7 +41,6 @@ type WorkflowStateFlags = {
   planningIsVisible: boolean;
   evidenceIsVisible: boolean;
   evidenceIsThin: boolean;
-  freshEvidenceIsVisible: boolean;
   storyIsNarrow: boolean;
   readyToReview: boolean;
   closeToUsable: boolean;
@@ -107,10 +106,6 @@ function hasThinEvidence(signals: NormalizedSignals) {
   return signals.evidenceCount <= 1;
 }
 
-function hasFreshEvidence(signals: NormalizedSignals) {
-  return signals.recentEvidenceCount > 0;
-}
-
 function hasNarrowStory(signals: NormalizedSignals) {
   return signals.coverageAreaCount > 0 && signals.coverageAreaCount <= 1;
 }
@@ -133,7 +128,6 @@ function classifyWorkflowState(signals: NormalizedSignals): WorkflowStateFlags {
     planningIsVisible: hasAnyPlanning(signals),
     evidenceIsVisible: hasAnyEvidence(signals),
     evidenceIsThin: hasThinEvidence(signals),
-    freshEvidenceIsVisible: hasFreshEvidence(signals),
     storyIsNarrow: hasNarrowStory(signals),
     readyToReview: hasReviewableEvidence(signals),
     closeToUsable: hasReportShapingSignals(signals),
@@ -166,7 +160,6 @@ export function deriveLearningIntelligence(
     planningIsVisible,
     evidenceIsVisible,
     evidenceIsThin,
-    freshEvidenceIsVisible,
     storyIsNarrow,
     readyToReview,
     closeToUsable,
@@ -213,7 +206,7 @@ export function deriveLearningIntelligence(
       storyIsNarrow
         ? "You already have evidence here. Reviewing the portfolio is the clearest next move before adding more."
         : "You already have evidence here. Reviewing the portfolio is the clearest next move.",
-      freshEvidenceIsVisible ? "Building momentum" : "Ready to review",
+      "Ready to review",
       storyIsNarrow ? "The learning story is still narrow" : undefined,
     );
   }
