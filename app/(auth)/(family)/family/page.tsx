@@ -124,6 +124,39 @@ function countCoverageAreas(rows: EvidenceRow[]) {
   ).size;
 }
 
+function resolveFamilySummaryDisplay(input: {
+  hasSingleLearner: boolean;
+  summary: ReturnType<typeof deriveLearningIntelligence>;
+}) {
+  const { hasSingleLearner, summary } = input;
+
+  if (hasSingleLearner) {
+    return {
+      ctaLabel: summary.ctaLabel,
+      reason: summary.reason,
+    };
+  }
+
+  if (summary.targetPage === "portfolio") {
+    return {
+      ctaLabel: "Browse the family portfolio",
+      reason: summary.reason,
+    };
+  }
+
+  if (summary.targetPage === "reports") {
+    return {
+      ctaLabel: "Review the reports",
+      reason: "You already have enough here to begin shaping your reports.",
+    };
+  }
+
+  return {
+    ctaLabel: summary.ctaLabel,
+    reason: summary.reason,
+  };
+}
+
 export default function FamilyHomePage() {
   const { workspace, loading: workspaceLoading, error: workspaceError } = useFamilyWorkspace();
   const [loading, setLoading] = useState(true);
@@ -249,6 +282,7 @@ export default function FamilyHomePage() {
       .filter(Boolean);
     return learnerIds.length === 1 ? learnerIds[0] : undefined;
   }, [workspace.learners]);
+  const hasSingleLearner = Boolean(familyStudentId);
   const latestEvidenceId = recentEvidence[0]?.id;
   const familyWorkflowSignals = useMemo<LearningIntelligenceInput>(
     () => ({
@@ -275,6 +309,14 @@ export default function FamilyHomePage() {
   const bestNextMove = useMemo(
     () => deriveLearningIntelligence(familyWorkflowSignals),
     [familyWorkflowSignals],
+  );
+  const familySummaryDisplay = useMemo(
+    () =>
+      resolveFamilySummaryDisplay({
+        hasSingleLearner,
+        summary: bestNextMove,
+      }),
+    [bestNextMove, hasSingleLearner],
   );
 
   const periodContextLine = buildPeriodContextLine({
@@ -322,13 +364,13 @@ export default function FamilyHomePage() {
                   </span>
                 ) : null}
               </div>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{bestNextMove.reason}</p>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{familySummaryDisplay.reason}</p>
               <div className="mt-3">
                 <Link
                   href={bestNextMove.targetHref}
                   className="text-sm font-bold text-blue-700 no-underline"
                 >
-                  {bestNextMove.ctaLabel}
+                  {familySummaryDisplay.ctaLabel}
                 </Link>
               </div>
             </div>
