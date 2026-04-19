@@ -882,6 +882,26 @@ function PortfolioPageContent() {
     [evidence],
   );
 
+  const recentEvidenceCount = useMemo(
+    () => evidence.filter((item) => daysSince(item.occurred_on || item.created_at) <= 30).length,
+    [evidence],
+  );
+
+  const linkedEvidenceCount = useMemo(
+    () =>
+      evidence.filter((item) => safe(item.curriculum_subject) || safe(item.curriculum_skill)).length,
+    [evidence],
+  );
+
+  const areaFilterCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    evidence.forEach((item) => {
+      const area = guessArea(item.learning_area);
+      counts.set(area, (counts.get(area) ?? 0) + 1);
+    });
+    return counts;
+  }, [evidence]);
+
   const filteredEvidence = useMemo(() => {
     return evidence.filter((item) => {
       if (evidenceFilter === "recent" && daysSince(item.occurred_on || item.created_at) > 30) {
@@ -912,6 +932,27 @@ function PortfolioPageContent() {
     });
     return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [filteredEvidence]);
+
+  const activeResultsSummary = useMemo(() => {
+    const visible = filteredEvidence.length;
+    const total = evidence.length;
+
+    if (areaFilter !== "all") {
+      return `Showing ${visible} ${visible === 1 ? "piece" : "pieces"} in ${areaFilter}`;
+    }
+    if (evidenceFilter === "recent") {
+      return `Showing ${visible} recent ${visible === 1 ? "piece" : "pieces"}`;
+    }
+    if (evidenceFilter === "linked") {
+      return `Showing ${visible} linked ${visible === 1 ? "piece" : "pieces"}`;
+    }
+    return `Showing ${visible} of ${total} ${total === 1 ? "piece" : "pieces"}`;
+  }, [areaFilter, evidence.length, evidenceFilter, filteredEvidence.length]);
+
+  function resetEvidenceFilterView() {
+    setEvidenceFilter("all");
+    setAreaFilter("all");
+  }
 
   const mediaItems = useMemo(
     () => evidence.filter((e) => hasAnyMedia(e)).slice(0, 8),
@@ -2045,9 +2086,9 @@ function PortfolioPageContent() {
                   <div style={UI.label()}>Filter evidence</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                     {[
-                      { key: "all", label: "All" },
-                      { key: "recent", label: "Recent" },
-                      { key: "linked", label: "Linked to learning" },
+                      { key: "all", label: "All", count: evidence.length },
+                      { key: "recent", label: "Recent", count: recentEvidenceCount },
+                      { key: "linked", label: "Linked to learning", count: linkedEvidenceCount },
                     ].map((filter) => {
                       const active = evidenceFilter === filter.key;
                       return (
@@ -2062,6 +2103,9 @@ function PortfolioPageContent() {
                           }}
                         >
                           {filter.label}
+                          <span style={{ marginLeft: 6, opacity: 0.68, fontWeight: 700 }}>
+                            ({filter.count})
+                          </span>
                         </button>
                       );
                     })}
@@ -2079,9 +2123,15 @@ function PortfolioPageContent() {
                           }}
                         >
                           {area}
+                          <span style={{ marginLeft: 6, opacity: 0.68, fontWeight: 700 }}>
+                            ({areaFilterCounts.get(area) ?? 0})
+                          </span>
                         </button>
                       );
                     })}
+                  </div>
+                  <div style={{ ...UI.body(), marginTop: 10, fontSize: 12, color: "#64748b" }}>
+                    {activeResultsSummary}
                   </div>
                 </section>
               ) : null}
@@ -2098,8 +2148,26 @@ function PortfolioPageContent() {
                       <div style={UI.body()}>
                         {evidence.length === 0
                           ? "No learning moments yet."
-                          : "No matching learning yet - try another view."}
+                          : "There’s nothing in this view yet."}
                       </div>
+                      {evidence.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={resetEvidenceFilterView}
+                          style={{
+                            marginTop: 10,
+                            padding: 0,
+                            border: "none",
+                            background: "transparent",
+                            color: "#2563eb",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Show all evidence
+                        </button>
+                      ) : null}
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
@@ -2187,8 +2255,26 @@ function PortfolioPageContent() {
                       <div style={UI.body()}>
                         {evidence.length === 0
                           ? "No learning moments grouped yet."
-                          : "No matching learning yet - try another view."}
+                          : "There’s nothing in this view yet."}
                       </div>
+                      {evidence.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={resetEvidenceFilterView}
+                          style={{
+                            marginTop: 10,
+                            padding: 0,
+                            border: "none",
+                            background: "transparent",
+                            color: "#2563eb",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Show all evidence
+                        </button>
+                      ) : null}
                     </div>
                   ) : (
                     <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
