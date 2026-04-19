@@ -16,7 +16,7 @@ export function isValidMagicLinkEmail(email: string) {
 }
 
 export function mapMagicLinkError(error: unknown) {
-  const raw = safe(
+  const raw = normalizeMagicLinkFeedback(
     error && typeof error === "object" ? (error as { message?: unknown }).message : error,
   );
   const normalized = raw.toLowerCase();
@@ -33,6 +33,23 @@ export function mapMagicLinkError(error: unknown) {
     normalized.includes("not allowed")
   ) {
     return "We couldn't send your sign-in link because the return URL is not configured correctly yet.";
+  }
+
+  return raw;
+}
+
+export function normalizeMagicLinkFeedback(message: unknown) {
+  const raw = safe(message);
+  const normalized = raw.toLowerCase();
+
+  if (!raw) return "";
+
+  if (
+    normalized.includes("login links already") ||
+    (normalized.includes("give it a few minutes") &&
+      normalized.includes("arrives reliably"))
+  ) {
+    return "We couldn't send another sign-in link right now. Please try again from this page.";
   }
 
   return raw;

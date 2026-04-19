@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { mapMagicLinkError, sendMagicLink } from "@/lib/authMagicLink";
+import {
+  mapMagicLinkError,
+  resetMagicLinkClientState,
+  sendMagicLink,
+} from "@/lib/authMagicLink";
 
 type AuthModalProps = {
   open: boolean;
@@ -38,6 +42,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
     setSendingEmail(true);
 
     try {
+      resetMagicLinkClientState();
       await sendMagicLink({
         email: nextEmail,
         nextPath: resolvedNextPath,

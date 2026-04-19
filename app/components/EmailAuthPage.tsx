@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   isValidMagicLinkEmail,
   mapMagicLinkError,
+  normalizeMagicLinkFeedback,
   resetMagicLinkClientState,
   sendMagicLink,
 } from "@/lib/authMagicLink";
@@ -108,8 +109,8 @@ function EmailAuthPageContent() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const authError = safe(searchParams.get("authError"));
-    const authMessage = safe(searchParams.get("authMessage"));
+    const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
+    const authMessage = normalizeMagicLinkFeedback(searchParams.get("authMessage"));
     const hasAuthFeedback = Boolean(authError || authMessage);
 
     if (hasAuthFeedback && typeof window !== "undefined") {
