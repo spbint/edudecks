@@ -468,7 +468,7 @@ export default function FamilyProfilePage() {
     <FamilyTopNavShell
       title="EduDecks Family"
       subtitle="Profile"
-      heroTitle="Keep learner details tidy and connected"
+      heroTitle="TEST DEPLOY – PROFILE UPDATED"
       heroText="Manage learners, confirm the active learner for the wider workflow, and keep a read-only view of the current family setup."
       heroAsideTitle="Family workspace"
       heroAsideText="Profile now consumes the shared family workspace. Curriculum setup stays in settings."
