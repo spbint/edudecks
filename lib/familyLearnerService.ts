@@ -4,6 +4,14 @@ import {
   familyYearLevelOptionFromStored,
   familyYearLevelToStoredNumber,
 } from "@/lib/familyLearnerYearLevel";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  type DefaultChildLanding,
+  type EvidencePrivacy,
+  type ExperienceMode,
+  type MarketKey,
+  type WeekStart,
+} from "@/lib/familySettings";
 
 export type CanonicalLearnerInput = {
   learnerName: string;
@@ -29,11 +37,16 @@ type ValidatedLearnerInput = {
 
 type StudentInsertRow = {
   id?: string | null;
+  family_profile_id?: string | null;
   preferred_name?: string | null;
   first_name?: string | null;
   surname?: string | null;
   year_level?: number | null;
   created_at?: string | null;
+};
+
+type FamilyProfileIdRow = {
+  id?: string | null;
 };
 
 function safe(value: unknown) {
@@ -107,6 +120,118 @@ function toLearnerRecord(row: StudentInsertRow): CanonicalLearnerRecord {
   };
 }
 
+function buildFamilyProfileInsertPayload(userId: string) {
+  return {
+    user_id: userId,
+    owner_user_id: userId,
+    family_display_name: DEFAULT_FAMILY_SETTINGS.family_display_name,
+    preferred_market: DEFAULT_FAMILY_SETTINGS.preferred_market as MarketKey,
+    experience_mode: DEFAULT_FAMILY_SETTINGS.experience_mode as ExperienceMode,
+    default_child_id: DEFAULT_FAMILY_SETTINGS.default_child_id,
+    default_child_landing:
+      DEFAULT_FAMILY_SETTINGS.default_child_landing as DefaultChildLanding,
+    week_start: DEFAULT_FAMILY_SETTINGS.week_start as WeekStart,
+    compact_mode: DEFAULT_FAMILY_SETTINGS.compact_mode,
+    show_advanced_insights: DEFAULT_FAMILY_SETTINGS.show_advanced_insights,
+    show_authority_guidance: DEFAULT_FAMILY_SETTINGS.show_authority_guidance,
+    auto_open_last_child: DEFAULT_FAMILY_SETTINGS.auto_open_last_child,
+    evidence_privacy_default:
+      DEFAULT_FAMILY_SETTINGS.evidence_privacy_default as EvidencePrivacy,
+    planner_auto_carry_forward:
+      DEFAULT_FAMILY_SETTINGS.planner_auto_carry_forward,
+    planner_show_weekend: DEFAULT_FAMILY_SETTINGS.planner_show_weekend,
+    portfolio_print_style: DEFAULT_FAMILY_SETTINGS.portfolio_print_style,
+    report_tone_default: DEFAULT_FAMILY_SETTINGS.report_tone_default,
+    notifications_weekly_digest:
+      DEFAULT_FAMILY_SETTINGS.notifications_weekly_digest,
+    notifications_readiness_alerts:
+      DEFAULT_FAMILY_SETTINGS.notifications_readiness_alerts,
+    notifications_planner_nudges:
+      DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export async function resolveCurrentFamilyProfileId(
+  userId: string,
+  options?: { ensure?: boolean },
+) {
+  const selectResponse = await withTimeout(
+    supabase
+      .from("family_profiles")
+      .select("id")
+      .eq("owner_user_id", userId)
+      .limit(1)
+      .maybeSingle(),
+    "load family profile id",
+  );
+
+  if (selectResponse.error) {
+    throw new Error(
+      safe(selectResponse.error.message) ||
+        "We couldn't confirm the family workspace yet.",
+    );
+  }
+
+  const existingId = safe((selectResponse.data as FamilyProfileIdRow | null)?.id);
+  if (existingId) {
+    return existingId;
+  }
+
+  if (!options?.ensure) {
+    return null;
+  }
+
+  const insertPayload = buildFamilyProfileInsertPayload(userId);
+  const insertResponse = await withTimeout(
+    supabase
+      .from("family_profiles")
+      .insert(insertPayload)
+      .select("id")
+      .single(),
+    "create family profile",
+  );
+
+  if (!insertResponse.error) {
+    const insertedId = safe(
+      (insertResponse.data as FamilyProfileIdRow | null)?.id,
+    );
+    if (insertedId) {
+      return insertedId;
+    }
+  }
+
+  const insertMessage = safe(insertResponse.error?.message).toLowerCase();
+  if (insertMessage.includes("duplicate")) {
+    const retryResponse = await withTimeout(
+      supabase
+        .from("family_profiles")
+        .select("id")
+        .eq("owner_user_id", userId)
+        .limit(1)
+        .maybeSingle(),
+      "reload family profile id",
+    );
+
+    if (retryResponse.error) {
+      throw new Error(
+        safe(retryResponse.error.message) ||
+          "We couldn't reopen the family workspace yet.",
+      );
+    }
+
+    const retryId = safe((retryResponse.data as FamilyProfileIdRow | null)?.id);
+    if (retryId) {
+      return retryId;
+    }
+  }
+
+  throw new Error(
+    safe(insertResponse.error?.message) ||
+      "We couldn't prepare the family workspace yet.",
+  );
+}
+
 export async function createCanonicalFamilyLearner(
   userId: string,
   input: CanonicalLearnerInput,
@@ -122,7 +247,12 @@ export async function createCanonicalFamilyLearner(
     hasYearLevel: Boolean(validated.yearLevelOption),
   });
 
+  const familyProfileId = await resolveCurrentFamilyProfileId(userId, {
+    ensure: true,
+  });
+
   const studentPayload = {
+    family_profile_id: familyProfileId,
     first_name: validated.firstName,
     preferred_name: validated.firstName,
     surname: validated.surname,
@@ -137,7 +267,9 @@ export async function createCanonicalFamilyLearner(
     supabase
       .from("students")
       .insert(studentPayload)
-      .select("id,preferred_name,first_name,surname,year_level,created_at")
+      .select(
+        "id,family_profile_id,preferred_name,first_name,surname,year_level,created_at",
+      )
       .single(),
     "create learner",
   );
@@ -155,6 +287,7 @@ export async function createCanonicalFamilyLearner(
   const learner = toLearnerRecord(studentResponse.data as StudentInsertRow);
 
   const linkPayload = {
+    family_profile_id: familyProfileId,
     user_id: userId,
     student_id: learner.id,
     relationship_role: "parent",
@@ -168,6 +301,21 @@ export async function createCanonicalFamilyLearner(
   );
 
   if (linkResponse.error) {
+    await withTimeout(
+      supabase
+        .from("students")
+        .delete()
+        .eq("id", learner.id)
+        .eq("family_profile_id", familyProfileId),
+      "rollback learner insert",
+    ).catch((rollbackError) => {
+      console.error("[learner-create] rollback failed", {
+        userId,
+        learnerId: learner.id,
+        rollbackError,
+      });
+    });
+
     console.error("[learner-create] link failed", {
       userId,
       learnerId: learner.id,
@@ -193,26 +341,32 @@ export async function updateCanonicalFamilyLearner(
   input: CanonicalLearnerInput,
 ) {
   const validated = validateLearnerInput(input);
+  const familyProfileId = await resolveCurrentFamilyProfileId(userId);
 
-  const linkCheck = await withTimeout(
+  if (!familyProfileId) {
+    throw new Error("The family workspace is not ready for learner updates yet.");
+  }
+
+  const learnerCheck = await withTimeout(
     supabase
-      .from("parent_student_links")
-      .select("student_id")
-      .eq("user_id", userId)
-      .eq("student_id", learnerId)
+      .from("students")
+      .select("id")
+      .eq("family_profile_id", familyProfileId)
+      .eq("id", learnerId)
       .limit(1)
       .maybeSingle(),
-    "validate learner link",
+    "validate learner ownership",
   );
 
-  if (linkCheck.error) {
+  if (learnerCheck.error) {
     throw new Error(
-      safe(linkCheck.error.message) || "We couldn't validate this learner link.",
+      safe(learnerCheck.error.message) ||
+        "We couldn't validate this learner yet.",
     );
   }
 
-  if (!safe(linkCheck.data?.student_id)) {
-    throw new Error("This learner is not linked to the current family workspace.");
+  if (!safe(learnerCheck.data?.id)) {
+    throw new Error("This learner is not part of the current family workspace.");
   }
 
   const updateResponse = await withTimeout(
@@ -224,6 +378,7 @@ export async function updateCanonicalFamilyLearner(
         surname: validated.surname,
         year_level: validated.yearLevelNumber,
       })
+      .eq("family_profile_id", familyProfileId)
       .eq("id", learnerId),
     "update learner",
   );
@@ -236,12 +391,18 @@ export async function updateCanonicalFamilyLearner(
 }
 
 export async function removeCanonicalFamilyLearner(userId: string, learnerId: string) {
+  const familyProfileId = await resolveCurrentFamilyProfileId(userId);
+
+  if (!familyProfileId) {
+    throw new Error("The family workspace is not ready for learner removal yet.");
+  }
+
   const response = await withTimeout(
     supabase
-      .from("parent_student_links")
+      .from("students")
       .delete()
-      .eq("user_id", userId)
-      .eq("student_id", learnerId),
+      .eq("family_profile_id", familyProfileId)
+      .eq("id", learnerId),
     "remove learner",
   );
 

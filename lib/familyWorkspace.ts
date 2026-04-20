@@ -12,6 +12,7 @@ import {
 import {
   createCanonicalFamilyLearner,
   removeCanonicalFamilyLearner,
+  resolveCurrentFamilyProfileId,
   updateCanonicalFamilyLearner,
 } from "@/lib/familyLearnerService";
 import {
@@ -202,21 +203,40 @@ export async function getCurrentFamilyUserId(): Promise<string | null> {
 
 export async function loadLinkedLearners(
   userId: string,
+  familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
-  const linksResponse = (await withTimeout(
-    supabase
-      .from("parent_student_links")
-      .select("student_id,created_at")
-      .eq("user_id", userId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-    "load learner links",
-  )) as QueryResponse<
-    Array<{
-      student_id?: string | null;
-      created_at?: string | null;
-    }>
-  >;
+  const resolvedFamilyProfileId =
+    safe(familyProfileId) || (await resolveCurrentFamilyProfileId(userId));
+
+  if (!resolvedFamilyProfileId) {
+    return [];
+  }
+
+  const [linksResponse, studentResponse] = (await withTimeout(
+    Promise.all([
+      supabase
+        .from("parent_student_links")
+        .select("student_id,created_at")
+        .eq("family_profile_id", resolvedFamilyProfileId)
+        .eq("user_id", userId)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("students")
+        .select("id,preferred_name,first_name,surname,year_level,created_at")
+        .eq("family_profile_id", resolvedFamilyProfileId)
+        .order("created_at", { ascending: true }),
+    ]),
+    "load family learners",
+  )) as [
+    QueryResponse<
+      Array<{
+        student_id?: string | null;
+        created_at?: string | null;
+      }>
+    >,
+    QueryResponse<Array<Record<string, unknown>>>,
+  ];
 
   const links = linksResponse.data ?? [];
   const linksError = linksResponse.error;
@@ -225,33 +245,21 @@ export async function loadLinkedLearners(
     throw linksError;
   }
 
-  if (!links.length) return [];
-
-  const orderedIds = Array.from(
-    new Set(links.map((link) => safe(link.student_id)).filter(Boolean)),
-  );
-
-  if (!orderedIds.length) return [];
-
-  const studentResponse = (await withTimeout(
-    supabase
-      .from("students")
-      .select("id,preferred_name,first_name,surname,year_level")
-      .in("id", orderedIds),
-    "load students",
-  )) as QueryResponse<Array<Record<string, unknown>>>;
-
   if (studentResponse.error) {
     throw studentResponse.error;
   }
 
   const students = studentResponse.data ?? [];
+  if (!students.length) return [];
 
   const studentMap = new Map(
     (students ?? []).map((student) => [student.id, student]),
   );
 
-  const learners = orderedIds.map((id) => {
+  const orderedIds = Array.from(
+    new Set(links.map((link) => safe(link.student_id)).filter(Boolean)),
+  );
+  const orderedLearners = orderedIds.map((id) => {
     const student = studentMap.get(id);
     if (!student) return null;
 
@@ -276,7 +284,40 @@ export async function loadLinkedLearners(
     } satisfies FamilyLearner;
   });
 
-  return learners.filter(Boolean) as FamilyLearner[];
+  const linkedIds = new Set(
+    orderedLearners
+      .map((learner) => safe(learner?.id))
+      .filter(Boolean),
+  );
+
+  const remainingLearners = students
+    .filter((student) => !linkedIds.has(safe(student.id)))
+    .map((student) => {
+      const id = safe(student.id);
+      const label =
+        safe(student.preferred_name) ||
+        [safe(student.first_name), safe(student.surname)]
+          .filter(Boolean)
+          .join(" ")
+          .trim() ||
+        "Unnamed learner";
+      const yearLevel = familyYearLevelToStoredNumber(
+        (student as { year_level?: string | number | null }).year_level,
+      );
+
+      return {
+        id,
+        label,
+        yearLabel: familyYearLevelLabelFromStored(yearLevel),
+        year_level: yearLevel,
+        connectedAt: safe(student.created_at) || null,
+      } satisfies FamilyLearner;
+    });
+
+  return [
+    ...(orderedLearners.filter(Boolean) as FamilyLearner[]),
+    ...remainingLearners,
+  ];
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
@@ -291,15 +332,16 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   }
 
   try {
-    const [profile, dbLearners] = await withTimeout(
-      Promise.all([
-        loadFamilyProfile().catch(() => localProfile) as Promise<FamilyProfileRow>,
-        loadLinkedLearners(userId).catch((error) => {
-          console.error("loadLinkedLearners fallback", error);
-          return localLearners;
-        }),
-      ]),
-      "load family workspace",
+    const profile = await withTimeout(
+      loadFamilyProfile().catch(() => localProfile) as Promise<FamilyProfileRow>,
+      "load family profile",
+    );
+    const dbLearners = await withTimeout(
+      loadLinkedLearners(userId, profile.id).catch((error) => {
+        console.error("loadLinkedLearners fallback", error);
+        return localLearners;
+      }),
+      "load family learners",
     );
 
     const learners = mergeLearners(dbLearners, localLearners);

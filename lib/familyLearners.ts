@@ -1,4 +1,5 @@
 import { getCurrentUserId } from "@/lib/familySettings";
+import { resolveCurrentFamilyProfileId } from "@/lib/familyLearnerService";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 export function safeFamilyValue(value: unknown) {
@@ -40,17 +41,34 @@ export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
 
   const userId = await getCurrentUserId();
   if (!userId) return null;
+  const familyProfileId = await resolveCurrentFamilyProfileId(userId);
+  if (!familyProfileId) return [];
 
-  const linksResp = await supabase
-    .from("parent_student_links")
-    .select("student_id,sort_order,created_at")
-    .eq("user_id", userId)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  const [linksResp, studentsResp] = await Promise.all([
+    supabase
+      .from("parent_student_links")
+      .select("student_id,sort_order,created_at")
+      .eq("family_profile_id", familyProfileId)
+      .eq("user_id", userId)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("students")
+      .select("id,created_at")
+      .eq("family_profile_id", familyProfileId)
+      .order("created_at", { ascending: true }),
+  ]);
 
   if (linksResp.error) {
     if (!isMissingLearnerRelationOrColumn(linksResp.error)) {
       throw linksResp.error;
+    }
+    return null;
+  }
+
+  if (studentsResp.error) {
+    if (!isMissingLearnerRelationOrColumn(studentsResp.error)) {
+      throw studentsResp.error;
     }
     return null;
   }
@@ -60,6 +78,13 @@ export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
 
   ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
     const id = safeFamilyValue(row.student_id);
+    if (!id || seen.has(id)) return;
+    seen.add(id);
+    orderedIds.push(id);
+  });
+
+  ((studentsResp.data ?? []) as Array<{ id?: string | null }>).forEach((row) => {
+    const id = safeFamilyValue(row.id);
     if (!id || seen.has(id)) return;
     seen.add(id);
     orderedIds.push(id);
