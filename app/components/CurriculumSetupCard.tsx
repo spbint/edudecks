@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { CurriculumPreferences } from "@/lib/familySettings";
 import {
   buildCanonicalCountryOptions,
@@ -25,6 +25,7 @@ export default function CurriculumSetupCard({
   value,
   onChange,
 }: CurriculumSetupCardProps) {
+  const editorRef = useRef<HTMLDivElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
   const [frameworks, setFrameworks] = useState<CanonicalCurriculumFramework[]>([]);
@@ -69,6 +70,14 @@ export default function CurriculumSetupCard({
       setDraft(value);
     }
   }, [value, isEditing]);
+
+  useEffect(() => {
+    if (!isEditing || !editorRef.current) return;
+    editorRef.current.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  }, [isEditing]);
 
   const countryOptions = useMemo(
     () => buildCanonicalCountryOptions(frameworks),
@@ -210,15 +219,17 @@ export default function CurriculumSetupCard({
 
       {isEditing ? (
         loadingFrameworks ? (
-          <div style={cardStyles.loading}>Loading curriculum frameworks...</div>
+          <div ref={editorRef} style={cardStyles.loading}>
+            Loading curriculum frameworks...
+          </div>
         ) : frameworks.length === 0 ? (
-          <div style={cardStyles.empty}>
+          <div ref={editorRef} style={cardStyles.empty}>
             <p>
               No canonical curriculum frameworks are available yet. Seed the curriculum tables first, then return here to choose the family framework.
             </p>
           </div>
         ) : (
-          <div style={cardStyles.form}>
+          <div ref={editorRef} style={cardStyles.form}>
             <Field
               label="Country"
               help="Choose the country that matches your family learning context."
@@ -325,7 +336,6 @@ export default function CurriculumSetupCard({
               type="button"
               style={cardStyles.primaryButton}
               onClick={openEditor}
-              disabled={loadingFrameworks || frameworks.length === 0}
             >
               Edit curriculum
             </button>
@@ -341,7 +351,6 @@ export default function CurriculumSetupCard({
               type="button"
               style={cardStyles.primaryButton}
               onClick={openEditor}
-              disabled={loadingFrameworks || frameworks.length === 0}
             >
               Set up curriculum
             </button>
