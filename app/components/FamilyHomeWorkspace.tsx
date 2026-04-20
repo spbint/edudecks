@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   createLinkedLearner,
@@ -24,7 +23,6 @@ import {
   persistSettingsToLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
-import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
@@ -33,15 +31,6 @@ type EvidenceRow = {
   title?: string | null;
   summary?: string | null;
   created_at?: string | null;
-};
-
-type ReportRow = {
-  id: string;
-  title?: string | null;
-  status?: string | null;
-  updated_at?: string | null;
-  student_id?: string | null;
-  child_id?: string | null;
 };
 
 type EditDraft = {
@@ -59,14 +48,6 @@ function yearInputValue(learner: FamilyLearner) {
 
 function learnerName(learner: FamilyLearner) {
   return safe(learner.label) || "Unnamed learner";
-}
-
-function statusLabel(status?: string | null) {
-  const value = safe(status).toLowerCase();
-  if (value === "final") return "Final";
-  if (value === "submitted") return "Submitted";
-  if (value === "archived") return "Archived";
-  return "Draft";
 }
 
 function formatTimestamp(value: string | null | undefined) {
@@ -102,7 +83,6 @@ export default function FamilyHomeWorkspace() {
   const [editingChildId, setEditingChildId] = useState("");
   const [editDrafts, setEditDrafts] = useState<Record<string, EditDraft>>({});
   const [recentEvidence, setRecentEvidence] = useState<EvidenceRow[]>([]);
-  const [recentReports, setRecentReports] = useState<ReportRow[]>([]);
 
   const children = workspace.learners;
   const profile = workspace.profile as FamilySettings;
@@ -121,7 +101,6 @@ export default function FamilyHomeWorkspace() {
       if (!workspace.userId || !hasSupabaseEnv) {
         if (!mounted) return;
         setRecentEvidence([]);
-        setRecentReports([]);
         return;
       }
 
@@ -132,29 +111,17 @@ export default function FamilyHomeWorkspace() {
       if (!learnerIds.length) {
         if (!mounted) return;
         setRecentEvidence([]);
-        setRecentReports([]);
         return;
       }
 
       try {
-        const [evidenceRes, reportRes] = await Promise.all([
-          supabase
-            .from("evidence_entries")
-            .select("id,student_id,title,summary,created_at")
-            .in("student_id", learnerIds)
-            .eq("is_deleted", false)
-            .order("created_at", { ascending: false })
-            .limit(6),
-          supabase
-            .from("report_drafts")
-            .select("id,title,status,updated_at,student_id,child_id")
-            .eq("user_id", workspace.userId)
-            .or(
-              `student_id.in.(${learnerIds.join(",")}),child_id.in.(${learnerIds.join(",")})`,
-            )
-            .order("updated_at", { ascending: false })
-            .limit(4),
-        ]);
+        const evidenceRes = await supabase
+          .from("evidence_entries")
+          .select("id,student_id,title,summary,created_at")
+          .in("student_id", learnerIds)
+          .eq("is_deleted", false)
+          .order("created_at", { ascending: false })
+          .limit(6);
 
         if (!mounted) return;
 
@@ -162,22 +129,6 @@ export default function FamilyHomeWorkspace() {
           setRecentEvidence((evidenceRes.data ?? []) as EvidenceRow[]);
         } else {
           setRecentEvidence([]);
-        }
-
-        if (!reportRes.error) {
-          const familyLearnerIds = new Set(learnerIds);
-          setRecentReports(
-            ((reportRes.data ?? []) as ReportRow[]).filter((row) => {
-              const studentId = safe(row.student_id);
-              const childId = safe(row.child_id);
-              return (
-                (studentId && familyLearnerIds.has(studentId)) ||
-                (childId && familyLearnerIds.has(childId))
-              );
-            }),
-          );
-        } else {
-          setRecentReports([]);
         }
       } catch (readError) {
         console.error("family home read model hydrate failed", readError);
@@ -468,12 +419,6 @@ export default function FamilyHomeWorkspace() {
       heroAsideTitle="Current workspace"
       heroAsideText="Use this page to orient the family, manage learners, and move into capture, planning, or reporting with the right learner in view."
     >
-      <WorkflowPageFrame
-        steps={FAMILY_WORKFLOW_PAGE_STEPS.family}
-        activeStepId="family-overview"
-        title="Family pathway"
-        helperText="Use family home to orient the family, manage learners, and move deliberately into the next workflow stage."
-      >
       <div style={S.page}>
         <section id="family-overview" style={S.section}>
           {status ? <div style={S.successBanner}>{status}</div> : null}
@@ -642,44 +587,14 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section id="family-capture" style={S.section}>
-          <div style={S.addCard}>
-            <div style={S.addHeader}>
-              <div style={S.cardTitle}>Capture learning</div>
-              <div style={S.helperText}>
-                Use the Capture stage when you are ready to record what happened for the current learner.
-              </div>
-            </div>
-            <div style={S.captureHeaderRow}>
-              <div style={S.captureContext}>
-                <div style={S.summaryLabel}>Current learner</div>
-                <div style={S.summaryValue}>{activeLearner?.label || "Choose a learner first"}</div>
-                <div style={S.helperText}>
-                  Check the current learner here, then continue into the dedicated Capture stage.
-                </div>
-              </div>
-              <Link
-                href="/capture"
-                style={!activeLearner ? S.linkButtonDisabled : S.secondaryButton}
-                aria-disabled={!activeLearner}
-                onClick={(event) => {
-                  if (!activeLearner) event.preventDefault();
-                }}
-              >
-                Open Capture
-              </Link>
-            </div>
-          </div>
-        </section>
-
         <section id="family-activity" style={S.section}>
           <div style={S.sectionHeader}>
             <div>
               <div style={S.eyebrow}>Family record</div>
-              <h2 style={S.sectionTitle}>Recent learning and report activity</h2>
+              <h2 style={S.sectionTitle}>Recent learning</h2>
             </div>
           </div>
-          <div style={S.activityGrid}>
+          <div style={S.activityFeed}>
             {recentEvidence.length ? recentEvidence.map((row) => (
               <div key={row.id} style={S.learningRow}>
                 <div style={S.learningRowText}>
@@ -693,14 +608,6 @@ export default function FamilyHomeWorkspace() {
                 </div>
               </div>
             )) : <div style={S.helperText}>No learning has been captured yet.</div>}
-            <div style={S.activityCard}>
-              <div style={S.cardTitle}>Recent reports</div>
-              {recentReports.length ? recentReports.map((row) => (
-                <div key={row.id} style={S.activityRow}>
-                  {(safe(row.title) || "Untitled report")} · {statusLabel(row.status)}
-                </div>
-              )) : <div style={S.helperText}>No recent family reports yet.</div>}
-            </div>
           </div>
         </section>
 
@@ -714,7 +621,6 @@ export default function FamilyHomeWorkspace() {
           />
         </section>
       </div>
-      </WorkflowPageFrame>
     </FamilyTopNavShell>
   );
 }
@@ -733,8 +639,6 @@ const S: Record<string, React.CSSProperties> = {
   quickActionCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 6, textDecoration: "none" },
   addCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
   addHeader: { display: "grid", gap: 4 },
-  captureHeaderRow: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" },
-  captureContext: { display: "grid", gap: 6 },
   learnerList: { display: "grid", gap: 12 },
   learnerCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
   learnerHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" },
@@ -748,14 +652,12 @@ const S: Record<string, React.CSSProperties> = {
   primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
-  linkButtonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, textDecoration: "none", cursor: "not-allowed", pointerEvents: "auto" },
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
   warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
   errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },
   chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
-  activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
-  activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },
+  activityFeed: { display: "grid", gap: 12 },
   activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
   learningRow: { border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc", padding: 14, display: "grid", gap: 8 },
   learningRowText: { display: "grid", gap: 4 },
