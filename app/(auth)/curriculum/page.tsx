@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
+import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   loadLearnerCurriculumPageData,
@@ -17,6 +18,7 @@ import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
+import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 
 const STATUS_OPTIONS: Array<{
   value: LearnerOutcomeStatusKey;
@@ -494,6 +496,18 @@ export default function CurriculumPage() {
       heroAsideTitle="Curriculum mapper"
       heroAsideText="This is the first live curriculum map surface backed by the canonical family settings and learner mapper tables."
     >
+      <WorkflowPageFrame
+        steps={FAMILY_WORKFLOW_PAGE_STEPS.curriculum}
+        activeStepId={
+          highlightOutcomesSection
+            ? "curriculum-summary"
+            : highlightSetupSection
+              ? "curriculum-setup"
+              : "curriculum-setup"
+        }
+        title="Curriculum pathway"
+        helperText="Confirm the learner and curriculum setup first, then review progress, resolve gaps, and work through outcomes."
+      >
       <div style={S.page}>
         {curriculumGuidanceNote ? (
           <section
@@ -509,6 +523,7 @@ export default function CurriculumPage() {
           </section>
         ) : null}
         <section
+          id="curriculum-setup"
           style={{
             ...S.topCard,
             ...(highlightSetupSection
@@ -626,6 +641,7 @@ export default function CurriculumPage() {
         ) : (
           <>
             <section
+              id="curriculum-summary"
               style={{
                 ...S.summaryGrid,
                 ...(highlightOutcomesSection
@@ -705,7 +721,7 @@ export default function CurriculumPage() {
               </div>
             </section>
 
-            <section style={S.card}>
+            <section id="curriculum-snapshot" style={S.card}>
               <div style={S.cardHeader}>
                 <div>
                   <div style={S.cardTitle}>Progress snapshot</div>
@@ -750,7 +766,7 @@ export default function CurriculumPage() {
             </section>
 
             {pageData.totalPlanLinks === 0 ? (
-              <section style={S.card}>
+              <section id="curriculum-handoffs" style={S.card}>
                 <div style={S.cardHeader}>
                   <div>
                     <div style={S.cardTitle}>No curriculum-linked planning yet</div>
@@ -785,8 +801,12 @@ export default function CurriculumPage() {
               </section>
             ) : null}
 
-            {pageData.areas.map((area) => (
-              <section key={area.id} style={S.card}>
+            {pageData.areas.map((area, index) => (
+              <section
+                id={index === 0 ? "curriculum-map" : undefined}
+                key={area.id}
+                style={S.card}
+              >
                 <div style={S.areaHeader}>
                   <div>
                     <div style={S.cardTitle}>{area.name}</div>
@@ -901,6 +921,7 @@ export default function CurriculumPage() {
           </>
         )}
       </div>
+      </WorkflowPageFrame>
     </FamilyTopNavShell>
   );
 }

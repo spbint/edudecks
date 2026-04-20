@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import FamilyWorkflowRibbon from "@/app/components/FamilyWorkflowRibbon";
+import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import GuidedCompletionFeedback from "@/app/components/GuidedCompletionFeedback";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
@@ -58,6 +59,7 @@ import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
+import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 
 type StudentRow = {
   id: string;
@@ -1870,6 +1872,18 @@ function ReportsPageContent() {
     <main style={pageStyle}>
       <div style={innerStyle}>
         <FamilyWorkflowRibbon currentRoute="/reports" style={{ marginBottom: 20 }} />
+        <WorkflowPageFrame
+          steps={FAMILY_WORKFLOW_PAGE_STEPS.reports}
+          activeStepId={
+            highlightFamilyNote
+              ? "reports-draft"
+              : highlightEvidenceSelection
+                ? "reports-evidence"
+                : "reports-builder"
+          }
+          title="Reports pathway"
+          helperText="Start by reading the builder position, then set the report, choose evidence, save the draft, and review saved outputs."
+        >
         <FamilyHandoffNote handoff={shellHandoff} acted={reportsStepTaken} marginBottom={20} />
         <div style={{ ...smallStyle, marginBottom: 18, color: "#64748b" }}>
           Reports take shape over time as your learning builds.
@@ -1935,7 +1949,7 @@ function ReportsPageContent() {
           </section>
         ) : null}
 
-        <section style={{ ...cardStyle, marginBottom: 18 }}>
+        <section id="reports-builder" style={{ ...cardStyle, marginBottom: 18 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: 24 }}>
             <div>
               <div style={labelStyle}>Guided report builder</div>
@@ -2145,7 +2159,7 @@ function ReportsPageContent() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1.15fr 0.85fr", gap: 18 }}>
           <div style={{ display: "grid", gap: 18 }}>
-            <section style={cardStyle}>
+            <section id="reports-signals" style={cardStyle}>
               <div style={h2Style}>Canonical family signals</div>
               <div style={smallStyle}>
                 These summaries come from the live family curriculum map, weekly planner, and evidence history already saved for this learner.
@@ -2266,7 +2280,7 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section id="reports-settings" style={cardStyle}>
               <div style={h2Style}>Preset and report settings</div>
 
               <div
@@ -2423,7 +2437,7 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section id="reports-evidence" style={cardStyle}>
               <div style={h2Style}>Coverage snapshot</div>
               <div style={smallStyle}>
                 Planned and evidenced curriculum coverage is shown here first. The area filter below still shapes which evidence this saved report object will include.
@@ -2759,6 +2773,7 @@ function ReportsPageContent() {
 
           <aside style={{ display: "grid", gap: 18 }}>
             <section
+              id="reports-draft"
               style={{
                 ...cardStyle,
                 ...(highlightDraftPosition ? focusedSectionStyle : {}),
@@ -2902,7 +2917,7 @@ function ReportsPageContent() {
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section id="reports-library" style={cardStyle}>
               <div style={h2Style}>Saved object reference</div>
               <div style={{ ...softCardStyle, marginTop: 12 }}>
                 <div style={labelStyle}>Draft ID</div>
@@ -3137,6 +3152,7 @@ function ReportsPageContent() {
             </section>
           </aside>
         </div>
+        </WorkflowPageFrame>
       </div>
     </main>
   );

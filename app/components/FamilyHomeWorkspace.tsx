@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import {
@@ -18,6 +19,7 @@ import {
   persistSettingsToLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
+import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
@@ -512,8 +514,14 @@ export default function FamilyHomeWorkspace() {
       heroAsideTitle="Current workspace"
       heroAsideText="Use this page to manage learners, capture new moments, and stay close to recent reporting activity."
     >
+      <WorkflowPageFrame
+        steps={FAMILY_WORKFLOW_PAGE_STEPS.family}
+        activeStepId={showCaptureForm ? "family-capture" : "family-overview"}
+        title="Family pathway"
+        helperText="Use family home to orient the family, manage learners, capture a moment, and hand off to the next stage."
+      >
       <div style={S.page}>
-        <section style={S.section}>
+        <section id="family-overview" style={S.section}>
           {status ? <div style={S.successBanner}>{status}</div> : null}
           {warning ? <div style={S.warningBanner}>{warning}</div> : null}
           {error ? <div style={S.errorBanner}>{error}</div> : null}
@@ -538,7 +546,7 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section style={S.section}>
+        <section id="family-actions" style={S.section}>
           <div style={S.sectionHeader}>
             <div>
               <div style={S.eyebrow}>Quick actions</div>
@@ -669,7 +677,7 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section style={S.section}>
+        <section id="family-capture" style={S.section}>
           <div style={S.addCard}>
             <div style={S.addHeader}>
               <div style={S.cardTitle}>Capture learning</div>
@@ -746,7 +754,7 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section style={S.section}>
+        <section id="family-activity" style={S.section}>
           <div style={S.sectionHeader}>
             <div>
               <div style={S.eyebrow}>Family record</div>
@@ -778,7 +786,7 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section style={S.section}>
+        <section id="family-settings-handoff" style={S.section}>
           <CurriculumSummary
             title="Curriculum setup lives in settings"
             description="Keep family home focused on learners, capture, and progress. Use settings to update curriculum setup."
@@ -788,6 +796,7 @@ export default function FamilyHomeWorkspace() {
           />
         </section>
       </div>
+      </WorkflowPageFrame>
     </FamilyTopNavShell>
   );
 }

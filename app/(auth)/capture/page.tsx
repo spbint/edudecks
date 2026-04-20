@@ -16,6 +16,7 @@ import {
 } from "@/lib/familyCurriculum";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import FamilyHandoffNote from "@/app/components/FamilyHandoffNote";
+import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import UpgradeCard from "@/app/components/premium/UpgradeCard";
 import {
   FAMILY_SHELL_HANDOFF_QUERY_PARAM,
@@ -30,6 +31,7 @@ import {
   readGuidedCompletionSnapshot,
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
+import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
@@ -1683,11 +1685,18 @@ export default function CapturePage() {
       heroAsideText="A quick title, a short note, and one learning domain are enough to get started."
     >
       <FamilyHandoffNote handoff={shellHandoff} acted={handoffStepTaken} />
+      <WorkflowPageFrame
+        steps={FAMILY_WORKFLOW_PAGE_STEPS.capture}
+        activeStepId={highlightCurriculumLinking ? "capture-curriculum" : "capture-form"}
+        title="Capture pathway"
+        helperText="Start by naming the moment, then save it, link it when needed, and move the record forward."
+      >
       <p style={{ marginBottom: 18, fontSize: 14, lineHeight: 1.65, color: "#64748b" }}>
         Even a quick note or photo is enough to capture real learning.
       </p>
       {captureGuidanceNote ? (
         <section
+          id="capture-overview"
           style={{
             ...guidedInsetCard(),
             borderRadius: 16,
@@ -1731,6 +1740,7 @@ export default function CapturePage() {
       ) : (
         <>
           <section
+            id="capture-overview"
             style={{
               ...mainCard(),
               marginBottom: 18,
@@ -1789,6 +1799,7 @@ export default function CapturePage() {
           </section>
 
           <section
+            id="capture-form"
             style={{
               display: "grid",
               gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.8fr)",
@@ -1818,6 +1829,7 @@ export default function CapturePage() {
 
                 {captureDetailsCue ? (
                   <div
+                    id="capture-curriculum"
                     style={{
                       ...guidedInsetCard(),
                       marginTop: 16,
@@ -2415,6 +2427,7 @@ export default function CapturePage() {
               </section>
 
               <section
+                id="capture-next-step"
                 style={{
                   ...mainCard(),
                   padding: 18,
@@ -2476,7 +2489,7 @@ export default function CapturePage() {
             </div>
 
             <div style={{ display: "grid", gap: 18 }}>
-              <section style={mainCard()}>
+              <section id="capture-guide" style={mainCard()}>
                 <div style={eyebrowStyle()}>Helpful guide</div>
                 <div
                   style={{
@@ -2639,6 +2652,7 @@ export default function CapturePage() {
           ) : null}
         </>
       )}
+      </WorkflowPageFrame>
     </FamilyTopNavShell>
   );
 }

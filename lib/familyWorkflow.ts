@@ -1,0 +1,219 @@
+export type FamilyWorkflowStageKey =
+  | "home"
+  | "calendar"
+  | "capture"
+  | "curriculum"
+  | "reports";
+
+export type WorkflowGuideStep = {
+  id: string;
+  label: string;
+  detail: string;
+};
+
+export const FAMILY_WORKFLOW_STAGES: Array<{
+  key: FamilyWorkflowStageKey;
+  label: string;
+  href: string;
+  detail: string;
+}> = [
+  {
+    key: "home",
+    label: "Home",
+    href: "/family",
+    detail: "Start with the family view and current learner.",
+  },
+  {
+    key: "calendar",
+    label: "Calendar",
+    href: "/calendar",
+    detail: "Shape the week and place the next learning blocks.",
+  },
+  {
+    key: "capture",
+    label: "Capture",
+    href: "/capture",
+    detail: "Record what happened while it is still fresh.",
+  },
+  {
+    key: "curriculum",
+    label: "Curriculum",
+    href: "/curriculum",
+    detail: "See what the learner is working toward and what is tracked.",
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    href: "/reports",
+    detail: "Turn learning into a report-ready record over time.",
+  },
+];
+
+export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
+  family: [
+    {
+      id: "family-overview",
+      label: "Family overview",
+      detail: "Start with the family snapshot and the current learner.",
+    },
+    {
+      id: "family-actions",
+      label: "Quick actions",
+      detail: "Open the next workspace you need from one place.",
+    },
+    {
+      id: "learner-management",
+      label: "Manage learners",
+      detail: "Add learners, switch the current learner, and update details.",
+    },
+    {
+      id: "family-capture",
+      label: "Capture learning",
+      detail: "Save one useful moment without leaving family home.",
+    },
+    {
+      id: "family-activity",
+      label: "Review activity",
+      detail: "Check recent learning and reporting movement.",
+    },
+    {
+      id: "family-settings-handoff",
+      label: "Settings handoff",
+      detail: "Move curriculum setup into settings when needed.",
+    },
+  ],
+  calendar: [
+    {
+      id: "calendar-overview",
+      label: "Calendar overview",
+      detail: "See what this page is for before placing the next block.",
+    },
+    {
+      id: "calendar-guidance",
+      label: "Weekly guidance",
+      detail: "Use the suggestions to start the week lightly.",
+    },
+    {
+      id: "calendar-builder",
+      label: "Build the plan",
+      detail: "Add blocks, choose the learner, and shape the schedule.",
+    },
+    {
+      id: "calendar-view",
+      label: "Review the calendar",
+      detail: "Read the day, week, or month view as the plan settles.",
+    },
+    {
+      id: "calendar-next-step",
+      label: "Move forward",
+      detail: "Continue into capture, portfolio, or reports.",
+    },
+  ],
+  capture: [
+    {
+      id: "capture-overview",
+      label: "Capture overview",
+      detail: "See the quick purpose of this page first.",
+    },
+    {
+      id: "capture-form",
+      label: "Write the moment",
+      detail: "Record what happened and what it showed.",
+    },
+    {
+      id: "capture-curriculum",
+      label: "Link to curriculum",
+      detail: "Connect the saved moment to outcomes when it helps.",
+    },
+    {
+      id: "capture-guide",
+      label: "Use the guide",
+      detail: "Keep the prompts close so capture stays easy to trust.",
+    },
+    {
+      id: "capture-next-step",
+      label: "Move into reports",
+      detail: "Carry the saved moment into portfolio or reports.",
+    },
+  ],
+  curriculum: [
+    {
+      id: "curriculum-setup",
+      label: "Confirm setup",
+      detail: "Choose the learner and confirm the framework first.",
+    },
+    {
+      id: "curriculum-summary",
+      label: "Read the summary",
+      detail: "Check what is mapped, planned, and evidenced.",
+    },
+    {
+      id: "curriculum-snapshot",
+      label: "Review progress",
+      detail: "See what is secure, emerging, and still thin.",
+    },
+    {
+      id: "curriculum-handoffs",
+      label: "Resolve gaps",
+      detail: "Follow the next moves when planning or evidence is still missing.",
+    },
+    {
+      id: "curriculum-map",
+      label: "Work through outcomes",
+      detail: "Update tracked outcomes across the curriculum map.",
+    },
+  ],
+  reports: [
+    {
+      id: "reports-builder",
+      label: "Builder overview",
+      detail: "See where the draft is up to before making changes.",
+    },
+    {
+      id: "reports-signals",
+      label: "Review signals",
+      detail: "Bring curriculum, planner, and evidence signals together.",
+    },
+    {
+      id: "reports-settings",
+      label: "Set the report",
+      detail: "Choose the preset, period, and reporting posture.",
+    },
+    {
+      id: "reports-evidence",
+      label: "Choose evidence",
+      detail: "Select the clearest pieces to anchor the draft.",
+    },
+    {
+      id: "reports-draft",
+      label: "Save the draft",
+      detail: "Check draft position, add a family note, and save.",
+    },
+    {
+      id: "reports-library",
+      label: "Review saved reports",
+      detail: "Open saved drafts and outputs without losing the thread.",
+    },
+  ],
+};
+
+export function resolveFamilyWorkflowStage(
+  pathname: string,
+): FamilyWorkflowStageKey | null {
+  if (!pathname) return null;
+  if (pathname === "/family") return "home";
+  if (pathname.startsWith("/calendar") || pathname.startsWith("/planner")) {
+    return "calendar";
+  }
+  if (pathname.startsWith("/capture")) return "capture";
+  if (pathname.startsWith("/curriculum")) return "curriculum";
+  if (
+    pathname.startsWith("/reports") ||
+    pathname.startsWith("/portfolio") ||
+    pathname.startsWith("/exports") ||
+    pathname.startsWith("/authority")
+  ) {
+    return "reports";
+  }
+  return null;
+}

@@ -2,13 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import FamilyProgressRail from "@/app/components/FamilyProgressRail";
+import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   addFamilyCalendarBlock,
   loadFamilyCalendarWindow,
   saveFamilyCalendarDayNote,
 } from "@/lib/familyPlanner";
+import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
 
 type ViewMode = "day" | "week" | "month";
 type Subject =
@@ -393,12 +394,15 @@ export default function CalendarPage() {
 
   return (
     <main className="mx-auto w-full max-w-[1440px] px-6 py-6">
-      <div className="flex gap-6 xl:gap-8">
-        <FamilyProgressRail current="calendar" />
-
+      <WorkflowPageFrame
+        steps={FAMILY_WORKFLOW_PAGE_STEPS.calendar}
+        activeStepId="calendar-overview"
+        title="Calendar pathway"
+        helperText="Use the calendar to place the next learning blocks, then move forward into capture or reports."
+      >
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-6">
-            <section className={cx(surface, "px-8 py-7")}>
+            <section id="calendar-overview" className={cx(surface, "px-8 py-7")}>
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="max-w-[760px]">
                   <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
@@ -465,7 +469,7 @@ export default function CalendarPage() {
               </section>
             ) : null}
 
-            <section className={cx(surface, "px-7 py-7")}>
+            <section id="calendar-guidance" className={cx(surface, "px-7 py-7")}>
               <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
                 Weekly guidance
               </div>
@@ -552,7 +556,7 @@ export default function CalendarPage() {
               </div>
             </section>
 
-            <section className={cx(surface, "px-5 py-5")}>
+            <section id="calendar-builder" className={cx(surface, "px-5 py-5")}>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
@@ -671,7 +675,7 @@ export default function CalendarPage() {
             </section>
 
             {view === "week" && (
-              <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+              <section id="calendar-view" className="grid grid-cols-1 gap-4 lg:grid-cols-5">
                 {weekDays.map((day) => {
                   const key = ymd(day);
                   const items = blocks[key] ?? [];
@@ -818,7 +822,7 @@ export default function CalendarPage() {
             )}
 
             {view === "day" && (
-              <section className="grid gap-4 lg:grid-cols-[2fr_360px]">
+              <section id="calendar-view" className="grid gap-4 lg:grid-cols-[2fr_360px]">
                 <div className={cx(surface, "px-6 py-6")}>
                   <div className="mb-2 text-xs font-black uppercase tracking-[0.24em] text-slate-500">
                     Day view
@@ -911,7 +915,7 @@ export default function CalendarPage() {
             )}
 
             {view === "month" && (
-              <section>
+              <section id="calendar-view">
                 <div className="mb-3 grid grid-cols-5 gap-4 px-2 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500">
                   {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
                     <div key={d}>{d}</div>
@@ -952,6 +956,7 @@ export default function CalendarPage() {
             )}
 
             <section
+              id="calendar-next-step"
               className={cx(
                 surface,
                 "flex flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between",
@@ -1000,7 +1005,7 @@ export default function CalendarPage() {
             </section>
           </div>
         </div>
-      </div>
+      </WorkflowPageFrame>
     </main>
   );
 }
