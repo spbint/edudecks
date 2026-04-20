@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
       setMessage("Your password has been updated. Taking you back to login...");
       window.setTimeout(() => {
         router.replace(
-          "/login?authMode=password&authMessage=Your%20password%20has%20been%20updated.%20You%20can%20sign%20in%20now.",
+          "/login?authMessage=Your%20password%20has%20been%20updated.%20You%20can%20sign%20in%20now.",
         );
       }, 1200);
     } catch (err: unknown) {

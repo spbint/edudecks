@@ -1,44 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  completeFamilySignOut,
-  isFamilySignOutTimeout,
-} from "@/lib/familySignOut";
-
-type Status = "pending" | "failed";
+import React, { useEffect } from "react";
+import { completeFamilySignOut } from "@/lib/familySignOut";
 
 export default function SignOutPage() {
-  const [status, setStatus] = useState<Status>("pending");
-  const [errorMessage, setErrorMessage] = useState("");
-  const attemptRef = useRef(0);
-
-  async function runSignOutAttempt() {
-    const nextAttempt = attemptRef.current + 1;
-    attemptRef.current = nextAttempt;
-    setStatus("pending");
-    setErrorMessage("");
-
-    try {
-      await completeFamilySignOut();
-      if (attemptRef.current !== nextAttempt) return;
-      window.location.replace("/");
-    } catch (error) {
-      if (attemptRef.current !== nextAttempt) return;
-
-      console.error("Family sign-out route failed", error);
-      setStatus("failed");
-      setErrorMessage(
-        isFamilySignOutTimeout(error)
-          ? "Sign-out took too long. Please try again. If it keeps happening, use Return home and refresh there."
-          : "We couldn't sign you out just yet. Please try again.",
-      );
-    }
-  }
-
   useEffect(() => {
-    void runSignOutAttempt();
+    void completeFamilySignOut().finally(() => {
+      window.location.replace("/login?authMessage=You%20have%20been%20signed%20out.");
+    });
   }, []);
 
   return (
@@ -74,7 +44,7 @@ export default function SignOutPage() {
               color: "#64748b",
             }}
           >
-            Family sign out
+            Sign out
           </div>
           <h1
             style={{
@@ -84,83 +54,43 @@ export default function SignOutPage() {
               color: "#0f172a",
             }}
           >
-            {status === "pending" ? "Signing you out..." : "Sign-out needs attention"}
+            Signing you out...
           </h1>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#475569" }}>
-            {status === "pending"
-              ? "Please wait a moment while we clear this family session and confirm that it is gone."
-              : errorMessage}
+            We&apos;re clearing your local session now and sending you back to login.
           </p>
         </div>
 
-        {status === "failed" ? (
-          <div
-            role="alert"
-            style={{
-              borderRadius: 16,
-              border: "1px solid #fdba74",
-              background: "#fff7ed",
-              color: "#9a3412",
-              padding: "12px 14px",
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            {errorMessage}
-          </div>
-        ) : (
-          <div
-            aria-hidden
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              border: "3px solid #cbd5e1",
-              borderTopColor: "#1d4ed8",
-              animation: "spin 1s linear infinite",
-            }}
-          />
-        )}
+        <div
+          aria-hidden
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            border: "3px solid #cbd5e1",
+            borderTopColor: "#1d4ed8",
+            animation: "spin 1s linear infinite",
+          }}
+        />
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {status === "failed" ? (
-            <button
-              type="button"
-              onClick={() => void runSignOutAttempt()}
-              style={{
-                border: "none",
-                borderRadius: 12,
-                background: "#0f172a",
-                color: "#ffffff",
-                padding: "11px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: "pointer",
-              }}
-            >
-              Try again
-            </button>
-          ) : null}
-
-          <Link
-            href="/"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 12,
-              border: "1px solid #cbd5e1",
-              background: "#ffffff",
-              color: "#0f172a",
-              padding: "11px 14px",
-              fontSize: 14,
-              fontWeight: 800,
-              textDecoration: "none",
-            }}
-          >
-            Return home
-          </Link>
-        </div>
+        <Link
+          href="/login"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 12,
+            border: "1px solid #cbd5e1",
+            background: "#ffffff",
+            color: "#0f172a",
+            padding: "11px 14px",
+            fontSize: 14,
+            fontWeight: 800,
+            textDecoration: "none",
+          }}
+        >
+          Back to login
+        </Link>
       </section>
 
       <style jsx>{`

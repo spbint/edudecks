@@ -2,53 +2,30 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import {
-  getMagicLinkCooldownRemainingMs,
-  getMagicLinkErrorDetails,
-  getMagicLinkRetryAfterMs,
-  isValidMagicLinkEmail,
-  MAGIC_LINK_CLIENT_RESEND_DELAY_MS,
-  MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
-  mapMagicLinkError,
-  normalizeMagicLinkFeedback,
-  resetMagicLinkClientState,
-  sendMagicLink,
-} from "@/lib/authMagicLink";
+import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
-import { clearSignedOutMarker } from "@/lib/familySignOut";
 import { supabase } from "@/lib/supabaseClient";
 
 type SaveState = "idle" | "saving" | "success" | "error";
-type AuthMode = "link" | "password";
-const AUTH_MODE_STORAGE_KEY = "edudecks_login_auth_mode";
 
-function safe(v: unknown) {
-  return String(v ?? "").trim();
+function safe(value: unknown) {
+  return String(value ?? "").trim();
 }
 
-function readStoredAuthMode(): AuthMode | null {
-  if (typeof window === "undefined") return null;
-  const raw = safe(window.localStorage.getItem(AUTH_MODE_STORAGE_KEY));
-  return raw === "password" || raw === "link" ? raw : null;
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe(value));
 }
 
-function persistAuthMode(mode: AuthMode) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(AUTH_MODE_STORAGE_KEY, mode);
-  } catch {
-    // ignore storage failures
-  }
+function normalizeNextPath(value: string | null | undefined) {
+  const clean = safe(value);
+  if (!clean.startsWith("/")) return "/family";
+  if (clean.startsWith("//")) return "/family";
+  return clean || "/family";
 }
 
-function passwordSignInMessage(error: unknown) {
+function passwordErrorMessage(error: unknown) {
   const original = safe((error as { message?: unknown })?.message);
   const message = original.toLowerCase();
-
-  if (!message) {
-    return "We couldn't sign you in with that password just yet. Please try again.";
-  }
 
   if (
     message.includes("invalid login credentials") ||
@@ -61,7 +38,7 @@ function passwordSignInMessage(error: unknown) {
     return "This account still needs email confirmation before password sign-in can continue.";
   }
 
-  return original;
+  return original || "We couldn't sign you in just yet. Please try again.";
 }
 
 function cardStyle(): React.CSSProperties {
@@ -84,11 +61,11 @@ function labelStyle(): React.CSSProperties {
   };
 }
 
-function inputStyle(): React.CSSProperties {
+function inputStyle(invalid = false): React.CSSProperties {
   return {
     width: "100%",
     minHeight: 48,
-    border: "1px solid #d1d5db",
+    border: `1px solid ${invalid ? "#fca5a5" : "#d1d5db"}`,
     borderRadius: 14,
     padding: "0 14px",
     fontSize: 14,
@@ -149,164 +126,77 @@ export default function EmailAuthPage() {
 }
 
 function EmailAuthPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const devAuthModeEnabled = process.env.NEXT_PUBLIC_DEV_AUTH_MODE === "true";
-  const [authMode, setAuthMode] = useState<AuthMode>(
-    () => (devAuthModeEnabled ? "password" : "link"),
-  );
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
-  const [diagnosticCode, setDiagnosticCode] = useState("");
-  const [retryBlockedUntil, setRetryBlockedUntil] = useState<number | null>(null);
-  const [retryCountdown, setRetryCountdown] = useState(0);
+
+  const nextPath = useMemo(
+    () => normalizeNextPath(searchParams.get("next")),
+    [searchParams],
+  );
+  const emailValid = useMemo(() => isValidEmail(email), [email]);
+  const passwordValid = useMemo(() => safe(password).length >= 8, [password]);
 
   useEffect(() => {
-    const requestedMode = safe(searchParams.get("authMode"));
-    const nextMode =
-      requestedMode === "password" || requestedMode === "link"
-        ? (requestedMode as AuthMode)
-        : readStoredAuthMode() ?? (devAuthModeEnabled ? "password" : "link");
-
-    setAuthMode(nextMode);
-  }, [devAuthModeEnabled, searchParams]);
-
-  useEffect(() => {
-    persistAuthMode(authMode);
-  }, [authMode]);
-
-  useEffect(() => {
-    const authError = normalizeMagicLinkFeedback(searchParams.get("authError"));
-    const authMessage = normalizeMagicLinkFeedback(searchParams.get("authMessage"));
-    const hasAuthFeedback = Boolean(authError || authMessage);
-
-    if (hasAuthFeedback && typeof window !== "undefined") {
-      const nextUrl = new URL(window.location.href);
-      nextUrl.searchParams.delete("authError");
-      nextUrl.searchParams.delete("authMessage");
-      const nextSearch = nextUrl.searchParams.toString();
-      const nextHref = `${nextUrl.pathname}${nextSearch ? `?${nextSearch}` : ""}${nextUrl.hash}`;
-      window.history.replaceState({}, "", nextHref);
-    }
+    const authMessage = safe(searchParams.get("authMessage"));
+    const authError = safe(searchParams.get("authError"));
 
     if (authError) {
       setSaveState("error");
       setMessage(authError);
-      setDiagnosticCode("AUTH-SEND-URL");
       return;
     }
 
     if (authMessage) {
       setSaveState("success");
       setMessage(authMessage);
-      setDiagnosticCode("");
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    clearSignedOutMarker();
-    resetMagicLinkClientState();
-  }, []);
-
-  useEffect(() => {
-    if (!retryBlockedUntil) {
-      setRetryCountdown(0);
       return;
     }
 
-    const blockedUntil = retryBlockedUntil;
+    setSaveState("idle");
+    setMessage("");
+  }, [searchParams]);
 
-    function updateCountdown() {
-      const nextSeconds = Math.max(0, Math.ceil((blockedUntil - Date.now()) / 1000));
-      setRetryCountdown(nextSeconds);
+  useEffect(() => {
+    let active = true;
 
-      if (nextSeconds === 0) {
-        setRetryBlockedUntil(null);
+    async function hydrateSession() {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (data.session?.user) {
+        router.replace(nextPath);
       }
     }
 
-    updateCountdown();
-    const timer = window.setInterval(updateCountdown, 1000);
-    return () => window.clearInterval(timer);
-  }, [retryBlockedUntil]);
+    void hydrateSession();
 
-  const emailValid = useMemo(() => isValidMagicLinkEmail(email), [email]);
-  const normalizedEmail = useMemo(() => safe(email).toLowerCase(), [email]);
-  const retryBlocked = retryCountdown > 0;
-  const passwordValid = safe(password).length > 0;
-  const passwordModeBusy = authMode === "password" && saveState === "saving";
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+      if (session?.user) {
+        router.replace(nextPath);
+      }
+    });
 
-  useEffect(() => {
-    if (!normalizedEmail) return;
-
-    const remainingMs = getMagicLinkCooldownRemainingMs(normalizedEmail);
-    if (remainingMs > 0) {
-      setRetryBlockedUntil(Date.now() + remainingMs);
-    }
-  }, [normalizedEmail]);
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [nextPath, router]);
 
   function resetFeedback() {
     if (saveState !== "idle") {
       setSaveState("idle");
       setMessage("");
     }
-    if (diagnosticCode) {
-      setDiagnosticCode("");
-    }
   }
 
-  async function handleContinueWithLink() {
-    if (saveState === "saving" || retryBlocked) {
-      return;
-    }
-
-    if (!emailValid) {
-      setSaveState("error");
-      setMessage("Please enter a valid email address first.");
-      return;
-    }
-
-    try {
-      setSaveState("saving");
-      setMessage("");
-      setDiagnosticCode("");
-      clearSignedOutMarker();
-      resetMagicLinkClientState();
-
-      await sendMagicLink({
-        email,
-        nextPath: "/family",
-        source: "login-page",
-      });
-
-      setRetryBlockedUntil(Date.now() + MAGIC_LINK_CLIENT_RESEND_DELAY_MS);
-      setSaveState("success");
-      setMessage("We’ve sent you a secure link to continue.");
-      setDiagnosticCode("");
-    } catch (err: unknown) {
-      const details = getMagicLinkErrorDetails(err);
-      const retryAfterMs =
-        getMagicLinkRetryAfterMs(err) ??
-        (details.category === "provider_rate_limit"
-          ? MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS
-          : undefined);
-      setSaveState("error");
-      setMessage(
-        mapMagicLinkError(err) ||
-          "We couldn't send your secure link just yet. Please try again.",
-      );
-      setDiagnosticCode(details.diagnosticCode);
-      if (retryAfterMs) {
-        setRetryBlockedUntil(Date.now() + retryAfterMs);
-      }
-    }
-  }
-
-  async function handleContinueWithPassword() {
-    if (saveState === "saving") {
-      return;
-    }
+  async function handlePasswordSignIn() {
+    if (saveState === "saving") return;
 
     if (!emailValid) {
       setSaveState("error");
@@ -316,16 +206,13 @@ function EmailAuthPageContent() {
 
     if (!passwordValid) {
       setSaveState("error");
-      setMessage("Please enter your password first.");
+      setMessage("Please enter your password. Passwords need at least 8 characters.");
       return;
     }
 
     try {
       setSaveState("saving");
       setMessage("");
-      setDiagnosticCode("");
-      clearSignedOutMarker();
-      resetMagicLinkClientState();
 
       const { error } = await supabase.auth.signInWithPassword({
         email: safe(email).toLowerCase(),
@@ -335,18 +222,14 @@ function EmailAuthPageContent() {
       if (error) {
         throw error;
       }
-
-      window.location.assign("/family");
-    } catch (err: unknown) {
+    } catch (error) {
       setSaveState("error");
-      setMessage(passwordSignInMessage(err));
+      setMessage(passwordErrorMessage(error));
     }
   }
 
   async function handleForgotPassword() {
-    if (saveState === "saving") {
-      return;
-    }
+    if (saveState === "saving") return;
 
     if (!emailValid) {
       setSaveState("error");
@@ -357,7 +240,6 @@ function EmailAuthPageContent() {
     try {
       setSaveState("saving");
       setMessage("");
-      setDiagnosticCode("");
 
       const redirectTo =
         typeof window !== "undefined"
@@ -374,11 +256,11 @@ function EmailAuthPageContent() {
       }
 
       setSaveState("success");
-      setMessage("We’ve sent a password reset link to your email.");
-    } catch (err: unknown) {
+      setMessage("We've sent a password reset link to your email.");
+    } catch (error) {
       setSaveState("error");
       setMessage(
-        safe((err as { message?: unknown })?.message) ||
+        safe((error as { message?: unknown })?.message) ||
           "We couldn't send the password reset email just yet. Please try again.",
       );
     }
@@ -387,16 +269,16 @@ function EmailAuthPageContent() {
   return (
     <PublicSiteShell
       eyebrow="Sign in to EduDecks"
-      heroTitle="Sign in without testing friction"
-      heroText="Password sign-in is the steady path for repeated manual testing, while email-link access stays available when you need it."
+      heroTitle="Password-first family sign-in"
+      heroText="Use your email and password to get back into the family workspace quickly and repeatably."
       heroBadges={[]}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
-      footerPrimaryCta={{ label: "Continue to login", href: "/login?authMode=password" }}
+      footerPrimaryCta={{ label: "Back to login", href: "/login" }}
       footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
-      asideTitle="Two sign-in paths"
-      asideText="Use password sign-in for repeat testing cycles. Keep the secure email link as a secondary option for families who prefer it."
+      asideTitle="Simple auth"
+      asideText="EduDecks now uses a single password-first login flow for real use, repeated testing, and admin verification."
       showWorkflowStrip={false}
     >
       <section
@@ -419,7 +301,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Sign in to EduDecks
+            Sign in
           </div>
 
           <div
@@ -431,7 +313,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Choose your sign-in path
+            Continue with password
           </div>
 
           <div
@@ -443,75 +325,26 @@ function EmailAuthPageContent() {
               maxWidth: 720,
             }}
           >
-            Password sign-in is ready for repeated product testing. Email-link access remains available as a secondary path.
+            Sign in with your EduDecks email and password. If you need to set a new password, use the reset link below.
           </div>
 
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (authMode === "password") {
-                void handleContinueWithPassword();
-                return;
-              }
-              void handleContinueWithLink();
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handlePasswordSignIn();
             }}
             style={{ display: "grid", gap: 16 }}
           >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, minmax(0,1fr))",
-                gap: 10,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("link");
-                  setPassword("");
-                  resetFeedback();
-                }}
-                style={{
-                  ...secondaryButtonStyle(),
-                  minHeight: 44,
-                  borderColor: authMode === "link" ? "#2563eb" : "#e5e7eb",
-                  background: authMode === "link" ? "#eff6ff" : "#ffffff",
-                  color: authMode === "link" ? "#1d4ed8" : "#0f172a",
-                }}
-              >
-                Email link
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthMode("password");
-                  resetFeedback();
-                }}
-                style={{
-                  ...secondaryButtonStyle(),
-                  minHeight: 44,
-                  borderColor: authMode === "password" ? "#2563eb" : "#e5e7eb",
-                  background: authMode === "password" ? "#eff6ff" : "#ffffff",
-                  color: authMode === "password" ? "#1d4ed8" : "#0f172a",
-                }}
-              >
-                Password
-              </button>
-            </div>
-
             <div>
               <label style={labelStyle()}>Email address</label>
               <input
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
+                onChange={(event) => {
+                  setEmail(event.target.value);
                   resetFeedback();
                 }}
                 placeholder="Enter your email"
-                style={{
-                  ...inputStyle(),
-                  borderColor: safe(email) && !emailValid ? "#fca5a5" : "#d1d5db",
-                }}
+                style={inputStyle(safe(email) !== "" && !emailValid)}
                 autoComplete="email"
                 inputMode="email"
                 disabled={saveState === "saving"}
@@ -530,50 +363,40 @@ function EmailAuthPageContent() {
               ) : null}
             </div>
 
-            {authMode === "password" ? (
-              <div>
-                <label style={labelStyle()}>Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    resetFeedback();
-                  }}
-                  placeholder="Enter your password"
-                  style={inputStyle()}
-                  autoComplete="current-password"
-                  disabled={passwordModeBusy}
-                />
-              </div>
-            ) : null}
-
-            {saveState === "success" ? (
-              <div
-                style={{
-                  border: "1px solid #86efac",
-                  background: "#ecfdf5",
-                  color: "#166534",
-                  borderRadius: 14,
-                  padding: 14,
-                  display: "grid",
-                  gap: 4,
+            <div>
+              <label style={labelStyle()}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  resetFeedback();
                 }}
-              >
-                <div style={{ fontSize: 16, fontWeight: 900 }}>Check your email</div>
-                <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.6 }}>{message}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.6 }}>
-                  {authMode === "password"
-                    ? "Use the reset link from your inbox to choose a new password."
-                    : "Refreshing this page will not send another link. Use the resend button only if you need a new email."}
+                placeholder="Enter your password"
+                style={inputStyle(safe(password) !== "" && !passwordValid)}
+                autoComplete="current-password"
+                disabled={saveState === "saving"}
+              />
+              {safe(password) && !passwordValid ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "#b91c1c",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Passwords need at least 8 characters.
                 </div>
-              </div>
-            ) : message ? (
+              ) : null}
+            </div>
+
+            {message ? (
               <div
                 style={{
-                  border: "1px solid #fecaca",
-                  background: "#fff1f2",
-                  color: "#9f1239",
+                  border: `1px solid ${saveState === "success" ? "#86efac" : "#fecaca"}`,
+                  background: saveState === "success" ? "#ecfdf5" : "#fff1f2",
+                  color: saveState === "success" ? "#166534" : "#9f1239",
                   borderRadius: 14,
                   padding: 14,
                   fontSize: 14,
@@ -582,102 +405,37 @@ function EmailAuthPageContent() {
                 }}
               >
                 {message}
-                {diagnosticCode ? (
-                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>
-                    Diagnostic: {diagnosticCode}
-                  </div>
-                ) : null}
-                {retryBlocked ? (
-                  <div style={{ marginTop: 6, fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>
-                    Retry available in about {retryCountdown}s.
-                  </div>
-                ) : null}
               </div>
             ) : null}
 
             <button
               type="submit"
-              disabled={
-                authMode === "password"
-                  ? !emailValid || !passwordValid || saveState === "saving"
-                  : !emailValid || saveState === "saving" || retryBlocked
-              }
+              disabled={!emailValid || !passwordValid || saveState === "saving"}
               style={primaryButtonStyle(
-                authMode === "password"
-                  ? !emailValid || !passwordValid || saveState === "saving"
-                  : !emailValid || saveState === "saving" || retryBlocked,
+                !emailValid || !passwordValid || saveState === "saving",
               )}
             >
-              {authMode === "password"
-                ? saveState === "saving"
-                  ? "Signing you in..."
-                  : "Continue with password"
-                : saveState === "saving"
-                  ? "Sending your secure link..."
-                  : retryBlocked
-                    ? `Wait ${retryCountdown}s before retrying`
-                    : saveState === "success"
-                      ? "Resend link"
-                      : "Continue"}
+              {saveState === "saving" ? "Signing you in..." : "Sign in"}
             </button>
 
-            {authMode === "password" ? (
-              <button
-                type="button"
-                onClick={() => void handleForgotPassword()}
-                disabled={!emailValid || saveState === "saving"}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#2563eb",
-                  fontSize: 13,
-                  fontWeight: 800,
-                  textAlign: "center",
-                  cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
-                  opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
-                  padding: 0,
-                }}
-              >
-                Forgot password?
-              </button>
-            ) : null}
-
-            <div
+            <button
+              type="button"
+              onClick={() => void handleForgotPassword()}
+              disabled={!emailValid || saveState === "saving"}
               style={{
-                marginTop: -4,
-                fontSize: 12,
-                lineHeight: 1.6,
-                color: "#64748b",
-                fontWeight: 700,
+                border: "none",
+                background: "transparent",
+                color: "#2563eb",
+                fontSize: 13,
+                fontWeight: 800,
                 textAlign: "center",
+                cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
+                opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
+                padding: 0,
               }}
             >
-              {authMode === "password"
-                ? "Password sign-in stays available across refresh, sign-out, and immediate sign-in again."
-                : "Email-link sign-in stays available, but repeated testing should use password sign-in to avoid provider throttling."}
-            </div>
-
-            {devAuthModeEnabled ? (
-              <div
-                style={{
-                  border: "1px solid #bfdbfe",
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  borderRadius: 14,
-                  padding: 12,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  lineHeight: 1.6,
-                  textAlign: "center",
-                }}
-              >
-                Dev mode: use password login to avoid OTP rate limits.
-              </div>
-            ) : null}
-
-            <Link href="/get-started" style={secondaryButtonStyle()}>
-              See how EduDecks works
-            </Link>
+              Forgot password?
+            </button>
           </form>
         </div>
 
@@ -694,15 +452,15 @@ function EmailAuthPageContent() {
                 marginBottom: 8,
               }}
             >
-              What happens next
+              What works now
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
               {[
-                "Choose Password for repeated testing.",
-                "Use Email link only when you want a secure inbox hand-off.",
-                "Reset your password if you need to establish the testing path.",
-                "Sign out and back in again without waiting on email delivery.",
+                "One password form on one login page.",
+                "One reset-password path from the same screen.",
+                "Session stays valid across refresh until you sign out.",
+                "Sign-out returns you cleanly to login.",
               ].map((item, index) => (
                 <div
                   key={item}
@@ -754,19 +512,23 @@ function EmailAuthPageContent() {
                 marginBottom: 10,
               }}
             >
-              Testing-safe sign-in
+              Testing-safe login
             </div>
 
-              <div
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "#475569",
-                }}
-              >
-              Password mode now stays selected across refresh and return visits, so manual testing can repeat cleanly without falling back to magic links.
-              </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: "#475569",
+              }}
+            >
+              This flow no longer depends on sending a sign-in email for repeated manual testing. Use password sign-in, sign out, and sign in again immediately.
+            </div>
           </div>
+
+          <Link href="/get-started" style={secondaryButtonStyle()}>
+            See how EduDecks works
+          </Link>
         </div>
       </section>
     </PublicSiteShell>

@@ -3,7 +3,6 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import AuthModal from "@/app/components/AuthModal";
 import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
@@ -273,7 +272,6 @@ function GuidedStartPageContent() {
   const router = useRouter();
   const [step, setStep] = useState<GuidedStep>("child");
   const [session, setSession] = useState<GuidedStartSession>(buildDefaultSession);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authUserId, setAuthUserId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -478,7 +476,7 @@ function GuidedStartPageContent() {
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem(PENDING_SAVE_KEY, "1");
       }
-      setAuthModalOpen(true);
+      router.push("/login?next=%2Fstart");
       return;
     }
 
@@ -626,7 +624,6 @@ function GuidedStartPageContent() {
     } finally {
       pendingPersistRef.current = false;
       setSaving(false);
-      setAuthModalOpen(false);
     }
   }
 
@@ -1066,12 +1063,6 @@ function GuidedStartPageContent() {
           ) : null}
         </section>
       </div>
-
-      <AuthModal
-        open={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        returnPath="/start"
-      />
     </main>
   );
 }

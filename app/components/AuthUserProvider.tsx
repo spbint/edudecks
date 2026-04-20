@@ -4,11 +4,6 @@ import type { ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
-import {
-  clearSignedOutMarker,
-  getFamilySignedOutEventName,
-  hasRecentSignedOutMarker,
-} from "@/lib/familySignOut";
 
 type ProfileRow = {
   is_admin?: boolean | null;
@@ -32,17 +27,8 @@ async function fetchProfile(userId: string) {
     .select("is_admin")
     .eq("id", userId)
     .maybeSingle();
-  return data ?? null;
-}
 
-async function hydrateProfile(userId: string, onResolved: (profile: ProfileRow | null) => void) {
-  try {
-    const profileRow = await fetchProfile(userId);
-    onResolved(profileRow);
-  } catch (profileError) {
-    console.error("AuthUserProvider profile hydrate failed", profileError);
-    onResolved(null);
-  }
+  return data ?? null;
 }
 
 export function AuthUserProvider({ children }: { children: ReactNode }) {
@@ -57,86 +43,57 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
     }
 
     let active = true;
-    let subscription: { unsubscribe: () => void } | null = null;
-    const signedOutEventName = getFamilySignedOutEventName();
 
-    function applySignedOutState() {
+    async function applySession(nextUser: User | null) {
       if (!active) return;
-      setUser(null);
-      setProfile(null);
-      setLoading(false);
-    }
 
-    async function hydrate() {
-      if (hasRecentSignedOutMarker()) {
-        applySignedOutState();
+      setUser(nextUser);
+
+      if (!nextUser) {
+        setProfile(null);
+        setLoading(false);
         return;
       }
 
       try {
-        const sessionResp = await supabase.auth.getSession();
-        const sessionUser = sessionResp.data.session?.user ?? null;
+        const profileRow = await fetchProfile(nextUser.id);
         if (!active) return;
-
-        if (hasRecentSignedOutMarker()) {
-          applySignedOutState();
-          return;
-        }
-
-        setUser(sessionUser);
-        setLoading(false);
-
-        if (sessionUser) {
-          clearSignedOutMarker();
-          void hydrateProfile(sessionUser.id, (profileRow) => {
-            if (!active) return;
-            setProfile(profileRow);
-          });
-        } else {
-          setProfile(null);
-        }
+        setProfile(profileRow);
+      } catch (error) {
+        if (!active) return;
+        console.error("AuthUserProvider profile hydrate failed", error);
+        setProfile(null);
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    async function hydrate() {
+      try {
+        const { data } = await supabase.auth.getSession();
+        await applySession(data.session?.user ?? null);
+      } catch (error) {
+        console.error("AuthUserProvider session hydrate failed", error);
+        if (!active) return;
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
       }
     }
 
     void hydrate();
 
     const {
-      data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_, session) => {
-      if (!active) return;
-      if (!session) {
-        applySignedOutState();
-        return;
-      }
-
-      clearSignedOutMarker();
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (session?.user) {
-        void hydrateProfile(session.user.id, (profileRow) => {
-          if (!active) return;
-          setProfile(profileRow);
-        });
-      } else {
-        setProfile(null);
-      }
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void applySession(session?.user ?? null);
     });
-
-    subscription = authSubscription;
-
-    function handleForcedSignOut() {
-      applySignedOutState();
-    }
-
-    window.addEventListener(signedOutEventName, handleForcedSignOut);
 
     return () => {
       active = false;
-      window.removeEventListener(signedOutEventName, handleForcedSignOut);
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -146,7 +103,7 @@ export function AuthUserProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
     }),
-    [loading, profile, user]
+    [loading, profile, user],
   );
 
   return <AuthUserContext.Provider value={value}>{children}</AuthUserContext.Provider>;

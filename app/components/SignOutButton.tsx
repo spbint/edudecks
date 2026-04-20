@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { resetAuthClientStateImmediately } from "@/lib/familySignOut";
 
 type SignOutButtonProps = {
   redirectTo?: string;
@@ -14,7 +13,7 @@ function safe(value: unknown) {
 }
 
 export default function SignOutButton({
-  redirectTo = "/",
+  redirectTo = "/sign-out",
   label = "Sign out",
   style,
 }: SignOutButtonProps) {
@@ -24,12 +23,8 @@ export default function SignOutButton({
     if (busy) return;
     setBusy(true);
 
-    try {
-      resetAuthClientStateImmediately();
-    } finally {
-      const target = safe(redirectTo) || "/sign-out";
-      window.location.assign(target);
-    }
+    const target = safe(redirectTo) || "/sign-out";
+    window.location.assign(target);
   }
 
   return (
