@@ -83,6 +83,7 @@ export default function FamilyHomeWorkspace() {
   const [editingChildId, setEditingChildId] = useState("");
   const [editDrafts, setEditDrafts] = useState<Record<string, EditDraft>>({});
   const [recentEvidence, setRecentEvidence] = useState<EvidenceRow[]>([]);
+  const [activeSectionId, setActiveSectionId] = useState("family-overview");
 
   const children = workspace.learners;
   const profile = workspace.profile as FamilySettings;
@@ -173,6 +174,23 @@ export default function FamilyHomeWorkspace() {
     { label: "Open portfolio", href: "/portfolio", detail: "Review the learning record." },
     { label: "Open reports", href: "/reports", detail: "See reporting progress." },
   ];
+  const pageRailSteps = [
+    { id: "family-overview", label: "Family context" },
+    { id: "learner-management", label: "Learners" },
+    { id: "family-activity", label: "Recent learning" },
+    { id: "family-next-steps", label: "Next steps" },
+  ];
+
+  useEffect(() => {
+    function syncHash() {
+      const nextHash = window.location.hash.replace(/^#/, "");
+      setActiveSectionId(nextHash || "family-overview");
+    }
+
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
 
   async function handleSwitchLearner(childId: string) {
     setBusyChildId(childId);
@@ -419,7 +437,37 @@ export default function FamilyHomeWorkspace() {
       heroAsideTitle="Current workspace"
       heroAsideText="Use this page to orient the family, manage learners, and move into capture, planning, or reporting with the right learner in view."
     >
-      <div style={S.page}>
+      <div className="grid gap-4 xl:grid-cols-[176px_minmax(0,1fr)] xl:gap-7">
+        <aside className="hidden xl:block" style={S.pageRail}>
+          <div style={S.pageRailCard}>
+            <div style={S.pageRailLabel}>On this page</div>
+            <div style={S.pageRailList}>
+              {pageRailSteps.map((step, index) => {
+                const active = step.id === activeSectionId;
+                return (
+                  <Link key={step.id} href={`#${step.id}`} style={active ? S.pageRailLinkActive : S.pageRailLink}>
+                    <span style={active ? S.pageRailIndexActive : S.pageRailIndex}>{index + 1}</span>
+                    <span>{step.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </aside>
+
+        <div style={S.page}>
+        <div className="xl:hidden" style={S.pageRailMobile}>
+          {pageRailSteps.map((step, index) => {
+            const active = step.id === activeSectionId;
+            return (
+              <Link key={step.id} href={`#${step.id}`} style={active ? S.pageRailChipActive : S.pageRailChip}>
+                <span>{index + 1}</span>
+                <span>{step.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
         <section id="family-overview" style={S.section}>
           {status ? <div style={S.successBanner}>{status}</div> : null}
           {warning ? <div style={S.warningBanner}>{warning}</div> : null}
@@ -442,27 +490,6 @@ export default function FamilyHomeWorkspace() {
               <div style={S.summaryLabel}>Recent learning</div>
               <div style={S.summaryValue}>{recentEvidence.length}</div>
             </div>
-          </div>
-        </section>
-
-        <section id="family-actions" style={S.section}>
-          <div style={S.sectionHeader}>
-            <div>
-              <div style={S.eyebrow}>Quick actions</div>
-              <h2 style={S.sectionTitle}>Move the family record forward</h2>
-              <div style={S.helperText}>
-                Open the next workspace you need after checking the current learner and family context.
-              </div>
-            </div>
-          </div>
-
-          <div style={S.quickActionGrid}>
-            {quickActions.map((action) => (
-              <Link key={action.label} href={action.href} style={S.quickActionCard}>
-                <div style={S.cardTitle}>{action.label}</div>
-                <div style={S.helperText}>{action.detail}</div>
-              </Link>
-            ))}
           </div>
         </section>
 
@@ -620,13 +647,46 @@ export default function FamilyHomeWorkspace() {
             linkHref="/settings#curriculum"
           />
         </section>
+
+        <section id="family-next-steps" style={S.section}>
+          <div style={S.sectionHeader}>
+            <div>
+              <div style={S.eyebrow}>Next steps</div>
+              <h2 style={S.sectionTitle}>Move the family record forward</h2>
+              <div style={S.helperText}>
+                Open the next workspace you need after reviewing family context, learners, and recent learning.
+              </div>
+            </div>
+          </div>
+
+          <div style={S.quickActionGrid}>
+            {quickActions.map((action) => (
+              <Link key={action.label} href={action.href} style={S.quickActionCard}>
+                <div style={S.cardTitle}>{action.label}</div>
+                <div style={S.helperText}>{action.detail}</div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
       </div>
     </FamilyTopNavShell>
   );
 }
 
 const S: Record<string, React.CSSProperties> = {
+  pageRail: { width: 176, flexShrink: 0, position: "sticky", top: 112, alignSelf: "flex-start" },
+  pageRailCard: { border: "1px solid #e5e7eb", borderRadius: 20, background: "#ffffff", padding: 14, display: "grid", gap: 12, boxShadow: "0 10px 24px rgba(15,23,42,0.04)" },
+  pageRailLabel: { fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" },
+  pageRailList: { display: "grid", gap: 8 },
+  pageRailLink: { display: "grid", gridTemplateColumns: "22px minmax(0,1fr)", gap: 10, alignItems: "center", textDecoration: "none", color: "#475569", fontSize: 13, fontWeight: 700, padding: "6px 4px", borderRadius: 10 },
+  pageRailLinkActive: { display: "grid", gridTemplateColumns: "22px minmax(0,1fr)", gap: 10, alignItems: "center", textDecoration: "none", color: "#0f172a", fontSize: 13, fontWeight: 800, padding: "6px 4px", borderRadius: 10, background: "#f8fafc" },
+  pageRailIndex: { width: 20, height: 20, borderRadius: 999, border: "1px solid #e2e8f0", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "#64748b", background: "#ffffff" },
+  pageRailIndexActive: { width: 20, height: 20, borderRadius: 999, border: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "#1d4ed8", background: "#eff6ff" },
   page: { display: "grid", gap: 18, paddingBottom: 56 },
+  pageRailMobile: { display: "flex", gap: 8, flexWrap: "wrap" },
+  pageRailChip: { display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, border: "1px solid #e5e7eb", background: "#ffffff", color: "#475569", textDecoration: "none", padding: "8px 12px", fontSize: 12, fontWeight: 800 },
+  pageRailChipActive: { display: "inline-flex", alignItems: "center", gap: 8, borderRadius: 999, border: "1px solid #bfdbfe", background: "#eff6ff", color: "#1d4ed8", textDecoration: "none", padding: "8px 12px", fontSize: 12, fontWeight: 800 },
   section: { display: "grid", gap: 14 },
   sectionHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "end", flexWrap: "wrap" },
   eyebrow: { fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" },
