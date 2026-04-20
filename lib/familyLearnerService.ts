@@ -35,7 +35,7 @@ type ValidatedLearnerInput = {
   yearLabel: string;
 };
 
-type StudentInsertRow = {
+type StudentRow = {
   id?: string | null;
   family_profile_id?: string | null;
   preferred_name?: string | null;
@@ -103,11 +103,12 @@ function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInp
   };
 }
 
-function toLearnerRecord(row: StudentInsertRow): CanonicalLearnerRecord {
+function toLearnerRecord(row: StudentRow): CanonicalLearnerRecord {
   const label =
     safe(row.preferred_name) ||
     [safe(row.first_name), safe(row.surname)].filter(Boolean).join(" ").trim() ||
     "Unnamed learner";
+
   const yearLevel = row.year_level ?? null;
   const yearLabel = familyYearLevelLabelFromStored(yearLevel);
 
@@ -236,9 +237,7 @@ export async function createCanonicalFamilyLearner(
   userId: string,
   input: CanonicalLearnerInput,
 ) {
-  console.info("[learner-create] requested", {
-    userId,
-  });
+  console.info("[learner-create] requested", { userId });
 
   const validated = validateLearnerInput(input);
 
@@ -259,8 +258,9 @@ export async function createCanonicalFamilyLearner(
     year_level: validated.yearLevelNumber,
   };
 
-  console.info("[learner-create] insert attempted", {
+  console.info("[learner-create] student insert attempted", {
     userId,
+    familyProfileId,
   });
 
   const studentResponse = await withTimeout(
@@ -275,8 +275,9 @@ export async function createCanonicalFamilyLearner(
   );
 
   if (studentResponse.error || !studentResponse.data) {
-    console.error("[learner-create] insert failed", {
+    console.error("[learner-create] student insert failed", {
       userId,
+      familyProfileId,
       message: safe(studentResponse.error?.message),
     });
     throw new Error(
@@ -284,14 +285,18 @@ export async function createCanonicalFamilyLearner(
     );
   }
 
-  const learner = toLearnerRecord(studentResponse.data as StudentInsertRow);
+  const learner = toLearnerRecord(studentResponse.data as StudentRow);
 
   const linkPayload = {
-    family_profile_id: familyProfileId,
     user_id: userId,
     student_id: learner.id,
     relationship_role: "parent",
   };
+
+  console.info("[learner-create] link upsert attempted", {
+    userId,
+    learnerId: learner.id,
+  });
 
   const linkResponse = await withTimeout(
     supabase
@@ -321,13 +326,14 @@ export async function createCanonicalFamilyLearner(
       learnerId: learner.id,
       message: safe(linkResponse.error.message),
     });
+
     throw new Error(
       safe(linkResponse.error.message) ||
         "We couldn't link this learner to the family workspace yet.",
     );
   }
 
-  console.info("[learner-create] insert succeeded", {
+  console.info("[learner-create] succeeded", {
     userId,
     learnerId: learner.id,
   });
@@ -390,7 +396,10 @@ export async function updateCanonicalFamilyLearner(
   }
 }
 
-export async function removeCanonicalFamilyLearner(userId: string, learnerId: string) {
+export async function removeCanonicalFamilyLearner(
+  userId: string,
+  learnerId: string,
+) {
   const familyProfileId = await resolveCurrentFamilyProfileId(userId);
 
   if (!familyProfileId) {
