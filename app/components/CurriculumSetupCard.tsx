@@ -93,7 +93,9 @@ export default function CurriculumSetupCard({
 
   const frameworkOptions = useMemo(() => {
     const countryId = safe(draft.country_id).toLowerCase();
-    if (!countryId) return [] as CanonicalCurriculumFramework[];
+    if (!countryId) {
+      return frameworks;
+    }
 
     return frameworks.filter(
       (framework) => safe(framework.country).toLowerCase() === countryId,
@@ -163,7 +165,12 @@ export default function CurriculumSetupCard({
   }
 
   function handleFrameworkChange(frameworkId: string) {
+    const selectedFramework =
+      frameworks.find((framework) => framework.id === frameworkId) || null;
     updateDraft("framework_id", frameworkId || null);
+    if (selectedFramework && !safe(draft.country_id)) {
+      updateDraft("country_id", selectedFramework.country || null);
+    }
     updateDraft("level_id", null);
     updateDraft("region_id", null);
     updateDraft("subject_ids", []);
@@ -254,13 +261,12 @@ export default function CurriculumSetupCard({
 
             <Field
               label="Framework"
-              help="Frameworks are loaded from the canonical curriculum mapper tables."
+              help="Frameworks are loaded from the canonical curriculum catalogue."
             >
               <select
                 value={draft.framework_id ?? ""}
                 onChange={(event) => handleFrameworkChange(event.target.value)}
                 style={cardStyles.input}
-                disabled={!draft.country_id}
               >
                 <option value="">Select a framework</option>
                 {frameworkOptions.map((framework) => (

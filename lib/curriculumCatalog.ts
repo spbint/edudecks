@@ -66,46 +66,140 @@ function countryLabel(code: string) {
   return code.toUpperCase() || "Unknown";
 }
 
+function normalizeFrameworkRow(
+  row: Record<string, unknown>,
+): CanonicalCurriculumFramework | null {
+  const id = safe(row.id);
+  const code = safe(row.code);
+  const name = safe(row.name);
+  const country = safe(row.country).toLowerCase();
+
+  if (!id || !code || !name || !country) {
+    return null;
+  }
+
+  return {
+    id,
+    slug: safe(row.slug) || code,
+    code,
+    name,
+    market: safe(row.market) || country,
+    country,
+    jurisdiction: safe(row.jurisdiction) || null,
+    version: safe(row.version) || safe(row.version_label) || "starter",
+    framework_type: safe(row.framework_type) || "national",
+    framework_scope: safe(row.framework_scope) || safe(row.subject_scope) || "national",
+    parent_framework_id: safe(row.parent_framework_id) || null,
+    description: safe(row.description) || null,
+    is_active: row.is_active !== false,
+    created_at: safe(row.created_at),
+  };
+}
+
+function normalizeLevelRow(
+  row: Record<string, unknown>,
+): CanonicalCurriculumLevel | null {
+  const id = safe(row.id);
+  const frameworkId = safe(row.framework_id);
+  const levelCode = safe(row.level_code) || safe(row.official_level_label);
+  const levelLabel = safe(row.level_label) || safe(row.normalized_level_label) || safe(row.official_level_label);
+
+  if (!id || !frameworkId || !levelCode || !levelLabel) {
+    return null;
+  }
+
+  return {
+    id,
+    framework_id: frameworkId,
+    jurisdiction_id: safe(row.jurisdiction_id) || null,
+    level_code: levelCode,
+    level_label: levelLabel,
+    level_type: safe(row.level_type) || "year",
+    sort_order:
+      typeof row.sort_order === "number"
+        ? row.sort_order
+        : typeof row.normalized_sort_order === "number"
+          ? row.normalized_sort_order
+          : 0,
+    is_active: row.is_active !== false,
+  };
+}
+
 export async function loadCanonicalCurriculumFrameworks() {
   if (!hasSupabaseEnv) return [] as CanonicalCurriculumFramework[];
 
-  const { data, error } = await supabase
-    .from("curriculum_frameworks")
-    .select(
-      "id,slug,code,name,market,country,jurisdiction,version,framework_type,framework_scope,parent_framework_id,description,is_active,created_at",
-    )
-    .eq("is_active", true)
-    .order("market", { ascending: true })
-    .order("country", { ascending: true })
-    .order("name", { ascending: true });
+  const selectCandidates = [
+    "id,slug,code,name,market,country,jurisdiction,version,framework_type,framework_scope,parent_framework_id,description,is_active,created_at",
+    "id,code,name,country,jurisdiction,version,framework_type,framework_scope,is_active,created_at",
+    "id,code,name,country,jurisdiction,version_label,framework_type,subject_scope,is_active,created_at",
+  ];
 
-  if (error) {
-    throw error;
+  let lastError: unknown = null;
+
+  for (const select of selectCandidates) {
+    const { data, error } = await supabase
+      .from("curriculum_frameworks")
+      .select(select)
+      .eq("is_active", true)
+      .order("name", { ascending: true });
+
+    if (error) {
+      lastError = error;
+      continue;
+    }
+
+    return ((data ?? []) as unknown as Array<Record<string, unknown>>)
+      .map(normalizeFrameworkRow)
+      .filter((row): row is CanonicalCurriculumFramework => Boolean(row))
+      .sort(
+        (a, b) =>
+          a.market.localeCompare(b.market) ||
+          a.country.localeCompare(b.country) ||
+          a.name.localeCompare(b.name),
+      );
   }
 
-  return ((data ?? []) as CanonicalCurriculumFramework[]).filter(
-    (row) => !!safe(row.id) && !!safe(row.name) && !!safe(row.country),
-  );
+  throw lastError ?? new Error("Unable to load curriculum frameworks.");
 }
 
 export async function loadCanonicalCurriculumLevels(frameworkId: string) {
   if (!hasSupabaseEnv || !safe(frameworkId)) return [] as CanonicalCurriculumLevel[];
 
-  const { data, error } = await supabase
-    .from("curriculum_levels")
-    .select("id,framework_id,jurisdiction_id,level_code,level_label,level_type,sort_order,is_active")
-    .eq("framework_id", frameworkId)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("level_label", { ascending: true });
+  const selectCandidates = [
+    "id,framework_id,jurisdiction_id,level_code,level_label,level_type,sort_order,is_active",
+    "id,framework_id,level_code,level_label,level_type,sort_order",
+    "id,framework_id,official_level_label,normalized_level_label,normalized_sort_order,level_type,is_active",
+  ];
 
-  if (error) {
-    throw error;
+  let lastError: unknown = null;
+
+  for (const select of selectCandidates) {
+    const query = supabase
+      .from("curriculum_levels")
+      .select(select)
+      .eq("framework_id", frameworkId)
+      .order(select.includes("sort_order") ? "sort_order" : "normalized_sort_order", {
+        ascending: true,
+      });
+
+    if (select.includes("is_active")) {
+      query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      lastError = error;
+      continue;
+    }
+
+    return ((data ?? []) as unknown as Array<Record<string, unknown>>)
+      .map(normalizeLevelRow)
+      .filter((row): row is CanonicalCurriculumLevel => Boolean(row))
+      .sort((a, b) => a.sort_order - b.sort_order || a.level_label.localeCompare(b.level_label));
   }
 
-  return ((data ?? []) as CanonicalCurriculumLevel[]).filter(
-    (row) => !!safe(row.id) && !!safe(row.framework_id) && !!safe(row.level_label),
-  );
+  throw lastError ?? new Error("Unable to load curriculum levels.");
 }
 
 export async function loadCanonicalCurriculumJurisdictions(frameworkId: string) {
