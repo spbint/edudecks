@@ -48,7 +48,6 @@ export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
     supabase
       .from("parent_student_links")
       .select("student_id,sort_order,created_at")
-      .eq("family_profile_id", familyProfileId)
       .eq("user_id", userId)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),

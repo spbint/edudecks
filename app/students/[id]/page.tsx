@@ -11,7 +11,6 @@ type ProfileRow = {
   class_id: string | null;
   class_name: string | null;
   year_level?: number | null;
-  year_level_label: string | null;
   is_ilp: boolean | null;
 
   // Optional fields used by the UI (safe if missing)
@@ -115,9 +114,7 @@ export default function StudentProfilePage() {
     return profile.next_best_action ?? null;
   }, [profile]);
 
-  const yearLevelLabel = familyYearLevelLabelFromStored(
-    profile?.year_level ?? profile?.year_level_label,
-  );
+  const yearLevelLabel = familyYearLevelLabelFromStored(profile?.year_level);
 
   if (!studentId) return <div style={{ padding: 24 }}>Missing student id in route.</div>;
   if (loading) return <div style={{ padding: 24 }}>Loading…</div>;

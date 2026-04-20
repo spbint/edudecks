@@ -217,7 +217,6 @@ export async function loadLinkedLearners(
       supabase
         .from("parent_student_links")
         .select("student_id,created_at")
-        .eq("family_profile_id", resolvedFamilyProfileId)
         .eq("user_id", userId)
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true }),
