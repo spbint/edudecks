@@ -24,13 +24,14 @@ type PublicSiteShellProps = {
   footerSecondaryCta?: CtaLink | null;
   asideTitle?: string;
   asideText?: string;
+  heroAsideVisible?: boolean;
   showWorkflowStrip?: boolean;
   children: React.ReactNode;
 };
 
 const NAV_ITEMS = [
   { href: "/", label: "Home" },
-  { href: "/#families", label: "Families" },
+  { href: "/#how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -171,8 +172,9 @@ export default function PublicSiteShell({
   headerAction = { label: "Sign in", href: "/login" },
   footerPrimaryCta = primaryCta,
   footerSecondaryCta = { label: "Contact", href: "/contact" },
-  asideTitle = "Why families feel calmer",
-  asideText = "EduDecks gives families one calmer way to capture evidence, guide attention, and stay clear on what matters next.",
+  asideTitle = "Why families choose EduDecks",
+  asideText = "EduDecks gives families a clearer way to capture evidence, guide attention, and stay on track with what matters next.",
+  heroAsideVisible = true,
   showWorkflowStrip = true,
   children,
 }: PublicSiteShellProps) {
@@ -293,9 +295,10 @@ export default function PublicSiteShell({
               style={{
                 padding: isMobile ? "20px 16px" : isTablet ? "24px 20px" : "28px 24px",
                 display: "grid",
-                gridTemplateColumns: isTablet
-                  ? "minmax(0, 1fr)"
-                  : "minmax(0, 1.3fr) minmax(280px, 0.9fr)",
+                gridTemplateColumns:
+                  heroAsideVisible && !isTablet
+                    ? "minmax(0, 1.3fr) minmax(280px, 0.9fr)"
+                    : "minmax(0, 1fr)",
                 gap: isMobile ? 18 : 28,
                 alignItems: isTablet ? "start" : "center",
               }}
@@ -489,7 +492,7 @@ export default function PublicSiteShell({
                 ) : null}
               </div>
 
-              {!isMobile ? (
+              {!isMobile && heroAsideVisible ? (
                 <div style={shellCardStyle()}>
                   <div
                     style={{
@@ -596,15 +599,13 @@ export default function PublicSiteShell({
             </div>
             <div
               style={{
-                fontSize: 13,
-                color: C.textMuted,
-                lineHeight: 1.6,
-                maxWidth: 620,
-              }}
-            >
-              One calm operating system for families, teachers, and school
-              leaders who want clearer learning visibility and a better next
-              move.
+              fontSize: 13,
+              color: C.textMuted,
+              lineHeight: 1.6,
+              maxWidth: 620,
+            }}
+          >
+              Capture learning, build a record over time, and move into reporting with a clearer pathway.
             </div>
           </div>
 
