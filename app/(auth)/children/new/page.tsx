@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function AddChildPage() {
-  redirect("/profile");
+  redirect("/family#learner-management");
 }

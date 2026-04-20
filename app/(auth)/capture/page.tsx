@@ -1724,7 +1724,7 @@ export default function CapturePage() {
           <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.7, marginBottom: 16 }}>
             Add a child first so EduDecks can attach captures to a real learner and begin building a useful family record.
           </div>
-          <Link href="/profile" style={buttonStyle(true)}>
+          <Link href="/family#learner-management" style={buttonStyle(true)}>
             Add a child
           </Link>
         </div>

@@ -765,7 +765,7 @@ export default function ChildWorkspacePage() {
               <Link href="/planner" style={buttonStyle(false)}>
                 Planner
               </Link>
-              <Link href="/profile" style={buttonStyle(false)}>
+              <Link href="/family#learner-management" style={buttonStyle(false)}>
                 Manage learners
               </Link>
               <Link href="/authority/readiness" style={buttonStyle(false)}>

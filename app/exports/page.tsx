@@ -329,7 +329,7 @@ export default function ExportsPage() {
 
   function requireChild(next: () => void) {
     if (!activeStudentId) {
-      router.push("/profile");
+      router.push("/family#learner-management");
       return;
     }
     next();
@@ -642,7 +642,7 @@ export default function ExportsPage() {
 
               <button
                 style={S.actionCard}
-                onClick={() => router.push("/profile")}
+                onClick={() => router.push("/family#learner-management")}
               >
                 <div style={S.actionTitle}>Switch learner</div>
                 <div style={S.actionText}>

@@ -1086,7 +1086,7 @@ function PortfolioPageContent() {
       return {
         title: "Add your first learner",
         text: "Start by adding a learner so you can begin collecting learning moments and building a meaningful portfolio.",
-        href: "/profile",
+        href: "/family#learner-management",
         cta: "Add learner",
       };
     }
@@ -1287,7 +1287,7 @@ function PortfolioPageContent() {
             Add a learner first so you can begin capturing learning and building a calm portfolio over time.
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 16 }}>
-            <Link href="/profile" style={UI.button(true)}>
+            <Link href="/family#learner-management" style={UI.button(true)}>
               Add learner
             </Link>
             <Link href="/family" style={UI.button(false)}>

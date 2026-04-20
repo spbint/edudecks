@@ -57,7 +57,6 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/planner") return "Planner";
   if (pathname === "/portfolio") return "Portfolio";
   if (pathname === "/reports") return "Reports";
-  if (pathname === "/profile") return "Profile";
   if (pathname === "/settings") return "Settings";
   if (pathname === "/community") return "Community";
   return "Family workspace";
@@ -68,43 +67,43 @@ function routeTitle(_pathname: string) {
 }
 
 function routeHeroTitle(pathname: string, subtitle: string) {
-  if (pathname === "/family") return "Keep the family rhythm calm and connected";
+  if (pathname === "/family") return "Family home for learners, capture, and reporting";
   if (pathname === "/calendar") return "See the week clearly before it fills up";
   if (pathname === "/capture") return "Capture the learning while it is still fresh";
-  if (pathname === "/curriculum") return "See curriculum coverage clearly for the current learner";
+  if (pathname === "/curriculum") return "See curriculum coverage for the current learner";
   if (pathname === "/planner") return "Shape the next week with confidence";
   if (pathname === "/portfolio") return "Curate the learning story as it grows";
   if (pathname === "/reports") return "Turn captured moments into clear family reporting";
-  if (pathname === "/community") return "A calm place to ask, share, and encourage";
+  if (pathname === "/community") return "A place to ask, share, and encourage";
   return subtitle;
 }
 
 function routeHeroText(pathname: string) {
   if (pathname === "/family") {
-    return "Keep the next step visible across capture, planning, portfolio, and reporting without losing the wider family picture.";
+    return "Use one family home to manage learners, switch the current learner, capture progress, and move into reporting with a clear next step.";
   }
   if (pathname === "/calendar") {
-    return "Place learning moments into the week gently so the family workflow stays practical rather than overwhelming.";
+    return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
   if (pathname === "/capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
   }
   if (pathname === "/curriculum") {
-    return "Track what has started, what is secure, and what needs the next calm step without leaving the family workflow.";
+    return "Track what has started, what is secure, and what needs the next step without leaving the family workflow.";
   }
   if (pathname === "/planner") {
-    return "A light, clear weekly plan helps the whole family move forward without pressure.";
+    return "A light, clear weekly plan helps the whole family move forward with a visible next step.";
   }
   if (pathname === "/portfolio") {
     return "Review the moments that matter and keep the story of progress easy to see and share.";
   }
   if (pathname === "/reports") {
-    return "Bring together evidence, reflection, and structure so reporting feels calmer and more trustworthy.";
+    return "Bring together evidence, reflection, and structure so reporting is clearer and more trustworthy.";
   }
   if (pathname === "/community") {
     return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
   }
-  return "Keep the family workspace calm, connected, and ready for the next meaningful step.";
+  return "Keep the family workspace connected and ready for the next meaningful step.";
 }
 
 export default function FamilyTopNavShell({
@@ -120,7 +119,7 @@ export default function FamilyTopNavShell({
   heroTitle,
   heroText,
   heroAsideTitle = "Family Snapshot",
-  heroAsideText = "A calm, clear view of the current family workspace and the next connected step.",
+  heroAsideText = "A clear view of the current family workspace, the current learner, and the next useful step.",
   workflowHelperText,
   workflowCurrentHref,
   hideHero = false,
@@ -151,7 +150,7 @@ export default function FamilyTopNavShell({
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-6 py-5">
           <div className="flex min-w-0 items-center gap-4">
             <div className="shrink-0">
-              <BrandHomeLink href="/family" />
+              <BrandHomeLink href="/family" height={78} width={286} />
             </div>
 
             <div className="min-w-0">

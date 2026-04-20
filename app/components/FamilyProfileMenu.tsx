@@ -182,8 +182,8 @@ export default function FamilyProfileMenu({
 
           <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 10, display: "grid", gap: 6 }}>
             {[
-              { label: "My profile", href: "/profile" },
               { label: "Family Home", href: "/family" },
+              { label: "Manage learners", href: "/family#learner-management" },
               { label: "Settings", href: "/settings" },
               { label: "Curriculum setup", href: "/settings#curriculum" },
             ].map((item) => (

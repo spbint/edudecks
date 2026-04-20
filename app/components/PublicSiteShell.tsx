@@ -215,8 +215,8 @@ export default function PublicSiteShell({
           >
             <BrandHomeLink
               href="/"
-              height={isMobile ? 40 : 50}
-              width={isMobile ? 148 : 184}
+              height={isMobile ? 68 : 92}
+              width={isMobile ? 250 : 338}
               style={{
                 flexShrink: 0,
                 paddingRight: isMobile ? 0 : 6,
@@ -310,7 +310,7 @@ export default function PublicSiteShell({
                     height={220}
                     priority
                     style={{
-                      width: isMobile ? "280px" : isTablet ? "380px" : "500px",
+                      width: isMobile ? "360px" : isTablet ? "500px" : "640px",
                       maxWidth: "100%",
                       height: "auto",
                       display: "block",

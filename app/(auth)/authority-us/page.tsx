@@ -400,7 +400,7 @@ export default function AuthorityUsPage() {
           <div style={{ color: "#475569", lineHeight: 1.6, marginBottom: 14 }}>
             Add a child first so EduDecks can shape a US authority pathway around a real learner and a real record.
           </div>
-          <Link href="/profile" style={buttonStyle(true)}>
+          <Link href="/family#learner-management" style={buttonStyle(true)}>
             Add a child
           </Link>
         </div>

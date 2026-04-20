@@ -332,7 +332,7 @@ export default function ExportTemplatesPage() {
 
   function requireChild(next: () => void) {
     if (!activeStudentId) {
-      router.push("/profile");
+      router.push("/family#learner-management");
       return;
     }
     next();

@@ -12,8 +12,8 @@ type BrandHomeLinkProps = {
 };
 
 export default function BrandHomeLink({
-  height = 36,
-  width = 132,
+  height = 72,
+  width = 264,
   href = "/",
   style,
 }: BrandHomeLinkProps) {

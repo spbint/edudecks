@@ -244,7 +244,7 @@ export default function ReportPresetsPage() {
           </label>
         ) : (
           <div style={{ color: "#4b5563" }}>
-            Add a learner in <a href="/profile">Profile</a> before saving report presets.
+            Add a learner in <a href="/family#learner-management">Family Home</a> before saving report presets.
           </div>
         )}
       </div>

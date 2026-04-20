@@ -13,30 +13,30 @@ const STEPS = [
   {
     number: "1",
     title: "Plan",
-    text: "Choose a learning focus.",
+    text: "Set a learning focus for the moment.",
   },
   {
     number: "2",
     title: "Capture",
-    text: "Record what happened.",
+    text: "Record what actually happened.",
   },
   {
     number: "3",
     title: "Build",
-    text: "Turn it into a structured record.",
+    text: "Turn moments into a structured learning record.",
   },
   {
     number: "4",
     title: "Report",
-    text: "Show progress clearly.",
+    text: "See progress clearly over time.",
   },
 ];
 
 const BENEFITS = [
-  "Capture real learning moments",
-  "Build records without admin overload",
+  "Capture evidence as it happens",
+  "Build a record without extra admin",
   "Track progress over time",
-  "Be ready when reporting is required",
+  "Be ready for reporting when needed",
 ];
 
 const AUDIENCES = ["Families", "Homeschool", "Schools"];
@@ -79,12 +79,10 @@ export default function HomePage() {
     <PublicSiteShell
       title="EduDecks"
       eyebrow=""
-      heroTitle="Turn everyday learning into clear records for reporting."
-      heroText="Capture what happens, build structured records, and show progress when it matters."
+      heroTitle="Capture learning as it happens. Build a record that grows over time."
+      heroText="Plan learning, capture real moments, and turn them into clear records for reporting and assessment."
       heroBadges={[]}
-      heroMicrocopy={
-        <span>No complex setup. Start with one moment.</span>
-      }
+      heroMicrocopy={<span>No complex setup. Start with one moment.</span>}
       asideTitle=""
       asideText=""
       asideItems={[]}
@@ -107,7 +105,7 @@ export default function HomePage() {
           scrollMarginTop: 116,
         }}
       >
-        {sectionHeader("From learning to reporting — one clear flow")}
+        {sectionHeader("A clear pathway from learning to reporting")}
 
         <div
           style={{
@@ -200,7 +198,7 @@ export default function HomePage() {
             maxWidth: 720,
           }}
         >
-          Start building your first learning record
+          Start your first learning record
         </div>
         <p
           style={{
@@ -211,7 +209,7 @@ export default function HomePage() {
             maxWidth: 620,
           }}
         >
-          Capture one moment. Turn it into something you can use.
+          Capture one moment and build from there.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
@@ -289,7 +287,8 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "Start with your family. Expand when needed."
+          "Built for families. Ready for schools.",
+          "Start with your family's learning. Expand into structured reporting when needed."
         )}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -302,7 +301,7 @@ export default function HomePage() {
             const tone = tones[index] ?? tones[0];
             return (
               <div key={item} style={publicPill(tone[0], tone[1])}>
-                {item}
+                {item === "Schools" ? "Schools (future-ready)" : item}
               </div>
             );
           })}

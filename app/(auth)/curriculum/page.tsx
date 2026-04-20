@@ -586,7 +586,7 @@ export default function CurriculumPage() {
           <EmptyState
             title="Choose a learner first"
             text="The curriculum map needs one active learner from the family workspace before it can load anything meaningful."
-            href="/profile#manage-family"
+            href="/family#learner-management"
             linkLabel="Manage learners"
           />
         ) : !hasSelectedCurriculum ? (

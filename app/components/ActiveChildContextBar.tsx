@@ -183,7 +183,7 @@ export default function ActiveChildContextBar({
             </button>
           ) : null}
 
-          <button style={S.btn} onClick={() => router.push("/profile")}>
+          <button style={S.btn} onClick={() => router.push("/family#learner-management")}>
             Switch learner
           </button>
         </div>
