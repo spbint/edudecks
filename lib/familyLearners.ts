@@ -44,26 +44,11 @@ export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
   const familyProfileId = await resolveCurrentFamilyProfileId(userId);
   if (!familyProfileId) return [];
 
-  const [linksResp, studentsResp] = await Promise.all([
-    supabase
-      .from("parent_student_links")
-      .select("student_id,sort_order,created_at")
-      .eq("user_id", userId)
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("students")
-      .select("id,created_at")
-      .eq("family_profile_id", familyProfileId)
-      .order("created_at", { ascending: true }),
-  ]);
-
-  if (linksResp.error) {
-    if (!isMissingLearnerRelationOrColumn(linksResp.error)) {
-      throw linksResp.error;
-    }
-    return null;
-  }
+  const studentsResp = await supabase
+    .from("students")
+    .select("id,created_at")
+    .eq("family_profile_id", familyProfileId)
+    .order("created_at", { ascending: true });
 
   if (studentsResp.error) {
     if (!isMissingLearnerRelationOrColumn(studentsResp.error)) {
@@ -72,24 +57,9 @@ export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
     return null;
   }
 
-  const orderedIds: string[] = [];
-  const seen = new Set<string>();
-
-  ((linksResp.data ?? []) as Array<{ student_id?: string | null }>).forEach((row) => {
-    const id = safeFamilyValue(row.student_id);
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    orderedIds.push(id);
-  });
-
-  ((studentsResp.data ?? []) as Array<{ id?: string | null }>).forEach((row) => {
-    const id = safeFamilyValue(row.id);
-    if (!id || seen.has(id)) return;
-    seen.add(id);
-    orderedIds.push(id);
-  });
-
-  return orderedIds;
+  return ((studentsResp.data ?? []) as Array<{ id?: string | null }>)
+    .map((row) => safeFamilyValue(row.id))
+    .filter(Boolean);
 }
 
 export async function loadFamilyStudentsWithVariants<T>(

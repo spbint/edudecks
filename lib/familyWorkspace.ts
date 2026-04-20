@@ -212,37 +212,14 @@ export async function loadLinkedLearners(
     return [];
   }
 
-  const [linksResponse, studentResponse] = (await withTimeout(
-    Promise.all([
-      supabase
-        .from("parent_student_links")
-        .select("student_id,created_at")
-        .eq("user_id", userId)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("students")
-        .select("id,preferred_name,first_name,surname,year_level,created_at")
-        .eq("family_profile_id", resolvedFamilyProfileId)
-        .order("created_at", { ascending: true }),
-    ]),
+  const studentResponse = (await withTimeout(
+    supabase
+      .from("students")
+      .select("id,preferred_name,first_name,surname,year_level,created_at")
+      .eq("family_profile_id", resolvedFamilyProfileId)
+      .order("created_at", { ascending: true }),
     "load family learners",
-  )) as [
-    QueryResponse<
-      Array<{
-        student_id?: string | null;
-        created_at?: string | null;
-      }>
-    >,
-    QueryResponse<Array<Record<string, unknown>>>,
-  ];
-
-  const links = linksResponse.data ?? [];
-  const linksError = linksResponse.error;
-
-  if (linksError) {
-    throw linksError;
-  }
+  )) as QueryResponse<Array<Record<string, unknown>>>;
 
   if (studentResponse.error) {
     throw studentResponse.error;
@@ -251,72 +228,27 @@ export async function loadLinkedLearners(
   const students = studentResponse.data ?? [];
   if (!students.length) return [];
 
-  const studentMap = new Map(
-    (students ?? []).map((student) => [student.id, student]),
-  );
-
-  const orderedIds = Array.from(
-    new Set(links.map((link) => safe(link.student_id)).filter(Boolean)),
-  );
-  const orderedLearners = orderedIds.map((id) => {
-    const student = studentMap.get(id);
-    if (!student) return null;
-
+  return students.map((student) => {
+    const id = safe(student.id);
     const label =
       safe(student.preferred_name) ||
-      [safe(student.first_name), safe(student.surname)].filter(Boolean).join(" ").trim() ||
+      [safe(student.first_name), safe(student.surname)]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
       "Unnamed learner";
-
     const yearLevel = familyYearLevelToStoredNumber(
       (student as { year_level?: string | number | null }).year_level,
     );
-    const yearLabel = familyYearLevelLabelFromStored(yearLevel);
-
-    const linkRow = links.find((row) => safe(row.student_id) === id);
 
     return {
       id,
       label,
-      yearLabel,
+      yearLabel: familyYearLevelLabelFromStored(yearLevel),
       year_level: yearLevel,
-      connectedAt: linkRow?.created_at ?? null,
+      connectedAt: safe(student.created_at) || null,
     } satisfies FamilyLearner;
   });
-
-  const linkedIds = new Set(
-    orderedLearners
-      .map((learner) => safe(learner?.id))
-      .filter(Boolean),
-  );
-
-  const remainingLearners = students
-    .filter((student) => !linkedIds.has(safe(student.id)))
-    .map((student) => {
-      const id = safe(student.id);
-      const label =
-        safe(student.preferred_name) ||
-        [safe(student.first_name), safe(student.surname)]
-          .filter(Boolean)
-          .join(" ")
-          .trim() ||
-        "Unnamed learner";
-      const yearLevel = familyYearLevelToStoredNumber(
-        (student as { year_level?: string | number | null }).year_level,
-      );
-
-      return {
-        id,
-        label,
-        yearLabel: familyYearLevelLabelFromStored(yearLevel),
-        year_level: yearLevel,
-        connectedAt: safe(student.created_at) || null,
-      } satisfies FamilyLearner;
-    });
-
-  return [
-    ...(orderedLearners.filter(Boolean) as FamilyLearner[]),
-    ...remainingLearners,
-  ];
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {

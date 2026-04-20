@@ -287,51 +287,6 @@ export async function createCanonicalFamilyLearner(
 
   const learner = toLearnerRecord(studentResponse.data as StudentRow);
 
-  const linkPayload = {
-    user_id: userId,
-    student_id: learner.id,
-  };
-
-  console.info("[learner-create] link upsert attempted", {
-    userId,
-    learnerId: learner.id,
-  });
-
-  const linkResponse = await withTimeout(
-    supabase
-      .from("parent_student_links")
-      .upsert(linkPayload, { onConflict: "user_id,student_id" }),
-    "link learner",
-  );
-
-  if (linkResponse.error) {
-    await withTimeout(
-      supabase
-        .from("students")
-        .delete()
-        .eq("id", learner.id)
-        .eq("family_profile_id", familyProfileId),
-      "rollback learner insert",
-    ).catch((rollbackError) => {
-      console.error("[learner-create] rollback failed", {
-        userId,
-        learnerId: learner.id,
-        rollbackError,
-      });
-    });
-
-    console.error("[learner-create] link failed", {
-      userId,
-      learnerId: learner.id,
-      message: safe(linkResponse.error.message),
-    });
-
-    throw new Error(
-      safe(linkResponse.error.message) ||
-        "We couldn't link this learner to the family workspace yet.",
-    );
-  }
-
   console.info("[learner-create] succeeded", {
     userId,
     learnerId: learner.id,

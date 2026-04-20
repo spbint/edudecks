@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeNextPath } from "@/lib/authRedirect";
+import { resolveCurrentFamilyProfileId } from "@/lib/familyLearnerService";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -179,14 +180,21 @@ function AuthCallbackPageContent() {
                   onboarding_complete: onboardingComplete,
                 });
 
-                const linksResp = await supabase
-                  .from("parent_student_links")
-                  .select("student_id", { count: "exact", head: true })
-                  .eq("user_id", user.id);
+                const familyProfileId = await resolveCurrentFamilyProfileId(user.id);
+                let linkedChildrenCount = 0;
+
+                if (familyProfileId) {
+                  const studentsResp = await supabase
+                    .from("students")
+                    .select("id", { count: "exact", head: true })
+                    .eq("family_profile_id", familyProfileId);
+
+                  linkedChildrenCount = studentsResp.count ?? 0;
+                }
 
                 return {
                   onboardingComplete,
-                  linkedChildrenCount: linksResp.count ?? 0,
+                  linkedChildrenCount,
                 };
               })(),
               1200,
