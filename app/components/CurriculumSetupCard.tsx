@@ -27,6 +27,7 @@ export default function CurriculumSetupCard({
 }: CurriculumSetupCardProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showUnavailableState, setShowUnavailableState] = useState(false);
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
   const [frameworks, setFrameworks] = useState<CanonicalCurriculumFramework[]>([]);
   const [levels, setLevels] = useState<CanonicalCurriculumLevel[]>([]);
@@ -51,7 +52,7 @@ export default function CurriculumSetupCard({
         console.error("loadCanonicalCurriculumFrameworks failed", error);
         setFrameworks([]);
         setLoadError(
-          "Curriculum frameworks are not available yet. Add framework rows to the canonical curriculum tables to configure this family.",
+          "Curriculum options are not available yet for this family. You cannot complete curriculum setup until framework data is available.",
         );
       } finally {
         if (!active) return;
@@ -78,6 +79,12 @@ export default function CurriculumSetupCard({
       block: "nearest",
     });
   }, [isEditing]);
+
+  useEffect(() => {
+    if (!loadingFrameworks && frameworks.length > 0) {
+      setShowUnavailableState(false);
+    }
+  }, [frameworks.length, loadingFrameworks]);
 
   const countryOptions = useMemo(
     () => buildCanonicalCountryOptions(frameworks),
@@ -192,11 +199,18 @@ export default function CurriculumSetupCard({
   function handleCancel() {
     setDraft(value);
     setIsEditing(false);
+    setShowUnavailableState(false);
   }
 
   function openEditor() {
     setDraft(value);
     setStatusMessage("");
+    if (loadingFrameworks || frameworks.length === 0) {
+      setIsEditing(false);
+      setShowUnavailableState(true);
+      return;
+    }
+    setShowUnavailableState(false);
     setIsEditing(true);
   }
 
@@ -218,17 +232,7 @@ export default function CurriculumSetupCard({
       {loadError ? <div style={cardStyles.loading}>{loadError}</div> : null}
 
       {isEditing ? (
-        loadingFrameworks ? (
-          <div ref={editorRef} style={cardStyles.loading}>
-            Loading curriculum frameworks...
-          </div>
-        ) : frameworks.length === 0 ? (
-          <div ref={editorRef} style={cardStyles.empty}>
-            <p>
-              No canonical curriculum frameworks are available yet. Seed the curriculum tables first, then return here to choose the family framework.
-            </p>
-          </div>
-        ) : (
+        frameworks.length > 0 ? (
           <div ref={editorRef} style={cardStyles.form}>
             <Field
               label="Country"
@@ -313,7 +317,21 @@ export default function CurriculumSetupCard({
               </button>
             </div>
           </div>
-        )
+        ) : null
+      ) : showUnavailableState ? (
+        <div ref={editorRef} style={cardStyles.blockedState}>
+          <div style={cardStyles.blockedTitle}>Curriculum setup is not available yet</div>
+          <p style={cardStyles.blockedText}>
+            {loadingFrameworks
+              ? "Curriculum options are still loading. Try again in a moment."
+              : "Curriculum options are not available yet for this family. You cannot complete curriculum setup until framework data is available."}
+          </p>
+          <div style={cardStyles.actions}>
+            <button type="button" style={cardStyles.linkButton} onClick={handleCancel}>
+              Close
+            </button>
+          </div>
+        </div>
       ) : hasSetup ? (
         <div style={cardStyles.summaryBlock}>
           <div style={cardStyles.summary}>
@@ -490,6 +508,25 @@ const cardStyles: Record<string, React.CSSProperties> = {
     background: "#fdfdfd",
     display: "grid",
     gap: 12,
+  },
+  blockedState: {
+    border: "1px solid #dbeafe",
+    borderRadius: 16,
+    padding: 20,
+    background: "#f8fbff",
+    display: "grid",
+    gap: 10,
+  },
+  blockedTitle: {
+    fontSize: 15,
+    fontWeight: 800,
+    color: "#0f172a",
+  },
+  blockedText: {
+    margin: 0,
+    fontSize: 14,
+    lineHeight: 1.6,
+    color: "#475569",
   },
   note: {
     fontSize: 12,
