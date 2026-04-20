@@ -41,6 +41,8 @@ type ReportRow = {
   title?: string | null;
   status?: string | null;
   updated_at?: string | null;
+  student_id?: string | null;
+  child_id?: string | null;
 };
 
 type EditDraft = {
@@ -100,6 +102,10 @@ export default function FamilyHomeWorkspace() {
   const [captureTitle, setCaptureTitle] = useState("");
   const [captureDescription, setCaptureDescription] = useState("");
   const [savingCapture, setSavingCapture] = useState(false);
+  const [captureFeedback, setCaptureFeedback] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
   const [addName, setAddName] = useState("");
   const [addYear, setAddYear] = useState("");
   const [editingChildId, setEditingChildId] = useState("");
@@ -150,8 +156,11 @@ export default function FamilyHomeWorkspace() {
             .limit(6),
           supabase
             .from("report_drafts")
-            .select("id,title,status,updated_at")
+            .select("id,title,status,updated_at,student_id,child_id")
             .eq("user_id", workspace.userId)
+            .or(
+              `student_id.in.(${learnerIds.join(",")}),child_id.in.(${learnerIds.join(",")})`,
+            )
             .order("updated_at", { ascending: false })
             .limit(4),
         ]);
@@ -160,10 +169,24 @@ export default function FamilyHomeWorkspace() {
 
         if (!evidenceRes.error) {
           setRecentEvidence((evidenceRes.data ?? []) as EvidenceRow[]);
+        } else {
+          setRecentEvidence([]);
         }
 
         if (!reportRes.error) {
-          setRecentReports((reportRes.data ?? []) as ReportRow[]);
+          const familyLearnerIds = new Set(learnerIds);
+          setRecentReports(
+            ((reportRes.data ?? []) as ReportRow[]).filter((row) => {
+              const studentId = safe(row.student_id);
+              const childId = safe(row.child_id);
+              return (
+                (studentId && familyLearnerIds.has(studentId)) ||
+                (childId && familyLearnerIds.has(childId))
+              );
+            }),
+          );
+        } else {
+          setRecentReports([]);
         }
       } catch (readError) {
         console.error("family home read model hydrate failed", readError);
@@ -327,29 +350,35 @@ export default function FamilyHomeWorkspace() {
   }
 
   async function handleCaptureLearning() {
+    if (savingCapture) return;
+
     const title = safe(captureTitle);
     const description = safe(captureDescription);
     const familyProfileId = safe((profile as { id?: unknown }).id);
 
     if (!activeLearner) {
+      setCaptureFeedback(null);
       setError("Choose the current learner before capturing learning.");
       setWarning("");
       return;
     }
 
     if (!title) {
+      setCaptureFeedback(null);
       setError("Add a title before saving this learning moment.");
       setWarning("");
       return;
     }
 
     if (!workspace.userId || !hasSupabaseEnv || !familyProfileId || familyProfileId === "local") {
+      setCaptureFeedback(null);
       setError("Family capture needs a signed-in family workspace with a saved profile.");
       setWarning("");
       return;
     }
 
     setSavingCapture(true);
+    setCaptureFeedback(null);
     setStatus("");
     setError("");
     setWarning("");
@@ -380,13 +409,15 @@ export default function FamilyHomeWorkspace() {
       setCaptureTitle("");
       setCaptureDescription("");
       setShowCaptureForm(false);
-      setStatus("Learning captured.");
+      setStatus("Learning saved.");
+      setCaptureFeedback({ tone: "success", message: "Learning saved." });
     } catch (saveError) {
       console.error("family capture learning failed", saveError);
-      setError(
+      const message =
         safe((saveError as { message?: unknown })?.message) ||
-          "We couldn't save this learning moment yet. Please try again.",
-      );
+        "We couldn't save this learning moment yet. Please try again.";
+      setError(message);
+      setCaptureFeedback({ tone: "error", message });
     } finally {
       setSavingCapture(false);
     }
@@ -711,6 +742,7 @@ export default function FamilyHomeWorkspace() {
                 type="button"
                 onClick={() => {
                   setShowCaptureForm((current) => !current);
+                  setCaptureFeedback(null);
                   setError("");
                   setWarning("");
                 }}
@@ -727,6 +759,7 @@ export default function FamilyHomeWorkspace() {
                   value={captureTitle}
                   onChange={(e) => {
                     setCaptureTitle(e.target.value);
+                    if (captureFeedback) setCaptureFeedback(null);
                     if (error) setError("");
                   }}
                   placeholder="Title"
@@ -737,6 +770,7 @@ export default function FamilyHomeWorkspace() {
                   value={captureDescription}
                   onChange={(e) => {
                     setCaptureDescription(e.target.value);
+                    if (captureFeedback) setCaptureFeedback(null);
                     if (error) setError("");
                   }}
                   placeholder="Description (optional)"
@@ -749,7 +783,7 @@ export default function FamilyHomeWorkspace() {
                     type="button"
                     onClick={handleCaptureLearning}
                     disabled={savingCapture}
-                    style={savingCapture ? S.buttonDisabled : S.primaryButton}
+                    style={savingCapture ? S.captureButtonDisabled : S.capturePrimaryButton}
                   >
                     {savingCapture ? "Saving..." : "Save learning"}
                   </button>
@@ -759,6 +793,7 @@ export default function FamilyHomeWorkspace() {
                       setShowCaptureForm(false);
                       setCaptureTitle("");
                       setCaptureDescription("");
+                      setCaptureFeedback(null);
                     }}
                     disabled={savingCapture}
                     style={S.secondaryButton}
@@ -766,6 +801,17 @@ export default function FamilyHomeWorkspace() {
                     Cancel
                   </button>
                 </div>
+              </div>
+            ) : null}
+            {captureFeedback ? (
+              <div
+                style={
+                  captureFeedback.tone === "success"
+                    ? S.captureSuccessNote
+                    : S.captureErrorNote
+                }
+              >
+                {captureFeedback.message}
               </div>
             ) : null}
           </div>
@@ -798,7 +844,7 @@ export default function FamilyHomeWorkspace() {
                 <div key={row.id} style={S.activityRow}>
                   {(safe(row.title) || "Untitled report")} · {statusLabel(row.status)}
                 </div>
-              )) : <div style={S.helperText}>No recent report drafts yet.</div>}
+              )) : <div style={S.helperText}>No recent family reports yet.</div>}
             </div>
           </div>
         </section>
@@ -847,12 +893,16 @@ const S: Record<string, React.CSSProperties> = {
   inputSmall: { width: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
   textarea: { width: "100%", minHeight: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14, resize: "vertical" },
   primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
+  capturePrimaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer", minWidth: 136, display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" },
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
+  captureButtonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed", minWidth: 136, display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" },
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
   warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
   errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },
+  captureSuccessNote: { border: "1px solid #bbf7d0", borderRadius: 14, background: "#f0fdf4", color: "#166534", padding: "10px 12px", fontSize: 14, fontWeight: 700 },
+  captureErrorNote: { border: "1px solid #fdba74", borderRadius: 14, background: "#fff7ed", color: "#9a3412", padding: "10px 12px", fontSize: 14, fontWeight: 700 },
   chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
   activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
   activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },
