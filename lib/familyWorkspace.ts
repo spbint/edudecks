@@ -14,6 +14,10 @@ import {
   removeCanonicalFamilyLearner,
   updateCanonicalFamilyLearner,
 } from "@/lib/familyLearnerService";
+import {
+  familyYearLevelLabelFromStored,
+  familyYearLevelToStoredNumber,
+} from "@/lib/familyLearnerYearLevel";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
@@ -75,17 +79,6 @@ async function withTimeout<T>(
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-function buildYearLabel(yearLevel: string | number | null | undefined) {
-  const clean = safe(yearLevel);
-  return clean ? `Year ${clean}` : "";
-}
-
-function parseYearLevel(yearLabel: string | number | null | undefined) {
-  const clean = safe(yearLabel).replace(/^Year\s+/i, "");
-  const numeric = Number(clean);
-  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function mergeLearners(
@@ -186,20 +179,21 @@ export function persistLearnersToLocalCache(
 }
 
 export function loadLearnersFromLocalCache(): FamilyLearner[] {
-  return loadChildrenFromLocalStorage().map((child) => ({
-    id: child.id,
-    label: child.label,
-    yearLabel:
-      safe((child as { yearLabel?: string | null }).yearLabel) ||
-      buildYearLabel(
-        (child as { year_level?: string | number | null }).year_level,
-      ),
-    year_level: parseYearLevel(
-      (child as { year_level?: string | number | null }).year_level,
-    ),
-    connectedAt:
-      safe((child as { connectedAt?: string | null }).connectedAt) || null,
-  }));
+  return loadChildrenFromLocalStorage().map((child) => {
+    const yearLevel = familyYearLevelToStoredNumber(
+      (child as { year_level?: string | number | null }).year_level ??
+        (child as { yearLabel?: string | null }).yearLabel,
+    );
+
+    return {
+      id: child.id,
+      label: child.label,
+      yearLabel: familyYearLevelLabelFromStored(yearLevel),
+      year_level: yearLevel,
+      connectedAt:
+        safe((child as { connectedAt?: string | null }).connectedAt) || null,
+    };
+  });
 }
 
 export async function getCurrentFamilyUserId(): Promise<string | null> {
@@ -242,7 +236,7 @@ export async function loadLinkedLearners(
   const studentResponse = (await withTimeout(
     supabase
       .from("students")
-      .select("id,preferred_name,first_name,surname,year_level_label")
+      .select("id,preferred_name,first_name,surname,year_level")
       .in("id", orderedIds),
     "load students",
   )) as QueryResponse<Array<Record<string, unknown>>>;
@@ -266,10 +260,10 @@ export async function loadLinkedLearners(
       [safe(student.first_name), safe(student.surname)].filter(Boolean).join(" ").trim() ||
       "Unnamed learner";
 
-    const yearLabel = safe(
-      (student as { year_level_label?: string | number | null }).year_level_label,
+    const yearLevel = familyYearLevelToStoredNumber(
+      (student as { year_level?: string | number | null }).year_level,
     );
-    const yearLevel = parseYearLevel(yearLabel);
+    const yearLabel = familyYearLevelLabelFromStored(yearLevel);
 
     const linkRow = links.find((row) => safe(row.student_id) === id);
 

@@ -32,6 +32,7 @@ import {
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
 import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 const PLAN_STORAGE_KEY = "edudecks_plan";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 const PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY = "edudecks_portfolio_highlight_evidence_id";
@@ -127,7 +128,7 @@ function childDisplayName(child: ChildRow | null | undefined) {
 function childYearLabel(child: ChildRow | null | undefined) {
   if (!child) return "";
   if (safe(child.yearLabel)) return safe(child.yearLabel);
-  if (child.year_level != null && safe(child.year_level)) return `Year ${safe(child.year_level)}`;
+  if (child.year_level != null) return familyYearLevelLabelFromStored(child.year_level);
   return "";
 }
 

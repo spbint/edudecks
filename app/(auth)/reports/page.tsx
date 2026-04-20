@@ -60,6 +60,7 @@ import {
   writeGuidedCompletionSnapshot,
 } from "@/lib/guidedCompletionSnapshot";
 import { FAMILY_WORKFLOW_PAGE_STEPS } from "@/lib/familyWorkflow";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 
 type StudentRow = {
   id: string;
@@ -2337,10 +2338,12 @@ function ReportsPageContent() {
                     {students.map((student) => (
                       <option key={student.id} value={student.id}>
                         {studentName(student)}
-                        {student.year_level != null
-                          ? ` — Year ${student.year_level}`
-                          : safe(student.yearLabel)
-                          ? ` — ${safe(student.yearLabel)}`
+                        {familyYearLevelLabelFromStored(
+                          student.year_level ?? student.yearLabel,
+                        )
+                          ? ` — ${familyYearLevelLabelFromStored(
+                              student.year_level ?? student.yearLabel,
+                            )}`
                           : ""}
                       </option>
                     ))}

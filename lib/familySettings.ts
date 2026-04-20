@@ -1,4 +1,8 @@
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import {
+  familyYearLevelLabelFromStored,
+  familyYearLevelToStoredNumber,
+} from "@/lib/familyLearnerYearLevel";
 
 /* ============================================================
    TYPES
@@ -438,15 +442,9 @@ function normalizeYearLevel(value: unknown): string | null {
   return stripped || null;
 }
 
-function normalizeYearLabel(
-  yearLabel: unknown,
-  yearLevel: unknown,
-): string | undefined {
-  const explicit = safeString(yearLabel);
-  if (explicit) return explicit;
-
-  const cleanLevel = normalizeYearLevel(yearLevel);
-  return cleanLevel ? `Year ${cleanLevel}` : undefined;
+function normalizeYearLabel(yearLabel: unknown, yearLevel: unknown): string | undefined {
+  const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel ?? yearLabel);
+  return familyYearLevelLabelFromStored(yearLevelNumber) || undefined;
 }
 
 function normalizeChildOption(value: unknown): ChildOption | null {
@@ -476,10 +474,9 @@ function normalizeChildOption(value: unknown): ChildOption | null {
 
   if (!id || !label) return null;
 
-  const year_level =
-    normalizeYearLevel(row.year_level) ||
-    normalizeYearLevel(row.yearLevel) ||
-    null;
+  const year_level = familyYearLevelToStoredNumber(
+    row.year_level ?? row.yearLevel ?? row.yearLabel ?? row.year_label,
+  );
 
   const yearLabel = normalizeYearLabel(
     row.yearLabel ?? row.year_label,

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
@@ -12,7 +13,7 @@ type ChildRow = {
   first_name?: string | null;
   preferred_name?: string | null;
   surname?: string | null;
-  year_level_label?: string | null;
+  year_level?: number | null;
   relationship_role?: string | null;
   [k: string]: any;
 };
@@ -199,7 +200,7 @@ export default function AuthorityUsPage() {
 
       const studentResponse = await supabase
         .from("students")
-        .select("id,first_name,preferred_name,surname,year_level_label,created_at")
+        .select("id,first_name,preferred_name,surname,year_level,created_at")
         .in("id", ids);
 
       if (studentResponse.error) {
@@ -502,7 +503,9 @@ export default function AuthorityUsPage() {
                   {children.map((child) => (
                     <option key={child.id} value={child.id}>
                       {childDisplayName(child)}
-                      {safe(child.year_level_label) ? ` — ${safe(child.year_level_label)}` : ""}
+                      {familyYearLevelLabelFromStored(child.year_level)
+                        ? ` — ${familyYearLevelLabelFromStored(child.year_level)}`
+                        : ""}
                     </option>
                   ))}
                 </select>

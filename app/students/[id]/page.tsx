@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 
 type ProfileRow = {
   student_id: string;
   student_display_name: string | null;
   class_id: string | null;
   class_name: string | null;
+  year_level?: number | null;
   year_level_label: string | null;
   is_ilp: boolean | null;
 
@@ -113,6 +115,10 @@ export default function StudentProfilePage() {
     return profile.next_best_action ?? null;
   }, [profile]);
 
+  const yearLevelLabel = familyYearLevelLabelFromStored(
+    profile?.year_level ?? profile?.year_level_label,
+  );
+
   if (!studentId) return <div style={{ padding: 24 }}>Missing student id in route.</div>;
   if (loading) return <div style={{ padding: 24 }}>Loading…</div>;
 
@@ -155,7 +161,7 @@ export default function StudentProfilePage() {
             <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
               <Pill>
                 Class: {profile.class_name || "—"}{" "}
-                {profile.year_level_label ? `(${profile.year_level_label})` : ""}
+                {yearLevelLabel ? `(${yearLevelLabel})` : ""}
               </Pill>
               {profile.is_ilp ? <Pill>ILP</Pill> : null}
               {profile.mtss_tier ? <Pill>MTSS: {String(profile.mtss_tier).toUpperCase()}</Pill> : null}

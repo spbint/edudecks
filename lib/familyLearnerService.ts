@@ -1,4 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
+import {
+  familyYearLevelLabelFromStored,
+  familyYearLevelOptionFromStored,
+  familyYearLevelToStoredNumber,
+} from "@/lib/familyLearnerYearLevel";
 
 export type CanonicalLearnerInput = {
   learnerName: string;
@@ -17,6 +22,8 @@ type ValidatedLearnerInput = {
   learnerName: string;
   firstName: string;
   surname: string | null;
+  yearLevelOption: string;
+  yearLevelNumber: number | null;
   yearLabel: string;
 };
 
@@ -25,7 +32,7 @@ type StudentInsertRow = {
   preferred_name?: string | null;
   first_name?: string | null;
   surname?: string | null;
-  year_level_label?: string | null;
+  year_level?: number | null;
   created_at?: string | null;
 };
 
@@ -54,25 +61,6 @@ function withTimeout<T>(
   }) as Promise<T>;
 }
 
-function buildYearLevelLabel(yearLevel: string | number | null | undefined) {
-  const clean = safe(yearLevel).replace(/^year\s+/i, "");
-  if (!clean) return "";
-
-  const numericYear = Number(clean);
-  if (!Number.isFinite(numericYear) || numericYear < 0) {
-    throw new Error("Year level must be a number when provided.");
-  }
-
-  return `Year ${numericYear}`;
-}
-
-function parseYearLevelNumber(yearLabel: string) {
-  const clean = safe(yearLabel).replace(/^year\s+/i, "");
-  if (!clean) return null;
-  const numericYear = Number(clean);
-  return Number.isFinite(numericYear) ? numericYear : null;
-}
-
 function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInput {
   const learnerName = safe(input.learnerName);
   if (!learnerName) {
@@ -82,12 +70,22 @@ function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInp
   const parts = learnerName.split(/\s+/).filter(Boolean);
   const firstName = parts[0] || learnerName;
   const surname = parts.slice(1).join(" ") || null;
-  const yearLabel = buildYearLevelLabel(input.yearLevel);
+  const rawYearLevel = safe(input.yearLevel);
+  const yearLevelOption = familyYearLevelOptionFromStored(input.yearLevel);
+
+  if (rawYearLevel && !yearLevelOption) {
+    throw new Error("Choose a year level from the list before saving.");
+  }
+
+  const yearLevelNumber = familyYearLevelToStoredNumber(input.yearLevel);
+  const yearLabel = familyYearLevelLabelFromStored(input.yearLevel);
 
   return {
     learnerName,
     firstName,
     surname,
+    yearLevelOption,
+    yearLevelNumber,
     yearLabel,
   };
 }
@@ -97,13 +95,14 @@ function toLearnerRecord(row: StudentInsertRow): CanonicalLearnerRecord {
     safe(row.preferred_name) ||
     [safe(row.first_name), safe(row.surname)].filter(Boolean).join(" ").trim() ||
     "Unnamed learner";
-  const yearLabel = safe(row.year_level_label);
+  const yearLevel = row.year_level ?? null;
+  const yearLabel = familyYearLevelLabelFromStored(yearLevel);
 
   return {
     id: safe(row.id),
     label,
     yearLabel,
-    year_level: parseYearLevelNumber(yearLabel),
+    year_level: yearLevel,
     connectedAt: safe(row.created_at) || new Date().toISOString(),
   };
 }
@@ -120,14 +119,14 @@ export async function createCanonicalFamilyLearner(
 
   console.info("[learner-create] payload validated", {
     userId,
-    hasYearLevel: Boolean(validated.yearLabel),
+    hasYearLevel: Boolean(validated.yearLevelOption),
   });
 
   const studentPayload = {
     first_name: validated.firstName,
     preferred_name: validated.firstName,
     surname: validated.surname,
-    year_level_label: validated.yearLabel || null,
+    year_level: validated.yearLevelNumber,
   };
 
   console.info("[learner-create] insert attempted", {
@@ -138,7 +137,7 @@ export async function createCanonicalFamilyLearner(
     supabase
       .from("students")
       .insert(studentPayload)
-      .select("id,preferred_name,first_name,surname,year_level_label,created_at")
+      .select("id,preferred_name,first_name,surname,year_level,created_at")
       .single(),
     "create learner",
   );
@@ -223,7 +222,7 @@ export async function updateCanonicalFamilyLearner(
         first_name: validated.firstName,
         preferred_name: validated.firstName,
         surname: validated.surname,
-        year_level_label: validated.yearLabel || null,
+        year_level: validated.yearLevelNumber,
       })
       .eq("id", learnerId),
     "update learner",

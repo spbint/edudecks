@@ -12,7 +12,7 @@ type ChildRow = {
   first_name?: string | null;
   preferred_name?: string | null;
   surname?: string | null;
-  year_level_label?: string | null;
+  year_level?: number | null;
   relationship_role?: string | null;
   [k: string]: any;
 };
@@ -92,7 +92,7 @@ export default function AuthorityAuPage() {
 
       const r = await supabase
         .from("students")
-        .select("id,first_name,preferred_name,surname,year_level_label,created_at")
+        .select("id,first_name,preferred_name,surname,year_level,created_at")
         .in("id", ids);
 
       if (!r.error) {

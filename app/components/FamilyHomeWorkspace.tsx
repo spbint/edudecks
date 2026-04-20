@@ -16,6 +16,12 @@ import {
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
 import {
+  FAMILY_YEAR_LEVEL_OPTIONS,
+  familyYearLevelLabelFromStored,
+  familyYearLevelOptionFromStored,
+  familyYearLevelToStoredNumber,
+} from "@/lib/familyLearnerYearLevel";
+import {
   persistSettingsToLocalStorage,
   type FamilySettings,
 } from "@/lib/familySettings";
@@ -47,7 +53,7 @@ function safe(value: unknown) {
 }
 
 function yearInputValue(learner: FamilyLearner) {
-  return learner.year_level != null ? String(learner.year_level) : "";
+  return familyYearLevelOptionFromStored(learner.year_level ?? learner.yearLabel);
 }
 
 function learnerName(learner: FamilyLearner) {
@@ -250,8 +256,8 @@ export default function FamilyHomeWorkspace() {
         const localLearner: FamilyLearner = {
           id: `local-${Date.now()}`,
           label: learnerNameInput,
-          yearLabel: safe(addYear) ? `Year ${safe(addYear)}` : "",
-          year_level: safe(addYear) ? Number(safe(addYear)) : null,
+          yearLabel: familyYearLevelLabelFromStored(addYear),
+          year_level: familyYearLevelToStoredNumber(addYear),
           connectedAt: new Date().toISOString(),
         };
         const nextLearners = [...children, localLearner];
@@ -408,8 +414,8 @@ export default function FamilyHomeWorkspace() {
             ? {
                 ...item,
                 label: name,
-                year_level: year ? Number(year) : null,
-                yearLabel: year ? `Year ${year}` : "",
+                year_level: familyYearLevelToStoredNumber(year),
+                yearLabel: familyYearLevelLabelFromStored(year),
               }
             : item,
         );
@@ -582,7 +588,7 @@ export default function FamilyHomeWorkspace() {
             <div style={S.addHeader}>
               <div style={S.cardTitle}>Add learner</div>
               <div style={S.helperText}>
-                Leave year blank or enter a whole number.
+                Choose the learner's year level from the list.
               </div>
             </div>
             <div style={S.formRow}>
@@ -596,18 +602,23 @@ export default function FamilyHomeWorkspace() {
                 placeholder="Learner name"
                 style={S.input}
               />
-              <input
+              <select
                 value={addYear}
                 onChange={(e) => {
                   setAddYear(e.target.value);
                   if (error) setError("");
                   if (warning) setWarning("");
                 }}
-                placeholder="Year"
-                inputMode="numeric"
                 aria-label="Year level"
                 style={S.inputSmall}
-              />
+              >
+                <option value="">Year level</option>
+                {FAMILY_YEAR_LEVEL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
               <button type="button" onClick={handleAddLearner} disabled={adding} style={adding ? S.buttonDisabled : S.primaryButton}>
                 {adding ? "Saving..." : "Add learner"}
               </button>
@@ -638,12 +649,18 @@ export default function FamilyHomeWorkspace() {
                         onChange={(e) => setEditDrafts((current) => ({ ...current, [child.id]: { ...draft, name: e.target.value } }))}
                         style={S.input}
                       />
-                      <input
+                      <select
                         value={draft.year}
                         onChange={(e) => setEditDrafts((current) => ({ ...current, [child.id]: { ...draft, year: e.target.value } }))}
-                        inputMode="numeric"
                         style={S.inputSmall}
-                      />
+                      >
+                        <option value="">Year level</option>
+                        {FAMILY_YEAR_LEVEL_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   ) : null}
 

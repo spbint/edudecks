@@ -6,6 +6,7 @@ import {
   useActiveStudent,
   activeStudentDisplayName,
 } from "@/app/hooks/useActiveStudent";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 
 const S = {
   card: {
@@ -145,7 +146,11 @@ export default function ActiveChildContextBar({
           </div>
 
           <div style={S.chipRow}>
-            {student.year_level != null ? <span style={S.chip}>Year {student.year_level}</span> : null}
+            {familyYearLevelLabelFromStored(student.year_level) ? (
+              <span style={S.chip}>
+                {familyYearLevelLabelFromStored(student.year_level)}
+              </span>
+            ) : null}
             {student.is_ilp ? <span style={S.chip}>ILP</span> : null}
             <span style={S.chip}>{student.id.slice(0, 8)}</span>
           </div>

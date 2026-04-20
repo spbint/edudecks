@@ -22,6 +22,7 @@ import {
   resolveFamilyShellHandoff,
 } from "@/lib/familyCommandHandoff";
 import { resolveCanonicalActiveLearnerId } from "@/lib/familyWorkspace";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 import { buildEvidenceBrowsingSummary } from "@/lib/reportPresentation";
 import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 
@@ -213,7 +214,7 @@ function firstNameOf(s: StudentRow | null | undefined) {
 
 function studentYearLabel(s: StudentRow | null | undefined) {
   if (!s) return "";
-  if (s.year_level != null && safe(s.year_level)) return `Year ${safe(s.year_level)}`;
+  if (s.year_level != null) return familyYearLevelLabelFromStored(s.year_level);
   if (safe(s.yearLabel)) return safe(s.yearLabel);
   return "";
 }

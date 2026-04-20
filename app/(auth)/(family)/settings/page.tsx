@@ -15,6 +15,7 @@ import {
   type WeekStart,
   persistSettingsToLocalStorage,
 } from "@/lib/familySettings";
+import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
 import { saveFamilyWorkspaceSettings, setActiveLearnerId } from "@/lib/familyWorkspace";
 
 const CurriculumSetupCard = dynamic(
@@ -88,7 +89,11 @@ function childOptionYearLabel(child: ChildOption | null | undefined) {
       year_level: string | number | null;
     }>;
 
-  return row.yearLabel || row.year_label || (row.year_level ? `Year ${row.year_level}` : "");
+  return (
+    row.yearLabel ||
+    row.year_label ||
+    familyYearLevelLabelFromStored(row.year_level)
+  );
 }
 
 function curriculumCountryLabel(settings: FamilySettings) {
