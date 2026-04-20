@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
+import { loadLinkedFamilyStudentIds } from "@/lib/familyLearners";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
@@ -14,7 +15,6 @@ type ChildRow = {
   preferred_name?: string | null;
   surname?: string | null;
   year_level?: number | null;
-  relationship_role?: string | null;
   [k: string]: any;
 };
 
@@ -158,45 +158,19 @@ export default function AuthorityUsPage() {
     setErr("");
 
     try {
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
-
-      if (!userId) {
+      const ids = await loadLinkedFamilyStudentIds();
+      if (!Array.isArray(ids)) {
         setChildren([]);
         setEvidence([]);
         setBusy(false);
         return;
       }
-
-      const linksResp = await supabase
-        .from("parent_student_links")
-        .select("student_id,relationship_role,sort_order,created_at")
-        .eq("user_id", userId)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
-
-      if (linksResp.error) {
-        if (isMissingRelationOrColumn(linksResp.error)) {
-          setErr("parent_student_links table is missing. Run the linking SQL first.");
-          setBusy(false);
-          return;
-        }
-        throw linksResp.error;
-      }
-
-      const links = (linksResp.data ?? []) as Array<{
-        student_id: string;
-        relationship_role?: string | null;
-      }>;
-
-      if (!links.length) {
+      if (!ids.length) {
         setChildren([]);
         setEvidence([]);
         setBusy(false);
         return;
       }
-
-      const ids = links.map((x) => x.student_id).filter(Boolean);
 
       const studentResponse = await supabase
         .from("students")
@@ -212,12 +186,8 @@ export default function AuthorityUsPage() {
       const merged = ids
         .map((id) => {
           const student = students.find((s) => s.id === id);
-          const link = links.find((l) => l.student_id === id);
           if (!student) return null;
-          return {
-            ...student,
-            relationship_role: link?.relationship_role ?? null,
-          } as ChildRow;
+          return student as ChildRow;
         })
         .filter(Boolean) as ChildRow[];
 

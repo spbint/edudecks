@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import { loadLinkedFamilyStudentIds } from "@/lib/familyLearners";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
@@ -13,7 +14,6 @@ type ChildRow = {
   preferred_name?: string | null;
   surname?: string | null;
   year_level?: number | null;
-  relationship_role?: string | null;
   [k: string]: any;
 };
 
@@ -65,28 +65,19 @@ export default function AuthorityAuPage() {
     setErr("");
 
     try {
-      const authResp = await supabase.auth.getUser();
-      const userId = authResp.data.user?.id;
-
-      if (!userId) {
+      const ids = await loadLinkedFamilyStudentIds();
+      if (!Array.isArray(ids)) {
         setChildren([]);
         setEvidence([]);
         setBusy(false);
         return;
       }
-
-      const linksResp = await supabase
-        .from("parent_student_links")
-        .select("student_id,relationship_role,sort_order,created_at")
-        .eq("user_id", userId);
-
-      if (linksResp.error) throw linksResp.error;
-
-      const links = (linksResp.data ?? []) as Array<{
-        student_id: string;
-        relationship_role?: string | null;
-      }>;
-      const ids = links.map((x) => x.student_id).filter(Boolean);
+      if (!ids.length) {
+        setChildren([]);
+        setEvidence([]);
+        setBusy(false);
+        return;
+      }
 
       let students: ChildRow[] = [];
 
@@ -96,16 +87,11 @@ export default function AuthorityAuPage() {
         .in("id", ids);
 
       if (!r.error) {
-        // ✅ FIX APPLIED HERE
         students = ids
           .map((id) => {
             const student = ((r.data ?? []) as ChildRow[]).find((row) => row.id === id);
-            const link = links.find((row) => row.student_id === id);
             if (!student) return null;
-            return {
-              ...student,
-              relationship_role: link?.relationship_role ?? null,
-            } satisfies ChildRow;
+            return student satisfies ChildRow;
           })
           .filter(Boolean) as ChildRow[];
       } else {

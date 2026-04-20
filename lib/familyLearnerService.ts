@@ -290,7 +290,6 @@ export async function createCanonicalFamilyLearner(
   const linkPayload = {
     user_id: userId,
     student_id: learner.id,
-    relationship_role: "parent",
   };
 
   console.info("[learner-create] link upsert attempted", {
