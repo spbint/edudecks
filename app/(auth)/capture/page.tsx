@@ -1572,15 +1572,14 @@ export default function CapturePage() {
 
         const created = await createFamilyEvidenceEntry({
           studentId: activeChildId,
+          userId: workspace.userId,
           title: safe(title),
           summary: safe(summary),
+          note: safe(summary),
           occurredOn: safe(occurredOn) || null,
+          learningArea: safe(learningArea) || "General",
           evidenceType: safe(evidenceType) || "note",
           visibility: "family",
-          metadata: {
-            learning_area: safe(learningArea) || "General",
-            capture_surface: "family_capture",
-          },
         });
 
         insertedId = safe(created.id);

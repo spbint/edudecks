@@ -3,12 +3,18 @@ import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
 export type CreateFamilyEvidenceInput = {
   studentId: string;
+  userId?: string | null;
   title: string;
   summary: string;
+  note?: string | null;
   occurredOn?: string | null;
+  learningArea?: string | null;
   evidenceType?: string | null;
   visibility?: string | null;
-  metadata?: Record<string, unknown>;
+  attachmentUrls?: string[] | null;
+  imageUrl?: string | null;
+  audioUrl?: string | null;
+  fileUrl?: string | null;
 };
 
 export type EvidenceOutcomeLink = {
@@ -132,17 +138,28 @@ export async function loadEvidenceEntriesWithVariants<T>(
 export async function createFamilyEvidenceEntry(
   input: CreateFamilyEvidenceInput,
 ): Promise<{ id: string }> {
+  const note = safe(input.note) || safe(input.summary);
+  const attachmentUrls = Array.isArray(input.attachmentUrls)
+    ? input.attachmentUrls.map((value) => safe(value)).filter(Boolean)
+    : [];
+
   const response = await supabase
     .from("evidence_entries")
     .insert({
       student_id: input.studentId,
+      user_id: safe(input.userId) || null,
       title: input.title,
       summary: input.summary,
       body: input.summary,
+      note,
       evidence_type: input.evidenceType ?? "note",
       occurred_on: input.occurredOn ?? null,
+      learning_area: safe(input.learningArea) || null,
       visibility: input.visibility ?? "private",
-      metadata: input.metadata ?? {},
+      attachment_urls: attachmentUrls.length ? attachmentUrls : null,
+      image_url: safe(input.imageUrl) || null,
+      audio_url: safe(input.audioUrl) || null,
+      file_url: safe(input.fileUrl) || null,
       is_deleted: false,
     })
     .select("id")
@@ -218,7 +235,7 @@ export async function loadReportSupportingEvidence(input: {
   const evidenceResponse = await client
     .from("evidence_entries")
     .select(
-      "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
+      "id,title,summary,body,note,occurred_on,created_at,learning_area,student_id,is_deleted,attachment_urls,image_url,file_url,audio_url",
     )
     .in("id", evidenceIds)
     .eq("is_deleted", false)
@@ -242,7 +259,6 @@ export async function loadReportSupportingEvidence(input: {
     is_deleted?: boolean | null;
     attachment_urls?: string[] | string | null;
     image_url?: string | null;
-    photo_url?: string | null;
     file_url?: string | null;
     audio_url?: string | null;
   }>).filter((row) => {
@@ -379,7 +395,6 @@ export async function loadReportSupportingEvidence(input: {
     const legacyAttachmentValues = [
       ...parseAttachmentArray(row.attachment_urls),
       safe(row.image_url),
-      safe(row.photo_url),
       safe(row.file_url),
       safe(row.audio_url),
     ].filter(Boolean);

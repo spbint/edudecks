@@ -354,7 +354,6 @@ export default function FamilyHomeWorkspace() {
 
     const title = safe(captureTitle);
     const description = safe(captureDescription);
-    const familyProfileId = safe((profile as { id?: unknown }).id);
 
     if (!activeLearner) {
       setCaptureFeedback(null);
@@ -370,9 +369,9 @@ export default function FamilyHomeWorkspace() {
       return;
     }
 
-    if (!workspace.userId || !hasSupabaseEnv || !familyProfileId || familyProfileId === "local") {
+    if (!workspace.userId || !hasSupabaseEnv) {
       setCaptureFeedback(null);
-      setError("Family capture needs a signed-in family workspace with a saved profile.");
+      setError("Family capture needs a signed-in family workspace.");
       setWarning("");
       return;
     }
@@ -386,8 +385,11 @@ export default function FamilyHomeWorkspace() {
     try {
       const created = await createFamilyEvidenceEntry({
         studentId: activeLearner.id,
+        userId: workspace.userId,
         title,
         summary: description,
+        note: description,
+        learningArea: "General",
         evidenceType: "note",
         visibility: profile.evidence_privacy_default,
       });

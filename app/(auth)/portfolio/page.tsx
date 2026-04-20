@@ -60,15 +60,8 @@ type EvidenceRow = {
   is_deleted?: boolean | null;
   attachment_urls?: string[] | string | null;
   image_url?: string | null;
-  photo_url?: string | null;
   file_url?: string | null;
   audio_url?: string | null;
-  curriculum_country?: string | null;
-  curriculum_framework?: string | null;
-  curriculum_year?: string | null;
-  curriculum_subject?: string | null;
-  curriculum_strand?: string | null;
-  curriculum_skill?: string | null;
   [k: string]: any;
 };
 
@@ -261,7 +254,7 @@ function textOfEvidence(e: EvidenceRow) {
 }
 
 function mediaLabel(e: EvidenceRow) {
-  if (safe(e.photo_url || e.image_url)) return "Photo";
+  if (safe(e.image_url)) return "Photo";
   if (safe(e.audio_url)) return "Audio";
   if (Array.isArray(e.attachment_urls) && e.attachment_urls.length > 0) return "Attachment";
   if (safe(e.attachment_urls)) return "Attachment";
@@ -270,7 +263,7 @@ function mediaLabel(e: EvidenceRow) {
 }
 
 function hasVisualMedia(e: EvidenceRow) {
-  return !!safe(e.photo_url || e.image_url);
+  return !!safe(e.image_url);
 }
 
 function hasAudioMedia(e: EvidenceRow) {
@@ -282,7 +275,7 @@ function hasAnyMedia(e: EvidenceRow) {
 }
 
 function evidenceThumb(e: EvidenceRow) {
-  return safe(e.photo_url || e.image_url);
+  return safe(e.image_url);
 }
 
 function getReadinessBand(evidenceCount: number, areaCount: number, recentCount: number): ReadinessBand {
@@ -297,15 +290,7 @@ function getPremiumFromStorage() {
 }
 
 function countCurriculumLinked(evidence: EvidenceRow[]) {
-  return evidence.filter(
-    (e) =>
-      safe(e.curriculum_country) ||
-      safe(e.curriculum_framework) ||
-      safe(e.curriculum_year) ||
-      safe(e.curriculum_subject) ||
-      safe(e.curriculum_strand) ||
-      safe(e.curriculum_skill)
-  ).length;
+  return 0;
 }
 
 function scoreShowcaseItem(e: EvidenceRow, tags: SampleTag[]) {
@@ -318,13 +303,7 @@ function scoreShowcaseItem(e: EvidenceRow, tags: SampleTag[]) {
   const recency = dateAge <= 14 ? 18 : dateAge <= 30 ? 12 : dateAge <= 60 ? 6 : 0;
   const richness = Math.min(24, Math.floor(textLength / 12));
   const areaBonus = area !== "Other" ? 8 : 0;
-  const curriculumBonus =
-    safe(e.curriculum_country) ||
-    safe(e.curriculum_framework) ||
-    safe(e.curriculum_subject) ||
-    safe(e.curriculum_skill)
-      ? 10
-      : 0;
+  const curriculumBonus = 0;
 
   const score = media + visualBonus + tagBonus + recency + richness + areaBonus + curriculumBonus;
 
@@ -487,7 +466,7 @@ function moveBlock(layout: PortfolioLayout, blockId: PortfolioBlockId, direction
 
 function buildPortfolioItemClarity(item: EvidenceRow) {
   const isRecent = daysSince(item.occurred_on || item.created_at) <= 30;
-  const isLinked = Boolean(safe(item.curriculum_subject) || safe(item.curriculum_skill));
+  const isLinked = false;
   const area = guessArea(item.learning_area);
 
   let hint: string | null = null;
@@ -693,8 +672,7 @@ function PortfolioPageContent() {
         const [loadedEvidence, loadedDrafts] = await Promise.all([
           loadEvidenceEntriesWithVariants<EvidenceRow>(
             [
-              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url,curriculum_country,curriculum_framework,curriculum_year,curriculum_subject,curriculum_strand,curriculum_skill",
-              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,photo_url,file_url,audio_url",
+              "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted,attachment_urls,image_url,file_url,audio_url",
               "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,visibility,is_deleted",
               "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,is_deleted",
             ],
@@ -914,8 +892,7 @@ function PortfolioPageContent() {
   );
 
   const linkedEvidenceCount = useMemo(
-    () =>
-      evidence.filter((item) => safe(item.curriculum_subject) || safe(item.curriculum_skill)).length,
+    () => 0,
     [evidence],
   );
 
@@ -935,8 +912,7 @@ function PortfolioPageContent() {
       }
       if (
         evidenceFilter === "linked" &&
-        !safe(item.curriculum_subject) &&
-        !safe(item.curriculum_skill)
+        true
       ) {
         return false;
       }

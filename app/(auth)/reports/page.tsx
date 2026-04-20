@@ -90,7 +90,6 @@ type EvidenceRow = {
   created_at?: string | null;
   attachment_urls?: string[] | string | null;
   image_url?: string | null;
-  photo_url?: string | null;
   file_url?: string | null;
   audio_url?: string | null;
   is_deleted?: boolean | null;
@@ -228,7 +227,6 @@ function guessArea(raw: string | null | undefined) {
 function hasMedia(row: EvidenceRow) {
   return Boolean(
     safe(row.image_url) ||
-      safe(row.photo_url) ||
       safe(row.file_url) ||
       safe(row.audio_url) ||
       (Array.isArray(row.attachment_urls) && row.attachment_urls.length > 0) ||
@@ -418,8 +416,8 @@ function countTrue(values: boolean[]) {
 
 async function loadEvidence(studentIds?: string[] | null): Promise<EvidenceRow[]> {
   return loadEvidenceEntriesWithVariants<EvidenceRow>([
-    "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,audio_url,is_deleted",
-    "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,attachment_urls,image_url,photo_url,file_url,is_deleted",
+    "id,student_id,class_id,title,summary,body,note,learning_area,evidence_type,occurred_on,created_at,attachment_urls,image_url,file_url,audio_url,is_deleted",
+    "id,student_id,class_id,title,summary,body,note,learning_area,occurred_on,created_at,attachment_urls,image_url,file_url,is_deleted",
     "id,student_id,class_id,title,summary,note,learning_area,occurred_on,created_at,is_deleted",
   ], {
     studentIds: studentIds ?? null,
