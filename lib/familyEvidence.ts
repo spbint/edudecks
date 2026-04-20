@@ -2,9 +2,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
 export type CreateFamilyEvidenceInput = {
-  familyProfileId: string;
   studentId: string;
-  createdByUserId: string;
   title: string;
   summary: string;
   occurredOn?: string | null;
@@ -137,9 +135,7 @@ export async function createFamilyEvidenceEntry(
   const response = await supabase
     .from("evidence_entries")
     .insert({
-      family_profile_id: input.familyProfileId,
       student_id: input.studentId,
-      created_by_user_id: input.createdByUserId,
       title: input.title,
       summary: input.summary,
       body: input.summary,

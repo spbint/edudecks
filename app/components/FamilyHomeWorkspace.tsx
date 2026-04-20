@@ -385,9 +385,7 @@ export default function FamilyHomeWorkspace() {
 
     try {
       const created = await createFamilyEvidenceEntry({
-        familyProfileId,
         studentId: activeLearner.id,
-        createdByUserId: workspace.userId,
         title,
         summary: description,
         evidenceType: "note",

@@ -1571,9 +1571,7 @@ export default function CapturePage() {
         }
 
         const created = await createFamilyEvidenceEntry({
-          familyProfileId: workspace.profile.id,
           studentId: activeChildId,
-          createdByUserId: workspace.userId,
           title: safe(title),
           summary: safe(summary),
           occurredOn: safe(occurredOn) || null,
