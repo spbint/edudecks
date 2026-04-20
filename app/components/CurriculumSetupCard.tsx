@@ -185,6 +185,12 @@ export default function CurriculumSetupCard({
     setIsEditing(false);
   }
 
+  function openEditor() {
+    setDraft(value);
+    setStatusMessage("");
+    setIsEditing(true);
+  }
+
   return (
     <section id="curriculum-setup" style={cardStyles.card}>
       <div style={cardStyles.header}>
@@ -196,23 +202,7 @@ export default function CurriculumSetupCard({
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {isEditing ? (
-            <span style={cardStyles.editingBadge}>Editing</span>
-          ) : (
-            <button
-              type="button"
-              style={cardStyles.primaryButton}
-              onClick={() => {
-                setDraft(value);
-                setIsEditing(true);
-              }}
-              disabled={loadingFrameworks || frameworks.length === 0}
-            >
-              {hasSetup ? "Edit curriculum setup" : "Set up curriculum"}
-            </button>
-          )}
-        </div>
+        {isEditing ? <span style={cardStyles.editingBadge}>Editing</span> : null}
       </div>
 
       {statusMessage ? <div style={cardStyles.status}>{statusMessage}</div> : null}
@@ -314,36 +304,48 @@ export default function CurriculumSetupCard({
           </div>
         )
       ) : hasSetup ? (
-        <div style={cardStyles.summary}>
-          <Row
-            label="Country"
-            value={findCanonicalCountryLabel(frameworks, value.country_id)}
-          />
-          <Row
-            label="Framework"
-            value={findCanonicalFrameworkLabel(frameworks, value.framework_id)}
-          />
-          <Row
-            label="Level"
-            value={selectedLevel?.level_label || safe(value.level_id) || "Not set"}
-          />
+        <div style={cardStyles.summaryBlock}>
+          <div style={cardStyles.summary}>
+            <Row
+              label="Country"
+              value={findCanonicalCountryLabel(frameworks, value.country_id)}
+            />
+            <Row
+              label="Framework"
+              value={findCanonicalFrameworkLabel(frameworks, value.framework_id)}
+            />
+            <Row
+              label="Level"
+              value={selectedLevel?.level_label || safe(value.level_id) || "Not set"}
+            />
+          </div>
+
+          <div style={cardStyles.actions}>
+            <button
+              type="button"
+              style={cardStyles.primaryButton}
+              onClick={openEditor}
+              disabled={loadingFrameworks || frameworks.length === 0}
+            >
+              Edit curriculum
+            </button>
+          </div>
         </div>
       ) : (
         <div style={cardStyles.empty}>
           <p>
-            Set your family curriculum so planning, capture, portfolio, and reporting can stay aligned.
+            Curriculum has not been configured yet. Set it here so planning, capture, portfolio, and reporting can stay aligned.
           </p>
-          <button
-            type="button"
-            style={cardStyles.secondaryButton}
-            onClick={() => {
-              setDraft(value);
-              setIsEditing(true);
-            }}
-            disabled={loadingFrameworks || frameworks.length === 0}
-          >
-            Set up curriculum
-          </button>
+          <div style={cardStyles.actions}>
+            <button
+              type="button"
+              style={cardStyles.primaryButton}
+              onClick={openEditor}
+              disabled={loadingFrameworks || frameworks.length === 0}
+            >
+              Set up curriculum
+            </button>
+          </div>
         </div>
       )}
 
@@ -436,16 +438,6 @@ const cardStyles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontSize: 14,
   },
-  secondaryButton: {
-    background: "#f8fafc",
-    border: "1px solid #e5e7eb",
-    borderRadius: 12,
-    padding: "10px 16px",
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#1f2937",
-    cursor: "pointer",
-  },
   status: {
     padding: "10px 12px",
     borderRadius: 14,
@@ -453,6 +445,10 @@ const cardStyles: Record<string, React.CSSProperties> = {
     border: "1px solid #bbf7d0",
     color: "#166534",
     fontSize: 13,
+  },
+  summaryBlock: {
+    display: "grid",
+    gap: 14,
   },
   summary: {
     display: "grid",
