@@ -6,7 +6,6 @@ import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import WorkflowPageFrame from "@/app/components/WorkflowPageFrame";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
-import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import {
   createLinkedLearner,
   persistLearnersToLocalCache,
@@ -98,14 +97,6 @@ export default function FamilyHomeWorkspace() {
   const [warning, setWarning] = useState("");
   const [busyChildId, setBusyChildId] = useState("");
   const [adding, setAdding] = useState(false);
-  const [showCaptureForm, setShowCaptureForm] = useState(false);
-  const [captureTitle, setCaptureTitle] = useState("");
-  const [captureDescription, setCaptureDescription] = useState("");
-  const [savingCapture, setSavingCapture] = useState(false);
-  const [captureFeedback, setCaptureFeedback] = useState<{
-    tone: "success" | "error";
-    message: string;
-  } | null>(null);
   const [addName, setAddName] = useState("");
   const [addYear, setAddYear] = useState("");
   const [editingChildId, setEditingChildId] = useState("");
@@ -349,80 +340,6 @@ export default function FamilyHomeWorkspace() {
     }
   }
 
-  async function handleCaptureLearning() {
-    if (savingCapture) return;
-
-    const title = safe(captureTitle);
-    const description = safe(captureDescription);
-
-    if (!activeLearner) {
-      setCaptureFeedback(null);
-      setError("Choose the current learner before capturing learning.");
-      setWarning("");
-      return;
-    }
-
-    if (!title) {
-      setCaptureFeedback(null);
-      setError("Add a title before saving this learning moment.");
-      setWarning("");
-      return;
-    }
-
-    if (!workspace.userId || !hasSupabaseEnv) {
-      setCaptureFeedback(null);
-      setError("Family capture needs a signed-in family workspace.");
-      setWarning("");
-      return;
-    }
-
-    setSavingCapture(true);
-    setCaptureFeedback(null);
-    setStatus("");
-    setError("");
-    setWarning("");
-
-    try {
-      const created = await createFamilyEvidenceEntry({
-        studentId: activeLearner.id,
-        userId: workspace.userId,
-        title,
-        summary: description,
-        note: description,
-        learningArea: "General",
-        evidenceType: "note",
-        visibility: profile.evidence_privacy_default,
-      });
-
-      setRecentEvidence((current) =>
-        [
-          {
-            id: created.id,
-            student_id: activeLearner.id,
-            title,
-            summary: description,
-            created_at: new Date().toISOString(),
-          },
-          ...current,
-        ].slice(0, 6),
-      );
-      setCaptureTitle("");
-      setCaptureDescription("");
-      setShowCaptureForm(false);
-      setStatus("Learning saved.");
-      setCaptureFeedback({ tone: "success", message: "Learning saved." });
-    } catch (saveError) {
-      console.error("family capture learning failed", saveError);
-      const message =
-        safe((saveError as { message?: unknown })?.message) ||
-        "We couldn't save this learning moment yet. Please try again.";
-      setError(message);
-      setCaptureFeedback({ tone: "error", message });
-    } finally {
-      setSavingCapture(false);
-    }
-  }
-
   async function handleSaveLearner(child: FamilyLearner) {
     const draft = editDrafts[child.id];
     const name = safe(draft?.name);
@@ -547,15 +464,15 @@ export default function FamilyHomeWorkspace() {
       title="EduDecks Family"
       subtitle="Family Home"
       heroTitle="Family home for learners, capture, and reporting"
-      heroText="Manage learners, switch the current learner, capture learning quickly, and keep the family record moving forward from one place."
+      heroText="Manage learners, confirm the current learner, and move clearly into the next family workflow stage from one place."
       heroAsideTitle="Current workspace"
-      heroAsideText="Use this page to manage learners, capture new moments, and stay close to recent reporting activity."
+      heroAsideText="Use this page to orient the family, manage learners, and move into capture, planning, or reporting with the right learner in view."
     >
       <WorkflowPageFrame
         steps={FAMILY_WORKFLOW_PAGE_STEPS.family}
-        activeStepId={showCaptureForm ? "family-capture" : "family-overview"}
+        activeStepId="family-overview"
         title="Family pathway"
-        helperText="Use family home to orient the family, manage learners, capture a moment, and hand off to the next stage."
+        helperText="Use family home to orient the family, manage learners, and move deliberately into the next workflow stage."
       >
       <div style={S.page}>
         <section id="family-overview" style={S.section}>
@@ -589,7 +506,7 @@ export default function FamilyHomeWorkspace() {
               <div style={S.eyebrow}>Quick actions</div>
               <h2 style={S.sectionTitle}>Move the family record forward</h2>
               <div style={S.helperText}>
-                Open the next workspace you need or capture a new learning moment from here.
+                Open the next workspace you need after checking the current learner and family context.
               </div>
             </div>
           </div>
@@ -730,90 +647,28 @@ export default function FamilyHomeWorkspace() {
             <div style={S.addHeader}>
               <div style={S.cardTitle}>Capture learning</div>
               <div style={S.helperText}>
-                Save one learning moment for the current learner without leaving family home.
+                Use the Capture stage when you are ready to record what happened for the current learner.
               </div>
             </div>
             <div style={S.captureHeaderRow}>
               <div style={S.captureContext}>
                 <div style={S.summaryLabel}>Current learner</div>
                 <div style={S.summaryValue}>{activeLearner?.label || "Choose a learner first"}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCaptureForm((current) => !current);
-                  setCaptureFeedback(null);
-                  setError("");
-                  setWarning("");
-                }}
-                disabled={!activeLearner || savingCapture}
-                style={!activeLearner || savingCapture ? S.buttonDisabled : S.secondaryButton}
-              >
-                {showCaptureForm ? "Close" : "Capture learning"}
-              </button>
-            </div>
-
-            {showCaptureForm ? (
-              <div style={S.captureForm}>
-                <input
-                  value={captureTitle}
-                  onChange={(e) => {
-                    setCaptureTitle(e.target.value);
-                    if (captureFeedback) setCaptureFeedback(null);
-                    if (error) setError("");
-                  }}
-                  placeholder="Title"
-                  aria-label="Learning title"
-                  style={S.input}
-                />
-                <textarea
-                  value={captureDescription}
-                  onChange={(e) => {
-                    setCaptureDescription(e.target.value);
-                    if (captureFeedback) setCaptureFeedback(null);
-                    if (error) setError("");
-                  }}
-                  placeholder="Description (optional)"
-                  aria-label="Learning description"
-                  rows={4}
-                  style={S.textarea}
-                />
-                <div style={S.captureActions}>
-                  <button
-                    type="button"
-                    onClick={handleCaptureLearning}
-                    disabled={savingCapture}
-                    style={savingCapture ? S.captureButtonDisabled : S.capturePrimaryButton}
-                  >
-                    {savingCapture ? "Saving..." : "Save learning"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCaptureForm(false);
-                      setCaptureTitle("");
-                      setCaptureDescription("");
-                      setCaptureFeedback(null);
-                    }}
-                    disabled={savingCapture}
-                    style={S.secondaryButton}
-                  >
-                    Cancel
-                  </button>
+                <div style={S.helperText}>
+                  Check the current learner here, then continue into the dedicated Capture stage.
                 </div>
               </div>
-            ) : null}
-            {captureFeedback ? (
-              <div
-                style={
-                  captureFeedback.tone === "success"
-                    ? S.captureSuccessNote
-                    : S.captureErrorNote
-                }
+              <Link
+                href="/capture"
+                style={!activeLearner ? S.linkButtonDisabled : S.secondaryButton}
+                aria-disabled={!activeLearner}
+                onClick={(event) => {
+                  if (!activeLearner) event.preventDefault();
+                }}
               >
-                {captureFeedback.message}
-              </div>
-            ) : null}
+                Open Capture
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -880,8 +735,6 @@ const S: Record<string, React.CSSProperties> = {
   addHeader: { display: "grid", gap: 4 },
   captureHeaderRow: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" },
   captureContext: { display: "grid", gap: 6 },
-  captureForm: { display: "grid", gap: 10 },
-  captureActions: { display: "flex", gap: 10, flexWrap: "wrap" },
   learnerList: { display: "grid", gap: 12 },
   learnerCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
   learnerHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" },
@@ -893,16 +746,13 @@ const S: Record<string, React.CSSProperties> = {
   inputSmall: { width: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
   textarea: { width: "100%", minHeight: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14, resize: "vertical" },
   primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  capturePrimaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer", minWidth: 136, display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" },
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
-  captureButtonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed", minWidth: 136, display: "inline-flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box" },
+  linkButtonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, textDecoration: "none", cursor: "not-allowed", pointerEvents: "auto" },
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
   warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
   errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },
-  captureSuccessNote: { border: "1px solid #bbf7d0", borderRadius: 14, background: "#f0fdf4", color: "#166534", padding: "10px 12px", fontSize: 14, fontWeight: 700 },
-  captureErrorNote: { border: "1px solid #fdba74", borderRadius: 14, background: "#fff7ed", color: "#9a3412", padding: "10px 12px", fontSize: 14, fontWeight: 700 },
   chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
   activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
   activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },

@@ -68,8 +68,8 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
     },
     {
       id: "family-capture",
-      label: "Capture learning",
-      detail: "Save one useful moment without leaving family home.",
+      label: "Capture handoff",
+      detail: "Check the current learner, then move to the Capture stage to record learning.",
     },
     {
       id: "family-activity",
