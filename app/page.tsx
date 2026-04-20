@@ -13,33 +13,33 @@ const STEPS = [
   {
     number: "1",
     title: "Plan",
-    text: "Set a learning focus for the moment.",
+    text: "Choose a learning focus.",
   },
   {
     number: "2",
     title: "Capture",
-    text: "Record what actually happened.",
+    text: "Record what happened.",
   },
   {
     number: "3",
     title: "Build",
-    text: "Turn moments into a structured learning record.",
+    text: "Turn it into a structured record.",
   },
   {
     number: "4",
     title: "Report",
-    text: "See progress clearly over time.",
+    text: "Show progress clearly.",
   },
 ];
 
 const BENEFITS = [
-  "Capture evidence as it happens",
-  "Build a record without extra admin",
+  "Capture real learning moments",
+  "Build records without admin overload",
   "Track progress over time",
-  "Be ready for reporting when needed",
+  "Be ready when reporting is required",
 ];
 
-const AUDIENCES = ["Families", "Homeschool", "Schools (future-ready)"];
+const AUDIENCES = ["Families", "Homeschool", "Schools"];
 
 function sectionHeader(title: string, text?: string) {
   return (
@@ -78,11 +78,13 @@ export default function HomePage() {
   return (
     <PublicSiteShell
       title="EduDecks"
-      eyebrow="Learning records"
-      heroTitle="Capture learning. Build a record that grows over time."
-      heroText="Plan learning, capture real moments, and turn them into clear records for reporting and assessment."
+      eyebrow=""
+      heroTitle="Turn everyday learning into clear records for reporting."
+      heroText="Capture what happens, build structured records, and show progress when it matters."
       heroBadges={[]}
-      heroMicrocopy={null}
+      heroMicrocopy={
+        <span>No complex setup. Start with one moment.</span>
+      }
       asideTitle=""
       asideText=""
       asideItems={[]}
@@ -105,10 +107,7 @@ export default function HomePage() {
           scrollMarginTop: 116,
         }}
       >
-        {sectionHeader(
-          "A clear pathway from learning to reporting",
-          "Follow one connected flow from the first plan to a record you can use later.",
-        )}
+        {sectionHeader("From learning to reporting — one clear flow")}
 
         <div
           style={{
@@ -172,6 +171,78 @@ export default function HomePage() {
 
       <section
         style={{
+          borderRadius: 28,
+          padding: isMobile ? 20 : isTablet ? 24 : 32,
+          marginBottom: isMobile ? 18 : 22,
+          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+          color: "#ffffff",
+          boxShadow: "0 18px 50px rgba(15,23,42,0.14)",
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.7)",
+          }}
+        >
+          Start now
+        </div>
+        <div
+          style={{
+            fontSize: isMobile ? 30 : 34,
+            lineHeight: isMobile ? 1.08 : 1.12,
+            fontWeight: 900,
+            maxWidth: 720,
+          }}
+        >
+          Start building your first learning record
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: "rgba(255,255,255,0.82)",
+            maxWidth: 620,
+          }}
+        >
+          Capture one moment. Turn it into something you can use.
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link
+            href="/start"
+            style={{
+              ...publicButtonStyle(true),
+              background: "#ffffff",
+              color: "#0f172a",
+              border: "1px solid #ffffff",
+              width: isMobile ? "100%" : undefined,
+            }}
+          >
+            Start a family
+          </Link>
+          <Link
+            href="/#how-it-works"
+            style={{
+              ...publicButtonStyle(false),
+              background: "transparent",
+              color: "#ffffff",
+              border: "1px solid rgba(255,255,255,0.32)",
+              width: isMobile ? "100%" : undefined,
+            }}
+          >
+            See how it works
+          </Link>
+        </div>
+      </section>
+
+      <section
+        style={{
           ...publicCardStyle(),
           marginBottom: isMobile ? 18 : 22,
           padding: isMobile ? 18 : isTablet ? 24 : 28,
@@ -218,8 +289,7 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "Built for families. Ready for schools.",
-          "Start with your family’s learning. Expand into structured reporting when needed.",
+          "Start with your family. Expand when needed."
         )}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -236,66 +306,6 @@ export default function HomePage() {
               </div>
             );
           })}
-        </div>
-      </section>
-
-      <section
-        style={{
-          borderRadius: 28,
-          padding: isMobile ? 20 : isTablet ? 24 : 32,
-          marginBottom: isMobile ? 4 : 12,
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-          color: "#ffffff",
-          boxShadow: "0 18px 50px rgba(15,23,42,0.14)",
-          display: "grid",
-          gap: 14,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.7)",
-          }}
-        >
-          Start now
-        </div>
-        <div
-          style={{
-            fontSize: isMobile ? 30 : 34,
-            lineHeight: isMobile ? 1.08 : 1.12,
-            fontWeight: 900,
-            maxWidth: 720,
-          }}
-        >
-          Start your first learning record
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: "rgba(255,255,255,0.82)",
-            maxWidth: 620,
-          }}
-        >
-          Capture one moment and build from there.
-        </p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link
-            href="/start"
-            style={{
-              ...publicButtonStyle(true),
-              background: "#ffffff",
-              color: "#0f172a",
-              border: "1px solid #ffffff",
-              width: isMobile ? "100%" : undefined,
-            }}
-          >
-            Start a family
-          </Link>
         </div>
       </section>
     </PublicSiteShell>

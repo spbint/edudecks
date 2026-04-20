@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
@@ -30,7 +31,6 @@ type PublicSiteShellProps = {
 };
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
@@ -119,23 +119,6 @@ function shellCardStyle(): React.CSSProperties {
   };
 }
 
-function shellSoftCardStyle(): React.CSSProperties {
-  return {
-    background: C.bgSoft,
-    border: `1px solid ${C.borderSoft}`,
-    borderRadius: 14,
-    padding: 14,
-  };
-}
-
-function mobileAsideCardStyle(): React.CSSProperties {
-  return {
-    ...shellCardStyle(),
-    padding: 16,
-    marginTop: 8,
-  };
-}
-
 function shellPillStyle(
   background: string,
   color: string,
@@ -156,31 +139,27 @@ function shellPillStyle(
 
 export default function PublicSiteShell({
   title = "EduDecks",
-  eyebrow = "Homeschool-first workflow",
+  eyebrow = "",
   heroTitle,
   heroText,
   heroMicrocopy,
   heroBadges = [],
-  asideItems = [
-    "Works with different homeschool styles",
-    "Nothing is submitted automatically",
-    "Build evidence over time, not in a panic",
-    "Stay organised without turning home into school",
-  ],
+  asideItems = [],
   primaryCta = { label: "Start Free", href: "/capture" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
   footerPrimaryCta = primaryCta,
   footerSecondaryCta = { label: "Contact", href: "/contact" },
-  asideTitle = "Why families choose EduDecks",
-  asideText = "EduDecks gives families a clearer way to capture evidence, guide attention, and stay on track with what matters next.",
-  heroAsideVisible = true,
-  showWorkflowStrip = true,
+  asideTitle = "",
+  asideText = "",
+  heroAsideVisible = false,
+  showWorkflowStrip = false,
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
   const isTablet = useIsMobile(1080);
   const isMobile = useIsMobile(720);
+
   const workflowRibbon = showWorkflowStrip ? (
     <section style={{ marginBottom: isMobile ? 18 : 20 }}>
       <FamilyWorkflowStrip />
@@ -188,6 +167,11 @@ export default function PublicSiteShell({
   ) : null;
 
   void title;
+  void eyebrow;
+  void asideItems;
+  void asideTitle;
+  void asideText;
+  void heroAsideVisible;
 
   return (
     <div
@@ -239,7 +223,14 @@ export default function PublicSiteShell({
               }}
             />
 
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginLeft: "auto" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                flexWrap: "wrap",
+                marginLeft: "auto",
+              }}
+            >
               {headerAction ? (
                 <Link href={headerAction.href} style={shellButtonStyle(false)}>
                   {headerAction.label}
@@ -293,41 +284,52 @@ export default function PublicSiteShell({
           >
             <div
               style={{
-                padding: isMobile ? "20px 16px" : isTablet ? "24px 20px" : "28px 24px",
+                padding: isMobile
+                  ? "28px 16px 24px"
+                  : isTablet
+                    ? "36px 24px 30px"
+                    : "48px 32px 38px",
                 display: "grid",
-                gridTemplateColumns:
-                  heroAsideVisible && !isTablet
-                    ? "minmax(0, 1.3fr) minmax(280px, 0.9fr)"
-                    : "minmax(0, 1fr)",
+                gridTemplateColumns: "minmax(0, 1fr)",
                 gap: isMobile ? 18 : 28,
-                alignItems: isTablet ? "start" : "center",
+                alignItems: "center",
               }}
             >
-              <div>
-                {!isMobile ? (
-                  <div
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    marginBottom: isMobile ? 20 : 24,
+                  }}
+                >
+                  <Image
+                    src="/branding/ed-logo-beta-v1.jpg"
+                    alt="EduDecks"
+                    width={520}
+                    height={220}
+                    priority
                     style={{
-                      fontSize: 12,
-                      lineHeight: 1.2,
-                      fontWeight: 800,
-                      letterSpacing: 1.1,
-                      textTransform: "uppercase",
-                      color: C.textMuted,
-                      marginBottom: 8,
+                      width: isMobile ? "280px" : isTablet ? "380px" : "500px",
+                      maxWidth: "100%",
+                      height: "auto",
+                      display: "block",
                     }}
-                  >
-                    {eyebrow}
-                  </div>
-                ) : null}
+                  />
+                </div>
 
                 <div
                   style={{
-                    fontSize: isMobile ? 30 : 34,
-                    lineHeight: isMobile ? 1.08 : 1.1,
+                    fontSize: isMobile ? 32 : 44,
+                    lineHeight: 1.02,
                     fontWeight: 900,
                     color: C.textStrong,
-                    marginBottom: isMobile ? 10 : 12,
+                    marginBottom: isMobile ? 12 : 14,
                     maxWidth: 820,
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    textAlign: "center",
+                    letterSpacing: "-0.02em",
                   }}
                 >
                   {heroTitle}
@@ -335,22 +337,26 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: isMobile ? 15 : 14,
-                    lineHeight: isMobile ? 1.72 : 1.6,
+                    fontSize: isMobile ? 16 : 17,
+                    lineHeight: 1.7,
                     color: C.textMain,
-                    maxWidth: isMobile ? 520 : 860,
-                    marginBottom: isMobile ? 20 : 18,
+                    maxWidth: 700,
+                    marginBottom: isMobile ? 20 : 20,
+                    marginLeft: "auto",
+                    marginRight: "auto",
+                    textAlign: "center",
                   }}
                 >
                   {heroText}
                 </div>
 
-                {!isMobile && heroBadges.length > 0 ? (
+                {heroBadges.length > 0 ? (
                   <div
                     style={{
                       display: "flex",
                       gap: 10,
                       flexWrap: "wrap",
+                      justifyContent: "center",
                       marginBottom: 18,
                     }}
                   >
@@ -374,14 +380,21 @@ export default function PublicSiteShell({
                   </div>
                 ) : null}
 
-                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
                   {primaryCta ? (
                     <Link
                       href={primaryCta.href}
                       style={{
                         ...shellButtonStyle(true),
-                        fontSize: isMobile ? 16 : 14,
-                        padding: isMobile ? "14px 18px" : "10px 14px",
+                        fontSize: isMobile ? 16 : 15,
+                        padding: isMobile ? "14px 18px" : "12px 18px",
                         boxShadow: isMobile
                           ? "0 16px 28px rgba(37,99,235,0.18)"
                           : "0 12px 24px rgba(37,99,235,0.14)",
@@ -391,13 +404,13 @@ export default function PublicSiteShell({
                       {primaryCta.label}
                     </Link>
                   ) : null}
+
                   {secondaryCta ? (
                     <Link
                       href={secondaryCta.href}
                       style={{
                         ...shellButtonStyle(false),
                         width: isMobile ? "100%" : undefined,
-                        display: isMobile ? "none" : "inline-flex",
                       }}
                     >
                       {secondaryCta.label}
@@ -408,12 +421,12 @@ export default function PublicSiteShell({
                 {heroMicrocopy ? (
                   <div
                     style={{
-                      marginTop: isMobile ? 0 : 10,
+                      marginTop: 12,
                       fontSize: 13,
                       lineHeight: 1.55,
                       color: C.textMuted,
                       fontWeight: 600,
-                      display: isMobile ? "none" : "block",
+                      textAlign: "center",
                     }}
                   >
                     {heroMicrocopy}
@@ -421,147 +434,7 @@ export default function PublicSiteShell({
                 ) : null}
 
                 {isMobile ? workflowRibbon : null}
-
-                {isMobile ? (
-                  <div style={mobileAsideCardStyle()}>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        lineHeight: 1.2,
-                        fontWeight: 800,
-                        letterSpacing: 1.1,
-                        textTransform: "uppercase",
-                        color: C.textMuted,
-                        marginBottom: 8,
-                      }}
-                    >
-                      {asideTitle}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 14,
-                        lineHeight: 1.7,
-                        color: C.textMain,
-                        marginBottom: 12,
-                      }}
-                    >
-                      {asideText}
-                    </div>
-
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {asideItems.slice(0, 3).map((item, i) => (
-                        <div
-                          key={item}
-                          style={{
-                            ...shellSoftCardStyle(),
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            padding: "10px 12px",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: 999,
-                              background:
-                                i === 0
-                                  ? C.brandPrimaryStrong
-                                  : i === 1
-                                    ? "#6d28d9"
-                                    : C.successText,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <div
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: C.textMain,
-                              lineHeight: 1.5,
-                            }}
-                          >
-                            {item}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
-
-              {!isMobile && heroAsideVisible ? (
-                <div style={shellCardStyle()}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      lineHeight: 1.2,
-                      fontWeight: 800,
-                      letterSpacing: 1.1,
-                      textTransform: "uppercase",
-                      color: C.textMuted,
-                      marginBottom: 8,
-                    }}
-                  >
-                    {asideTitle}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      color: C.textMain,
-                      marginBottom: 14,
-                    }}
-                  >
-                    {asideText}
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {asideItems.map((item, i) => (
-                      <div
-                        key={item}
-                        style={{
-                          ...shellSoftCardStyle(),
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "12px 14px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 10,
-                            height: 10,
-                            borderRadius: 999,
-                            background:
-                              i === 0
-                                ? C.brandPrimaryStrong
-                                : i === 1
-                                  ? "#6d28d9"
-                                  : i === 2
-                                    ? C.successText
-                                    : C.warningText,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <div
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 700,
-                            color: C.textMain,
-                            lineHeight: 1.45,
-                          }}
-                        >
-                          {item}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </section>
 
@@ -599,12 +472,12 @@ export default function PublicSiteShell({
             </div>
             <div
               style={{
-              fontSize: 13,
-              color: C.textMuted,
-              lineHeight: 1.6,
-              maxWidth: 620,
-            }}
-          >
+                fontSize: 13,
+                color: C.textMuted,
+                lineHeight: 1.6,
+                maxWidth: 620,
+              }}
+            >
               Capture learning, build a record over time, and move into reporting with a clearer pathway.
             </div>
           </div>
