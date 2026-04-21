@@ -254,7 +254,7 @@ const LEADERSHIP_PRESETS: LeadershipPreset[] = [
   {
     key: "coverage",
     label: "Coverage",
-    description: "Surface evidence weakness and curriculum gaps.",
+    description: "Surface evidence weakness and coverage gaps.",
     accent: "#0891b2",
     bg: "#ecfeff",
     border: "#a5f3fc",

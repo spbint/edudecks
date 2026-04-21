@@ -19,7 +19,7 @@ type WorkflowStageRibbonProps = {
 export default function WorkflowStageRibbon({
   currentRoute,
   currentStage,
-  helperText = "Follow a clear path from home to planning, capture, curriculum, and reporting.",
+  helperText = "Follow a clear path from home to planning, capture, and reporting.",
   style,
 }: WorkflowStageRibbonProps) {
   const pathname = usePathname();

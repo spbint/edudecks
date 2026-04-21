@@ -1,10 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export type FamilyPlannerActionCategory =
-  | "observe"
-  | "do"
-  | "capture"
-  | "reflect";
+export type FamilyPlannerActionCategory = "observe" | "do" | "capture" | "reflect";
 
 export type FamilyPlannerAction = {
   id: string;
@@ -13,14 +9,6 @@ export type FamilyPlannerAction = {
   category: FamilyPlannerActionCategory;
   completed: boolean;
 };
-
-export type FamilyPlannerOutcomeLink = {
-  outcomeId: string;
-  outcomeCode: string;
-  outcomeLabel: string;
-};
-
-export type FamilyPlannerOutcomeLinkMap = Record<string, FamilyPlannerOutcomeLink[]>;
 
 export type FamilyWeeklyPlan = {
   focusTitle: string;
@@ -98,12 +86,7 @@ function parseCalendarBlockSubject(source: string) {
 
 function actionCategoryFromSource(source: string): FamilyPlannerActionCategory {
   const category = source.replace("planner_action:", "");
-  if (
-    category === "observe" ||
-    category === "do" ||
-    category === "capture" ||
-    category === "reflect"
-  ) {
+  if (category === "observe" || category === "do" || category === "capture" || category === "reflect") {
     return category;
   }
   return "do";
@@ -122,9 +105,7 @@ export async function loadFamilyWeeklyPlan(input: {
     .eq("week_key", input.weekKey)
     .order("created_at", { ascending: true });
 
-  if (response.error) {
-    throw response.error;
-  }
+  if (response.error) throw response.error;
 
   const rows = (response.data ?? []) as PlannerRow[];
   if (!rows.length) return null;
@@ -132,9 +113,7 @@ export async function loadFamilyWeeklyPlan(input: {
   const focusRow = rows.find((row) => safe(row.source) === "planner_focus");
   const goalRow = rows.find((row) => safe(row.source) === "planner_goal");
   const noteRow = rows.find((row) => safe(row.source) === "planner_note");
-  const actionRows = rows.filter((row) =>
-    safe(row.source).startsWith("planner_action:"),
-  );
+  const actionRows = rows.filter((row) => safe(row.source).startsWith("planner_action:"));
 
   return {
     focusTitle: safe(focusRow?.title) || "Weekly focus",
@@ -149,8 +128,7 @@ export async function loadFamilyWeeklyPlan(input: {
       category: actionCategoryFromSource(safe(row.source)),
       completed: safe(row.status).toLowerCase() === "completed",
     })),
-    updatedAt:
-      safe(rows[0]?.updated_at) || new Date().toISOString(),
+    updatedAt: safe(rows[0]?.updated_at) || new Date().toISOString(),
   };
 }
 
@@ -169,9 +147,7 @@ export async function saveFamilyWeeklyPlan(input: {
     .eq("week_key", input.weekKey)
     .order("created_at", { ascending: true });
 
-  if (existing.error) {
-    throw existing.error;
-  }
+  if (existing.error) throw existing.error;
 
   const rows = (existing.data ?? []) as PlannerRowWithCreatedAt[];
   const upsertedActionIds = new Set<string>();
@@ -183,19 +159,12 @@ export async function saveFamilyWeeklyPlan(input: {
     status?: string;
     present: boolean;
   }) {
-    const existingRow =
-      rows.find((row) => safe(row.source) === config.source) ?? null;
+    const existingRow = rows.find((row) => safe(row.source) === config.source) ?? null;
 
     if (!config.present) {
       if (!existingRow?.id) return;
-      const deletion = await supabase
-        .from("learning_plan_items")
-        .delete()
-        .eq("id", existingRow.id);
-
-      if (deletion.error) {
-        throw deletion.error;
-      }
+      const deletion = await supabase.from("learning_plan_items").delete().eq("id", existingRow.id);
+      if (deletion.error) throw deletion.error;
       return;
     }
 
@@ -211,21 +180,13 @@ export async function saveFamilyWeeklyPlan(input: {
     };
 
     if (existingRow?.id) {
-      const updateResponse = await supabase
-        .from("learning_plan_items")
-        .update(payload)
-        .eq("id", existingRow.id);
-
-      if (updateResponse.error) {
-        throw updateResponse.error;
-      }
+      const updateResponse = await supabase.from("learning_plan_items").update(payload).eq("id", existingRow.id);
+      if (updateResponse.error) throw updateResponse.error;
       return;
     }
 
     const insertResponse = await supabase.from("learning_plan_items").insert(payload);
-    if (insertResponse.error) {
-      throw insertResponse.error;
-    }
+    if (insertResponse.error) throw insertResponse.error;
   }
 
   await upsertSingletonRow({
@@ -249,13 +210,10 @@ export async function saveFamilyWeeklyPlan(input: {
     present: Boolean(safe(input.plan.notes)),
   });
 
-  const existingActionRows = rows.filter((row) =>
-    safe(row.source).startsWith("planner_action:"),
-  );
+  const existingActionRows = rows.filter((row) => safe(row.source).startsWith("planner_action:"));
 
   for (const action of input.plan.actions) {
-    const existingActionRow =
-      existingActionRows.find((row) => row.id === action.id) ?? null;
+    const existingActionRow = existingActionRows.find((row) => row.id === action.id) ?? null;
     const payload = {
       family_profile_id: input.familyProfileId,
       student_id: input.studentId,
@@ -275,22 +233,13 @@ export async function saveFamilyWeeklyPlan(input: {
         .select("id")
         .single();
 
-      if (updateResponse.error) {
-        throw updateResponse.error;
-      }
+      if (updateResponse.error) throw updateResponse.error;
       upsertedActionIds.add(safe(updateResponse.data?.id) || existingActionRow.id);
       continue;
     }
 
-    const insertResponse = await supabase
-      .from("learning_plan_items")
-      .insert(payload)
-      .select("id")
-      .single();
-
-    if (insertResponse.error) {
-      throw insertResponse.error;
-    }
+    const insertResponse = await supabase.from("learning_plan_items").insert(payload).select("id").single();
+    if (insertResponse.error) throw insertResponse.error;
     upsertedActionIds.add(safe(insertResponse.data?.id));
   }
 
@@ -299,24 +248,16 @@ export async function saveFamilyWeeklyPlan(input: {
     .filter((id) => id && !upsertedActionIds.has(id));
 
   if (actionIdsToDelete.length) {
-    const deletion = await supabase
-      .from("learning_plan_items")
-      .delete()
-      .in("id", actionIdsToDelete);
-
-    if (deletion.error) {
-      throw deletion.error;
-    }
+    const deletion = await supabase.from("learning_plan_items").delete().in("id", actionIdsToDelete);
+    if (deletion.error) throw deletion.error;
   }
 
-  const refreshed = await loadFamilyWeeklyPlan({
-    familyProfileId: input.familyProfileId,
-    studentId: input.studentId,
-    weekKey: input.weekKey,
-  });
-
   return (
-    refreshed ?? {
+    (await loadFamilyWeeklyPlan({
+      familyProfileId: input.familyProfileId,
+      studentId: input.studentId,
+      weekKey: input.weekKey,
+    })) ?? {
       focusTitle: input.plan.focusTitle,
       focusSummary: input.plan.focusSummary,
       selectedGoal: input.plan.selectedGoal,
@@ -326,103 +267,6 @@ export async function saveFamilyWeeklyPlan(input: {
       updatedAt: input.plan.updatedAt,
     }
   );
-}
-
-export async function loadFamilyPlannerOutcomeLinks(input: {
-  learningPlanItemIds: string[];
-}): Promise<FamilyPlannerOutcomeLinkMap> {
-  const ids = Array.from(new Set(input.learningPlanItemIds.map(safe).filter(Boolean)));
-  if (!ids.length) return {};
-
-  const response = await supabase
-    .from("learning_plan_item_outcomes")
-    .select(
-      "learning_plan_item_id,outcome_id,curriculum_outcomes!inner(code,short_label,full_text)",
-    )
-    .in("learning_plan_item_id", ids);
-
-  if (response.error) {
-    throw response.error;
-  }
-
-  const rows = (response.data ?? []) as Array<{
-    learning_plan_item_id?: string | null;
-    outcome_id?: string | null;
-    curriculum_outcomes?:
-      | {
-          code?: string | null;
-          short_label?: string | null;
-          full_text?: string | null;
-        }
-      | Array<{
-          code?: string | null;
-          short_label?: string | null;
-          full_text?: string | null;
-        }>
-      | null;
-  }>;
-
-  const result: FamilyPlannerOutcomeLinkMap = {};
-
-  for (const row of rows) {
-    const planItemId = safe(row.learning_plan_item_id);
-    const outcomeId = safe(row.outcome_id);
-    if (!planItemId || !outcomeId) continue;
-
-    const outcomeRow = Array.isArray(row.curriculum_outcomes)
-      ? row.curriculum_outcomes[0]
-      : row.curriculum_outcomes ?? null;
-
-    const nextLink: FamilyPlannerOutcomeLink = {
-      outcomeId,
-      outcomeCode: safe(outcomeRow?.code),
-      outcomeLabel: safe(outcomeRow?.short_label) || safe(outcomeRow?.full_text) || "Outcome",
-    };
-
-    result[planItemId] = [...(result[planItemId] ?? []), nextLink];
-  }
-
-  return result;
-}
-
-export async function replaceFamilyPlannerItemOutcomeLinks(input: {
-  learningPlanItemId: string;
-  outcomeIds: string[];
-}): Promise<FamilyPlannerOutcomeLink[]> {
-  const learningPlanItemId = safe(input.learningPlanItemId);
-  if (!learningPlanItemId) {
-    throw new Error("A saved planner item is required before curriculum links can be updated.");
-  }
-
-  const outcomeIds = Array.from(new Set(input.outcomeIds.map(safe).filter(Boolean)));
-
-  const deleteResponse = await supabase
-    .from("learning_plan_item_outcomes")
-    .delete()
-    .eq("learning_plan_item_id", learningPlanItemId);
-
-  if (deleteResponse.error) {
-    throw deleteResponse.error;
-  }
-
-  if (outcomeIds.length) {
-    const insertResponse = await supabase.from("learning_plan_item_outcomes").insert(
-      outcomeIds.map((outcomeId) => ({
-        learning_plan_item_id: learningPlanItemId,
-        outcome_id: outcomeId,
-      })),
-    );
-
-    if (insertResponse.error) {
-      throw insertResponse.error;
-    }
-  }
-
-  const linkMap = await loadFamilyPlannerOutcomeLinks({
-    learningPlanItemIds: [learningPlanItemId],
-  });
-
-  return linkMap[learningPlanItemId] ?? [];
 }
 
 export async function loadFamilyCalendarWindow(input: {
@@ -442,9 +286,7 @@ export async function loadFamilyCalendarWindow(input: {
     .order("planned_date", { ascending: true })
     .order("created_at", { ascending: true });
 
-  if (response.error) {
-    throw response.error;
-  }
+  if (response.error) throw response.error;
 
   const rows = (response.data ?? []) as Array<{
     id?: string | null;
@@ -503,10 +345,7 @@ export async function addFamilyCalendarBlock(input: {
       family_profile_id: input.familyProfileId,
       student_id: input.studentId,
       title: safe(input.title) || "Learning block",
-      description: JSON.stringify({
-        note: safe(input.note),
-        time: safe(input.time),
-      }),
+      description: JSON.stringify({ note: safe(input.note), time: safe(input.time) }),
       planned_date: input.date,
       week_key: getWeekKeyFromDate(input.date),
       status: "planned",
@@ -516,9 +355,7 @@ export async function addFamilyCalendarBlock(input: {
     .select("id,title,description,planned_date,source")
     .single();
 
-  if (response.error) {
-    throw response.error;
-  }
+  if (response.error) throw response.error;
 
   const row = response.data as {
     id?: string | null;
@@ -554,23 +391,15 @@ export async function saveFamilyCalendarDayNote(input: {
     .eq("planned_date", input.date)
     .eq("source", "planner_calendar_note");
 
-  if (existing.error) {
-    throw existing.error;
-  }
+  if (existing.error) throw existing.error;
 
   const existingIds = (existing.data ?? [])
     .map((row) => safe((row as { id?: unknown }).id))
     .filter(Boolean);
 
   if (existingIds.length) {
-    const deletion = await supabase
-      .from("learning_plan_items")
-      .delete()
-      .in("id", existingIds);
-
-    if (deletion.error) {
-      throw deletion.error;
-    }
+    const deletion = await supabase.from("learning_plan_items").delete().in("id", existingIds);
+    if (deletion.error) throw deletion.error;
   }
 
   const note = safe(input.note);
@@ -588,7 +417,5 @@ export async function saveFamilyCalendarDayNote(input: {
     created_by_user_id: input.createdByUserId,
   });
 
-  if (insertResponse.error) {
-    throw insertResponse.error;
-  }
+  if (insertResponse.error) throw insertResponse.error;
 }

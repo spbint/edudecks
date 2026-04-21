@@ -444,7 +444,7 @@ function buildDeterministicReport(args: {
 
   const areaPhrase =
     focusArea === "All areas"
-      ? "across the curriculum"
+      ? "across learning areas"
       : `in ${focusArea}`;
 
   const topStrengths = summary.attributeNames.slice(0, 5);

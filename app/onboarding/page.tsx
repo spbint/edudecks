@@ -363,7 +363,7 @@ export default function OnboardingPage() {
     <PublicSiteShell
       eyebrow="Onboarding"
       heroTitle="Let’s set up your family space"
-      heroText="You only need a few details to begin. Add your family name, your first child, and a rough curriculum market — the rest can grow later."
+      heroText="You only need a few details to begin. Add your family name, your first child, and a rough registration market — the rest can grow later."
       heroBadges={["Family-first", "Simple setup", "Start small", "Grow later"]}
       primaryCta={{ label: "Back to sign in", href: "/login" }}
       secondaryCta={{ label: "Start free", href: "/start-free" }}
@@ -503,7 +503,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div>
-                  <label style={labelStyle()}>Curriculum market</label>
+                  <label style={labelStyle()}>Registration market</label>
                   <select
                     value={form.preferredMarket}
                     onChange={(e) =>
@@ -806,7 +806,7 @@ export default function OnboardingPage() {
               {[
                 "A family dashboard to guide your next step",
                 "A first child profile to anchor captures and reports",
-                "A saved family preference for your curriculum market",
+                "A saved family preference for your registration market",
                 "A calm starting point instead of a heavy setup process",
               ].map((item, index) => (
                 <div
@@ -938,8 +938,8 @@ export default function OnboardingPage() {
                 color: "#475569",
               }}
             >
-              You do not need every child, every setting, or every curriculum
-              detail ready today. EduDecks works best when you begin with what is
+              You do not need every child or every setting
+              ready today. EduDecks works best when you begin with what is
               real and useful right now.
             </div>
           </div>

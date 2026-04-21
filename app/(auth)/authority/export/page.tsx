@@ -262,7 +262,7 @@ function sectionImpactSummary(enabledSections: AuthorityPackSectionKey[]) {
   const impacts: string[] = [];
 
   if (enabledSections.includes("overview")) impacts.push("clear context");
-  if (enabledSections.includes("coverage")) impacts.push("visible curriculum breadth");
+  if (enabledSections.includes("coverage")) impacts.push("visible breadth");
   if (enabledSections.includes("evidence")) impacts.push("a defined core evidence body");
   if (enabledSections.includes("appendix")) impacts.push("supporting depth");
   if (enabledSections.includes("parent-note")) impacts.push("family context");

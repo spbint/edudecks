@@ -60,7 +60,7 @@ const SECTION_OPTIONS: SectionOption[] = [
     key: "coverage",
     title: "Coverage snapshot",
     help: "Shows learning-area breadth across the selected evidence set.",
-    impact: "Supports the perception of balance and curriculum breadth.",
+    impact: "Supports the perception of balance and breadth.",
     recommended: true,
   },
   {

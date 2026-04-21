@@ -8,8 +8,7 @@ export type PremiumFeatureKey =
   | "pdf-export"
   | "docx-export"
   | "authority-pack"
-  | "advanced-workflow"
-  | "curriculum-refinement";
+  | "advanced-workflow";
 
 export type PremiumPlan = {
   key: PremiumPlanKey;
@@ -68,7 +67,6 @@ export const PREMIUM_PLANS: Record<PremiumPlanKey, PremiumPlan> = {
       "docx-export",
       "authority-pack",
       "advanced-workflow",
-      "curriculum-refinement",
     ],
   },
 };
@@ -121,14 +119,6 @@ export const PREMIUM_FEATURES: Record<PremiumFeatureKey, PremiumFeatureMeta> = {
     longDescription:
       "Use stronger organisation, deeper family workflow support, and a calmer long-term evidence system as your child’s record grows.",
   },
-
-  "curriculum-refinement": {
-    key: "curriculum-refinement",
-    label: "Curriculum Refinement",
-    shortDescription: "Map evidence more precisely to curriculum paths.",
-    longDescription:
-      "Use searchable curriculum country, framework, year, subject, strand, and skill mapping to refine evidence more precisely for reporting.",
-  },
 };
 
 export const PREMIUM_TRIGGER_CONFIGS: Record<
@@ -164,7 +154,7 @@ export const PREMIUM_TRIGGER_CONFIGS: Record<
       "Premium helps families keep growing records better organised and easier to present as evidence builds over time.",
     primaryCtaLabel: "Unlock portfolio extras",
     secondaryCtaLabel: "Keep using free portfolio",
-    featureKeys: ["advanced-workflow", "curriculum-refinement"],
+    featureKeys: ["advanced-workflow"],
     recommendedPlan: "premium",
   },
 

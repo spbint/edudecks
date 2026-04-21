@@ -41,7 +41,7 @@ const templates: TemplateCard[] = [
     title: "Homeschool Registration",
     subtitle: "Closer to authority-facing reporting",
     description:
-      "Designed for situations where a family needs a more formal presentation of learning evidence and curriculum coverage for registration or review.",
+      "Designed for situations where a family needs a more formal presentation of learning evidence and coverage for registration or review.",
     bestFor: "Registration, review meetings, or authority submissions.",
     includes: ["Coverage buckets", "Reporting tone", "Representative evidence", "Stronger structure"],
   },

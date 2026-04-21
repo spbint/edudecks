@@ -79,22 +79,22 @@ const CATEGORY_FALLBACKS: Record<
       }),
     ],
   },
-  "curriculum-and-planning": {
-    name: "Curriculum & Planning",
+  "planning-and-routines": {
+    name: "Planning & Routines",
     description:
-      "Talk about curriculum choices, planning rhythms, year levels, and how families structure learning across the week.",
+      "Talk about planning rhythms, year levels, and how families structure learning across the week.",
     prompts: [
-      "What curriculum are you loving this term?",
       "How do you plan a week without making home feel like school-school?",
       "How do you balance structure and flexibility?",
+      "What planning rhythm is working best for your family right now?",
     ],
     emptyTitle: "Start the first planning conversation",
     emptyText:
-      "Ask about curriculum, weekly planning, year levels, and how other families organise their learning.",
+      "Ask about weekly planning, year levels, and how other families organise their learning.",
     starterThreads: [
       makeFallbackThread({
         id: "sample-plan-1",
-        category_id: "curriculum-and-planning",
+        category_id: "planning-and-routines",
         title: "How do you plan for multiple children at different ages?",
         body: "Share routines, tools, or simple systems that actually help.",
         created_at: new Date().toISOString(),

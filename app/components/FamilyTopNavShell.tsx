@@ -18,7 +18,6 @@ type FamilyTopNavShellProps = {
   familyName?: string;
   email?: string;
   defaultLearner?: string;
-  curriculum?: string;
   heroTitle?: string;
   heroText?: string;
   heroAsideTitle?: string;
@@ -53,7 +52,6 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/family") return "Family Home";
   if (pathname === "/calendar") return "Calendar";
   if (pathname === "/capture") return "Capture";
-  if (pathname === "/curriculum") return "Curriculum";
   if (pathname === "/planner") return "Planner";
   if (pathname === "/portfolio") return "Portfolio";
   if (pathname === "/reports") return "Reports";
@@ -70,7 +68,6 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/family") return "Family home for learners, capture, and reporting";
   if (pathname === "/calendar") return "See the week clearly before it fills up";
   if (pathname === "/capture") return "Capture the learning while it is still fresh";
-  if (pathname === "/curriculum") return "See curriculum coverage for the current learner";
   if (pathname === "/planner") return "Shape the next week with confidence";
   if (pathname === "/portfolio") return "Curate the learning story as it grows";
   if (pathname === "/reports") return "Turn captured moments into clear family reporting";
@@ -87,9 +84,6 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
-  }
-  if (pathname === "/curriculum") {
-    return "Track what has started, what is secure, and what needs the next step without leaving the family workflow.";
   }
   if (pathname === "/planner") {
     return "A light, clear weekly plan helps the whole family move forward with a visible next step.";
@@ -115,7 +109,6 @@ export default function FamilyTopNavShell({
   familyName,
   email,
   defaultLearner,
-  curriculum,
   heroTitle,
   heroText,
   heroAsideTitle = "Family Snapshot",
@@ -138,11 +131,6 @@ export default function FamilyTopNavShell({
   const resolvedEmail = email || user?.email || "Signed-in family workspace";
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
-  const resolvedCurriculum =
-    curriculum ||
-    workspace.profile.curriculum_preferences.framework_id ||
-    workspace.profile.preferred_market?.toUpperCase() ||
-    "Curriculum not set";
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -154,12 +142,8 @@ export default function FamilyTopNavShell({
             </div>
 
             <div className="min-w-0">
-              <div className="truncate text-[16px] font-black text-slate-950">
-                {resolvedTitle}
-              </div>
-              <div className="truncate text-sm font-semibold text-slate-500">
-                {resolvedSubtitle}
-              </div>
+              <div className="truncate text-[16px] font-black text-slate-950">{resolvedTitle}</div>
+              <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
             </div>
           </div>
 
@@ -168,7 +152,6 @@ export default function FamilyTopNavShell({
               familyName={resolvedFamilyName}
               email={resolvedEmail}
               defaultLearner={resolvedDefaultLearner}
-              curriculum={resolvedCurriculum}
             />
           </div>
         </div>
@@ -206,9 +189,7 @@ export default function FamilyTopNavShell({
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
                   {heroAsideTitle}
                 </div>
-                <div className="mt-3 text-sm leading-7 text-slate-600">
-                  {heroAsideText}
-                </div>
+                <div className="mt-3 text-sm leading-7 text-slate-600">{heroAsideText}</div>
               </aside>
             ) : null}
           </section>

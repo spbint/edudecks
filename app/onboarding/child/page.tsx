@@ -199,7 +199,7 @@ export default function OnboardingChildPage() {
                 style={inputStyle()}
               >
                 <option>Eclectic / mixed</option>
-                <option>Structured / curriculum-led</option>
+                <option>Structured / guided</option>
                 <option>Classical</option>
                 <option>Interest-led / project-based</option>
                 <option>Hybrid / part-school</option>

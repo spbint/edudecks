@@ -1,9 +1,4 @@
-export type FamilyWorkflowStageKey =
-  | "home"
-  | "calendar"
-  | "capture"
-  | "curriculum"
-  | "reports";
+export type FamilyWorkflowStageKey = "home" | "calendar" | "capture" | "reports";
 
 export type WorkflowGuideStep = {
   id: string;
@@ -36,12 +31,6 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
     detail: "Record what happened while it is still fresh.",
   },
   {
-    key: "curriculum",
-    label: "Curriculum",
-    href: "/curriculum",
-    detail: "See what the learner is working toward and what is tracked.",
-  },
-  {
     key: "reports",
     label: "Reports",
     href: "/reports",
@@ -67,19 +56,9 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
       detail: "Add learners, switch the current learner, and update details.",
     },
     {
-      id: "family-capture",
-      label: "Capture handoff",
-      detail: "Check the current learner, then move to the Capture stage to record learning.",
-    },
-    {
       id: "family-activity",
       label: "Review activity",
       detail: "Check recent learning and reporting movement.",
-    },
-    {
-      id: "family-settings-handoff",
-      label: "Settings handoff",
-      detail: "Move curriculum setup into settings when needed.",
     },
   ],
   calendar: [
@@ -121,11 +100,6 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
       detail: "Record what happened and what it showed.",
     },
     {
-      id: "capture-curriculum",
-      label: "Link to curriculum",
-      detail: "Connect the saved moment to outcomes when it helps.",
-    },
-    {
       id: "capture-guide",
       label: "Use the guide",
       detail: "Keep the prompts close so capture stays easy to trust.",
@@ -136,43 +110,11 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
       detail: "Carry the saved moment into portfolio or reports.",
     },
   ],
-  curriculum: [
-    {
-      id: "curriculum-setup",
-      label: "Confirm setup",
-      detail: "Choose the learner and confirm the framework first.",
-    },
-    {
-      id: "curriculum-summary",
-      label: "Read the summary",
-      detail: "Check what is mapped, planned, and evidenced.",
-    },
-    {
-      id: "curriculum-snapshot",
-      label: "Review progress",
-      detail: "See what is secure, emerging, and still thin.",
-    },
-    {
-      id: "curriculum-handoffs",
-      label: "Resolve gaps",
-      detail: "Follow the next moves when planning or evidence is still missing.",
-    },
-    {
-      id: "curriculum-map",
-      label: "Work through outcomes",
-      detail: "Update tracked outcomes across the curriculum map.",
-    },
-  ],
   reports: [
     {
       id: "reports-builder",
       label: "Builder overview",
       detail: "See where the draft is up to before making changes.",
-    },
-    {
-      id: "reports-signals",
-      label: "Review signals",
-      detail: "Bring curriculum, planner, and evidence signals together.",
     },
     {
       id: "reports-settings",
@@ -187,7 +129,7 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
     {
       id: "reports-draft",
       label: "Save the draft",
-      detail: "Check draft position, add a family note, and save.",
+      detail: "Check draft position and save.",
     },
     {
       id: "reports-library",
@@ -197,16 +139,13 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
   ],
 };
 
-export function resolveFamilyWorkflowStage(
-  pathname: string,
-): FamilyWorkflowStageKey | null {
+export function resolveFamilyWorkflowStage(pathname: string): FamilyWorkflowStageKey | null {
   if (!pathname) return null;
   if (pathname === "/family") return "home";
   if (pathname.startsWith("/calendar") || pathname.startsWith("/planner")) {
     return "calendar";
   }
   if (pathname.startsWith("/capture")) return "capture";
-  if (pathname.startsWith("/curriculum")) return "curriculum";
   if (
     pathname.startsWith("/reports") ||
     pathname.startsWith("/portfolio") ||

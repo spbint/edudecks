@@ -38,11 +38,11 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     latestThreadMeta: "Latest: routines, breakfast, and peaceful starts",
   },
   {
-    id: "curriculum-and-planning",
-    slug: "curriculum-and-planning",
-    name: "Curriculum & Planning",
+    id: "planning-and-routines",
+    slug: "planning-and-routines",
+    name: "Planning & Routines",
     description:
-      "Talk about curriculum choices, planning rhythms, year levels, and how families structure learning across the week.",
+      "Talk about planning rhythms, year levels, and how families structure learning across the week.",
     starterPrompt:
       "Ask how other parents plan a week, structure a day, or choose resources for a particular age or year level.",
     ctaLabel: "Open planning forum",
@@ -72,7 +72,7 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "A gentle starting point for families beginning the homeschool journey and wanting practical advice without pressure or noise.",
     starterPrompt:
-      "Ask your first question here, from getting started and routines to curriculum, confidence, or what a normal week can look like.",
+      "Ask your first question here, from getting started and routines to confidence or what a normal week can look like.",
     ctaLabel: "Open starter forum",
     tone: "A gentle first step",
     threadCount: 15,
@@ -447,7 +447,7 @@ export default function CommunityHomePage() {
       title="EduDecks Family"
       subtitle="Community"
       heroTitle="Community"
-      heroText="Ask about planning, curriculum, resources, and everyday homeschool life with families walking a similar journey."
+      heroText="Ask about planning, resources, and everyday homeschool life with families walking a similar journey."
       hideHeroAside={true}
       workflowHelperText="Community is a calm forum space with clear categories, readable threads, and practical parent-friendly starting points."
     >

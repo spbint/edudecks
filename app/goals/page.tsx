@@ -31,9 +31,6 @@ type EvidenceRow = {
   evidence_type?: string | null;
   occurred_on?: string | null;
   created_at?: string | null;
-  curriculum_subject?: string | null;
-  curriculum_strand?: string | null;
-  curriculum_skill?: string | null;
   is_deleted?: boolean | null;
   [k: string]: any;
 };
