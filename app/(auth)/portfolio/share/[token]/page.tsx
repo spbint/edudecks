@@ -25,24 +25,13 @@ type StudentRow = {
   preferred_name?: string | null;
   surname?: string | null;
   family_name?: string | null;
-  class_id?: string | null;
   is_ilp?: boolean | null;
-  [k: string]: any;
-};
-
-type ClassRow = {
-  id: string;
-  name?: string | null;
-  year_level?: number | null;
-  teacher_name?: string | null;
-  room?: string | null;
   [k: string]: any;
 };
 
 type EvidenceRow = {
   id: string;
   student_id?: string | null;
-  class_id?: string | null;
   title?: string | null;
   summary?: string | null;
   body?: string | null;
@@ -113,10 +102,6 @@ function studentDisplayName(s: StudentRow | null | undefined) {
   return `${first}${sur ? ` ${sur}` : ""}`.trim() || "Student";
 }
 
-function fmtYear(y?: number | null) {
-  return y == null ? "" : `Year ${y}`;
-}
-
 function printPage() {
   window.print();
 }
@@ -136,7 +121,6 @@ export default function SharedPortfolioView() {
 
   const [share, setShare] = useState<ShareLinkRow | null>(null);
   const [student, setStudent] = useState<StudentRow | null>(null);
-  const [klass, setKlass] = useState<ClassRow | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -164,14 +148,6 @@ export default function SharedPortfolioView() {
 
         if (!s.error) setStudent(s.data);
 
-        const k = await supabase
-          .from("classes")
-          .select("*")
-          .eq("id", s.data?.class_id)
-          .maybeSingle();
-
-        if (!k.error) setKlass(k.data);
-
         setBusy(false);
       } catch (e: any) {
         setErr(String(e?.message ?? e));
@@ -187,12 +163,7 @@ export default function SharedPortfolioView() {
       <h1>{studentDisplayName(student)}</h1>
 
       <div style={{ marginTop: 6 }}>
-        {klass
-          ? `${safe(klass.name) || "Class"}${
-              klass.year_level != null ? ` • ${fmtYear(klass.year_level)}` : ""
-            }`
-          : "Shared read-only portfolio"}
-        {safe(klass?.teacher_name) ? ` • ${safe(klass?.teacher_name)}` : ""}
+        Shared read-only portfolio
         {student?.is_ilp ? " • ILP" : ""}
       </div>
 

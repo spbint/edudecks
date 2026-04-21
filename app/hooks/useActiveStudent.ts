@@ -12,7 +12,6 @@ export type ActiveStudentRow = {
   surname?: string | null;
   family_name?: string | null;
   year_level?: number | null;
-  class_id?: string | null;
   is_ilp?: boolean | null;
   created_at?: string | null;
   [k: string]: any;
@@ -59,11 +58,11 @@ export function useActiveStudent() {
       }
 
       const tries = [
-        "id,first_name,preferred_name,surname,family_name,year_level,class_id,is_ilp,created_at",
-        "id,first_name,preferred_name,surname,family_name,class_id,is_ilp,created_at",
-        "id,first_name,preferred_name,surname,class_id,is_ilp,created_at",
-        "id,first_name,preferred_name,family_name,class_id,is_ilp,created_at",
-        "id,first_name,preferred_name,class_id,is_ilp,created_at",
+        "id,first_name,preferred_name,surname,family_name,year_level,is_ilp,created_at",
+        "id,first_name,preferred_name,surname,family_name,is_ilp,created_at",
+        "id,first_name,preferred_name,surname,is_ilp,created_at",
+        "id,first_name,preferred_name,family_name,is_ilp,created_at",
+        "id,first_name,preferred_name,is_ilp,created_at",
       ];
 
       for (const sel of tries) {

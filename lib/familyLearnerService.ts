@@ -8,7 +8,6 @@ import {
   DEFAULT_FAMILY_SETTINGS,
   type DefaultChildLanding,
   type EvidencePrivacy,
-  type ExperienceMode,
   type MarketKey,
   type WeekStart,
 } from "@/lib/familySettings";
@@ -118,7 +117,7 @@ function buildFamilyProfileInsertPayload(userId: string) {
     owner_user_id: userId,
     family_display_name: DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: DEFAULT_FAMILY_SETTINGS.preferred_market as MarketKey,
-    experience_mode: DEFAULT_FAMILY_SETTINGS.experience_mode as ExperienceMode,
+    experience_mode: DEFAULT_FAMILY_SETTINGS.experience_mode,
     default_child_id: DEFAULT_FAMILY_SETTINGS.default_child_id,
     default_child_landing:
       DEFAULT_FAMILY_SETTINGS.default_child_landing as DefaultChildLanding,

@@ -6,7 +6,7 @@ import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 
 export const metadata: Metadata = {
   title: "Edu Dashboard",
-  description: "Football Manager-style student and class insights for schools.",
+  description: "Homeschool and family learning records, planning, capture, and portfolio tools.",
 };
 
 export default function RootLayout({

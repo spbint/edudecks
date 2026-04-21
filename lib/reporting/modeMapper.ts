@@ -7,7 +7,7 @@ export function mapReportModeToReportingMode(mode?: ReportMode): ReportingMode {
     return "authority_ready_concise";
   }
   if (safeMode === "progress-review") {
-    return "teacher_professional";
+    return "progress_review";
   }
   return "parent_friendly";
 }

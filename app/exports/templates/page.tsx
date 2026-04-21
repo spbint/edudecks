@@ -371,22 +371,14 @@ export default function ExportTemplatesPage() {
 
             <button
               style={S.btn}
-              onClick={() =>
-                requireChild(() =>
-                  router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/portfolio`)
-                )
-              }
+              onClick={() => requireChild(() => router.push("/portfolio"))}
             >
               Open source portfolio
             </button>
 
             <button
               style={S.btn}
-              onClick={() =>
-                requireChild(() =>
-                  router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/share`)
-                )
-              }
+              onClick={() => requireChild(() => router.push("/reports/output"))}
             >
               Open sharing tools
             </button>
@@ -469,11 +461,7 @@ export default function ExportTemplatesPage() {
 
               <button
                 style={S.btn}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/portfolio`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/portfolio"))}
               >
                 Review portfolio first
               </button>

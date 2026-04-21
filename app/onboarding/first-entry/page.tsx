@@ -318,7 +318,6 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
   const payloadVariants: Array<Record<string, any>> = [
     {
       student_id: studentId,
-      class_id: null,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
       body: safe(form.summary),
@@ -330,7 +329,6 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
     },
     {
       student_id: studentId,
-      class_id: null,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
       learning_area: safe(form.learningArea) || null,
@@ -341,7 +339,6 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
     },
     {
       student_id: studentId,
-      class_id: null,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
       learning_area: safe(form.learningArea) || null,

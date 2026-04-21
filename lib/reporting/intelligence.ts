@@ -2,7 +2,7 @@ import type { AssessmentEngineResult } from "@/lib/assessmentEngine";
 
 export type ReportingMode =
   | "parent_friendly"
-  | "teacher_professional"
+  | "progress_review"
   | "authority_ready_concise";
 
 export type ReportingIntelligence = {

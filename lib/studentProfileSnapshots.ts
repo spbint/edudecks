@@ -4,7 +4,6 @@ export type SnapshotStatus = "draft" | "final" | "archived";
 
 export type StudentProfileSnapshotInput = {
   studentId: string;
-  classId?: string | null;
   snapshotTitle?: string;
 
   attentionStatus?: string | null;
@@ -48,11 +47,10 @@ export async function createStudentProfileSnapshot(
 ) {
   const { data, error } = await supabase
     .from("student_profile_snapshots")
-    .insert({
-      student_id: input.studentId,
-      class_id: input.classId ?? null,
-      snapshot_title:
-        input.snapshotTitle || `Snapshot ${new Date().toISOString().slice(0, 10)}`,
+      .insert({
+        student_id: input.studentId,
+        snapshot_title:
+          input.snapshotTitle || `Snapshot ${new Date().toISOString().slice(0, 10)}`,
 
       attention_status: input.attentionStatus,
       next_action: input.nextAction,

@@ -3,18 +3,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { FamilyShellHandoffPayload } from "@/lib/familyCommandHandoff";
-import type { CrossRoleHandoffPayload } from "@/lib/crossRoleHandoff";
 import {
   publishFamilyGuidanceSnapshot,
   trackFamilyGuidanceEvent,
 } from "@/lib/familyGuidanceEvents";
 
-type SharedHandoffPayload =
-  | FamilyShellHandoffPayload
-  | CrossRoleHandoffPayload;
-
 type FamilyHandoffNoteProps = {
-  handoff: SharedHandoffPayload | null;
+  handoff: FamilyShellHandoffPayload | null;
   acted?: boolean;
   marginBottom?: number;
   marginTop?: number;

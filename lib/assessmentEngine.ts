@@ -1,18 +1,10 @@
 export type AssessmentEngineFilters = {
-  classId?: string;
-  studentId?: string;
+  learnerId?: string;
   frameworkId?: string;
-};
-
-export type AssessmentEngineClass = {
-  id: string;
-  name: string;
-  year_level: number | null;
 };
 
 export type AssessmentEngineStudent = {
   id: string;
-  class_id: string | null;
   display_name: string;
 };
 
@@ -71,7 +63,6 @@ export type AssessmentEngineGap = {
 };
 
 export type AssessmentEngineResult = {
-  classes: AssessmentEngineClass[];
   students: AssessmentEngineStudent[];
   frameworks: AssessmentEngineFramework[];
   standards: AssessmentEngineStandardRow[];
@@ -92,7 +83,6 @@ export async function loadAssessmentEngine(
   _filters: AssessmentEngineFilters = {},
 ): Promise<AssessmentEngineResult> {
   return {
-    classes: [],
     students: [],
     frameworks: [],
     standards: [],

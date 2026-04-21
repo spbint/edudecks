@@ -160,9 +160,7 @@ export default function ActiveChildContextBar({
           {showAddEvidence ? (
             <button
               style={S.btn}
-              onClick={() =>
-                router.push(`/admin/evidence-entry?studentId=${encodeURIComponent(student.id)}`)
-              }
+              onClick={() => router.push("/capture")}
             >
               + Add evidence
             </button>
@@ -171,7 +169,7 @@ export default function ActiveChildContextBar({
           {showOpenProfile ? (
             <button
               style={S.btn}
-              onClick={() => router.push(`/admin/students/${encodeURIComponent(student.id)}`)}
+              onClick={() => router.push(`/children/${encodeURIComponent(student.id)}`)}
             >
               Open profile
             </button>
@@ -180,9 +178,7 @@ export default function ActiveChildContextBar({
           {showOpenPortfolio ? (
             <button
               style={S.btn}
-              onClick={() =>
-                router.push(`/admin/students/${encodeURIComponent(student.id)}/portfolio`)
-              }
+              onClick={() => router.push("/portfolio")}
             >
               Open portfolio
             </button>

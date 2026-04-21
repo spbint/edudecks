@@ -361,22 +361,14 @@ export default function ExportsPage() {
           <div style={S.btnRow}>
             <button
               style={S.btnPrimary}
-              onClick={() =>
-                requireChild(() =>
-                  router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/portfolio`)
-                )
-              }
+              onClick={() => requireChild(() => router.push("/portfolio"))}
             >
               Open export source portfolio
             </button>
 
             <button
               style={S.btn}
-              onClick={() =>
-                requireChild(() =>
-                  router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/share`)
-                )
-              }
+              onClick={() => requireChild(() => router.push("/reports/output"))}
             >
               Open share/export tools
             </button>
@@ -528,22 +520,14 @@ export default function ExportsPage() {
             <div style={S.btnRow}>
               <button
                 style={S.btnPrimary}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/portfolio`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/portfolio"))}
               >
                 Launch portfolio export source
               </button>
 
               <button
                 style={S.btn}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/share`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/reports/output"))}
               >
                 Launch share/export page
               </button>
@@ -600,11 +584,7 @@ export default function ExportsPage() {
             <div style={S.actionGrid}>
               <button
                 style={S.actionCard}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/portfolio`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/portfolio"))}
               >
                 <div style={S.actionTitle}>Portfolio review</div>
                 <div style={S.actionText}>
@@ -614,11 +594,7 @@ export default function ExportsPage() {
 
               <button
                 style={S.actionCard}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/evidence-feed?studentId=${encodeURIComponent(activeStudentId!)}`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/capture"))}
               >
                 <div style={S.actionTitle}>Evidence appendix source</div>
                 <div style={S.actionText}>
@@ -628,11 +604,7 @@ export default function ExportsPage() {
 
               <button
                 style={S.actionCard}
-                onClick={() =>
-                  requireChild(() =>
-                    router.push(`/admin/students/${encodeURIComponent(activeStudentId!)}/share`)
-                  )
-                }
+                onClick={() => requireChild(() => router.push("/reports/output"))}
               >
                 <div style={S.actionTitle}>Secure share link</div>
                 <div style={S.actionText}>

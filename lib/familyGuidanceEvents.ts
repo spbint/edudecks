@@ -4,9 +4,7 @@ import type {
   FamilyShellHandoffIntent,
   FamilyShellHandoffPayload,
 } from "@/lib/familyCommandHandoff";
-import type { CrossRoleHandoffIntent } from "@/lib/crossRoleHandoff";
-
-type GuidanceIntent = FamilyShellHandoffIntent | CrossRoleHandoffIntent;
+type GuidanceIntent = FamilyShellHandoffIntent;
 
 export type FamilyGuidanceEventName =
   | "recommended_card_clicked"

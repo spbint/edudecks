@@ -278,7 +278,7 @@ function EmailAuthPageContent() {
       footerPrimaryCta={{ label: "Back to login", href: "/login" }}
       footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
       asideTitle="Simple auth"
-      asideText="EduDecks now uses a single password-first login flow for real use, repeated testing, and admin verification."
+      asideText="EduDecks now uses a single password-first login flow for everyday family use and repeated testing."
       showWorkflowStrip={false}
     >
       <section

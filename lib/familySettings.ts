@@ -5,7 +5,7 @@ import {
 } from "@/lib/familyLearnerYearLevel";
 
 export type MarketKey = "au" | "uk" | "us";
-export type ExperienceMode = "family" | "teacher" | "leadership";
+export type ExperienceMode = "family";
 export type DefaultChildLanding = "dashboard" | "portfolio" | "planner" | "reports";
 export type EvidencePrivacy = "private" | "family" | "shared";
 export type WeekStart = "monday" | "sunday";
@@ -153,7 +153,7 @@ function asMarketKey(value: unknown): MarketKey {
 }
 
 function asExperienceMode(value: unknown): ExperienceMode {
-  return value === "teacher" || value === "leadership" ? value : "family";
+  return "family";
 }
 
 function asDefaultChildLanding(value: unknown): DefaultChildLanding {
