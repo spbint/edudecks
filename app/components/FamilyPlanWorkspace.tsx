@@ -643,6 +643,13 @@ export default function FamilyPlanWorkspace() {
                 focused={key === selectedDayKey}
                 note={dayNotes[key] ?? ""}
                 blocks={dayBlocks}
+                noteStatusLabel={
+                  savingCalendar && key === selectedDayKey
+                    ? "Saving"
+                    : dayNotes[key]?.trim()
+                      ? "Saved"
+                      : "Open"
+                }
                 onNoteChange={(value) => updateDayNote(day, value)}
                 onNoteBlur={() => void persistDayNote(day)}
                 onAddBlock={() => void addBlockForDate(day, "Learning block")}

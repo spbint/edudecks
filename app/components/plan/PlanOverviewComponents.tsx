@@ -515,19 +515,31 @@ export function PlannerStickyNote({
   value,
   onChange,
   onBlur,
+  statusLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
   onBlur: () => void;
+  statusLabel?: string;
 }) {
   return (
-    <textarea
-      className="min-h-[82px] w-full rounded-[18px] border border-amber-200 bg-amber-50 px-3 py-3 text-xs leading-5 text-slate-700 outline-none transition placeholder:text-amber-700/60 focus:border-amber-300"
-      placeholder="A gentle note for today…"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      onBlur={onBlur}
-    />
+    <div className="grid gap-2 rounded-[18px] border border-amber-200 bg-[linear-gradient(180deg,rgba(254,249,195,0.92)_0%,rgba(254,243,199,0.88)_100%)] px-3 py-3 shadow-[0_8px_18px_rgba(146,64,14,0.06)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-amber-800/80">
+          Today’s note
+        </div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700/70">
+          {statusLabel || (value.trim() ? "Saved" : "Open")}
+        </div>
+      </div>
+      <textarea
+        className="min-h-[96px] w-full resize-none rounded-[14px] border border-amber-200/70 bg-white/45 px-3 py-3 text-xs leading-5 text-slate-700 outline-none transition placeholder:text-amber-700/60 focus:border-amber-300 focus:bg-white/70"
+        placeholder="A gentle note for today..."
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+      />
+    </div>
   );
 }
 
@@ -554,6 +566,7 @@ export function PlannerDayCard({
   focused,
   note,
   blocks,
+  noteStatusLabel,
   onNoteChange,
   onNoteBlur,
   onAddBlock,
@@ -567,6 +580,7 @@ export function PlannerDayCard({
   focused?: boolean;
   note: string;
   blocks: PlannerBlock[];
+  noteStatusLabel?: string;
   onNoteChange: (value: string) => void;
   onNoteBlur: () => void;
   onAddBlock: () => void;
@@ -598,7 +612,12 @@ export function PlannerDayCard({
         ) : null}
       </div>
 
-      <PlannerStickyNote value={note} onChange={onNoteChange} onBlur={onNoteBlur} />
+      <PlannerStickyNote
+        value={note}
+        onChange={onNoteChange}
+        onBlur={onNoteBlur}
+        statusLabel={noteStatusLabel}
+      />
 
       <div className="grid gap-2">
         {blocks.length ? (
