@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -10,17 +10,22 @@ import {
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
 import {
+  PLANNER_SUBJECTS,
   PlanActionCard,
-  PlanListCard,
   PlanMetricCard,
   type PlanMetricCardProps,
   PlanNextMoveCard,
-  WeeklyRhythmCard,
-  type WeeklyRhythmDay,
+  PlannerDayCard,
+  PlannerQuickAddRow,
+  type PlannerBlock,
+  type PlannerSubject,
+  VisualWeeklyPlanner,
 } from "@/app/components/plan/PlanOverviewComponents";
 import {
+  addFamilyCalendarBlock,
   loadFamilyCalendarWindow,
   loadFamilyWeeklyPlan,
+  saveFamilyCalendarDayNote,
   type FamilyCalendarWindow,
   type FamilyWeeklyPlan,
 } from "@/lib/familyPlanner";
@@ -61,6 +66,24 @@ function getWeekKeyFromDate(dateValue: string): string {
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
+function formatWeekRange(days: Date[]) {
+  const first = days[0];
+  const last = days[days.length - 1];
+  const firstMonth = first.toLocaleDateString("en-AU", { month: "short" });
+  const lastMonth = last.toLocaleDateString("en-AU", { month: "short" });
+  const year = last.getFullYear();
+
+  return `Week of ${first.getDate()} ${firstMonth} – ${last.getDate()} ${lastMonth} ${year}`;
+}
+
+function formatDayLabel(date: Date) {
+  return date.toLocaleDateString("en-AU", { weekday: "short" });
+}
+
+function formatDayDateLabel(date: Date) {
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
 function relativeTimeLabel(value?: string | null) {
   if (!value) return "Not yet";
 
@@ -76,12 +99,27 @@ function relativeTimeLabel(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
+function plannerSubject(value: string): PlannerSubject {
+  return (PLANNER_SUBJECTS.includes(value as PlannerSubject) ? value : "Creative") as PlannerSubject;
+}
+
 export default function FamilyPlanWorkspace() {
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
+
+  const [selectedWeekAnchor, setSelectedWeekAnchor] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [weeklyPlan, setWeeklyPlan] = useState<FamilyWeeklyPlan | null>(null);
   const [calendarWindow, setCalendarWindow] = useState<FamilyCalendarWindow | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
+  const [savingCalendar, setSavingCalendar] = useState(false);
   const [planError, setPlanError] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [momentTitle, setMomentTitle] = useState("");
+  const [momentNote, setMomentNote] = useState("");
+  const [optionalTime, setOptionalTime] = useState("");
+  const [subject, setSubject] = useState<PlannerSubject>("Literacy");
+  const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
+  const [blocks, setBlocks] = useState<Record<string, PlannerBlock[]>>({});
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -92,10 +130,12 @@ export default function FamilyPlanWorkspace() {
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
   const activeLearnerName = activeLearner?.label || "your learner";
-  const currentWeek = getBusinessWeek(new Date());
-  const weekKey = getWeekKeyFromDate(ymd(currentWeek[0]));
-  const weekStart = ymd(currentWeek[0]);
-  const weekEnd = ymd(currentWeek[currentWeek.length - 1]);
+  const weekDays = useMemo(() => getBusinessWeek(selectedWeekAnchor), [selectedWeekAnchor]);
+  const weekKey = getWeekKeyFromDate(ymd(weekDays[0]));
+  const weekStart = ymd(weekDays[0]);
+  const weekEnd = ymd(weekDays[weekDays.length - 1]);
+  const selectedDayKey = ymd(selectedDate);
+  const selectedDayLabel = `${formatDayLabel(selectedDate)} ${formatDayDateLabel(selectedDate)}`;
 
   const canonicalReady =
     Boolean(workspace.userId) &&
@@ -105,6 +145,13 @@ export default function FamilyPlanWorkspace() {
     Boolean(activeLearner?.id);
 
   useEffect(() => {
+    const inVisibleWeek = weekDays.some((day) => ymd(day) === selectedDayKey);
+    if (!inVisibleWeek) {
+      setSelectedDate(weekDays[0]);
+    }
+  }, [selectedDayKey, weekDays]);
+
+  useEffect(() => {
     let mounted = true;
 
     async function hydratePlan() {
@@ -112,6 +159,8 @@ export default function FamilyPlanWorkspace() {
         if (mounted) {
           setWeeklyPlan(null);
           setCalendarWindow(null);
+          setBlocks({});
+          setDayNotes({});
           setLoadingPlan(false);
           setPlanError("");
         }
@@ -121,6 +170,7 @@ export default function FamilyPlanWorkspace() {
       try {
         setLoadingPlan(true);
         setPlanError("");
+        setStatusMessage("");
 
         const [plan, calendar] = await Promise.all([
           loadFamilyWeeklyPlan({
@@ -137,12 +187,30 @@ export default function FamilyPlanWorkspace() {
         ]);
 
         if (!mounted) return;
+
+        const nextBlocks = Object.fromEntries(
+          Object.entries(calendar.blocks).map(([date, items]) => [
+            date,
+            items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              subject: plannerSubject(item.subject),
+              note: item.note,
+              time: item.time,
+            })),
+          ]),
+        ) as Record<string, PlannerBlock[]>;
+
         setWeeklyPlan(plan);
         setCalendarWindow(calendar);
+        setBlocks(nextBlocks);
+        setDayNotes(calendar.dayNotes);
       } catch (error: any) {
         if (!mounted) return;
         setWeeklyPlan(null);
         setCalendarWindow(null);
+        setBlocks({});
+        setDayNotes({});
         setPlanError(String(error?.message ?? "We could not load this learner's plan."));
       } finally {
         if (mounted) setLoadingPlan(false);
@@ -156,13 +224,12 @@ export default function FamilyPlanWorkspace() {
     };
   }, [canonicalReady, activeLearner?.id, workspace.profile?.id, weekEnd, weekKey, weekStart]);
 
-  const totalWeekBlocks = currentWeek.reduce(
-    (count, day) => count + (calendarWindow?.blocks?.[ymd(day)]?.length ?? 0),
+  const totalWeekBlocks = weekDays.reduce(
+    (count, day) => count + (blocks[ymd(day)]?.length ?? 0),
     0,
   );
   const completedActions = weeklyPlan?.actions.filter((action) => action.completed).length ?? 0;
-  const activeActions = weeklyPlan?.actions.filter((action) => !action.completed).length ?? 0;
-  const openDays = currentWeek.filter((day) => (calendarWindow?.blocks?.[ymd(day)]?.length ?? 0) === 0).length;
+  const openDays = weekDays.filter((day) => (blocks[ymd(day)]?.length ?? 0) === 0).length;
 
   const planState: HomeSurfaceState = workspaceLoading || loadingPlan
     ? "loading"
@@ -184,26 +251,132 @@ export default function FamilyPlanWorkspace() {
         : "placeholder"
       : "empty";
 
-  const readinessValue =
-    planState === "loading"
-      ? ""
-      : planState === "live"
-        ? openDays <= 1
-          ? "On track"
-          : openDays <= 3
-            ? "Ready to shape"
-            : "Needs shaping"
-        : hasActiveLearner
-          ? "Preview"
-          : "Choose learner";
+  async function addBlockForDate(date: Date, title?: string, forcedSubject?: PlannerSubject) {
+    const key = ymd(date);
+    const trimmed = (title ?? momentTitle).trim();
+    const finalTitle = trimmed || "Start with one small learning moment";
+    const finalSubject = forcedSubject ?? subject;
 
-  const planSummaryCards: PlanMetricCardProps[] = [
+    const optimisticBlock: PlannerBlock = {
+      id: `${key}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: finalTitle,
+      subject: finalSubject,
+      note: momentNote.trim(),
+      time: optionalTime.trim(),
+    };
+
+    setBlocks((prev) => ({
+      ...prev,
+      [key]: [...(prev[key] ?? []), optimisticBlock],
+    }));
+    setMomentTitle("");
+    setMomentNote("");
+    setOptionalTime("");
+    setSelectedDate(date);
+
+    if (!canonicalReady || !activeLearner?.id) {
+      setStatusMessage("Plan blocks will save once a linked learner and synced workspace are available.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setPlanError("");
+
+      const savedBlock = await addFamilyCalendarBlock({
+        familyProfileId: workspace.profile.id,
+        studentId: activeLearner.id,
+        createdByUserId: workspace.userId as string,
+        date: key,
+        title: finalTitle,
+        subject: finalSubject,
+        note: optimisticBlock.note,
+        time: optimisticBlock.time,
+      });
+
+      setBlocks((prev) => ({
+        ...prev,
+        [key]: [
+          ...(prev[key] ?? []).filter((item) => item.id !== optimisticBlock.id),
+          {
+            id: savedBlock.id,
+            title: savedBlock.title,
+            subject: plannerSubject(savedBlock.subject),
+            note: savedBlock.note,
+            time: savedBlock.time,
+          },
+        ],
+      }));
+      setStatusMessage("Saved to this week’s plan.");
+    } catch (error: any) {
+      setBlocks((prev) => ({
+        ...prev,
+        [key]: (prev[key] ?? []).filter((item) => item.id !== optimisticBlock.id),
+      }));
+      setPlanError(String(error?.message ?? "We could not save this learning block."));
+    } finally {
+      setSavingCalendar(false);
+    }
+  }
+
+  function updateDayNote(date: Date, value: string) {
+    const key = ymd(date);
+    setDayNotes((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  }
+
+  async function persistDayNote(date: Date) {
+    const key = ymd(date);
+    const nextNote = dayNotes[key] ?? "";
+
+    if (!canonicalReady || !activeLearner?.id) {
+      setStatusMessage("Daily notes will save once a linked learner is ready.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setPlanError("");
+      await saveFamilyCalendarDayNote({
+        familyProfileId: workspace.profile.id,
+        studentId: activeLearner.id,
+        createdByUserId: workspace.userId as string,
+        date: key,
+        note: nextNote,
+      });
+      setStatusMessage(nextNote.trim() ? "Daily note saved." : "Daily note cleared.");
+    } catch (error: any) {
+      setPlanError(String(error?.message ?? "We could not save this daily note."));
+    } finally {
+      setSavingCalendar(false);
+    }
+  }
+
+  function goPreviousWeek() {
+    setSelectedWeekAnchor((prev) => addDays(prev, -7));
+  }
+
+  function goNextWeek() {
+    setSelectedWeekAnchor((prev) => addDays(prev, 7));
+  }
+
+  function goToday() {
+    const today = new Date();
+    setSelectedWeekAnchor(today);
+    setSelectedDate(today);
+  }
+
+  const compactSummaryCards: PlanMetricCardProps[] = [
     {
       label: "Current focus",
       value:
         planState === "loading"
           ? ""
-          : weeklyPlan?.focusTitle || (hasActiveLearner ? "Ready to shape" : "Not set"),
+          : weeklyPlan?.focusTitle ||
+            blocks[selectedDayKey]?.[0]?.title ||
+            (hasActiveLearner ? "Ready to shape" : "Not set"),
       note:
         planState === "live"
           ? weeklyPlan?.selectedGoal || `Keep ${activeLearnerName}'s week gently in view`
@@ -211,11 +384,22 @@ export default function FamilyPlanWorkspace() {
             ? `Shape one clear focus for ${activeLearnerName}`
             : "Add your first learner to begin",
       state: planState,
-      accent: "blue" as const,
+      accent: "blue",
     },
     {
       label: "Readiness",
-      value: readinessValue,
+      value:
+        planState === "loading"
+          ? ""
+          : planState === "live"
+            ? openDays <= 1
+              ? "On track"
+              : openDays <= 3
+                ? "Ready to shape"
+                : "Needs shaping"
+            : hasActiveLearner
+              ? "Preview"
+              : "Choose learner",
       note:
         planState === "live"
           ? `${openDays} open day${openDays === 1 ? "" : "s"} still available this week`
@@ -223,7 +407,7 @@ export default function FamilyPlanWorkspace() {
             ? `Use one or two blocks to settle ${activeLearnerName}'s rhythm`
             : "Choose a learner to see readiness",
       state: planState === "live" ? "derived" : planState,
-      accent: "violet" as const,
+      accent: "violet",
     },
     {
       label: "Active blocks",
@@ -237,74 +421,14 @@ export default function FamilyPlanWorkspace() {
               : "0",
       note:
         planState === "live"
-          ? `${Math.max(activeActions, totalWeekBlocks)} block${Math.max(activeActions, totalWeekBlocks) === 1 ? "" : "s"} in motion`
+          ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} placed this week`
           : hasActiveLearner
             ? `Weekly blocks for ${activeLearnerName} will appear here`
             : "Add your first block to begin",
       state: planState === "live" ? "live" : planState,
-      accent: "emerald" as const,
+      accent: "emerald",
     },
   ];
-
-  const currentFocusItems =
-    planState === "live"
-      ? [
-          ...(weeklyPlan?.focusTitle
-            ? [
-                {
-                  title: weeklyPlan.focusTitle,
-                  meta: weeklyPlan.focusSummary || weeklyPlan.selectedGoal || "Weekly focus",
-                  status: "Active",
-                },
-              ]
-            : []),
-          ...(weeklyPlan?.actions
-            .filter((action) => !action.completed)
-            .slice(0, 2)
-            .map((action) => ({
-              title: action.title,
-              meta: action.description || "Current planning action",
-              status: action.category,
-            })) ?? []),
-        ]
-      : [];
-
-  const comingNextItems =
-    planState === "live"
-      ? currentWeek
-          .flatMap((day) =>
-            (calendarWindow?.blocks?.[ymd(day)] ?? []).map((block) => ({
-              title: block.title,
-              meta: [
-                day.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" }),
-                block.subject,
-                block.time,
-              ]
-                .filter(Boolean)
-                .join(" • "),
-              status: "Planned",
-            })),
-          )
-          .slice(0, 3)
-      : [];
-
-  const weeklyRhythmDays: WeeklyRhythmDay[] = currentWeek.map((day) => {
-    const key = ymd(day);
-    const blocks = (calendarWindow?.blocks?.[key] ?? []).map((block) => ({
-      title: block.title,
-      subject: block.subject,
-      time: block.time,
-    }));
-
-    return {
-      id: key,
-      label: day.toLocaleDateString("en-AU", { weekday: "short" }),
-      dateLabel: day.toLocaleDateString("en-AU", { day: "numeric", month: "short" }),
-      blocks,
-      note: calendarWindow?.dayNotes?.[key] || "",
-      today: key === ymd(new Date()),
-    };
-  });
 
   const quickActions: Array<{
     href: string;
@@ -315,15 +439,15 @@ export default function FamilyPlanWorkspace() {
     state: HomeSurfaceState;
   }> = [
     {
-      href: "/calendar",
+      href: "/my-plan",
       icon: "PL",
       label: "Continue planning",
-      note: hasActiveLearner ? `Keep ${activeLearnerName}'s week visible and easy to adjust.` : "Choose a learner to continue.",
+      note: hasActiveLearner ? `Keep ${activeLearnerName}'s week visible.` : "Choose a learner to continue.",
       cta: "Open",
       state: hasActiveLearner ? planState : "empty",
     },
     {
-      href: "/calendar",
+      href: "/my-plan",
       icon: "LB",
       label: "Add learning block",
       note: hasActiveLearner ? `Place one meaningful block for ${activeLearnerName}.` : "Add a learner before shaping the week.",
@@ -331,7 +455,7 @@ export default function FamilyPlanWorkspace() {
       state: hasActiveLearner ? planState : "empty",
     },
     {
-      href: "/calendar",
+      href: "/my-plan",
       icon: "WK",
       label: "Adjust this week",
       note: hasActiveLearner ? `Review the open days and smooth the rhythm.` : "Weekly rhythm appears after learner setup.",
@@ -342,7 +466,7 @@ export default function FamilyPlanWorkspace() {
       href: "/capture",
       icon: "CP",
       label: "Review recent captures",
-      note: hasActiveLearner ? `Use new evidence to sharpen ${activeLearnerName}'s next step.` : "Capture starts after learner setup.",
+      note: hasActiveLearner ? `Use fresh evidence to refine ${activeLearnerName}'s next step.` : "Capture starts after learner setup.",
       cta: "Review",
       state: hasActiveLearner ? "derived" : "empty",
     },
@@ -354,12 +478,12 @@ export default function FamilyPlanWorkspace() {
       value: planState === "loading" ? "" : planState === "live" ? String(totalWeekBlocks) : hasActiveLearner ? "Preview" : "0",
       note:
         planState === "live"
-          ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} placed across the week`
+          ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} across this week`
           : hasActiveLearner
-            ? "Weekly blocks will sharpen as planner data grows"
+            ? "Blocks will sharpen as planner data grows"
             : "Your first block will appear here",
       state: planState,
-      accent: "blue" as const,
+      accent: "blue",
     },
     {
       label: "Ready now",
@@ -371,7 +495,7 @@ export default function FamilyPlanWorkspace() {
             ? "Ready-now signals will appear as the plan matures"
             : "Ready-now signals appear after setup",
       state: planState === "live" ? "live" : planState,
-      accent: "emerald" as const,
+      accent: "emerald",
     },
     {
       label: "Needs shaping",
@@ -383,19 +507,19 @@ export default function FamilyPlanWorkspace() {
             ? "Open days stay visible here"
             : "Choose a learner to see what needs shaping",
       state: planState === "live" ? "derived" : planState,
-      accent: "amber" as const,
+      accent: "amber",
     },
     {
       label: "Last updated",
       value: planState === "loading" ? "" : relativeTimeLabel(weeklyPlan?.updatedAt || activeLearner?.connectedAt),
       note:
         planState === "live"
-          ? "Based on the latest saved weekly plan"
+          ? "Based on the latest weekly plan or learner activity"
           : hasActiveLearner
             ? "Plan updates will appear once saved"
             : "No planning activity yet",
       state: planState === "live" ? "live" : planState,
-      accent: "violet" as const,
+      accent: "violet",
     },
   ];
 
@@ -403,31 +527,31 @@ export default function FamilyPlanWorkspace() {
     !hasActiveLearner
       ? {
           title: "Start by choosing a learner",
-          note: "Once a learner is in focus, My Plan can show what is active now and what should come next.",
+          note: "Once a learner is in focus, My Plan can show the week visually and keep the next step close.",
           ctaHref: "/profile",
           ctaLabel: "Open My Profile",
           state: "empty" as HomeSurfaceState,
         }
       : planState === "live" && openDays > 0
         ? {
-            title: `Add one more block for ${activeLearnerName}`,
-            note: "Use one small learning block to make the week feel settled without overplanning it.",
-            ctaHref: "/calendar",
-            ctaLabel: "Adjust this week",
+            title: `Shape ${activeLearnerName}'s week visually`,
+            note: "Start with one clear focus and one or two learning blocks. The rest can stay flexible.",
+            ctaHref: "/my-plan",
+            ctaLabel: "Continue planning",
             state: "live" as HomeSurfaceState,
           }
         : planState === "live"
           ? {
               title: `Capture evidence for ${activeLearnerName}`,
-              note: "The plan is visible. A fresh capture will make the next report and progress view stronger.",
+              note: "The week is visible. A fresh capture will make the next report and progress view stronger.",
               ctaHref: "/capture",
               ctaLabel: "Add learning evidence",
               state: "derived" as HomeSurfaceState,
             }
           : {
-              title: `Shape ${activeLearnerName}'s first weekly rhythm`,
-              note: "Start with one clear focus and one or two learning blocks. The rest can stay flexible.",
-              ctaHref: "/calendar",
+              title: `Start ${activeLearnerName}'s first visual plan`,
+              note: "Use one small learning block to make the week feel settled without overplanning it.",
+              ctaHref: "/my-plan",
               ctaLabel: "Continue planning",
               state: hasActiveLearner ? "placeholder" as HomeSurfaceState : "empty" as HomeSurfaceState,
             };
@@ -437,16 +561,10 @@ export default function FamilyPlanWorkspace() {
       title="MyLearna"
       subtitle="My Plan"
       heroTitle="My Plan"
-      heroText="A calm place to shape what’s active now and what comes next."
+      heroText="Shape what’s active now and what comes next."
       hideHeroAside={true}
     >
       <div className="grid gap-6 pb-14">
-        {planError ? (
-          <section className="rounded-[22px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
-            {planError}
-          </section>
-        ) : null}
-
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "Your family"}
           learners={learnerOptions}
@@ -456,7 +574,7 @@ export default function FamilyPlanWorkspace() {
         />
 
         <section className="grid gap-4 lg:grid-cols-3">
-          {planSummaryCards.map((card) => (
+          {compactSummaryCards.map((card) => (
             <PlanMetricCard
               key={card.label}
               label={card.label}
@@ -485,41 +603,60 @@ export default function FamilyPlanWorkspace() {
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-2">
-          <PlanListCard
-            eyebrow="Current focus"
-            title="What is active now"
-            note={hasActiveLearner ? `Keep ${activeLearnerName}'s current focus visible and easy to continue.` : "Choose a learner to begin."}
-            items={currentFocusItems}
-            state={planState}
-            emptyTitle={hasActiveLearner ? "Start your first focus" : "No learner selected"}
-            emptyNote={
-              hasActiveLearner
-                ? "Pick one weekly focus and one or two actions to make the next step visible."
-                : "Add or choose a learner to begin planning."
-            }
-            ctaLabel="Continue"
-            ctaHref="/calendar"
-          />
+        <VisualWeeklyPlanner
+          state={planState}
+          weekLabel={formatWeekRange(weekDays)}
+          selectedDayLabel={selectedDayLabel}
+          onToday={goToday}
+          onPreviousWeek={goPreviousWeek}
+          onNextWeek={goNextWeek}
+          onAddFromControl={() => void addBlockForDate(selectedDate)}
+          savingLabel={savingCalendar ? "Saving…" : ""}
+          errorMessage={planError}
+          statusMessage={statusMessage}
+          quickAddRow={
+            <PlannerQuickAddRow
+              title={momentTitle}
+              subject={subject}
+              note={momentNote}
+              optionalTime={optionalTime}
+              selectedDayLabel={selectedDayLabel}
+              onTitleChange={setMomentTitle}
+              onSubjectChange={setSubject}
+              onNoteChange={setMomentNote}
+              onOptionalTimeChange={setOptionalTime}
+              onAdd={() => void addBlockForDate(selectedDate)}
+              disabled={savingCalendar}
+            />
+          }
+        >
+          {weekDays.map((day) => {
+            const key = ymd(day);
+            const dayBlocks = blocks[key] ?? [];
 
-          <PlanListCard
-            eyebrow="Coming next"
-            title="What comes next"
-            note={hasActiveLearner ? `See the next blocks and open space for ${activeLearnerName}.` : "The next step appears here once a learner is in focus."}
-            items={comingNextItems}
-            state={planState}
-            emptyTitle={hasActiveLearner ? "This week is still open" : "No upcoming blocks yet"}
-            emptyNote={
-              hasActiveLearner
-                ? "Add one small learning block to begin shaping the week gently."
-                : "Choose a learner to preview what comes next."
-            }
-            ctaLabel="Open week"
-            ctaHref="/calendar"
-          />
-        </section>
-
-        <WeeklyRhythmCard state={planState} days={weeklyRhythmDays} ctaHref="/calendar" />
+            return (
+              <PlannerDayCard
+                key={key}
+                label={formatDayLabel(day)}
+                dateLabel={formatDayDateLabel(day)}
+                today={key === ymd(new Date())}
+                focused={key === selectedDayKey}
+                note={dayNotes[key] ?? ""}
+                blocks={dayBlocks}
+                onNoteChange={(value) => updateDayNote(day, value)}
+                onNoteBlur={() => void persistDayNote(day)}
+                onAddBlock={() => void addBlockForDate(day, "Learning block")}
+                onOpenDay={() => setSelectedDate(day)}
+                quickAddOptions={PLANNER_SUBJECTS.map((plannerChip) => ({
+                  label: plannerChip,
+                  subject: plannerChip,
+                  onClick: () => void addBlockForDate(day, plannerChip, plannerChip),
+                }))}
+                captureHref={`/capture?learner=${encodeURIComponent(activeLearner?.id || "")}&date=${encodeURIComponent(key)}`}
+              />
+            );
+          })}
+        </VisualWeeklyPlanner>
 
         <section className="grid gap-4">
           <HomeSectionHeader eyebrow="Plan health" title="Keep the week visible" />
