@@ -14,14 +14,14 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
 }> = [
   {
     key: "home",
-    label: "Home",
-    href: "/family",
-    detail: "Start with the family view and current learner.",
+    label: "My Learning",
+    href: "/home",
+    detail: "Start with the current learner, readiness, and your next best move.",
   },
   {
     key: "calendar",
-    label: "Calendar",
-    href: "/calendar",
+    label: "My Plan",
+    href: "/my-plan",
     detail: "Shape the week and place the next learning blocks.",
   },
   {
@@ -32,9 +32,9 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
   },
   {
     key: "reports",
-    label: "Reports",
-    href: "/reports",
-    detail: "Turn learning into a report-ready record over time.",
+    label: "My Reports",
+    href: "/my-reports",
+    detail: "Turn learning into a clear family record over time.",
   },
 ];
 
@@ -141,14 +141,21 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
 
 export function resolveFamilyWorkflowStage(pathname: string): FamilyWorkflowStageKey | null {
   if (!pathname) return null;
-  if (pathname === "/family") return "home";
-  if (pathname.startsWith("/calendar") || pathname.startsWith("/planner")) {
+  if (pathname === "/family" || pathname === "/home") return "home";
+  if (
+    pathname.startsWith("/calendar") ||
+    pathname.startsWith("/planner") ||
+    pathname.startsWith("/my-plan")
+  ) {
     return "calendar";
   }
   if (pathname.startsWith("/capture")) return "capture";
   if (
     pathname.startsWith("/reports") ||
+    pathname.startsWith("/my-reports") ||
     pathname.startsWith("/portfolio") ||
+    pathname.startsWith("/my-portfolio") ||
+    pathname.startsWith("/my-progress") ||
     pathname.startsWith("/exports") ||
     pathname.startsWith("/authority")
   ) {

@@ -52,7 +52,6 @@ function pill(bg: string, color: string): React.CSSProperties {
 export default function AuthorityHubPage() {
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
       subtitle="Authority workflow"
       heroTitle="Prepare, build, review, and export with more confidence"
       heroText="This is the formal reporting layer that sits above the everyday family workflow. Move from readiness checks to pack building, export review, and saved authority history without losing the calmer family experience."

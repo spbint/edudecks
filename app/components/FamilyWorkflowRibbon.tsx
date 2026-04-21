@@ -11,7 +11,7 @@ type FamilyWorkflowRibbonProps = {
 
 export default function FamilyWorkflowRibbon({
   currentRoute,
-  helperText = "Move from family home into planning, capture, and reports with one shared flow.",
+  helperText = "Move from My Learning into planning, capture, and reports with one shared family flow.",
   style,
 }: FamilyWorkflowRibbonProps) {
   return (

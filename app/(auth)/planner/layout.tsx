@@ -10,8 +10,7 @@ export default function PlannerLayout({
 }) {
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
-      subtitle="Planner"
+      subtitle="My Plan"
       heroTitle="A calm, simple plan for the week"
       heroText="Keep this week light and purposeful. Choose a gentle focus, take a few meaningful steps, and let the story build naturally without losing the wider family workflow."
       heroAsideTitle="Planning step"

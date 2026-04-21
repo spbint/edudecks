@@ -19,15 +19,15 @@ type Step = {
 const STEPS: Step[] = [
   {
     key: "home",
-    label: "Home",
-    hint: "Start with the family view",
-    href: "/family",
+    label: "My Learning",
+    hint: "Start with your overview",
+    href: "/home",
   },
   {
     key: "calendar",
-    label: "Calendar",
+    label: "My Plan",
     hint: "Plan the week gently",
-    href: "/calendar",
+    href: "/my-plan",
   },
   {
     key: "capture",
@@ -37,9 +37,9 @@ const STEPS: Step[] = [
   },
   {
     key: "portfolio",
-    label: "Portfolio",
+    label: "My Portfolio",
     hint: "Build the story over time",
-    href: "/portfolio",
+    href: "/my-portfolio",
   },
 ];
 

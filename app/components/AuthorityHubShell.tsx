@@ -119,7 +119,6 @@ export default function AuthorityHubShell({
 }: AuthorityHubShellProps) {
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
       subtitle={config.subtitle}
       heroTitle={config.heroTitle}
       heroText={config.heroText}
@@ -432,10 +431,10 @@ export default function AuthorityHubShell({
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {(config.fastLanes || [
             { href: "/capture", label: "Capture" },
-            { href: "/portfolio", label: "Portfolio" },
-            { href: "/reports", label: "Reports", primary: true },
+            { href: "/my-portfolio", label: "My Portfolio" },
+            { href: "/my-reports", label: "My Reports", primary: true },
             { href: "/reports/library", label: "Report Library" },
-            { href: "/family", label: "Family Dashboard" },
+            { href: "/home", label: "My Learning" },
           ]).map((lane) => (
             <Link
               key={lane.href + lane.label}

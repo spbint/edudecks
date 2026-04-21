@@ -1,16 +1,5 @@
-"use client";
-
-import React from "react";
-import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import TemporaryUnavailableCard from "@/app/components/TemporaryUnavailableCard";
+import { redirect } from "next/navigation";
 
 export default function PlannerPage() {
-  return (
-    <FamilyTopNavShell title="EduDecks Family" subtitle="Planner">
-      <TemporaryUnavailableCard
-        title="Planner"
-        message="Curriculum setup is temporarily unavailable during rebuild."
-      />
-    </FamilyTopNavShell>
-  );
+  redirect("/my-plan");
 }

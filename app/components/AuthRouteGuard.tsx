@@ -15,7 +15,7 @@ export default function AuthRouteGuard({
   const { user, loading } = useAuthUser();
 
   const loginHref = useMemo(() => {
-    const next = pathname || "/family";
+    const next = pathname || "/home";
     return `/login?next=${encodeURIComponent(next)}`;
   }, [pathname]);
 

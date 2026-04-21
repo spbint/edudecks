@@ -266,7 +266,7 @@ export async function sendMagicLink(input: {
     );
   }
 
-  const nextPath = normalizeNextPath(input.nextPath || "/family");
+  const nextPath = normalizeNextPath(input.nextPath || "/home");
   const emailRedirectTo = buildAuthCallbackUrl(nextPath);
 
   console.info("[auth] magic link requested", {

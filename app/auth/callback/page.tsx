@@ -62,13 +62,13 @@ export default function AuthCallbackPage() {
 function AuthCallbackPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [message, setMessage] = useState("Signing you in and returning you to EduDecks...");
+  const [message, setMessage] = useState("Signing you in and returning you to MyLearna...");
   const [error, setError] = useState("");
   const redirectInProgress = useRef(false);
   const callbackHandled = useRef(false);
 
   const requestedNextPath = useMemo(() => {
-    const fallback = normalizeNextPath("/family");
+    const fallback = normalizeNextPath("/home");
     const candidate = searchParams.get("next");
     return normalizeNextPath(candidate || fallback);
   }, [searchParams]);
@@ -100,7 +100,7 @@ function AuthCallbackPageContent() {
           throw new Error(errorDescription || errorParam);
         }
 
-        setMessage("Completing your EduDecks session...");
+        setMessage("Completing your MyLearna session...");
 
         const hashParams = parseHashParams();
         const hashAccessToken = safe(hashParams.get("access_token"));
@@ -201,7 +201,7 @@ function AuthCallbackPageContent() {
             );
 
             if (
-              requestedNextPath === "/family" &&
+              requestedNextPath === "/home" &&
               !profileAndRouting.onboardingComplete &&
               profileAndRouting.linkedChildrenCount === 0
             ) {
@@ -225,7 +225,7 @@ function AuthCallbackPageContent() {
             ? "You're signed in. Returning you to your learning record..."
             : resolvedNextPath === "/welcome"
               ? "You're signed in. Getting your first step ready..."
-              : "You're signed in. Taking you back to EduDecks...",
+              : "You're signed in. Taking you back to MyLearna...",
         );
 
         if (redirectInProgress.current) return;
@@ -285,7 +285,7 @@ function AuthCallbackPageContent() {
               color: "#64748b",
             }}
           >
-            EduDecks Family
+            MyLearna
           </div>
           <div
             style={{
@@ -328,7 +328,7 @@ function AuthCallbackPageContent() {
               ? "We hit a problem while completing sign-in. No new login link has been sent."
               : requestedNextPath === "/start"
                 ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
-                : "You'll be returned to the right EduDecks page automatically."}
+                : "You'll be returned to the right MyLearna page automatically."}
           </div>
 
           {error ? (
@@ -366,7 +366,7 @@ function AuthCallbackPageContent() {
                 cursor: "pointer",
               }}
             >
-              Continue to EduDecks
+              Continue to MyLearna
             </button>
           )}
         </div>

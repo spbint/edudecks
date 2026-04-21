@@ -6,9 +6,12 @@ import TemporaryUnavailableCard from "@/app/components/TemporaryUnavailableCard"
 
 export default function FamilySettingsPage() {
   return (
-    <FamilyTopNavShell title="EduDecks Family" subtitle="Settings" hideHero={true}>
+    <FamilyTopNavShell subtitle="Settings" hideHero={true}>
       <main style={styles.page}>
-        <TemporaryUnavailableCard title="Settings" />
+        <TemporaryUnavailableCard
+          title="Settings"
+          message="Settings is staying available while the new MyLearna account and preferences experience is modernised."
+        />
       </main>
     </FamilyTopNavShell>
   );

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
@@ -348,9 +347,8 @@ export default function FamilyProfilePage() {
       });
 
       const created = await createFamilyEvidenceEntry({
-        familyProfileId,
         studentId: activeLearner.id,
-        createdByUserId: workspace.userId,
+        userId: workspace.userId,
         title,
         summary: description,
         evidenceType: "note",
@@ -472,8 +470,7 @@ export default function FamilyProfilePage() {
 
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
-      subtitle="Profile"
+      subtitle="My Profile"
       heroTitle="Keep learner details tidy and connected"
       heroText="Manage learners, confirm the active learner for the wider workflow, and keep a read-only view of the current family setup."
       heroAsideTitle="Family workspace"
@@ -685,13 +682,13 @@ export default function FamilyProfilePage() {
         </section>
 
         <section style={S.section}>
-          <CurriculumSummary
-            title="Curriculum setup lives in settings"
-            description="This page now shows learner management only. Open settings to change the family framework and level."
-            helperText="Profile no longer owns curriculum edits, which keeps the family workflow on one settings path."
-            linkLabel="Open curriculum settings"
-            linkHref="/settings#curriculum"
-          />
+          <div style={S.infoCard}>
+            <div style={S.eyebrow}>Account settings</div>
+            <div style={S.cardTitle}>Settings now lives on its own dedicated page</div>
+            <div style={S.helperText}>
+              Use Settings to review family preferences and connected account details while this profile page stays focused on learner management.
+            </div>
+          </div>
         </section>
 
         <section style={S.section}>
@@ -766,6 +763,7 @@ const S: Record<string, React.CSSProperties> = {
   chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
   activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
   activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },
+  infoCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 8 },
   activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
   learningRow: { border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc", padding: 14, display: "grid", gap: 8 },
   learningRowText: { display: "grid", gap: 4 },

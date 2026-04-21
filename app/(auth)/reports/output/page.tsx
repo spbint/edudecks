@@ -6,10 +6,10 @@ import TemporaryUnavailableCard from "@/app/components/TemporaryUnavailableCard"
 
 export default function ReportsOutputPage() {
   return (
-    <FamilyTopNavShell title="EduDecks Family" subtitle="Report Output">
+    <FamilyTopNavShell subtitle="Report Output">
       <TemporaryUnavailableCard
         title="Report Output"
-        message="Curriculum setup is temporarily unavailable during rebuild."
+        message="Report output will be refreshed under the MyLearna shell next. The route remains available while deeper report views are updated."
       />
     </FamilyTopNavShell>
   );

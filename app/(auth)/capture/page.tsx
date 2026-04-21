@@ -6,10 +6,10 @@ import TemporaryUnavailableCard from "@/app/components/TemporaryUnavailableCard"
 
 export default function CapturePage() {
   return (
-    <FamilyTopNavShell title="EduDecks Family" subtitle="Capture">
+    <FamilyTopNavShell subtitle="Capture">
       <TemporaryUnavailableCard
         title="Capture"
-        message="Curriculum setup is temporarily unavailable during rebuild."
+        message="Capture will be refreshed under the new MyLearna shell next. The route and family context are already aligned."
       />
     </FamilyTopNavShell>
   );

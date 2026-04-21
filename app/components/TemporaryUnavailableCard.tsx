@@ -9,7 +9,7 @@ type TemporaryUnavailableCardProps = {
 
 export default function TemporaryUnavailableCard({
   title,
-  message = "Curriculum setup is temporarily unavailable during rebuild.",
+  message = "This area is being refreshed and will be available again soon.",
 }: TemporaryUnavailableCardProps) {
   return (
     <section style={styles.card}>

@@ -48,36 +48,58 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
+const PRIMARY_NAV = [
+  { href: "/home", label: "My Learning" },
+  { href: "/my-plan", label: "My Plan" },
+  { href: "/my-portfolio", label: "My Portfolio" },
+  { href: "/my-reports", label: "My Reports" },
+  { href: "/my-progress", label: "My Progress" },
+] as const;
+
+function normalizeRoute(pathname: string) {
+  if (pathname === "/family" || pathname === "/dashboard") return "/home";
+  if (pathname === "/planner") return "/my-plan";
+  if (pathname === "/portfolio") return "/my-portfolio";
+  if (pathname === "/reports" || pathname.startsWith("/reports/")) return "/my-reports";
+  if (pathname === "/capture" || pathname === "/calendar" || pathname.startsWith("/authority")) {
+    return "/my-progress";
+  }
+  return pathname;
+}
+
 function routeSubtitle(pathname: string) {
-  if (pathname === "/family") return "Family Home";
+  if (pathname === "/family" || pathname === "/home") return "My Learning";
   if (pathname === "/calendar") return "Calendar";
   if (pathname === "/capture") return "Capture";
-  if (pathname === "/planner") return "Planner";
-  if (pathname === "/portfolio") return "Portfolio";
-  if (pathname === "/reports") return "Reports";
+  if (pathname === "/planner" || pathname === "/my-plan") return "My Plan";
+  if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
+  if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
+  if (pathname === "/my-progress") return "My Progress";
   if (pathname === "/settings") return "Settings";
+  if (pathname === "/profile") return "My Profile";
   if (pathname === "/community") return "Community";
-  return "Family workspace";
+  return "MyLearna";
 }
 
 function routeTitle(_pathname: string) {
-  return "EduDecks Family";
+  return "MyLearna";
 }
 
 function routeHeroTitle(pathname: string, subtitle: string) {
-  if (pathname === "/family") return "Family home for learners, capture, and reporting";
+  if (pathname === "/family" || pathname === "/home") return "A calmer home for planning, evidence, and growth";
   if (pathname === "/calendar") return "See the week clearly before it fills up";
-  if (pathname === "/capture") return "Capture the learning while it is still fresh";
-  if (pathname === "/planner") return "Shape the next week with confidence";
-  if (pathname === "/portfolio") return "Curate the learning story as it grows";
-  if (pathname === "/reports") return "Turn captured moments into clear family reporting";
+  if (pathname === "/capture") return "Curate evidence while the learning is still fresh";
+  if (pathname === "/planner" || pathname === "/my-plan") return "Shape the next week with confidence";
+  if (pathname === "/portfolio" || pathname === "/my-portfolio") return "Keep a visible story of progress as it grows";
+  if (pathname === "/reports" || pathname === "/my-reports") return "Build clear family reports from real learning";
+  if (pathname === "/my-progress") return "Notice what is moving well and what needs the next gentle step";
   if (pathname === "/community") return "A place to ask, share, and encourage";
   return subtitle;
 }
 
 function routeHeroText(pathname: string) {
-  if (pathname === "/family") {
-    return "Use one family home to manage learners, switch the current learner, capture progress, and move into reporting with a clear next step.";
+  if (pathname === "/family" || pathname === "/home") {
+    return "Use one personal learning system to keep your learner context close, see what is ready now, and move into planning, portfolio, reports, or progress with clarity.";
   }
   if (pathname === "/calendar") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
@@ -85,19 +107,22 @@ function routeHeroText(pathname: string) {
   if (pathname === "/capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
   }
-  if (pathname === "/planner") {
+  if (pathname === "/planner" || pathname === "/my-plan") {
     return "A light, clear weekly plan helps the whole family move forward with a visible next step.";
   }
-  if (pathname === "/portfolio") {
+  if (pathname === "/portfolio" || pathname === "/my-portfolio") {
     return "Review the moments that matter and keep the story of progress easy to see and share.";
   }
-  if (pathname === "/reports") {
+  if (pathname === "/reports" || pathname === "/my-reports") {
     return "Bring together evidence, reflection, and structure so reporting is clearer and more trustworthy.";
+  }
+  if (pathname === "/my-progress") {
+    return "Readiness, coverage, and suggested improvements belong in one calm view so you can decide the next best move without overwhelm.";
   }
   if (pathname === "/community") {
     return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
   }
-  return "Keep the family workspace connected and ready for the next meaningful step.";
+  return "Keep your learning system connected and ready for the next meaningful step.";
 }
 
 export default function FamilyTopNavShell({
@@ -127,27 +152,56 @@ export default function FamilyTopNavShell({
   const resolvedHeroTitle = heroTitle ?? routeHeroTitle(pathname, resolvedSubtitle);
   const resolvedHeroText = heroText ?? routeHeroText(pathname);
   const resolvedFamilyName =
-    familyName || workspace.profile.family_display_name || "EduDecks Family";
+    familyName || workspace.profile.family_display_name || "MyLearna Family";
   const resolvedEmail = email || user?.email || "Signed-in family workspace";
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
+  const normalizedPath = normalizeRoute(pathname);
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-6 px-6 py-5">
-          <div className="flex min-w-0 items-center gap-4">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-6">
             <div className="shrink-0">
-              <BrandHomeLink href="/family" height={78} width={286} />
+              <BrandHomeLink href="/home" />
             </div>
 
-            <div className="min-w-0">
-              <div className="truncate text-[16px] font-black text-slate-950">{resolvedTitle}</div>
-              <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
-            </div>
+            <nav className="hidden min-w-0 items-center gap-2 lg:flex">
+              {PRIMARY_NAV.map((item) => {
+                const active = normalizedPath === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cx(
+                      "inline-flex items-center rounded-full px-4 py-2 text-sm font-bold transition",
+                      active
+                        ? "bg-slate-950 text-white shadow-[0_10px_26px_rgba(15,23,42,0.12)]"
+                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
           </div>
 
-          <div className="shrink-0">
+          <div className="flex items-center justify-between gap-3 lg:justify-end">
+            <div className="min-w-0 lg:text-right">
+              <div className="truncate text-[15px] font-black text-slate-950">{resolvedTitle}</div>
+              <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Notifications"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              <span className="text-lg">•</span>
+            </button>
+
             <FamilyProfileMenu
               familyName={resolvedFamilyName}
               email={resolvedEmail}
@@ -164,7 +218,7 @@ export default function FamilyTopNavShell({
           <section className="mb-6 grid gap-5 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-6 py-7 shadow-[0_16px_44px_rgba(15,23,42,0.05)] md:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.75fr)]">
             <div className="max-w-[860px]">
               <div className="mb-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
-                Family workspace
+                Plan • Capture • Grow
               </div>
               <h1 className="text-[28px] font-black leading-tight text-slate-950 md:text-[36px]">
                 {resolvedHeroTitle}
@@ -206,10 +260,10 @@ export function FamilyShellSurface({ children }: { children: React.ReactNode }) 
 }
 
 export function FamilyCommandLayer({
-  eyebrow = "Family Command Layer",
-  title = "Move from capture to planning, portfolio, reporting, and readiness without losing the thread.",
-  primaryActionLabel = "Workspace Home",
-  primaryActionHref = "/family",
+  eyebrow = "MyLearna Command Layer",
+  title = "Move from plan to portfolio, reports, and progress without losing the thread.",
+  primaryActionLabel = "Open Home",
+  primaryActionHref = "/home",
   items,
   className,
   pathname,
@@ -223,24 +277,24 @@ export function FamilyCommandLayer({
         href: "/capture",
       },
       {
-        title: "Open Planner",
+        title: "Open My Plan",
         description: "See what is coming up and shape the next learning step.",
-        href: "/planner",
+        href: "/my-plan",
       },
       {
-        title: "Go to Portfolio",
+        title: "Open My Portfolio",
         description: "Review the story your evidence is building over time.",
-        href: "/portfolio",
+        href: "/my-portfolio",
       },
       {
-        title: "Build Report",
+        title: "Build My Report",
         description: "Turn captured evidence into a clear family report.",
-        href: "/reports",
+        href: "/my-reports",
       },
       {
-        title: "Check Readiness",
+        title: "Check My Progress",
         description: "Confirm what is ready for authority review and export.",
-        href: pathname?.startsWith("/authority") ? pathname : "/authority",
+        href: pathname?.startsWith("/authority") ? pathname : "/my-progress",
       },
     ];
 

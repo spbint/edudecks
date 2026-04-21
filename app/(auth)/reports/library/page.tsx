@@ -393,21 +393,21 @@ export default function ReportsLibraryPage() {
             }}
           >
             <Link
-              href="/family"
+              href="/home"
               style={{ ...S.mutedLink(), fontWeight: 900, color: "#0f172a" }}
             >
-              EduDecks Family
+              MyLearna
             </Link>
             <span style={{ color: "#94a3b8" }}>/</span>
-            <Link href="/reports" style={S.mutedLink()}>
-              Reports
+            <Link href="/my-reports" style={S.mutedLink()}>
+              My Reports
             </Link>
             <span style={{ color: "#94a3b8" }}>/</span>
             <span style={{ ...S.mutedLink(), color: "#0f172a" }}>Library</span>
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link href="/reports" style={S.button(false)}>
+            <Link href="/my-reports" style={S.button(false)}>
               New report
             </Link>
             <Link href="/authority/history" style={S.button(false)}>
@@ -457,7 +457,7 @@ export default function ReportsLibraryPage() {
                     {marketLabel(continueRow.preferred_market)}
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                    <Link href={`/reports?draftId=${continueRow.id}`} style={S.button(true)}>
+                    <Link href={`/my-reports?draftId=${continueRow.id}`} style={S.button(true)}>
                       Continue draft
                     </Link>
                     <Link
@@ -680,7 +680,7 @@ export default function ReportsLibraryPage() {
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {actions.canEdit ? (
                         <Link
-                          href={`/reports?draftId=${row.id}`}
+                          href={`/my-reports?draftId=${row.id}`}
                           style={S.button(true)}
                         >
                           Open builder

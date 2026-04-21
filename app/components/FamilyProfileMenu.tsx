@@ -12,8 +12,8 @@ type FamilyProfileMenuProps = {
 
 export default function FamilyProfileMenu({
   mobile,
-  familyName = "EduDecks Family",
-  email = "family@edudecks.local",
+  familyName = "MyLearna Family",
+  email = "hello@mylearna.com",
   defaultLearner = "No learner selected",
 }: FamilyProfileMenuProps) {
   const [open, setOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function FamilyProfileMenu({
         onClick={() => setOpen((prev) => !prev)}
         style={styles.trigger(mobile)}
       >
-        <span style={styles.avatar(mobile)}>{initials || "ED"}</span>
+        <span style={styles.avatar(mobile)}>{initials || "ML"}</span>
         {!mobile ? (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             <span>{familyName}</span>
@@ -91,16 +91,16 @@ export default function FamilyProfileMenu({
 
           <div style={styles.infoSection}>
             <div style={styles.infoCard}>
-              <div style={styles.infoLabel}>Currently viewing</div>
+              <div style={styles.infoLabel}>Current learner</div>
               <div style={styles.infoValue}>{defaultLearner}</div>
             </div>
           </div>
 
           <div style={styles.linkSection}>
             {[
-              { label: "Family Home", href: "/family" },
-              { label: "Manage learners", href: "/family#learner-management" },
+              { label: "My Profile", href: "/profile" },
               { label: "Settings", href: "/settings" },
+              { label: "Subscription", href: "/pricing" },
             ].map((item) => (
               <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={styles.link}>
                 {item.label}
@@ -137,8 +137,8 @@ const styles = {
     width: mobile ? 32 : 36,
     height: mobile ? 32 : 36,
     borderRadius: "50%",
-    background: "#eef2ff",
-    color: "#1d4ed8",
+    background: "linear-gradient(135deg, #eff6ff 0%, #f5f3ff 60%, #ecfdf5 100%)",
+    color: "#1e3a8a",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -154,7 +154,7 @@ const styles = {
     borderRadius: 18,
     border: "1px solid #e5e7eb",
     background: "#ffffff",
-    boxShadow: "0 16px 40px rgba(15,23,42,0.2)",
+    boxShadow: "0 22px 52px rgba(15,23,42,0.14)",
     padding: 16,
     display: "grid",
     gap: 10,
@@ -205,7 +205,7 @@ const styles = {
     padding: "10px 12px",
     fontWeight: 700,
     fontSize: 14,
-    background: "#1d4ed8",
+    background: "#0f172a",
     color: "#ffffff",
     cursor: "pointer",
   } satisfies React.CSSProperties,
