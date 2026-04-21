@@ -3,12 +3,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { CurriculumPreferences } from "@/lib/familySettings";
 import {
-  buildCanonicalCountryOptions,
+  buildCanonicalMarketOptions,
+  findCanonicalJurisdictionLabel,
   findCanonicalCountryLabel,
   findCanonicalFrameworkLabel,
   loadCanonicalCurriculumFrameworks,
+  loadCanonicalCurriculumJurisdictions,
   loadCanonicalCurriculumLevels,
   type CanonicalCurriculumFramework,
+  type CanonicalCurriculumJurisdiction,
   type CanonicalCurriculumLevel,
 } from "@/lib/curriculumCatalog";
 
@@ -30,8 +33,10 @@ export default function CurriculumSetupCard({
   const [showUnavailableState, setShowUnavailableState] = useState(false);
   const [draft, setDraft] = useState<CurriculumPreferences>(value);
   const [frameworks, setFrameworks] = useState<CanonicalCurriculumFramework[]>([]);
+  const [jurisdictions, setJurisdictions] = useState<CanonicalCurriculumJurisdiction[]>([]);
   const [levels, setLevels] = useState<CanonicalCurriculumLevel[]>([]);
   const [loadingFrameworks, setLoadingFrameworks] = useState(true);
+  const [loadingJurisdictions, setLoadingJurisdictions] = useState(false);
   const [loadingLevels, setLoadingLevels] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -86,21 +91,63 @@ export default function CurriculumSetupCard({
     }
   }, [frameworks.length, loadingFrameworks]);
 
-  const countryOptions = useMemo(
-    () => buildCanonicalCountryOptions(frameworks),
+  const marketOptions = useMemo(
+    () => buildCanonicalMarketOptions(frameworks),
     [frameworks],
   );
 
   const frameworkOptions = useMemo(() => {
-    const countryId = safe(draft.country_id).toLowerCase();
-    if (!countryId) {
+    const marketId = safe(draft.country_id).toLowerCase();
+    if (!marketId) {
       return frameworks;
     }
 
     return frameworks.filter(
-      (framework) => safe(framework.country).toLowerCase() === countryId,
+      (framework) => safe(framework.market || framework.country).toLowerCase() === marketId,
     );
   }, [draft.country_id, frameworks]);
+
+  useEffect(() => {
+    let active = true;
+    const frameworkId = safe(draft.framework_id);
+
+    if (!frameworkId) {
+      setJurisdictions([]);
+      setLoadingJurisdictions(false);
+      return;
+    }
+
+    async function loadJurisdictions() {
+      setLoadingJurisdictions(true);
+
+      try {
+        const rows = await loadCanonicalCurriculumJurisdictions(frameworkId);
+        if (!active) return;
+        setJurisdictions(rows);
+      } catch (error) {
+        if (!active) return;
+        console.error("loadCanonicalCurriculumJurisdictions failed", error);
+        setJurisdictions([]);
+      } finally {
+        if (!active) return;
+        setLoadingJurisdictions(false);
+      }
+    }
+
+    void loadJurisdictions();
+    return () => {
+      active = false;
+    };
+  }, [draft.framework_id]);
+
+  useEffect(() => {
+    if (loadingJurisdictions) return;
+    if (!draft.framework_id) return;
+    if (draft.region_id) return;
+    if (jurisdictions.length === 1) {
+      updateDraft("region_id", jurisdictions[0]?.id || null);
+    }
+  }, [draft.framework_id, draft.region_id, jurisdictions, loadingJurisdictions]);
 
   useEffect(() => {
     let active = true;
@@ -137,6 +184,8 @@ export default function CurriculumSetupCard({
 
   const selectedFramework =
     frameworks.find((framework) => framework.id === safe(value.framework_id)) || null;
+  const selectedJurisdiction =
+    jurisdictions.find((jurisdiction) => jurisdiction.id === safe(value.region_id)) || null;
   const selectedLevel =
     levels.find((level) => level.id === safe(value.level_id)) || null;
   const selectedDraftFramework =
@@ -156,8 +205,8 @@ export default function CurriculumSetupCard({
     }));
   }
 
-  function handleCountryChange(countryId: string) {
-    updateDraft("country_id", countryId || null);
+  function handleMarketChange(marketId: string) {
+    updateDraft("country_id", marketId || null);
     updateDraft("framework_id", null);
     updateDraft("level_id", null);
     updateDraft("region_id", null);
@@ -168,12 +217,16 @@ export default function CurriculumSetupCard({
     const selectedFramework =
       frameworks.find((framework) => framework.id === frameworkId) || null;
     updateDraft("framework_id", frameworkId || null);
-    if (selectedFramework && !safe(draft.country_id)) {
-      updateDraft("country_id", selectedFramework.country || null);
+    if (selectedFramework) {
+      updateDraft("country_id", selectedFramework.market || selectedFramework.country || null);
     }
     updateDraft("level_id", null);
     updateDraft("region_id", null);
     updateDraft("subject_ids", []);
+  }
+
+  function handleJurisdictionChange(jurisdictionId: string) {
+    updateDraft("region_id", jurisdictionId || null);
   }
 
   function handleLevelChange(levelId: string) {
@@ -181,20 +234,31 @@ export default function CurriculumSetupCard({
   }
 
   function handleApply() {
+    const selectedJurisdiction =
+      jurisdictions.find((jurisdiction) => jurisdiction.id === safe(draft.region_id)) || null;
+    const selectedLevel =
+      levels.find((level) => level.id === safe(draft.level_id)) || null;
+    const marketCode = safe(draft.country_id).toLowerCase() || null;
+
     onChange({
       ...draft,
-      region_id: null,
+      region_id: safe(draft.region_id) || null,
       subject_ids: [],
       compliance_profile: {
-        country: safe(draft.country_id).toLowerCase() || null,
-        state: value.compliance_profile?.state || null,
+        country: marketCode,
+        state: selectedJurisdiction?.state_code || null,
         curriculum_framework: selectedDraftFramework?.name || null,
         compliance_mode: value.compliance_profile?.compliance_mode || null,
         template_version: value.compliance_profile?.template_version || null,
         required_fields: value.compliance_profile?.required_fields || [],
         recommended_fields: value.compliance_profile?.recommended_fields || [],
         optional_fields: value.compliance_profile?.optional_fields || [],
-        custom_labels: value.compliance_profile?.custom_labels || {},
+        custom_labels: {
+          ...(value.compliance_profile?.custom_labels || {}),
+          market_label: marketCode || "",
+          jurisdiction_label: selectedJurisdiction?.name || "",
+          level_label: selectedLevel?.level_label || "",
+        },
         last_reviewed_at: value.compliance_profile?.last_reviewed_at || null,
       },
     });
@@ -242,18 +306,18 @@ export default function CurriculumSetupCard({
         frameworks.length > 0 ? (
           <div ref={editorRef} style={cardStyles.form}>
             <Field
-              label="Country"
-              help="Choose the country that matches your family learning context."
+              label="Market"
+              help="Choose the curriculum market that fits your family."
             >
               <select
                 value={draft.country_id ?? ""}
-                onChange={(event) => handleCountryChange(event.target.value)}
+                onChange={(event) => handleMarketChange(event.target.value)}
                 style={cardStyles.input}
               >
-                <option value="">Select a country</option>
-                {countryOptions.map((country) => (
-                  <option key={country.id} value={country.id}>
-                    {country.label}
+                <option value="">Select a market</option>
+                {marketOptions.map((market) => (
+                  <option key={market.id} value={market.id}>
+                    {market.label}
                   </option>
                 ))}
               </select>
@@ -272,7 +336,27 @@ export default function CurriculumSetupCard({
                 {frameworkOptions.map((framework) => (
                   <option key={framework.id} value={framework.id}>
                     {framework.name}
-                    {framework.version ? ` (${framework.version})` : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field
+              label="Jurisdiction"
+              help="Choose the applicable jurisdiction for this framework."
+            >
+              <select
+                value={draft.region_id ?? ""}
+                onChange={(event) => handleJurisdictionChange(event.target.value)}
+                style={cardStyles.input}
+                disabled={!draft.framework_id || loadingJurisdictions}
+              >
+                <option value="">
+                  {loadingJurisdictions ? "Loading jurisdictions..." : "Select a jurisdiction"}
+                </option>
+                {jurisdictions.map((jurisdiction) => (
+                  <option key={jurisdiction.id} value={jurisdiction.id}>
+                    {jurisdiction.name}
                   </option>
                 ))}
               </select>
@@ -310,7 +394,7 @@ export default function CurriculumSetupCard({
                 type="button"
                 style={cardStyles.primaryButton}
                 onClick={handleApply}
-                disabled={!draft.country_id || !draft.framework_id || !draft.level_id}
+                disabled={!draft.country_id || !draft.framework_id || !draft.region_id || !draft.level_id}
               >
                 Save curriculum setup
               </button>
@@ -342,12 +426,16 @@ export default function CurriculumSetupCard({
         <div style={cardStyles.summaryBlock}>
           <div style={cardStyles.summary}>
             <Row
-              label="Country"
+              label="Market"
               value={findCanonicalCountryLabel(frameworks, value.country_id)}
             />
             <Row
               label="Framework"
               value={findCanonicalFrameworkLabel(frameworks, value.framework_id)}
+            />
+            <Row
+              label="Jurisdiction"
+              value={findCanonicalJurisdictionLabel(jurisdictions, value.region_id)}
             />
             <Row
               label="Level"

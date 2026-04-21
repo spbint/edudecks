@@ -24,13 +24,25 @@ const CurriculumSetupCard = dynamic(
 );
 
 function curriculumCountryLabel(settings: FamilySettings) {
+  const storedMarketLabel =
+    settings.curriculum_preferences.compliance_profile?.custom_labels?.market_label;
+  if (storedMarketLabel === "au") return "Australia";
+  if (storedMarketLabel === "ib") return "International Baccalaureate";
+  if (storedMarketLabel === "other") return "Other / Custom";
+  if (storedMarketLabel === "uk") return "United Kingdom";
+  if (storedMarketLabel === "us") return "United States";
+
   const profileCountry = settings.curriculum_preferences.compliance_profile?.country;
   if (profileCountry === "au") return "Australia";
+  if (profileCountry === "ib") return "International Baccalaureate";
+  if (profileCountry === "other") return "Other / Custom";
   if (profileCountry === "uk") return "United Kingdom";
   if (profileCountry === "us") return "United States";
 
   const raw = String(settings.curriculum_preferences.country_id ?? "").trim();
   if (raw === "au") return "Australia";
+  if (raw === "ib") return "International Baccalaureate";
+  if (raw === "other") return "Other / Custom";
   if (raw === "uk") return "United Kingdom";
   if (raw === "us") return "United States";
   return raw || "Not set";
@@ -49,6 +61,10 @@ function curriculumFrameworkLabel(settings: FamilySettings) {
 }
 
 function curriculumStateLabel(settings: FamilySettings) {
+  const customJurisdiction =
+    settings.curriculum_preferences.compliance_profile?.custom_labels?.jurisdiction_label;
+  if (customJurisdiction) return customJurisdiction;
+
   const state = settings.curriculum_preferences.compliance_profile?.state;
   if (!state) return "Not set";
   return (
@@ -63,6 +79,15 @@ function curriculumStateLabel(settings: FamilySettings) {
       wa: "Western Australia",
     }[state] || state
   );
+}
+
+function curriculumLevelLabel(settings: FamilySettings) {
+  const customLevel =
+    settings.curriculum_preferences.compliance_profile?.custom_labels?.level_label;
+  if (customLevel) return customLevel;
+
+  const raw = String(settings.curriculum_preferences.level_id ?? "").trim();
+  return raw || "Not set";
 }
 
 async function withTimeout<T>(
@@ -217,7 +242,7 @@ export default function FamilySettingsPage() {
 
               <div style={styles.heroChips}>
                 <span style={styles.chip}>
-                  Country: {curriculumCountryLabel(settings)}
+                  Market: {curriculumCountryLabel(settings)}
                 </span>
                 <span style={styles.chip}>
                   Framework: {curriculumFrameworkLabel(settings)}
@@ -262,18 +287,13 @@ export default function FamilySettingsPage() {
             />
 
             <div style={styles.savedSummary}>
-              <SummaryRow label="Country" value={curriculumCountryLabel(settings)} />
-              <SummaryRow label="State / territory" value={curriculumStateLabel(settings)} />
+              <SummaryRow label="Market" value={curriculumCountryLabel(settings)} />
               <SummaryRow
-                label="Curriculum framework"
+                label="Framework"
                 value={curriculumFrameworkLabel(settings)}
               />
-              <SummaryRow
-                label="Compliance mode"
-                value={
-                  settings.curriculum_preferences.compliance_profile?.compliance_mode || "Not set"
-                }
-              />
+              <SummaryRow label="Jurisdiction" value={curriculumStateLabel(settings)} />
+              <SummaryRow label="Level" value={curriculumLevelLabel(settings)} />
             </div>
           </section>
         </div>

@@ -54,6 +54,11 @@ export type CanonicalCurriculumCountryOption = {
   label: string;
 };
 
+export type CanonicalCurriculumMarketOption = {
+  id: string;
+  label: string;
+};
+
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -61,9 +66,14 @@ function safe(value: unknown) {
 function countryLabel(code: string) {
   if (code === "au") return "Australia";
   if (code === "ib") return "International";
+  if (code === "other") return "Other / Custom";
   if (code === "uk") return "United Kingdom";
   if (code === "us") return "United States";
   return code.toUpperCase() || "Unknown";
+}
+
+export function marketLabel(code: string) {
+  return countryLabel(code);
 }
 
 function normalizeFrameworkRow(
@@ -205,21 +215,37 @@ export async function loadCanonicalCurriculumLevels(frameworkId: string) {
 export async function loadCanonicalCurriculumJurisdictions(frameworkId: string) {
   if (!hasSupabaseEnv || !safe(frameworkId)) return [] as CanonicalCurriculumJurisdiction[];
 
-  const { data, error } = await supabase
-    .from("curriculum_jurisdictions")
-    .select("id,framework_id,country_code,state_code,slug,name,sort_order,is_active")
-    .eq("framework_id", frameworkId)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
+  const selectCandidates = [
+    "id,framework_id,country_code,state_code,slug,name,sort_order,is_active",
+    "id,framework_id,country_code,state_code,slug,name,sort_order",
+  ];
 
-  if (error) {
-    throw error;
+  let lastError: unknown = null;
+
+  for (const select of selectCandidates) {
+    const query = supabase
+      .from("curriculum_jurisdictions")
+      .select(select)
+      .eq("framework_id", frameworkId)
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (select.includes("is_active")) {
+      query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      lastError = error;
+      continue;
+    }
+
+    return ((data ?? []) as unknown as Array<CanonicalCurriculumJurisdiction>).filter(
+      (row) => !!safe(row.id) && !!safe(row.framework_id) && !!safe(row.name),
+    );
   }
 
-  return ((data ?? []) as CanonicalCurriculumJurisdiction[]).filter(
-    (row) => !!safe(row.id) && !!safe(row.framework_id) && !!safe(row.name),
-  );
+  throw lastError ?? new Error("Unable to load curriculum jurisdictions.");
 }
 
 export async function loadCanonicalCurriculumSubjects(frameworkId: string) {
@@ -237,7 +263,7 @@ export async function loadCanonicalCurriculumSubjects(frameworkId: string) {
     throw error;
   }
 
-  return ((data ?? []) as CanonicalCurriculumSubject[]).filter(
+  return ((data ?? []) as unknown as CanonicalCurriculumSubject[]).filter(
     (row) => !!safe(row.id) && !!safe(row.framework_id) && !!safe(row.name),
   );
 }
@@ -255,6 +281,25 @@ export function buildCanonicalCountryOptions(
     rows.push({
       id: code,
       label: countryLabel(code),
+    });
+  }
+
+  return rows.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export function buildCanonicalMarketOptions(
+  frameworks: CanonicalCurriculumFramework[],
+): CanonicalCurriculumMarketOption[] {
+  const seen = new Set<string>();
+  const rows: CanonicalCurriculumMarketOption[] = [];
+
+  for (const framework of frameworks) {
+    const code = safe(framework.market || framework.country).toLowerCase();
+    if (!code || seen.has(code)) continue;
+    seen.add(code);
+    rows.push({
+      id: code,
+      label: marketLabel(code),
     });
   }
 
@@ -281,4 +326,13 @@ export function findCanonicalCountryLabel(
     (country) => country.id === clean,
   );
   return option?.label || countryLabel(clean);
+}
+
+export function findCanonicalJurisdictionLabel(
+  jurisdictions: CanonicalCurriculumJurisdiction[],
+  jurisdictionId: string | null | undefined,
+) {
+  const clean = safe(jurisdictionId);
+  if (!clean) return "Not set";
+  return jurisdictions.find((row) => row.id === clean)?.name || clean;
 }
