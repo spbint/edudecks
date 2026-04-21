@@ -293,11 +293,11 @@ export function LearnerSelector({
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="grid gap-1">
+        <div className="grid gap-1.5">
           <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
             My Family
           </div>
-          <div className="text-base font-black text-slate-950">{familyName}</div>
+          <div className="text-[22px] font-black tracking-tight text-slate-950">{familyName}</div>
         </div>
         <StateBadge state={state} />
       </div>
@@ -326,7 +326,7 @@ export function LearnerSelector({
                     : "border-slate-200 bg-slate-50 hover:bg-slate-100"
                 }`}
               >
-                <span className="text-sm font-black text-slate-950">{learner.label}</span>
+                <span className="text-[15px] font-black text-slate-950">{learner.label}</span>
                 <span className="text-xs leading-5 text-slate-500">{learner.note}</span>
               </button>
             );

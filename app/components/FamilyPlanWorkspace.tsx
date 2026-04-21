@@ -564,7 +564,7 @@ export default function FamilyPlanWorkspace() {
       heroText="Shape what’s active now and what comes next."
       hideHeroAside={true}
     >
-      <div className="grid gap-6 pb-14">
+      <div className="grid gap-5 pb-14">
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "Your family"}
           learners={learnerOptions}
@@ -586,7 +586,7 @@ export default function FamilyPlanWorkspace() {
           ))}
         </section>
 
-        <section className="grid gap-4">
+        <section className="grid gap-3.5">
           <HomeSectionHeader eyebrow="Quick actions" title="Start with one clear planning move" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {quickActions.map((action) => (
@@ -665,7 +665,7 @@ export default function FamilyPlanWorkspace() {
           })}
         </VisualWeeklyPlanner>
 
-        <section className="grid gap-4">
+        <section className="grid gap-3.5">
           <HomeSectionHeader eyebrow="Plan health" title="Keep the week visible" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {healthCards.map((card) => (
