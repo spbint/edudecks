@@ -168,21 +168,7 @@ export default function FamilyHomeWorkspace() {
       heroText="A calm overview of what’s active, ready, and next."
       hideHeroAside={true}
     >
-      <div className="grid gap-6 pb-14">
-        <section className="grid gap-4 rounded-[28px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_60%,rgba(245,243,255,0.92)_100%)] p-6 shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
-          <div className="grid gap-2">
-            <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
-              Plan • Capture • Grow
-            </div>
-            <h1 className="text-[34px] font-black tracking-tight text-slate-950">
-              Family Overview
-            </h1>
-            <p className="text-sm leading-7 text-slate-600">
-              A calm overview of what’s active, ready, and next.
-            </p>
-          </div>
-        </section>
-
+      <div className="grid gap-5 pb-14">
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "Your family"}
           learners={learnerOptions}
