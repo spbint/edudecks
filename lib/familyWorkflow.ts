@@ -20,15 +20,15 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
   },
   {
     key: "calendar",
-    label: "My Plan",
-    href: "/my-plan",
-    detail: "Shape the week and place the next learning blocks.",
+    label: "My Calendar",
+    href: "/calendar",
+    detail: "See what is coming next and shape the learning rhythm over time.",
   },
   {
     key: "capture",
-    label: "Capture",
+    label: "My Capture",
     href: "/capture",
-    detail: "Record what happened while it is still fresh.",
+    detail: "Record learning moments and evidence while they are still fresh.",
   },
   {
     key: "reports",
