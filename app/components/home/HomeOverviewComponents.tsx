@@ -17,6 +17,12 @@ export type CompactStat = {
   state?: HomeSurfaceState;
 };
 
+export type LearnerOption = {
+  id: string;
+  label: string;
+  note?: string;
+};
+
 type QuickActionCardProps = {
   href: string;
   icon: string;
@@ -60,6 +66,15 @@ type NextBestMoveCardProps = {
   note: string;
   href: string;
   cta: string;
+  state: HomeSurfaceState;
+};
+
+type FamilySummaryPanelProps = {
+  familyName: string;
+  learners: LearnerOption[];
+  activeLearnerId?: string;
+  onSelectLearner?: (learnerId: string) => void;
+  stats: CompactStat[];
   state: HomeSurfaceState;
 };
 
@@ -166,6 +181,87 @@ export function HomeHeroSummaryCard({
             </div>
             <div className="mt-1 text-xs leading-5 text-slate-500">
               {state === "loading" ? <LoadingBlock className="h-3 w-20" /> : stat.note}
+            </div>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+export function FamilySummaryPanel({
+  familyName,
+  learners,
+  activeLearnerId,
+  onSelectLearner,
+  stats,
+  state,
+}: FamilySummaryPanelProps) {
+  return (
+    <aside className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+            My Family
+          </div>
+          <div className="text-base font-black text-slate-950">{familyName}</div>
+        </div>
+        <StateBadge state={state} />
+      </div>
+
+      {state === "loading" ? (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[0, 1, 2].map((item) => (
+            <div key={item} className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
+              <LoadingBlock className="h-4 w-20" />
+              <LoadingBlock className="mt-2 h-3 w-14" />
+            </div>
+          ))}
+        </div>
+      ) : learners.length ? (
+        <div className="grid gap-2 sm:grid-cols-3">
+          {learners.map((learner) => {
+            const active = learner.id === activeLearnerId;
+            return (
+              <button
+                key={learner.id}
+                type="button"
+                onClick={() => onSelectLearner?.(learner.id)}
+                className={`grid gap-1 rounded-[18px] border px-4 py-3 text-left transition ${
+                  active
+                    ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+                    : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                }`}
+              >
+                <span className="text-sm font-black text-slate-950">{learner.label}</span>
+                <span className="text-xs leading-5 text-slate-500">{learner.note}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
+          <div className="text-sm font-black text-slate-950">Add your first learner to get started</div>
+          <div className="mt-1 text-sm leading-6 text-slate-500">
+            Your family overview becomes more useful once a learner is linked.
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="rounded-[20px] border border-slate-200 bg-slate-50/70 px-4 py-3"
+          >
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              {stat.label}
+            </div>
+            <div className="mt-2 text-sm font-black text-slate-950">
+              {state === "loading" ? <LoadingBlock className="h-4 w-24" /> : stat.value}
+            </div>
+            <div className="mt-1 text-xs leading-5 text-slate-500">
+              {state === "loading" ? <LoadingBlock className="h-3 w-16" /> : stat.note}
             </div>
           </div>
         ))}

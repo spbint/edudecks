@@ -69,13 +69,13 @@ function normalizeRoute(pathname: string) {
 
 function routeSubtitle(pathname: string) {
   if (pathname === "/family" || pathname === "/home") return "My Learning";
-  if (pathname === "/calendar") return "Calendar";
-  if (pathname === "/capture") return "Capture";
+  if (pathname === "/calendar") return "My Calendar";
+  if (pathname === "/capture") return "My Capture";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Plan";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
   if (pathname === "/my-progress") return "My Progress";
-  if (pathname === "/settings") return "Settings";
+  if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/community") return "Community";
   return "MyLearna";
