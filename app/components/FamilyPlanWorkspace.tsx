@@ -586,7 +586,7 @@ export default function FamilyPlanWorkspace() {
           ))}
         </section>
 
-        <section className="grid gap-3.5">
+        <section className="grid gap-4">
           <HomeSectionHeader eyebrow="Quick actions" title="Start with one clear planning move" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {quickActions.map((action) => (
@@ -665,7 +665,7 @@ export default function FamilyPlanWorkspace() {
           })}
         </VisualWeeklyPlanner>
 
-        <section className="grid gap-3.5">
+        <section className="grid gap-4">
           <HomeSectionHeader eyebrow="Plan health" title="Keep the week visible" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {healthCards.map((card) => (

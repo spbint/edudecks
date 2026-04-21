@@ -8,13 +8,13 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-const SECTION_EYEBROW = "text-[11px] font-black uppercase tracking-[0.22em] text-slate-500";
-const CARD_EYEBROW = "text-[11px] font-black uppercase tracking-[0.18em] text-slate-500";
-const SECTION_TITLE = "text-[23px] font-black leading-tight tracking-tight text-slate-950";
-const CARD_TITLE = "text-[18px] font-black tracking-tight text-slate-950";
-const SUPPORT_TEXT = "text-sm leading-6 text-slate-600";
-const META_TEXT = "text-xs leading-5 text-slate-500";
-const CTA_TEXT = "text-sm font-bold";
+const SECTION_EYEBROW = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
+const CARD_EYEBROW = "text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500";
+const SECTION_TITLE = "text-[18px] font-bold leading-[1.2] tracking-tight text-slate-950";
+const CARD_TITLE = "text-[15px] font-semibold leading-[1.35] text-slate-950";
+const SUPPORT_TEXT = "text-[14px] leading-6 text-slate-600";
+const META_TEXT = "text-[13px] leading-5 text-slate-500";
+const CTA_TEXT = "text-[14px] font-semibold";
 
 function surfaceTone(state: HomeSurfaceState) {
   if (state === "empty") return "border-dashed border-slate-200 bg-slate-50/80";
@@ -99,7 +99,7 @@ export function PlanMetricCard({
         <div className={CARD_EYEBROW}>
           {label}
         </div>
-        <span className={cx("inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[11px] font-black", accentTone)}>
+        <span className={cx("inline-flex h-8 min-w-8 items-center justify-center rounded-full px-2 text-[12px] font-semibold", accentTone)}>
           {label.slice(0, 1)}
         </span>
       </div>
@@ -111,7 +111,7 @@ export function PlanMetricCard({
         </>
       ) : (
         <>
-          <div className="mt-4 text-[30px] font-black tracking-tight text-slate-950">{value}</div>
+          <div className="mt-4 text-[28px] font-bold tracking-tight text-slate-950">{value}</div>
           <div className={`mt-2 ${SUPPORT_TEXT}`}>{note}</div>
         </>
       )}
@@ -187,8 +187,8 @@ export function PlanListCard({
             <div key={`${item.title}-${item.meta}`} className="rounded-[20px] border border-slate-200 bg-white/90 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-[15px] font-black text-slate-950">{item.title}</div>
-                  {item.meta ? <div className={`mt-1 font-semibold ${META_TEXT}`}>{item.meta}</div> : null}
+                  <div className={CARD_TITLE}>{item.title}</div>
+                  {item.meta ? <div className={`mt-1 font-medium ${META_TEXT}`}>{item.meta}</div> : null}
                 </div>
                 {item.status ? (
                   <span className={`shrink-0 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 ${CARD_EYEBROW}`}>
@@ -201,8 +201,8 @@ export function PlanListCard({
         </div>
       ) : (
         <div className="mt-5 rounded-[22px] border border-dashed border-slate-200 bg-white/80 px-5 py-6">
-          <div className="text-base font-black text-slate-950">{emptyTitle}</div>
-          <div className="mt-2 text-sm leading-6 text-slate-600">{emptyNote}</div>
+          <div className={CARD_TITLE}>{emptyTitle}</div>
+          <div className={`mt-2 ${SUPPORT_TEXT}`}>{emptyNote}</div>
         </div>
       )}
     </article>
@@ -276,11 +276,11 @@ export function WeeklyRhythmCard({
             >
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <div className="text-[15px] font-black text-slate-950">{day.label}</div>
-                  <div className={`font-semibold ${META_TEXT}`}>{day.dateLabel}</div>
+                  <div className={CARD_TITLE}>{day.label}</div>
+                  <div className={`mt-0.5 font-medium ${META_TEXT}`}>{day.dateLabel}</div>
                 </div>
                 {day.today ? (
-                  <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">
+                  <span className="rounded-full bg-blue-100 px-2 py-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-blue-700">
                     Today
                   </span>
                 ) : null}
@@ -290,20 +290,20 @@ export function WeeklyRhythmCard({
                 {day.blocks.length ? (
                   day.blocks.slice(0, 3).map((block) => (
                     <div key={`${day.id}-${block.title}-${block.time}`} className="rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-3">
-                      <div className="text-[13px] font-black text-slate-900">{block.title}</div>
+                      <div className={CARD_TITLE}>{block.title}</div>
                       <div className={`mt-1 font-semibold ${META_TEXT}`}>
                         {[block.subject, block.time].filter(Boolean).join(" • ") || "Planned"}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-xs font-semibold text-slate-500">
+                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-[13px] font-medium text-slate-500">
                     Open and ready to shape
                   </div>
                 )}
               </div>
 
-              {day.note ? <div className="mt-3 text-xs leading-5 text-slate-500">{day.note}</div> : null}
+              {day.note ? <div className={`mt-3 ${META_TEXT}`}>{day.note}</div> : null}
             </article>
           ))}
         </div>
@@ -345,8 +345,8 @@ export function PlanNextMoveCard({
         </>
       ) : (
         <>
-          <h2 className="mt-3 text-[27px] font-black leading-tight tracking-tight text-slate-950">{title}</h2>
-          <p className="mt-2 max-w-[760px] text-sm leading-6 text-slate-600">{note}</p>
+          <h2 className="mt-3 text-[18px] font-bold leading-[1.2] tracking-tight text-slate-950">{title}</h2>
+          <p className={`mt-2 max-w-[760px] ${SUPPORT_TEXT}`}>{note}</p>
           <Link
             href={ctaHref}
             className={`mt-5 inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800`}
@@ -421,7 +421,7 @@ export function PlannerControlStrip({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-medium text-slate-600">
           Selected day <strong className="ml-1 text-slate-800">{selectedDayLabel}</strong>
         </span>
         <button
@@ -462,7 +462,7 @@ export function PlannerQuickAddRow({
   disabled?: boolean;
 }) {
   const inputClass =
-    "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
+    "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[14px] text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
@@ -471,7 +471,7 @@ export function PlannerQuickAddRow({
           <div className={SECTION_EYEBROW}>
             Quick add
           </div>
-          <div className={`mt-2 font-semibold ${SUPPORT_TEXT}`}>
+          <div className={`mt-2 ${SUPPORT_TEXT}`}>
             Add a small learning block for <span className="font-black text-slate-900">{selectedDayLabel}</span>.
           </div>
         </div>
@@ -510,7 +510,7 @@ export function PlannerQuickAddRow({
       </div>
 
       <textarea
-        className="min-h-[84px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300"
+        className="min-h-[84px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300"
         placeholder="Optional note for this learning block…"
         value={note}
         onChange={(event) => onNoteChange(event.target.value)}
@@ -536,12 +536,12 @@ export function PlannerStickyNote({
         <div className={CARD_EYEBROW.replace("text-slate-500", "text-amber-800/80")}>
           Today’s note
         </div>
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700/70">
-          {statusLabel || (value.trim() ? "Saved" : "Open")}
-        </div>
+          <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-amber-700/70">
+            {statusLabel || (value.trim() ? "Saved" : "Open")}
+          </div>
       </div>
       <textarea
-        className="min-h-[96px] w-full resize-none rounded-[14px] border border-amber-200/70 bg-white/45 px-3 py-3 text-xs leading-5 text-slate-700 outline-none transition placeholder:text-amber-700/60 focus:border-amber-300 focus:bg-white/70"
+        className="min-h-[96px] w-full resize-none rounded-[14px] border border-amber-200/70 bg-white/45 px-3 py-3 text-[13px] leading-5 text-slate-700 outline-none transition placeholder:text-amber-700/60 focus:border-amber-300 focus:bg-white/70"
         placeholder="A gentle note for today..."
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -558,11 +558,11 @@ export function PlannerBlockCard({
 }) {
   return (
     <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-3">
-      <div className="text-[14px] font-black text-slate-900">{block.title}</div>
-      <div className={`mt-1 font-semibold ${META_TEXT}`}>
+      <div className={CARD_TITLE}>{block.title}</div>
+      <div className={`mt-1 font-medium ${META_TEXT}`}>
         {[block.subject, block.time].filter(Boolean).join(" • ") || "Planned"}
       </div>
-      {block.note ? <div className="mt-2 text-xs leading-5 text-slate-600">{block.note}</div> : null}
+      {block.note ? <div className="mt-2 text-[13px] leading-5 text-slate-600">{block.note}</div> : null}
     </div>
   );
 }
@@ -597,7 +597,7 @@ export function PlannerDayCard({
   captureHref: string;
 }) {
   const buttonBase =
-    "inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 transition hover:bg-slate-50";
+      "inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50";
 
   return (
     <article
@@ -611,13 +611,13 @@ export function PlannerDayCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className={CARD_TITLE}>{label}</div>
-          <div className={`mt-0.5 font-semibold ${META_TEXT}`}>{dateLabel}</div>
-        </div>
-        {today ? (
-          <span className="rounded-full bg-blue-100 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">
-            Today
-          </span>
-        ) : null}
+            <div className={`mt-0.5 font-medium ${META_TEXT}`}>{dateLabel}</div>
+          </div>
+          {today ? (
+            <span className="rounded-full bg-blue-100 px-2 py-1 text-[12px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+              Today
+            </span>
+          ) : null}
       </div>
 
       <PlannerStickyNote
@@ -631,9 +631,9 @@ export function PlannerDayCard({
         {blocks.length ? (
           blocks.map((block) => <PlannerBlockCard key={block.id} block={block} />)
         ) : (
-          <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-xs font-semibold text-slate-500">
-            Start with one small learning moment
-          </div>
+            <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-[13px] font-medium text-slate-500">
+              Start with one small learning moment
+            </div>
         )}
       </div>
 
@@ -646,7 +646,7 @@ export function PlannerDayCard({
         </button>
         <Link
           href={captureHref}
-          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
+          className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-3 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
           Capture
         </Link>
@@ -724,13 +724,13 @@ export function VisualWeeklyPlanner({
       {quickAddRow}
 
       {errorMessage ? (
-        <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+        <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] font-semibold text-rose-700">
           {errorMessage}
         </div>
       ) : null}
 
       {statusMessage || savingLabel ? (
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+          <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-[14px] font-medium text-slate-600">
           {[statusMessage, savingLabel].filter(Boolean).join(" • ")}
         </div>
       ) : null}

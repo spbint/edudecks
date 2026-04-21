@@ -127,7 +127,7 @@ function StateBadge({ state }: { state: HomeSurfaceState }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${meta.className}`}
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[0.16em] ${meta.className}`}
     >
       {meta.label}
     </span>
@@ -146,11 +146,11 @@ export function HomeSectionHeader({
   title: string;
 }) {
   return (
-    <div className="grid gap-1">
-      <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+    <div className="grid gap-1.5">
+      <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
         {eyebrow}
       </div>
-      <h2 className="text-[22px] font-black tracking-tight text-slate-950">{title}</h2>
+      <h2 className="text-[18px] font-bold tracking-tight text-slate-950">{title}</h2>
     </div>
   );
 }
@@ -294,10 +294,10 @@ export function LearnerSelector({
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
         <div className="grid gap-1.5">
-          <div className="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
             My Family
           </div>
-          <div className="text-[22px] font-black tracking-tight text-slate-950">{familyName}</div>
+          <div className="text-[18px] font-bold tracking-tight text-slate-950">{familyName}</div>
         </div>
         <StateBadge state={state} />
       </div>
@@ -326,16 +326,16 @@ export function LearnerSelector({
                     : "border-slate-200 bg-slate-50 hover:bg-slate-100"
                 }`}
               >
-                <span className="text-[15px] font-black text-slate-950">{learner.label}</span>
-                <span className="text-xs leading-5 text-slate-500">{learner.note}</span>
+                <span className="text-[15px] font-semibold text-slate-950">{learner.label}</span>
+                <span className="text-[13px] leading-5 text-slate-500">{learner.note}</span>
               </button>
             );
           })}
         </div>
       ) : (
         <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className="text-sm font-black text-slate-950">Add your first learner to get started</div>
-          <div className="mt-1 text-sm leading-6 text-slate-500">
+          <div className="text-[15px] font-semibold text-slate-950">Add your first learner to get started</div>
+          <div className="mt-1 text-[14px] leading-6 text-slate-500">
             Your family overview becomes more useful once a learner is linked.
           </div>
         </div>
