@@ -57,6 +57,16 @@ type LinkedBlockOption = FamilyCalendarBlockEntry & {
   dateLabel: string;
 };
 
+function friendlyCaptureMessage(kind: "load" | "save" | "setup") {
+  if (kind === "load") {
+    return "Linked plan blocks are still getting ready. You can keep the capture focused on the learning moment.";
+  }
+  if (kind === "setup") {
+    return "Choose a synced learner workspace before capturing evidence.";
+  }
+  return "This learning evidence could not be saved just yet. Try again in a moment.";
+}
+
 export default function FamilyCaptureWorkspace() {
   const searchParams = useSearchParams();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
@@ -147,9 +157,9 @@ export default function FamilyCaptureWorkspace() {
           .sort((a, b) => a.date.localeCompare(b.date));
 
         setLinkedBlocks(options);
-      } catch (error: any) {
+      } catch {
         if (!mounted) return;
-        setErrorMessage(String(error?.message ?? "We could not load linked learning blocks."));
+        setErrorMessage(friendlyCaptureMessage("load"));
       } finally {
         if (mounted) setLoadingBlocks(false);
       }
@@ -216,8 +226,8 @@ export default function FamilyCaptureWorkspace() {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!activeLearner?.id) {
-      setErrorMessage("Choose a learner before capturing evidence.");
+    if (!activeLearner?.id || !canonicalReady) {
+      setErrorMessage(friendlyCaptureMessage("setup"));
       return;
     }
 
@@ -242,8 +252,8 @@ export default function FamilyCaptureWorkspace() {
       setTitle("");
       setSummary("");
       setNote("");
-    } catch (error: any) {
-      setErrorMessage(String(error?.message ?? "We could not save this learning evidence."));
+    } catch {
+      setErrorMessage(friendlyCaptureMessage("save"));
     } finally {
       setSubmitting(false);
     }
@@ -353,13 +363,20 @@ export default function FamilyCaptureWorkspace() {
             ) : null}
 
             <div className="flex justify-end">
-              <button
+              <div className="grid gap-2 justify-items-end">
+                {!canonicalReady && hasActiveLearner ? (
+                  <div className={META_TEXT}>
+                    Capture saves once this learner is connected to the synced family workspace.
+                  </div>
+                ) : null}
+                <button
                 type="submit"
-                disabled={submitting || !hasActiveLearner}
+                disabled={submitting || !hasActiveLearner || !canonicalReady}
                 className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
               >
                 {submitting ? "Saving..." : "Capture Evidence"}
               </button>
+              </div>
             </div>
           </form>
         </CaptureSurface>

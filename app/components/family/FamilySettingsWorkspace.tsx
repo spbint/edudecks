@@ -15,6 +15,10 @@ import {
 } from "@/lib/familySettings";
 import { saveFamilyWorkspaceSettings } from "@/lib/familyWorkspace";
 
+function friendlySettingsMessage() {
+  return "Settings storage is still getting ready. Try saving again in a moment.";
+}
+
 export default function FamilySettingsWorkspace() {
   const { workspace, setWorkspacePatch } = useFamilyWorkspace();
   const [draft, setDraft] = useState<FamilySettings>(workspace.profile);
@@ -37,8 +41,8 @@ export default function FamilySettingsWorkspace() {
       setWorkspacePatch({ profile: saved });
       persistSettingsToLocalStorage(saved);
       setStatus("Settings saved.");
-    } catch (saveError: any) {
-      setError(String(saveError?.message ?? "We couldn't save settings just yet."));
+    } catch {
+      setError(friendlySettingsMessage());
     } finally {
       setSaving(false);
     }

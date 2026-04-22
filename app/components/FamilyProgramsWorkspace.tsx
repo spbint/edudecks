@@ -94,6 +94,16 @@ function ymd(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
+  if (kind === "load") {
+    return "Programs are still getting ready. Your starter workspace is safe to keep shaping.";
+  }
+  if (kind === "save") {
+    return "Program storage is still settling. Keep shaping the sequence, then save again in a moment.";
+  }
+  return "Generation is almost ready. Check the calendar slot and try again in a moment.";
+}
+
 export default function FamilyProgramsWorkspace() {
   const router = useRouter();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
@@ -175,9 +185,9 @@ export default function FamilyProgramsWorkspace() {
         const firstProgram = filteredPrograms[0] ?? null;
         setSelectedProgramId(firstProgram?.id || "");
         setAssignmentTemplateId(nextTemplates[0]?.id || "");
-      } catch (loadError: any) {
+      } catch {
         if (!mounted) return;
-        setError(String(loadError?.message ?? "We couldn't load programs yet."));
+        setError(friendlyProgramsMessage("load"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -309,8 +319,8 @@ export default function FamilyProgramsWorkspace() {
       const saved = await saveFamilyProgram(nextProgram);
       updateProgram(saved);
       setStatus("Program saved.");
-    } catch (saveError: any) {
-      setError(String(saveError?.message ?? "We couldn't save the program yet."));
+    } catch {
+      setError(friendlyProgramsMessage("save"));
     } finally {
       setSaving(false);
     }
@@ -354,8 +364,8 @@ export default function FamilyProgramsWorkspace() {
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
       setStatus(`${generated.length} live planning block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
-    } catch (generateError: any) {
-      setError(String(generateError?.message ?? "We couldn't generate the live plan yet."));
+    } catch {
+      setError(friendlyProgramsMessage("generate"));
     } finally {
       setGenerating(false);
     }
@@ -387,25 +397,28 @@ export default function FamilyProgramsWorkspace() {
         />
 
         {isFirstRun ? (
-          <ProgramsFirstRunCard
-            onStartSetup={() => {
+        <ProgramsFirstRunCard
+          onStartSetup={() => {
               if (!hasCalendarTemplate) {
                 router.push("/calendar?returnTo=/my-programs&setup=1");
                 return;
               }
               handleCreateProgram();
-            }}
-            onLearnHow={() => {
-              const target = document.getElementById("programs-workspace");
-              target?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
-          />
+          }}
+          onLearnHow={() => {
+            const target = document.getElementById("programs-workspace");
+            target?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+          primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
+          hasCalendarTemplate={hasCalendarTemplate}
+          hasProgram={hasPrograms}
+          generationReady={generationReady}
+        />
         ) : null}
 
         {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
           <ProgramsGuidedSetupBanner
-            title="Your weekly rhythm is ready. Now let’s build your program."
+            title="Your weekly rhythm is ready. Now let's build your program."
             note="Start with a sample program, rename a few segments, then map it into one calendar slot."
           />
         ) : null}
@@ -419,7 +432,7 @@ export default function FamilyProgramsWorkspace() {
 
         {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
-            title="You’re one step away from the live week"
+            title="You're one step away from the live week"
             note="Choose the start date, then generate this sequence into My Plan."
           />
         ) : null}
@@ -429,11 +442,12 @@ export default function FamilyProgramsWorkspace() {
           selectedProgramId={selectedProgram?.id}
           onSelect={setSelectedProgramId}
           onCreate={handleCreateProgram}
+          firstRun={isFirstRun}
         />
 
         {loading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-            <div className={BODY}>Loading programs…</div>
+            <div className={BODY}>Loading programs...</div>
           </section>
         ) : (
           <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">

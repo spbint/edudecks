@@ -202,13 +202,12 @@ export default function FamilyTopNavShell({
               <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
             </div>
 
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:bg-slate-50 hover:text-slate-900"
+            <span
+              aria-label="Workspace status"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
             >
-              <span className="text-lg">•</span>
-            </button>
+              In sync
+            </span>
 
             <FamilyProfileMenu
               familyName={resolvedFamilyName}

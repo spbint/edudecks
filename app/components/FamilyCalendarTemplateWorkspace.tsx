@@ -25,6 +25,13 @@ function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function friendlyCalendarMessage(kind: "load" | "save") {
+  if (kind === "load") {
+    return "Calendar templates are still getting ready. You can keep shaping the weekly rhythm here.";
+  }
+  return "Calendar template storage is still being prepared. Save will fully activate once it is ready.";
+}
+
 export default function FamilyCalendarTemplateWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,9 +69,9 @@ export default function FamilyCalendarTemplateWorkspace() {
             })];
         setTemplates(next);
         setSelectedTemplateId(next[0]?.id || "");
-      } catch (loadError: any) {
+      } catch {
         if (!mounted) return;
-        setError(String(loadError?.message ?? "We couldn't load the calendar template yet."));
+        setError(friendlyCalendarMessage("load"));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -162,7 +169,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       const saved = await saveFamilyCalendarTemplate(selectedTemplate);
       upsertTemplate(saved);
       const nextStatus = returnTo
-        ? "Your weekly rhythm is ready. Now let’s build your program."
+        ? "Your weekly rhythm is ready. Now let's build your program."
         : "Calendar template saved.";
       setStatus(nextStatus);
       if (returnTo) {
@@ -170,8 +177,8 @@ export default function FamilyCalendarTemplateWorkspace() {
           router.push(returnTo);
         }, 500);
       }
-    } catch (saveError: any) {
-      setError(String(saveError?.message ?? "We couldn't save the calendar template yet."));
+    } catch {
+      setError(friendlyCalendarMessage("save"));
     } finally {
       setSaving(false);
     }

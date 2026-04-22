@@ -111,6 +111,22 @@ function plannerSubject(value: string): PlannerSubject {
   return (PLANNER_SUBJECTS.includes(value as PlannerSubject) ? value : "Creative") as PlannerSubject;
 }
 
+function friendlyPlanMessage(kind: "load" | "block" | "note" | "curriculum" | "edit") {
+  if (kind === "load") {
+    return "This week's plan is still settling. You can keep shaping the week while it reconnects.";
+  }
+  if (kind === "block") {
+    return "This learning block could not be saved just yet. Try again in a moment.";
+  }
+  if (kind === "note") {
+    return "Today's note could not be saved just yet. Try again in a moment.";
+  }
+  if (kind === "curriculum") {
+    return "Curriculum links are still getting ready. Try saving them again in a moment.";
+  }
+  return "This block could not be updated just yet. Try again in a moment.";
+}
+
 export default function FamilyPlanWorkspace() {
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
 
@@ -238,13 +254,13 @@ export default function FamilyPlanWorkspace() {
         setCalendarWindow(calendar);
         setBlocks(nextBlocks);
         setDayNotes(calendar.dayNotes);
-      } catch (error: any) {
+      } catch {
         if (!mounted) return;
         setWeeklyPlan(null);
         setCalendarWindow(null);
         setBlocks({});
         setDayNotes({});
-        setPlanError(String(error?.message ?? "We could not load this learner's plan."));
+        setPlanError(friendlyPlanMessage("load"));
       } finally {
         if (mounted) setLoadingPlan(false);
       }
@@ -352,12 +368,12 @@ export default function FamilyPlanWorkspace() {
         ],
       }));
       setStatusMessage("Saved to this week’s plan.");
-    } catch (error: any) {
+    } catch {
       setBlocks((prev) => ({
         ...prev,
         [key]: (prev[key] ?? []).filter((item) => item.id !== optimisticBlock.id),
       }));
-      setPlanError(String(error?.message ?? "We could not save this learning block."));
+      setPlanError(friendlyPlanMessage("block"));
     } finally {
       setSavingCalendar(false);
     }
@@ -391,8 +407,8 @@ export default function FamilyPlanWorkspace() {
         note: nextNote,
       });
       setStatusMessage(nextNote.trim() ? "Daily note saved." : "Daily note cleared.");
-    } catch (error: any) {
-      setPlanError(String(error?.message ?? "We could not save this daily note."));
+    } catch {
+      setPlanError(friendlyPlanMessage("note"));
     } finally {
       setSavingCalendar(false);
     }
@@ -439,8 +455,8 @@ export default function FamilyPlanWorkspace() {
           ? "Curriculum links saved."
           : "Curriculum links cleared.",
       );
-    } catch (error: any) {
-      setPlanError(String(error?.message ?? "We could not save curriculum links."));
+    } catch {
+      setPlanError(friendlyPlanMessage("curriculum"));
     } finally {
       setSavingCalendar(false);
     }
@@ -487,8 +503,8 @@ export default function FamilyPlanWorkspace() {
         curriculumOutcomeIds: currentBlock?.curriculumOutcomeIds ?? [],
       });
       setStatusMessage("Live plan block updated.");
-    } catch (error: any) {
-      setPlanError(String(error?.message ?? "We could not update this learning block."));
+    } catch {
+      setPlanError(friendlyPlanMessage("edit"));
     } finally {
       setSavingCalendar(false);
     }

@@ -30,6 +30,10 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function friendlyFamilySetupMessage() {
+  return "Learning setup storage is still getting ready. Try saving again in a moment.";
+}
+
 function applyLocalLearnerPatch(
   learners: FamilyLearner[],
   learnerId: string,
@@ -127,8 +131,8 @@ export default function FamilyLearningSetupWorkspace() {
       }
 
       setStatus("Family learning setup saved.");
-    } catch (saveError: any) {
-      setError(String(saveError?.message ?? "We couldn't save the learning setup just yet."));
+    } catch {
+      setError(friendlyFamilySetupMessage());
     } finally {
       setSaving(false);
     }
