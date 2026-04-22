@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -128,6 +129,7 @@ function friendlyPlanMessage(kind: "load" | "block" | "note" | "curriculum" | "e
 }
 
 export default function FamilyPlanWorkspace() {
+  const searchParams = useSearchParams();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
 
   const [selectedWeekAnchor, setSelectedWeekAnchor] = useState<Date>(new Date());
@@ -187,6 +189,16 @@ export default function FamilyPlanWorkspace() {
     Boolean(workspace.profile?.id) &&
     workspace.profile.id !== "local" &&
     Boolean(activeLearner?.id);
+
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (!dateParam) return;
+    const parsed = new Date(`${dateParam}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return;
+    setSelectedWeekAnchor(parsed);
+    setSelectedDate(parsed);
+    setStatusMessage("Your generated week is open and ready to shape.");
+  }, [searchParams]);
 
   useEffect(() => {
     const inVisibleWeek = weekDays.some((day) => ymd(day) === selectedDayKey);

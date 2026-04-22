@@ -411,8 +411,9 @@ export default function FamilyProgramsWorkspace() {
           }}
           primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
           hasCalendarTemplate={hasCalendarTemplate}
-          hasProgram={hasPrograms}
+          hasProgram={hasVisiblePrograms}
           generationReady={generationReady}
+          hasGeneratedItems={hasGeneratedItems}
         />
         ) : null}
 
@@ -541,7 +542,15 @@ export default function FamilyProgramsWorkspace() {
                 <div className={LABEL}>Status</div>
                 <div className={`mt-2 ${H2}`}>Publish to the live week when ready</div>
                 <div className={`mt-2 ${error ? "text-[14px] text-rose-600" : META}`}>
-                  {error || status || "Assign a program to a calendar slot to start building your live plan."}
+                  {error ||
+                    status ||
+                    (!hasCalendarTemplate
+                      ? "Create a calendar template first so this program has somewhere reusable to land."
+                      : !assignmentSlotId
+                        ? "Choose a reusable slot first, then generation will become available."
+                        : !assignmentStartDate
+                          ? "Choose a start date to complete the setup for generation."
+                          : "Assign a program to a calendar slot to start building your live plan.")}
                 </div>
                 <div className="mt-4 flex gap-3">
                   <button

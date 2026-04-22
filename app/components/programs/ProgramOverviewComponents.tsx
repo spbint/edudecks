@@ -23,6 +23,7 @@ export function ProgramsFirstRunCard({
   hasCalendarTemplate = false,
   hasProgram = false,
   generationReady = false,
+  hasGeneratedItems = false,
 }: {
   onStartSetup: () => void;
   onLearnHow?: () => void;
@@ -30,6 +31,7 @@ export function ProgramsFirstRunCard({
   hasCalendarTemplate?: boolean;
   hasProgram?: boolean;
   generationReady?: boolean;
+  hasGeneratedItems?: boolean;
 }) {
   const steps = [
     {
@@ -57,14 +59,18 @@ export function ProgramsFirstRunCard({
     {
       step: "Step 3",
       title: "Generate into plan",
-      note: generationReady
-        ? "Program is ready to flow into My Plan."
-        : "Choose a slot and start date when you are ready.",
-      stateLabel: generationReady ? "Ready" : hasProgram ? "Upcoming" : "Later",
-      stateTone: generationReady
-        ? "border-violet-200 bg-violet-50 text-violet-700"
+      note: hasGeneratedItems
+        ? "The live week already has generated program blocks."
+        : generationReady
+          ? "Program is ready to flow into My Plan."
+          : "Choose a slot and start date when you are ready.",
+      stateLabel: hasGeneratedItems ? "Complete" : generationReady ? "Ready" : hasProgram ? "Upcoming" : "Later",
+      stateTone: hasGeneratedItems
+        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+        : generationReady
+          ? "border-violet-200 bg-violet-50 text-violet-700"
         : "border-slate-200 bg-slate-50 text-slate-600",
-      cta: generationReady ? "Generate into My Plan" : null,
+      cta: hasGeneratedItems ? "Open My Plan" : generationReady ? "Generate into My Plan" : null,
     },
   ] as const;
 
@@ -156,6 +162,7 @@ export function ProgramGenerationSuccessBanner({
         <p className={BODY}>
           {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
         </p>
+        <p className={META}>Open My Plan to view the generated week, or stay here and keep refining the sequence.</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button
@@ -190,15 +197,18 @@ export function ProgramList({
   onCreate: () => void;
   firstRun?: boolean;
 }) {
+  const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
+  const support = firstRun
+    ? "Start with the sample program below, rename what you need, then map it into one calendar slot."
+    : "Build reusable units, terms, or sequences here, then place them into your calendar rhythm when you are ready.";
+
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <div className={LABEL}>My Programs</div>
-          <h2 className={H2}>Shape the longer sequence before it reaches the live week</h2>
-          <p className={BODY}>
-            Build reusable units, terms, or sequences here, then place them into your calendar rhythm when you are ready.
-          </p>
+          <h2 className={H2}>{heading}</h2>
+          <p className={BODY}>{support}</p>
         </div>
         <button
           type="button"
@@ -223,11 +233,13 @@ export function ProgramList({
               onClick={() => onSelect(program.id)}
               className={`grid gap-1 rounded-[18px] border px-4 py-4 text-left transition ${
                 active
-                  ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+                  ? firstRun
+                    ? "border-amber-200 bg-amber-50 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]"
+                    : "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
                   : "border-slate-200 bg-slate-50 hover:bg-slate-100"
               }`}
             >
-              <span className={LABEL}>{firstRun ? "Starter program" : "Program"}</span>
+              <span className={LABEL}>{firstRun ? "Your first program" : "Program"}</span>
               <span className={H3}>{program.title}</span>
               <span className={META}>
                 {[program.subjectId, program.periodLabel].filter(Boolean).join(" • ")}
@@ -444,15 +456,50 @@ export function ProgramCalendarAssignmentPanel({
     templates.find((template) => template.id === selectedTemplateId) ?? null;
   const slots = selectedTemplate?.slots || [];
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) ?? null;
+  const state = !templates.length
+    ? "blocked_template"
+    : !selectedTemplateId
+      ? "ready_choose_template"
+      : !slots.length
+        ? "blocked_slots"
+        : !selectedSlotId
+          ? "ready_choose_slot"
+          : !startDate
+            ? "ready_choose_date"
+            : generationReady
+              ? "ready_generate"
+              : "partial";
+  const panelTitle =
+    state === "blocked_template"
+      ? "Create your weekly rhythm first"
+      : state === "blocked_slots"
+        ? "Create a slot to continue"
+        : state === "ready_choose_slot"
+          ? "Choose a slot to continue"
+          : state === "ready_choose_date"
+            ? "Choose when this sequence should begin"
+            : state === "ready_generate"
+              ? "Generate into My Plan"
+              : "Choose where this program should land";
+  const panelNote =
+    state === "blocked_template"
+      ? "Create a calendar template first, then return here to place this program into a reusable weekly slot."
+      : state === "blocked_slots"
+        ? "This template exists, but it still needs at least one reusable slot before generation can begin."
+        : state === "ready_choose_slot"
+          ? "Pick the slot that best matches where this program should usually land in the week."
+          : state === "ready_choose_date"
+            ? "Choose the first week this program should begin, then generation will become available."
+            : state === "ready_generate"
+              ? "This will place each segment into the next matching week and open those generated blocks in My Plan for live adjustment."
+              : "Assign this program to a reusable calendar slot, then choose when to start.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Program to calendar</div>
-        <h2 className={H2}>Choose where this program should land</h2>
-        <p className={BODY}>
-          Assign this program to a reusable calendar slot, then choose when to start.
-        </p>
+        <h2 className={H2}>{panelTitle}</h2>
+        <p className={BODY}>{panelNote}</p>
       </div>
 
       {!templates.length ? (
@@ -556,7 +603,7 @@ export function ProgramCalendarAssignmentPanel({
           disabled={generating || !generationReady}
           className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {generating ? "Generating..." : "Generate to My Plan"}
+          {generating ? "Generating..." : "Generate into My Plan"}
         </button>
       </div>
     </section>

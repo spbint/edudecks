@@ -82,11 +82,18 @@ export function CalendarTemplateGrid({
   selectedSlotId?: string | null;
   onSelectSlot: (slotId: string) => void;
 }) {
+  const hasSlots = slots.length > 0;
+
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Weekly rhythm</div>
         <h2 className={H2}>Template week</h2>
+        <p className={BODY}>
+          {hasSlots
+            ? "Choose a slot to refine it, or add another slot to complete the reusable week."
+            : "Add at least one slot so My Programs has a reusable place to land later."}
+        </p>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -151,8 +158,8 @@ export function CalendarTemplateSlotEditor({
     return (
       <section className="grid gap-3 rounded-[24px] border border-dashed border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
         <div className={LABEL}>Slot editor</div>
-        <h2 className={H2}>Select a slot to shape it</h2>
-        <p className={BODY}>Choose a slot from the weekly rhythm, or add one new slot to begin shaping your reusable week.</p>
+        <h2 className={H2}>Add the first slot to begin</h2>
+        <p className={BODY}>Start with one reusable weekly slot, then return to My Programs to map a sequence into it.</p>
         <button
           type="button"
           onClick={onAddNew}

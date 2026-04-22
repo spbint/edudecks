@@ -90,6 +90,7 @@ export default function FamilyCalendarTemplateWorkspace() {
 
   const selectedSlot =
     selectedTemplate?.slots.find((slot) => slot.id === selectedSlotId) ?? null;
+  const templateReady = Boolean(selectedTemplate?.slots.length);
 
   useEffect(() => {
     if (!selectedTemplate) return;
@@ -246,7 +247,13 @@ export default function FamilyCalendarTemplateWorkspace() {
           <div className="grid gap-1">
             <div className="text-[15px] font-semibold text-slate-950">Save My Calendar Template</div>
             <div className={error ? "text-[13px] text-rose-600" : "text-[13px] text-slate-500"}>
-              {error || status || "Set up your weekly rhythm to begin generating plans."}
+              {error ||
+                status ||
+                (!templateReady
+                  ? "Add at least one slot to make this weekly rhythm reusable in My Programs."
+                  : returnTo
+                    ? "Your weekly rhythm is ready. Save and continue back to My Programs."
+                    : "Your weekly rhythm is ready to use in My Programs.")}
             </div>
           </div>
           <button
