@@ -51,6 +51,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 const PRIMARY_NAV = [
   { href: "/home", label: "My Learning" },
   { href: "/my-plan", label: "My Plan" },
+  { href: "/curriculum", label: "My Curriculum" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-reports", label: "My Reports" },
   { href: "/my-progress", label: "My Progress" },
@@ -59,6 +60,7 @@ const PRIMARY_NAV = [
 function normalizeRoute(pathname: string) {
   if (pathname === "/family" || pathname === "/dashboard") return "/home";
   if (pathname === "/planner") return "/my-plan";
+  if (pathname === "/curriculum-map") return "/curriculum";
   if (pathname === "/portfolio") return "/my-portfolio";
   if (pathname === "/reports" || pathname.startsWith("/reports/")) return "/my-reports";
   if (pathname === "/capture" || pathname === "/calendar" || pathname.startsWith("/authority")) {
