@@ -36,18 +36,18 @@ export function ProgramsFirstRunCard({
   const steps = [
     {
       step: "Step 1",
-      title: "Create calendar template",
-      note: hasCalendarTemplate ? "Weekly rhythm is ready." : "Set up the reusable week first.",
+      title: "Set your weekly rhythm",
+      note: hasCalendarTemplate ? "My Calendar rhythm is ready." : "Use My Calendar to set the repeating weekly shape first.",
       stateLabel: hasCalendarTemplate ? "Complete" : "Next",
       stateTone: hasCalendarTemplate
         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
         : "border-blue-200 bg-blue-50 text-blue-700",
-      cta: !hasCalendarTemplate ? "Create calendar template" : null,
+      cta: !hasCalendarTemplate ? "Open My Calendar" : null,
     },
     {
       step: "Step 2",
-      title: "Build your program",
-      note: hasProgram ? "Starter program is ready to edit." : "Shape the first learning sequence.",
+      title: "Shape your sequence",
+      note: hasProgram ? "Your first sequence is ready to edit." : "Use My Programs to shape the first learning sequence.",
       stateLabel: hasProgram ? "Active" : hasCalendarTemplate ? "Next" : "Waiting",
       stateTone: hasProgram
         ? "border-amber-200 bg-amber-50 text-amber-700"
@@ -58,12 +58,12 @@ export function ProgramsFirstRunCard({
     },
     {
       step: "Step 3",
-      title: "Generate into plan",
+      title: "Open the live week",
       note: hasGeneratedItems
         ? "The live week already has generated program blocks."
         : generationReady
-          ? "Program is ready to flow into My Plan."
-          : "Choose a slot and start date when you are ready.",
+          ? "Your sequence is ready to flow into My Plan."
+          : "Choose the weekly slot and the first start date when you are ready.",
       stateLabel: hasGeneratedItems ? "Complete" : generationReady ? "Ready" : hasProgram ? "Upcoming" : "Later",
       stateTone: hasGeneratedItems
         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -80,7 +80,7 @@ export function ProgramsFirstRunCard({
         <div className={LABEL}>Getting started</div>
         <h2 className={H2}>Build your first program</h2>
         <p className={BODY}>
-          This is where your term or learning sequence comes together before it flows into your weekly plan.
+          My Programs is where the longer sequence comes together before it drops into My Calendar and opens into My Plan.
         </p>
       </div>
 
@@ -200,7 +200,7 @@ export function ProgramList({
   const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
   const support = firstRun
     ? "Start with the sample program below, rename what you need, then map it into one calendar slot."
-    : "Build reusable units, terms, or sequences here, then place them into your calendar rhythm when you are ready.";
+    : "Build reusable units, terms, or sequences here, then place them into My Calendar so they can flow into My Plan.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -471,7 +471,7 @@ export function ProgramCalendarAssignmentPanel({
               : "partial";
   const panelTitle =
     state === "blocked_template"
-      ? "Create your weekly rhythm first"
+      ? "Set your weekly rhythm first"
       : state === "blocked_slots"
         ? "Create a slot to continue"
         : state === "ready_choose_slot"
@@ -483,7 +483,7 @@ export function ProgramCalendarAssignmentPanel({
               : "Choose where this program should land";
   const panelNote =
     state === "blocked_template"
-      ? "Create a calendar template first, then return here to place this program into a reusable weekly slot."
+      ? "Use My Calendar first, then return here to place this sequence into one reusable weekly slot."
       : state === "blocked_slots"
         ? "This template exists, but it still needs at least one reusable slot before generation can begin."
         : state === "ready_choose_slot"
@@ -504,15 +504,15 @@ export function ProgramCalendarAssignmentPanel({
 
       {!templates.length ? (
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className={H3}>No calendar template yet</div>
+          <div className={H3}>My Calendar rhythm not set yet</div>
           <div className={`mt-2 ${BODY}`}>
-            Set up your weekly rhythm to begin generating plans.
+            Set up your weekly rhythm in My Calendar to begin generating plans.
           </div>
           <Link
-            href="/calendar"
+            href="/my-calendar"
             className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Create calendar template
+            Open My Calendar
           </Link>
         </div>
       ) : null}
@@ -526,7 +526,7 @@ export function ProgramCalendarAssignmentPanel({
             onChange={(event) => onTemplateChange(event.target.value)}
             disabled={!templates.length}
           >
-            {!templates.length ? <option value="">Create a calendar template first</option> : null}
+            {!templates.length ? <option value="">Open My Calendar first</option> : null}
             {templates.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.title}
@@ -582,7 +582,7 @@ export function ProgramCalendarAssignmentPanel({
       <div className="grid gap-3">
         {!templates.length ? (
           <div className={META}>
-            Create your weekly rhythm first, then return here to map the program into a reusable slot.
+            Set your weekly rhythm in My Calendar first, then return here to map the sequence into one reusable slot.
           </div>
         ) : !selectedTemplateId ? (
           <div className={META}>Choose where this program should land.</div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
@@ -49,13 +50,17 @@ function formatTodayLabel(date: Date) {
 function noLearnerStateText(hasLearners: boolean) {
   if (!hasLearners) {
     return {
-      title: "Add a learner to begin using My Day",
-      note: "Daily learning becomes useful once a learner is linked to the family workspace.",
+      title: "My Day is where today's learning becomes clear",
+      note: "Add your first learner first. Then My Day can show what is planned today, what comes next, and what is ready to capture.",
+      ctaLabel: "Add your first learner",
+      ctaHref: "/family#learner-management",
     };
   }
   return {
-    title: "Choose a learner to see today clearly",
-    note: "My Day follows the learner in focus so the blocks, capture actions, and next step all stay relevant.",
+    title: "Choose the learner you want to run today for",
+    note: "My Day follows the learner in focus so today's blocks, capture actions, and next step all stay relevant.",
+    ctaLabel: "Open My Family",
+    ctaHref: "/family",
   };
 }
 
@@ -246,6 +251,20 @@ export default function MyDayWorkspace() {
                   <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">Today</div>
                   <div className="text-[18px] font-bold tracking-tight text-slate-950">{noLearner.title}</div>
                   <p className="text-[14px] leading-6 text-slate-600">{noLearner.note}</p>
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <Link
+                      href={noLearner.ctaHref}
+                      className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      {noLearner.ctaLabel}
+                    </Link>
+                    <Link
+                      href="/my-plan"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      See how My Plan works
+                    </Link>
+                  </div>
                 </section>
               ) : dayState === "loading" ? (
                 <div className="grid gap-4">

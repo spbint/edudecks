@@ -434,7 +434,7 @@ export function PlannerControlStrip({
           className={`inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-2 ${CTA_TEXT} text-white transition hover:bg-slate-800`}
           onClick={onAddBlock}
         >
-          Add learning block
+          Add block to selected day
         </button>
       </div>
     </div>
@@ -477,7 +477,7 @@ export function PlannerQuickAddRow({
             Quick add
           </div>
           <div className={`mt-2 ${SUPPORT_TEXT}`}>
-            Add a small learning block for <span className="font-black text-slate-900">{selectedDayLabel}</span>.
+            Add one clear block for <span className="font-black text-slate-900">{selectedDayLabel}</span>, then keep refining inside the week.
           </div>
         </div>
       </div>
@@ -654,7 +654,7 @@ export function PlannerDayCard({
           ))
         ) : (
             <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-[13px] font-medium text-slate-500">
-              Start with one small learning moment
+              No blocks yet. Start with one small learning moment.
             </div>
         )}
       </div>
@@ -664,19 +664,19 @@ export function PlannerDayCard({
           + Add block
         </button>
         <button type="button" className={buttonBase} onClick={onOpenDay}>
-          Open day
+          Focus this day
         </button>
         <Link
           href={captureHref}
           className="inline-flex items-center justify-center rounded-xl bg-slate-950 px-3 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Capture
+          Capture from this day
         </Link>
       </div>
 
       <div className="grid gap-2">
         <div className={CARD_EYEBROW}>
-          Quick add
+          Quick add for this day
         </div>
         <div className="flex flex-wrap gap-2">
           {quickAddOptions.map((chip) => (

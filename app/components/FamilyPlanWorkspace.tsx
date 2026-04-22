@@ -114,7 +114,7 @@ function plannerSubject(value: string): PlannerSubject {
 
 function friendlyPlanMessage(kind: "load" | "block" | "note" | "curriculum" | "edit") {
   if (kind === "load") {
-    return "This week's plan is still settling. You can keep shaping the week while it reconnects.";
+    return "My Plan is still settling. This week's view should be back in a moment.";
   }
   if (kind === "block") {
     return "This learning block could not be saved just yet. Try again in a moment.";
@@ -169,6 +169,8 @@ export default function FamilyPlanWorkspace() {
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
   const activeLearnerName = activeLearner?.label || "your learner";
+  const learnerSetupHref = hasLearners ? "/family" : "/family#learner-management";
+  const learnerSetupLabel = hasLearners ? "Open My Family" : "Add your first learner";
   const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
   const preset = frameworkPreset(
     learningConfig.country === "us" || learningConfig.country === "uk"
@@ -536,7 +538,7 @@ export default function FamilyPlanWorkspace() {
           ? weeklyPlan?.selectedGoal || `Keep ${activeLearnerName}'s week gently in view`
           : hasActiveLearner
             ? `Shape one clear focus for ${activeLearnerName}`
-            : "Add your first learner to begin",
+            : "Add your first learner before shaping the live week",
       state: planState,
       accent: "blue",
     },
@@ -578,7 +580,7 @@ export default function FamilyPlanWorkspace() {
           ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} placed this week`
           : hasActiveLearner
             ? `Weekly blocks for ${activeLearnerName} will appear here`
-            : "Add your first block to begin",
+            : "Add a learner first, then place the first block",
       state: planState === "live" ? "live" : planState,
       accent: "emerald",
     },
@@ -593,35 +595,35 @@ export default function FamilyPlanWorkspace() {
     state: HomeSurfaceState;
   }> = [
     {
-      href: "/my-plan",
-      icon: "PL",
-      label: "Continue planning",
-      note: hasActiveLearner ? `Keep ${activeLearnerName}'s week visible.` : "Choose a learner to continue.",
-      cta: "Open",
+      href: "/my-day",
+      icon: "TD",
+      label: "Open My Day",
+      note: hasActiveLearner ? `See what is due today for ${activeLearnerName} and what is ready to capture.` : "Choose a learner to see today clearly.",
+      cta: "Open day",
       state: hasActiveLearner ? planState : "empty",
     },
     {
-      href: "/my-plan",
-      icon: "LB",
-      label: "Add learning block",
-      note: hasActiveLearner ? `Place one meaningful block for ${activeLearnerName}.` : "Add a learner before shaping the week.",
-      cta: "Add",
+      href: "/my-calendar",
+      icon: "CL",
+      label: "Review My Calendar",
+      note: hasActiveLearner ? `Adjust the reusable weekly rhythm that supports ${activeLearnerName}'s live week.` : "Set the weekly rhythm after learner setup.",
+      cta: "Review rhythm",
       state: hasActiveLearner ? planState : "empty",
     },
     {
-      href: "/my-plan",
-      icon: "WK",
-      label: "Adjust this week",
-      note: hasActiveLearner ? `Review the open days and smooth the rhythm.` : "Weekly rhythm appears after learner setup.",
-      cta: "Adjust",
+      href: "/my-programs",
+      icon: "PG",
+      label: "Open My Programs",
+      note: hasActiveLearner ? `Refine the longer sequence behind ${activeLearnerName}'s week before generating more blocks.` : "Programs become useful after learner setup.",
+      cta: "Open programs",
       state: hasActiveLearner ? "derived" : "empty",
     },
     {
       href: "/capture",
       icon: "CP",
-      label: "Review recent captures",
-      note: hasActiveLearner ? `Use fresh evidence to refine ${activeLearnerName}'s next step.` : "Capture starts after learner setup.",
-      cta: "Review",
+      label: "Capture from the live week",
+      note: hasActiveLearner ? `Use fresh evidence to refine ${activeLearnerName}'s next step once the week is in motion.` : "Capture starts after learner setup.",
+      cta: "Capture now",
       state: hasActiveLearner ? "derived" : "empty",
     },
   ];
@@ -680,18 +682,20 @@ export default function FamilyPlanWorkspace() {
   const nextMove =
     !hasActiveLearner
       ? {
-          title: "Start by choosing a learner",
-          note: "Once a learner is in focus, My Plan can show the week visually and keep the next step close.",
-          ctaHref: "/profile",
-          ctaLabel: "Open My Profile",
+          title: hasLearners ? "Choose who this live week belongs to" : "My Plan shapes the live week after learner setup",
+          note: hasLearners
+            ? "Choose the learner you want to plan for first. Then My Plan can shape the live week and hand you forward into My Day."
+            : "Add your first learner first. Then My Plan can shape the live week, My Day can run today, and capture can stay connected.",
+          ctaHref: learnerSetupHref,
+          ctaLabel: learnerSetupLabel,
           state: "empty" as HomeSurfaceState,
         }
       : planState === "live" && openDays > 0
         ? {
             title: `Shape ${activeLearnerName}'s week visually`,
-            note: "Start with one clear focus and one or two learning blocks. The rest can stay flexible.",
-            ctaHref: "/my-plan",
-            ctaLabel: "Continue planning",
+            note: "Start with one clear focus and one or two learning blocks, then return to My Day to run today calmly.",
+            ctaHref: "/my-day",
+            ctaLabel: "Open My Day",
             state: "live" as HomeSurfaceState,
           }
         : planState === "live"
@@ -704,7 +708,7 @@ export default function FamilyPlanWorkspace() {
             }
           : {
               title: `Start ${activeLearnerName}'s first visual plan`,
-              note: "Use one small learning block to make the week feel settled without overplanning it.",
+              note: "Use one small learning block to make the week feel settled. My Calendar sets the rhythm behind it, but My Plan is the right place to start the live week.",
               ctaHref: "/my-plan",
               ctaLabel: "Continue planning",
               state: hasActiveLearner ? "placeholder" as HomeSurfaceState : "empty" as HomeSurfaceState,

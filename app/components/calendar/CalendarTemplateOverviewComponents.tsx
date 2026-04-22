@@ -36,7 +36,7 @@ export function CalendarTemplateSelector({
         <div className="grid gap-1.5">
           <div className={LABEL}>My Calendar Template</div>
           <h2 className={H2}>Choose the weekly rhythm you want to reuse</h2>
-          <p className={BODY}>Use one reusable template for a normal week, then let programs drop into those slots later.</p>
+          <p className={BODY}>My Calendar sets the repeating weekly rhythm. My Programs later place longer sequences into those slots, and My Plan turns them into the live week.</p>
         </div>
         <button
           type="button"
@@ -91,8 +91,8 @@ export function CalendarTemplateGrid({
         <h2 className={H2}>Template week</h2>
         <p className={BODY}>
           {hasSlots
-            ? "Choose a slot to refine it, or add another slot to complete the reusable week."
-            : "Add at least one slot so My Programs has a reusable place to land later."}
+            ? "Choose a slot to refine it, or add another slot to complete the reusable weekly rhythm."
+            : "Add at least one slot first so My Programs has a calm, reusable place to land later."}
         </p>
       </div>
 
@@ -159,7 +159,7 @@ export function CalendarTemplateSlotEditor({
       <section className="grid gap-3 rounded-[24px] border border-dashed border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
         <div className={LABEL}>Slot editor</div>
         <h2 className={H2}>Add the first slot to begin</h2>
-        <p className={BODY}>Start with one reusable weekly slot, then return to My Programs to map a sequence into it.</p>
+        <p className={BODY}>Start with one reusable weekly slot. Once that exists, My Programs can map a longer sequence into it and My Plan can open the live week.</p>
         <button
           type="button"
           onClick={onAddNew}

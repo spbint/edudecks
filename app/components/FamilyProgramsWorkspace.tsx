@@ -96,12 +96,12 @@ function ymd(date: Date) {
 
 function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "load") {
-    return "Programs are still getting ready. Your starter workspace is safe to keep shaping.";
+    return "My Programs is still settling. Your sequence is safe, and you can try again in a moment.";
   }
   if (kind === "save") {
-    return "Program storage is still settling. Keep shaping the sequence, then save again in a moment.";
+    return "Your sequence could not be saved just yet. Keep shaping it here, then save again in a moment.";
   }
-  return "Generation is almost ready. Check the calendar slot and try again in a moment.";
+  return "Generation is not ready just yet. Check the My Calendar slot and start date, then try again in a moment.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -375,9 +375,9 @@ export default function FamilyProgramsWorkspace() {
     <FamilyTopNavShell
       subtitle="My Programs"
       heroTitle="My Programs"
-      heroText="Build the bigger sequence here, then let it land gently inside the reusable calendar rhythm."
+      heroText="Build the longer sequence here, let it land in My Calendar, then generate it into My Plan."
       heroAsideTitle="Program templates"
-      heroAsideText="Programs hold the longer story. Calendar templates decide where that story lands in a normal week."
+      heroAsideText="Programs hold the longer story. My Calendar decides where that story lands, and My Plan turns it into the live week."
     >
       <div className="grid gap-5 pb-14">
         {showGenerationSuccess ? (
@@ -396,11 +396,18 @@ export default function FamilyProgramsWorkspace() {
           state={workspaceLoading ? "loading" : activeLearner ? "live" : "empty"}
         />
 
+        {!workspaceLoading && !activeLearner ? (
+          <ProgramsGuidedSetupBanner
+            title="You can set up rhythm and sequence before choosing a learner"
+            note="My Calendar and My Programs can be shaped now. Choose a learner when you want generated planning to feel specific inside My Plan and My Day."
+          />
+        ) : null}
+
         {isFirstRun ? (
         <ProgramsFirstRunCard
           onStartSetup={() => {
               if (!hasCalendarTemplate) {
-                router.push("/calendar?returnTo=/my-programs&setup=1");
+                router.push("/my-calendar?returnTo=/my-programs&setup=1");
                 return;
               }
               handleCreateProgram();
@@ -420,21 +427,21 @@ export default function FamilyProgramsWorkspace() {
         {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
           <ProgramsGuidedSetupBanner
             title="Your weekly rhythm is ready. Now let's build your program."
-            note="Start with a sample program, rename a few segments, then map it into one calendar slot."
+            note="Start with a sample program, rename a few segments, then map it into one My Calendar slot."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && !hasMapping && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
             title="Choose where this program should land next"
-            note="Assign the current program to one reusable calendar slot so it can flow into your live week."
+            note="Assign the current program to one reusable My Calendar slot so it can flow into your live week."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
             title="You're one step away from the live week"
-            note="Choose the start date, then generate this sequence into My Plan."
+            note="Choose the start date, then generate this sequence into My Plan and review it in My Day."
           />
         ) : null}
 
@@ -545,12 +552,12 @@ export default function FamilyProgramsWorkspace() {
                   {error ||
                     status ||
                     (!hasCalendarTemplate
-                      ? "Create a calendar template first so this program has somewhere reusable to land."
+                      ? "Create a My Calendar template first so this program has somewhere reusable to land."
                       : !assignmentSlotId
                         ? "Choose a reusable slot first, then generation will become available."
-                        : !assignmentStartDate
-                          ? "Choose a start date to complete the setup for generation."
-                          : "Assign a program to a calendar slot to start building your live plan.")}
+                      : !assignmentStartDate
+                        ? "Choose a start date to complete the setup for generation."
+                          : "Assign this program to My Calendar, then generate it into My Plan.")}
                 </div>
                 <div className="mt-4 flex gap-3">
                   <button

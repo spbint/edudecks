@@ -70,10 +70,10 @@ export function MyDayQuickCaptureCard({
   const content = (
     <>
       <div className={LABEL}>Quick capture</div>
-      <div className={`mt-2 ${H3}`}>Capture a moment</div>
+      <div className={`mt-2 ${H3}`}>Capture from today's flow</div>
       <div className={`mt-1 ${META}`}>{note}</div>
       <div className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700">
-        Capture now
+        Capture from today
       </div>
     </>
   );
@@ -146,18 +146,18 @@ export function TodayLearningBlockCard({
           href={planHref}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
-          {block.note ? "Continue plan" : "View plan"}
+          {block.note ? "Adjust in My Plan" : "Open in My Plan"}
         </Link>
         {canCapture ? (
           <Link
             href={captureHref}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            Add evidence
+            Capture evidence
           </Link>
         ) : (
           <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-[14px] font-semibold text-slate-500">
-            Add evidence
+            Capture evidence
           </span>
         )}
       </div>
@@ -189,14 +189,14 @@ export function MyDayEmptyState() {
       <div className="grid gap-1.5">
         <div className={LABEL}>Today</div>
         <h2 className={H2}>Nothing is planned for today yet</h2>
-        <p className={BODY}>You can place one learning block into today in My Calendar or shape the live details in My Plan.</p>
+        <p className={BODY}>Start by shaping one live block in My Plan. Use My Calendar when you need to adjust the reusable weekly rhythm behind it.</p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Link href="/my-calendar" className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800">
-          Open My Calendar
+        <Link href="/my-plan" className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800">
+          Shape today in My Plan
         </Link>
-        <Link href="/my-plan" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100">
-          Open My Plan
+        <Link href="/my-calendar" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100">
+          Review My Calendar rhythm
         </Link>
       </div>
     </section>
@@ -256,9 +256,9 @@ export function MyDayNextStep({
 
 export function MyDayQuickLinks() {
   const items = [
-    { href: "/my-calendar", label: "My Calendar", note: "Shape the reusable rhythm and today's schedule." },
-    { href: "/my-plan", label: "My Plan", note: "Adjust the live week and continue planning details." },
-    { href: "/my-programs", label: "My Programs", note: "Review longer sequences behind the live week." },
+    { href: "/my-calendar", label: "My Calendar", note: "Adjust the reusable weekly rhythm that programs and live planning build on." },
+    { href: "/my-plan", label: "My Plan", note: "Shape the live week, add blocks, and keep the next few days clear." },
+    { href: "/my-programs", label: "My Programs", note: "Refine longer sequences before they generate back into the live week." },
   ];
 
   return (

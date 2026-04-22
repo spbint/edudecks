@@ -27,9 +27,9 @@ function makeId(prefix: string) {
 
 function friendlyCalendarMessage(kind: "load" | "save") {
   if (kind === "load") {
-    return "Calendar templates are still getting ready. You can keep shaping the weekly rhythm here.";
+    return "My Calendar is still settling. Your weekly rhythm is safe, and you can try again in a moment.";
   }
-  return "Calendar template storage is still being prepared. Save will fully activate once it is ready.";
+  return "Your weekly rhythm could not be saved just yet. Keep shaping it here, then save again in a moment.";
 }
 
 export default function FamilyCalendarTemplateWorkspace() {
@@ -189,9 +189,9 @@ export default function FamilyCalendarTemplateWorkspace() {
     <FamilyTopNavShell
       subtitle="My Calendar"
       heroTitle="My Calendar"
-      heroText="Shape the reusable weekly rhythm that later programs can drop into automatically."
+      heroText="Shape the reusable weekly rhythm here so My Programs can land cleanly and My Plan stays lighter."
       heroAsideTitle="Calendar template"
-      heroAsideText="Set the week up once, then reuse it as the calm frame behind live planning."
+      heroAsideText="Set the week up once, then reuse it as the calm frame behind My Programs, My Plan, and My Day."
     >
       <div className="grid gap-5 pb-14">
         <CalendarTemplateSelector
@@ -219,9 +219,31 @@ export default function FamilyCalendarTemplateWorkspace() {
           <section className="rounded-[24px] border border-sky-200 bg-sky-50/70 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div className={LABEL}>Create your weekly rhythm</div>
             <h2 className={`mt-2 ${H2}`}>When do subjects usually happen in a normal week?</h2>
-            <p className={`mt-2 ${BODY}`}>Add one to three slots first. You can keep refining the template later.</p>
+            <p className={`mt-2 ${BODY}`}>Add one to three slots first. Then return to My Programs to map a sequence into this rhythm.</p>
           </section>
         ) : null}
+
+        <section className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] md:grid-cols-3">
+          {[
+            {
+              title: "1. Set the rhythm",
+              note: "Use My Calendar to define the reusable weekly slots that repeat.",
+            },
+            {
+              title: "2. Map the sequence",
+              note: "Use My Programs to decide what lands in those slots over time.",
+            },
+            {
+              title: "3. Run the week",
+              note: "Use My Plan and My Day to adjust the live week and move through today.",
+            },
+          ].map((item) => (
+            <article key={item.title} className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+              <div className={H2}>{item.title}</div>
+              <div className={BODY}>{item.note}</div>
+            </article>
+          ))}
+        </section>
 
         {loading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -253,7 +275,7 @@ export default function FamilyCalendarTemplateWorkspace() {
                   ? "Add at least one slot to make this weekly rhythm reusable in My Programs."
                   : returnTo
                     ? "Your weekly rhythm is ready. Save and continue back to My Programs."
-                    : "Your weekly rhythm is ready to use in My Programs.")}
+                    : "Your weekly rhythm is ready to use in My Programs and My Plan.")}
             </div>
           </div>
           <button
