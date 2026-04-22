@@ -68,7 +68,7 @@ function AuthCallbackPageContent() {
   const callbackHandled = useRef(false);
 
   const requestedNextPath = useMemo(() => {
-    const fallback = normalizeNextPath("/home");
+    const fallback = normalizeNextPath("/my-day");
     const candidate = searchParams.get("next");
     return normalizeNextPath(candidate || fallback);
   }, [searchParams]);
@@ -201,7 +201,7 @@ function AuthCallbackPageContent() {
             );
 
             if (
-              requestedNextPath === "/home" &&
+              (requestedNextPath === "/home" || requestedNextPath === "/my-day") &&
               !profileAndRouting.onboardingComplete &&
               profileAndRouting.linkedChildrenCount === 0
             ) {

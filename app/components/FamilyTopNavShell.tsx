@@ -246,7 +246,7 @@ export default function FamilyTopNavShell({
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-6">
             <div className="shrink-0">
-              <BrandHomeLink href="/home" />
+              <BrandHomeLink href="/my-day" />
             </div>
 
             <nav className="hidden min-w-0 items-center gap-2 lg:flex">
@@ -345,8 +345,8 @@ export function FamilyShellSurface({ children }: { children: React.ReactNode }) 
 export function FamilyCommandLayer({
   eyebrow = "MyLearna Command Layer",
   title = "Move from plan to portfolio, reports, and progress without losing the thread.",
-  primaryActionLabel = "Open Home",
-  primaryActionHref = "/home",
+  primaryActionLabel = "Open My Day",
+  primaryActionHref = "/my-day",
   items,
   className,
   pathname,

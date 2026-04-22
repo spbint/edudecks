@@ -12,7 +12,7 @@ type BrandHomeLinkProps = {
 };
 
 export default function BrandHomeLink({
-  href = "/home",
+  href = "/my-day",
   compact = false,
   height,
   width,

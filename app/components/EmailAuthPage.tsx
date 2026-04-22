@@ -18,9 +18,9 @@ function isValidEmail(value: string) {
 
 function normalizeNextPath(value: string | null | undefined) {
   const clean = safe(value);
-  if (!clean.startsWith("/")) return "/family";
-  if (clean.startsWith("//")) return "/family";
-  return clean || "/family";
+  if (!clean.startsWith("/")) return "/my-day";
+  if (clean.startsWith("//")) return "/my-day";
+  return clean || "/my-day";
 }
 
 function passwordErrorMessage(error: unknown) {

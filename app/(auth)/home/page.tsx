@@ -1,7 +1,5 @@
-"use client";
-
-import FamilyHomeWorkspace from "@/app/components/FamilyHomeWorkspace";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return <FamilyHomeWorkspace />;
+  redirect("/my-day");
 }
