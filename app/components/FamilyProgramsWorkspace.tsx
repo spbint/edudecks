@@ -34,6 +34,54 @@ import {
 } from "@/lib/familyPlanningTemplates";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
 
+function buildSeedProgram(input: {
+  familyId: string;
+  learnerId?: string | null;
+  frameworkId: string;
+  jurisdictionId?: string | null;
+  periodLabel: string;
+}): Program {
+  const base = defaultProgram({
+    familyId: input.familyId,
+    learnerId: input.learnerId || null,
+    frameworkId: input.frameworkId,
+    jurisdictionId: input.jurisdictionId || null,
+    subjectId: "Mathematics",
+    periodLabel: input.periodLabel,
+  });
+
+  const segments = [
+    {
+      title: "Number patterns and place value",
+      notes: "Start with number fluency and warm, visible maths routines.",
+    },
+    {
+      title: "Addition and subtraction strategies",
+      notes: "Use real materials and short practice blocks to build confidence.",
+    },
+    {
+      title: "Fractions in everyday contexts",
+      notes: "Keep fractions practical through food, measuring, and sharing.",
+    },
+    {
+      title: "Measurement and time",
+      notes: "Bring maths into the week through time, length, and simple comparisons.",
+    },
+  ];
+
+  return {
+    ...base,
+    title: "Mathematics Term 1",
+    subjectId: "Mathematics",
+    durationCount: segments.length,
+    segments: base.segments.slice(0, segments.length).map((segment, index) => ({
+      ...segment,
+      title: segments[index]?.title || segment.title,
+      notes: segments[index]?.notes || "",
+    })),
+  };
+}
+
 function ymd(date: Date) {
   const y = date.getFullYear();
   const m = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -86,9 +134,23 @@ export default function FamilyProgramsWorkspace() {
           loadFamilyCalendarTemplates({ familyId: workspace.profile.id }),
         ]);
         if (!mounted) return;
-        const filteredPrograms = nextPrograms.filter(
+        let filteredPrograms = nextPrograms.filter(
           (program) => !program.learnerId || program.learnerId === activeLearner?.id,
         );
+        if (!filteredPrograms.length) {
+          filteredPrograms = [
+            buildSeedProgram({
+              familyId: workspace.profile.id,
+              learnerId: activeLearner?.id || null,
+              frameworkId: learningConfig.frameworkId,
+              jurisdictionId: learningConfig.jurisdictionId,
+              periodLabel:
+                learningConfig.academicStructureType === "semesters"
+                  ? "Semester 1"
+                  : "Term 1",
+            }),
+          ];
+        }
         setPrograms(filteredPrograms);
         setTemplates(nextTemplates);
         const firstProgram = filteredPrograms[0] ?? null;

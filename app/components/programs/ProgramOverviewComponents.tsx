@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type {
   CalendarTemplate,
   Program,
@@ -83,9 +84,36 @@ export function ProgramEditor({
   if (!program) {
     return (
       <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
-        <div className={LABEL}>Program editor</div>
-        <h2 className={`mt-2 ${H2}`}>Create your first program</h2>
-        <p className={`mt-2 ${BODY}`}>Create your first program to begin shaping a term or sequence.</p>
+        <div className={LABEL}>Program onboarding</div>
+        <h2 className={`mt-2 ${H2}`}>Move from template to live plan in three gentle steps</h2>
+        <div className="mt-4 grid gap-3">
+          {[
+            {
+              step: "Step 1",
+              title: "Create calendar template",
+              note: "Set up the reusable weekly rhythm your programs can land inside.",
+            },
+            {
+              step: "Step 2",
+              title: "Build program",
+              note: "Shape a term, unit, or sequence without scheduling every week manually.",
+            },
+            {
+              step: "Step 3",
+              title: "Generate into plan",
+              note: "Drop the program into a calendar slot and let My Plan pre-populate the live week.",
+            },
+          ].map((item) => (
+            <article
+              key={item.step}
+              className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
+            >
+              <div className={LABEL}>{item.step}</div>
+              <div className={H3}>{item.title}</div>
+              <div className={BODY}>{item.note}</div>
+            </article>
+          ))}
+        </div>
       </section>
     );
   }
@@ -228,6 +256,12 @@ export function ProgramCalendarAssignmentPanel({
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
           <div className={H3}>No calendar template yet</div>
           <div className={`mt-2 ${BODY}`}>Set up your weekly rhythm to begin generating plans.</div>
+          <Link
+            href="/calendar"
+            className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Create calendar template
+          </Link>
         </div>
       ) : null}
 
@@ -265,16 +299,30 @@ export function ProgramCalendarAssignmentPanel({
             .filter(Boolean)
             .join(" • ") || "Choose a slot to continue"}
         </div>
+        <div className={`mt-3 ${BODY}`}>
+          Generation will place each program segment into the next matching week for this slot, then open those blocks in My Plan for live adjustment.
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onGenerate}
-        disabled={generating || !selectedTemplateId || !selectedSlotId || !startDate}
-        className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-      >
-        {generating ? "Generating..." : "Generate to My Plan"}
-      </button>
+      <div className="grid gap-3">
+        {!selectedTemplateId || !selectedSlotId || !startDate ? (
+          <div className={META}>
+            Choose a calendar template, one slot, and a start date to generate the live sequence.
+          </div>
+        ) : (
+          <div className={META}>
+            The first segment will land in the first matching week, then the rest will flow forward one week at a time.
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={onGenerate}
+          disabled={generating || !selectedTemplateId || !selectedSlotId || !startDate}
+          className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {generating ? "Generating..." : "Generate to My Plan"}
+        </button>
+      </div>
     </section>
   );
 }
