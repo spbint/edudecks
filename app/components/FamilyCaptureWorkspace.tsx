@@ -79,6 +79,7 @@ export default function FamilyCaptureWorkspace() {
 
   const learnerParam = searchParams.get("learner") || "";
   const dateParam = searchParams.get("date") || ymd(new Date());
+  const blockParam = searchParams.get("block") || "";
 
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [linkedBlocks, setLinkedBlocks] = useState<LinkedBlockOption[]>([]);
@@ -177,6 +178,14 @@ export default function FamilyCaptureWorkspace() {
       return;
     }
 
+    if (blockParam) {
+      const requested = linkedBlocks.find((block) => block.id === blockParam);
+      if (requested) {
+        setLinkedLearningBlockId(requested.id);
+        return;
+      }
+    }
+
     const exact = linkedBlocks.find((block) => block.date === occurredOn);
     if (exact && !linkedLearningBlockId) {
       setLinkedLearningBlockId(exact.id);
@@ -188,7 +197,7 @@ export default function FamilyCaptureWorkspace() {
     }
 
     setLinkedLearningBlockId(linkedBlocks[0]?.id || "");
-  }, [linkedBlocks, linkedLearningBlockId, occurredOn]);
+  }, [blockParam, linkedBlocks, linkedLearningBlockId, occurredOn]);
 
   const linkedBlock = linkedBlocks.find((block) => block.id === linkedLearningBlockId) ?? null;
 
