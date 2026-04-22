@@ -15,6 +15,9 @@ export type CreateFamilyEvidenceInput = {
   imageUrl?: string | null;
   audioUrl?: string | null;
   fileUrl?: string | null;
+  linkedLearningBlockId?: string | null;
+  curriculumOutcomeIds?: string[] | null;
+  outcomeStatusById?: Record<string, "understood" | "in_progress" | "needs_support"> | null;
 };
 
 function safe(value: unknown) {
@@ -82,7 +85,42 @@ export async function createFamilyEvidenceEntry(
     ? input.attachmentUrls.map((value) => safe(value)).filter(Boolean)
     : [];
 
+  const curriculumOutcomeIds = Array.isArray(input.curriculumOutcomeIds)
+    ? input.curriculumOutcomeIds.map((value) => safe(value)).filter(Boolean)
+    : [];
+
   const response = await supabase
+    .from("evidence_entries")
+    .insert({
+      student_id: input.studentId,
+      user_id: safe(input.userId) || null,
+      title: input.title,
+      summary: input.summary,
+      body: input.summary,
+      note,
+      evidence_type: input.evidenceType ?? "note",
+      occurred_on: input.occurredOn ?? null,
+      learning_area: safe(input.learningArea) || null,
+      visibility: input.visibility ?? "private",
+      attachment_urls: attachmentUrls.length ? attachmentUrls : null,
+      image_url: safe(input.imageUrl) || null,
+      audio_url: safe(input.audioUrl) || null,
+      file_url: safe(input.fileUrl) || null,
+      linked_learning_plan_item_id: safe(input.linkedLearningBlockId) || null,
+      curriculum_outcome_ids: curriculumOutcomeIds.length ? curriculumOutcomeIds : [],
+      outcome_status_by_id: input.outcomeStatusById ?? {},
+      is_deleted: false,
+    })
+    .select("id")
+    .single();
+
+  if (!response.error) {
+    return { id: String(response.data?.id ?? "").trim() };
+  }
+
+  if (!isMissingLearnerRelationOrColumn(response.error)) throw response.error;
+
+  const fallback = await supabase
     .from("evidence_entries")
     .insert({
       student_id: input.studentId,
@@ -104,6 +142,6 @@ export async function createFamilyEvidenceEntry(
     .select("id")
     .single();
 
-  if (response.error) throw response.error;
-  return { id: String(response.data?.id ?? "").trim() };
+  if (fallback.error) throw fallback.error;
+  return { id: String(fallback.data?.id ?? "").trim() };
 }

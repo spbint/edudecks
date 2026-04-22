@@ -1,3 +1,4 @@
+import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 import { supabase } from "@/lib/supabaseClient";
 
 export type FamilyPlannerActionCategory = "observe" | "do" | "capture" | "reflect";
@@ -27,6 +28,7 @@ export type FamilyCalendarBlockEntry = {
   subject: string;
   note: string;
   time: string;
+  curriculumOutcomeIds: string[];
 };
 
 export type FamilyCalendarWindow = {
@@ -65,14 +67,26 @@ function parseCalendarPayload(value: string) {
   if (!raw) return { note: "", time: "" };
 
   try {
-    const parsed = JSON.parse(raw) as { note?: unknown; time?: unknown };
+    const parsed = JSON.parse(raw) as {
+      note?: unknown;
+      time?: unknown;
+      curriculumOutcomeIds?: unknown;
+    };
     return {
       note: safe(parsed?.note),
       time: safe(parsed?.time),
+      curriculumOutcomeIds: Array.isArray(parsed?.curriculumOutcomeIds)
+        ? parsed.curriculumOutcomeIds.map((item) => safe(item)).filter(Boolean)
+        : [],
     };
   } catch {
-    return { note: raw, time: "" };
+    return { note: raw, time: "", curriculumOutcomeIds: [] };
   }
+}
+
+function normalizeCurriculumOutcomeIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => safe(item)).filter(Boolean);
 }
 
 function calendarBlockSource(subject: string) {
@@ -275,9 +289,9 @@ export async function loadFamilyCalendarWindow(input: {
   dateFrom: string;
   dateTo: string;
 }): Promise<FamilyCalendarWindow> {
-  const response = await supabase
+  let response: any = await supabase
     .from("learning_plan_items")
-    .select("id,title,description,planned_date,source")
+    .select("id,title,description,planned_date,source,curriculum_outcome_ids")
     .eq("family_profile_id", input.familyProfileId)
     .eq("student_id", input.studentId)
     .gte("planned_date", input.dateFrom)
@@ -285,6 +299,19 @@ export async function loadFamilyCalendarWindow(input: {
     .like("source", "planner_calendar_%")
     .order("planned_date", { ascending: true })
     .order("created_at", { ascending: true });
+
+  if (response.error && isMissingLearnerRelationOrColumn(response.error)) {
+    response = await supabase
+      .from("learning_plan_items")
+      .select("id,title,description,planned_date,source")
+      .eq("family_profile_id", input.familyProfileId)
+      .eq("student_id", input.studentId)
+      .gte("planned_date", input.dateFrom)
+      .lte("planned_date", input.dateTo)
+      .like("source", "planner_calendar_%")
+      .order("planned_date", { ascending: true })
+      .order("created_at", { ascending: true });
+  }
 
   if (response.error) throw response.error;
 
@@ -294,6 +321,7 @@ export async function loadFamilyCalendarWindow(input: {
     description?: string | null;
     planned_date?: string | null;
     source?: string | null;
+    curriculum_outcome_ids?: string[] | null;
   }>;
 
   const result: FamilyCalendarWindow = {
@@ -320,6 +348,9 @@ export async function loadFamilyCalendarWindow(input: {
         subject: parseCalendarBlockSubject(source),
         note: payload.note,
         time: payload.time,
+        curriculumOutcomeIds:
+          normalizeCurriculumOutcomeIds(row.curriculum_outcome_ids) ||
+          payload.curriculumOutcomeIds,
       };
 
       result.blocks[plannedDate] = [...(result.blocks[plannedDate] ?? []), entry];
@@ -338,22 +369,42 @@ export async function addFamilyCalendarBlock(input: {
   subject: string;
   note?: string;
   time?: string;
+  curriculumOutcomeIds?: string[];
 }): Promise<FamilyCalendarBlockEntry> {
-  const response = await supabase
+  const payload = {
+    family_profile_id: input.familyProfileId,
+    student_id: input.studentId,
+    title: safe(input.title) || "Learning block",
+    description: JSON.stringify({
+      note: safe(input.note),
+      time: safe(input.time),
+      curriculumOutcomeIds: normalizeCurriculumOutcomeIds(input.curriculumOutcomeIds),
+    }),
+    planned_date: input.date,
+    week_key: getWeekKeyFromDate(input.date),
+    status: "planned",
+    source: calendarBlockSource(input.subject),
+    created_by_user_id: input.createdByUserId,
+    curriculum_outcome_ids: normalizeCurriculumOutcomeIds(input.curriculumOutcomeIds),
+  };
+
+  let response: any = await supabase
     .from("learning_plan_items")
-    .insert({
-      family_profile_id: input.familyProfileId,
-      student_id: input.studentId,
-      title: safe(input.title) || "Learning block",
-      description: JSON.stringify({ note: safe(input.note), time: safe(input.time) }),
-      planned_date: input.date,
-      week_key: getWeekKeyFromDate(input.date),
-      status: "planned",
-      source: calendarBlockSource(input.subject),
-      created_by_user_id: input.createdByUserId,
-    })
-    .select("id,title,description,planned_date,source")
+    .insert(payload)
+    .select("id,title,description,planned_date,source,curriculum_outcome_ids")
     .single();
+
+  if (response.error && isMissingLearnerRelationOrColumn(response.error)) {
+    response = await supabase
+      .from("learning_plan_items")
+      .insert({
+        ...payload,
+        // fallback path for pre-migration schemas
+        curriculum_outcome_ids: undefined,
+      })
+      .select("id,title,description,planned_date,source")
+      .single();
+  }
 
   if (response.error) throw response.error;
 
@@ -363,17 +414,62 @@ export async function addFamilyCalendarBlock(input: {
     description?: string | null;
     planned_date?: string | null;
     source?: string | null;
+    curriculum_outcome_ids?: string[] | null;
   };
 
-  const payload = parseCalendarPayload(safe(row.description));
+  const parsedPayload = parseCalendarPayload(safe(row.description));
   return {
     id: safe(row.id),
     date: safe(row.planned_date),
     title: safe(row.title) || "Learning block",
     subject: parseCalendarBlockSubject(safe(row.source)),
-    note: payload.note,
-    time: payload.time,
+    note: parsedPayload.note,
+    time: parsedPayload.time,
+    curriculumOutcomeIds:
+      normalizeCurriculumOutcomeIds(row.curriculum_outcome_ids) || parsedPayload.curriculumOutcomeIds,
   };
+}
+
+export async function updateFamilyCalendarBlockCurriculum(input: {
+  blockId: string;
+  curriculumOutcomeIds: string[];
+}): Promise<void> {
+  const existingResponse = await supabase
+    .from("learning_plan_items")
+    .select("description")
+    .eq("id", input.blockId)
+    .single();
+
+  if (existingResponse.error) throw existingResponse.error;
+
+  const currentPayload = parseCalendarPayload(
+    safe((existingResponse.data as { description?: unknown } | null)?.description),
+  );
+
+  const nextDescription = JSON.stringify({
+    note: currentPayload.note,
+    time: currentPayload.time,
+    curriculumOutcomeIds: normalizeCurriculumOutcomeIds(input.curriculumOutcomeIds),
+  });
+
+  let updateResponse = await supabase
+    .from("learning_plan_items")
+    .update({
+      description: nextDescription,
+      curriculum_outcome_ids: normalizeCurriculumOutcomeIds(input.curriculumOutcomeIds),
+    })
+    .eq("id", input.blockId);
+
+  if (updateResponse.error && isMissingLearnerRelationOrColumn(updateResponse.error)) {
+    updateResponse = await supabase
+      .from("learning_plan_items")
+      .update({
+        description: nextDescription,
+      })
+      .eq("id", input.blockId);
+  }
+
+  if (updateResponse.error) throw updateResponse.error;
 }
 
 export async function saveFamilyCalendarDayNote(input: {

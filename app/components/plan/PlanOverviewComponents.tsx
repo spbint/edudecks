@@ -380,6 +380,7 @@ export type PlannerBlock = {
   subject: PlannerSubject;
   note: string;
   time: string;
+  curriculumOutcomeIds: string[];
 };
 
 export function PlannerControlStrip({
@@ -553,8 +554,12 @@ export function PlannerStickyNote({
 
 export function PlannerBlockCard({
   block,
+  curriculumContent,
+  editorContent,
 }: {
   block: PlannerBlock;
+  curriculumContent?: React.ReactNode;
+  editorContent?: React.ReactNode;
 }) {
   return (
     <div className="rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-3">
@@ -563,6 +568,8 @@ export function PlannerBlockCard({
         {[block.subject, block.time].filter(Boolean).join(" • ") || "Planned"}
       </div>
       {block.note ? <div className="mt-2 text-[13px] leading-5 text-slate-600">{block.note}</div> : null}
+      {curriculumContent ? <div className="mt-3">{curriculumContent}</div> : null}
+      {editorContent ? <div className="mt-3">{editorContent}</div> : null}
     </div>
   );
 }
@@ -581,6 +588,8 @@ export function PlannerDayCard({
   onOpenDay,
   quickAddOptions,
   captureHref,
+  renderBlockCurriculum,
+  renderBlockEditor,
 }: {
   label: string;
   dateLabel: string;
@@ -595,6 +604,8 @@ export function PlannerDayCard({
   onOpenDay: () => void;
   quickAddOptions: Array<{ label: string; subject: PlannerSubject; onClick: () => void }>;
   captureHref: string;
+  renderBlockCurriculum?: (block: PlannerBlock) => React.ReactNode;
+  renderBlockEditor?: (block: PlannerBlock) => React.ReactNode;
 }) {
   const buttonBase =
       "inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50";
@@ -629,7 +640,14 @@ export function PlannerDayCard({
 
       <div className="grid gap-2">
         {blocks.length ? (
-          blocks.map((block) => <PlannerBlockCard key={block.id} block={block} />)
+          blocks.map((block) => (
+            <PlannerBlockCard
+              key={block.id}
+              block={block}
+              curriculumContent={renderBlockCurriculum?.(block)}
+              editorContent={renderBlockEditor?.(block)}
+            />
+          ))
         ) : (
             <div className="rounded-[16px] border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-[13px] font-medium text-slate-500">
               Start with one small learning moment

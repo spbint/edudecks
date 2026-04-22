@@ -26,9 +26,15 @@ import {
   loadFamilyCalendarWindow,
   loadFamilyWeeklyPlan,
   saveFamilyCalendarDayNote,
+  updateFamilyCalendarBlockCurriculum,
   type FamilyCalendarWindow,
   type FamilyWeeklyPlan,
 } from "@/lib/familyPlanner";
+import {
+  CurriculumAttachPanel,
+  CurriculumTagPills,
+} from "@/app/components/curriculum/CurriculumTaggingComponents";
+import { frameworkPreset } from "@/lib/curriculumFrameworks";
 
 function ymd(date: Date) {
   const y = date.getFullYear();
@@ -120,6 +126,7 @@ export default function FamilyPlanWorkspace() {
   const [subject, setSubject] = useState<PlannerSubject>("Literacy");
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
   const [blocks, setBlocks] = useState<Record<string, PlannerBlock[]>>({});
+  const [editingCurriculumBlockId, setEditingCurriculumBlockId] = useState<string | null>(null);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -130,6 +137,10 @@ export default function FamilyPlanWorkspace() {
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
   const activeLearnerName = activeLearner?.label || "your learner";
+  const preset = workspace.profile.preferred_market
+    ? frameworkPreset(workspace.profile.preferred_market)
+    : null;
+  const hasFramework = Boolean(workspace.profile.preferred_market);
   const weekDays = useMemo(() => getBusinessWeek(selectedWeekAnchor), [selectedWeekAnchor]);
   const weekKey = getWeekKeyFromDate(ymd(weekDays[0]));
   const weekStart = ymd(weekDays[0]);
@@ -197,6 +208,7 @@ export default function FamilyPlanWorkspace() {
               subject: plannerSubject(item.subject),
               note: item.note,
               time: item.time,
+              curriculumOutcomeIds: item.curriculumOutcomeIds ?? [],
             })),
           ]),
         ) as Record<string, PlannerBlock[]>;
@@ -263,6 +275,7 @@ export default function FamilyPlanWorkspace() {
       subject: finalSubject,
       note: momentNote.trim(),
       time: optionalTime.trim(),
+      curriculumOutcomeIds: [],
     };
 
     setBlocks((prev) => ({
@@ -292,6 +305,7 @@ export default function FamilyPlanWorkspace() {
         subject: finalSubject,
         note: optimisticBlock.note,
         time: optimisticBlock.time,
+        curriculumOutcomeIds: optimisticBlock.curriculumOutcomeIds,
       });
 
       setBlocks((prev) => ({
@@ -304,6 +318,7 @@ export default function FamilyPlanWorkspace() {
             subject: plannerSubject(savedBlock.subject),
             note: savedBlock.note,
             time: savedBlock.time,
+            curriculumOutcomeIds: savedBlock.curriculumOutcomeIds ?? [],
           },
         ],
       }));
@@ -366,6 +381,40 @@ export default function FamilyPlanWorkspace() {
     const today = new Date();
     setSelectedWeekAnchor(today);
     setSelectedDate(today);
+  }
+
+  async function saveBlockCurriculum(blockId: string, curriculumOutcomeIds: string[]) {
+    setBlocks((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([date, items]) => [
+          date,
+          items.map((item) =>
+            item.id === blockId ? { ...item, curriculumOutcomeIds } : item,
+          ),
+        ]),
+      ),
+    );
+    setEditingCurriculumBlockId(null);
+
+    if (!canonicalReady) {
+      setStatusMessage("Curriculum links will persist once the synced workspace is available.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setPlanError("");
+      await updateFamilyCalendarBlockCurriculum({ blockId, curriculumOutcomeIds });
+      setStatusMessage(
+        curriculumOutcomeIds.length
+          ? "Curriculum links saved."
+          : "Curriculum links cleared.",
+      );
+    } catch (error: any) {
+      setPlanError(String(error?.message ?? "We could not save curriculum links."));
+    } finally {
+      setSavingCalendar(false);
+    }
   }
 
   const compactSummaryCards: PlanMetricCardProps[] = [
@@ -660,6 +709,44 @@ export default function FamilyPlanWorkspace() {
                   onClick: () => void addBlockForDate(day, plannerChip, plannerChip),
                 }))}
                 captureHref={`/capture?learner=${encodeURIComponent(activeLearner?.id || "")}&date=${encodeURIComponent(key)}`}
+                renderBlockCurriculum={(block) => (
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        Linked outcomes
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingCurriculumBlockId((current) => (current === block.id ? null : block.id))}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                      >
+                        {block.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+                      </button>
+                    </div>
+                    {hasFramework && preset ? (
+                      <CurriculumTagPills
+                        preset={preset}
+                        outcomeIds={block.curriculumOutcomeIds}
+                        emptyLabel="No linked outcomes yet"
+                      />
+                    ) : (
+                      <div className="text-[13px] leading-5 text-slate-500">
+                        Choose a curriculum framework in My Settings to begin linking outcomes.
+                      </div>
+                    )}
+                  </div>
+                )}
+                renderBlockEditor={(block) =>
+                  editingCurriculumBlockId === block.id ? (
+                    <CurriculumAttachPanel
+                      preset={preset}
+                      selectedOutcomeIds={block.curriculumOutcomeIds}
+                      onApply={(outcomeIds) => void saveBlockCurriculum(block.id, outcomeIds)}
+                      onCancel={() => setEditingCurriculumBlockId(null)}
+                      state={planState}
+                    />
+                  ) : null
+                }
               />
             );
           })}
