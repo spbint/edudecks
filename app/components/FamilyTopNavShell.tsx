@@ -170,10 +170,10 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cx(
-          "inline-flex items-center rounded-full px-4 py-2 text-sm font-bold transition",
+          "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
           secondaryActive
-            ? "bg-slate-950 text-white shadow-[0_10px_26px_rgba(15,23,42,0.12)]"
-            : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+            ? "bg-slate-950 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]"
+            : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
         )}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -182,7 +182,7 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-60 rounded-[20px] border border-slate-200 bg-white p-2 shadow-[0_18px_42px_rgba(15,23,42,0.12)]">
+        <div className="absolute right-0 z-50 mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white/98 p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.14)] backdrop-blur">
           {SECONDARY_NAV.map((item) => {
             const active = pathname === item.href;
             return (
@@ -190,10 +190,10 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
                 key={item.href}
                 href={item.href}
                 className={cx(
-                  "block rounded-[14px] px-4 py-3 text-sm font-semibold transition",
+                  "block rounded-[16px] px-4 py-3 text-sm font-semibold tracking-[-0.01em] transition duration-150",
                   active
-                    ? "bg-slate-100 text-slate-950"
-                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-950",
+                    ? "bg-slate-950 text-white shadow-[0_10px_24px_rgba(15,23,42,0.12)]"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-950",
                 )}
                 onClick={() => setOpen(false)}
               >
@@ -242,14 +242,14 @@ export default function FamilyTopNavShell({
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-6">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/92 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-6 py-3.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-center gap-7">
             <div className="shrink-0">
               <BrandHomeLink href="/my-day" />
             </div>
 
-            <nav className="hidden min-w-0 items-center gap-2 lg:flex">
+            <nav className="hidden min-w-0 items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 p-1 lg:flex">
               {PRIMARY_NAV.map((item) => {
                 const active = normalizedPath === item.href;
                 return (
@@ -257,10 +257,10 @@ export default function FamilyTopNavShell({
                     key={item.href}
                     href={item.href}
                     className={cx(
-                      "inline-flex items-center rounded-full px-4 py-2 text-sm font-bold transition",
+                      "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
                       active
-                        ? "bg-slate-950 text-white shadow-[0_10px_26px_rgba(15,23,42,0.12)]"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+                        ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
+                        : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
                     )}
                   >
                     {item.label}
@@ -273,16 +273,16 @@ export default function FamilyTopNavShell({
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
-            <div className="min-w-0 lg:text-right">
+            <div className="min-w-0 pr-1 lg:text-right">
               {resolvedTitle ? (
-                <div className="truncate text-[15px] font-black text-slate-950">{resolvedTitle}</div>
+                <div className="truncate text-[14px] font-bold tracking-[-0.01em] text-slate-900">{resolvedTitle}</div>
               ) : null}
-              <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
+              <div className="truncate text-[13px] font-medium tracking-[-0.01em] text-slate-500">{resolvedSubtitle}</div>
             </div>
 
             <span
               aria-label="Workspace status"
-              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
             >
               In sync
             </span>
