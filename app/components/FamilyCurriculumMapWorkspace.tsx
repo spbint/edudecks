@@ -22,21 +22,21 @@ import {
   type SubjectCoverageTabData,
 } from "@/app/components/curriculum/CurriculumMapOverviewComponents";
 import {
-  type FrameworkPreset,
   frameworkPreset,
 } from "@/lib/curriculumFrameworks";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import { loadFamilyCalendarWindow } from "@/lib/familyPlanner";
+import {
+  buildCurriculumOutcomeSignals,
+  summarizeCurriculumSignals,
+  type CurriculumEvidenceSignalRow,
+  type CurriculumPlannerSignalBlock,
+} from "@/lib/curriculumSignals";
 
-type EvidenceRow = {
-  id: string;
-  occurred_on?: string | null;
-  created_at?: string | null;
-  learning_area?: string | null;
-  evidence_type?: string | null;
-};
+type EvidenceRow = CurriculumEvidenceSignalRow;
 
 const EVIDENCE_SELECTS = [
+  "id,occurred_on,created_at,learning_area,evidence_type,curriculum_outcome_ids,outcome_status_by_id",
   "id,occurred_on,created_at,learning_area,evidence_type",
 ];
 
@@ -77,79 +77,11 @@ function recentLabel(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
-function normalizeSubjectKey(value: string) {
-  return safe(value).toLowerCase();
-}
-
-function subjectSignalMap(args: {
-  evidenceRows: EvidenceRow[];
-  plannerSubjects: string[];
-  preset: FrameworkPreset;
-}) {
-  const evidenceMap = new Map<string, { count: number; recentCount: number; lastTouchedAt?: string | null }>();
-  const plannerMap = new Map<string, number>();
-  const recentCutoff = Date.now() - 1000 * 60 * 60 * 24 * 30;
-
-  for (const subject of args.preset.subjects) {
-    evidenceMap.set(subject.id, { count: 0, recentCount: 0, lastTouchedAt: null });
-    plannerMap.set(subject.id, 0);
-  }
-
-  args.evidenceRows.forEach((row) => {
-    const area = normalizeSubjectKey(safe(row.learning_area));
-    const subject = args.preset.subjects.find((item) => item.aliases.some((alias) => area.includes(alias)));
-    if (!subject) return;
-
-    const next = evidenceMap.get(subject.id)!;
-    next.count += 1;
-    const touchedAt = safe(row.occurred_on) || safe(row.created_at) || null;
-    if (touchedAt) {
-      const parsed = new Date(`${touchedAt}T00:00:00`);
-      if (!Number.isNaN(parsed.getTime()) && parsed.getTime() >= recentCutoff) {
-        next.recentCount += 1;
-      }
-      next.lastTouchedAt = touchedAt;
-    }
-  });
-
-  args.plannerSubjects.forEach((subjectName) => {
-    const normalized = normalizeSubjectKey(subjectName);
-    const subject = args.preset.subjects.find((item) => item.aliases.some((alias) => normalized.includes(alias)));
-    if (!subject) return;
-    plannerMap.set(subject.id, (plannerMap.get(subject.id) ?? 0) + 1);
-  });
-
-  return { evidenceMap, plannerMap };
-}
-
-function deriveOutcomeStatusPlan(args: {
-  outcomeCount: number;
-  evidenceCount: number;
-  recentCount: number;
-  planCount: number;
-}) {
-  const signal = args.evidenceCount * 2 + args.recentCount + args.planCount;
-  const understood = signal <= 0 ? 0 : Math.min(args.outcomeCount, Math.floor(signal / 3));
-  const inProgress = signal <= 0 ? 0 : Math.min(args.outcomeCount - understood, Math.max(1, args.planCount > 0 ? 1 : 0));
-  const needsSupport =
-    args.evidenceCount > 0 && args.recentCount === 0 && args.planCount === 0 && args.outcomeCount - understood - inProgress > 0
-      ? 1
-      : 0;
-
-  return { understood, inProgress, needsSupport };
-}
-
-function statusForOutcome(index: number, plan: { understood: number; inProgress: number; needsSupport: number }): CoverageStatus {
-  if (index < plan.understood) return "understood";
-  if (index < plan.understood + plan.inProgress) return "in_progress";
-  if (index < plan.understood + plan.inProgress + plan.needsSupport) return "needs_support";
-  return "not_started";
-}
-
 export default function FamilyCurriculumMapWorkspace() {
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
   const [evidenceRows, setEvidenceRows] = useState<EvidenceRow[]>([]);
   const [plannerSubjects, setPlannerSubjects] = useState<string[]>([]);
+  const [plannerBlocks, setPlannerBlocks] = useState<CurriculumPlannerSignalBlock[]>([]);
   const [loadingCoverage, setLoadingCoverage] = useState(true);
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const [expandedStrands, setExpandedStrands] = useState<Record<string, string | null>>({});
@@ -177,6 +109,7 @@ export default function FamilyCurriculumMapWorkspace() {
         if (mounted) {
           setEvidenceRows([]);
           setPlannerSubjects([]);
+          setPlannerBlocks([]);
           setLoadingCoverage(false);
         }
         return;
@@ -186,6 +119,7 @@ export default function FamilyCurriculumMapWorkspace() {
         if (mounted) {
           setEvidenceRows([]);
           setPlannerSubjects([]);
+          setPlannerBlocks([]);
           setLoadingCoverage(false);
         }
         return;
@@ -216,9 +150,18 @@ export default function FamilyCurriculumMapWorkspace() {
           .flat()
           .map((item) => safe(item.subject))
           .filter(Boolean);
+        const weekBlocks = Object.entries(calendarWindow.blocks).flatMap(([date, items]) =>
+          items.map((item) => ({
+            id: item.id,
+            subject: item.subject,
+            date,
+            curriculumOutcomeIds: item.curriculumOutcomeIds ?? [],
+          })),
+        );
 
         setEvidenceRows(evidence);
         setPlannerSubjects(weekSubjects);
+        setPlannerBlocks(weekBlocks);
       } finally {
         if (mounted) setLoadingCoverage(false);
       }
@@ -257,24 +200,30 @@ export default function FamilyCurriculumMapWorkspace() {
         : "placeholder"
       : "empty";
 
-  const { evidenceMap, plannerMap } = useMemo(
-    () => subjectSignalMap({ evidenceRows, plannerSubjects, preset }),
-    [evidenceRows, plannerSubjects, preset],
+  const fallbackPlannerBlocks = useMemo(
+    () =>
+      plannerSubjects.map((subject, index) => ({
+        id: `fallback-${index}`,
+        subject,
+        date: null,
+        curriculumOutcomeIds: [],
+      })),
+    [plannerSubjects],
+  );
+
+  const outcomeSignals = useMemo(
+    () =>
+      buildCurriculumOutcomeSignals({
+        preset,
+        evidenceRows,
+        plannerBlocks: plannerBlocks.length ? plannerBlocks : fallbackPlannerBlocks,
+      }),
+    [evidenceRows, fallbackPlannerBlocks, plannerBlocks, preset],
   );
 
   const subjectViews = useMemo(() => {
     return preset.subjects.map((subject) => {
-      const evidenceSignal = evidenceMap.get(subject.id) ?? { count: 0, recentCount: 0, lastTouchedAt: null };
-      const planSignal = plannerMap.get(subject.id) ?? 0;
-
       const strands: StrandCoverageView[] = subject.strands.map((strand) => {
-        const plan = deriveOutcomeStatusPlan({
-          outcomeCount: strand.outcomes.length,
-          evidenceCount: evidenceSignal.count,
-          recentCount: evidenceSignal.recentCount,
-          planCount: planSignal,
-        });
-
         const counts: Record<CoverageStatus, number> = {
           not_started: 0,
           in_progress: 0,
@@ -283,7 +232,8 @@ export default function FamilyCurriculumMapWorkspace() {
         };
 
         const outcomes: OutcomeCoverageView[] = strand.outcomes.map((outcome, index) => {
-          const status = statusForOutcome(index, plan);
+          const signal = outcomeSignals.get(outcome.code);
+          const status = signal?.status ?? "not_started";
           counts[status] += 1;
 
           return {
@@ -291,19 +241,11 @@ export default function FamilyCurriculumMapWorkspace() {
             code: outcome.code,
             label: outcome.label,
             status,
-            evidenceCount:
-              status === "understood"
-                ? Math.max(2, evidenceSignal.count)
-                : status === "in_progress"
-                  ? Math.max(1, Math.min(2, evidenceSignal.count || planSignal))
-                  : status === "needs_support"
-                    ? Math.max(1, evidenceSignal.count)
-                    : 0,
-            lastTouchedAt:
-              status === "not_started"
-                ? null
-                : recentLabel(evidenceSignal.lastTouchedAt),
-            viewHref: `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&subject=${encodeURIComponent(subject.title)}`,
+            evidenceCount: signal?.evidenceCount ?? 0,
+            lastTouchedAt: signal?.lastTouchedAt ? recentLabel(signal.lastTouchedAt) : null,
+            viewHref: signal?.evidenceIds.length
+              ? `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&evidence=${encodeURIComponent(signal.evidenceIds.join(","))}`
+              : `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&subject=${encodeURIComponent(subject.title)}`,
           };
         });
 
@@ -333,35 +275,15 @@ export default function FamilyCurriculumMapWorkspace() {
         counts: totalCounts,
       };
     });
-  }, [activeLearner?.id, evidenceMap, plannerMap, preset]);
+  }, [activeLearner?.id, outcomeSignals, preset]);
 
   const selectedSubject =
     subjectViews.find((subject) => subject.id === selectedSubjectId) ?? subjectViews[0];
   const selectedSubjectKey = selectedSubject?.id || "";
 
-  const summaryCounts = subjectViews.reduce<Record<CoverageStatus, number>>(
-    (acc, subject) => {
-      acc.not_started += subject.counts.not_started;
-      acc.in_progress += subject.counts.in_progress;
-      acc.understood += subject.counts.understood;
-      acc.needs_support += subject.counts.needs_support;
-      return acc;
-    },
-    { not_started: 0, in_progress: 0, understood: 0, needs_support: 0 },
-  );
-
-  const totalOutcomes =
-    summaryCounts.not_started +
-    summaryCounts.in_progress +
-    summaryCounts.understood +
-    summaryCounts.needs_support;
-
-  const coverageConfidence =
-    mapState === "placeholder"
-      ? 62
-      : totalOutcomes
-        ? Math.round(((summaryCounts.understood + summaryCounts.in_progress * 0.6) / totalOutcomes) * 100)
-        : 0;
+  const signalSummary = useMemo(() => summarizeCurriculumSignals(outcomeSignals), [outcomeSignals]);
+  const summaryCounts = signalSummary.counts;
+  const coverageConfidence = mapState === "placeholder" ? 62 : signalSummary.confidence;
 
   const summaryCards = [
     {
