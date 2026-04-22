@@ -627,3 +627,31 @@ export async function saveFamilyCalendarDayNote(input: {
 
   if (insertResponse.error) throw insertResponse.error;
 }
+
+export async function countFamilyGeneratedCalendarBlocks(input: {
+  familyProfileId: string;
+  studentId?: string | null;
+}): Promise<number> {
+  let query = supabase
+    .from("learning_plan_items")
+    .select("id,description,source")
+    .eq("family_profile_id", input.familyProfileId)
+    .like("source", "planner_calendar_block:%")
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  if (safe(input.studentId)) {
+    query = query.eq("student_id", safe(input.studentId));
+  }
+
+  const response = await query;
+  if (response.error) throw response.error;
+
+  const rows = (response.data ?? []) as Array<{
+    id?: string | null;
+    description?: string | null;
+    source?: string | null;
+  }>;
+
+  return rows.filter((row) => parseCalendarPayload(safe(row.description)).sourceType === "generated").length;
+}

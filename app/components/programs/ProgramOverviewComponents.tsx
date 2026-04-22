@@ -6,7 +6,6 @@ import type {
   CalendarTemplate,
   Program,
   ProgramSegment,
-  TemplateSlot,
 } from "@/lib/familyPlanningTemplates";
 
 export const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
@@ -16,6 +15,119 @@ export const BODY = "text-[14px] leading-6 text-slate-600";
 export const META = "text-[13px] leading-5 text-slate-500";
 export const INPUT =
   "w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[14px] text-slate-900 outline-none transition focus:border-blue-200 focus:ring-4 focus:ring-blue-100";
+
+export function ProgramsFirstRunCard({
+  onStartSetup,
+  onLearnHow,
+  primaryLabel = "Start setup",
+}: {
+  onStartSetup: () => void;
+  onLearnHow?: () => void;
+  primaryLabel?: string;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="grid gap-1.5">
+        <div className={LABEL}>Getting started</div>
+        <h2 className={H2}>Build your first program</h2>
+        <p className={BODY}>
+          This is where your term or learning sequence comes together before it flows into your weekly plan.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          { step: "Step 1", title: "Create your weekly rhythm" },
+          { step: "Step 2", title: "Build your learning sequence" },
+          { step: "Step 3", title: "Generate it into your live week" },
+        ].map((item) => (
+          <article
+            key={item.step}
+            className="grid gap-1 rounded-[18px] border border-slate-200 bg-white/90 px-4 py-4"
+          >
+            <div className={LABEL}>{item.step}</div>
+            <div className={H3}>{item.title}</div>
+          </article>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onStartSetup}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          {primaryLabel}
+        </button>
+        {onLearnHow ? (
+          <button
+            type="button"
+            onClick={onLearnHow}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Learn how it works
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function ProgramsGuidedSetupBanner({
+  title,
+  note,
+}: {
+  title: string;
+  note: string;
+}) {
+  return (
+    <section className="rounded-[20px] border border-slate-200 bg-slate-50/80 px-5 py-4 shadow-[0_8px_20px_rgba(15,23,42,0.03)]">
+      <div className={LABEL}>Guided setup</div>
+      <div className={`mt-2 ${H3}`}>{title}</div>
+      <div className={`mt-1 ${BODY}`}>{note}</div>
+    </section>
+  );
+}
+
+export function ProgramGenerationSuccessBanner({
+  count,
+  onOpenPlan,
+  onStayHere,
+}: {
+  count: number;
+  onOpenPlan: () => void;
+  onStayHere: () => void;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[24px] border border-emerald-200 bg-emerald-50/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <div className="grid gap-1.5">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+          Generation complete
+        </div>
+        <h2 className={H2}>Your program is now live in your weekly plan</h2>
+        <p className={BODY}>
+          {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onOpenPlan}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          Open My Plan
+        </button>
+        <button
+          type="button"
+          onClick={onStayHere}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Stay here
+        </button>
+      </div>
+    </section>
+  );
+}
 
 export function ProgramList({
   programs,
@@ -34,7 +146,9 @@ export function ProgramList({
         <div className="grid gap-1.5">
           <div className={LABEL}>My Programs</div>
           <h2 className={H2}>Shape the longer sequence before it reaches the live week</h2>
-          <p className={BODY}>Build reusable units, terms, or sequences here, then place them into your calendar rhythm when you are ready.</p>
+          <p className={BODY}>
+            Build reusable units, terms, or sequences here, then place them into your calendar rhythm when you are ready.
+          </p>
         </div>
         <button
           type="button"
@@ -128,18 +242,32 @@ export function ProgramEditor({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-2">
           <span className={LABEL}>Title</span>
-          <input className={INPUT} value={program.title} onChange={(event) => onChange({ ...program, title: event.target.value })} />
+          <input
+            className={INPUT}
+            value={program.title}
+            onChange={(event) => onChange({ ...program, title: event.target.value })}
+          />
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Subject</span>
-          <input className={INPUT} value={program.subjectId} onChange={(event) => onChange({ ...program, subjectId: event.target.value })} />
+          <input
+            className={INPUT}
+            value={program.subjectId}
+            onChange={(event) => onChange({ ...program, subjectId: event.target.value })}
+          />
         </label>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <label className="grid gap-2">
           <span className={LABEL}>Period type</span>
-          <select className={INPUT} value={program.periodType} onChange={(event) => onChange({ ...program, periodType: event.target.value as Program["periodType"] })}>
+          <select
+            className={INPUT}
+            value={program.periodType}
+            onChange={(event) =>
+              onChange({ ...program, periodType: event.target.value as Program["periodType"] })
+            }
+          >
             <option value="term">Term</option>
             <option value="semester">Semester</option>
             <option value="season">Season</option>
@@ -148,7 +276,11 @@ export function ProgramEditor({
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Period label</span>
-          <input className={INPUT} value={program.periodLabel} onChange={(event) => onChange({ ...program, periodLabel: event.target.value })} />
+          <input
+            className={INPUT}
+            value={program.periodLabel}
+            onChange={(event) => onChange({ ...program, periodLabel: event.target.value })}
+          />
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Duration</span>
@@ -156,12 +288,20 @@ export function ProgramEditor({
             className={INPUT}
             inputMode="numeric"
             value={program.durationCount}
-            onChange={(event) => onChange({ ...program, durationCount: Number(event.target.value || 0) || 1 })}
+            onChange={(event) =>
+              onChange({ ...program, durationCount: Number(event.target.value || 0) || 1 })
+            }
           />
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Segment type</span>
-          <select className={INPUT} value={program.segmentType} onChange={(event) => onChange({ ...program, segmentType: event.target.value as Program["segmentType"] })}>
+          <select
+            className={INPUT}
+            value={program.segmentType}
+            onChange={(event) =>
+              onChange({ ...program, segmentType: event.target.value as Program["segmentType"] })
+            }
+          >
             <option value="week">Week</option>
             <option value="sequence">Sequence</option>
             <option value="focus">Focus</option>
@@ -229,6 +369,7 @@ export function ProgramCalendarAssignmentPanel({
   onStartDateChange,
   onGenerate,
   generating,
+  generationReady,
 }: {
   templates: CalendarTemplate[];
   selectedTemplateId: string;
@@ -239,8 +380,10 @@ export function ProgramCalendarAssignmentPanel({
   onStartDateChange: (value: string) => void;
   onGenerate: () => void;
   generating?: boolean;
+  generationReady: boolean;
 }) {
-  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null;
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) ?? null;
   const slots = selectedTemplate?.slots || [];
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) ?? null;
 
@@ -249,13 +392,17 @@ export function ProgramCalendarAssignmentPanel({
       <div className="grid gap-1.5">
         <div className={LABEL}>Program to calendar</div>
         <h2 className={H2}>Choose where this program should land</h2>
-        <p className={BODY}>Assign the program to a reusable calendar slot, choose the start week, then generate it into the live planner.</p>
+        <p className={BODY}>
+          Assign this program to a reusable calendar slot, then choose when to start.
+        </p>
       </div>
 
       {!templates.length ? (
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
           <div className={H3}>No calendar template yet</div>
-          <div className={`mt-2 ${BODY}`}>Set up your weekly rhythm to begin generating plans.</div>
+          <div className={`mt-2 ${BODY}`}>
+            Set up your weekly rhythm to begin generating plans.
+          </div>
           <Link
             href="/calendar"
             className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -268,7 +415,11 @@ export function ProgramCalendarAssignmentPanel({
       <div className="grid gap-4 md:grid-cols-3">
         <label className="grid gap-2">
           <span className={LABEL}>Calendar template</span>
-          <select className={INPUT} value={selectedTemplateId} onChange={(event) => onTemplateChange(event.target.value)}>
+          <select
+            className={INPUT}
+            value={selectedTemplateId}
+            onChange={(event) => onTemplateChange(event.target.value)}
+          >
             {templates.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.title}
@@ -278,7 +429,11 @@ export function ProgramCalendarAssignmentPanel({
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Template slot</span>
-          <select className={INPUT} value={selectedSlotId} onChange={(event) => onSlotChange(event.target.value)}>
+          <select
+            className={INPUT}
+            value={selectedSlotId}
+            onChange={(event) => onSlotChange(event.target.value)}
+          >
             {slots.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.label}
@@ -288,14 +443,22 @@ export function ProgramCalendarAssignmentPanel({
         </label>
         <label className="grid gap-2">
           <span className={LABEL}>Start date</span>
-          <input className={INPUT} type="date" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} />
+          <input
+            className={INPUT}
+            type="date"
+            value={startDate}
+            onChange={(event) => onStartDateChange(event.target.value)}
+          />
         </label>
       </div>
 
       <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
         <div className={H3}>{selectedSlot?.label || "No slot selected"}</div>
         <div className={`mt-1 ${META}`}>
-          {[selectedSlot?.subjectId, [selectedSlot?.startTime, selectedSlot?.endTime].filter(Boolean).join(" - ")]
+          {[
+            selectedSlot?.subjectId,
+            [selectedSlot?.startTime, selectedSlot?.endTime].filter(Boolean).join(" - "),
+          ]
             .filter(Boolean)
             .join(" • ") || "Choose a slot to continue"}
         </div>
@@ -305,10 +468,18 @@ export function ProgramCalendarAssignmentPanel({
       </div>
 
       <div className="grid gap-3">
-        {!selectedTemplateId || !selectedSlotId || !startDate ? (
+        {!templates.length ? (
           <div className={META}>
-            Choose a calendar template, one slot, and a start date to generate the live sequence.
+            Create your weekly rhythm first, then return here to map the program into a reusable slot.
           </div>
+        ) : !selectedTemplateId ? (
+          <div className={META}>Choose where this program should land.</div>
+        ) : !slots.length ? (
+          <div className={META}>Create a calendar slot first.</div>
+        ) : !selectedSlotId ? (
+          <div className={META}>Choose a slot to continue.</div>
+        ) : !startDate ? (
+          <div className={META}>Choose when this sequence should begin.</div>
         ) : (
           <div className={META}>
             The first segment will land in the first matching week, then the rest will flow forward one week at a time.
@@ -317,7 +488,7 @@ export function ProgramCalendarAssignmentPanel({
         <button
           type="button"
           onClick={onGenerate}
-          disabled={generating || !selectedTemplateId || !selectedSlotId || !startDate}
+          disabled={generating || !generationReady}
           className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {generating ? "Generating..." : "Generate to My Plan"}

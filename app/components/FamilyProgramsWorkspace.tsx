@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -12,6 +13,9 @@ import {
   CurriculumTagPills,
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import {
+  ProgramGenerationSuccessBanner,
+  ProgramsFirstRunCard,
+  ProgramsGuidedSetupBanner,
   ProgramCalendarAssignmentPanel,
   ProgramEditor,
   ProgramList,
@@ -33,6 +37,7 @@ import {
   type ProgramSegment,
 } from "@/lib/familyPlanningTemplates";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
+import { countFamilyGeneratedCalendarBlocks } from "@/lib/familyPlanner";
 
 function buildSeedProgram(input: {
   familyId: string;
@@ -90,6 +95,7 @@ function ymd(date: Date) {
 }
 
 export default function FamilyProgramsWorkspace() {
+  const router = useRouter();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
   const [programs, setPrograms] = useState<Program[]>([]);
   const [templates, setTemplates] = useState<CalendarTemplate[]>([]);
@@ -104,6 +110,10 @@ export default function FamilyProgramsWorkspace() {
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [generatedBlockCount, setGeneratedBlockCount] = useState(0);
+  const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
+  const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
+  const [loadedProgramCount, setLoadedProgramCount] = useState(0);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -133,10 +143,18 @@ export default function FamilyProgramsWorkspace() {
           loadFamilyPrograms({ familyId: workspace.profile.id }),
           loadFamilyCalendarTemplates({ familyId: workspace.profile.id }),
         ]);
+        let generatedCount = 0;
+        if (activeLearner?.id) {
+          generatedCount = await countFamilyGeneratedCalendarBlocks({
+            familyProfileId: workspace.profile.id,
+            studentId: activeLearner.id,
+          }).catch(() => 0);
+        }
         if (!mounted) return;
         let filteredPrograms = nextPrograms.filter(
           (program) => !program.learnerId || program.learnerId === activeLearner?.id,
         );
+        setLoadedProgramCount(filteredPrograms.length);
         if (!filteredPrograms.length) {
           filteredPrograms = [
             buildSeedProgram({
@@ -153,6 +171,7 @@ export default function FamilyProgramsWorkspace() {
         }
         setPrograms(filteredPrograms);
         setTemplates(nextTemplates);
+        setGeneratedBlockCount(generatedCount);
         const firstProgram = filteredPrograms[0] ?? null;
         setSelectedProgramId(firstProgram?.id || "");
         setAssignmentTemplateId(nextTemplates[0]?.id || "");
@@ -173,6 +192,17 @@ export default function FamilyProgramsWorkspace() {
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === selectedProgramId) ?? null,
     [programs, selectedProgramId],
+  );
+  const hasCalendarTemplate = templates.some((template) => template.slots.length > 0);
+  const hasPrograms = loadedProgramCount > 0;
+  const hasVisiblePrograms = programs.length > 0;
+  const hasGeneratedItems = generatedBlockCount > 0;
+  const hasMapping = Boolean(
+    selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
+  );
+  const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
+  const generationReady = Boolean(
+    selectedProgram && assignmentTemplateId && assignmentSlotId && assignmentStartDate && hasCalendarTemplate,
   );
 
   const selectedSegment =
@@ -203,17 +233,17 @@ export default function FamilyProgramsWorkspace() {
   }, [assignmentSlotId, assignmentTemplateId, templates]);
 
   function handleCreateProgram() {
-    const next = defaultProgram({
+    const next = buildSeedProgram({
       familyId: workspace.profile.id,
       learnerId: activeLearner?.id || null,
       frameworkId: learningConfig.frameworkId,
       jurisdictionId: learningConfig.jurisdictionId,
-      subjectId: "Inquiry",
-      periodLabel: learningConfig.academicStructureType === "semesters" ? "This semester" : "This term",
+      periodLabel: learningConfig.academicStructureType === "semesters" ? "Semester 1" : "Term 1",
     });
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
-    setStatus("A fresh program template is ready to shape.");
+    setLoadedProgramCount((current) => Math.max(current, 1));
+    setStatus("A starter program is ready to shape.");
     setError("");
   }
 
@@ -320,6 +350,9 @@ export default function FamilyProgramsWorkspace() {
         slotId: assignmentSlotId,
         startDate: assignmentStartDate,
       });
+      setGeneratedBlockCount((current) => current + generated.length);
+      setLastGeneratedCount(generated.length);
+      setShowGenerationSuccess(true);
       setStatus(`${generated.length} live planning block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
     } catch (generateError: any) {
       setError(String(generateError?.message ?? "We couldn't generate the live plan yet."));
@@ -337,6 +370,14 @@ export default function FamilyProgramsWorkspace() {
       heroAsideText="Programs hold the longer story. Calendar templates decide where that story lands in a normal week."
     >
       <div className="grid gap-5 pb-14">
+        {showGenerationSuccess ? (
+          <ProgramGenerationSuccessBanner
+            count={lastGeneratedCount}
+            onOpenPlan={() => router.push(`/my-plan?date=${encodeURIComponent(assignmentStartDate)}`)}
+            onStayHere={() => setShowGenerationSuccess(false)}
+          />
+        ) : null}
+
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "Your family"}
           learners={learnerOptions}
@@ -344,6 +385,44 @@ export default function FamilyProgramsWorkspace() {
           onSelectLearner={setActiveLearner}
           state={workspaceLoading ? "loading" : activeLearner ? "live" : "empty"}
         />
+
+        {isFirstRun ? (
+          <ProgramsFirstRunCard
+            onStartSetup={() => {
+              if (!hasCalendarTemplate) {
+                router.push("/calendar?returnTo=/my-programs&setup=1");
+                return;
+              }
+              handleCreateProgram();
+            }}
+            onLearnHow={() => {
+              const target = document.getElementById("programs-workspace");
+              target?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
+          />
+        ) : null}
+
+        {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
+          <ProgramsGuidedSetupBanner
+            title="Your weekly rhythm is ready. Now let’s build your program."
+            note="Start with a sample program, rename a few segments, then map it into one calendar slot."
+          />
+        ) : null}
+
+        {!isFirstRun && hasVisiblePrograms && !hasMapping && !showGenerationSuccess ? (
+          <ProgramsGuidedSetupBanner
+            title="Choose where this program should land next"
+            note="Assign the current program to one reusable calendar slot so it can flow into your live week."
+          />
+        ) : null}
+
+        {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
+          <ProgramsGuidedSetupBanner
+            title="You’re one step away from the live week"
+            note="Choose the start date, then generate this sequence into My Plan."
+          />
+        ) : null}
 
         <ProgramList
           programs={programs}
@@ -357,7 +436,7 @@ export default function FamilyProgramsWorkspace() {
             <div className={BODY}>Loading programs…</div>
           </section>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
             <div className="grid gap-5">
               <ProgramEditor program={selectedProgram} onChange={updateProgram} />
 
@@ -441,6 +520,7 @@ export default function FamilyProgramsWorkspace() {
                 onStartDateChange={setAssignmentStartDate}
                 onGenerate={() => void handleGenerate()}
                 generating={generating}
+                generationReady={generationReady}
               />
 
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">

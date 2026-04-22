@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   CalendarTemplateGrid,
@@ -25,6 +26,8 @@ function makeId(prefix: string) {
 }
 
 export default function FamilyCalendarTemplateWorkspace() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { workspace, activeLearner } = useFamilyWorkspace();
   const [templates, setTemplates] = useState<CalendarTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -35,6 +38,8 @@ export default function FamilyCalendarTemplateWorkspace() {
   const [error, setError] = useState("");
 
   const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
+  const returnTo = searchParams.get("returnTo");
+  const isSetupFlow = searchParams.get("setup") === "1";
 
   useEffect(() => {
     let mounted = true;
@@ -156,7 +161,15 @@ export default function FamilyCalendarTemplateWorkspace() {
     try {
       const saved = await saveFamilyCalendarTemplate(selectedTemplate);
       upsertTemplate(saved);
-      setStatus("Calendar template saved.");
+      const nextStatus = returnTo
+        ? "Your weekly rhythm is ready. Now let’s build your program."
+        : "Calendar template saved.";
+      setStatus(nextStatus);
+      if (returnTo) {
+        window.setTimeout(() => {
+          router.push(returnTo);
+        }, 500);
+      }
     } catch (saveError: any) {
       setError(String(saveError?.message ?? "We couldn't save the calendar template yet."));
     } finally {
@@ -189,10 +202,18 @@ export default function FamilyCalendarTemplateWorkspace() {
           ].map((item) => (
             <article key={item.label} className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
               <div className={LABEL}>{item.label}</div>
-              <div className={H2}>{item.value}</div>
-            </article>
-          ))}
-        </section>
+            <div className={H2}>{item.value}</div>
+          </article>
+        ))}
+      </section>
+
+        {isSetupFlow ? (
+          <section className="rounded-[24px] border border-sky-200 bg-sky-50/70 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+            <div className={LABEL}>Create your weekly rhythm</div>
+            <h2 className={`mt-2 ${H2}`}>When do subjects usually happen in a normal week?</h2>
+            <p className={`mt-2 ${BODY}`}>Add one to three slots first. You can keep refining the template later.</p>
+          </section>
+        ) : null}
 
         {loading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -227,7 +248,7 @@ export default function FamilyCalendarTemplateWorkspace() {
             disabled={saving || !selectedTemplate}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {saving ? "Saving..." : "Save template"}
+            {saving ? "Saving..." : returnTo ? "Save template and continue" : "Save template"}
           </button>
         </div>
       </div>
