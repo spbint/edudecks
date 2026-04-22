@@ -48,7 +48,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 }
 
 const PRIMARY_NAV = [
-  { href: "/home", label: "My Learning" },
+  { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-plan", label: "My Plan" },
   { href: "/my-programs", label: "My Programs" },
@@ -58,53 +58,76 @@ const PRIMARY_NAV = [
 ] as const;
 
 function normalizeRoute(pathname: string) {
-  if (pathname === "/dashboard") return "/home";
+  if (pathname === "/dashboard" || pathname === "/home" || pathname === "/my-day") {
+    return "/my-day";
+  }
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
-  if (pathname === "/planner") return "/my-plan";
+  if (pathname === "/planner" || pathname === "/my-plan") return "/my-plan";
   if (pathname === "/my-programs") return "/my-programs";
-  if (pathname === "/curriculum-map") return "/curriculum";
-  if (pathname === "/portfolio") return "/my-portfolio";
-  return PRIMARY_NAV.some((item) => item.href === pathname) ? pathname : "";
+  if (pathname === "/curriculum-map" || pathname === "/curriculum") return "/curriculum";
+  if (pathname === "/portfolio" || pathname === "/my-portfolio") return "/my-portfolio";
+  if (pathname === "/my-progress") return "/my-progress";
+  return "";
 }
 
 function routeSubtitle(pathname: string) {
-  if (pathname === "/family" || pathname === "/home") return "My Learning";
-  if (pathname === "/calendar") return "My Calendar";
-  if (pathname === "/my-calendar") return "My Calendar";
+  if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
+  if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Plan";
+  if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
   if (pathname === "/my-progress") return "My Progress";
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
+  if (pathname === "/family") return "My Family";
   if (pathname === "/community") return "Community";
   return "MyLearna";
 }
 
-function routeTitle(_pathname: string) {
+function routeTitle(pathname: string) {
+  if (normalizeRoute(pathname)) return "";
   return "MyLearna";
 }
 
 function routeHeroTitle(pathname: string, subtitle: string) {
-  if (pathname === "/family" || pathname === "/home") return "A calmer home for planning, evidence, and growth";
-  if (pathname === "/calendar") return "See the week clearly before it fills up";
-  if (pathname === "/my-programs") return "Shape longer sequences before they land in the live week";
-  if (pathname === "/capture") return "Curate evidence while the learning is still fresh";
-  if (pathname === "/planner" || pathname === "/my-plan") return "Shape the next week with confidence";
-  if (pathname === "/portfolio" || pathname === "/my-portfolio") return "Keep a visible story of progress as it grows";
-  if (pathname === "/reports" || pathname === "/my-reports") return "Build clear family reports from real learning";
-  if (pathname === "/my-progress") return "Notice what is moving well and what needs the next gentle step";
-  if (pathname === "/community") return "A place to ask, share, and encourage";
+  if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
+    return "Move through today’s learning with clarity";
+  }
+  if (pathname === "/calendar" || pathname === "/my-calendar") {
+    return "See the week clearly before it fills up";
+  }
+  if (pathname === "/my-programs") {
+    return "Shape longer sequences before they land in the live week";
+  }
+  if (pathname === "/capture") {
+    return "Curate evidence while the learning is still fresh";
+  }
+  if (pathname === "/planner" || pathname === "/my-plan") {
+    return "Shape the next week with confidence";
+  }
+  if (pathname === "/portfolio" || pathname === "/my-portfolio") {
+    return "Keep a visible story of progress as it grows";
+  }
+  if (pathname === "/reports" || pathname === "/my-reports") {
+    return "Build clear family reports from real learning";
+  }
+  if (pathname === "/my-progress") {
+    return "Notice what is moving well and what needs the next gentle step";
+  }
+  if (pathname === "/community") {
+    return "A place to ask, share, and encourage";
+  }
   return subtitle;
 }
 
 function routeHeroText(pathname: string) {
-  if (pathname === "/family" || pathname === "/home") {
-    return "Use one personal learning system to keep your learner context close, see what is ready now, and move into planning, portfolio, reports, or progress with clarity.";
+  if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
+    return "See what is planned for today, keep the next useful step close, and capture evidence without leaving the flow.";
   }
-  if (pathname === "/calendar") {
+  if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
   if (pathname === "/my-programs") {
@@ -196,7 +219,9 @@ export default function FamilyTopNavShell({
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
             <div className="min-w-0 lg:text-right">
-              <div className="truncate text-[15px] font-black text-slate-950">{resolvedTitle}</div>
+              {resolvedTitle ? (
+                <div className="truncate text-[15px] font-black text-slate-950">{resolvedTitle}</div>
+              ) : null}
               <div className="truncate text-sm font-semibold text-slate-500">{resolvedSubtitle}</div>
             </div>
 
