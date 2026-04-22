@@ -381,6 +381,10 @@ export type PlannerBlock = {
   note: string;
   time: string;
   curriculumOutcomeIds: string[];
+  sourceType?: "manual" | "generated";
+  programId?: string | null;
+  programSegmentId?: string | null;
+  calendarTemplateSlotId?: string | null;
 };
 
 export function PlannerControlStrip({

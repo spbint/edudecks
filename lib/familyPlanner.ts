@@ -29,6 +29,10 @@ export type FamilyCalendarBlockEntry = {
   note: string;
   time: string;
   curriculumOutcomeIds: string[];
+  sourceType?: "manual" | "generated";
+  programId?: string | null;
+  programSegmentId?: string | null;
+  calendarTemplateSlotId?: string | null;
 };
 
 export type FamilyCalendarWindow = {
@@ -62,15 +66,37 @@ function getWeekKeyFromDate(dateValue: string): string {
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
-function parseCalendarPayload(value: string) {
+function parseCalendarPayload(value: string): {
+  note: string;
+  time: string;
+  curriculumOutcomeIds: string[];
+  sourceType: "manual" | "generated";
+  programId: string | null;
+  programSegmentId: string | null;
+  calendarTemplateSlotId: string | null;
+} {
   const raw = safe(value);
-  if (!raw) return { note: "", time: "" };
+  if (!raw) {
+    return {
+      note: "",
+      time: "",
+      curriculumOutcomeIds: [],
+      sourceType: "manual",
+      programId: null,
+      programSegmentId: null,
+      calendarTemplateSlotId: null,
+    };
+  }
 
   try {
     const parsed = JSON.parse(raw) as {
       note?: unknown;
       time?: unknown;
       curriculumOutcomeIds?: unknown;
+      sourceType?: unknown;
+      programId?: unknown;
+      programSegmentId?: unknown;
+      calendarTemplateSlotId?: unknown;
     };
     return {
       note: safe(parsed?.note),
@@ -78,9 +104,21 @@ function parseCalendarPayload(value: string) {
       curriculumOutcomeIds: Array.isArray(parsed?.curriculumOutcomeIds)
         ? parsed.curriculumOutcomeIds.map((item) => safe(item)).filter(Boolean)
         : [],
+      sourceType: safe(parsed?.sourceType) === "generated" ? "generated" : "manual",
+      programId: safe(parsed?.programId) || null,
+      programSegmentId: safe(parsed?.programSegmentId) || null,
+      calendarTemplateSlotId: safe(parsed?.calendarTemplateSlotId) || null,
     };
   } catch {
-    return { note: raw, time: "", curriculumOutcomeIds: [] };
+    return {
+      note: raw,
+      time: "",
+      curriculumOutcomeIds: [],
+      sourceType: "manual" as const,
+      programId: null,
+      programSegmentId: null,
+      calendarTemplateSlotId: null,
+    };
   }
 }
 
@@ -351,6 +389,10 @@ export async function loadFamilyCalendarWindow(input: {
         curriculumOutcomeIds:
           normalizeCurriculumOutcomeIds(row.curriculum_outcome_ids) ||
           payload.curriculumOutcomeIds,
+        sourceType: payload.sourceType,
+        programId: payload.programId,
+        programSegmentId: payload.programSegmentId,
+        calendarTemplateSlotId: payload.calendarTemplateSlotId,
       };
 
       result.blocks[plannedDate] = [...(result.blocks[plannedDate] ?? []), entry];
@@ -370,6 +412,10 @@ export async function addFamilyCalendarBlock(input: {
   note?: string;
   time?: string;
   curriculumOutcomeIds?: string[];
+  sourceType?: "manual" | "generated";
+  programId?: string | null;
+  programSegmentId?: string | null;
+  calendarTemplateSlotId?: string | null;
 }): Promise<FamilyCalendarBlockEntry> {
   const payload = {
     family_profile_id: input.familyProfileId,
@@ -379,6 +425,10 @@ export async function addFamilyCalendarBlock(input: {
       note: safe(input.note),
       time: safe(input.time),
       curriculumOutcomeIds: normalizeCurriculumOutcomeIds(input.curriculumOutcomeIds),
+      sourceType: input.sourceType === "generated" ? "generated" : "manual",
+      programId: safe(input.programId) || null,
+      programSegmentId: safe(input.programSegmentId) || null,
+      calendarTemplateSlotId: safe(input.calendarTemplateSlotId) || null,
     }),
     planned_date: input.date,
     week_key: getWeekKeyFromDate(input.date),
@@ -427,6 +477,10 @@ export async function addFamilyCalendarBlock(input: {
     time: parsedPayload.time,
     curriculumOutcomeIds:
       normalizeCurriculumOutcomeIds(row.curriculum_outcome_ids) || parsedPayload.curriculumOutcomeIds,
+    sourceType: parsedPayload.sourceType,
+    programId: parsedPayload.programId,
+    programSegmentId: parsedPayload.programSegmentId,
+    calendarTemplateSlotId: parsedPayload.calendarTemplateSlotId,
   };
 }
 
@@ -464,6 +518,64 @@ export async function updateFamilyCalendarBlockCurriculum(input: {
     updateResponse = await supabase
       .from("learning_plan_items")
       .update({
+        description: nextDescription,
+      })
+      .eq("id", input.blockId);
+  }
+
+  if (updateResponse.error) throw updateResponse.error;
+}
+
+export async function updateFamilyCalendarBlock(input: {
+  blockId: string;
+  title: string;
+  subject: string;
+  note?: string;
+  time?: string;
+  curriculumOutcomeIds?: string[];
+}): Promise<void> {
+  const existingResponse = await supabase
+    .from("learning_plan_items")
+    .select("description")
+    .eq("id", input.blockId)
+    .single();
+
+  if (existingResponse.error) throw existingResponse.error;
+
+  const currentPayload = parseCalendarPayload(
+    safe((existingResponse.data as { description?: unknown } | null)?.description),
+  );
+
+  const nextDescription = JSON.stringify({
+    note: safe(input.note),
+    time: safe(input.time),
+    curriculumOutcomeIds: normalizeCurriculumOutcomeIds(
+      input.curriculumOutcomeIds ?? currentPayload.curriculumOutcomeIds,
+    ),
+    sourceType: currentPayload.sourceType,
+    programId: currentPayload.programId,
+    programSegmentId: currentPayload.programSegmentId,
+    calendarTemplateSlotId: currentPayload.calendarTemplateSlotId,
+  });
+
+  let updateResponse = await supabase
+    .from("learning_plan_items")
+    .update({
+      title: safe(input.title) || "Learning block",
+      source: calendarBlockSource(input.subject),
+      description: nextDescription,
+      curriculum_outcome_ids: normalizeCurriculumOutcomeIds(
+        input.curriculumOutcomeIds ?? currentPayload.curriculumOutcomeIds,
+      ),
+    })
+    .eq("id", input.blockId);
+
+  if (updateResponse.error && isMissingLearnerRelationOrColumn(updateResponse.error)) {
+    updateResponse = await supabase
+      .from("learning_plan_items")
+      .update({
+        title: safe(input.title) || "Learning block",
+        source: calendarBlockSource(input.subject),
         description: nextDescription,
       })
       .eq("id", input.blockId);

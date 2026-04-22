@@ -26,6 +26,7 @@ import {
   loadFamilyCalendarWindow,
   loadFamilyWeeklyPlan,
   saveFamilyCalendarDayNote,
+  updateFamilyCalendarBlock,
   updateFamilyCalendarBlockCurriculum,
   type FamilyCalendarWindow,
   type FamilyWeeklyPlan,
@@ -128,6 +129,18 @@ export default function FamilyPlanWorkspace() {
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
   const [blocks, setBlocks] = useState<Record<string, PlannerBlock[]>>({});
   const [editingCurriculumBlockId, setEditingCurriculumBlockId] = useState<string | null>(null);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [editingBlockDraft, setEditingBlockDraft] = useState<{
+    title: string;
+    subject: PlannerSubject;
+    note: string;
+    time: string;
+  }>({
+    title: "",
+    subject: "Literacy",
+    note: "",
+    time: "",
+  });
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -213,6 +226,10 @@ export default function FamilyPlanWorkspace() {
               note: item.note,
               time: item.time,
               curriculumOutcomeIds: item.curriculumOutcomeIds ?? [],
+              sourceType: item.sourceType ?? "manual",
+              programId: item.programId ?? null,
+              programSegmentId: item.programSegmentId ?? null,
+              calendarTemplateSlotId: item.calendarTemplateSlotId ?? null,
             })),
           ]),
         ) as Record<string, PlannerBlock[]>;
@@ -280,6 +297,10 @@ export default function FamilyPlanWorkspace() {
       note: momentNote.trim(),
       time: optionalTime.trim(),
       curriculumOutcomeIds: [],
+      sourceType: "manual",
+      programId: null,
+      programSegmentId: null,
+      calendarTemplateSlotId: null,
     };
 
     setBlocks((prev) => ({
@@ -323,6 +344,10 @@ export default function FamilyPlanWorkspace() {
             note: savedBlock.note,
             time: savedBlock.time,
             curriculumOutcomeIds: savedBlock.curriculumOutcomeIds ?? [],
+            sourceType: savedBlock.sourceType ?? "manual",
+            programId: savedBlock.programId ?? null,
+            programSegmentId: savedBlock.programSegmentId ?? null,
+            calendarTemplateSlotId: savedBlock.calendarTemplateSlotId ?? null,
           },
         ],
       }));
@@ -416,6 +441,54 @@ export default function FamilyPlanWorkspace() {
       );
     } catch (error: any) {
       setPlanError(String(error?.message ?? "We could not save curriculum links."));
+    } finally {
+      setSavingCalendar(false);
+    }
+  }
+
+  async function saveBlockEdits(blockId: string) {
+    const draft = editingBlockDraft;
+    setEditingBlockId(null);
+
+    setBlocks((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([date, items]) => [
+          date,
+          items.map((item) =>
+            item.id === blockId
+              ? {
+                  ...item,
+                  title: draft.title,
+                  subject: draft.subject,
+                  note: draft.note,
+                  time: draft.time,
+                }
+              : item,
+          ),
+        ]),
+      ),
+    );
+
+    if (!canonicalReady) {
+      setStatusMessage("Block changes will persist once the synced workspace is available.");
+      return;
+    }
+
+    try {
+      setSavingCalendar(true);
+      setPlanError("");
+      const currentBlock = Object.values(blocks).flat().find((item) => item.id === blockId);
+      await updateFamilyCalendarBlock({
+        blockId,
+        title: draft.title,
+        subject: draft.subject,
+        note: draft.note,
+        time: draft.time,
+        curriculumOutcomeIds: currentBlock?.curriculumOutcomeIds ?? [],
+      });
+      setStatusMessage("Live plan block updated.");
+    } catch (error: any) {
+      setPlanError(String(error?.message ?? "We could not update this learning block."));
     } finally {
       setSavingCalendar(false);
     }
@@ -716,16 +789,40 @@ export default function FamilyPlanWorkspace() {
                 renderBlockCurriculum={(block) => (
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                        Linked outcomes
+                      <div className="grid gap-1">
+                        <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          {block.sourceType === "generated" ? "Generated block" : "Linked outcomes"}
+                        </div>
+                        {block.sourceType === "generated" ? (
+                          <div className="text-[13px] leading-5 text-slate-500">
+                            Generated from My Programs, then opened into the live week for adjustment.
+                          </div>
+                        ) : null}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setEditingCurriculumBlockId((current) => (current === block.id ? null : block.id))}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-                      >
-                        {block.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingBlockId((current) => (current === block.id ? null : block.id));
+                            setEditingBlockDraft({
+                              title: block.title,
+                              subject: block.subject,
+                              note: block.note,
+                              time: block.time,
+                            });
+                          }}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          Adjust block
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingCurriculumBlockId((current) => (current === block.id ? null : block.id))}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                        >
+                          {block.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+                        </button>
+                      </div>
                     </div>
                     {hasFramework && preset ? (
                       <CurriculumTagPills
@@ -741,15 +838,79 @@ export default function FamilyPlanWorkspace() {
                   </div>
                 )}
                 renderBlockEditor={(block) =>
-                  editingCurriculumBlockId === block.id ? (
-                    <CurriculumAttachPanel
-                      preset={preset}
-                      selectedOutcomeIds={block.curriculumOutcomeIds}
-                      onApply={(outcomeIds) => void saveBlockCurriculum(block.id, outcomeIds)}
-                      onCancel={() => setEditingCurriculumBlockId(null)}
-                      state={planState}
-                    />
-                  ) : null
+                  <>
+                    {editingBlockId === block.id ? (
+                      <div className="grid gap-3 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+                        <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Adjust this block
+                        </div>
+                        <input
+                          className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[14px] text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300"
+                          value={editingBlockDraft.title}
+                          onChange={(event) =>
+                            setEditingBlockDraft((current) => ({ ...current, title: event.target.value }))
+                          }
+                        />
+                        <div className="grid gap-3 md:grid-cols-2">
+                          <select
+                            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[14px] text-slate-800 outline-none transition focus:border-blue-300"
+                            value={editingBlockDraft.subject}
+                            onChange={(event) =>
+                              setEditingBlockDraft((current) => ({
+                                ...current,
+                                subject: event.target.value as PlannerSubject,
+                              }))
+                            }
+                          >
+                            {PLANNER_SUBJECTS.map((item) => (
+                              <option key={item}>{item}</option>
+                            ))}
+                          </select>
+                          <input
+                            className="h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 text-[14px] text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300"
+                            placeholder="Optional time"
+                            value={editingBlockDraft.time}
+                            onChange={(event) =>
+                              setEditingBlockDraft((current) => ({ ...current, time: event.target.value }))
+                            }
+                          />
+                        </div>
+                        <textarea
+                          className="min-h-[84px] w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[14px] leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-300"
+                          value={editingBlockDraft.note}
+                          onChange={(event) =>
+                            setEditingBlockDraft((current) => ({ ...current, note: event.target.value }))
+                          }
+                          placeholder="Keep a gentle note close to this learning block..."
+                        />
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => void saveBlockEdits(block.id)}
+                            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+                          >
+                            Save block
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingBlockId(null)}
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                    {editingCurriculumBlockId === block.id ? (
+                      <CurriculumAttachPanel
+                        preset={preset}
+                        selectedOutcomeIds={block.curriculumOutcomeIds}
+                        onApply={(outcomeIds) => void saveBlockCurriculum(block.id, outcomeIds)}
+                        onCancel={() => setEditingCurriculumBlockId(null)}
+                        state={planState}
+                      />
+                    ) : null}
+                  </>
                 }
               />
             );

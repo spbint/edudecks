@@ -72,7 +72,9 @@ function normalizeRoute(pathname: string) {
 function routeSubtitle(pathname: string) {
   if (pathname === "/family" || pathname === "/home") return "My Learning";
   if (pathname === "/calendar") return "My Calendar";
+  if (pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture") return "My Capture";
+  if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Plan";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
@@ -90,6 +92,7 @@ function routeTitle(_pathname: string) {
 function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/family" || pathname === "/home") return "A calmer home for planning, evidence, and growth";
   if (pathname === "/calendar") return "See the week clearly before it fills up";
+  if (pathname === "/my-programs") return "Shape longer sequences before they land in the live week";
   if (pathname === "/capture") return "Curate evidence while the learning is still fresh";
   if (pathname === "/planner" || pathname === "/my-plan") return "Shape the next week with confidence";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "Keep a visible story of progress as it grows";
@@ -105,6 +108,9 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/calendar") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
+  }
+  if (pathname === "/my-programs") {
+    return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
   }
   if (pathname === "/capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
