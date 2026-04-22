@@ -18,6 +18,7 @@ import {
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
+import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 import {
   buildCurriculumOutcomeSignals,
   summarizeCurriculumSignals,
@@ -107,7 +108,12 @@ export default function FamilyReportsWorkspace() {
     Boolean(workspace.profile?.id) &&
     workspace.profile.id !== "local" &&
     Boolean(activeLearner?.id);
-  const preset = frameworkPreset(workspace.profile.preferred_market);
+  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
+  const preset = frameworkPreset(
+    learningConfig.country === "us" || learningConfig.country === "uk"
+      ? learningConfig.country
+      : "au",
+  );
 
   useEffect(() => {
     let mounted = true;

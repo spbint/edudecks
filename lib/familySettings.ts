@@ -5,22 +5,45 @@ import {
 } from "@/lib/familyLearnerYearLevel";
 
 export type MarketKey = "au" | "uk" | "us";
+export type FamilyCountry = MarketKey | "other";
 export type ExperienceMode = "family";
 export type DefaultChildLanding = "dashboard" | "portfolio" | "planner" | "reports";
 export type EvidencePrivacy = "private" | "family" | "shared";
 export type WeekStart = "monday" | "sunday";
+export type ReportingMode =
+  | "family-summary"
+  | "progress-review"
+  | "authority-ready"
+  | "plain-language"
+  | "formal";
+export type AcademicStructureType =
+  | "terms"
+  | "semesters"
+  | "trimesters"
+  | "flexible";
 
 export type ChildOption = {
   id: string;
   label: string;
   yearLabel?: string;
   year_level?: string | number | null;
+  year_band?: string | null;
+  curriculum_framework_id?: string | null;
+  curriculum_jurisdiction_id?: string | null;
+  reporting_mode?: string | null;
   connectedAt?: string | null;
 };
 
 export type FamilySettings = {
   family_display_name: string;
   preferred_market: MarketKey;
+  country: FamilyCountry;
+  curriculum_framework_id: string;
+  curriculum_jurisdiction_id: string;
+  reporting_mode: ReportingMode;
+  academic_structure_type: AcademicStructureType;
+  cycle_count: number | null;
+  weeks_per_cycle: number | null;
   experience_mode: ExperienceMode;
   default_child_id: string | null;
   default_child_landing: DefaultChildLanding;
@@ -57,6 +80,39 @@ const FAMILY_PROFILE_SELECT_COLUMNS = [
   "owner_user_id",
   "family_display_name",
   "preferred_market",
+  "country",
+  "curriculum_framework_id",
+  "curriculum_jurisdiction_id",
+  "reporting_mode",
+  "academic_structure_type",
+  "cycle_count",
+  "weeks_per_cycle",
+  "experience_mode",
+  "default_child_id",
+  "default_child_landing",
+  "week_start",
+  "compact_mode",
+  "show_advanced_insights",
+  "show_authority_guidance",
+  "auto_open_last_child",
+  "evidence_privacy_default",
+  "planner_auto_carry_forward",
+  "planner_show_weekend",
+  "portfolio_print_style",
+  "report_tone_default",
+  "notifications_weekly_digest",
+  "notifications_readiness_alerts",
+  "notifications_planner_nudges",
+  "created_at",
+  "updated_at",
+].join(",");
+
+const FAMILY_PROFILE_SELECT_COLUMNS_BASE = [
+  "id",
+  "user_id",
+  "owner_user_id",
+  "family_display_name",
+  "preferred_market",
   "experience_mode",
   "default_child_id",
   "default_child_landing",
@@ -80,6 +136,13 @@ const FAMILY_PROFILE_SELECT_COLUMNS = [
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
   family_display_name: "Your family",
   preferred_market: "au",
+  country: "au",
+  curriculum_framework_id: "au-v9",
+  curriculum_jurisdiction_id: "tas",
+  reporting_mode: "family-summary",
+  academic_structure_type: "terms",
+  cycle_count: 4,
+  weeks_per_cycle: 10,
   experience_mode: "family",
   default_child_id: null,
   default_child_landing: "dashboard",
@@ -144,12 +207,21 @@ function describeSupabaseError(error: unknown) {
   return String(error);
 }
 
+function isMissingColumnError(error: unknown) {
+  return describeSupabaseError(error).toLowerCase().includes("column");
+}
+
 function asBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === "boolean" ? value : fallback;
 }
 
 function asMarketKey(value: unknown): MarketKey {
   return value === "uk" || value === "us" ? value : "au";
+}
+
+function asFamilyCountry(value: unknown): FamilyCountry {
+  if (value === "uk" || value === "us" || value === "other") return value;
+  return "au";
 }
 
 function asExperienceMode(value: unknown): ExperienceMode {
@@ -178,6 +250,31 @@ function asReportTone(value: unknown): "family-summary" | "authority-ready" | "p
   return "family-summary";
 }
 
+function asReportingMode(value: unknown): ReportingMode {
+  if (
+    value === "authority-ready" ||
+    value === "progress-review" ||
+    value === "plain-language" ||
+    value === "formal"
+  ) {
+    return value;
+  }
+  return "family-summary";
+}
+
+function asAcademicStructureType(value: unknown): AcademicStructureType {
+  if (value === "semesters" || value === "trimesters" || value === "flexible") {
+    return value;
+  }
+  return "terms";
+}
+
+function asNullableNumber(value: unknown, fallback: number | null): number | null {
+  if (value == null || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function toFamilyProfilePayload(settings: FamilySettings, userId: string, existingId?: string | null): FamilyProfileWritePayload {
   return {
     ...(safeString(existingId) ? { id: safeString(existingId) } : {}),
@@ -185,6 +282,15 @@ function toFamilyProfilePayload(settings: FamilySettings, userId: string, existi
     owner_user_id: userId,
     family_display_name: safeString(settings.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: asMarketKey(settings.preferred_market),
+    country: asFamilyCountry(settings.country),
+    curriculum_framework_id:
+      safeString(settings.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    curriculum_jurisdiction_id:
+      safeString(settings.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+    reporting_mode: asReportingMode(settings.reporting_mode),
+    academic_structure_type: asAcademicStructureType(settings.academic_structure_type),
+    cycle_count: asNullableNumber(settings.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
+    weeks_per_cycle: asNullableNumber(settings.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
     experience_mode: asExperienceMode(settings.experience_mode),
     default_child_id: safeString(settings.default_child_id) || null,
     default_child_landing: asDefaultChildLanding(settings.default_child_landing),
@@ -261,6 +367,13 @@ function normalizeChildOption(value: unknown): ChildOption | null {
     label,
     yearLabel,
     year_level,
+    year_band: safeString(row.year_band ?? row.yearBand) || null,
+    curriculum_framework_id:
+      safeString(row.curriculum_framework_id ?? row.frameworkId) || null,
+    curriculum_jurisdiction_id:
+      safeString(row.curriculum_jurisdiction_id ?? row.jurisdictionId) || null,
+    reporting_mode:
+      safeString(row.reporting_mode ?? row.reportingMode) || null,
     connectedAt: safeString(row.connectedAt ?? row.connected_at) || null,
   };
 }
@@ -271,6 +384,15 @@ export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined)
   return {
     family_display_name: safeString(row.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: asMarketKey(row.preferred_market),
+    country: asFamilyCountry(row.country ?? row.preferred_market),
+    curriculum_framework_id:
+      safeString(row.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    curriculum_jurisdiction_id:
+      safeString(row.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+    reporting_mode: asReportingMode(row.reporting_mode ?? row.report_tone_default),
+    academic_structure_type: asAcademicStructureType(row.academic_structure_type),
+    cycle_count: asNullableNumber(row.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
+    weeks_per_cycle: asNullableNumber(row.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
     experience_mode: asExperienceMode(row.experience_mode),
     default_child_id: safeString(row.default_child_id) || null,
     default_child_landing: asDefaultChildLanding(row.default_child_landing),
@@ -383,19 +505,35 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 }
 
 async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow | null> {
-  const response = await withTimeout(
-    supabase
-      .from("family_profiles")
-      .select(FAMILY_PROFILE_SELECT_COLUMNS)
-      .eq("owner_user_id", userId)
-      .limit(1)
-      .maybeSingle(),
-    "family_profiles select by owner_user_id",
-    12000,
-  );
+  const variants = [FAMILY_PROFILE_SELECT_COLUMNS, FAMILY_PROFILE_SELECT_COLUMNS_BASE];
+  let response:
+    | {
+        data: unknown;
+        error: unknown;
+      }
+    | null = null;
 
-  if (response.error) throw response.error;
-  if (!response.data) return null;
+  for (const select of variants) {
+    const attempt = await withTimeout(
+      supabase
+        .from("family_profiles")
+        .select(select)
+        .eq("owner_user_id", userId)
+        .limit(1)
+        .maybeSingle(),
+      "family_profiles select by owner_user_id",
+      12000,
+    );
+
+    if (!attempt.error) {
+      response = attempt;
+      break;
+    }
+
+    if (!isMissingColumnError(attempt.error)) throw attempt.error;
+  }
+
+  if (!response || !response.data) return null;
 
   const data = response.data as unknown as Partial<FamilyProfileRow>;
   return {
@@ -415,6 +553,30 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
 
   const existingProfile = await selectFamilyProfileRow(userId).catch(() => null);
   const payload = toFamilyProfilePayload(settings, userId, existingProfile?.id);
+  const fallbackPayload = {
+    ...(safeString(existingProfile?.id) ? { id: safeString(existingProfile?.id) } : {}),
+    user_id: userId,
+    owner_user_id: userId,
+    family_display_name: payload.family_display_name,
+    preferred_market: payload.preferred_market,
+    experience_mode: payload.experience_mode,
+    default_child_id: payload.default_child_id,
+    default_child_landing: payload.default_child_landing,
+    week_start: payload.week_start,
+    compact_mode: payload.compact_mode,
+    show_advanced_insights: payload.show_advanced_insights,
+    show_authority_guidance: payload.show_authority_guidance,
+    auto_open_last_child: payload.auto_open_last_child,
+    evidence_privacy_default: payload.evidence_privacy_default,
+    planner_auto_carry_forward: payload.planner_auto_carry_forward,
+    planner_show_weekend: payload.planner_show_weekend,
+    portfolio_print_style: payload.portfolio_print_style,
+    report_tone_default: payload.report_tone_default,
+    notifications_weekly_digest: payload.notifications_weekly_digest,
+    notifications_readiness_alerts: payload.notifications_readiness_alerts,
+    notifications_planner_nudges: payload.notifications_planner_nudges,
+    updated_at: payload.updated_at,
+  };
 
   const saveVariants: Array<{
     run: () => Promise<{ data: unknown; error: unknown }>;
@@ -451,6 +613,26 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
 
     lastError = writeResponse.error;
     const message = describeSupabaseError(writeResponse.error).toLowerCase();
+    if (isMissingColumnError(writeResponse.error)) {
+      const fallbackResponse = await withTimeout(
+        existingProfile
+          ? supabase.from("family_profiles").update(fallbackPayload).eq("owner_user_id", userId)
+          : supabase.from("family_profiles").insert(fallbackPayload),
+        "upsertFamilyProfile fallback write",
+      );
+
+      if (!fallbackResponse.error) {
+        return {
+          ...DEFAULT_FAMILY_PROFILE,
+          ...(existingProfile ?? {}),
+          ...payload,
+          id: safeString(existingProfile?.id) || safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
+        };
+      }
+
+      lastError = fallbackResponse.error;
+    }
+
     if (!existingProfile && message.includes("duplicate")) {
       const retryResponse = await withTimeout(
         supabase.from("family_profiles").update(payload).eq("owner_user_id", userId),

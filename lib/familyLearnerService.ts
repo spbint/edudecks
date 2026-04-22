@@ -16,6 +16,10 @@ import {
 export type CanonicalLearnerInput = {
   learnerName: string;
   yearLevel?: string | number | null;
+  yearBand?: string | null;
+  frameworkId?: string | null;
+  jurisdictionId?: string | null;
+  reportingMode?: string | null;
 };
 
 export type CanonicalLearnerRecord = {
@@ -23,6 +27,10 @@ export type CanonicalLearnerRecord = {
   label: string;
   yearLabel: string;
   year_level: number | null;
+  year_band: string | null;
+  curriculum_framework_id: string | null;
+  curriculum_jurisdiction_id: string | null;
+  reporting_mode: string | null;
   connectedAt: string | null;
 };
 
@@ -32,6 +40,10 @@ type ValidatedLearnerInput = {
   surname: string | null;
   yearLevelOption: string;
   yearLevelNumber: number | null;
+  yearBand: string | null;
+  frameworkId: string | null;
+  jurisdictionId: string | null;
+  reportingMode: string | null;
 };
 
 type FamilyProfileIdRow = {
@@ -45,6 +57,10 @@ type StudentRow = {
   first_name?: string | null;
   surname?: string | null;
   year_level?: number | null;
+  year_band?: string | null;
+  curriculum_framework_id?: string | null;
+  curriculum_jurisdiction_id?: string | null;
+  reporting_mode?: string | null;
   created_at?: string | null;
 };
 
@@ -71,6 +87,12 @@ function withTimeout<T>(
   }) as Promise<T>;
 }
 
+function isMissingColumnError(error: unknown) {
+  return safe((error as { message?: unknown })?.message)
+    .toLowerCase()
+    .includes("column");
+}
+
 function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInput {
   const learnerName = safe(input.learnerName);
   if (!learnerName) {
@@ -93,6 +115,10 @@ function validateLearnerInput(input: CanonicalLearnerInput): ValidatedLearnerInp
     surname,
     yearLevelOption,
     yearLevelNumber: familyYearLevelToStoredNumber(input.yearLevel),
+    yearBand: safe(input.yearBand) || null,
+    frameworkId: safe(input.frameworkId) || null,
+    jurisdictionId: safe(input.jurisdictionId) || null,
+    reportingMode: safe(input.reportingMode) || null,
   };
 }
 
@@ -108,6 +134,10 @@ function toLearnerRecord(row: StudentRow): CanonicalLearnerRecord {
     label,
     yearLabel: familyYearLevelLabelFromStored(yearLevel),
     year_level: yearLevel,
+    year_band: safe(row.year_band) || null,
+    curriculum_framework_id: safe(row.curriculum_framework_id) || null,
+    curriculum_jurisdiction_id: safe(row.curriculum_jurisdiction_id) || null,
+    reporting_mode: safe(row.reporting_mode) || null,
     connectedAt: safe(row.created_at) || new Date().toISOString(),
   };
 }
@@ -118,6 +148,13 @@ function buildFamilyProfileInsertPayload(userId: string) {
     owner_user_id: userId,
     family_display_name: DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: DEFAULT_FAMILY_SETTINGS.preferred_market as MarketKey,
+    country: DEFAULT_FAMILY_SETTINGS.country,
+    curriculum_framework_id: DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    curriculum_jurisdiction_id: DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+    reporting_mode: DEFAULT_FAMILY_SETTINGS.reporting_mode,
+    academic_structure_type: DEFAULT_FAMILY_SETTINGS.academic_structure_type,
+    cycle_count: DEFAULT_FAMILY_SETTINGS.cycle_count,
+    weeks_per_cycle: DEFAULT_FAMILY_SETTINGS.weeks_per_cycle,
     experience_mode: DEFAULT_FAMILY_SETTINGS.experience_mode as ExperienceMode,
     default_child_id: DEFAULT_FAMILY_SETTINGS.default_child_id,
     default_child_landing:
@@ -232,20 +269,36 @@ export async function createCanonicalFamilyLearner(
     ensure: true,
   });
 
-  const createResponse = await withTimeout(
-    supabase
-      .from("students")
-      .insert({
-        family_profile_id: familyProfileId,
-        first_name: validated.firstName,
-        preferred_name: validated.firstName,
-        surname: validated.surname,
-        year_level: validated.yearLevelNumber,
-      })
-      .select("id,family_profile_id,preferred_name,first_name,surname,year_level,created_at")
-      .single(),
+  const basePayload = {
+    family_profile_id: familyProfileId,
+    first_name: validated.firstName,
+    preferred_name: validated.firstName,
+    surname: validated.surname,
+    year_level: validated.yearLevelNumber,
+  };
+  const extendedPayload = {
+    ...basePayload,
+    year_band: validated.yearBand,
+    curriculum_framework_id: validated.frameworkId,
+    curriculum_jurisdiction_id: validated.jurisdictionId,
+    reporting_mode: validated.reportingMode,
+  };
+  const selectExtended =
+    "id,family_profile_id,preferred_name,first_name,surname,year_level,year_band,curriculum_framework_id,curriculum_jurisdiction_id,reporting_mode,created_at";
+  const selectBase =
+    "id,family_profile_id,preferred_name,first_name,surname,year_level,created_at";
+
+  let createResponse = await withTimeout(
+    supabase.from("students").insert(extendedPayload).select(selectExtended).single(),
     "create learner",
   );
+
+  if (createResponse.error && isMissingColumnError(createResponse.error)) {
+    createResponse = await withTimeout(
+      supabase.from("students").insert(basePayload).select(selectBase).single(),
+      "create learner fallback",
+    );
+  }
 
   if (createResponse.error || !createResponse.data) {
     throw new Error(
@@ -298,11 +351,39 @@ export async function updateCanonicalFamilyLearner(
         preferred_name: validated.firstName,
         surname: validated.surname,
         year_level: validated.yearLevelNumber,
+        year_band: validated.yearBand,
+        curriculum_framework_id: validated.frameworkId,
+        curriculum_jurisdiction_id: validated.jurisdictionId,
+        reporting_mode: validated.reportingMode,
       })
       .eq("id", learnerId)
       .eq("family_profile_id", familyProfileId),
     "update learner",
   );
+
+  if (updateResponse.error && isMissingColumnError(updateResponse.error)) {
+    const fallbackResponse = await withTimeout(
+      supabase
+        .from("students")
+        .update({
+          first_name: validated.firstName,
+          preferred_name: validated.firstName,
+          surname: validated.surname,
+          year_level: validated.yearLevelNumber,
+        })
+        .eq("id", learnerId)
+        .eq("family_profile_id", familyProfileId),
+      "update learner fallback",
+    );
+
+    if (fallbackResponse.error) {
+      throw new Error(
+        safe(fallbackResponse.error.message) ||
+          "We couldn't update this learner yet.",
+      );
+    }
+    return;
+  }
 
   if (updateResponse.error) {
     throw new Error(

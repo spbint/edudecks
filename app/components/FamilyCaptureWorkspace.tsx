@@ -29,6 +29,7 @@ import {
 import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
+import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
 function ymd(date: Date) {
   const y = date.getFullYear();
@@ -92,9 +93,12 @@ export default function FamilyCaptureWorkspace() {
     Boolean(workspace.profile?.id) &&
     workspace.profile.id !== "local" &&
     Boolean(activeLearner?.id);
-  const preset = workspace.profile.preferred_market
-    ? frameworkPreset(workspace.profile.preferred_market)
-    : null;
+  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
+  const preset = frameworkPreset(
+    learningConfig.country === "us" || learningConfig.country === "uk"
+      ? learningConfig.country
+      : "au",
+  );
 
   useEffect(() => {
     if (!learnerParam) return;

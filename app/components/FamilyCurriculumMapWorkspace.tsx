@@ -24,6 +24,7 @@ import {
 import {
   frameworkPreset,
 } from "@/lib/curriculumFrameworks";
+import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import { loadFamilyCalendarWindow } from "@/lib/familyPlanner";
 import {
@@ -174,7 +175,12 @@ export default function FamilyCurriculumMapWorkspace() {
     };
   }, [activeLearner?.id, canonicalReady, hasActiveLearner, workspace.profile?.id]);
 
-  const preset = frameworkPreset(workspace.profile.preferred_market);
+  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
+  const preset = frameworkPreset(
+    learningConfig.country === "us" || learningConfig.country === "uk"
+      ? learningConfig.country
+      : "au",
+  );
 
   useEffect(() => {
     if (!selectedSubjectId || !preset.subjects.some((subject) => subject.id === selectedSubjectId)) {
@@ -374,9 +380,9 @@ export default function FamilyCurriculumMapWorkspace() {
         />
 
         <CurriculumFrameworkSummaryBar
-          framework={preset.framework}
-          jurisdiction={preset.jurisdiction}
-          yearBand={activeLearner?.yearLabel || "Year band not set"}
+          framework={learningConfig.frameworkLabel}
+          jurisdiction={learningConfig.jurisdictionLabel}
+          yearBand={learningConfig.yearBand}
           subjectsLabel={preset.subjects.map((subject) => subject.title).slice(0, 4).join(", ")}
           state={mapState}
         />

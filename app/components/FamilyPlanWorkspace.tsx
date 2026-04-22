@@ -35,6 +35,7 @@ import {
   CurriculumTagPills,
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
+import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
 function ymd(date: Date) {
   const y = date.getFullYear();
@@ -137,10 +138,13 @@ export default function FamilyPlanWorkspace() {
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
   const activeLearnerName = activeLearner?.label || "your learner";
-  const preset = workspace.profile.preferred_market
-    ? frameworkPreset(workspace.profile.preferred_market)
-    : null;
-  const hasFramework = Boolean(workspace.profile.preferred_market);
+  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
+  const preset = frameworkPreset(
+    learningConfig.country === "us" || learningConfig.country === "uk"
+      ? learningConfig.country
+      : "au",
+  );
+  const hasFramework = Boolean(learningConfig.frameworkId);
   const weekDays = useMemo(() => getBusinessWeek(selectedWeekAnchor), [selectedWeekAnchor]);
   const weekKey = getWeekKeyFromDate(ymd(weekDays[0]));
   const weekStart = ymd(weekDays[0]);

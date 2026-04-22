@@ -17,6 +17,8 @@ import {
   type FamilySettings,
 } from "@/lib/familySettings";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
+import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
 type EvidenceRow = {
   id: string;
@@ -193,6 +195,10 @@ export default function FamilyProfilePage() {
   );
 
   const currentLearnerId = activeLearnerId || profile.default_child_id || null;
+  const effectiveLearningConfig = useMemo(
+    () => resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner),
+    [activeLearner, workspace.profile],
+  );
 
   async function handleSwitchLearner(childId: string) {
     setBusyChildId(childId);
@@ -683,10 +689,32 @@ export default function FamilyProfilePage() {
 
         <section style={S.section}>
           <div style={S.infoCard}>
-            <div style={S.eyebrow}>Account settings</div>
-            <div style={S.cardTitle}>Settings now lives on its own dedicated page</div>
+            <div style={S.eyebrow}>Learning setup</div>
+            <div style={S.cardTitle}>Keep family setup visible</div>
             <div style={S.helperText}>
-              Use Settings to review family preferences and connected account details while this profile page stays focused on learner management.
+              My Family holds the family default framework and learner overrides. My Settings holds reporting and academic structure defaults.
+            </div>
+            <div style={S.summaryGrid}>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Framework</div>
+                <div style={S.summaryValue}>{effectiveLearningConfig.frameworkLabel}</div>
+              </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Jurisdiction</div>
+                <div style={S.summaryValue}>{effectiveLearningConfig.jurisdictionLabel}</div>
+              </div>
+              <div style={S.summaryCard}>
+                <div style={S.summaryLabel}>Reporting mode</div>
+                <div style={S.summaryValue}>{effectiveLearningConfig.reportingMode}</div>
+              </div>
+            </div>
+            <div style={S.actionRow}>
+              <Link href="/family" style={S.linkButton}>
+                Open My Family
+              </Link>
+              <Link href="/settings" style={S.linkButton}>
+                Open My Settings
+              </Link>
             </div>
           </div>
         </section>
@@ -755,6 +783,7 @@ const S: Record<string, React.CSSProperties> = {
   textarea: { width: "100%", minHeight: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14, resize: "vertical" },
   primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
+  linkButton: { textDecoration: "none", border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
   dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
   successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },

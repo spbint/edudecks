@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import FamilyLearningSetupWorkspace from "@/app/components/family/FamilyLearningSetupWorkspace";
 
-export default function FamilyHomePage() {
-  redirect("/home");
+export default function FamilyPage() {
+  return <FamilyLearningSetupWorkspace />;
 }

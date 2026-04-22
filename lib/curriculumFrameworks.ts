@@ -32,6 +32,19 @@ export type CurriculumOutcomeMeta = {
   strandTitle: string;
 };
 
+export type FrameworkOption = {
+  id: string;
+  label: string;
+  country: "au" | "us" | "uk" | "other";
+  jurisdictionLabel: string;
+  defaultJurisdictionId: string;
+};
+
+export type JurisdictionOption = {
+  id: string;
+  label: string;
+};
+
 export const FRAMEWORK_PRESETS: Record<"au" | "us" | "uk", FrameworkPreset> = {
   au: {
     framework: "Australian Curriculum v9",
@@ -331,4 +344,122 @@ export function findOutcomeMeta(
   const wanted = String(outcomeId ?? "").trim();
   if (!wanted) return null;
   return getCurriculumOutcomeLibrary(preset).find((item) => item.id === wanted) ?? null;
+}
+
+export const COUNTRY_OPTIONS: Array<{
+  id: "au" | "us" | "uk" | "other";
+  label: string;
+}> = [
+  { id: "au", label: "Australia" },
+  { id: "us", label: "United States" },
+  { id: "uk", label: "England" },
+  { id: "other", label: "Custom / Other" },
+];
+
+export const FRAMEWORK_OPTIONS: FrameworkOption[] = [
+  {
+    id: "au-v9",
+    label: "Australian Curriculum v9",
+    country: "au",
+    jurisdictionLabel: "State or territory",
+    defaultJurisdictionId: "tas",
+  },
+  {
+    id: "us-common-core",
+    label: "Common Core aligned",
+    country: "us",
+    jurisdictionLabel: "State",
+    defaultJurisdictionId: "ca",
+  },
+  {
+    id: "uk-national",
+    label: "National Curriculum (England)",
+    country: "uk",
+    jurisdictionLabel: "Jurisdiction",
+    defaultJurisdictionId: "england",
+  },
+  {
+    id: "custom-homeschool",
+    label: "Custom homeschool framework",
+    country: "other",
+    jurisdictionLabel: "Region",
+    defaultJurisdictionId: "custom",
+  },
+  {
+    id: "custom-ib",
+    label: "IB / alternative framework",
+    country: "other",
+    jurisdictionLabel: "Region",
+    defaultJurisdictionId: "custom",
+  },
+];
+
+export const JURISDICTION_OPTIONS: Record<string, JurisdictionOption[]> = {
+  au: [
+    { id: "nsw", label: "New South Wales" },
+    { id: "vic", label: "Victoria" },
+    { id: "qld", label: "Queensland" },
+    { id: "wa", label: "Western Australia" },
+    { id: "sa", label: "South Australia" },
+    { id: "tas", label: "Tasmania" },
+    { id: "act", label: "Australian Capital Territory" },
+    { id: "nt", label: "Northern Territory" },
+  ],
+  us: [
+    { id: "ca", label: "California" },
+    { id: "tx", label: "Texas" },
+    { id: "ny", label: "New York" },
+    { id: "fl", label: "Florida" },
+    { id: "wa", label: "Washington" },
+  ],
+  uk: [{ id: "england", label: "England" }],
+  other: [{ id: "custom", label: "Custom / Other" }],
+};
+
+export function frameworkOptionById(frameworkId?: string | null) {
+  const wanted = String(frameworkId ?? "").trim();
+  return FRAMEWORK_OPTIONS.find((option) => option.id === wanted) ?? null;
+}
+
+export function jurisdictionOptionsForCountry(country?: string | null) {
+  const key = country === "us" || country === "uk" || country === "other" ? country : "au";
+  return JURISDICTION_OPTIONS[key];
+}
+
+export function jurisdictionLabelFor(
+  country?: string | null,
+  jurisdictionId?: string | null,
+) {
+  const wanted = String(jurisdictionId ?? "").trim();
+  if (!wanted) return "";
+  return (
+    jurisdictionOptionsForCountry(country).find((option) => option.id === wanted)?.label ||
+    wanted
+  );
+}
+
+export function presetFromFrameworkSelection(input: {
+  country?: string | null;
+  frameworkId?: string | null;
+  jurisdictionId?: string | null;
+}) {
+  if (input.frameworkId === "us-common-core" || input.country === "us") {
+    return {
+      ...FRAMEWORK_PRESETS.us,
+      jurisdiction:
+        jurisdictionLabelFor("us", input.jurisdictionId) || FRAMEWORK_PRESETS.us.jurisdiction,
+    };
+  }
+  if (input.frameworkId === "uk-national" || input.country === "uk") {
+    return {
+      ...FRAMEWORK_PRESETS.uk,
+      jurisdiction:
+        jurisdictionLabelFor("uk", input.jurisdictionId) || FRAMEWORK_PRESETS.uk.jurisdiction,
+    };
+  }
+  return {
+    ...FRAMEWORK_PRESETS.au,
+    jurisdiction:
+      jurisdictionLabelFor("au", input.jurisdictionId) || FRAMEWORK_PRESETS.au.jurisdiction,
+  };
 }

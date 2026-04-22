@@ -31,6 +31,10 @@ export type FamilyLearner = {
   label: string;
   yearLabel?: string;
   year_level?: number | null;
+  year_band?: string | null;
+  curriculum_framework_id?: string | null;
+  curriculum_jurisdiction_id?: string | null;
+  reporting_mode?: string | null;
   connectedAt?: string | null;
 };
 
@@ -166,6 +170,10 @@ export function persistLearnersToLocalCache(
           label: learner.label,
           yearLabel: learner.yearLabel || "",
           year_level: learner.year_level ?? "",
+          year_band: learner.year_band ?? "",
+          curriculum_framework_id: learner.curriculum_framework_id ?? "",
+          curriculum_jurisdiction_id: learner.curriculum_jurisdiction_id ?? "",
+          reporting_mode: learner.reporting_mode ?? "",
           connectedAt: learner.connectedAt ?? null,
         })),
       ),
@@ -191,6 +199,13 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
       label: child.label,
       yearLabel: familyYearLevelLabelFromStored(yearLevel),
       year_level: yearLevel,
+      year_band: safe((child as { year_band?: string | null }).year_band) || null,
+      curriculum_framework_id:
+        safe((child as { curriculum_framework_id?: string | null }).curriculum_framework_id) || null,
+      curriculum_jurisdiction_id:
+        safe((child as { curriculum_jurisdiction_id?: string | null }).curriculum_jurisdiction_id) || null,
+      reporting_mode:
+        safe((child as { reporting_mode?: string | null }).reporting_mode) || null,
       connectedAt:
         safe((child as { connectedAt?: string | null }).connectedAt) || null,
     };
@@ -212,18 +227,34 @@ export async function loadLinkedLearners(
     return [];
   }
 
-  const studentResponse = (await withTimeout(
-    supabase
-      .from("students")
-      .select("id,preferred_name,first_name,surname,year_level,created_at")
-      .eq("family_profile_id", resolvedFamilyProfileId)
-      .order("created_at", { ascending: true }),
-    "load family learners",
-  )) as QueryResponse<Array<Record<string, unknown>>>;
+  const selectVariants = [
+    "id,preferred_name,first_name,surname,year_level,year_band,curriculum_framework_id,curriculum_jurisdiction_id,reporting_mode,created_at",
+    "id,preferred_name,first_name,surname,year_level,created_at",
+  ];
 
-  if (studentResponse.error) {
-    throw studentResponse.error;
+  let studentResponse: QueryResponse<Array<Record<string, unknown>>> | null = null;
+
+  for (const select of selectVariants) {
+    const response = (await withTimeout(
+      supabase
+        .from("students")
+        .select(select)
+        .eq("family_profile_id", resolvedFamilyProfileId)
+        .order("created_at", { ascending: true }),
+      "load family learners",
+    )) as QueryResponse<Array<Record<string, unknown>>>;
+
+    if (!response.error) {
+      studentResponse = response;
+      break;
+    }
+
+    if (!isMissingColumnError(response.error)) {
+      throw response.error;
+    }
   }
+
+  if (!studentResponse) return [];
 
   const students = studentResponse.data ?? [];
   if (!students.length) return [];
@@ -246,6 +277,10 @@ export async function loadLinkedLearners(
       label,
       yearLabel: familyYearLevelLabelFromStored(yearLevel),
       year_level: yearLevel,
+      year_band: safe(student.year_band) || null,
+      curriculum_framework_id: safe(student.curriculum_framework_id) || null,
+      curriculum_jurisdiction_id: safe(student.curriculum_jurisdiction_id) || null,
+      reporting_mode: safe(student.reporting_mode) || null,
       connectedAt: safe(student.created_at) || null,
     } satisfies FamilyLearner;
   });
@@ -358,10 +393,20 @@ export async function createLinkedLearner(
   userId: string,
   learnerName: string,
   yearLevel: string,
+  options?: {
+    yearBand?: string | null;
+    frameworkId?: string | null;
+    jurisdictionId?: string | null;
+    reportingMode?: string | null;
+  },
 ): Promise<FamilyLearner> {
   const createdLearner = await createCanonicalFamilyLearner(userId, {
     learnerName,
     yearLevel,
+    yearBand: options?.yearBand,
+    frameworkId: options?.frameworkId,
+    jurisdictionId: options?.jurisdictionId,
+    reportingMode: options?.reportingMode,
   });
 
   persistLearnersToLocalCache(
@@ -376,10 +421,20 @@ export async function updateLinkedLearner(
   learnerId: string,
   learnerName: string,
   yearLevel: string,
+  options?: {
+    yearBand?: string | null;
+    frameworkId?: string | null;
+    jurisdictionId?: string | null;
+    reportingMode?: string | null;
+  },
 ) {
   await updateCanonicalFamilyLearner(userId, learnerId, {
     learnerName,
     yearLevel,
+    yearBand: options?.yearBand,
+    frameworkId: options?.frameworkId,
+    jurisdictionId: options?.jurisdictionId,
+    reportingMode: options?.reportingMode,
   });
   dispatchFamilyWorkspaceEvent({ childId: learnerId });
 }

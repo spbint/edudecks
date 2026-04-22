@@ -99,6 +99,7 @@ export default function FamilyProfileMenu({
           <div style={styles.linkSection}>
             {[
               { label: "My Profile", href: "/profile" },
+              { label: "My Family", href: "/family" },
               { label: "My Settings", href: "/settings" },
               { label: "My Subscription", href: "/pricing" },
             ].map((item) => (
