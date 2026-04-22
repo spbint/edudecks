@@ -20,6 +20,32 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Auth Configuration
+
+MyLearna uses one shared Supabase browser client:
+
+- source of truth: `lib/supabaseClient.ts`
+- compatibility re-export: `src/lib/supabaseClient.ts`
+
+Required production public environment variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
+
+Optional auth-related environment variable:
+
+```env
+NEXT_PUBLIC_APP_URL=
+```
+
+Notes:
+
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` should be set in Vercel production, preview, and local environments.
+- `NEXT_PUBLIC_APP_URL` is used for auth callback URL generation when `window.location.origin` is not available.
+- The browser client includes a bundled public-project fallback so password login does not silently break if Vercel public env injection is incomplete, but the intended production setup is still to provide the public env vars explicitly.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
