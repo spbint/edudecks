@@ -98,10 +98,8 @@ export default function FamilyProfileMenu({
 
           <div style={styles.linkSection}>
             {[
-              { label: "My Profile", href: "/profile" },
-              { label: "My Family", href: "/family" },
-              { label: "My Settings", href: "/settings" },
-              { label: "My Subscription", href: "/pricing" },
+              { label: "Profile", href: "/profile" },
+              { label: "Settings", href: "/settings" },
             ].map((item) => (
               <Link key={item.label} href={item.href} onClick={() => setOpen(false)} style={styles.link}>
                 {item.label}
