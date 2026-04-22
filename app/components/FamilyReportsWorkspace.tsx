@@ -102,6 +102,8 @@ export default function FamilyReportsWorkspace() {
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
+  const learnerSetupHref = hasLearners ? "/family" : "/family#learner-management";
+  const learnerSetupCta = hasLearners ? "Open My Family" : "Add your first learner";
   const canonicalReady =
     Boolean(workspace.userId) &&
     workspace.storageMode === "database" &&
@@ -308,8 +310,8 @@ export default function FamilyReportsWorkspace() {
       ? {
           title: "Choose a learner first",
           note: "Once a learner is selected, reports can pull in explicit coverage and linked evidence.",
-          href: "/profile",
-          cta: "Open My Profile",
+          href: learnerSetupHref,
+          cta: learnerSetupCta,
           state: "empty" as HomeSurfaceState,
         }
       : signalSummary.explicitEvidenceCount === 0

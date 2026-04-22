@@ -122,7 +122,7 @@ export function PortfolioGrid({
             <article
               key={item.id}
               className={cx(
-                "grid gap-3 rounded-[24px] border p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition hover:-translate-y-[1px] hover:shadow-[0_14px_28px_rgba(15,23,42,0.07)]",
+                "grid gap-3 rounded-[24px] border p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]",
                 stateTone(state),
               )}
             >

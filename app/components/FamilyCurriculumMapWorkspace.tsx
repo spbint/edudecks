@@ -95,6 +95,8 @@ export default function FamilyCurriculumMapWorkspace() {
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
+  const learnerSetupHref = hasLearners ? "/family" : "/family#learner-management";
+  const learnerSetupCta = hasLearners ? "Open My Family" : "Add your first learner";
   const canonicalReady =
     Boolean(workspace.userId) &&
     workspace.storageMode === "database" &&
@@ -339,8 +341,8 @@ export default function FamilyCurriculumMapWorkspace() {
       ? {
           title: "Choose a learner first",
           note: "Once a learner is in focus, Curriculum Map can turn planning and evidence into visible coverage.",
-          href: "/profile",
-          cta: "Open My Profile",
+          href: learnerSetupHref,
+          cta: learnerSetupCta,
           state: "empty" as HomeSurfaceState,
         }
       : mapState === "empty"

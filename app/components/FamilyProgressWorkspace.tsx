@@ -196,6 +196,8 @@ export default function FamilyProgressWorkspace() {
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
+  const learnerSetupHref = hasLearners ? "/family" : "/family#learner-management";
+  const learnerSetupCta = hasLearners ? "Open My Family" : "Add your first learner";
   const canonicalReady =
     Boolean(workspace.userId) &&
     workspace.storageMode === "database" &&
@@ -378,8 +380,8 @@ export default function FamilyProgressWorkspace() {
       ? {
           title: "Choose a learner first",
           note: "Once a learner is in focus, My Progress can turn planning, evidence, and reports into clearer guidance.",
-          href: "/profile",
-          cta: "Open My Profile",
+          href: learnerSetupHref,
+          cta: learnerSetupCta,
           state: "empty" as HomeSurfaceState,
         }
       : progressState === "live" && evidenceCount < 4

@@ -25,7 +25,6 @@ export default function FamilySettingsWorkspace() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     setDraft(workspace.profile);
@@ -100,19 +99,9 @@ export default function FamilySettingsWorkspace() {
           title="Advanced Curriculum Options"
           note="Keep this tucked away unless your family is using a custom or alternative framework."
         >
-          <button
-            type="button"
-            onClick={() => setShowAdvanced((current) => !current)}
-            className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
-          >
-            {showAdvanced ? "Hide advanced options" : "Show advanced options"}
-          </button>
-
-          {showAdvanced ? (
-            <div className="rounded-[20px] border border-slate-200 bg-slate-50/70 p-4 text-[14px] leading-6 text-slate-600">
-              Custom framework support is now structurally ready. The deeper IB, school-defined, and homeschool custom template logic can sit on top of this configuration layer later without changing the family setup flow again.
-            </div>
-          ) : null}
+          <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/80 p-4 text-[14px] leading-6 text-slate-600">
+            Custom and alternative framework support will appear here when it is ready. For now, family defaults stay focused on the main reporting and academic structure settings above.
+          </div>
         </FamilyLearningSetupCard>
 
         <SettingsSaveBar

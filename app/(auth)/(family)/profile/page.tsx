@@ -73,6 +73,14 @@ function formatTimestamp(value: string | null | undefined) {
   });
 }
 
+function friendlyAddLearnerMessage() {
+  return "We couldn't add this learner just yet. Try again in a moment.";
+}
+
+function friendlyProfileCaptureMessage() {
+  return "We couldn't save this learning moment just yet. Try again in a moment.";
+}
+
 export default function FamilyProfilePage() {
   const {
     workspace,
@@ -308,10 +316,7 @@ export default function FamilyProfilePage() {
       setStatus("This learner was added.");
     } catch (saveError) {
       console.error("profile add learner failed", saveError);
-      setError(
-        safe((saveError as { message?: unknown })?.message) ||
-          "We couldn't add this learner yet. Please try again.",
-      );
+      setError(friendlyAddLearnerMessage());
     } finally {
       setAdding(false);
     }
@@ -335,7 +340,7 @@ export default function FamilyProfilePage() {
     }
 
     if (!workspace.userId || !hasSupabaseEnv || !familyProfileId || familyProfileId === "local") {
-      setError("Family evidence capture needs a signed-in family workspace with a saved profile.");
+      setError("Capture becomes available once this family workspace is fully connected.");
       setWarning("");
       return;
     }
@@ -346,12 +351,6 @@ export default function FamilyProfilePage() {
     setWarning("");
 
     try {
-      console.log("CAPTURE_SUBMIT", {
-        learnerId: currentLearnerId,
-        title,
-        description,
-      });
-
       const created = await createFamilyEvidenceEntry({
         studentId: activeLearner.id,
         userId: workspace.userId,
@@ -379,10 +378,7 @@ export default function FamilyProfilePage() {
       setStatus("Learning captured and added to Recent learning.");
     } catch (saveError) {
       console.error("profile capture learning failed", saveError);
-      setError(
-        safe((saveError as { message?: unknown })?.message) ||
-          "We couldn't save this learning moment yet. Please try again.",
-      );
+      setError(friendlyProfileCaptureMessage());
     } finally {
       setSavingCapture(false);
     }
@@ -517,7 +513,7 @@ export default function FamilyProfilePage() {
             <div style={S.addHeader}>
               <div style={S.cardTitle}>Add learner</div>
               <div style={S.helperText}>
-                This writes through the shared family workspace path. Leave year blank or enter a whole number.
+                Add a learner here so the shared family workspace stays current. Leave year blank or enter a whole number.
               </div>
             </div>
             <div style={S.formRow}>
