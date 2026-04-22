@@ -133,7 +133,7 @@ export default function FamilyHomeWorkspace() {
         state: "loading" as HomeSurfaceState,
         title: "Preparing your next move",
         note: "Loading your family overview.",
-        href: "/home",
+        href: "/my-day",
         cta: "Please wait",
       }
     : !hasLearners
@@ -163,8 +163,8 @@ export default function FamilyHomeWorkspace() {
   return (
     <FamilyTopNavShell
       title="MyLearna"
-      subtitle="My Learning"
-      heroTitle="Family Overview"
+      subtitle="My Day"
+      heroTitle="My Day Overview"
       heroText="A calm overview of what’s active, ready, and next."
       hideHeroAside={true}
     >

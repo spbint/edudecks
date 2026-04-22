@@ -19,9 +19,9 @@ type Step = {
 const STEPS: Step[] = [
   {
     key: "home",
-    label: "My Learning",
-    hint: "Start with your overview",
-    href: "/home",
+    label: "My Day",
+    hint: "Start with today's overview",
+    href: "/my-day",
   },
   {
     key: "calendar",

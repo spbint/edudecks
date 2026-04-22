@@ -434,7 +434,7 @@ export default function AuthorityHubShell({
             { href: "/my-portfolio", label: "My Portfolio" },
             { href: "/my-reports", label: "My Reports", primary: true },
             { href: "/reports/library", label: "Report Library" },
-            { href: "/home", label: "My Learning" },
+            { href: "/my-day", label: "My Day" },
           ]).map((lane) => (
             <Link
               key={lane.href + lane.label}

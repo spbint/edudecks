@@ -14,9 +14,9 @@ export const FAMILY_WORKFLOW_STAGES: Array<{
 }> = [
   {
     key: "home",
-    label: "My Learning",
-    href: "/home",
-    detail: "Start with the current learner, readiness, and your next best move.",
+    label: "My Day",
+    href: "/my-day",
+    detail: "Start with today, the current learner, and your next best move.",
   },
   {
     key: "calendar",
@@ -141,7 +141,7 @@ export const FAMILY_WORKFLOW_PAGE_STEPS: Record<string, WorkflowGuideStep[]> = {
 
 export function resolveFamilyWorkflowStage(pathname: string): FamilyWorkflowStageKey | null {
   if (!pathname) return null;
-  if (pathname === "/family" || pathname === "/home") return "home";
+  if (pathname === "/family" || pathname === "/home" || pathname === "/my-day") return "home";
   if (
     pathname.startsWith("/calendar") ||
     pathname.startsWith("/planner") ||

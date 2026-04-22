@@ -393,7 +393,7 @@ export default function ReportsLibraryPage() {
             }}
           >
             <Link
-              href="/home"
+              href="/my-day"
               style={{ ...S.mutedLink(), fontWeight: 900, color: "#0f172a" }}
             >
               MyLearna
