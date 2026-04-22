@@ -7,7 +7,6 @@ import { useAuthUser } from "@/app/components/AuthUserProvider";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import FamilyProfileMenu from "@/app/components/FamilyProfileMenu";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
-import FamilyWorkflowRibbon from "@/app/components/FamilyWorkflowRibbon";
 
 type FamilyTopNavShellProps = {
   children: React.ReactNode;
@@ -59,17 +58,13 @@ const PRIMARY_NAV = [
 ] as const;
 
 function normalizeRoute(pathname: string) {
-  if (pathname === "/family" || pathname === "/dashboard") return "/home";
+  if (pathname === "/dashboard") return "/home";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner") return "/my-plan";
   if (pathname === "/my-programs") return "/my-programs";
   if (pathname === "/curriculum-map") return "/curriculum";
   if (pathname === "/portfolio") return "/my-portfolio";
-  if (pathname === "/reports" || pathname.startsWith("/reports/")) return "/my-reports";
-  if (pathname === "/capture" || pathname === "/calendar" || pathname.startsWith("/authority")) {
-    return "/my-progress";
-  }
-  return pathname;
+  return PRIMARY_NAV.some((item) => item.href === pathname) ? pathname : "";
 }
 
 function routeSubtitle(pathname: string) {
@@ -220,8 +215,6 @@ export default function FamilyTopNavShell({
           </div>
         </div>
       </header>
-
-      <FamilyWorkflowRibbon currentRoute={pathname} />
 
       <div className={cx("mx-auto w-full max-w-[1440px] px-6 py-6", contentClassName)}>
         {!hideHero ? (
