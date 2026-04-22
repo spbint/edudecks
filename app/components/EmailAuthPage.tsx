@@ -38,6 +38,14 @@ function passwordErrorMessage(error: unknown) {
     return "This account still needs email confirmation before password sign-in can continue.";
   }
 
+  if (
+    message.includes("failed to fetch") ||
+    message.includes("networkerror") ||
+    message.includes("load failed")
+  ) {
+    return "We couldn't reach the sign-in service just now. Please try again.";
+  }
+
   return original || "We couldn't sign you in just yet. Please try again.";
 }
 

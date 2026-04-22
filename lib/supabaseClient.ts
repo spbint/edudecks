@@ -1,17 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const bundledPublicSupabaseUrl = "https://jgllsqixpfypunnstinl.supabase.co";
+const bundledPublicSupabaseAnonKey =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGxzcWl4cGZ5cHVubnN0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MTc0MDYsImV4cCI6MjA4MjQ5MzQwNn0.YYKiRuxYye7_iDfQ4nZ6U4pFiTVtt1lIGSSwQa98CBE";
+
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || bundledPublicSupabaseUrl;
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || bundledPublicSupabaseAnonKey;
 
 export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
-
-const fallbackSupabaseUrl = "https://placeholder.supabase.co";
-const fallbackSupabaseAnonKey = "placeholder-anon-key";
 const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
 
-if (!hasSupabaseEnv) {
+if (
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+) {
   console.warn(
-    "Supabase environment variables are missing. Using a placeholder client so static builds can complete.",
+    "Supabase public environment variables are missing. Using bundled public project auth configuration as a fallback.",
   );
 }
 
@@ -37,8 +43,8 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
 }
 
 export const supabase = createClient(
-  hasSupabaseEnv ? supabaseUrl! : fallbackSupabaseUrl,
-  hasSupabaseEnv ? supabaseAnonKey! : fallbackSupabaseAnonKey,
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       persistSession: true,
