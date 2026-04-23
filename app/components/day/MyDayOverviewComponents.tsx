@@ -5,7 +5,13 @@ import React from "react";
 import type { HomeSurfaceState } from "@/app/components/home/HomeOverviewComponents";
 import { CurriculumTagPills } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import type { FrameworkPreset } from "@/lib/curriculumFrameworks";
-import type { MyDayBlockItem, MyDayNextStep, MyDaySummary } from "@/lib/myDay";
+import type {
+  MyDayBlockItem,
+  MyDayNextStep,
+  MyDayProgress,
+  MyDayRecentCapture,
+  MyDaySummary,
+} from "@/lib/myDay";
 
 const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 const H2 = "text-[18px] font-bold tracking-tight text-slate-950";
@@ -22,9 +28,8 @@ function badgeTone(state: HomeSurfaceState) {
 }
 
 function statusLabel(status: MyDayBlockItem["status"]) {
-  if (status === "captured") return "Captured";
-  if (status === "next") return "Next";
-  return "Planned";
+  if (status === "captured") return "Completed";
+  return "Upcoming";
 }
 
 function statusTone(status: MyDayBlockItem["status"]) {
@@ -133,12 +138,11 @@ export function TodayLearningBlockCard({
         {preset && block.curriculumOutcomeIds.length ? (
           <CurriculumTagPills preset={preset} outcomeIds={block.curriculumOutcomeIds} />
         ) : null}
-        {block.evidenceCount > 0 ? (
-          <div className={META}>
-            {block.evidenceCount} evidence item{block.evidenceCount === 1 ? "" : "s"} linked
-            {block.latestEvidenceLabel ? ` - last captured ${block.latestEvidenceLabel}` : ""}
-          </div>
-        ) : null}
+        <div className={META}>
+          {block.evidenceCount > 0
+            ? `${block.evidenceCount} evidence item${block.evidenceCount === 1 ? "" : "s"} linked${block.latestEvidenceLabel ? ` - last captured ${block.latestEvidenceLabel}` : ""}`
+            : "No evidence linked yet"}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -146,22 +150,148 @@ export function TodayLearningBlockCard({
           href={planHref}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
-          {block.note ? "Adjust in My Plan" : "Open in My Plan"}
+          Focus this block
         </Link>
         {canCapture ? (
           <Link
             href={captureHref}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            Capture evidence
+            Capture now
           </Link>
         ) : (
           <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-[14px] font-semibold text-slate-500">
-            Capture evidence
+            Capture now
           </span>
         )}
       </div>
     </article>
+  );
+}
+
+export function MyDayNextUpCard({
+  block,
+  learnerName,
+  planHref,
+  captureHref,
+  canCapture,
+}: {
+  block: MyDayBlockItem | null;
+  learnerName: string;
+  planHref: string;
+  captureHref: string;
+  canCapture: boolean;
+}) {
+  if (!block) {
+    return (
+      <section className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
+        <div className={LABEL}>Next up</div>
+        <div className={`mt-2 ${H3}`}>Nothing is lined up just yet</div>
+        <div className={`mt-1 ${META}`}>Shape one live block in My Plan so today has a clear next step.</div>
+        <Link
+          href="/my-plan"
+          className="mt-4 inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          Shape today in My Plan
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <div className={LABEL}>Next up</div>
+          <div className={H3}>{block.title}</div>
+          <div className={META}>{[block.time || "Next block", learnerName].filter(Boolean).join(" - ")}</div>
+        </div>
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[0.14em] ${statusTone(block.status)}`}>
+          {statusLabel(block.status)}
+        </span>
+      </div>
+
+      {block.programTitle ? <div className={`mt-3 ${META}`}>{block.programTitle}</div> : null}
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Link
+          href={planHref}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          Focus this block
+        </Link>
+        {canCapture ? (
+          <Link
+            href={captureHref}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Capture now
+          </Link>
+        ) : (
+          <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-[14px] font-semibold text-slate-500">
+            Capture now
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
+export function MyDayProgressSignal({
+  progress,
+}: {
+  progress: MyDayProgress;
+}) {
+  const ratio = progress.totalCount > 0 ? Math.round((progress.capturedCount / progress.totalCount) * 100) : 0;
+
+  return (
+    <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <div className={LABEL}>Today progress</div>
+      <div className={`mt-2 ${H3}`}>{progress.capturedCount} of {progress.totalCount} blocks captured</div>
+      <div className={`mt-1 ${META}`}>{progress.note}</div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-slate-900 transition-[width]"
+          style={{ width: `${ratio}%` }}
+        />
+      </div>
+    </section>
+  );
+}
+
+export function MyDayRecentlyCapturedStrip({
+  items,
+  portfolioHref,
+}: {
+  items: MyDayRecentCapture[];
+  portfolioHref: string;
+}) {
+  if (!items.length) return null;
+
+  return (
+    <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className="grid gap-1">
+          <div className={LABEL}>Recently captured</div>
+          <div className={H3}>Fresh learning from today’s flow</div>
+        </div>
+        <Link
+          href={portfolioHref}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+        >
+          Open My Portfolio
+        </Link>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        {items.map((item) => (
+          <article key={item.id} className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-3">
+            <div className={H3}>{item.title}</div>
+            <div className={META}>{item.timeLabel}</div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

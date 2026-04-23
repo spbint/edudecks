@@ -13,8 +13,11 @@ import {
   MyDayEmptyState,
   MyDayHeader,
   MyDayNextStep,
+  MyDayNextUpCard,
+  MyDayProgressSignal,
   MyDayQuickCaptureCard,
   MyDayQuickLinks,
+  MyDayRecentlyCapturedStrip,
   MyDaySummary,
   TodayLearningBlockCard,
   TodayLearningFlow,
@@ -189,6 +192,7 @@ export default function MyDayWorkspace() {
         blocks: blocksToday,
         programs,
         evidenceRows,
+        now: today,
       })
     : null;
 
@@ -197,6 +201,9 @@ export default function MyDayWorkspace() {
   const quickCaptureHref = activeLearnerId
     ? `/capture?learner=${encodeURIComponent(activeLearnerId)}&date=${encodeURIComponent(todayYmd)}`
     : "/capture";
+  const portfolioHref = activeLearnerId
+    ? `/my-portfolio?learner=${encodeURIComponent(activeLearnerId)}`
+    : "/my-portfolio";
 
   const headerState: HomeSurfaceState = !hasActiveLearner
     ? "empty"
@@ -282,6 +289,24 @@ export default function MyDayWorkspace() {
           />
 
           <div className="grid content-start gap-4">
+            <MyDayNextUpCard
+              block={dayView?.nextUp ?? null}
+              learnerName={activeLearnerName}
+              planHref={
+                dayView?.nextUp
+                  ? `/my-plan?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(dayView.nextUp.id)}`
+                  : `/my-plan?date=${encodeURIComponent(todayYmd)}`
+              }
+              captureHref={
+                dayView?.nextUp
+                  ? `/capture?learner=${encodeURIComponent(activeLearnerId)}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(dayView.nextUp.id)}`
+                  : quickCaptureHref
+              }
+              canCapture={canCapture}
+            />
+
+            {dayView ? <MyDayProgressSignal progress={dayView.progress} /> : null}
+
             <MyDayQuickCaptureCard
               href={quickCaptureHref}
               disabled={!canCapture}
@@ -295,6 +320,10 @@ export default function MyDayWorkspace() {
             />
           </div>
         </section>
+
+        {dayView ? (
+          <MyDayRecentlyCapturedStrip items={dayView.recentCaptures} portfolioHref={portfolioHref} />
+        ) : null}
 
         {dayView ? <MyDaySummary summary={dayView.summary} /> : null}
 

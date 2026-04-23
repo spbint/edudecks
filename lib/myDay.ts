@@ -38,6 +38,18 @@ export type MyDaySummary = {
   dailyNote: string;
 };
 
+export type MyDayProgress = {
+  capturedCount: number;
+  totalCount: number;
+  note: string;
+};
+
+export type MyDayRecentCapture = {
+  id: string;
+  title: string;
+  timeLabel: string;
+};
+
 export type MyDayNextStep = {
   title: string;
   note: string;
@@ -48,6 +60,9 @@ export type MyDayNextStep = {
 export type MyDayView = {
   blocks: MyDayBlockItem[];
   summary: MyDaySummary;
+  progress: MyDayProgress;
+  nextUp: MyDayBlockItem | null;
+  recentCaptures: MyDayRecentCapture[];
   nextStep: MyDayNextStep;
 };
 
@@ -59,6 +74,29 @@ function dateLabel(value?: string | null) {
   const parsed = new Date(safe(value));
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
+function timeLabel(value?: string | null) {
+  const clean = safe(value);
+  if (!clean) return "Recently captured";
+
+  const direct = new Date(clean);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct.toLocaleTimeString("en-AU", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  const fallback = new Date(`${clean}T12:00:00`);
+  if (!Number.isNaN(fallback.getTime())) {
+    return fallback.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  return "Recently captured";
 }
 
 function timeSortValue(block: FamilyCalendarBlockEntry, index: number) {
@@ -78,13 +116,26 @@ function latestEvidenceLabel(rows: MyDayEvidenceRow[]) {
   return dateLabel(sorted[0]?.occurred_on || sorted[0]?.created_at);
 }
 
+function blockMoment(date: string, time: string) {
+  const match = safe(time).match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setHours(hours, minutes, 0, 0);
+  return parsed;
+}
+
 export function buildMyDayView(input: {
   date: string;
   learnerId: string;
   blocks: FamilyCalendarBlockEntry[];
   programs: Program[];
   evidenceRows: MyDayEvidenceRow[];
+  now?: Date;
 }): MyDayView {
+  const now = input.now ?? new Date();
   const programMap = new Map(input.programs.map((program) => [program.id, program]));
   const evidenceToday = input.evidenceRows.filter((row) => safe(row.occurred_on) === input.date);
   const evidenceByBlock = new Map<string, MyDayEvidenceRow[]>();
@@ -99,7 +150,18 @@ export function buildMyDayView(input: {
     .map((block, index) => ({ block, index }))
     .sort((a, b) => timeSortValue(a.block, a.index) - timeSortValue(b.block, b.index))
     .map((item) => item.block);
-  const nextBlockId = sortedBlocks.find((block) => (evidenceByBlock.get(block.id) ?? []).length === 0)?.id ?? null;
+
+  const nextScheduledBlock = sortedBlocks.find((block) => {
+    const linkedEvidence = evidenceByBlock.get(block.id) ?? [];
+    if (linkedEvidence.length > 0) return false;
+    const moment = blockMoment(input.date, block.time);
+    return moment ? moment.getTime() >= now.getTime() - 60 * 60 * 1000 : false;
+  }) ?? null;
+
+  const nextBlockId =
+    nextScheduledBlock?.id ??
+    sortedBlocks.find((block) => (evidenceByBlock.get(block.id) ?? []).length === 0)?.id ??
+    null;
 
   const blocks = sortedBlocks.map((block) => {
     const linkedEvidence = evidenceByBlock.get(block.id) ?? [];
@@ -149,27 +211,64 @@ export function buildMyDayView(input: {
             : "Today's learning flow is ready to begin.",
   };
 
-  const nextUncaptured = blocks.find((block) => block.evidenceCount === 0) ?? null;
-  const nextStep: MyDayNextStep = nextUncaptured
+  const progress: MyDayProgress = {
+    capturedCount,
+    totalCount: blocks.length,
+    note:
+      !blocks.length
+        ? "Add the first live block in My Plan to give today some shape."
+        : capturedCount === 0
+          ? "Nothing has been captured yet for today's blocks."
+          : capturedCount >= blocks.length
+            ? "Every scheduled block has supporting evidence."
+            : `${capturedCount} of ${blocks.length} blocks already have supporting evidence.`,
+  };
+
+  const nextUp = blocks.find((block) => block.id === nextBlockId) ?? null;
+  const recentCaptures: MyDayRecentCapture[] = [...input.evidenceRows]
+    .sort((a, b) => safe(b.occurred_on || b.created_at).localeCompare(safe(a.occurred_on || a.created_at)))
+    .slice(0, 3)
+    .map((row) => ({
+      id: row.id,
+      title: safe(row.title) || safe(row.summary) || "Learning moment",
+      timeLabel: timeLabel(row.created_at || row.occurred_on),
+    }));
+
+  const nextUncaptured = nextUp ?? blocks.find((block) => block.evidenceCount === 0) ?? null;
+  const nextStep: MyDayNextStep = !blocks.length
     ? {
-        title: `Continue ${nextUncaptured.title}`,
-        note: "Open the live plan or capture evidence from the next scheduled block.",
+        title: "Shape today in My Plan",
+        note: "There is nothing scheduled yet, so the clearest next step is to add one live block for today.",
+        href: `/my-plan?date=${encodeURIComponent(input.date)}`,
+        cta: "Shape today in My Plan",
+      }
+    : capturedCount === 0 && nextUncaptured
+    ? {
+        title: `Capture the first moment from ${nextUncaptured.title}`,
+        note: "Today's blocks are ready. Capture the first completed moment so the day starts feeling active.",
+        href: `/capture?learner=${encodeURIComponent(input.learnerId)}&date=${encodeURIComponent(input.date)}&block=${encodeURIComponent(nextUncaptured.id)}`,
+        cta: "Capture now",
+      }
+    : nextUncaptured
+      ? {
+        title: `Keep going with ${nextUncaptured.title}`,
+        note: "Part of today is already recorded. Continue with the next block or capture the next learning moment.",
         href: `/my-plan?date=${encodeURIComponent(input.date)}`,
         cta: "Continue in My Plan",
       }
-    : blocks.length
+      : blocks.length
       ? {
-          title: "Capture today's learning",
-          note: "Add one more learning moment if you want today's record to feel fuller.",
-          href: `/capture?learner=${encodeURIComponent(input.learnerId)}&date=${encodeURIComponent(input.date)}`,
-          cta: "Capture a moment",
+          title: "Review today's captured learning",
+          note: "Today's scheduled blocks already have evidence attached. A quick portfolio check is the clearest next step.",
+          href: `/my-portfolio?learner=${encodeURIComponent(input.learnerId)}`,
+          cta: "Open My Portfolio",
         }
       : {
-          title: "Plan today in My Calendar",
-          note: "Start by placing one learning block into today or shaping the next week.",
-          href: "/my-calendar",
-          cta: "Open My Calendar",
+          title: "Shape today in My Plan",
+          note: "There is nothing scheduled yet, so the clearest next step is to add one live block for today.",
+          href: `/my-plan?date=${encodeURIComponent(input.date)}`,
+          cta: "Shape today in My Plan",
         };
 
-  return { blocks, summary, nextStep };
+  return { blocks, summary, progress, nextUp, recentCaptures, nextStep };
 }
