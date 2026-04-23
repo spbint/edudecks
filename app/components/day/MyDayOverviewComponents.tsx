@@ -14,7 +14,6 @@ import type {
 } from "@/lib/myDay";
 
 const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
-const H2 = "text-[18px] font-bold tracking-tight text-slate-950";
 const H3 = "text-[15px] font-semibold text-slate-950";
 const META = "text-[13px] leading-5 text-slate-500";
 const CARD =
@@ -30,12 +29,14 @@ function badgeTone(state: HomeSurfaceState) {
 
 function statusLabel(status: MyDayBlockItem["status"]) {
   if (status === "captured") return "Completed";
+  if (status === "overdue") return "Needs attention";
   return "Upcoming";
 }
 
 function statusTone(status: MyDayBlockItem["status"]) {
   if (status === "captured") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "next") return "border-blue-200 bg-blue-50 text-blue-700";
+  if (status === "overdue") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-slate-200 bg-slate-100 text-slate-600";
 }
 
@@ -114,8 +115,13 @@ export function TodayLearningBlockCard({
   canCapture: boolean;
   preset: FrameworkPreset | null;
 }) {
+  const cardTone =
+    block.status === "overdue"
+      ? "rounded-[26px] border border-amber-200/80 bg-[linear-gradient(180deg,rgba(255,251,235,0.92)_0%,rgba(255,255,255,0.98)_100%)] shadow-[0_14px_34px_rgba(15,23,42,0.045)]"
+      : CARD;
+
   return (
-    <article className={`grid gap-4 p-5 ${CARD}`}>
+    <article className={`grid gap-4 p-5 ${cardTone}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
@@ -130,7 +136,7 @@ export function TodayLearningBlockCard({
             {block.title}
           </div>
           <div className={META}>
-            {[block.subject, block.time].filter(Boolean).join(" · ") || block.sourceLabel}
+            {[block.subject, block.time].filter(Boolean).join(" - ") || block.sourceLabel}
           </div>
         </div>
       </div>
@@ -142,7 +148,7 @@ export function TodayLearningBlockCard({
         </div>
         {block.programTitle || block.programSegmentTitle ? (
           <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[12px] font-medium text-slate-600">
-            {[block.programTitle, block.programSegmentTitle].filter(Boolean).join(" · ")}
+            {[block.programTitle, block.programSegmentTitle].filter(Boolean).join(" - ")}
           </div>
         ) : null}
         {preset && block.curriculumOutcomeIds.length ? (
@@ -150,8 +156,10 @@ export function TodayLearningBlockCard({
         ) : null}
         <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50/90 px-3 py-1 text-[12px] font-medium text-slate-600">
           {block.evidenceCount > 0
-            ? `${block.evidenceCount} evidence item${block.evidenceCount === 1 ? "" : "s"} linked${block.latestEvidenceLabel ? ` · last captured ${block.latestEvidenceLabel}` : ""}`
-            : "No evidence linked yet"}
+            ? `${block.evidenceCount} evidence item${block.evidenceCount === 1 ? "" : "s"} linked${block.latestEvidenceLabel ? ` - last captured ${block.latestEvidenceLabel}` : ""}`
+            : block.status === "overdue"
+              ? "No evidence linked yet - this block has already passed"
+              : "No evidence linked yet"}
         </div>
       </div>
 
@@ -221,7 +229,7 @@ export function MyDayNextUpCard({
             {block.title}
           </div>
           <div className={META}>
-            {[block.time || "Next block", learnerName].filter(Boolean).join(" · ")}
+            {[block.time || "Next block", learnerName].filter(Boolean).join(" - ")}
           </div>
         </div>
         <span
@@ -399,7 +407,9 @@ export function MyDaySummary({
     <section className="grid gap-4">
       <div className="grid gap-1.5">
         <div className={LABEL}>Today summary</div>
-        <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">A light read on today</h2>
+        <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">
+          A light read on today
+        </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => (
@@ -431,12 +441,22 @@ export function MyDayNextStep({
         {nextStep.title}
       </h2>
       <p className="mt-2 max-w-[56ch] text-[14px] leading-6 text-slate-600">{nextStep.note}</p>
-      <Link
-        href={nextStep.href}
-        className="mt-5 inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
-      >
-        {nextStep.cta}
-      </Link>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link
+          href={nextStep.href}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          {nextStep.cta}
+        </Link>
+        {nextStep.secondaryHref && nextStep.secondaryCta ? (
+          <Link
+            href={nextStep.secondaryHref}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            {nextStep.secondaryCta}
+          </Link>
+        ) : null}
+      </div>
     </section>
   );
 }

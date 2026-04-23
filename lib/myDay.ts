@@ -11,7 +11,7 @@ export type MyDayEvidenceRow = {
   linked_learning_plan_item_id?: string | null;
 };
 
-export type MyDayBlockStatus = "captured" | "next" | "planned";
+export type MyDayBlockStatus = "captured" | "next" | "planned" | "overdue";
 
 export type MyDayBlockItem = {
   id: string;
@@ -55,6 +55,8 @@ export type MyDayNextStep = {
   note: string;
   href: string;
   cta: string;
+  secondaryHref?: string;
+  secondaryCta?: string;
 };
 
 export type MyDayView = {
@@ -127,6 +129,11 @@ function blockMoment(date: string, time: string) {
   return parsed;
 }
 
+function isOverdueMoment(moment: Date | null, now: Date) {
+  if (!moment) return false;
+  return moment.getTime() < now.getTime();
+}
+
 export function buildMyDayView(input: {
   date: string;
   learnerId: string;
@@ -155,11 +162,18 @@ export function buildMyDayView(input: {
     const linkedEvidence = evidenceByBlock.get(block.id) ?? [];
     if (linkedEvidence.length > 0) return false;
     const moment = blockMoment(input.date, block.time);
-    return moment ? moment.getTime() >= now.getTime() - 60 * 60 * 1000 : false;
+    return moment ? moment.getTime() >= now.getTime() : !block.time;
+  }) ?? null;
+
+  const firstOverdueUncapturedBlock = sortedBlocks.find((block) => {
+    const linkedEvidence = evidenceByBlock.get(block.id) ?? [];
+    if (linkedEvidence.length > 0) return false;
+    return isOverdueMoment(blockMoment(input.date, block.time), now);
   }) ?? null;
 
   const nextBlockId =
     nextScheduledBlock?.id ??
+    firstOverdueUncapturedBlock?.id ??
     sortedBlocks.find((block) => (evidenceByBlock.get(block.id) ?? []).length === 0)?.id ??
     null;
 
@@ -167,8 +181,15 @@ export function buildMyDayView(input: {
     const linkedEvidence = evidenceByBlock.get(block.id) ?? [];
     const program = block.programId ? programMap.get(block.programId) ?? null : null;
     const segment = program?.segments.find((item) => item.id === block.programSegmentId) ?? null;
+    const moment = blockMoment(block.date, block.time);
     const status: MyDayBlockStatus =
-      linkedEvidence.length > 0 ? "captured" : block.id === nextBlockId ? "next" : "planned";
+      linkedEvidence.length > 0
+        ? "captured"
+        : isOverdueMoment(moment, now)
+          ? "overdue"
+          : block.id === nextBlockId
+            ? "next"
+            : "planned";
 
     return {
       id: block.id,
@@ -189,6 +210,7 @@ export function buildMyDayView(input: {
   });
 
   const capturedCount = blocks.filter((block) => block.evidenceCount > 0).length;
+  const overdueCount = blocks.filter((block) => block.status === "overdue").length;
   const summary: MyDaySummary = {
     plannedCount: blocks.length,
     capturedCount,
@@ -217,14 +239,19 @@ export function buildMyDayView(input: {
     note:
       !blocks.length
         ? "Add the first live block in My Plan to give today some shape."
+        : overdueCount >= 2 && capturedCount === 0
+          ? "A few blocks have already passed without capture. One learning moment will settle the day."
         : capturedCount === 0
           ? "Nothing has been captured yet for today's blocks."
-          : capturedCount >= blocks.length
+        : capturedCount >= blocks.length
             ? "Every scheduled block has supporting evidence."
             : `${capturedCount} of ${blocks.length} blocks already have supporting evidence.`,
   };
 
-  const nextUp = blocks.find((block) => block.id === nextBlockId) ?? null;
+  const nextUp =
+    blocks.find((block) => block.id === nextScheduledBlock?.id) ??
+    blocks.find((block) => block.id === firstOverdueUncapturedBlock?.id) ??
+    null;
   const recentCaptures: MyDayRecentCapture[] = [...input.evidenceRows]
     .sort((a, b) => safe(b.occurred_on || b.created_at).localeCompare(safe(a.occurred_on || a.created_at)))
     .slice(0, 3)
@@ -242,6 +269,22 @@ export function buildMyDayView(input: {
         href: `/my-plan?date=${encodeURIComponent(input.date)}`,
         cta: "Shape today in My Plan",
       }
+    : capturedCount >= blocks.length && blocks.length > 0
+    ? {
+        title: "Today's learning is already captured",
+        note: "Everything scheduled for today has supporting evidence. You can review the story now or open the live plan for what comes next.",
+        href: `/my-portfolio?learner=${encodeURIComponent(input.learnerId)}`,
+        cta: "View My Portfolio",
+        secondaryHref: `/my-plan?date=${encodeURIComponent(input.date)}`,
+        secondaryCta: "Open My Plan",
+      }
+    : overdueCount >= 2 && capturedCount === 0
+    ? {
+        title: "Capture one moment to settle the day",
+        note: "A few planned blocks have already passed. One quick capture will make today's flow feel current again.",
+        href: `/capture?learner=${encodeURIComponent(input.learnerId)}&date=${encodeURIComponent(input.date)}`,
+        cta: "Capture now",
+      }
     : capturedCount === 0 && nextUncaptured
     ? {
         title: `Capture the first moment from ${nextUncaptured.title}`,
@@ -256,13 +299,6 @@ export function buildMyDayView(input: {
         href: `/my-plan?date=${encodeURIComponent(input.date)}`,
         cta: "Continue in My Plan",
       }
-      : blocks.length
-      ? {
-          title: "Review today's captured learning",
-          note: "Today's scheduled blocks already have evidence attached. A quick portfolio check is the clearest next step.",
-          href: `/my-portfolio?learner=${encodeURIComponent(input.learnerId)}`,
-          cta: "Open My Portfolio",
-        }
       : {
           title: "Shape today in My Plan",
           note: "There is nothing scheduled yet, so the clearest next step is to add one live block for today.",
