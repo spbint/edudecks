@@ -1,98 +1,116 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   type HomeSurfaceState,
   type LearnerOption,
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
-  ReportEvidenceHighlights,
-  ReportInsightCard,
-  ReportMetricCard,
-  ReportNextMoveCard,
-  ReportReadinessCard,
-} from "@/app/components/reports/ReportOverviewComponents";
-import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
-import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
-import { frameworkPreset } from "@/lib/curriculumFrameworks";
-import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
-import {
-  buildCurriculumOutcomeSignals,
-  summarizeCurriculumSignals,
-  type CurriculumEvidenceSignalRow,
-  type CurriculumPlannerSignalBlock,
-} from "@/lib/curriculumSignals";
-import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
+  currentPeriodRangeLabel,
+  loadReportsBuilderModel,
+  nextReportCta,
+  reportingModeLabel,
+  type ArtifactStatus,
+  type ReportsBuilderModel,
+} from "@/lib/reporting";
 
-type EvidenceRow = CurriculumEvidenceSignalRow & {
-  title?: string | null;
-  summary?: string | null;
-  note?: string | null;
-};
-
-const EVIDENCE_SELECTS = [
-  "id,title,summary,note,occurred_on,created_at,learning_area,evidence_type,curriculum_outcome_ids,outcome_status_by_id",
-  "id,title,summary,note,occurred_on,created_at,learning_area,evidence_type",
-];
-
-function safe(value: unknown) {
-  return String(value ?? "").trim();
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
 }
 
-function ymd(date: Date) {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, "0");
-  const d = `${date.getDate()}`.padStart(2, "0");
-  return `${y}-${m}-${d}`;
+function statusTone(status: ArtifactStatus) {
+  if (status === "Ready") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "In progress") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
-function addDays(date: Date, days: number) {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
+function stateFromModel(input: {
+  workspaceLoading: boolean;
+  hasLearners: boolean;
+  activeLearnerId: string;
+  model: ReportsBuilderModel | null;
+}): HomeSurfaceState {
+  if (input.workspaceLoading || !input.model) return "loading";
+  if (!input.hasLearners || !input.activeLearnerId) return "empty";
+  if (input.model.registrationCycle || input.model.requiredArtifacts.length || input.model.reportDocument) {
+    return "live";
+  }
+  return "placeholder";
 }
 
-function startOfWeek(date: Date) {
-  const copy = new Date(date);
-  const day = copy.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  copy.setDate(copy.getDate() + diff);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+function SummaryCard({
+  status,
+  sentence,
+  completeCount,
+  totalCount,
+}: {
+  status: ArtifactStatus;
+  sentence: string;
+  completeCount: number;
+  totalCount: number;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_58%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1.2fr)_220px]">
+      <div className="grid gap-2">
+        <div className="text-[12px] font-black uppercase tracking-[0.18em] text-slate-500">
+          Reporting summary
+        </div>
+        <div className="text-[28px] font-black tracking-tight text-slate-950">{status}</div>
+        <p className="max-w-[760px] text-[15px] leading-7 text-slate-600">{sentence}</p>
+      </div>
+      <div className="grid gap-3 rounded-[22px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">
+          Required items
+        </div>
+        <div className="text-[30px] font-black tracking-tight text-slate-950">
+          {completeCount}/{totalCount || 0}
+        </div>
+        <div className="text-sm leading-6 text-slate-600">
+          {totalCount
+            ? `${completeCount} artifact${completeCount === 1 ? "" : "s"} ready for this cycle`
+            : "No jurisdiction artifact list has been published yet."}
+        </div>
+      </div>
+    </section>
+  );
 }
 
-function readinessLabel(percent: number) {
-  if (percent >= 75) return "Ready to draft";
-  if (percent >= 50) return "Building steadily";
-  if (percent >= 30) return "Still forming";
-  return "Just beginning";
-}
-
-function dedupe(items: string[]) {
-  return [...new Set(items.filter(Boolean))];
-}
-
-function topLabelsFromStatus(
-  signals: ReturnType<typeof buildCurriculumOutcomeSignals>,
-  status: "understood" | "in_progress" | "needs_support",
-) {
-  return dedupe(
-    [...signals.values()]
-      .filter((signal) => signal.status === status)
-      .sort((a, b) => b.evidenceCount - a.evidenceCount)
-      .map((signal) => signal.meta.label),
-  ).slice(0, 5);
+function DetailCard({
+  eyebrow,
+  title,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+      <div className="grid gap-1.5">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+          {eyebrow}
+        </div>
+        <h2 className="text-[18px] font-bold tracking-tight text-slate-950">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
 }
 
 export default function FamilyReportsWorkspace() {
-  const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
-  const [evidenceRows, setEvidenceRows] = useState<EvidenceRow[]>([]);
-  const [plannerBlocks, setPlannerBlocks] = useState<CurriculumPlannerSignalBlock[]>([]);
-  const [drafts, setDrafts] = useState<ReportDraftRow[]>([]);
-  const [loadingReports, setLoadingReports] = useState(true);
+  const {
+    workspace,
+    activeLearner,
+    activeLearnerId,
+    loading: workspaceLoading,
+    setActiveLearner,
+  } = useFamilyWorkspace();
+  const [model, setModel] = useState<ReportsBuilderModel | null>(null);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -100,328 +118,257 @@ export default function FamilyReportsWorkspace() {
     note: learner.yearLabel || "Learner",
   }));
 
-  const hasLearners = workspace.learners.length > 0;
-  const hasActiveLearner = Boolean(activeLearner);
-  const learnerSetupHref = hasLearners ? "/family" : "/family#learner-management";
-  const learnerSetupCta = hasLearners ? "Open My Family" : "Add your first learner";
-  const canonicalReady =
-    Boolean(workspace.userId) &&
-    workspace.storageMode === "database" &&
-    Boolean(workspace.profile?.id) &&
-    workspace.profile.id !== "local" &&
-    Boolean(activeLearner?.id);
-  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
-  const preset = frameworkPreset(
-    learningConfig.country === "us" || learningConfig.country === "uk"
-      ? learningConfig.country
-      : "au",
-  );
-
   useEffect(() => {
     let mounted = true;
 
-    async function hydrateReports() {
-      if (!hasActiveLearner) {
-        if (mounted) {
-          setEvidenceRows([]);
-          setPlannerBlocks([]);
-          setDrafts([]);
-          setLoadingReports(false);
-        }
-        return;
-      }
+    async function hydrate() {
+      const next = await loadReportsBuilderModel({
+        profile: workspace.profile,
+        learner: activeLearner,
+        userId: workspace.userId,
+        mode: "read",
+      });
 
-      if (!canonicalReady || !activeLearner?.id) {
-        if (mounted) {
-          setEvidenceRows([]);
-          setPlannerBlocks([]);
-          setDrafts([]);
-          setLoadingReports(false);
-        }
-        return;
-      }
-
-      try {
-        setLoadingReports(true);
-        const monday = startOfWeek(new Date());
-        const friday = addDays(monday, 4);
-        const [evidence, calendarWindow, reportDrafts] = await Promise.all([
-          loadEvidenceEntriesWithVariants<EvidenceRow>(EVIDENCE_SELECTS, {
-            studentId: activeLearner.id,
-            limit: 80,
-          }),
-          loadFamilyCalendarWindow({
-            familyProfileId: workspace.profile.id,
-            studentId: activeLearner.id,
-            dateFrom: ymd(monday),
-            dateTo: ymd(friday),
-          }).catch(() => ({ dayNotes: {}, blocks: {} })),
-          listReportDrafts().catch(() => []),
-        ]);
-
-        if (!mounted) return;
-
-        const nextPlannerBlocks: CurriculumPlannerSignalBlock[] = Object.entries(calendarWindow.blocks).flatMap(
-          ([date, items]: [string, FamilyCalendarBlockEntry[]]) =>
-            items.map((item) => ({
-              id: item.id,
-              subject: item.subject,
-              date,
-              curriculumOutcomeIds: item.curriculumOutcomeIds ?? [],
-            })),
-        );
-
-        setEvidenceRows(evidence);
-        setPlannerBlocks(nextPlannerBlocks);
-        setDrafts(
-          reportDrafts.filter(
-            (draft) =>
-              draft.student_id === activeLearner.id || draft.child_id === activeLearner.id,
-          ),
-        );
-      } finally {
-        if (mounted) setLoadingReports(false);
+      if (mounted) {
+        setModel(next);
       }
     }
 
-    void hydrateReports();
+    void hydrate();
+
     return () => {
       mounted = false;
     };
-  }, [activeLearner?.id, canonicalReady, hasActiveLearner, workspace.profile?.id]);
+  }, [activeLearner, workspace.profile, workspace.userId]);
 
-  const reportsState: HomeSurfaceState = workspaceLoading || loadingReports
-    ? "loading"
-    : !hasLearners || !hasActiveLearner
-      ? "empty"
-      : canonicalReady
-        ? evidenceRows.length || drafts.length || plannerBlocks.length
-          ? "live"
-          : "empty"
-        : "placeholder";
-
+  const surfaceState = stateFromModel({
+    workspaceLoading,
+    hasLearners: workspace.learners.length > 0,
+    activeLearnerId,
+    model,
+  });
   const learnerSelectorState: HomeSurfaceState = workspaceLoading
     ? "loading"
-    : hasLearners
+    : workspace.learners.length
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
       : "empty";
 
-  const signals = useMemo(
-    () =>
-      buildCurriculumOutcomeSignals({
-        preset,
-        evidenceRows,
-        plannerBlocks,
-      }),
-    [evidenceRows, plannerBlocks, preset],
-  );
-
-  const signalSummary = useMemo(() => summarizeCurriculumSignals(signals), [signals]);
-  const understood = topLabelsFromStatus(signals, "understood");
-  const developing = topLabelsFromStatus(signals, "in_progress");
-  const focusAreas = topLabelsFromStatus(signals, "needs_support");
-  const explicitLinkedEvidence = evidenceRows.filter(
-    (row) => Array.isArray(row.curriculum_outcome_ids) && row.curriculum_outcome_ids.length > 0,
-  );
-  const latestDraft = drafts[0] ?? null;
-  const readinessPercent = reportsState === "placeholder"
-    ? 54
-    : Math.min(
-        100,
-        Math.round(
-          signalSummary.confidence * 0.55 +
-            signalSummary.explicitEvidenceCount * 4 +
-            (latestDraft ? 12 : 0),
-        ),
-      );
-
-  const summaryCards: Array<{
-    label: string;
-    value: string;
-    note: string;
-    state: HomeSurfaceState;
-    accent: "blue" | "violet" | "emerald" | "amber";
-  }> = [
-    {
-      label: "Report readiness",
-      value: reportsState === "loading" ? "" : readinessLabel(readinessPercent),
-      note:
-        reportsState === "live"
-          ? `${signalSummary.explicitCount} explicitly linked outcomes are helping shape this report`
-          : hasActiveLearner
-            ? "Readiness will sharpen as explicit curriculum links grow"
-            : "Choose a learner to begin",
-      state: reportsState,
-      accent: "blue" as const,
+  const cta = useMemo(() => nextReportCta(model ?? {
+    learner: activeLearner,
+    effectiveJurisdiction: null,
+    ruleSet: null,
+    registrationCycle: null,
+    reportingPeriod: null,
+    reportDocument: null,
+    requiredArtifacts: [],
+    readiness: {
+      status: "Not started",
+      sentence: "Your reporting workspace has not been started yet.",
+      completeCount: 0,
+      totalCount: 0,
     },
-    {
-      label: "Coverage",
-      value: reportsState === "loading" ? "" : `${signalSummary.explicitCount || 0} linked`,
-      note:
-        reportsState === "live"
-          ? `${signalSummary.counts.understood} understood and ${signalSummary.counts.in_progress} in progress`
-          : hasActiveLearner
-            ? "Coverage becomes clearer once outcomes are linked"
-            : "No linked outcomes yet",
-      state: reportsState,
-      accent: "violet" as const,
-    },
-    {
-      label: "Evidence available",
-      value: reportsState === "loading" ? "" : String(explicitLinkedEvidence.length),
-      note:
-        reportsState === "live"
-          ? `${explicitLinkedEvidence.length} evidence item${explicitLinkedEvidence.length === 1 ? "" : "s"} linked to curriculum`
-          : hasActiveLearner
-            ? "Linked evidence will appear here"
-            : "No learner selected",
-      state: reportsState,
-      accent: "emerald" as const,
-    },
-    {
-      label: "Last report",
-      value: reportsState === "loading" ? "" : latestDraft ? "Draft ready" : "Not yet",
-      note:
-        latestDraft
-          ? latestDraft.title
-          : hasActiveLearner
-            ? "No draft report yet for this learner"
-            : "Choose a learner to begin",
-      state: latestDraft ? "derived" : reportsState,
-      accent: "amber" as const,
-    },
-  ];
-
-  const evidenceHighlights = explicitLinkedEvidence
-    .slice(0, 4)
-    .map((row) => ({
-      title: safe(row.title) || "Linked learning evidence",
-      note:
-        safe(row.summary) ||
-        safe(row.note) ||
-        `${(row.curriculum_outcome_ids ?? []).length} linked outcome${(row.curriculum_outcome_ids ?? []).length === 1 ? "" : "s"}`,
-      href: `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&evidence=${encodeURIComponent(row.id)}`,
-    }));
-
-  const nextMove =
-    !hasActiveLearner
-      ? {
-          title: "Choose a learner first",
-          note: "Once a learner is selected, reports can pull in explicit coverage and linked evidence.",
-          href: learnerSetupHref,
-          cta: learnerSetupCta,
-          state: "empty" as HomeSurfaceState,
-        }
-      : signalSummary.explicitEvidenceCount === 0
-        ? {
-            title: `Capture curriculum-linked evidence for ${activeLearner?.label || "this learner"}`,
-            note: "One or two linked captures will make strengths and focus areas easier to trust in the report.",
-            href: "/capture",
-            cta: "Capture Evidence",
-            state: reportsState,
-          }
-        : focusAreas.length
-          ? {
-              title: `Strengthen ${focusAreas[0]} next`,
-              note: "A little more evidence in this area will make the report feel more balanced and more defensible.",
-              href: "/my-plan",
-              cta: "Open My Plan",
-              state: reportsState,
-            }
-          : {
-              title: `Build ${activeLearner?.label || "this learner"}'s report draft`,
-              note: "You already have enough linked evidence and curriculum coverage to draft a clearer family report.",
-              href: "/reports/output",
-              cta: "Build My Report",
-              state: reportsState,
-            };
+    planCount: 0,
+    evidenceCount: 0,
+    softWarning: "",
+  }), [activeLearner, model]);
 
   return (
     <FamilyTopNavShell
       subtitle="My Reports"
-      heroTitle="My Reports"
-      heroText="Bring together evidence, linked outcomes, and clear next steps in one calmer reporting view."
-      heroAsideTitle="Reporting snapshot"
-      heroAsideText="Reports stay calmer when explicit curriculum links and supporting evidence do the heavy lifting quietly underneath."
+      heroTitle="Build the right report for the current reporting cycle"
+      heroText="See what your jurisdiction expects, what has already been gathered, and the next calm step toward a trustworthy report draft."
+      heroAsideTitle="Jurisdiction-aware builder"
+      heroAsideText="This workspace reads your family and learner settings first, then shapes the reporting flow around the learner's effective jurisdiction."
     >
       <div className="grid gap-5 pb-14">
         <LearnerSelector
-          familyName={workspace.profile.family_display_name || "Your family"}
+          familyName={workspace.profile.family_display_name || "My family"}
           learners={learnerOptions}
-          activeLearnerId={activeLearner?.id}
+          activeLearnerId={activeLearnerId}
           onSelectLearner={setActiveLearner}
           state={learnerSelectorState}
         />
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {summaryCards.map((card) => (
-            <ReportMetricCard
-              key={card.label}
-              label={card.label}
-              value={card.value}
-              note={card.note}
-              state={card.state}
-              accent={card.accent}
+        {surfaceState === "loading" ? (
+          <div className="grid gap-5">
+            <div className="h-48 animate-pulse rounded-[26px] bg-slate-100" />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="h-52 animate-pulse rounded-[24px] bg-slate-100" />
+              <div className="h-52 animate-pulse rounded-[24px] bg-slate-100" />
+            </div>
+          </div>
+        ) : !activeLearner ? (
+          <DetailCard eyebrow="Reports workspace" title="Choose a learner to begin">
+            <p className="text-sm leading-7 text-slate-600">
+              The reporting builder needs one learner in focus so it can resolve the correct jurisdiction, cycle, and current reporting period.
+            </p>
+            <div>
+              <Link
+                href="/family"
+                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+              >
+                Open My Family
+              </Link>
+            </div>
+          </DetailCard>
+        ) : (
+          <>
+            {model?.softWarning ? (
+              <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-800">
+                {model.softWarning}
+              </div>
+            ) : null}
+
+            <SummaryCard
+              status={model?.readiness.status || "Not started"}
+              sentence={model?.readiness.sentence || "Your reporting workspace has not been started yet."}
+              completeCount={model?.readiness.completeCount || 0}
+              totalCount={model?.readiness.totalCount || 0}
             />
-          ))}
-        </section>
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <ReportInsightCard
-            eyebrow="Strengths"
-            title="Strengths"
-            items={reportsState === "placeholder" ? ["Recognises natural numbers", "Creates informative writing", "Shares science conclusions"] : understood}
-            emptyTitle="No strengths visible yet"
-            emptyNote="Understood outcomes will appear here once linked evidence begins to settle."
-            state={reportsState}
-            tone="blue"
-          />
-          <ReportInsightCard
-            eyebrow="Developing areas"
-            title="Developing areas"
-            items={reportsState === "placeholder" ? ["Measures and compares length", "Builds writing fluency"] : developing}
-            emptyTitle="No developing areas yet"
-            emptyNote="In-progress outcomes will appear here once explicit curriculum links begin to build."
-            state={reportsState}
-            tone="amber"
-          />
-          <ReportInsightCard
-            eyebrow="Focus areas"
-            title="Focus areas"
-            items={reportsState === "placeholder" ? ["Fractions", "Weekly consistency"] : focusAreas}
-            emptyTitle="No focus areas yet"
-            emptyNote="Needs-support outcomes will appear here only when the linked evidence truly points that way."
-            state={reportsState}
-            tone="rose"
-          />
-        </section>
+            <section className="grid gap-4 lg:grid-cols-2">
+              <DetailCard eyebrow="Jurisdiction" title={model?.effectiveJurisdiction?.label || "Jurisdiction not resolved"}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Reporting mode
+                    </div>
+                    <div className="text-[16px] font-bold text-slate-950">
+                      {model ? reportingModeLabel(model) : "Not available"}
+                    </div>
+                  </div>
+                  <div className="grid gap-1">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Jurisdiction term
+                    </div>
+                    <div className="text-[16px] font-bold text-slate-950">
+                      {model?.effectiveJurisdiction?.terminologyMode === "jurisdiction"
+                        ? model.effectiveJurisdiction.label === "Queensland"
+                          ? "Educational progress"
+                          : model.effectiveJurisdiction.label === "New South Wales"
+                            ? "Educational program"
+                            : model.effectiveJurisdiction.label === "Victoria"
+                              ? "Learning plan"
+                              : model.effectiveJurisdiction.label === "South Australia"
+                                ? "Exemption review"
+                                : "Reporting workspace"
+                        : "Reporting workspace"}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm leading-7 text-slate-600">
+                  {model?.ruleSet
+                    ? `${model.ruleSet.title} is the current rule set for ${model.effectiveJurisdiction?.label || "this learner"}.`
+                    : "A current jurisdiction rule set could not be confirmed yet, so this workspace is keeping the guidance lighter."}
+                </div>
+              </DetailCard>
 
-        <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <ReportEvidenceHighlights items={evidenceHighlights} state={reportsState} />
-          <ReportReadinessCard
-            title="Readiness"
-            value={reportsState === "loading" ? "" : readinessLabel(readinessPercent)}
-            note={
-              reportsState === "live"
-                ? `${signalSummary.explicitEvidenceCount} explicit evidence link${signalSummary.explicitEvidenceCount === 1 ? "" : "s"} are informing this reporting view`
-                : hasActiveLearner
-                  ? "Readiness improves as evidence and curriculum stay connected"
-                  : "Choose a learner to begin"
-            }
-            progress={readinessPercent}
-            state={reportsState}
-          />
-        </section>
+              <DetailCard eyebrow="Reporting period" title={model?.reportingPeriod?.label || "Current reporting period"}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-1">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Registration cycle
+                    </div>
+                    <div className="text-[16px] font-bold text-slate-950">
+                      {model?.registrationCycle?.label || "Not found"}
+                    </div>
+                  </div>
+                  <div className="grid gap-1">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Date range
+                    </div>
+                    <div className="text-[16px] font-bold text-slate-950">
+                      {model ? currentPeriodRangeLabel(model) : "Not available"}
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm leading-7 text-slate-600">
+                  {model?.reportingPeriod
+                    ? `${model.reportingPeriod.label} is the reporting window currently in view for ${activeLearner.label}.`
+                    : "No reporting period has been created yet. The draft flow can create one when a current registration cycle exists."}
+                </div>
+              </DetailCard>
+            </section>
 
-        <ReportNextMoveCard
-          title={nextMove.title}
-          note={nextMove.note}
-          href={nextMove.href}
-          cta={nextMove.cta}
-          state={nextMove.state}
-        />
+            <DetailCard eyebrow="Required artifacts" title="What this jurisdiction expects">
+              {model?.requiredArtifacts.length ? (
+                <div className="grid gap-3">
+                  {model.requiredArtifacts.map((artifact) => (
+                    <div
+                      key={artifact.id || artifact.label}
+                      className="grid gap-3 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 md:grid-cols-[minmax(0,1fr)_120px]"
+                    >
+                      <div className="grid gap-1">
+                        <div className="text-[15px] font-bold text-slate-950">{artifact.label}</div>
+                        <div className="text-[13px] leading-6 text-slate-500">
+                          {artifact.frequency}
+                          {artifact.note ? ` - ${artifact.note}` : ""}
+                        </div>
+                      </div>
+                      <div className="flex items-start md:justify-end">
+                        <span className={cx("inline-flex rounded-full border px-3 py-1.5 text-xs font-bold", statusTone(artifact.status))}>
+                          {artifact.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-sm leading-7 text-slate-600">
+                  No required artifact list is available yet for this jurisdiction and rule set.
+                </div>
+              )}
+            </DetailCard>
+
+            <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <DetailCard eyebrow="Readiness notes" title="What is already in place">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Plans in cycle
+                    </div>
+                    <div className="mt-2 text-[24px] font-black text-slate-950">{model?.planCount || 0}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Evidence in cycle
+                    </div>
+                    <div className="mt-2 text-[24px] font-black text-slate-950">{model?.evidenceCount || 0}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                      Report draft
+                    </div>
+                    <div className="mt-2 text-[24px] font-black text-slate-950">
+                      {model?.reportDocument ? "Ready" : "Not yet"}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm leading-7 text-slate-600">
+                  These checks are intentionally simple for this first phase. They show whether the main planning, evidence, and reporting ingredients are visible for the current cycle, without claiming full compliance certainty yet.
+                </p>
+              </DetailCard>
+
+              <aside className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_60%,rgba(248,250,252,0.96)_100%)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="grid gap-1.5">
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Next action
+                  </div>
+                  <h2 className="text-[18px] font-bold tracking-tight text-slate-950">{cta.label}</h2>
+                </div>
+                <p className="text-sm leading-7 text-slate-600">{cta.note}</p>
+                <Link
+                  href={cta.href}
+                  className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+                >
+                  {cta.label}
+                </Link>
+              </aside>
+            </section>
+          </>
+        )}
       </div>
     </FamilyTopNavShell>
   );
