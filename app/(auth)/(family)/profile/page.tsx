@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import CurriculumSummary from "@/app/components/CurriculumSummary";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
@@ -655,13 +654,15 @@ export default function FamilyProfilePage() {
         </section>
 
         <section style={S.section}>
-          <CurriculumSummary
-            title="Curriculum setup lives in settings"
-            description="This page now shows learner management only. Open settings to change the family framework and level."
-            helperText="Profile no longer owns curriculum edits, which keeps the family workflow on one settings path."
-            linkLabel="Open curriculum settings"
-            linkHref="/settings#curriculum"
-          />
+          <div style={S.summaryCard}>
+            <div style={S.cardTitle}>Curriculum setup lives in settings</div>
+            <div style={S.helperText}>
+              This page now shows learner management only. Open settings to change the family framework and level.
+            </div>
+            <div style={S.helperText}>
+              Profile no longer owns curriculum edits, which keeps the family workflow on one settings path.
+            </div>
+          </div>
         </section>
 
         <section style={S.section}>
