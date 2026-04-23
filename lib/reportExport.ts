@@ -6,6 +6,10 @@ import type { ReportAssemblyWorkspace } from "@/lib/reportAssembly";
 import type { ReportEvidenceMapping } from "@/lib/reportEvidenceMapping";
 import type { ReportSectionAutofillModel } from "@/lib/reportSectionAutofill";
 import type { ReportsBuilderModel } from "@/lib/reporting";
+import {
+  recordReportExportEvent,
+  type ReportExportHistoryEntry,
+} from "@/lib/reportExportHistory";
 import { createServerSupabaseClient } from "@/lib/supabaseClient";
 import { rowToSettings, type FamilyProfileRow } from "@/lib/familySettings";
 import {
@@ -198,6 +202,7 @@ type ServerValidatedReportExportSuccess = {
   html: string;
   exportModel: ReportExportModel;
   validation: ReportCompletionValidation;
+  exportEvent: ReportExportHistoryEntry;
 };
 
 type ServerValidatedReportExportFailure = {
@@ -359,10 +364,23 @@ async function loadAuthorizedReportExportContext(
     ok: true as const,
     client,
     userId: user.id,
+    userDisplayName:
+      safe(user.user_metadata?.full_name) ||
+      safe(user.user_metadata?.name) ||
+      safe(user.email) ||
+      null,
     profile,
     learner,
     reportRow,
   };
+}
+
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function buildServerValidatedReportExport(input: {
@@ -455,6 +473,36 @@ export async function buildServerValidatedReportExport(input: {
 
   const html = generatePrintableHtml(exportModel);
   const filename = buildReportExportFilename(exportModel);
+  const contentHash = await sha256Hex(html);
+
+  let exportEvent: ReportExportHistoryEntry;
+  try {
+    exportEvent = await recordReportExportEvent(context.client, {
+      reportDocumentId: exportModel.reportDocumentId || reportDocumentId,
+      reportingPeriodId:
+        model.reportingPeriod?.id || validation.reportingPeriodId || null,
+      learnerId: exportModel.learnerId,
+      familyId: context.profile.id,
+      jurisdictionCode: exportModel.jurisdictionCode,
+      exportFormat: "html",
+      exportPhase: "validated_server_export",
+      exportedByUserId: context.userId,
+      exportedByDisplayName: context.userDisplayName,
+      validationStatus: validation.status,
+      validationScore: validation.score,
+      filename,
+      contentHash,
+      sectionCount: exportModel.sections.length,
+    });
+  } catch {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "export_history_write_failed",
+      error: "The validated export could not be recorded for audit history.",
+      validation,
+    };
+  }
 
   return {
     ok: true,
@@ -463,6 +511,7 @@ export async function buildServerValidatedReportExport(input: {
     html,
     exportModel,
     validation,
+    exportEvent,
   };
 }
 

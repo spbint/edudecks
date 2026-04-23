@@ -42,6 +42,11 @@ import {
   buildReportExportFilename,
 } from "@/lib/reportExport";
 import {
+  loadReportExportHistory,
+  summarizeReportExportHistoryEntry,
+  type ReportExportHistoryEntry,
+} from "@/lib/reportExportHistory";
+import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
   reportingModeLabel,
@@ -135,6 +140,29 @@ function sectionStatusTone(status: ReportCompletionValidation["sectionStates"][n
   if (status === "partial") return "border-amber-200 bg-amber-50 text-amber-700";
   if (status === "weak") return "border-orange-200 bg-orange-50 text-orange-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function exportHistoryTone(status: string) {
+  const normalized = status.toLowerCase();
+  if (normalized === "ready_for_export") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (normalized === "blocked") return "border-rose-200 bg-rose-50 text-rose-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function shortHash(value: string | null) {
+  const clean = String(value ?? "").trim();
+  if (!clean) return "Not captured";
+  if (clean.length <= 16) return clean;
+  return `${clean.slice(0, 10)}...${clean.slice(-8)}`;
+}
+
+function historyLabels(entry: ReportExportHistoryEntry) {
+  const summary = summarizeReportExportHistoryEntry(entry);
+  return {
+    exportedAt: summary.exportedAtLabel,
+    validation: summary.validationLabel,
+    exporter: summary.exporterLabel,
+  };
 }
 
 function CompletionGateCard({
@@ -442,6 +470,215 @@ function ExportGateCard({
   );
 }
 
+function ExportHistoryCard({
+  reportDocumentId,
+  history,
+  loading,
+  error,
+}: {
+  reportDocumentId: string;
+  history: ReportExportHistoryEntry[];
+  loading: boolean;
+  error: string;
+}) {
+  const latest = history[0] || null;
+
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+      <div className="grid gap-1.5">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Export history
+        </div>
+        <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+          Audit trail for validated exports
+        </h2>
+        <p className="max-w-[820px] text-sm leading-7 text-slate-600">
+          Every successful server-validated export is recorded here. The history is tied to this report document and shows when it left the platform, who exported it, and which validation state it passed under.
+        </p>
+      </div>
+
+      {error ? (
+        <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm leading-7 text-rose-800">
+          {error}
+        </div>
+      ) : null}
+
+      {loading ? (
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
+          Loading export history...
+        </div>
+      ) : latest ? (
+        <div className="grid gap-3 rounded-[20px] border border-emerald-200 bg-emerald-50/60 px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="grid gap-1">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Last exported
+              </div>
+              <div className="text-[16px] font-bold text-slate-950">
+                {historyLabels(latest).exportedAt}
+              </div>
+            </div>
+            <span
+              className={cx(
+                "inline-flex rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]",
+                exportHistoryTone(latest.validationStatus),
+              )}
+            >
+              {historyLabels(latest).validation}
+            </span>
+          </div>
+
+          <div className="grid gap-3 text-sm leading-7 text-slate-700 md:grid-cols-2">
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Exported by
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {historyLabels(latest).exporter}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Format
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {latest.exportFormat.toUpperCase()}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Learner
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">{latest.learnerId}</div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Jurisdiction
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {latest.jurisdictionCode || "Not recorded"}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Section count
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {latest.sectionCount ?? 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Report document
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {reportDocumentId}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Validation score
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {latest.validationScore ?? 0}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                File name
+              </div>
+              <div className="mt-1 font-semibold text-slate-950">
+                {latest.filename || "Not recorded"}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-1 rounded-[16px] border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-600">
+            <div>
+              Content hash: <span className="font-semibold text-slate-950">{shortHash(latest.contentHash)}</span>
+            </div>
+            <div>
+              Report context: <span className="font-semibold text-slate-950">{latest.reportingPeriodId || "Reporting period not recorded"}</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-sm leading-7 text-slate-600">
+          No validated exports have been recorded for this report yet.
+        </div>
+      )}
+
+      {history.length ? (
+        <div className="grid gap-3">
+          {history.map((entry) => {
+            const labels = historyLabels(entry);
+            return (
+              <div
+                key={entry.id}
+                className="grid gap-3 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="grid gap-1">
+                    <div className="text-[15px] font-bold text-slate-950">
+                      {entry.filename || "Validated report export"}
+                    </div>
+                    <div className="text-[13px] leading-6 text-slate-500">
+                      {labels.exportedAt} - {labels.exporter}
+                    </div>
+                  </div>
+                  <span
+                    className={cx(
+                      "inline-flex rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]",
+                      exportHistoryTone(entry.validationStatus),
+                    )}
+                  >
+                    {labels.validation}
+                  </span>
+                </div>
+
+                <div className="grid gap-2 text-[13px] leading-6 text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <span className="font-semibold text-slate-500">Format:</span>{" "}
+                    {entry.exportFormat.toUpperCase()}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Learner:</span>{" "}
+                    {entry.learnerId}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Jurisdiction:</span>{" "}
+                    {entry.jurisdictionCode || "Not recorded"}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Sections:</span>{" "}
+                    {entry.sectionCount ?? 0}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Validation score:</span>{" "}
+                    {entry.validationScore ?? 0}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Report ID:</span>{" "}
+                    {entry.reportDocumentId}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Hash:</span>{" "}
+                    {shortHash(entry.contentHash)}
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-500">Phase:</span>{" "}
+                    {entry.exportPhase.replace("_", " ")}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function EmptyState({
   title,
   message,
@@ -479,6 +716,9 @@ export default function ReportsOutputPage() {
   const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
   const [autofill, setAutofill] = useState<ReportSectionAutofillModel | null>(null);
   const [validation, setValidation] = useState<ReportCompletionValidation | null>(null);
+  const [exportHistory, setExportHistory] = useState<ReportExportHistoryEntry[]>([]);
+  const [exportHistoryLoading, setExportHistoryLoading] = useState(false);
+  const [exportHistoryError, setExportHistoryError] = useState("");
   const [exportBusy, setExportBusy] = useState<"open" | "download" | "">("");
   const [exportMessage, setExportMessage] = useState("");
   const [exportError, setExportError] = useState("");
@@ -498,6 +738,9 @@ export default function ReportsOutputPage() {
           setMapping(null);
           setAutofill(null);
           setValidation(null);
+          setExportHistory([]);
+          setExportHistoryLoading(false);
+          setExportHistoryError("");
           setExportBusy("");
           setExportMessage("");
           setExportError("");
@@ -508,49 +751,85 @@ export default function ReportsOutputPage() {
         return;
       }
 
-      const next = await loadReportsBuilderModel({
-        profile: workspace.profile,
-        learner: activeLearner,
-        userId: workspace.userId,
-        mode: "ensure",
-        preferredDocumentId:
-          searchParams.get("documentId") ||
-          searchParams.get("docId") ||
-          searchParams.get("draftId"),
-      });
-      const readinessResult = await loadReadinessForReportAssembly(activeLearner.id);
-      const assemblyResult = await loadReportAssemblyWorkspace({
-        model: next,
-        readiness: readinessResult,
-      });
-      const mappingResult = await loadReportEvidenceMapping({
-        model: next,
-      });
-      const autofillResult = await loadReportSectionAutofill({
-        model: next,
-        mapping: mappingResult,
-      });
-      const validationResult = buildReportCompletionValidation({
-        model: next,
-        readiness: readinessResult,
-        assembly: assemblyResult,
-        mapping: mappingResult,
-        autofill: autofillResult,
-      });
+      setExportHistoryLoading(true);
+      setExportHistoryError("");
 
-      if (mounted) {
-        setModel(next);
-        setReadiness(readinessResult);
-        setAssembly(assemblyResult);
-        setMapping(mappingResult);
-        setAutofill(autofillResult);
-        setValidation(validationResult);
-        setExportBusy("");
-        setExportMessage("");
-        setExportError("");
-        setDismissedSections({});
-        setSectionPending({});
-        setSectionErrors({});
+      try {
+        const next = await loadReportsBuilderModel({
+          profile: workspace.profile,
+          learner: activeLearner,
+          userId: workspace.userId,
+          mode: "ensure",
+          preferredDocumentId:
+            searchParams.get("documentId") ||
+            searchParams.get("docId") ||
+            searchParams.get("draftId"),
+        });
+        const readinessResult = await loadReadinessForReportAssembly(activeLearner.id);
+        const assemblyResult = await loadReportAssemblyWorkspace({
+          model: next,
+          readiness: readinessResult,
+        });
+        const mappingResult = await loadReportEvidenceMapping({
+          model: next,
+        });
+        const autofillResult = await loadReportSectionAutofill({
+          model: next,
+          mapping: mappingResult,
+        });
+        const validationResult = buildReportCompletionValidation({
+          model: next,
+          readiness: readinessResult,
+          assembly: assemblyResult,
+          mapping: mappingResult,
+          autofill: autofillResult,
+        });
+        let historyResult: ReportExportHistoryEntry[] = [];
+        if (next.reportDocument?.id) {
+          try {
+            historyResult = await loadReportExportHistory({
+              reportDocumentId: next.reportDocument.id,
+              client: supabase,
+              limit: 8,
+            });
+          } catch (error) {
+            if (mounted) {
+              setExportHistoryError(
+                error instanceof Error
+                  ? error.message
+                  : "Export history could not be loaded right now.",
+              );
+            }
+          }
+        }
+
+        if (mounted) {
+          setModel(next);
+          setReadiness(readinessResult);
+          setAssembly(assemblyResult);
+          setMapping(mappingResult);
+          setAutofill(autofillResult);
+          setValidation(validationResult);
+          setExportHistory(historyResult);
+          setExportBusy("");
+          setExportMessage("");
+          setExportError("");
+          setDismissedSections({});
+          setSectionPending({});
+          setSectionErrors({});
+        }
+      } catch (error) {
+        if (mounted) {
+          setExportHistoryError(
+            error instanceof Error
+              ? error.message
+              : "The report workspace could not be loaded right now.",
+          );
+        }
+      } finally {
+        if (mounted) {
+          setExportHistoryLoading(false);
+        }
       }
     }
 
@@ -694,6 +973,22 @@ export default function ReportsOutputPage() {
         }
         setExportMessage("Printable HTML export opened in a new tab.");
       }
+
+      try {
+        const refreshed = await loadReportExportHistory({
+          reportDocumentId,
+          client: supabase,
+          limit: 8,
+        });
+        setExportHistory(refreshed);
+        setExportHistoryError("");
+      } catch (refreshError) {
+        setExportHistoryError(
+          refreshError instanceof Error
+            ? refreshError.message
+            : "Export history could not be refreshed after export.",
+        );
+      }
     } catch (error) {
       setExportError(
         error instanceof Error
@@ -824,6 +1119,15 @@ export default function ReportsOutputPage() {
           exportBusy={exportBusy}
           onOpenPrintable={() => void handlePrintableExport("open")}
           onDownloadHtml={() => void handlePrintableExport("download")}
+        />
+      ) : null}
+
+      {validation ? (
+        <ExportHistoryCard
+          reportDocumentId={reportDocumentId}
+          history={exportHistory}
+          loading={exportHistoryLoading}
+          error={exportHistoryError}
         />
       ) : null}
 

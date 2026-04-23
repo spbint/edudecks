@@ -82,6 +82,12 @@ export async function GET(request: NextRequest) {
       "content-disposition": `${mode === "download" ? "attachment" : "inline"}; filename="${result.filename}"`,
       "x-report-export-filename": result.filename,
       "x-report-export-status": result.validation.status,
+      ...(result.exportEvent
+        ? {
+            "x-report-export-event-id": result.exportEvent.id,
+            "x-report-export-created-at": result.exportEvent.createdAt,
+          }
+        : {}),
     },
   });
 }
