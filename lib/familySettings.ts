@@ -134,7 +134,7 @@ const FAMILY_PROFILE_SELECT_COLUMNS_BASE = [
 ].join(",");
 
 export const DEFAULT_FAMILY_SETTINGS: FamilySettings = {
-  family_display_name: "Your family",
+  family_display_name: "My family",
   preferred_market: "au",
   country: "au",
   curriculum_framework_id: "au-v9",
@@ -379,36 +379,39 @@ function normalizeChildOption(value: unknown): ChildOption | null {
 }
 
 export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined): FamilySettings {
-  if (!row) return { ...DEFAULT_FAMILY_SETTINGS };
+  const storedFamilyName = safeString(row?.family_display_name);
 
   return {
-    family_display_name: safeString(row.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
-    preferred_market: asMarketKey(row.preferred_market),
-    country: asFamilyCountry(row.country ?? row.preferred_market),
+    family_display_name:
+      storedFamilyName === "Your family"
+        ? "My family"
+        : storedFamilyName || DEFAULT_FAMILY_SETTINGS.family_display_name,
+    preferred_market: asMarketKey(row?.preferred_market),
+    country: asFamilyCountry(row?.country ?? row?.preferred_market),
     curriculum_framework_id:
-      safeString(row.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+      safeString(row?.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
     curriculum_jurisdiction_id:
-      safeString(row.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
-    reporting_mode: asReportingMode(row.reporting_mode ?? row.report_tone_default),
-    academic_structure_type: asAcademicStructureType(row.academic_structure_type),
-    cycle_count: asNullableNumber(row.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
-    weeks_per_cycle: asNullableNumber(row.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
-    experience_mode: asExperienceMode(row.experience_mode),
-    default_child_id: safeString(row.default_child_id) || null,
-    default_child_landing: asDefaultChildLanding(row.default_child_landing),
-    week_start: asWeekStart(row.week_start),
-    compact_mode: asBoolean(row.compact_mode, DEFAULT_FAMILY_SETTINGS.compact_mode),
-    show_advanced_insights: asBoolean(row.show_advanced_insights, DEFAULT_FAMILY_SETTINGS.show_advanced_insights),
-    show_authority_guidance: asBoolean(row.show_authority_guidance, DEFAULT_FAMILY_SETTINGS.show_authority_guidance),
-    auto_open_last_child: asBoolean(row.auto_open_last_child, DEFAULT_FAMILY_SETTINGS.auto_open_last_child),
-    evidence_privacy_default: asEvidencePrivacy(row.evidence_privacy_default),
-    planner_auto_carry_forward: asBoolean(row.planner_auto_carry_forward, DEFAULT_FAMILY_SETTINGS.planner_auto_carry_forward),
-    planner_show_weekend: asBoolean(row.planner_show_weekend, DEFAULT_FAMILY_SETTINGS.planner_show_weekend),
-    portfolio_print_style: asPortfolioPrintStyle(row.portfolio_print_style),
-    report_tone_default: asReportTone(row.report_tone_default),
-    notifications_weekly_digest: asBoolean(row.notifications_weekly_digest, DEFAULT_FAMILY_SETTINGS.notifications_weekly_digest),
-    notifications_readiness_alerts: asBoolean(row.notifications_readiness_alerts, DEFAULT_FAMILY_SETTINGS.notifications_readiness_alerts),
-    notifications_planner_nudges: asBoolean(row.notifications_planner_nudges, DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges),
+      safeString(row?.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+    reporting_mode: asReportingMode(row?.reporting_mode ?? row?.report_tone_default),
+    academic_structure_type: asAcademicStructureType(row?.academic_structure_type),
+    cycle_count: asNullableNumber(row?.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
+    weeks_per_cycle: asNullableNumber(row?.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
+    experience_mode: asExperienceMode(row?.experience_mode),
+    default_child_id: safeString(row?.default_child_id) || null,
+    default_child_landing: asDefaultChildLanding(row?.default_child_landing),
+    week_start: asWeekStart(row?.week_start),
+    compact_mode: asBoolean(row?.compact_mode, DEFAULT_FAMILY_SETTINGS.compact_mode),
+    show_advanced_insights: asBoolean(row?.show_advanced_insights, DEFAULT_FAMILY_SETTINGS.show_advanced_insights),
+    show_authority_guidance: asBoolean(row?.show_authority_guidance, DEFAULT_FAMILY_SETTINGS.show_authority_guidance),
+    auto_open_last_child: asBoolean(row?.auto_open_last_child, DEFAULT_FAMILY_SETTINGS.auto_open_last_child),
+    evidence_privacy_default: asEvidencePrivacy(row?.evidence_privacy_default),
+    planner_auto_carry_forward: asBoolean(row?.planner_auto_carry_forward, DEFAULT_FAMILY_SETTINGS.planner_auto_carry_forward),
+    planner_show_weekend: asBoolean(row?.planner_show_weekend, DEFAULT_FAMILY_SETTINGS.planner_show_weekend),
+    portfolio_print_style: asPortfolioPrintStyle(row?.portfolio_print_style),
+    report_tone_default: asReportTone(row?.report_tone_default),
+    notifications_weekly_digest: asBoolean(row?.notifications_weekly_digest, DEFAULT_FAMILY_SETTINGS.notifications_weekly_digest),
+    notifications_readiness_alerts: asBoolean(row?.notifications_readiness_alerts, DEFAULT_FAMILY_SETTINGS.notifications_readiness_alerts),
+    notifications_planner_nudges: asBoolean(row?.notifications_planner_nudges, DEFAULT_FAMILY_SETTINGS.notifications_planner_nudges),
   };
 }
 
