@@ -21,6 +21,11 @@ import {
   type ReportEvidenceMapping,
 } from "@/lib/reportEvidenceMapping";
 import {
+  loadReportSectionAutofill,
+  type ReportSectionAutofillModel,
+  type ReportSectionStarterBlock,
+} from "@/lib/reportSectionAutofill";
+import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
   reportingModeLabel,
@@ -54,6 +59,46 @@ function normalizeSectionKey(title: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function blockTone(type: ReportSectionStarterBlock["type"]) {
+  if (type === "warning") return "border-amber-200 bg-amber-50/80";
+  if (type === "next_step") return "border-blue-100 bg-blue-50/80";
+  if (type === "prompt") return "border-violet-100 bg-violet-50/70";
+  return "border-slate-200 bg-white";
+}
+
+function renderStarterBlock(block: ReportSectionStarterBlock, key: string) {
+  const listClassName =
+    block.type === "bullet_list" ||
+    block.type === "record_list" ||
+    block.type === "count_list";
+
+  return (
+    <div
+      key={key}
+      className={cx("grid gap-2 rounded-[14px] border px-3 py-3", blockTone(block.type))}
+    >
+      {block.title ? (
+        <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+          {block.title}
+        </div>
+      ) : null}
+      {listClassName ? (
+        <ul className="grid gap-1 text-[13px] leading-6 text-slate-700">
+          {block.lines.map((line) => (
+            <li key={`${key}-${line}`}>{line}</li>
+          ))}
+        </ul>
+      ) : (
+        <div className="grid gap-1 text-[13px] leading-6 text-slate-700">
+          {block.lines.map((line) => (
+            <div key={`${key}-${line}`}>{line}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function EmptyState({
@@ -91,6 +136,7 @@ export default function ReportsOutputPage() {
   const [readiness, setReadiness] = useState<ComplianceReadiness | null>(null);
   const [assembly, setAssembly] = useState<ReportAssemblyWorkspace | null>(null);
   const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
+  const [autofill, setAutofill] = useState<ReportSectionAutofillModel | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -102,6 +148,7 @@ export default function ReportsOutputPage() {
           setReadiness(null);
           setAssembly(null);
           setMapping(null);
+          setAutofill(null);
         }
         return;
       }
@@ -124,12 +171,17 @@ export default function ReportsOutputPage() {
       const mappingResult = await loadReportEvidenceMapping({
         model: next,
       });
+      const autofillResult = await loadReportSectionAutofill({
+        model: next,
+        mapping: mappingResult,
+      });
 
       if (mounted) {
         setModel(next);
         setReadiness(readinessResult);
         setAssembly(assemblyResult);
         setMapping(mappingResult);
+        setAutofill(autofillResult);
       }
     }
 
@@ -149,7 +201,7 @@ export default function ReportsOutputPage() {
     );
   }
 
-  if (!model || !readiness || !assembly || !mapping) {
+  if (!model || !readiness || !assembly || !mapping || !autofill) {
     return <div className="h-64 animate-pulse rounded-[24px] bg-slate-100" />;
   }
 
@@ -302,6 +354,9 @@ export default function ReportsOutputPage() {
                 const sectionMap =
                   mapping.sections.find((item) => item.title === section.title) ||
                   mapping.sections.find((item) => item.sectionKey === normalizeSectionKey(section.title));
+                const sectionAutofill =
+                  autofill.sections.find((item) => item.title === section.title) ||
+                  autofill.sections.find((item) => item.sectionKey === normalizeSectionKey(section.title));
                 const sectionStatus = sectionMap?.status || "missing";
 
                 return (
@@ -361,6 +416,40 @@ export default function ReportsOutputPage() {
                             {sectionMap.notes[0]}
                           </div>
                         ) : null}
+                      </div>
+                    ) : null}
+                    {sectionAutofill ? (
+                      <div className="grid gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="grid gap-1">
+                            <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                              Structured starter autofill
+                            </div>
+                            <div className="text-[13px] leading-6 text-slate-600">
+                              {sectionAutofill.canAutofill
+                                ? "These starter blocks are assembled from current learner records and can be refined into the draft."
+                                : "Current records are still too light for a strong starter block, so the section stays in guided scaffold mode."}
+                            </div>
+                          </div>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                            {sectionAutofill.confidence} confidence
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                          <span>Plans {sectionAutofill.sourceCounts.plans}</span>
+                          <span>Experiences {sectionAutofill.sourceCounts.experiences}</span>
+                          <span>Evidence {sectionAutofill.sourceCounts.evidence}</span>
+                          <span>Pairs {sectionAutofill.sourceCounts.pairs}</span>
+                          <span>Reviews {sectionAutofill.sourceCounts.reviews}</span>
+                        </div>
+                        <div className="grid gap-2">
+                          {sectionAutofill.blocks.map((block, index) =>
+                            renderStarterBlock(
+                              block,
+                              `${section.id}-starter-${index + 1}`,
+                            ),
+                          )}
+                        </div>
                       </div>
                     ) : null}
                   </div>
