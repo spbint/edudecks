@@ -9,17 +9,21 @@ import {
   type ForumCategorySummary,
 } from "@/lib/communityForum";
 
+type CommunityThreadPreview = {
+  id: string;
+  title: string;
+  replyCount: number;
+  relativeTime: string;
+};
+
 type CommunityCategoryCard = {
   id: string;
   slug: string;
   name: string;
   description: string;
-  starterPrompt: string;
-  ctaLabel: string;
   tone: string;
   threadCount: number;
-  latestThreadTitle: string;
-  latestThreadMeta: string;
+  latestThreads: CommunityThreadPreview[];
 };
 
 const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
@@ -29,27 +33,45 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     name: "General Discussion",
     description:
       "A calm place for homeschool families to share wins, ask everyday questions, and encourage one another.",
-    starterPrompt:
-      "Start with a simple question, a quick encouragement, or something your family is navigating this week.",
-    ctaLabel: "Open discussion",
     tone: "Ask, share, encourage",
     threadCount: 18,
-    latestThreadTitle: "What does a calm homeschool morning look like in your home?",
-    latestThreadMeta: "Latest: routines, breakfast, and peaceful starts",
+    latestThreads: [
+      {
+        id: "fallback-general-1",
+        title: "What does a calm homeschool morning look like in your home?",
+        replyCount: 7,
+        relativeTime: "3 hours ago",
+      },
+      {
+        id: "fallback-general-2",
+        title: "What helped your family settle into this week well?",
+        replyCount: 4,
+        relativeTime: "1 day ago",
+      },
+    ],
   },
   {
     id: "planning-and-routines",
-    slug: "planning-and-routines",
+    slug: "planning-ideas",
     name: "Planning & Routines",
     description:
       "Talk about planning rhythms, year levels, and how families structure learning across the week.",
-    starterPrompt:
-      "Ask how other parents plan a week, structure a day, or choose resources for a particular age or year level.",
-    ctaLabel: "Open planning forum",
     tone: "Plan with confidence",
     threadCount: 24,
-    latestThreadTitle: "How do you plan for multiple children at different ages?",
-    latestThreadMeta: "Latest: loops, blocks, and gentle structure",
+    latestThreads: [
+      {
+        id: "fallback-planning-1",
+        title: "How do you plan for multiple children at different ages?",
+        replyCount: 10,
+        relativeTime: "5 hours ago",
+      },
+      {
+        id: "fallback-planning-2",
+        title: "What does a realistic weekly rhythm look like for your family?",
+        replyCount: 6,
+        relativeTime: "2 days ago",
+      },
+    ],
   },
   {
     id: "resources-and-ideas",
@@ -57,55 +79,73 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     name: "Resources & Ideas",
     description:
       "Share printable resources, websites, books, games, projects, field trip ideas, and creative learning tools.",
-    starterPrompt:
-      "Share something that worked well for your child, or ask for help finding a resource for a specific topic.",
-    ctaLabel: "Open resource forum",
     tone: "Swap useful ideas",
     threadCount: 31,
-    latestThreadTitle: "Favourite free resources for Year 2 reading and writing?",
-    latestThreadMeta: "Latest: websites, readers, and printable packs",
+    latestThreads: [
+      {
+        id: "fallback-resources-1",
+        title: "Favourite free resources for Year 2 reading and writing?",
+        replyCount: 12,
+        relativeTime: "2 hours ago",
+      },
+      {
+        id: "fallback-resources-2",
+        title: "Which science videos or kits have worked especially well lately?",
+        replyCount: 5,
+        relativeTime: "1 day ago",
+      },
+    ],
   },
   {
     id: "new-to-homeschooling",
-    slug: "new-to-homeschooling",
+    slug: "getting-started",
     name: "New to Homeschooling",
     description:
       "A gentle starting point for families beginning the homeschool journey and wanting practical advice without pressure or noise.",
-    starterPrompt:
-      "Ask your first question here, from getting started and routines to confidence or what a normal week can look like.",
-    ctaLabel: "Open starter forum",
     tone: "A gentle first step",
     threadCount: 15,
-    latestThreadTitle: "What should I focus on in my first month of homeschooling?",
-    latestThreadMeta: "Latest: first steps, confidence, and simple priorities",
+    latestThreads: [
+      {
+        id: "fallback-starting-1",
+        title: "What should I focus on in my first month of homeschooling?",
+        replyCount: 8,
+        relativeTime: "6 hours ago",
+      },
+    ],
   },
   {
     id: "faith-and-family",
-    slug: "faith-and-family",
+    slug: "christian-homeschooling",
     name: "Faith & Family",
     description:
       "Discuss Bible learning, Christian parenting, prayer, memory verses, and how faith shapes homeschool life.",
-    starterPrompt:
-      "Share ideas for Bible time, memory verses, faith conversations, or how your family keeps Christ central in the week.",
-    ctaLabel: "Open faith forum",
     tone: "Encourage one another",
     threadCount: 12,
-    latestThreadTitle: "How do you build a simple Bible rhythm into the week?",
-    latestThreadMeta: "Latest: family devotions and memory work",
+    latestThreads: [
+      {
+        id: "fallback-faith-1",
+        title: "How do you build a simple Bible rhythm into the week?",
+        replyCount: 4,
+        relativeTime: "1 day ago",
+      },
+    ],
   },
   {
     id: "feature-suggestions",
-    slug: "feature-suggestions",
+    slug: "help-shape-edudecks",
     name: "Feature Suggestions",
     description:
-      "Help shape EduDecks by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful.",
-    starterPrompt:
-      "Tell us what would help your family most, what problem it would solve, and how it would improve your workflow.",
-    ctaLabel: "Open feature forum",
-    tone: "Help build EduDecks",
+      "Help shape MyLearna by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful.",
+    tone: "Help shape MyLearna",
     threadCount: 9,
-    latestThreadTitle: "A better way to compare multiple children’s weekly plans",
-    latestThreadMeta: "Latest: support, triage, and family-level visibility",
+    latestThreads: [
+      {
+        id: "fallback-feature-1",
+        title: "A better way to compare multiple children's weekly plans",
+        replyCount: 3,
+        relativeTime: "8 hours ago",
+      },
+    ],
   },
 ];
 
@@ -130,9 +170,7 @@ async function withTimeout<T>(
   }
 }
 
-function normalizeCategory(
-  category: ForumCategorySummary,
-): CommunityCategoryCard {
+function normalizeCategory(category: ForumCategorySummary): CommunityCategoryCard {
   const slug =
     typeof (category as { slug?: unknown }).slug === "string" &&
     (category as { slug?: string }).slug
@@ -146,31 +184,33 @@ function normalizeCategory(
   return {
     id: String(category.id),
     slug,
-    name: category.name,
-    description: category.description,
-    starterPrompt:
-      fallback?.starterPrompt ||
-      "Start with a question, a resource, or a practical idea that could help another family.",
-    ctaLabel: fallback?.ctaLabel || "Open forum",
-    tone: fallback?.tone || "Join the conversation",
+    name:
+      category.name === "Feature Suggestions"
+        ? "Help Shape MyLearna"
+        : category.name,
+    description:
+      category.name === "Feature Suggestions"
+        ? "Share feature ideas, pain points, and practical suggestions that would make MyLearna more helpful for real families."
+        : category.description,
+    tone:
+      category.name === "Feature Suggestions"
+        ? "Help shape MyLearna"
+        : fallback?.tone || "Join the conversation",
     threadCount:
-      typeof (category as { thread_count?: unknown }).thread_count === "number"
-        ? Number((category as { thread_count?: number }).thread_count)
+      typeof (category as { threadCount?: unknown }).threadCount === "number"
+        ? Number((category as { threadCount?: number }).threadCount)
         : fallback?.threadCount || 0,
-    latestThreadTitle:
-      (typeof (category as { latest_thread_title?: unknown }).latest_thread_title ===
-      "string"
-        ? String((category as { latest_thread_title?: string }).latest_thread_title)
-        : "") || fallback?.latestThreadTitle || "Start the first thread here",
-    latestThreadMeta:
-      (typeof (category as { latest_thread_meta?: unknown }).latest_thread_meta ===
-      "string"
-        ? String((category as { latest_thread_meta?: string }).latest_thread_meta)
-        : "") || fallback?.latestThreadMeta || "Ready for the first conversation",
+    latestThreads:
+      Array.isArray((category as { latestThreads?: unknown }).latestThreads) &&
+      (category as { latestThreads?: CommunityThreadPreview[] }).latestThreads?.length
+        ? ((category as { latestThreads?: CommunityThreadPreview[] }).latestThreads ?? []).slice(0, 2)
+        : fallback?.latestThreads || [],
   };
 }
 
 function CategoryCard({ category }: { category: CommunityCategoryCard }) {
+  const hasThreads = category.latestThreads.length > 0;
+
   return (
     <article
       style={{
@@ -229,7 +269,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             whiteSpace: "nowrap",
           }}
         >
-          {category.threadCount} threads
+          {category.threadCount} thread{category.threadCount === 1 ? "" : "s"}
         </div>
       </div>
 
@@ -245,42 +285,10 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
 
       <div
         style={{
-          border: "1px solid #e2e8f0",
-          background: "#f8fafc",
-          borderRadius: 16,
-          padding: 14,
-          display: "grid",
-          gap: 8,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 900,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            color: "#64748b",
-          }}
-        >
-          Starter prompt
-        </div>
-        <div
-          style={{
-            fontSize: 14,
-            lineHeight: 1.65,
-            color: "#334155",
-          }}
-        >
-          {category.starterPrompt}
-        </div>
-      </div>
-
-      <div
-        style={{
           borderTop: "1px solid #eef2f7",
           paddingTop: 12,
           display: "grid",
-          gap: 4,
+          gap: 10,
         }}
       >
         <div
@@ -292,27 +300,83 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             color: "#64748b",
           }}
         >
-          Active thread
+          Latest discussion
         </div>
-        <div
-          style={{
-            fontSize: 15,
-            fontWeight: 800,
-            color: "#0f172a",
-            lineHeight: 1.45,
-          }}
-        >
-          {category.latestThreadTitle}
-        </div>
-        <div
-          style={{
-            fontSize: 13,
-            color: "#64748b",
-            lineHeight: 1.5,
-          }}
-        >
-          {category.latestThreadMeta}
-        </div>
+
+        {hasThreads ? (
+          category.latestThreads.map((thread) => (
+            <Link
+              key={thread.id}
+              href={`/community/category/${category.slug}`}
+              style={{
+                textDecoration: "none",
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                borderRadius: 16,
+                padding: 14,
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 15,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  lineHeight: 1.45,
+                }}
+              >
+                {thread.title}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "#64748b",
+                  lineHeight: 1.5,
+                }}
+              >
+                {thread.replyCount} repl{thread.replyCount === 1 ? "y" : "ies"} • {thread.relativeTime}
+              </div>
+            </Link>
+          ))
+        ) : (
+          <div
+            style={{
+              border: "1px dashed #dbe2ea",
+              background: "#f8fafc",
+              borderRadius: 16,
+              padding: 16,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#334155",
+              }}
+            >
+              Be the first to start this conversation
+            </div>
+            <Link
+              href={`/community/category/${category.slug}`}
+              style={{
+                width: "fit-content",
+                border: "1px solid #d1d5db",
+                background: "#ffffff",
+                color: "#334155",
+                borderRadius: 10,
+                padding: "10px 14px",
+                fontSize: 14,
+                fontWeight: 800,
+                textDecoration: "none",
+              }}
+            >
+              Start a discussion
+            </Link>
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -329,7 +393,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             textDecoration: "none",
           }}
         >
-          {category.ctaLabel}
+          {hasThreads ? "Join discussion" : "Start a discussion"}
         </Link>
 
         <Link
@@ -345,7 +409,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             textDecoration: "none",
           }}
         >
-          Browse threads
+          Browse all
         </Link>
       </div>
     </article>
@@ -435,8 +499,8 @@ export default function CommunityHomePage() {
         href: "/community/category/resources-and-ideas",
       },
       {
-        label: "Suggest a feature",
-        href: "/community/category/feature-suggestions",
+        label: "Help shape MyLearna",
+        href: "/community/category/help-shape-edudecks",
       },
     ],
     [],
@@ -444,7 +508,7 @@ export default function CommunityHomePage() {
 
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
+      title="MyLearna Family"
       subtitle="Community"
       heroTitle="Community"
       heroText="Ask about planning, resources, and everyday homeschool life with families walking a similar journey."
@@ -557,7 +621,7 @@ export default function CommunityHomePage() {
             color: "#64748b",
           }}
         >
-          Refreshing live community data…
+          Refreshing live community data...
         </div>
       ) : null}
 

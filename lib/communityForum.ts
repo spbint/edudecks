@@ -43,6 +43,12 @@ export type ForumThreadSupport = {
 export type ForumCategorySummary = ForumCategory & {
   threadCount: number;
   latestActivityText: string;
+  latestThreads: Array<{
+    id: string;
+    title: string;
+    replyCount: number;
+    relativeTime: string;
+  }>;
 };
 
 export type ForumThreadSummary = ForumThread & {
@@ -170,6 +176,11 @@ function buildCategorySummaries(
 ): ForumCategorySummary[] {
   return categories.map((category) => {
     const categoryThreads = threads.filter((thread) => thread.category_id === category.id);
+    const recentThreads = [...categoryThreads]
+      .sort((a, b) =>
+        safe(b.updated_at || b.created_at).localeCompare(safe(a.updated_at || a.created_at))
+      )
+      .slice(0, 2);
     const latestThread = [...categoryThreads].sort((a, b) =>
       safe(b.updated_at || b.created_at).localeCompare(safe(a.updated_at || a.created_at))
     )[0];
@@ -190,6 +201,12 @@ function buildCategorySummaries(
       ...category,
       threadCount: categoryThreads.length,
       latestActivityText: latestText,
+      latestThreads: recentThreads.map((thread) => ({
+        id: thread.id,
+        title: thread.title,
+        replyCount: posts.filter((post) => post.thread_id === thread.id).length,
+        relativeTime: relativeTime(thread.updated_at || thread.created_at),
+      })),
     };
   });
 }
