@@ -1,0 +1,1079 @@
+import { supabase } from "@/lib/supabaseClient";
+
+export type ComplianceReadinessItemStatus =
+  | "complete"
+  | "in_progress"
+  | "missing";
+
+export type ComplianceReadiness = {
+  learnerId: string;
+  learnerName: string;
+
+  jurisdictionCode: string | null;
+  jurisdictionName: string | null;
+
+  status: "ready" | "warning" | "not_ready";
+  score: number;
+
+  summary: string;
+  nextAction: string | null;
+
+  completedCount: number;
+  totalCount: number;
+
+  items: {
+    artifactType: string;
+    label: string;
+    status: ComplianceReadinessItemStatus;
+  }[];
+
+  strengths: string[];
+  warnings: string[];
+  missing: string[];
+};
+
+type LoadComplianceReadinessInput = {
+  learnerId: string;
+  today?: Date | string;
+};
+
+type LearnerRow = {
+  id: string;
+  family_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  preferred_name: string | null;
+};
+
+type FamilySettingsRow = {
+  family_id?: string | null;
+  country_code?: string | null;
+  state_code?: string | null;
+};
+
+type LearnerSettingsRow = {
+  learner_id?: string | null;
+  jurisdiction_override_country?: string | null;
+  jurisdiction_override_state?: string | null;
+};
+
+type JurisdictionRow = {
+  id?: string | null;
+  code?: string | null;
+  name?: string | null;
+  label?: string | null;
+  country_code?: string | null;
+  state_code?: string | null;
+};
+
+type RuleSetRow = {
+  id?: string | null;
+  jurisdiction_id?: string | null;
+  jurisdiction_code?: string | null;
+  effective_from?: string | null;
+  effective_to?: string | null;
+  status?: string | null;
+  name?: string | null;
+  title?: string | null;
+};
+
+type RequiredArtifactRow = {
+  id?: string | null;
+  rule_set_id?: string | null;
+  jurisdiction_rule_set_id?: string | null;
+  artifact_type?: string | null;
+  code?: string | null;
+  slug?: string | null;
+  label?: string | null;
+  name?: string | null;
+  short_note?: string | null;
+  note?: string | null;
+  required_frequency?: string | null;
+  frequency?: string | null;
+  display_order?: number | null;
+};
+
+type RegistrationCycleRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  status?: string | null;
+  name?: string | null;
+  label?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
+type ReportingPeriodRow = {
+  id?: string | null;
+  registration_cycle_id?: string | null;
+  learner_id?: string | null;
+  status?: string | null;
+  label?: string | null;
+  name?: string | null;
+  period_type?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+};
+
+type PlanRow = {
+  id?: string | null;
+  status?: string | null;
+  date_start?: string | null;
+  date_end?: string | null;
+};
+
+type ExperienceRow = {
+  id?: string | null;
+  plan_id?: string | null;
+  experience_date?: string | null;
+};
+
+type EvidenceRow = {
+  id?: string | null;
+  experience_id?: string | null;
+  plan_id?: string | null;
+  captured_at?: string | null;
+};
+
+type ReportDocumentRow = {
+  id?: string | null;
+  reporting_period_id?: string | null;
+  learner_id?: string | null;
+  status?: string | null;
+};
+
+type ReviewRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  review_date?: string | null;
+  status?: string | null;
+};
+
+type ConcernRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  status?: string | null;
+};
+
+type RegistrationConditionRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  status?: string | null;
+};
+
+type ArtifactEvaluationContext = {
+  planCount: number;
+  linkedPlanCount: number;
+  experienceCount: number;
+  linkedExperienceCount: number;
+  evidenceCount: number;
+  linkedEvidenceCount: number;
+  reportDocumentCount: number;
+  reviewCount: number;
+  openConcernCount: number;
+  activeConditionCount: number;
+};
+
+type NormalizedArtifact = {
+  artifactType: string;
+  label: string;
+  status: ComplianceReadinessItemStatus;
+};
+
+const EMPTY_READINESS: ComplianceReadiness = {
+  learnerId: "",
+  learnerName: "Learner",
+  jurisdictionCode: null,
+  jurisdictionName: null,
+  status: "not_ready",
+  score: 0,
+  summary: "Compliance readiness could not be evaluated yet.",
+  nextAction: null,
+  completedCount: 0,
+  totalCount: 0,
+  items: [],
+  strengths: [],
+  warnings: [],
+  missing: [],
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function toLower(value: unknown) {
+  return safe(value).toLowerCase();
+}
+
+function asDate(value: unknown) {
+  const clean = safe(value);
+  if (!clean) return null;
+  const parsed = new Date(clean);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function asObject(value: unknown) {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function startOfDay(value: Date) {
+  const copy = new Date(value);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function resolveToday(input?: Date | string) {
+  if (input instanceof Date) return startOfDay(input);
+  if (typeof input === "string") {
+    const parsed = asDate(input);
+    if (parsed) return startOfDay(parsed);
+  }
+  return startOfDay(new Date());
+}
+
+function inferLearnerName(row: LearnerRow | null) {
+  if (!row) return "Learner";
+  const preferred = safe(row.preferred_name);
+  if (preferred) return preferred;
+  const full = [safe(row.first_name), safe(row.last_name)].filter(Boolean).join(" ");
+  return full || "Learner";
+}
+
+function buildJurisdictionCode(countryCode: string, stateCode: string) {
+  const country = safe(countryCode).toUpperCase();
+  const state = safe(stateCode).toUpperCase();
+  if (!country || !state) return null;
+  return `${country}-${state}`;
+}
+
+function buildJurisdictionName(code: string | null) {
+  const normalized = safe(code).toUpperCase();
+  if (normalized === "AU-QLD") return "Queensland";
+  if (normalized === "AU-NSW") return "New South Wales";
+  if (normalized === "AU-VIC") return "Victoria";
+  if (normalized === "AU-SA") return "South Australia";
+  if (normalized === "AU-WA") return "Western Australia";
+  if (normalized === "AU-TAS") return "Tasmania";
+  if (normalized === "AU-ACT") return "Australian Capital Territory";
+  if (normalized === "AU-NT") return "Northern Territory";
+  return normalized || null;
+}
+
+function maybeBetween(
+  value: string | null | undefined,
+  startDate: Date | null,
+  endDate: Date | null,
+) {
+  const parsed = asDate(value);
+  if (!parsed) return false;
+  if (startDate && parsed < startDate) return false;
+  if (endDate && parsed > endDate) return false;
+  return true;
+}
+
+function periodContains(
+  row: { start_date?: string | null; end_date?: string | null },
+  today: Date,
+) {
+  const startDate = asDate(row.start_date);
+  const endDate = asDate(row.end_date);
+  if (startDate && today < startDate) return false;
+  if (endDate && today > endDate) return false;
+  return true;
+}
+
+function sortRowsByStartDateDescending<
+  T extends { start_date?: string | null; effective_from?: string | null },
+>(rows: T[]) {
+  return [...rows].sort((left, right) => {
+    const leftTime =
+      asDate(left.start_date)?.getTime() ??
+      asDate(left.effective_from)?.getTime() ??
+      0;
+    const rightTime =
+      asDate(right.start_date)?.getTime() ??
+      asDate(right.effective_from)?.getTime() ??
+      0;
+    return rightTime - leftTime;
+  });
+}
+
+async function many<T>(
+  table: string,
+  configure: (query: ReturnType<typeof supabase.from>) => any,
+) {
+  const response = await configure(supabase.from(table));
+  if (response.error) throw response.error;
+  return Array.isArray(response.data) ? response.data : [];
+}
+
+async function maybeSingle<T>(
+  table: string,
+  configure: (query: ReturnType<typeof supabase.from>) => any,
+) {
+  const response = await configure(supabase.from(table));
+  if (response.error) throw response.error;
+  return response.data ?? null;
+}
+
+async function loadLearner(learnerId: string) {
+  return maybeSingle<LearnerRow>("learners", (query) =>
+    query
+      .select("id,family_id,first_name,last_name,preferred_name")
+      .eq("id", learnerId)
+      .maybeSingle(),
+  );
+}
+
+async function loadFamilySettings(familyId: string) {
+  return maybeSingle<FamilySettingsRow>("family_settings", (query) =>
+    query
+      .select("family_id,country_code,state_code")
+      .eq("family_id", familyId)
+      .maybeSingle(),
+  );
+}
+
+async function loadLearnerSettings(learnerId: string) {
+  return maybeSingle<LearnerSettingsRow>("learner_settings", (query) =>
+    query
+      .select("learner_id,jurisdiction_override_country,jurisdiction_override_state")
+      .eq("learner_id", learnerId)
+      .maybeSingle(),
+  );
+}
+
+async function resolveJurisdictionRow(
+  countryCode: string,
+  stateCode: string,
+): Promise<JurisdictionRow | null> {
+  const code = buildJurisdictionCode(countryCode, stateCode);
+
+  try {
+    const byPair = await maybeSingle<JurisdictionRow>("jurisdictions", (query) =>
+      query
+        .select("id,code,name,label,country_code,state_code")
+        .eq("country_code", safe(countryCode).toUpperCase())
+        .eq("state_code", safe(stateCode).toUpperCase())
+        .maybeSingle(),
+    );
+    if (byPair) return byPair;
+  } catch {
+    // try code lookup next
+  }
+
+  if (!code) return null;
+
+  try {
+    const byCode = await maybeSingle<JurisdictionRow>("jurisdictions", (query) =>
+      query
+        .select("id,code,name,label,country_code,state_code")
+        .eq("code", code)
+        .maybeSingle(),
+    );
+    if (byCode) return byCode;
+  } catch {
+    return {
+      code,
+      name: buildJurisdictionName(code),
+      country_code: safe(countryCode).toUpperCase(),
+      state_code: safe(stateCode).toUpperCase(),
+    };
+  }
+
+  return {
+    code,
+    name: buildJurisdictionName(code),
+    country_code: safe(countryCode).toUpperCase(),
+    state_code: safe(stateCode).toUpperCase(),
+  };
+}
+
+async function loadCurrentRuleSet(
+  jurisdiction: JurisdictionRow | null,
+  today: Date,
+): Promise<RuleSetRow | null> {
+  if (!jurisdiction) return null;
+  const jurisdictionId = safe(jurisdiction.id);
+  const jurisdictionCode = safe(jurisdiction.code);
+
+  try {
+    const rows = await many<RuleSetRow>("jurisdiction_rule_sets", (query) => {
+      let next = query.select("id,jurisdiction_id,jurisdiction_code,effective_from,effective_to,status,name,title");
+      if (jurisdictionId) {
+        next = next.eq("jurisdiction_id", jurisdictionId);
+      } else if (jurisdictionCode) {
+        next = next.eq("jurisdiction_code", jurisdictionCode);
+      }
+      return next.order("effective_from", { ascending: false });
+    });
+
+    const active = sortRowsByStartDateDescending(
+      rows.filter((row: RuleSetRow) => {
+        const effectiveTo = asDate(row.effective_to);
+        return !effectiveTo || effectiveTo >= today;
+      }),
+    );
+    return active[0] ?? rows[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadRequiredArtifacts(ruleSetId: string): Promise<RequiredArtifactRow[]> {
+  if (!ruleSetId) return [] as RequiredArtifactRow[];
+
+  try {
+    const rows = await many<RequiredArtifactRow>("jurisdiction_required_artifacts", (query) =>
+      query
+        .select("id,rule_set_id,jurisdiction_rule_set_id,artifact_type,code,slug,label,name,short_note,note,required_frequency,frequency,display_order")
+        .or(`rule_set_id.eq.${ruleSetId},jurisdiction_rule_set_id.eq.${ruleSetId}`)
+        .order("display_order", { ascending: true }),
+    );
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+async function loadRegistrationCycles(learnerId: string): Promise<RegistrationCycleRow[]> {
+  try {
+    return await many<RegistrationCycleRow>("registration_cycles", (query) =>
+      query
+        .select("id,learner_id,status,name,label,start_date,end_date")
+        .eq("learner_id", learnerId)
+        .order("start_date", { ascending: false }),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function selectCurrentCycle(rows: RegistrationCycleRow[], today: Date) {
+  const current = rows.find((row: RegistrationCycleRow) => periodContains(row, today));
+  return current ?? sortRowsByStartDateDescending(rows)[0] ?? null;
+}
+
+async function loadReportingPeriods(
+  learnerId: string,
+  cycleId: string | null,
+): Promise<ReportingPeriodRow[]> {
+  try {
+    let rows = await many<ReportingPeriodRow>("reporting_periods", (query) => {
+      let next = query.select("id,registration_cycle_id,learner_id,status,label,name,period_type,start_date,end_date");
+      if (cycleId) {
+        next = next.eq("registration_cycle_id", cycleId);
+      } else {
+        next = next.eq("learner_id", learnerId);
+      }
+      return next.order("start_date", { ascending: false });
+    });
+
+    if (!rows.length && cycleId) {
+      rows = await many<ReportingPeriodRow>("reporting_periods", (query) =>
+        query
+          .select("id,registration_cycle_id,learner_id,status,label,name,period_type,start_date,end_date")
+          .eq("learner_id", learnerId)
+          .order("start_date", { ascending: false }),
+      );
+    }
+
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+function selectCurrentPeriod(rows: ReportingPeriodRow[], today: Date) {
+  const current = rows.find((row: ReportingPeriodRow) => periodContains(row, today));
+  return current ?? sortRowsByStartDateDescending(rows)[0] ?? null;
+}
+
+async function loadPlans(
+  learnerId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+): Promise<PlanRow[]> {
+  try {
+    const rows = await many<PlanRow>("learning_plans", (query) =>
+      query
+        .select("id,status,date_start,date_end")
+        .eq("learner_id", learnerId),
+    );
+
+    return rows.filter((row: PlanRow) => {
+      const planStart = asDate(row.date_start);
+      const planEnd = asDate(row.date_end);
+      if (!startDate && !endDate) return true;
+      if (startDate && planEnd && planEnd < startDate) return false;
+      if (endDate && planStart && planStart > endDate) return false;
+      return true;
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function loadExperiences(
+  learnerId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+): Promise<ExperienceRow[]> {
+  try {
+    const rows = await many<ExperienceRow>("learning_experiences", (query) =>
+      query
+        .select("id,plan_id,experience_date")
+        .eq("learner_id", learnerId),
+    );
+
+    return rows.filter((row: ExperienceRow) =>
+      maybeBetween(row.experience_date, startDate, endDate),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function loadEvidence(
+  learnerId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+): Promise<EvidenceRow[]> {
+  try {
+    const rows = await many<EvidenceRow>("evidence_items", (query) =>
+      query
+        .select("id,experience_id,plan_id,captured_at")
+        .eq("learner_id", learnerId),
+    );
+
+    return rows.filter((row: EvidenceRow) =>
+      maybeBetween(row.captured_at, startDate, endDate),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function loadReportDocuments(
+  learnerId: string,
+  periodId: string | null,
+): Promise<ReportDocumentRow[]> {
+  try {
+    let rows = await many<ReportDocumentRow>("report_documents", (query) => {
+      let next = query.select("id,reporting_period_id,learner_id,status");
+      if (periodId) {
+        next = next.eq("reporting_period_id", periodId);
+      }
+      return next.eq("learner_id", learnerId);
+    });
+
+    if (!rows.length && periodId) {
+      rows = await many<ReportDocumentRow>("report_documents", (query) =>
+        query
+          .select("id,reporting_period_id,learner_id,status")
+          .eq("reporting_period_id", periodId),
+      );
+    }
+
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
+async function loadReviews(
+  learnerId: string,
+  startDate: Date | null,
+  endDate: Date | null,
+): Promise<ReviewRow[]> {
+  try {
+    const rows = await many<ReviewRow>("reviews", (query) =>
+      query
+        .select("id,learner_id,review_date,status")
+        .eq("learner_id", learnerId),
+    );
+    return rows.filter((row: ReviewRow) => maybeBetween(row.review_date, startDate, endDate));
+  } catch {
+    return [];
+  }
+}
+
+async function loadConcerns(learnerId: string): Promise<ConcernRow[]> {
+  try {
+    return await many<ConcernRow>("concerns", (query) =>
+      query
+        .select("id,learner_id,status")
+        .eq("learner_id", learnerId),
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function loadRegistrationConditions(
+  learnerId: string,
+): Promise<RegistrationConditionRow[]> {
+  try {
+    return await many<RegistrationConditionRow>("registration_conditions", (query) =>
+      query
+        .select("id,learner_id,status")
+        .eq("learner_id", learnerId),
+    );
+  } catch {
+    return [];
+  }
+}
+
+function normalizeArtifactType(row: RequiredArtifactRow) {
+  return (
+    safe(row.artifact_type) ||
+    safe(row.code) ||
+    safe(row.slug) ||
+    "artifact"
+  );
+}
+
+function normalizeArtifactLabel(row: RequiredArtifactRow) {
+  return safe(row.label) || safe(row.name) || "Required artifact";
+}
+
+function evaluateArtifactStatus(
+  artifactType: string,
+  ctx: ArtifactEvaluationContext,
+): ComplianceReadinessItemStatus {
+  const key = toLower(artifactType);
+
+  if (key.includes("plan") || key.includes("program")) {
+    if (ctx.linkedPlanCount > 0) return "complete";
+    if (ctx.planCount > 0) return "in_progress";
+    return "missing";
+  }
+
+  if (key.includes("experience")) {
+    if (ctx.linkedExperienceCount > 0) return "complete";
+    if (ctx.experienceCount > 0) return "in_progress";
+    return "missing";
+  }
+
+  if (
+    key.includes("evidence") ||
+    key.includes("sample") ||
+    key.includes("record")
+  ) {
+    if (ctx.linkedEvidenceCount > 0) return "complete";
+    if (ctx.evidenceCount > 0) return "in_progress";
+    return "missing";
+  }
+
+  if (key.includes("report")) {
+    if (ctx.reportDocumentCount > 0) return "complete";
+    if (ctx.linkedEvidenceCount > 0 || ctx.linkedPlanCount > 0) return "in_progress";
+    return "missing";
+  }
+
+  if (key.includes("review")) {
+    if (ctx.reviewCount > 0) return "complete";
+    if (ctx.reportDocumentCount > 0) return "in_progress";
+    return "missing";
+  }
+
+  if (key.includes("concern")) {
+    return ctx.openConcernCount === 0 ? "complete" : "in_progress";
+  }
+
+  if (key.includes("condition")) {
+    return ctx.activeConditionCount === 0 ? "complete" : "in_progress";
+  }
+
+  if (ctx.linkedEvidenceCount > 0 || ctx.linkedPlanCount > 0 || ctx.reportDocumentCount > 0) {
+    return "in_progress";
+  }
+
+  return "missing";
+}
+
+function buildSummary(
+  status: ComplianceReadiness["status"],
+  jurisdictionName: string | null,
+  strengths: string[],
+  warnings: string[],
+  missing: string[],
+) {
+  const jurisdiction = jurisdictionName || "current";
+
+  if (status === "ready") {
+    return `Compliance readiness for ${jurisdiction} is in a strong position. The core planning, evidence, and reporting records are in place for this learner.`;
+  }
+
+  if (status === "warning") {
+    if (warnings.length) {
+      return `Compliance readiness for ${jurisdiction} is mixed. Some core records are present, but there are still issues that need attention before the record is dependable.`;
+    }
+    return `Compliance readiness for ${jurisdiction} is underway. Some required artifacts exist, but the learner record is not complete yet.`;
+  }
+
+  if (missing.length) {
+    return `Compliance readiness for ${jurisdiction} is not ready yet. Core reporting artifacts are still missing for this learner.`;
+  }
+
+  return `Compliance readiness for ${jurisdiction} could not be established yet.`;
+}
+
+function buildNextAction(
+  jurisdictionCode: string | null,
+  missingItems: string[],
+  warningItems: string[],
+) {
+  if (!jurisdictionCode) {
+    return "Confirm the learner jurisdiction settings";
+  }
+
+  if (missingItems.some((item: string) => toLower(item).includes("plan") || toLower(item).includes("program"))) {
+    return "Create or update the current learning plan";
+  }
+
+  if (missingItems.some((item: string) => toLower(item).includes("experience"))) {
+    return "Record a linked learning experience";
+  }
+
+  if (missingItems.some((item: string) => toLower(item).includes("evidence") || toLower(item).includes("sample"))) {
+    return "Capture linked learning evidence";
+  }
+
+  if (missingItems.some((item: string) => toLower(item).includes("report"))) {
+    return "Open reports to generate the current draft";
+  }
+
+  if (missingItems.some((item: string) => toLower(item).includes("review"))) {
+    return "Add the current review record";
+  }
+
+  if (warningItems.some((item: string) => toLower(item).includes("concern"))) {
+    return "Review active concerns";
+  }
+
+  if (warningItems.some((item: string) => toLower(item).includes("condition"))) {
+    return "Review registration conditions";
+  }
+
+  return null;
+}
+
+function computeScore(
+  items: NormalizedArtifact[],
+  openConcernCount: number,
+  activeConditionCount: number,
+) {
+  if (!items.length) {
+    const penalty = Math.min(30, openConcernCount * 10 + activeConditionCount * 10);
+    return Math.max(0, 20 - penalty);
+  }
+
+  const totalWeight = items.length * 100;
+  const earned = items.reduce((sum, item) => {
+    if (item.status === "complete") return sum + 100;
+    if (item.status === "in_progress") return sum + 50;
+    return sum;
+  }, 0);
+
+  const baseScore = Math.round((earned / totalWeight) * 100);
+  const penalty = Math.min(30, openConcernCount * 10 + activeConditionCount * 10);
+  return Math.max(0, Math.min(100, baseScore - penalty));
+}
+
+function deriveOverallStatus(
+  items: NormalizedArtifact[],
+  openConcernCount: number,
+  activeConditionCount: number,
+): ComplianceReadiness["status"] {
+  const completed = items.filter((item: NormalizedArtifact) => item.status === "complete").length;
+  const missing = items.filter((item: NormalizedArtifact) => item.status === "missing").length;
+
+  if (items.length > 0 && missing === 0 && openConcernCount === 0 && activeConditionCount === 0) {
+    return "ready";
+  }
+
+  if (completed > 0 || openConcernCount > 0 || activeConditionCount > 0) {
+    return "warning";
+  }
+
+  return "not_ready";
+}
+
+export async function loadComplianceReadiness(
+  input: LoadComplianceReadinessInput,
+): Promise<ComplianceReadiness> {
+  const learnerId = safe(input.learnerId);
+  if (!learnerId) {
+    return {
+      ...EMPTY_READINESS,
+      summary: "A learner is required before compliance readiness can be evaluated.",
+    };
+  }
+
+  const today = resolveToday(input.today);
+
+  try {
+    const learner = await loadLearner(learnerId);
+    if (!learner) {
+      return {
+        ...EMPTY_READINESS,
+        learnerId,
+        summary: "The learner could not be found in the current family workspace.",
+      };
+    }
+
+    const learnerName = inferLearnerName(learner);
+    const familyId = safe(learner.family_id);
+
+    const [familySettings, learnerSettings] = await Promise.all([
+      familyId ? loadFamilySettings(familyId) : Promise.resolve(null),
+      loadLearnerSettings(learnerId),
+    ]);
+
+    const countryCode =
+      safe(learnerSettings?.jurisdiction_override_country) ||
+      safe(familySettings?.country_code);
+    const stateCode =
+      safe(learnerSettings?.jurisdiction_override_state) ||
+      safe(familySettings?.state_code);
+
+    const jurisdiction = countryCode && stateCode
+      ? await resolveJurisdictionRow(countryCode, stateCode)
+      : null;
+
+    const jurisdictionCode =
+      safe(jurisdiction?.code) ||
+      buildJurisdictionCode(countryCode, stateCode);
+    const jurisdictionName =
+      safe(jurisdiction?.name) ||
+      safe(jurisdiction?.label) ||
+      buildJurisdictionName(jurisdictionCode);
+
+    const ruleSet = await loadCurrentRuleSet(jurisdiction, today);
+    const requiredArtifacts = await loadRequiredArtifacts(safe(ruleSet?.id));
+
+    const registrationCycles = await loadRegistrationCycles(learnerId);
+    const currentCycle = selectCurrentCycle(registrationCycles, today);
+    const cycleStartDate = asDate(currentCycle?.start_date);
+    const cycleEndDate = asDate(currentCycle?.end_date);
+
+    const reportingPeriods = await loadReportingPeriods(
+      learnerId,
+      safe(currentCycle?.id) || null,
+    );
+    const currentPeriod = selectCurrentPeriod(reportingPeriods, today);
+
+    const [
+      plans,
+      experiences,
+      evidenceItems,
+      reportDocuments,
+      reviews,
+      concerns,
+      registrationConditions,
+    ] = await Promise.all([
+      loadPlans(learnerId, cycleStartDate, cycleEndDate),
+      loadExperiences(learnerId, cycleStartDate, cycleEndDate),
+      loadEvidence(learnerId, cycleStartDate, cycleEndDate),
+      loadReportDocuments(learnerId, safe(currentPeriod?.id) || null),
+      loadReviews(learnerId, cycleStartDate, cycleEndDate),
+      loadConcerns(learnerId),
+      loadRegistrationConditions(learnerId),
+    ]);
+
+    const planIds = new Set(
+      plans.map((row: PlanRow) => safe(row.id)).filter(Boolean),
+    );
+    const experienceIds = new Set(
+      experiences.map((row: ExperienceRow) => safe(row.id)).filter(Boolean),
+    );
+
+    const linkedPlanCount = plans.filter((plan) => {
+      const planId = safe(plan.id);
+      if (!planId) return false;
+      return (
+        experiences.some((experience) => safe(experience.plan_id) === planId) ||
+        evidenceItems.some((item: EvidenceRow) => safe(item.plan_id) === planId)
+      );
+    }).length;
+
+    const linkedExperienceCount = experiences.filter((experience) => {
+      const experienceId = safe(experience.id);
+      if (!experienceId) return false;
+      return evidenceItems.some((item: EvidenceRow) => safe(item.experience_id) === experienceId);
+    }).length;
+
+    const linkedEvidenceCount = evidenceItems.filter(
+      (item) => safe(item.plan_id) || safe(item.experience_id),
+    ).length;
+
+    const openConcernCount = concerns.filter((row: ConcernRow) => {
+      const status = toLower(row.status);
+      return status === "" || status === "open" || status === "active" || status === "pending";
+    }).length;
+
+    const activeConditionCount = registrationConditions.filter((row: RegistrationConditionRow) => {
+      const status = toLower(row.status);
+      return status === "" || status === "open" || status === "active" || status === "pending";
+    }).length;
+
+    const ctx: ArtifactEvaluationContext = {
+      planCount: plans.length,
+      linkedPlanCount,
+      experienceCount: experiences.length,
+      linkedExperienceCount,
+      evidenceCount: evidenceItems.length,
+      linkedEvidenceCount,
+      reportDocumentCount: reportDocuments.length,
+      reviewCount: reviews.length,
+      openConcernCount,
+      activeConditionCount,
+    };
+
+    const normalizedArtifacts: NormalizedArtifact[] = requiredArtifacts.length
+      ? requiredArtifacts.map((row: RequiredArtifactRow) => {
+          const artifactType = normalizeArtifactType(row);
+          return {
+            artifactType,
+            label: normalizeArtifactLabel(row),
+            status: evaluateArtifactStatus(artifactType, ctx),
+          };
+        })
+      : [
+          {
+            artifactType: "learning_plan",
+            label: "Learning plan",
+            status: evaluateArtifactStatus("learning_plan", ctx),
+          },
+          {
+            artifactType: "evidence_items",
+            label: "Evidence record",
+            status: evaluateArtifactStatus("evidence_items", ctx),
+          },
+          {
+            artifactType: "report_document",
+            label: "Report draft",
+            status: evaluateArtifactStatus("report_document", ctx),
+          },
+        ];
+
+    const completedCount = normalizedArtifacts.filter((item: NormalizedArtifact) => item.status === "complete").length;
+    const totalCount = normalizedArtifacts.length;
+
+    const strengths: string[] = [];
+    const warnings: string[] = [];
+    const missing: string[] = [];
+
+    if (jurisdictionCode && jurisdictionName) {
+      strengths.push(`Jurisdiction resolved as ${jurisdictionName}.`);
+    } else {
+      missing.push("Jurisdiction settings are missing.");
+    }
+
+    if (safe(ruleSet?.id)) {
+      strengths.push("A current jurisdiction rule set is available.");
+    } else {
+      warnings.push("No current jurisdiction rule set was found.");
+    }
+
+    if (safe(currentCycle?.id)) {
+      strengths.push("A registration cycle is on file.");
+    } else {
+      missing.push("No registration cycle was found for this learner.");
+    }
+
+    if (safe(currentPeriod?.id)) {
+      strengths.push("A reporting period is available.");
+    } else {
+      warnings.push("No reporting period was found for the current cycle.");
+    }
+
+    if (linkedPlanCount > 0) {
+      strengths.push("Planning is linked to recorded learning.");
+    } else if (plans.length > 0) {
+      warnings.push("Plans exist, but they are not yet clearly linked to recorded learning.");
+    }
+
+    if (linkedEvidenceCount > 0) {
+      strengths.push("Evidence is linked to planning or learning experiences.");
+    } else if (evidenceItems.length > 0) {
+      warnings.push("Evidence exists, but it is not clearly linked back to planning or learning experiences.");
+    }
+
+    if (reportDocuments.length > 0) {
+      strengths.push("A report document exists for the current reporting flow.");
+    }
+
+    if (reviews.length > 0) {
+      strengths.push("A review record exists for the current cycle.");
+    }
+
+    if (openConcernCount > 0) {
+      warnings.push(
+        `${openConcernCount} active concern${openConcernCount === 1 ? "" : "s"} need review.`,
+      );
+    }
+
+    if (activeConditionCount > 0) {
+      warnings.push(
+        `${activeConditionCount} registration condition${activeConditionCount === 1 ? "" : "s"} remain active.`,
+      );
+    }
+
+    normalizedArtifacts.forEach((item) => {
+      if (item.status === "missing") {
+        missing.push(item.label);
+      } else if (item.status === "in_progress") {
+        warnings.push(`${item.label} is still in progress.`);
+      }
+    });
+
+    const status = deriveOverallStatus(
+      normalizedArtifacts,
+      openConcernCount,
+      activeConditionCount,
+    );
+    const score = computeScore(
+      normalizedArtifacts,
+      openConcernCount,
+      activeConditionCount,
+    );
+
+    return {
+      learnerId,
+      learnerName,
+      jurisdictionCode,
+      jurisdictionName,
+      status,
+      score,
+      summary: buildSummary(
+        status,
+        jurisdictionName,
+        strengths,
+        warnings,
+        missing,
+      ),
+      nextAction: buildNextAction(jurisdictionCode, missing, warnings),
+      completedCount,
+      totalCount,
+      items: normalizedArtifacts,
+      strengths,
+      warnings,
+      missing,
+    };
+  } catch (error) {
+    const detail = safe(asObject(error).message) || safe(error);
+    return {
+      ...EMPTY_READINESS,
+      learnerId,
+      summary: detail
+        ? `Compliance readiness could not be evaluated cleanly. ${detail}`
+        : "Compliance readiness could not be evaluated cleanly.",
+      warnings: detail ? [detail] : [],
+    };
+  }
+}
