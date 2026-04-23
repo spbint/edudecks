@@ -49,7 +49,7 @@ type LoadReportAssemblyWorkspaceInput = {
   readiness: ComplianceReadiness;
 };
 
-type SectionScaffold = {
+export type SectionScaffold = {
   title: string;
   hint: string;
 };
@@ -86,7 +86,7 @@ function normalizeSectionTitle(jurisdictionCode: string | null, title: string) {
   return jurisdictionCode ? `${jurisdictionCode} section` : "Report section";
 }
 
-function scaffoldDefinitionsForJurisdiction(code: string | null): SectionScaffold[] {
+export function getSectionScaffoldsForJurisdiction(code: string | null): SectionScaffold[] {
   const jurisdictionCode = safe(code).toUpperCase();
 
   if (jurisdictionCode === "AU-QLD") {
@@ -344,7 +344,7 @@ function normalizeSectionRecords(
 }
 
 function buildScaffoldSections(jurisdictionCode: string | null): ReportAssemblySection[] {
-  return scaffoldDefinitionsForJurisdiction(jurisdictionCode).map((section, index) => ({
+  return getSectionScaffoldsForJurisdiction(jurisdictionCode).map((section, index) => ({
     id: `scaffold-${index + 1}`,
     title: section.title,
     status: "scaffold",

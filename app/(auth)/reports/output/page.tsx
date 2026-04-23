@@ -12,10 +12,14 @@ import type {
 import {
   loadReadinessForReportAssembly,
   loadReportAssemblyWorkspace,
-  type ReportAssemblyArtifact,
   type ReportAssemblySupportingRecord,
   type ReportAssemblyWorkspace,
 } from "@/lib/reportAssembly";
+import {
+  loadReportEvidenceMapping,
+  type ArtifactMappingResult,
+  type ReportEvidenceMapping,
+} from "@/lib/reportEvidenceMapping";
 import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
@@ -43,6 +47,13 @@ function supportTone(tone: ReportAssemblySupportingRecord["tone"]) {
   if (tone === "ready") return "border-emerald-200 bg-emerald-50/70";
   if (tone === "warning") return "border-amber-200 bg-amber-50/70";
   return "border-slate-200 bg-slate-50/70";
+}
+
+function normalizeSectionKey(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 function EmptyState({
@@ -79,6 +90,7 @@ export default function ReportsOutputPage() {
   const [model, setModel] = useState<ReportsBuilderModel | null>(null);
   const [readiness, setReadiness] = useState<ComplianceReadiness | null>(null);
   const [assembly, setAssembly] = useState<ReportAssemblyWorkspace | null>(null);
+  const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -89,6 +101,7 @@ export default function ReportsOutputPage() {
           setModel(null);
           setReadiness(null);
           setAssembly(null);
+          setMapping(null);
         }
         return;
       }
@@ -108,11 +121,15 @@ export default function ReportsOutputPage() {
         model: next,
         readiness: readinessResult,
       });
+      const mappingResult = await loadReportEvidenceMapping({
+        model: next,
+      });
 
       if (mounted) {
         setModel(next);
         setReadiness(readinessResult);
         setAssembly(assemblyResult);
+        setMapping(mappingResult);
       }
     }
 
@@ -132,7 +149,7 @@ export default function ReportsOutputPage() {
     );
   }
 
-  if (!model || !readiness || !assembly) {
+  if (!model || !readiness || !assembly || !mapping) {
     return <div className="h-64 animate-pulse rounded-[24px] bg-slate-100" />;
   }
 
@@ -217,12 +234,18 @@ export default function ReportsOutputPage() {
           </div>
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-              Locale / tone
+              Mapping focus
             </div>
             <div className="mt-2 text-sm font-bold text-slate-950">
-              {model.reportDocument.localeCode} / {model.reportDocument.spellingStyle}
+              {mapping.strongestAreas.length
+                ? mapping.strongestAreas.join(", ")
+                : "No strong artifact matches yet"}
             </div>
-            <div className="text-[13px] text-slate-500">{model.reportDocument.toneProfile}</div>
+            <div className="text-[13px] text-slate-500">
+              {mapping.weakAreas.length
+                ? `Still weak: ${mapping.weakAreas.join(", ")}`
+                : "No weak areas are currently flagged."}
+            </div>
           </div>
         </div>
       </section>
@@ -236,7 +259,7 @@ export default function ReportsOutputPage() {
             {readiness.summary}
           </h2>
           <p className="max-w-[760px] text-sm leading-7 text-slate-600">
-            This workspace is assembled from the current reporting period, stored learner records, and the active jurisdiction rule set. It shows what is already in place and what still needs attention before the draft is dependable.
+            This workspace is assembled from the current reporting period, stored learner records, and the active jurisdiction rule set. It now also maps concrete plans, experiences, evidence, pairs, and reviews to each artifact and section.
           </p>
         </div>
         <aside className="grid gap-3 rounded-[22px] border border-slate-200 bg-slate-50/80 p-5">
@@ -245,7 +268,7 @@ export default function ReportsOutputPage() {
               Next action
             </div>
             <div className="mt-2 text-[16px] font-bold text-slate-950">
-              {readiness.nextAction || "Continue reviewing the draft structure"}
+              {mapping.nextAction || readiness.nextAction || "Continue reviewing the draft structure"}
             </div>
           </div>
           <Link
@@ -275,36 +298,74 @@ export default function ReportsOutputPage() {
 
           {assembly.sections.length ? (
             <div className="grid gap-3">
-              {assembly.sections.map((section) => (
-                <div
-                  key={section.id}
-                  className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="grid gap-1">
-                      <div className="text-[15px] font-bold text-slate-950">{section.title}</div>
-                      <div className="text-[13px] leading-6 text-slate-500">
-                        {section.sourceMode
-                          ? `Source: ${section.sourceMode}`
-                          : section.scaffoldOnly
-                            ? "Jurisdiction scaffold"
-                            : "Existing report section"}
-                        {section.locked ? " - Locked" : ""}
+              {assembly.sections.map((section) => {
+                const sectionMap =
+                  mapping.sections.find((item) => item.title === section.title) ||
+                  mapping.sections.find((item) => item.sectionKey === normalizeSectionKey(section.title));
+                const sectionStatus = sectionMap?.status || "missing";
+
+                return (
+                  <div
+                    key={section.id}
+                    className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="grid gap-1">
+                        <div className="text-[15px] font-bold text-slate-950">{section.title}</div>
+                        <div className="text-[13px] leading-6 text-slate-500">
+                          {section.sourceMode
+                            ? `Source: ${section.sourceMode}`
+                            : section.scaffoldOnly
+                              ? "Jurisdiction scaffold"
+                              : "Existing report section"}
+                          {section.locked ? " - Locked" : ""}
+                        </div>
                       </div>
+                      <span className={cx("inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em]", artifactTone(sectionStatus))}>
+                        {sectionStatus.replace("_", " ")}
+                      </span>
                     </div>
-                    <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
-                      {section.status}
-                    </span>
-                  </div>
-                  <div className="text-sm leading-7 text-slate-600">
-                    {section.hasContent
-                      ? section.contentPreview
-                      : section.scaffoldOnly
+                    <div className="text-sm leading-7 text-slate-600">
+                      {section.hasContent
                         ? section.contentPreview
-                        : "This section exists, but no content has been assembled into it yet."}
+                        : section.scaffoldOnly
+                          ? section.contentPreview
+                          : "This section exists, but no content has been assembled into it yet."}
+                    </div>
+                    {sectionMap ? (
+                      <div className="grid gap-1 rounded-[14px] border border-slate-200 bg-white px-3 py-3">
+                        <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Mapping support
+                        </div>
+                        <div className="text-[13px] leading-6 text-slate-600">
+                          {sectionMap.supportingEvidenceCount} evidence item{sectionMap.supportingEvidenceCount === 1 ? "" : "s"} and {sectionMap.supportingPlanCount} plan{sectionMap.supportingPlanCount === 1 ? "" : "s"} currently support this section.
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {sectionMap.supportedArtifactTypes.length ? (
+                            sectionMap.supportedArtifactTypes.map((artifactType) => (
+                              <span
+                                key={`${section.id}-${artifactType}`}
+                                className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600"
+                              >
+                                {artifactType}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[12px] text-slate-500">
+                              No required artifacts are mapped to this section yet.
+                            </span>
+                          )}
+                        </div>
+                        {sectionMap.notes.length ? (
+                          <div className="text-[13px] leading-6 text-slate-500">
+                            {sectionMap.notes[0]}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-5 text-sm leading-7 text-slate-600">
@@ -323,9 +384,9 @@ export default function ReportsOutputPage() {
             </h2>
           </div>
 
-          {assembly.artifactItems.length ? (
+          {mapping.artifacts.length ? (
             <div className="grid gap-3">
-              {assembly.artifactItems.map((item: ReportAssemblyArtifact) => (
+              {mapping.artifacts.map((item: ArtifactMappingResult) => (
                 <div
                   key={`${item.artifactType}-${item.label}`}
                   className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
@@ -336,8 +397,28 @@ export default function ReportsOutputPage() {
                       {item.status.replace("_", " ")}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm leading-6 text-slate-600">
-                    {item.note || "This artifact contributes directly to the current jurisdiction requirements."}
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    <span>Confidence {item.confidence}</span>
+                    <span>Plans {item.supportingCounts.plans}</span>
+                    <span>Experiences {item.supportingCounts.experiences}</span>
+                    <span>Evidence {item.supportingCounts.evidence}</span>
+                    <span>Pairs {item.supportingCounts.pairs}</span>
+                    <span>Reviews {item.supportingCounts.reviews}</span>
+                  </div>
+                  <div className="mt-2 grid gap-1 text-sm leading-6 text-slate-600">
+                    {item.notes.map((note) => (
+                      <div key={`${item.artifactType}-${note}`}>{note}</div>
+                    ))}
+                  </div>
+                  {item.suggestedNextAction ? (
+                    <div className="mt-2 rounded-[14px] border border-blue-100 bg-blue-50/70 px-3 py-2 text-[13px] leading-6 text-slate-700">
+                      Next: {item.suggestedNextAction}
+                    </div>
+                  ) : null}
+                  <div className="mt-2 text-[12px] text-slate-500">
+                    {item.supportingIds?.length
+                      ? `Linked records: ${item.supportingIds.join(", ")}`
+                      : "No directly linked records have been identified yet."}
                   </div>
                 </div>
               ))}
@@ -409,9 +490,9 @@ export default function ReportsOutputPage() {
             </h2>
           </div>
 
-          {assembly.missingItems.length ? (
+          {mapping.weakAreas.length ? (
             <div className="grid gap-2">
-              {assembly.missingItems.map((item) => (
+              {mapping.weakAreas.map((item) => (
                 <div
                   key={item}
                   className="rounded-[16px] border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm leading-6 text-slate-700"
@@ -431,7 +512,7 @@ export default function ReportsOutputPage() {
               Next best action
             </div>
             <div className="mt-2 text-[16px] font-bold text-slate-950">
-              {readiness.nextAction || "Continue assembling sections from the linked records"}
+              {mapping.nextAction || readiness.nextAction || "Continue assembling sections from the linked records"}
             </div>
           </div>
         </aside>
