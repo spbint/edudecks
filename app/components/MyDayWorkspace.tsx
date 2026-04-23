@@ -221,7 +221,7 @@ export default function MyDayWorkspace() {
       heroAsideTitle="Today at a glance"
       heroAsideText="My Day brings together today's blocks, capture entry points, and the next step without replacing the wider planning system."
     >
-      <div className="grid gap-5 pb-14">
+      <div className="grid gap-6 pb-14">
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "Your family"}
           learners={learnerOptions}
@@ -236,7 +236,7 @@ export default function MyDayWorkspace() {
           state={headerState}
         />
 
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
           <TodayLearningFlow
             blocks={
               <>
@@ -254,20 +254,20 @@ export default function MyDayWorkspace() {
             }
             empty={
               !hasActiveLearner ? (
-                <section className="grid gap-2 rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
+                <section className="grid gap-3 rounded-[26px] border border-dashed border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.9)_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)]">
                   <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">Today</div>
-                  <div className="text-[18px] font-bold tracking-tight text-slate-950">{noLearner.title}</div>
-                  <p className="text-[14px] leading-6 text-slate-600">{noLearner.note}</p>
+                  <div className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">{noLearner.title}</div>
+                  <p className="max-w-[56ch] text-[14px] leading-6 text-slate-600">{noLearner.note}</p>
                   <div className="flex flex-wrap gap-3 pt-2">
                     <Link
                       href={noLearner.ctaHref}
-                      className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+                      className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
                     >
                       {noLearner.ctaLabel}
                     </Link>
                     <Link
                       href="/my-plan"
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
                       See how My Plan works
                     </Link>
@@ -288,7 +288,7 @@ export default function MyDayWorkspace() {
             }
           />
 
-          <div className="grid content-start gap-4">
+          <div className="grid content-start gap-4 lg:sticky lg:top-4">
             <MyDayNextUpCard
               block={dayView?.nextUp ?? null}
               learnerName={activeLearnerName}
@@ -325,9 +325,9 @@ export default function MyDayWorkspace() {
           <MyDayRecentlyCapturedStrip items={dayView.recentCaptures} portfolioHref={portfolioHref} />
         ) : null}
 
-        {dayView ? <MyDaySummary summary={dayView.summary} /> : null}
-
         {dayView ? <MyDayNextStep nextStep={dayView.nextStep} /> : null}
+
+        {dayView ? <MyDaySummary summary={dayView.summary} /> : null}
 
         <MyDayQuickLinks />
       </div>
