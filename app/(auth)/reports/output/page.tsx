@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
@@ -38,6 +38,12 @@ import {
   type ReportGateStatus,
   type ReportValidationIssue,
 } from "@/lib/reportCompletionGate";
+import {
+  buildReportExportFilename,
+  buildReportExportModel,
+  generatePrintableHtml,
+  type ReportExportModel,
+} from "@/lib/reportExport";
 import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
@@ -130,12 +136,6 @@ function sectionStatusTone(status: ReportCompletionValidation["sectionStates"][n
   if (status === "strong") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "partial") return "border-amber-200 bg-amber-50 text-amber-700";
   if (status === "weak") return "border-orange-200 bg-orange-50 text-orange-700";
-  return "border-slate-200 bg-slate-50 text-slate-600";
-}
-
-function artifactGateTone(status: ReportCompletionValidation["artifactStates"][number]["status"]) {
-  if (status === "complete") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (status === "in_progress") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
@@ -333,6 +333,117 @@ function CompletionGateCard({
   );
 }
 
+function ExportGateCard({
+  validation,
+  canExport,
+  exportMessage,
+  exportError,
+  exportBusy,
+  onOpenPrintable,
+  onDownloadHtml,
+}: {
+  validation: ReportCompletionValidation;
+  canExport: boolean;
+  exportMessage: string;
+  exportError: string;
+  exportBusy: "open" | "download" | "";
+  onOpenPrintable: () => void;
+  onDownloadHtml: () => void;
+}) {
+  const blockers = validation.blockers.slice(0, 3);
+
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)] lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-4">
+        <div className="grid gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Validated export
+          </div>
+          <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+            Printable HTML export
+          </h2>
+        </div>
+        <p className="max-w-[820px] text-sm leading-7 text-slate-600">
+          Export is only available after the completion gate confirms the report is ready. The printable export reflects the saved draft content already assembled in the report workspace.
+        </p>
+
+        {exportError ? (
+          <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-4 text-sm leading-7 text-rose-800">
+            {exportError}
+          </div>
+        ) : null}
+
+        {exportMessage ? (
+          <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-7 text-emerald-800">
+            {exportMessage}
+          </div>
+        ) : null}
+
+        {!canExport ? (
+          <div className="grid gap-3 rounded-[20px] border border-amber-200 bg-amber-50/80 px-4 py-4">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Export blocked
+            </div>
+            <div className="text-sm leading-7 text-slate-700">
+              The report completion gate is not yet ready for export.
+            </div>
+            {blockers.length ? (
+              <div className="grid gap-2">
+                {blockers.map((issue) => (
+                  <div
+                    key={`${issue.code}-${issue.label}`}
+                    className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-3 text-sm leading-6 text-rose-700"
+                  >
+                    <div className="font-bold text-slate-950">{issue.label}</div>
+                    <div className="mt-1">{issue.detail}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="rounded-[20px] border border-emerald-200 bg-emerald-50/80 px-4 py-4 text-sm leading-7 text-emerald-800">
+            The report is ready for export. The buttons below will produce a printable HTML version from the persisted draft content.
+          </div>
+        )}
+      </div>
+
+      <aside className="grid gap-3 rounded-[22px] border border-white/80 bg-slate-50/80 p-5">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Next export action
+          </div>
+          <div className="mt-2 text-[16px] font-bold text-slate-950">
+            {canExport ? "Open printable export" : "Resolve gate blockers first"}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          disabled={!canExport || Boolean(exportBusy)}
+          onClick={onOpenPrintable}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {exportBusy === "open" ? "Opening export..." : "Open printable export"}
+        </button>
+
+        <button
+          type="button"
+          disabled={!canExport || Boolean(exportBusy)}
+          onClick={onDownloadHtml}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {exportBusy === "download" ? "Downloading..." : "Download HTML"}
+        </button>
+
+        <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
+          This export stays tied to the saved report draft and the validation gate. It does not bypass the completion check.
+        </div>
+      </aside>
+    </section>
+  );
+}
+
 function EmptyState({
   title,
   message,
@@ -370,6 +481,9 @@ export default function ReportsOutputPage() {
   const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
   const [autofill, setAutofill] = useState<ReportSectionAutofillModel | null>(null);
   const [validation, setValidation] = useState<ReportCompletionValidation | null>(null);
+  const [exportBusy, setExportBusy] = useState<"open" | "download" | "">("");
+  const [exportMessage, setExportMessage] = useState("");
+  const [exportError, setExportError] = useState("");
   const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
   const [sectionPending, setSectionPending] = useState<Record<string, string>>({});
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
@@ -386,6 +500,9 @@ export default function ReportsOutputPage() {
           setMapping(null);
           setAutofill(null);
           setValidation(null);
+          setExportBusy("");
+          setExportMessage("");
+          setExportError("");
           setDismissedSections({});
           setSectionPending({});
           setSectionErrors({});
@@ -430,6 +547,9 @@ export default function ReportsOutputPage() {
         setMapping(mappingResult);
         setAutofill(autofillResult);
         setValidation(validationResult);
+        setExportBusy("");
+        setExportMessage("");
+        setExportError("");
         setDismissedSections({});
         setSectionPending({});
         setSectionErrors({});
@@ -456,6 +576,19 @@ export default function ReportsOutputPage() {
     return <div className="h-64 animate-pulse rounded-[24px] bg-slate-100" />;
   }
 
+  const exportModel = useMemo<ReportExportModel | null>(() => {
+    if (!validation) return null;
+    return buildReportExportModel({
+      model,
+      assembly,
+      mapping,
+      autofill,
+      validation,
+    });
+  }, [model, assembly, mapping, autofill, validation]);
+
+  const canExport = validation?.status === "ready_for_export" && Boolean(exportModel);
+
   if (!model.reportDocument) {
     return (
       <EmptyState
@@ -467,6 +600,60 @@ export default function ReportsOutputPage() {
         }
       />
     );
+  }
+
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function openPrintableHtml(html: string) {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    if (win) {
+      win.focus();
+      return true;
+    }
+    return false;
+  }
+
+  async function handlePrintableExport(mode: "open" | "download") {
+    if (!exportModel || !canExport || exportBusy) return;
+
+    setExportBusy(mode);
+    setExportMessage("");
+    setExportError("");
+
+    try {
+      const html = generatePrintableHtml(exportModel);
+      const filename = buildReportExportFilename(exportModel);
+
+      if (mode === "download") {
+        downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), filename);
+        setExportMessage("Printable HTML export downloaded successfully.");
+      } else {
+        if (!openPrintableHtml(html)) {
+          throw new Error("The browser blocked the printable export window.");
+        }
+        setExportMessage("Printable HTML export opened in a new tab.");
+      }
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : "The printable export could not be created right now.",
+      );
+    } finally {
+      setExportBusy("");
+    }
   }
 
   async function runSectionAction(input: {
@@ -572,6 +759,18 @@ export default function ReportsOutputPage() {
       ) : null}
 
       {validation ? <CompletionGateCard validation={validation} /> : null}
+
+      {validation ? (
+        <ExportGateCard
+          validation={validation}
+          canExport={Boolean(canExport)}
+          exportMessage={exportMessage}
+          exportError={exportError}
+          exportBusy={exportBusy}
+          onOpenPrintable={() => void handlePrintableExport("open")}
+          onDownloadHtml={() => void handlePrintableExport("download")}
+        />
+      ) : null}
 
       <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.92)_58%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="grid gap-4">
