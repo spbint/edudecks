@@ -1,10 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
+
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
-  AcademicStructureSelector,
+  type HomeSurfaceState,
+  type LearnerOption,
+  LearnerSelector,
+} from "@/app/components/home/HomeOverviewComponents";
+import {
   CountrySelector,
   CurriculumSetupEmptyState,
   FamilyLearningSetupCard,
@@ -15,6 +21,10 @@ import {
   ReportingModeSelector,
   SettingsSaveBar,
 } from "@/app/components/family/FamilyConfigurationComponents";
+import {
+  loadFamilyComplianceCommandCard,
+  type FamilyComplianceCommandCardModel,
+} from "@/lib/complianceCommandCard";
 import {
   persistSettingsToLocalStorage,
   type FamilySettings,
@@ -67,13 +77,205 @@ function applyLocalLearnerPatch(
   );
 }
 
+function statusTone(status: FamilyComplianceCommandCardModel["readinessStatus"]) {
+  if (status === "ready") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function cx(...parts: Array<string | false | null | undefined>) {
+  return parts.filter(Boolean).join(" ");
+}
+
+function learnerSelectorState(
+  loading: boolean,
+  learners: FamilyLearner[],
+  storageMode: string,
+): HomeSurfaceState {
+  if (loading) return "loading";
+  if (!learners.length) return "empty";
+  return storageMode === "database" ? "derived" : "placeholder";
+}
+
+function ComplianceCommandCard({
+  loading,
+  model,
+}: {
+  loading: boolean;
+  model: FamilyComplianceCommandCardModel | null;
+}) {
+  if (loading) {
+    return (
+      <section className="grid gap-4 rounded-[28px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_60%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+        <div className="h-4 w-36 animate-pulse rounded-full bg-slate-200" />
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+          <div className="grid gap-3">
+            <div className="h-8 w-72 animate-pulse rounded-full bg-slate-200" />
+            <div className="h-4 w-full animate-pulse rounded-full bg-slate-200" />
+            <div className="h-4 w-5/6 animate-pulse rounded-full bg-slate-200" />
+          </div>
+          <div className="grid gap-3 rounded-[22px] border border-white/70 bg-white/80 p-5">
+            <div className="h-4 w-20 animate-pulse rounded-full bg-slate-200" />
+            <div className="h-8 w-16 animate-pulse rounded-full bg-slate-200" />
+            <div className="h-4 w-28 animate-pulse rounded-full bg-slate-200" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!model) {
+    return (
+      <section className="grid gap-4 rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.04)]">
+        <div className="grid gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Compliance readiness
+          </div>
+          <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+            Add a learner to start tracking readiness
+          </h2>
+        </div>
+        <p className="max-w-[760px] text-sm leading-7 text-slate-600">
+          The family command surface comes alive once one learner is linked and selected. It will then show the jurisdiction, reporting posture, and next best action for that learner.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="grid gap-5 rounded-[28px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_58%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="grid gap-1.5">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Compliance readiness
+          </div>
+          <h2 className="text-[28px] font-black tracking-tight text-slate-950">
+            {model.learnerName}
+          </h2>
+          <div className="text-sm leading-6 text-slate-600">
+            {model.jurisdictionName || "Jurisdiction not resolved"}
+            {model.draftState?.cycleLabel ? ` - ${model.draftState.cycleLabel}` : ""}
+          </div>
+        </div>
+        <span
+          className={cx(
+            "inline-flex rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em]",
+            statusTone(model.readinessStatus),
+          )}
+        >
+          {model.readinessStatus.replace("_", " ")}
+        </span>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="grid gap-4">
+          <p className="max-w-[760px] text-[15px] leading-7 text-slate-700">
+            {model.summary}
+          </p>
+
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="rounded-[22px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                What matters most next
+              </div>
+              <div className="mt-2 text-[18px] font-bold tracking-tight text-slate-950">
+                {model.nextAction || "Review the learner's compliance context"}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-slate-600">
+                {model.helperNote}
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                Top missing items
+              </div>
+              {model.topMissing.length ? (
+                <div className="mt-3 grid gap-2">
+                  {model.topMissing.map((item) => (
+                    <div
+                      key={item}
+                      className="rounded-[14px] border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm leading-6 text-slate-700"
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-3 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm leading-6 text-emerald-800">
+                  No urgent missing items are leading the queue right now.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <aside className="grid gap-3 rounded-[24px] border border-white/80 bg-white/88 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Readiness score
+            </div>
+            <div className="mt-2 text-[34px] font-black tracking-tight text-slate-950">
+              {model.readinessScore}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Reporting period
+            </div>
+            <div className="mt-2 text-sm font-bold text-slate-950">
+              {model.draftState?.reportingPeriodLabel || "Not yet established"}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Draft state
+            </div>
+            <div className="mt-2 text-sm font-bold text-slate-950">
+              {model.draftState?.hasReportDraft
+                ? model.draftState.reportStatus || "Draft underway"
+                : "No draft started"}
+            </div>
+          </div>
+          {model.primaryCta ? (
+            <Link
+              href={model.primaryCta.href}
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+            >
+              {model.primaryCta.label}
+            </Link>
+          ) : null}
+          {model.secondaryCta ? (
+            <Link
+              href={model.secondaryCta.href}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+            >
+              {model.secondaryCta.label}
+            </Link>
+          ) : null}
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 export default function FamilyLearningSetupWorkspace() {
-  const { workspace, setWorkspacePatch, reloadWorkspace } = useFamilyWorkspace();
+  const {
+    workspace,
+    activeLearner,
+    activeLearnerId,
+    loading: workspaceLoading,
+    setActiveLearner,
+    setWorkspacePatch,
+    reloadWorkspace,
+  } = useFamilyWorkspace();
   const [draft, setDraft] = useState<FamilySettings>(workspace.profile);
   const [learnersDraft, setLearnersDraft] = useState<FamilyLearner[]>(workspace.learners);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [commandCard, setCommandCard] = useState<FamilyComplianceCommandCardModel | null>(null);
+  const [commandCardLoading, setCommandCardLoading] = useState(false);
 
   useEffect(() => {
     setDraft(workspace.profile);
@@ -82,6 +284,47 @@ export default function FamilyLearningSetupWorkspace() {
   useEffect(() => {
     setLearnersDraft(workspace.learners);
   }, [workspace.learners]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateCommandCard() {
+      if (!activeLearner) {
+        if (mounted) {
+          setCommandCard(null);
+          setCommandCardLoading(false);
+        }
+        return;
+      }
+
+      setCommandCardLoading(true);
+      try {
+        const next = await loadFamilyComplianceCommandCard({
+          profile: workspace.profile,
+          learner: activeLearner,
+          userId: workspace.userId,
+        });
+
+        if (mounted) {
+          setCommandCard(next);
+        }
+      } catch {
+        if (mounted) {
+          setCommandCard(null);
+        }
+      } finally {
+        if (mounted) {
+          setCommandCardLoading(false);
+        }
+      }
+    }
+
+    void hydrateCommandCard();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeLearner, workspace.profile, workspace.userId]);
 
   function patchLearner(
     learnerId: string,
@@ -138,6 +381,12 @@ export default function FamilyLearningSetupWorkspace() {
     }
   }
 
+  const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
+    id: learner.id,
+    label: learner.label,
+    note: learner.yearLabel || "Learner",
+  }));
+
   return (
     <FamilyTopNavShell
       subtitle="My Family"
@@ -148,6 +397,23 @@ export default function FamilyLearningSetupWorkspace() {
     >
       <div className="grid gap-5 pb-14">
         {!workspace.learners.length ? <CurriculumSetupEmptyState /> : null}
+
+        <LearnerSelector
+          familyName={workspace.profile.family_display_name || "My family"}
+          learners={learnerOptions}
+          activeLearnerId={activeLearnerId}
+          onSelectLearner={setActiveLearner}
+          state={learnerSelectorState(
+            workspaceLoading,
+            workspace.learners,
+            workspace.storageMode,
+          )}
+        />
+
+        <ComplianceCommandCard
+          loading={commandCardLoading}
+          model={commandCard}
+        />
 
         <FamilyLearningSetupCard
           title="Family Learning Setup"
