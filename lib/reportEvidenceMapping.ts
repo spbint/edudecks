@@ -2,6 +2,8 @@ import { getSectionScaffoldsForJurisdiction } from "@/lib/reportAssembly";
 import type { ReportsBuilderModel } from "@/lib/reporting";
 import { supabase } from "@/lib/supabaseClient";
 
+type QueryClient = Pick<typeof supabase, "from">;
+
 export type ArtifactSatisfactionStatus = "complete" | "in_progress" | "missing";
 export type SectionCompletionStatus = "complete" | "in_progress" | "missing";
 
@@ -148,8 +150,12 @@ function maybeBetween(
   return true;
 }
 
-async function many(table: string, configure: (query: ReturnType<typeof supabase.from>) => any) {
-  const response = await configure(supabase.from(table));
+async function many(
+  db: QueryClient,
+  table: string,
+  configure: (query: ReturnType<typeof db.from>) => any,
+) {
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Array.isArray(response.data)
     ? response.data.map((row: unknown) => asObject(row))
@@ -251,14 +257,14 @@ function normalizeSectionKey(title: string) {
     .replace(/^_+|_+$/g, "");
 }
 
-async function loadRowsForLearner(table: string, learnerId: string) {
+async function loadRowsForLearner(db: QueryClient, table: string, learnerId: string) {
   try {
-    return await many(table, (query) =>
+    return await many(db, table, (query) =>
       query.select("*").eq("learner_id", learnerId),
     );
   } catch {
     try {
-      return await many(table, (query) =>
+      return await many(db, table, (query) =>
         query.select("*").eq("student_id", learnerId),
       );
     } catch {
@@ -267,10 +273,15 @@ async function loadRowsForLearner(table: string, learnerId: string) {
   }
 }
 
-async function loadRowsByForeignIds(table: string, column: string, ids: string[]) {
+async function loadRowsByForeignIds(
+  db: QueryClient,
+  table: string,
+  column: string,
+  ids: string[],
+) {
   if (!ids.length) return [];
   try {
-    return await many(table, (query) =>
+    return await many(db, table, (query) =>
       query.select("*").in(column, ids),
     );
   } catch {
@@ -598,10 +609,11 @@ function nextActionFromArtifacts(artifacts: ArtifactMappingResult[]) {
 }
 
 export async function loadReportEvidenceMapping(
-  input: LoadReportEvidenceMappingInput,
+  input: LoadReportEvidenceMappingInput & { client?: QueryClient },
 ): Promise<ReportEvidenceMapping> {
   const model = input.model;
   const learnerId = safe(model.learner?.id);
+  const db = input.client ?? supabase;
 
   if (!learnerId) {
     return {
@@ -623,50 +635,50 @@ export async function loadReportEvidenceMapping(
   const jurisdictionCode = model.effectiveJurisdiction?.code || null;
 
   const rawPlans = filterCycleRows(
-    await loadRowsForLearner("learning_plans", learnerId),
+    await loadRowsForLearner(db, "learning_plans", learnerId),
     cycleStart,
     cycleEnd,
     ["date_start", "created_at", "updated_at"],
   );
   const planIds = rawPlans.map((row) => safe(row.id)).filter(Boolean);
   const [planAreas, planGoals] = await Promise.all([
-    loadRowsByForeignIds("plan_learning_areas", "plan_id", planIds),
-    loadRowsByForeignIds("plan_goals", "plan_id", planIds),
+    loadRowsByForeignIds(db, "plan_learning_areas", "plan_id", planIds),
+    loadRowsByForeignIds(db, "plan_goals", "plan_id", planIds),
   ]);
 
   const rawExperiences = filterCycleRows(
-    await loadRowsForLearner("learning_experiences", learnerId),
+    await loadRowsForLearner(db, "learning_experiences", learnerId),
     cycleStart,
     cycleEnd,
     ["experience_date", "occurred_on", "created_at"],
   );
   const experienceIds = rawExperiences.map((row) => safe(row.id)).filter(Boolean);
-  const experienceTags = await loadRowsByForeignIds("learning_experience_tags", "experience_id", experienceIds);
+  const experienceTags = await loadRowsByForeignIds(db, "learning_experience_tags", "experience_id", experienceIds);
 
   const rawEvidence = filterCycleRows(
-    await loadRowsForLearner("evidence_items", learnerId),
+    await loadRowsForLearner(db, "evidence_items", learnerId),
     cycleStart,
     cycleEnd,
     ["captured_at", "occurred_on", "created_at"],
   );
   const evidenceIds = rawEvidence.map((row) => safe(row.id)).filter(Boolean);
   const [evidenceTags, evidenceAnnotations, evidencePairs] = await Promise.all([
-    loadRowsByForeignIds("evidence_tags", "evidence_id", evidenceIds),
-    loadRowsByForeignIds("evidence_annotations", "evidence_id", evidenceIds),
-    loadRowsByForeignIds("evidence_pairs", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_tags", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_annotations", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_pairs", "evidence_id", evidenceIds),
   ]);
 
   const rawReviews = filterCycleRows(
-    await loadRowsForLearner("reviews", learnerId),
+    await loadRowsForLearner(db, "reviews", learnerId),
     cycleStart,
     cycleEnd,
     ["review_date", "created_at", "updated_at"],
   );
   const reviewIds = rawReviews.map((row) => safe(row.id)).filter(Boolean);
-  const reviewFindings = await loadRowsByForeignIds("review_findings", "review_id", reviewIds);
+  const reviewFindings = await loadRowsByForeignIds(db, "review_findings", "review_id", reviewIds);
 
   const reportSectionRows = reportDocumentId
-    ? await loadRowsByForeignIds("report_sections", "report_document_id", [reportDocumentId])
+    ? await loadRowsByForeignIds(db, "report_sections", "report_document_id", [reportDocumentId])
     : [];
 
   const plans = normalizePlans(rawPlans, planAreas, planGoals);

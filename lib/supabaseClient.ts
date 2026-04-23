@@ -56,3 +56,19 @@ export const supabase = createClient(
     },
   },
 );
+
+export function createServerSupabaseClient(accessToken: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      fetch: supabaseFetch,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}

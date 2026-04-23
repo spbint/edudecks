@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabaseClient";
 
+type QueryClient = Pick<typeof supabase, "from">;
+
 export type ComplianceReadinessItemStatus =
   | "complete"
   | "in_progress"
@@ -35,6 +37,7 @@ export type ComplianceReadiness = {
 type LoadComplianceReadinessInput = {
   learnerId: string;
   today?: Date | string;
+  client?: QueryClient;
 };
 
 type LearnerRow = {
@@ -302,25 +305,27 @@ function sortRowsByStartDateDescending<
 }
 
 async function many<T>(
+  db: QueryClient,
   table: string,
-  configure: (query: ReturnType<typeof supabase.from>) => any,
+  configure: (query: ReturnType<typeof db.from>) => any,
 ) {
-  const response = await configure(supabase.from(table));
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Array.isArray(response.data) ? response.data : [];
 }
 
 async function maybeSingle<T>(
+  db: QueryClient,
   table: string,
-  configure: (query: ReturnType<typeof supabase.from>) => any,
+  configure: (query: ReturnType<typeof db.from>) => any,
 ) {
-  const response = await configure(supabase.from(table));
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return response.data ?? null;
 }
 
-async function loadLearner(learnerId: string) {
-  return maybeSingle<LearnerRow>("learners", (query) =>
+async function loadLearner(db: QueryClient, learnerId: string) {
+  return maybeSingle<LearnerRow>(db, "learners", (query) =>
     query
       .select("id,family_id,first_name,last_name,preferred_name")
       .eq("id", learnerId)
@@ -328,8 +333,8 @@ async function loadLearner(learnerId: string) {
   );
 }
 
-async function loadFamilySettings(familyId: string) {
-  return maybeSingle<FamilySettingsRow>("family_settings", (query) =>
+async function loadFamilySettings(db: QueryClient, familyId: string) {
+  return maybeSingle<FamilySettingsRow>(db, "family_settings", (query) =>
     query
       .select("family_id,country_code,state_code")
       .eq("family_id", familyId)
@@ -337,8 +342,8 @@ async function loadFamilySettings(familyId: string) {
   );
 }
 
-async function loadLearnerSettings(learnerId: string) {
-  return maybeSingle<LearnerSettingsRow>("learner_settings", (query) =>
+async function loadLearnerSettings(db: QueryClient, learnerId: string) {
+  return maybeSingle<LearnerSettingsRow>(db, "learner_settings", (query) =>
     query
       .select("learner_id,jurisdiction_override_country,jurisdiction_override_state")
       .eq("learner_id", learnerId)
@@ -347,13 +352,14 @@ async function loadLearnerSettings(learnerId: string) {
 }
 
 async function resolveJurisdictionRow(
+  db: QueryClient,
   countryCode: string,
   stateCode: string,
 ): Promise<JurisdictionRow | null> {
   const code = buildJurisdictionCode(countryCode, stateCode);
 
   try {
-    const byPair = await maybeSingle<JurisdictionRow>("jurisdictions", (query) =>
+    const byPair = await maybeSingle<JurisdictionRow>(db, "jurisdictions", (query) =>
       query
         .select("id,code,name,label,country_code,state_code")
         .eq("country_code", safe(countryCode).toUpperCase())
@@ -368,7 +374,7 @@ async function resolveJurisdictionRow(
   if (!code) return null;
 
   try {
-    const byCode = await maybeSingle<JurisdictionRow>("jurisdictions", (query) =>
+    const byCode = await maybeSingle<JurisdictionRow>(db, "jurisdictions", (query) =>
       query
         .select("id,code,name,label,country_code,state_code")
         .eq("code", code)
@@ -393,6 +399,7 @@ async function resolveJurisdictionRow(
 }
 
 async function loadCurrentRuleSet(
+  db: QueryClient,
   jurisdiction: JurisdictionRow | null,
   today: Date,
 ): Promise<RuleSetRow | null> {
@@ -401,7 +408,7 @@ async function loadCurrentRuleSet(
   const jurisdictionCode = safe(jurisdiction.code);
 
   try {
-    const rows = await many<RuleSetRow>("jurisdiction_rule_sets", (query) => {
+    const rows = await many<RuleSetRow>(db, "jurisdiction_rule_sets", (query) => {
       let next = query.select("id,jurisdiction_id,jurisdiction_code,effective_from,effective_to,status,name,title");
       if (jurisdictionId) {
         next = next.eq("jurisdiction_id", jurisdictionId);
@@ -423,11 +430,14 @@ async function loadCurrentRuleSet(
   }
 }
 
-async function loadRequiredArtifacts(ruleSetId: string): Promise<RequiredArtifactRow[]> {
+async function loadRequiredArtifacts(
+  db: QueryClient,
+  ruleSetId: string,
+): Promise<RequiredArtifactRow[]> {
   if (!ruleSetId) return [] as RequiredArtifactRow[];
 
   try {
-    const rows = await many<RequiredArtifactRow>("jurisdiction_required_artifacts", (query) =>
+    const rows = await many<RequiredArtifactRow>(db, "jurisdiction_required_artifacts", (query) =>
       query
         .select("id,rule_set_id,jurisdiction_rule_set_id,artifact_type,code,slug,label,name,short_note,note,required_frequency,frequency,display_order")
         .or(`rule_set_id.eq.${ruleSetId},jurisdiction_rule_set_id.eq.${ruleSetId}`)
@@ -439,9 +449,12 @@ async function loadRequiredArtifacts(ruleSetId: string): Promise<RequiredArtifac
   }
 }
 
-async function loadRegistrationCycles(learnerId: string): Promise<RegistrationCycleRow[]> {
+async function loadRegistrationCycles(
+  db: QueryClient,
+  learnerId: string,
+): Promise<RegistrationCycleRow[]> {
   try {
-    return await many<RegistrationCycleRow>("registration_cycles", (query) =>
+    return await many<RegistrationCycleRow>(db, "registration_cycles", (query) =>
       query
         .select("id,learner_id,status,name,label,start_date,end_date")
         .eq("learner_id", learnerId)
@@ -458,11 +471,12 @@ function selectCurrentCycle(rows: RegistrationCycleRow[], today: Date) {
 }
 
 async function loadReportingPeriods(
+  db: QueryClient,
   learnerId: string,
   cycleId: string | null,
 ): Promise<ReportingPeriodRow[]> {
   try {
-    let rows = await many<ReportingPeriodRow>("reporting_periods", (query) => {
+    let rows = await many<ReportingPeriodRow>(db, "reporting_periods", (query) => {
       let next = query.select("id,registration_cycle_id,learner_id,status,label,name,period_type,start_date,end_date");
       if (cycleId) {
         next = next.eq("registration_cycle_id", cycleId);
@@ -473,7 +487,7 @@ async function loadReportingPeriods(
     });
 
     if (!rows.length && cycleId) {
-      rows = await many<ReportingPeriodRow>("reporting_periods", (query) =>
+      rows = await many<ReportingPeriodRow>(db, "reporting_periods", (query) =>
         query
           .select("id,registration_cycle_id,learner_id,status,label,name,period_type,start_date,end_date")
           .eq("learner_id", learnerId)
@@ -493,12 +507,13 @@ function selectCurrentPeriod(rows: ReportingPeriodRow[], today: Date) {
 }
 
 async function loadPlans(
+  db: QueryClient,
   learnerId: string,
   startDate: Date | null,
   endDate: Date | null,
 ): Promise<PlanRow[]> {
   try {
-    const rows = await many<PlanRow>("learning_plans", (query) =>
+    const rows = await many<PlanRow>(db, "learning_plans", (query) =>
       query
         .select("id,status,date_start,date_end")
         .eq("learner_id", learnerId),
@@ -518,12 +533,13 @@ async function loadPlans(
 }
 
 async function loadExperiences(
+  db: QueryClient,
   learnerId: string,
   startDate: Date | null,
   endDate: Date | null,
 ): Promise<ExperienceRow[]> {
   try {
-    const rows = await many<ExperienceRow>("learning_experiences", (query) =>
+    const rows = await many<ExperienceRow>(db, "learning_experiences", (query) =>
       query
         .select("id,plan_id,experience_date")
         .eq("learner_id", learnerId),
@@ -538,12 +554,13 @@ async function loadExperiences(
 }
 
 async function loadEvidence(
+  db: QueryClient,
   learnerId: string,
   startDate: Date | null,
   endDate: Date | null,
 ): Promise<EvidenceRow[]> {
   try {
-    const rows = await many<EvidenceRow>("evidence_items", (query) =>
+    const rows = await many<EvidenceRow>(db, "evidence_items", (query) =>
       query
         .select("id,experience_id,plan_id,captured_at")
         .eq("learner_id", learnerId),
@@ -558,11 +575,12 @@ async function loadEvidence(
 }
 
 async function loadReportDocuments(
+  db: QueryClient,
   learnerId: string,
   periodId: string | null,
 ): Promise<ReportDocumentRow[]> {
   try {
-    let rows = await many<ReportDocumentRow>("report_documents", (query) => {
+    let rows = await many<ReportDocumentRow>(db, "report_documents", (query) => {
       let next = query.select("id,reporting_period_id,learner_id,status");
       if (periodId) {
         next = next.eq("reporting_period_id", periodId);
@@ -571,7 +589,7 @@ async function loadReportDocuments(
     });
 
     if (!rows.length && periodId) {
-      rows = await many<ReportDocumentRow>("report_documents", (query) =>
+      rows = await many<ReportDocumentRow>(db, "report_documents", (query) =>
         query
           .select("id,reporting_period_id,learner_id,status")
           .eq("reporting_period_id", periodId),
@@ -585,12 +603,13 @@ async function loadReportDocuments(
 }
 
 async function loadReviews(
+  db: QueryClient,
   learnerId: string,
   startDate: Date | null,
   endDate: Date | null,
 ): Promise<ReviewRow[]> {
   try {
-    const rows = await many<ReviewRow>("reviews", (query) =>
+    const rows = await many<ReviewRow>(db, "reviews", (query) =>
       query
         .select("id,learner_id,review_date,status")
         .eq("learner_id", learnerId),
@@ -601,9 +620,9 @@ async function loadReviews(
   }
 }
 
-async function loadConcerns(learnerId: string): Promise<ConcernRow[]> {
+async function loadConcerns(db: QueryClient, learnerId: string): Promise<ConcernRow[]> {
   try {
-    return await many<ConcernRow>("concerns", (query) =>
+    return await many<ConcernRow>(db, "concerns", (query) =>
       query
         .select("id,learner_id,status")
         .eq("learner_id", learnerId),
@@ -614,10 +633,11 @@ async function loadConcerns(learnerId: string): Promise<ConcernRow[]> {
 }
 
 async function loadRegistrationConditions(
+  db: QueryClient,
   learnerId: string,
 ): Promise<RegistrationConditionRow[]> {
   try {
-    return await many<RegistrationConditionRow>("registration_conditions", (query) =>
+    return await many<RegistrationConditionRow>(db, "registration_conditions", (query) =>
       query
         .select("id,learner_id,status")
         .eq("learner_id", learnerId),
@@ -815,9 +835,10 @@ export async function loadComplianceReadiness(
   }
 
   const today = resolveToday(input.today);
+  const db = input.client ?? supabase;
 
   try {
-    const learner = await loadLearner(learnerId);
+    const learner = await loadLearner(db, learnerId);
     if (!learner) {
       return {
         ...EMPTY_READINESS,
@@ -830,8 +851,8 @@ export async function loadComplianceReadiness(
     const familyId = safe(learner.family_id);
 
     const [familySettings, learnerSettings] = await Promise.all([
-      familyId ? loadFamilySettings(familyId) : Promise.resolve(null),
-      loadLearnerSettings(learnerId),
+      familyId ? loadFamilySettings(db, familyId) : Promise.resolve(null),
+      loadLearnerSettings(db, learnerId),
     ]);
 
     const countryCode =
@@ -842,7 +863,7 @@ export async function loadComplianceReadiness(
       safe(familySettings?.state_code);
 
     const jurisdiction = countryCode && stateCode
-      ? await resolveJurisdictionRow(countryCode, stateCode)
+      ? await resolveJurisdictionRow(db, countryCode, stateCode)
       : null;
 
     const jurisdictionCode =
@@ -853,15 +874,16 @@ export async function loadComplianceReadiness(
       safe(jurisdiction?.label) ||
       buildJurisdictionName(jurisdictionCode);
 
-    const ruleSet = await loadCurrentRuleSet(jurisdiction, today);
-    const requiredArtifacts = await loadRequiredArtifacts(safe(ruleSet?.id));
+    const ruleSet = await loadCurrentRuleSet(db, jurisdiction, today);
+    const requiredArtifacts = await loadRequiredArtifacts(db, safe(ruleSet?.id));
 
-    const registrationCycles = await loadRegistrationCycles(learnerId);
+    const registrationCycles = await loadRegistrationCycles(db, learnerId);
     const currentCycle = selectCurrentCycle(registrationCycles, today);
     const cycleStartDate = asDate(currentCycle?.start_date);
     const cycleEndDate = asDate(currentCycle?.end_date);
 
     const reportingPeriods = await loadReportingPeriods(
+      db,
       learnerId,
       safe(currentCycle?.id) || null,
     );
@@ -876,13 +898,13 @@ export async function loadComplianceReadiness(
       concerns,
       registrationConditions,
     ] = await Promise.all([
-      loadPlans(learnerId, cycleStartDate, cycleEndDate),
-      loadExperiences(learnerId, cycleStartDate, cycleEndDate),
-      loadEvidence(learnerId, cycleStartDate, cycleEndDate),
-      loadReportDocuments(learnerId, safe(currentPeriod?.id) || null),
-      loadReviews(learnerId, cycleStartDate, cycleEndDate),
-      loadConcerns(learnerId),
-      loadRegistrationConditions(learnerId),
+      loadPlans(db, learnerId, cycleStartDate, cycleEndDate),
+      loadExperiences(db, learnerId, cycleStartDate, cycleEndDate),
+      loadEvidence(db, learnerId, cycleStartDate, cycleEndDate),
+      loadReportDocuments(db, learnerId, safe(currentPeriod?.id) || null),
+      loadReviews(db, learnerId, cycleStartDate, cycleEndDate),
+      loadConcerns(db, learnerId),
+      loadRegistrationConditions(db, learnerId),
     ]);
 
     const planIds = new Set(

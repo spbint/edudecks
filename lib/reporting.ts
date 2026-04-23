@@ -3,6 +3,8 @@ import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfi
 import type { FamilyLearner } from "@/lib/familyWorkspace";
 import { supabase } from "@/lib/supabaseClient";
 
+type QueryClient = Pick<typeof supabase, "from">;
+
 type ReadMode = "read" | "ensure";
 
 export type EffectiveJurisdiction = {
@@ -43,6 +45,7 @@ export type ReportingPeriodRecord = {
   periodType: string;
   startDate: string | null;
   endDate: string | null;
+  registrationCycleId: string | null;
 };
 
 export type ReportSectionRecord = {
@@ -67,6 +70,9 @@ export type ReportDocumentRecord = {
   spellingStyle: string;
   terminologyMode: string;
   toneProfile: string;
+  reportingPeriodId: string | null;
+  studentId: string | null;
+  userId: string | null;
   sections: ReportSectionRecord[];
   linkedPackItems: ReportPackItemRecord[];
   updatedAt: string | null;
@@ -111,6 +117,8 @@ type LoadReportsBuilderOptions = {
   userId?: string | null;
   mode?: ReadMode;
   preferredDocumentId?: string | null;
+  preferredReportingPeriodId?: string | null;
+  client?: QueryClient;
 };
 
 function safe(value: unknown) {
@@ -254,6 +262,7 @@ function normalizePeriod(raw: Record<string, unknown>): ReportingPeriodRecord {
     label: safe(raw.label) || safe(raw.title) || safe(raw.name) || "Reporting period",
     status: safe(raw.status) || "draft",
     periodType: safe(raw.period_type) || "annual",
+    registrationCycleId: safe(raw.registration_cycle_id) || null,
     startDate:
       safe(raw.start_date) ||
       safe(raw.starts_on) ||
@@ -319,6 +328,9 @@ function normalizeDocument(raw: Record<string, unknown>, fallback: { label: stri
     spellingStyle: safe(raw.spelling_style) || fallback.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || fallback.terminologyMode,
     toneProfile: safe(raw.tone_profile) || "regulatory_formal",
+    reportingPeriodId: safe(raw.reporting_period_id) || null,
+    studentId: safe(raw.student_id) || null,
+    userId: safe(raw.user_id) || null,
     sections: normalizeSections(raw),
     linkedPackItems: normalizePackItems(raw),
     updatedAt: safe(raw.updated_at) || safe(raw.created_at) || null,
@@ -370,19 +382,21 @@ function buildSoftWarning(message: string, error: unknown) {
 }
 
 async function maybeSingle(
+  db: QueryClient,
   table: string,
-  configure: (query: ReturnType<typeof supabase.from>) => any,
+  configure: (query: ReturnType<typeof db.from>) => any,
 ) {
-  const response = await configure(supabase.from(table));
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return response.data ? asObject(response.data) : null;
 }
 
 async function many(
+  db: QueryClient,
   table: string,
-  configure: (query: ReturnType<typeof supabase.from>) => any,
+  configure: (query: ReturnType<typeof db.from>) => any,
 ) {
-  const response = await configure(supabase.from(table));
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Array.isArray(response.data)
     ? (response.data as unknown[]).map((item: unknown) => asObject(item))
@@ -390,10 +404,11 @@ async function many(
 }
 
 async function countRows(
+  db: QueryClient,
   table: string,
-  configure: (query: ReturnType<typeof supabase.from>) => any,
+  configure: (query: ReturnType<typeof db.from>) => any,
 ) {
-  const response = await configure(supabase.from(table));
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Number(response.count ?? 0);
 }
@@ -419,9 +434,9 @@ export function resolveEffectiveJurisdiction(
   };
 }
 
-async function loadJurisdictionRecord(effective: EffectiveJurisdiction) {
+async function loadJurisdictionRecord(db: QueryClient, effective: EffectiveJurisdiction) {
   try {
-    const row = await maybeSingle("jurisdictions", (query) =>
+    const row = await maybeSingle(db, "jurisdictions", (query) =>
       query.select("*").eq("code", effective.code).maybeSingle(),
     );
     return row ? normalizeJurisdiction(row, effective) : effective;
@@ -430,11 +445,11 @@ async function loadJurisdictionRecord(effective: EffectiveJurisdiction) {
   }
 }
 
-async function loadRuleSetRecord(jurisdiction: EffectiveJurisdiction) {
+async function loadRuleSetRecord(db: QueryClient, jurisdiction: EffectiveJurisdiction) {
   const today = ymd(new Date());
 
   try {
-    const byCode = await many("jurisdiction_rule_sets", (query) =>
+    const byCode = await many(db, "jurisdiction_rule_sets", (query) =>
       query
         .select("*")
         .eq("jurisdiction_code", jurisdiction.code)
@@ -451,14 +466,14 @@ async function loadRuleSetRecord(jurisdiction: EffectiveJurisdiction) {
   }
 
   try {
-    const jurisdictionRow = await maybeSingle("jurisdictions", (query) =>
+    const jurisdictionRow = await maybeSingle(db, "jurisdictions", (query) =>
       query.select("id").eq("code", jurisdiction.code).maybeSingle(),
     );
 
     const jurisdictionId = safe(jurisdictionRow?.id);
     if (!jurisdictionId) return null;
 
-    const rows = await many("jurisdiction_rule_sets", (query) =>
+    const rows = await many(db, "jurisdiction_rule_sets", (query) =>
       query
         .select("*")
         .eq("jurisdiction_id", jurisdictionId)
@@ -486,9 +501,25 @@ function selectCurrentCycle(rows: RegistrationCycleRecord[]) {
   return active || rows[0] || null;
 }
 
-async function loadRegistrationCycleRecord(learnerId: string) {
+async function loadRegistrationCycleRecord(
+  db: QueryClient,
+  learnerId: string,
+  preferredCycleId?: string | null,
+) {
+  const cycleId = safe(preferredCycleId);
+  if (cycleId) {
+    try {
+      const direct = await maybeSingle(db, "registration_cycles", (query) =>
+        query.select("*").eq("id", cycleId).maybeSingle(),
+      );
+      if (direct) return normalizeCycle(direct);
+    } catch {
+      // continue to learner-based lookup
+    }
+  }
+
   try {
-    const rows = await many("registration_cycles", (query) =>
+    const rows = await many(db, "registration_cycles", (query) =>
       query
         .select("*")
         .eq("student_id", learnerId)
@@ -504,7 +535,7 @@ async function loadRegistrationCycleRecord(learnerId: string) {
   }
 
   try {
-    const rows = await many("registration_cycles", (query) =>
+    const rows = await many(db, "registration_cycles", (query) =>
       query
         .select("*")
         .eq("learner_id", learnerId)
@@ -546,6 +577,7 @@ function selectCurrentOrNextPeriod(rows: ReportingPeriodRecord[]) {
 async function createReportingPeriodRecord(
   cycle: RegistrationCycleRecord,
   learnerId: string,
+  db: QueryClient,
 ) {
   const startDate = cycle.startDate || ymd(new Date());
   const endDate = cycle.endDate || startDate;
@@ -560,7 +592,7 @@ async function createReportingPeriodRecord(
     status: "draft",
   };
 
-  const response = await supabase
+  const response = await db
     .from("reporting_periods")
     .insert(payload)
     .select("*")
@@ -574,11 +606,25 @@ async function loadReportingPeriodRecord(
   cycle: RegistrationCycleRecord | null,
   learnerId: string,
   mode: ReadMode,
+  db: QueryClient,
+  preferredReportingPeriodId?: string | null,
 ) {
+  const preferredPeriodId = safe(preferredReportingPeriodId);
+  if (preferredPeriodId) {
+    try {
+      const preferred = await maybeSingle(db, "reporting_periods", (query) =>
+        query.select("*").eq("id", preferredPeriodId).maybeSingle(),
+      );
+      if (preferred) return normalizePeriod(preferred);
+    } catch {
+      // continue below
+    }
+  }
+
   if (!cycle) return null;
 
   try {
-    const rows = await many("reporting_periods", (query) =>
+    const rows = await many(db, "reporting_periods", (query) =>
       query
         .select("*")
         .eq("registration_cycle_id", cycle.id)
@@ -593,7 +639,7 @@ async function loadReportingPeriodRecord(
   }
 
   try {
-    const rows = await many("reporting_periods", (query) =>
+    const rows = await many(db, "reporting_periods", (query) =>
       query
         .select("*")
         .eq("student_id", learnerId)
@@ -607,14 +653,15 @@ async function loadReportingPeriodRecord(
     // create below if allowed
   }
 
-  return mode === "ensure" ? createReportingPeriodRecord(cycle, learnerId) : null;
+  return mode === "ensure" ? createReportingPeriodRecord(cycle, learnerId, db) : null;
 }
 
 async function loadDocumentById(
   documentId: string,
   fallback: { label: string; localeCode: string; spellingStyle: string; terminologyMode: string },
+  db: QueryClient,
 ) {
-  const row = await maybeSingle("report_documents", (query) =>
+  const row = await maybeSingle(db, "report_documents", (query) =>
     query.select("*").eq("id", documentId).maybeSingle(),
   );
   return row ? normalizeDocument(row, fallback) : null;
@@ -626,6 +673,7 @@ async function createReportDocumentRecord(
   userId: string | null | undefined,
   jurisdiction: EffectiveJurisdiction,
   ruleSet: ReportingRuleSet | null,
+  db: QueryClient,
 ) {
   const payload = {
     reporting_period_id: reportingPeriod.id,
@@ -641,7 +689,7 @@ async function createReportDocumentRecord(
     sections: [],
   };
 
-  const response = await supabase
+  const response = await db
     .from("report_documents")
     .insert(payload)
     .select("*")
@@ -666,7 +714,9 @@ async function loadReportDocumentRecord(input: {
   jurisdiction: EffectiveJurisdiction | null;
   ruleSet: ReportingRuleSet | null;
   mode: ReadMode;
+  client?: QueryClient;
 }) {
+  const db = input.client ?? supabase;
   const fallback = {
     label: input.reportingPeriod?.label || "Current",
     localeCode: input.ruleSet?.localeCode || input.jurisdiction?.localeCode || "en-AU",
@@ -677,7 +727,7 @@ async function loadReportDocumentRecord(input: {
   const preferredDocumentId = safe(input.preferredDocumentId);
   if (preferredDocumentId) {
     try {
-      return await loadDocumentById(preferredDocumentId, fallback);
+      return await loadDocumentById(preferredDocumentId, fallback, db);
     } catch {
       // fall through to current-period lookup
     }
@@ -689,7 +739,7 @@ async function loadReportDocumentRecord(input: {
   const learner = input.learner;
 
   try {
-    const row = await maybeSingle("report_documents", (query) =>
+    const row = await maybeSingle(db, "report_documents", (query) =>
       query
         .select("*")
         .eq("reporting_period_id", reportingPeriod.id)
@@ -707,7 +757,7 @@ async function loadReportDocumentRecord(input: {
   }
 
   try {
-    const row = await maybeSingle("report_documents", (query) =>
+    const row = await maybeSingle(db, "report_documents", (query) =>
       query
         .select("*")
         .eq("reporting_period_id", reportingPeriod.id)
@@ -731,6 +781,7 @@ async function loadReportDocumentRecord(input: {
     input.userId,
     input.jurisdiction || resolveEffectiveJurisdiction(DEFAULT_PROFILE_FALLBACK, input.learner),
     input.ruleSet,
+    db,
   );
 }
 
@@ -763,11 +814,11 @@ const DEFAULT_PROFILE_FALLBACK = {
   notifications_planner_nudges: true,
 } as FamilyProfileRow;
 
-async function loadRequiredArtifactRows(ruleSet: ReportingRuleSet | null) {
+async function loadRequiredArtifactRows(db: QueryClient, ruleSet: ReportingRuleSet | null) {
   if (!ruleSet) return [];
 
   try {
-    const rows = await many("jurisdiction_required_artifacts", (query) =>
+    const rows = await many(db, "jurisdiction_required_artifacts", (query) =>
       query
         .select("*")
         .eq("rule_set_id", ruleSet.id)
@@ -779,7 +830,7 @@ async function loadRequiredArtifactRows(ruleSet: ReportingRuleSet | null) {
   }
 
   try {
-    return await many("jurisdiction_required_artifacts", (query) =>
+    return await many(db, "jurisdiction_required_artifacts", (query) =>
       query
         .select("*")
         .eq("jurisdiction_rule_set_id", ruleSet.id)
@@ -790,11 +841,11 @@ async function loadRequiredArtifactRows(ruleSet: ReportingRuleSet | null) {
   }
 }
 
-async function loadPlanCount(learnerId: string, cycle: RegistrationCycleRecord | null) {
+async function loadPlanCount(db: QueryClient, learnerId: string, cycle: RegistrationCycleRecord | null) {
   if (!cycle) return 0;
 
   try {
-    return await countRows("learning_plan_items", (query) =>
+    return await countRows(db, "learning_plan_items", (query) =>
       query
         .select("id", { count: "exact", head: true })
         .eq("student_id", learnerId)
@@ -803,7 +854,7 @@ async function loadPlanCount(learnerId: string, cycle: RegistrationCycleRecord |
     );
   } catch {
     try {
-      return await countRows("learning_plan_items", (query) =>
+      return await countRows(db, "learning_plan_items", (query) =>
         query
           .select("id", { count: "exact", head: true })
           .eq("student_id", learnerId),
@@ -814,11 +865,11 @@ async function loadPlanCount(learnerId: string, cycle: RegistrationCycleRecord |
   }
 }
 
-async function loadEvidenceCount(learnerId: string, cycle: RegistrationCycleRecord | null) {
+async function loadEvidenceCount(db: QueryClient, learnerId: string, cycle: RegistrationCycleRecord | null) {
   if (!cycle) return 0;
 
   try {
-    return await countRows("evidence_entries", (query) =>
+    return await countRows(db, "evidence_entries", (query) =>
       query
         .select("id", { count: "exact", head: true })
         .eq("student_id", learnerId)
@@ -828,7 +879,7 @@ async function loadEvidenceCount(learnerId: string, cycle: RegistrationCycleReco
     );
   } catch {
     try {
-      return await countRows("evidence_entries", (query) =>
+      return await countRows(db, "evidence_entries", (query) =>
         query
           .select("id", { count: "exact", head: true })
           .eq("student_id", learnerId)
@@ -908,28 +959,46 @@ export async function loadReportsBuilderModel(
     return buildEmptyModel(null);
   }
 
+  const db = options.client ?? supabase;
   const mode = options.mode ?? "read";
   const effectiveJurisdiction = await loadJurisdictionRecord(
+    db,
     resolveEffectiveJurisdiction(options.profile, learner),
   );
 
   try {
-    const ruleSet = await loadRuleSetRecord(effectiveJurisdiction);
-    const registrationCycle = await loadRegistrationCycleRecord(learner.id);
-    const reportingPeriod = await loadReportingPeriodRecord(registrationCycle, learner.id, mode);
+    const ruleSet = await loadRuleSetRecord(db, effectiveJurisdiction);
+    const reportingPeriod = await loadReportingPeriodRecord(
+      null,
+      learner.id,
+      mode,
+      db,
+      options.preferredReportingPeriodId,
+    );
+    const registrationCycle = await loadRegistrationCycleRecord(
+      db,
+      learner.id,
+      reportingPeriod?.registrationCycleId,
+    );
+    const resolvedReportingPeriod =
+      reportingPeriod ||
+      (registrationCycle
+        ? await loadReportingPeriodRecord(registrationCycle, learner.id, mode, db)
+        : null);
     const reportDocument = await loadReportDocumentRecord({
       preferredDocumentId: options.preferredDocumentId,
-      reportingPeriod,
+      reportingPeriod: resolvedReportingPeriod,
       learner,
       userId: options.userId,
       jurisdiction: effectiveJurisdiction,
       ruleSet,
       mode,
+      client: db,
     });
-    const requiredArtifactRows = await loadRequiredArtifactRows(ruleSet);
+    const requiredArtifactRows = await loadRequiredArtifactRows(db, ruleSet);
     const [planCount, evidenceCount] = await Promise.all([
-      loadPlanCount(learner.id, registrationCycle),
-      loadEvidenceCount(learner.id, registrationCycle),
+      loadPlanCount(db, learner.id, registrationCycle),
+      loadEvidenceCount(db, learner.id, registrationCycle),
     ]);
 
     const requiredArtifacts = requiredArtifactRows.map((row) => {
@@ -962,7 +1031,7 @@ export async function loadReportsBuilderModel(
       effectiveJurisdiction,
       ruleSet,
       registrationCycle,
-      reportingPeriod,
+      reportingPeriod: resolvedReportingPeriod,
       reportDocument,
       requiredArtifacts,
       readiness: {

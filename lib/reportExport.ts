@@ -1,8 +1,23 @@
-import type { ReportCompletionValidation } from "@/lib/reportCompletionGate";
+import type {
+  ReportCompletionValidation,
+  ReportValidationIssue,
+} from "@/lib/reportCompletionGate";
 import type { ReportAssemblyWorkspace } from "@/lib/reportAssembly";
 import type { ReportEvidenceMapping } from "@/lib/reportEvidenceMapping";
 import type { ReportSectionAutofillModel } from "@/lib/reportSectionAutofill";
 import type { ReportsBuilderModel } from "@/lib/reporting";
+import { createServerSupabaseClient } from "@/lib/supabaseClient";
+import { rowToSettings, type FamilyProfileRow } from "@/lib/familySettings";
+import {
+  familyYearLevelLabelFromStored,
+  familyYearLevelToStoredNumber,
+} from "@/lib/familyLearnerYearLevel";
+import type { FamilyLearner } from "@/lib/familyWorkspace";
+import { loadReadinessForReportAssembly, loadReportAssemblyWorkspace } from "@/lib/reportAssembly";
+import { loadReportEvidenceMapping } from "@/lib/reportEvidenceMapping";
+import { loadReportSectionAutofill } from "@/lib/reportSectionAutofill";
+import { buildReportCompletionValidation } from "@/lib/reportCompletionGate";
+import { loadReportsBuilderModel } from "@/lib/reporting";
 
 export type ReportExportSection = {
   sectionKey: string;
@@ -138,6 +153,317 @@ function buildExportFilename(title: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${clean || "report-export"}.html`;
+}
+
+function asObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+function normalizeFamilyProfile(raw: Record<string, unknown>): FamilyProfileRow {
+  return {
+    id: safe(raw.id) || "local",
+    user_id: safe(raw.user_id) || null,
+    owner_user_id: safe(raw.owner_user_id) || null,
+    ...rowToSettings(raw),
+  };
+}
+
+function normalizeFamilyLearner(raw: Record<string, unknown>): FamilyLearner {
+  const label =
+    safe(raw.preferred_name) ||
+    [safe(raw.first_name), safe(raw.surname)].filter(Boolean).join(" ").trim() ||
+    "Learner";
+  const yearLevel = familyYearLevelToStoredNumber(raw.year_level);
+
+  return {
+    id: safe(raw.id),
+    label,
+    yearLabel: familyYearLevelLabelFromStored(yearLevel),
+    year_level: yearLevel,
+    year_band: safe(raw.year_band) || null,
+    curriculum_framework_id: safe(raw.curriculum_framework_id) || null,
+    curriculum_jurisdiction_id: safe(raw.curriculum_jurisdiction_id) || null,
+    reporting_mode: safe(raw.reporting_mode) || null,
+    connectedAt: safe(raw.created_at) || null,
+  };
+}
+
+type ServerValidatedReportExportSuccess = {
+  ok: true;
+  status: 200;
+  filename: string;
+  html: string;
+  exportModel: ReportExportModel;
+  validation: ReportCompletionValidation;
+};
+
+type ServerValidatedReportExportFailure = {
+  ok: false;
+  status: number;
+  error: string;
+  code: string;
+  validation?: ReportCompletionValidation | null;
+  blockers?: ReportValidationIssue[];
+  warnings?: ReportValidationIssue[];
+  info?: ReportValidationIssue[];
+};
+
+export type ServerValidatedReportExportResult =
+  | ServerValidatedReportExportSuccess
+  | ServerValidatedReportExportFailure;
+
+async function loadAuthorizedReportExportContext(
+  reportDocumentId: string,
+  accessToken: string,
+) {
+  const client = createServerSupabaseClient(accessToken);
+  const { data: userData, error: authError } = await client.auth.getUser();
+  const user = userData?.user || null;
+
+  if (authError || !user) {
+    return {
+      ok: false as const,
+      status: 401,
+      code: "unauthorized",
+      error: "A signed-in access token is required for report export.",
+    };
+  }
+
+  let profileResponse = await client
+    .from("family_profiles")
+    .select("*")
+    .eq("owner_user_id", user.id)
+    .maybeSingle();
+
+  if (profileResponse.error) {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "profile_load_failed",
+      error: "The family profile could not be loaded for export.",
+    };
+  }
+
+  if (!profileResponse.data) {
+    profileResponse = await client
+      .from("family_profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+  }
+
+  if (profileResponse.error) {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "profile_load_failed",
+      error: "The family profile could not be loaded for export.",
+    };
+  }
+
+  if (!profileResponse.data) {
+    return {
+      ok: false as const,
+      status: 403,
+      code: "profile_missing",
+      error: "No family profile is available for this account.",
+    };
+  }
+
+  const reportResponse = await client
+    .from("report_documents")
+    .select("*")
+    .eq("id", reportDocumentId)
+    .maybeSingle();
+
+  if (reportResponse.error) {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "report_load_failed",
+      error: "The report document could not be loaded for export.",
+    };
+  }
+
+  if (!reportResponse.data) {
+    return {
+      ok: false as const,
+      status: 404,
+      code: "report_not_found",
+      error: "Report document not found.",
+    };
+  }
+
+  const reportRow = asObject(reportResponse.data);
+  const ownerId = safe(reportRow.user_id);
+  if (ownerId && ownerId !== user.id) {
+    return {
+      ok: false as const,
+      status: 404,
+      code: "report_not_found",
+      error: "Report document not found.",
+    };
+  }
+
+  const learnerId = safe(reportRow.student_id) || safe(reportRow.learner_id);
+  if (!learnerId) {
+    return {
+      ok: false as const,
+      status: 409,
+      code: "missing_learner",
+      error: "The report document is missing learner context.",
+    };
+  }
+
+  const learnerResponse = await client
+    .from("students")
+    .select("id,preferred_name,first_name,surname,year_level,year_band,curriculum_framework_id,curriculum_jurisdiction_id,reporting_mode,created_at,family_profile_id")
+    .eq("id", learnerId)
+    .maybeSingle();
+
+  if (learnerResponse.error) {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "learner_load_failed",
+      error: "The learner context could not be loaded for export.",
+    };
+  }
+
+  if (!learnerResponse.data) {
+    return {
+      ok: false as const,
+      status: 403,
+      code: "forbidden",
+      error: "This report is not accessible from the current family workspace.",
+    };
+  }
+
+  const profile = normalizeFamilyProfile(asObject(profileResponse.data));
+  const learner = normalizeFamilyLearner(asObject(learnerResponse.data));
+  const learnerFamilyId = safe(learnerResponse.data.family_profile_id);
+  const reportOwnerId = safe(reportRow.user_id);
+  if (learnerFamilyId && learnerFamilyId !== profile.id && reportOwnerId !== user.id) {
+    return {
+      ok: false as const,
+      status: 403,
+      code: "forbidden",
+      error: "This report is not accessible from the current family workspace.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    client,
+    userId: user.id,
+    profile,
+    learner,
+    reportRow,
+  };
+}
+
+export async function buildServerValidatedReportExport(input: {
+  reportDocumentId: string;
+  accessToken: string;
+  mode?: "open" | "download";
+}): Promise<ServerValidatedReportExportResult> {
+  const reportDocumentId = safe(input.reportDocumentId);
+  if (!reportDocumentId) {
+    return {
+      ok: false,
+      status: 400,
+      code: "missing_report_document_id",
+      error: "A reportDocumentId query parameter is required.",
+    };
+  }
+
+  const context = await loadAuthorizedReportExportContext(reportDocumentId, input.accessToken);
+  if (!context.ok) {
+    return context;
+  }
+
+  const preferredReportingPeriodId =
+    safe(context.reportRow.reporting_period_id) ||
+    safe(context.reportRow.reportingPeriodId) ||
+    null;
+
+  const model = await loadReportsBuilderModel({
+    profile: context.profile,
+    learner: context.learner,
+    userId: context.userId,
+    mode: "read",
+    preferredDocumentId: reportDocumentId,
+    preferredReportingPeriodId,
+    client: context.client,
+  });
+
+  if (!model.reportDocument) {
+    return {
+      ok: false,
+      status: 404,
+      code: "report_not_found",
+      error: "Report document not found.",
+    };
+  }
+
+  const readiness = await loadReadinessForReportAssembly(context.learner.id, context.client);
+  const assembly = await loadReportAssemblyWorkspace({
+    model,
+    readiness,
+    client: context.client,
+  });
+  const mapping = await loadReportEvidenceMapping({
+    model,
+    client: context.client,
+  });
+  const autofill = await loadReportSectionAutofill({
+    model,
+    mapping,
+    client: context.client,
+  });
+  const validation = buildReportCompletionValidation({
+    model,
+    readiness,
+    assembly,
+    mapping,
+    autofill,
+  });
+
+  if (validation.status !== "ready_for_export") {
+    return {
+      ok: false,
+      status: 409,
+      code: "report_not_ready",
+      error: validation.summary,
+      validation,
+      blockers: validation.blockers,
+      warnings: validation.warnings,
+      info: validation.info,
+    };
+  }
+
+  const exportModel = buildReportExportModel({
+    model,
+    assembly,
+    mapping,
+    autofill,
+    validation,
+  });
+
+  const html = generatePrintableHtml(exportModel);
+  const filename = buildReportExportFilename(exportModel);
+
+  return {
+    ok: true,
+    status: 200,
+    filename,
+    html,
+    exportModel,
+    validation,
+  };
 }
 
 function buildSectionHtml(section: ReportExportSection) {

@@ -2,6 +2,8 @@ import { loadComplianceReadiness, type ComplianceReadiness, type ComplianceReadi
 import type { ReportPackItemRecord, ReportSectionRecord, ReportsBuilderModel } from "@/lib/reporting";
 import { supabase } from "@/lib/supabaseClient";
 
+type QueryClient = Pick<typeof supabase, "from">;
+
 export type ReportAssemblySection = {
   id: string;
   title: string;
@@ -358,11 +360,12 @@ function buildScaffoldSections(jurisdictionCode: string | null): ReportAssemblyS
 }
 
 async function loadPersistedSections(
+  db: QueryClient,
   reportDocumentId: string,
   jurisdictionCode: string | null,
 ): Promise<ReportAssemblySection[]> {
   try {
-    const response = await supabase
+    const response = await db
       .from("report_sections")
       .select("*")
       .eq("report_document_id", reportDocumentId)
@@ -375,7 +378,7 @@ async function loadPersistedSections(
     );
   } catch {
     try {
-      const response = await supabase
+      const response = await db
         .from("report_sections")
         .select("*")
         .eq("document_id", reportDocumentId)
@@ -400,9 +403,12 @@ function normalizePackItem(raw: Record<string, unknown>, fallbackOrder: number):
   };
 }
 
-async function loadPersistedPackItems(reportDocumentId: string): Promise<ReportAssemblyPackItem[]> {
+async function loadPersistedPackItems(
+  db: QueryClient,
+  reportDocumentId: string,
+): Promise<ReportAssemblyPackItem[]> {
   try {
-    const response = await supabase
+    const response = await db
       .from("report_pack_items")
       .select("*")
       .eq("report_document_id", reportDocumentId)
@@ -413,7 +419,7 @@ async function loadPersistedPackItems(reportDocumentId: string): Promise<ReportA
     return rows.map((row, index) => normalizePackItem(asObject(row), index + 1));
   } catch {
     try {
-      const response = await supabase
+      const response = await db
         .from("report_pack_items")
         .select("*")
         .eq("document_id", reportDocumentId)
@@ -485,9 +491,9 @@ function buildArtifactItems(
   }));
 }
 
-async function countReviews(learnerId: string) {
+async function countReviews(db: QueryClient, learnerId: string) {
   try {
-    const response = await supabase
+    const response = await db
       .from("reviews")
       .select("id", { count: "exact", head: true })
       .eq("learner_id", learnerId);
@@ -569,11 +575,12 @@ function buildSupportingRecords(input: {
 }
 
 export async function loadReportAssemblyWorkspace(
-  input: LoadReportAssemblyWorkspaceInput,
+  input: LoadReportAssemblyWorkspaceInput & { client?: QueryClient },
 ): Promise<ReportAssemblyWorkspace> {
   const model = input.model;
   const readiness = input.readiness;
   const reportDocument = model.reportDocument;
+  const db = input.client ?? supabase;
 
   if (!reportDocument || !model.learner) {
     return {
@@ -590,7 +597,7 @@ export async function loadReportAssemblyWorkspace(
   const jurisdictionCode = model.effectiveJurisdiction?.code || readiness.jurisdictionCode;
 
   let softWarning = "";
-  let sections = await loadPersistedSections(reportDocument.id, jurisdictionCode);
+  let sections = await loadPersistedSections(db, reportDocument.id, jurisdictionCode);
   if (!sections.length && reportDocument.sections.length) {
     sections = normalizeSectionRecords(reportDocument.sections, jurisdictionCode);
   }
@@ -598,14 +605,14 @@ export async function loadReportAssemblyWorkspace(
     sections = buildScaffoldSections(jurisdictionCode);
   }
 
-  let packItems = await loadPersistedPackItems(reportDocument.id);
+  let packItems = await loadPersistedPackItems(db, reportDocument.id);
   if (!packItems.length && reportDocument.linkedPackItems.length) {
     packItems = normalizeFallbackPackItems(reportDocument.linkedPackItems);
   }
 
   let reviewCount = 0;
   try {
-    reviewCount = await countReviews(model.learner.id);
+    reviewCount = await countReviews(db, model.learner.id);
   } catch (error) {
     softWarning = safe(error);
   }
@@ -627,6 +634,9 @@ export async function loadReportAssemblyWorkspace(
   };
 }
 
-export async function loadReadinessForReportAssembly(learnerId: string) {
-  return loadComplianceReadiness({ learnerId });
+export async function loadReadinessForReportAssembly(
+  learnerId: string,
+  client?: QueryClient,
+) {
+  return loadComplianceReadiness({ learnerId, client });
 }

@@ -2,6 +2,8 @@ import type { ReportEvidenceMapping, SectionMappingResult } from "@/lib/reportEv
 import type { ReportsBuilderModel } from "@/lib/reporting";
 import { supabase } from "@/lib/supabaseClient";
 
+type QueryClient = Pick<typeof supabase, "from">;
+
 export type ReportSectionStarterBlock = {
   type:
     | "summary"
@@ -185,36 +187,49 @@ function confidenceFrom(status: "complete" | "in_progress" | "missing", counts: 
   return "low" as const;
 }
 
-async function many(table: string, configure: (query: ReturnType<typeof supabase.from>) => any) {
-  const response = await configure(supabase.from(table));
+async function many(
+  db: QueryClient,
+  table: string,
+  configure: (query: ReturnType<typeof db.from>) => any,
+) {
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Array.isArray(response.data)
     ? response.data.map((row: unknown) => asObject(row))
     : [];
 }
 
-async function countRows(table: string, configure: (query: ReturnType<typeof supabase.from>) => any) {
-  const response = await configure(supabase.from(table));
+async function countRows(
+  db: QueryClient,
+  table: string,
+  configure: (query: ReturnType<typeof db.from>) => any,
+) {
+  const response = await configure(db.from(table));
   if (response.error) throw response.error;
   return Number(response.count ?? 0);
 }
 
-async function loadRowsForLearner(table: string, learnerId: string) {
+async function loadRowsForLearner(db: QueryClient, table: string, learnerId: string) {
   try {
-    return await many(table, (query) => query.select("*").eq("learner_id", learnerId));
+    return await many(db, table, (query) => query.select("*").eq("learner_id", learnerId));
   } catch {
     try {
-      return await many(table, (query) => query.select("*").eq("student_id", learnerId));
+      return await many(db, table, (query) => query.select("*").eq("student_id", learnerId));
     } catch {
       return [];
     }
   }
 }
 
-async function loadRowsByForeignIds(table: string, column: string, ids: string[]) {
+async function loadRowsByForeignIds(
+  db: QueryClient,
+  table: string,
+  column: string,
+  ids: string[],
+) {
   if (!ids.length) return [];
   try {
-    return await many(table, (query) => query.select("*").in(column, ids));
+    return await many(db, table, (query) => query.select("*").in(column, ids));
   } catch {
     return [];
   }
@@ -643,9 +658,9 @@ function buildStarterBlocks(input: {
   };
 }
 
-async function loadConcernCount(learnerId: string) {
+async function loadConcernCount(db: QueryClient, learnerId: string) {
   try {
-    return await countRows("concerns", (query) =>
+    return await countRows(db, "concerns", (query) =>
       query.select("id", { count: "exact", head: true }).eq("learner_id", learnerId),
     );
   } catch {
@@ -653,9 +668,9 @@ async function loadConcernCount(learnerId: string) {
   }
 }
 
-async function loadConditionCount(learnerId: string) {
+async function loadConditionCount(db: QueryClient, learnerId: string) {
   try {
-    return await countRows("registration_conditions", (query) =>
+    return await countRows(db, "registration_conditions", (query) =>
       query.select("id", { count: "exact", head: true }).eq("learner_id", learnerId),
     );
   } catch {
@@ -664,9 +679,10 @@ async function loadConditionCount(learnerId: string) {
 }
 
 export async function loadReportSectionAutofill(
-  input: LoadReportSectionAutofillInput,
+  input: LoadReportSectionAutofillInput & { client?: QueryClient },
 ): Promise<ReportSectionAutofillModel> {
   const learnerId = safe(input.model.learner?.id);
+  const db = input.client ?? supabase;
   if (!learnerId) {
     return {
       learnerId: "",
@@ -681,54 +697,55 @@ export async function loadReportSectionAutofill(
   const cycleEnd = input.model.registrationCycle?.endDate || null;
 
   const rawPlans = filterCycleRows(
-    await loadRowsForLearner("learning_plans", learnerId),
+    await loadRowsForLearner(db, "learning_plans", learnerId),
     cycleStart,
     cycleEnd,
     ["date_start", "created_at", "updated_at"],
   );
   const planIds = rawPlans.map((row) => safe(row.id)).filter(Boolean);
   const [planAreas, planGoals] = await Promise.all([
-    loadRowsByForeignIds("plan_learning_areas", "plan_id", planIds),
-    loadRowsByForeignIds("plan_goals", "plan_id", planIds),
+    loadRowsByForeignIds(db, "plan_learning_areas", "plan_id", planIds),
+    loadRowsByForeignIds(db, "plan_goals", "plan_id", planIds),
   ]);
 
   const rawExperiences = filterCycleRows(
-    await loadRowsForLearner("learning_experiences", learnerId),
+    await loadRowsForLearner(db, "learning_experiences", learnerId),
     cycleStart,
     cycleEnd,
     ["experience_date", "occurred_on", "created_at"],
   );
   const experienceIds = rawExperiences.map((row) => safe(row.id)).filter(Boolean);
   const experienceTags = await loadRowsByForeignIds(
+    db,
     "learning_experience_tags",
     "experience_id",
     experienceIds,
   );
 
   const rawEvidence = filterCycleRows(
-    await loadRowsForLearner("evidence_items", learnerId),
+    await loadRowsForLearner(db, "evidence_items", learnerId),
     cycleStart,
     cycleEnd,
     ["captured_at", "occurred_on", "created_at"],
   );
   const evidenceIds = rawEvidence.map((row) => safe(row.id)).filter(Boolean);
   const [evidenceTags, evidenceAnnotations, evidencePairs] = await Promise.all([
-    loadRowsByForeignIds("evidence_tags", "evidence_id", evidenceIds),
-    loadRowsByForeignIds("evidence_annotations", "evidence_id", evidenceIds),
-    loadRowsByForeignIds("evidence_pairs", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_tags", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_annotations", "evidence_id", evidenceIds),
+    loadRowsByForeignIds(db, "evidence_pairs", "evidence_id", evidenceIds),
   ]);
 
   const rawReviews = filterCycleRows(
-    await loadRowsForLearner("reviews", learnerId),
+    await loadRowsForLearner(db, "reviews", learnerId),
     cycleStart,
     cycleEnd,
     ["review_date", "created_at", "updated_at"],
   );
   const reviewIds = rawReviews.map((row) => safe(row.id)).filter(Boolean);
   const [reviewFindings, concernCount, conditionCount] = await Promise.all([
-    loadRowsByForeignIds("review_findings", "review_id", reviewIds),
-    loadConcernCount(learnerId),
-    loadConditionCount(learnerId),
+    loadRowsByForeignIds(db, "review_findings", "review_id", reviewIds),
+    loadConcernCount(db, learnerId),
+    loadConditionCount(db, learnerId),
   ]);
 
   const sourceBundle: SectionSourceBundle = {

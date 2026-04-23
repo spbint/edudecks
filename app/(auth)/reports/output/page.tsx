@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
@@ -40,9 +40,6 @@ import {
 } from "@/lib/reportCompletionGate";
 import {
   buildReportExportFilename,
-  buildReportExportModel,
-  generatePrintableHtml,
-  type ReportExportModel,
 } from "@/lib/reportExport";
 import {
   currentPeriodRangeLabel,
@@ -50,6 +47,7 @@ import {
   reportingModeLabel,
   type ReportsBuilderModel,
 } from "@/lib/reporting";
+import { supabase } from "@/lib/supabaseClient";
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -576,18 +574,8 @@ export default function ReportsOutputPage() {
     return <div className="h-64 animate-pulse rounded-[24px] bg-slate-100" />;
   }
 
-  const exportModel = useMemo<ReportExportModel | null>(() => {
-    if (!validation) return null;
-    return buildReportExportModel({
-      model,
-      assembly,
-      mapping,
-      autofill,
-      validation,
-    });
-  }, [model, assembly, mapping, autofill, validation]);
-
-  const canExport = validation?.status === "ready_for_export" && Boolean(exportModel);
+  const reportDocumentId = validation?.reportDocumentId || model.reportDocument?.id || "";
+  const canExport = validation?.status === "ready_for_export" && Boolean(reportDocumentId);
 
   if (!model.reportDocument) {
     return (
@@ -600,6 +588,13 @@ export default function ReportsOutputPage() {
         }
       />
     );
+  }
+
+  const fallbackExportTitle = model.reportDocument.title || "report-export";
+
+  async function getAccessToken() {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token || "";
   }
 
   function downloadBlob(blob: Blob, filename: string) {
@@ -625,16 +620,70 @@ export default function ReportsOutputPage() {
     return false;
   }
 
+  async function fetchValidatedExport(mode: "open" | "download") {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      throw new Error("A signed-in session is required before export can run.");
+    }
+
+    const url = new URL("/api/report/export", window.location.origin);
+    url.searchParams.set("reportDocumentId", reportDocumentId);
+    url.searchParams.set("mode", mode);
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      let message = "The report could not be exported right now.";
+      try {
+        const payload = (await response.json()) as {
+          error?: string;
+          validation?: { summary?: string; blockers?: Array<{ label?: string; detail?: string }> };
+        };
+        message = payload.error || payload.validation?.summary || message;
+
+        if (payload.validation?.blockers?.length) {
+          const blockerText = payload.validation.blockers
+            .map((item) => [item.label, item.detail].filter(Boolean).join(": "))
+            .filter(Boolean)
+            .join(" ");
+          if (blockerText) {
+            message = `${message} ${blockerText}`.trim();
+          }
+        }
+      } catch {
+        // keep the fallback message
+      }
+      throw new Error(message);
+    }
+
+    const filename =
+      response.headers.get("x-report-export-filename") ||
+      buildReportExportFilename({
+        reportTitle: fallbackExportTitle,
+      } as any);
+
+    return {
+      html: await response.text(),
+      filename,
+      disposition: response.headers.get("content-disposition") || "",
+    };
+  }
+
   async function handlePrintableExport(mode: "open" | "download") {
-    if (!exportModel || !canExport || exportBusy) return;
+    if (!canExport || exportBusy) return;
 
     setExportBusy(mode);
     setExportMessage("");
     setExportError("");
 
     try {
-      const html = generatePrintableHtml(exportModel);
-      const filename = buildReportExportFilename(exportModel);
+      const { html, filename } = await fetchValidatedExport(mode);
 
       if (mode === "download") {
         downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), filename);
@@ -694,45 +743,51 @@ export default function ReportsOutputPage() {
               ? await replaceSectionContent(common)
               : await applyStarterToSection(common);
 
-      setAssembly((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          sections: current.sections.map((section) =>
-            normalizeSectionKey(section.title) === sectionKey
-              ? {
-                  ...section,
-                  id: updated.id || section.id,
-                  status: updated.status || "in_progress",
-                  contentPreview: updated.content,
-                  hasContent: Boolean(updated.content),
-                  sourceMode: updated.sourceMode || section.sourceMode,
-                  scaffoldOnly: false,
-                }
-              : section,
-          ),
-        };
-      });
+      const nextAssembly = {
+        ...assembly!,
+        sections: assembly!.sections.map((section) =>
+          normalizeSectionKey(section.title) === sectionKey
+            ? {
+                ...section,
+                id: updated.id || section.id,
+                status: updated.status || "in_progress",
+                contentPreview: updated.content,
+                hasContent: Boolean(updated.content),
+                sourceMode: updated.sourceMode || section.sourceMode,
+                scaffoldOnly: false,
+              }
+            : section,
+        ),
+      };
 
-      setAutofill((current) => {
-        if (!current) return current;
-        return {
-          ...current,
-          sections: current.sections.map((section) =>
-            section.sectionKey === sectionKey
-              ? {
-                  ...section,
-                  status:
-                    input.action === "replace_section" || input.action === "use_starter"
+      const nextAutofill = {
+        ...autofill!,
+        sections: autofill!.sections.map((section) =>
+          section.sectionKey === sectionKey
+            ? {
+                ...section,
+                status:
+                  input.action === "replace_section" || input.action === "use_starter"
+                    ? "in_progress"
+                    : section.status === "missing"
                       ? "in_progress"
-                      : section.status === "missing"
-                        ? "in_progress"
-                        : section.status,
-                }
-              : section,
-          ),
-        };
-      });
+                      : section.status,
+              }
+            : section,
+        ),
+      };
+
+      setAssembly(nextAssembly);
+      setAutofill(nextAutofill);
+      setValidation(
+        buildReportCompletionValidation({
+          model: activeModel,
+          readiness: readiness!,
+          assembly: nextAssembly,
+          mapping: mapping!,
+          autofill: nextAutofill,
+        }),
+      );
     } catch (error) {
       setSectionErrors((current) => ({
         ...current,
