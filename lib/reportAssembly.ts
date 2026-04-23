@@ -88,8 +88,88 @@ function normalizeSectionTitle(jurisdictionCode: string | null, title: string) {
   return jurisdictionCode ? `${jurisdictionCode} section` : "Report section";
 }
 
-export function getSectionScaffoldsForJurisdiction(code: string | null): SectionScaffold[] {
+export function getSectionScaffoldsForJurisdiction(
+  code: string | null,
+  complianceUiMode: ReportsBuilderModel["complianceUiMode"] = "strict",
+  reportRequired = true,
+): SectionScaffold[] {
   const jurisdictionCode = safe(code).toUpperCase();
+  const documentationMode = reportRequired === false || complianceUiMode === "portfolio";
+
+  if (jurisdictionCode.startsWith("US-")) {
+    if (documentationMode) {
+      return [
+        {
+          title: "Portfolio Overview",
+          hint: "Summarise the learning story that the portfolio is showing right now.",
+        },
+        {
+          title: "Subject Coverage",
+          hint: "Keep a simple subject list visible so the record stays broad and understandable.",
+        },
+        {
+          title: "Work Samples",
+          hint: "Pull in the strongest samples that best represent the learner's current work.",
+        },
+        {
+          title: "Hours / Attendance",
+          hint: "Track attendance or hours only where the state expects it, and keep the record calm.",
+        },
+        {
+          title: "Next Documentation Step",
+          hint: "Note the next quiet step that will make the record feel more complete.",
+        },
+      ];
+    }
+
+    if (complianceUiMode === "guided") {
+      return [
+        {
+          title: "Notification and Filing",
+          hint: "Summarise the required filing or notification step for the current cycle.",
+        },
+        {
+          title: "Instructional Hours / Attendance",
+          hint: "Keep the expected days or hours visible for the current state.",
+        },
+        {
+          title: "Subject Coverage",
+          hint: "Show how the planned subjects and learning areas are being covered.",
+        },
+        {
+          title: "Assessment / Evaluation",
+          hint: "Capture the annual assessment, testing, or evaluation pathway in simple language.",
+        },
+        {
+          title: "Portfolio Notes",
+          hint: "Keep the strongest work samples and portfolio notes in view.",
+        },
+      ];
+    }
+
+    return [
+      {
+        title: "Notification and Filing",
+        hint: "Summarise the filing or notice that opens the current compliance cycle.",
+      },
+      {
+        title: "Instructional Hours / Attendance",
+        hint: "Show the required days or hours for the current state and cycle.",
+      },
+      {
+        title: "Subject Coverage",
+        hint: "List the main subjects being taught in the current cycle.",
+      },
+      {
+        title: "Assessment / Evaluation",
+        hint: "Capture testing, evaluation, or review details required by the state.",
+      },
+      {
+        title: "Portfolio / Work Samples",
+        hint: "Bring in the strongest samples that support the formal record.",
+      },
+    ];
+  }
 
   if (jurisdictionCode === "AU-QLD") {
     return [
@@ -289,6 +369,12 @@ export function getSectionScaffoldsForJurisdiction(code: string | null): Section
 function buildHeaderTitle(model: ReportsBuilderModel) {
   const jurisdictionName = model.effectiveJurisdiction?.label || "Current";
   const reportingLabel = model.reportingPeriod?.label || reportingModeFallback(model);
+  if (model.reportRequired === false || model.complianceUiMode === "portfolio") {
+    if (reportingLabel) {
+      return `${jurisdictionName} ${reportingLabel} Documentation Draft`;
+    }
+    return `${jurisdictionName} Documentation Draft`;
+  }
   if (reportingLabel) {
     return `${jurisdictionName} ${reportingLabel} Draft`;
   }
@@ -345,8 +431,12 @@ function normalizeSectionRecords(
   }));
 }
 
-function buildScaffoldSections(jurisdictionCode: string | null): ReportAssemblySection[] {
-  return getSectionScaffoldsForJurisdiction(jurisdictionCode).map((section, index) => ({
+function buildScaffoldSections(
+  jurisdictionCode: string | null,
+  complianceUiMode: ReportsBuilderModel["complianceUiMode"] = "strict",
+  reportRequired = true,
+): ReportAssemblySection[] {
+  return getSectionScaffoldsForJurisdiction(jurisdictionCode, complianceUiMode, reportRequired).map((section, index) => ({
     id: `scaffold-${index + 1}`,
     title: section.title,
     status: "scaffold",
@@ -564,11 +654,11 @@ function buildSupportingRecords(input: {
     },
     {
       label: "Compliance posture",
-      value: withSentenceCase(input.readiness.status.replace("_", " ")),
+      value: input.model.complianceModeLabel || withSentenceCase(input.readiness.status.replace("_", " ")),
       note:
         reportArtifact?.status === "complete"
           ? "The report artifact is already represented in readiness."
-          : "Readiness is still shaping what can be assembled next.",
+          : input.model.complianceSummary || "Readiness is still shaping what can be assembled next.",
       tone: input.readiness.status === "ready" ? "ready" : input.readiness.status === "warning" ? "warning" : "neutral",
     },
   ];
@@ -585,7 +675,11 @@ export async function loadReportAssemblyWorkspace(
   if (!reportDocument || !model.learner) {
     return {
       headerTitle: buildHeaderTitle(model),
-      sections: buildScaffoldSections(model.effectiveJurisdiction?.code || readiness.jurisdictionCode),
+      sections: buildScaffoldSections(
+        model.effectiveJurisdiction?.code || readiness.jurisdictionCode,
+        model.complianceUiMode,
+        model.reportRequired,
+      ),
       packItems: [],
       artifactItems: buildArtifactItems(model, readiness),
       supportingRecords: [],
@@ -602,7 +696,11 @@ export async function loadReportAssemblyWorkspace(
     sections = normalizeSectionRecords(reportDocument.sections, jurisdictionCode);
   }
   if (!sections.length) {
-    sections = buildScaffoldSections(jurisdictionCode);
+    sections = buildScaffoldSections(
+      jurisdictionCode,
+      model.complianceUiMode,
+      model.reportRequired,
+    );
   }
 
   let packItems = await loadPersistedPackItems(db, reportDocument.id);

@@ -156,6 +156,9 @@ function ComplianceCommandCard({
             {model.jurisdictionName || "Jurisdiction not resolved"}
             {model.draftState?.cycleLabel ? ` - ${model.draftState.cycleLabel}` : ""}
           </div>
+          <div className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
+            {model.complianceModeLabel}
+          </div>
         </div>
         <span
           className={cx(
@@ -172,6 +175,9 @@ function ComplianceCommandCard({
           <p className="max-w-[760px] text-[15px] leading-7 text-slate-700">
             {model.summary}
           </p>
+          <div className="rounded-[20px] border border-white/80 bg-white/80 p-4 text-sm leading-7 text-slate-600 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+            {model.complianceSummary}
+          </div>
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
             <div className="rounded-[22px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">

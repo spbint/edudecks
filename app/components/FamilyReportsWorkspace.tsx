@@ -178,7 +178,16 @@ export default function FamilyReportsWorkspace({
     planCount: 0,
     evidenceCount: 0,
     softWarning: "",
-  }), [activeLearner, model]);
+    complianceLevel: "high",
+    complianceUiMode: "strict",
+    complianceModeLabel: "Strict compliance mode",
+    complianceSummary: "Your reporting workspace has not been started yet.",
+    reportRequired: true,
+    requiresNotification: false,
+    requiresAttendanceTracking: false,
+    requiredInstructionHoursPerYear: null,
+    requiredInstructionDaysPerYear: null,
+  } as ReportsBuilderModel), [activeLearner, model]);
 
   const content = (
     <div className="grid gap-5 pb-14">
@@ -230,18 +239,23 @@ export default function FamilyReportsWorkspace({
             <section className="grid gap-4 lg:grid-cols-2">
               <DetailCard eyebrow="Jurisdiction" title={model?.effectiveJurisdiction?.label || "Jurisdiction not resolved"}>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-1">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                      Reporting mode
-                    </div>
-                    <div className="text-[16px] font-bold text-slate-950">
-                      {model ? reportingModeLabel(model) : "Not available"}
-                    </div>
+                <div className="grid gap-1">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    Reporting mode
                   </div>
-                  <div className="grid gap-1">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-                      Jurisdiction term
+                  <div className="text-[16px] font-bold text-slate-950">
+                    {model ? reportingModeLabel(model) : "Not available"}
+                  </div>
+                  {model?.complianceSummary ? (
+                    <div className="text-[13px] leading-6 text-slate-500">
+                      {model.complianceSummary}
                     </div>
+                  ) : null}
+                </div>
+                <div className="grid gap-1">
+                  <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+                    Jurisdiction term
+                  </div>
                     <div className="text-[16px] font-bold text-slate-950">
                       {model?.effectiveJurisdiction?.terminologyMode === "jurisdiction"
                         ? model.effectiveJurisdiction.label === "Queensland"
@@ -262,6 +276,11 @@ export default function FamilyReportsWorkspace({
                     ? `${model.ruleSet.title} is the current rule set for ${model.effectiveJurisdiction?.label || "this learner"}.`
                     : "A current jurisdiction rule set could not be confirmed yet, so this workspace is keeping the guidance lighter."}
                 </div>
+                {model?.reportRequired === false || model?.complianceUiMode === "portfolio" ? (
+                  <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-7 text-emerald-800">
+                    This jurisdiction uses a portfolio-first documentation mode, so the workspace focuses on steady records rather than a formal report gate.
+                  </div>
+                ) : null}
               </DetailCard>
 
               <DetailCard eyebrow="Reporting period" title={model?.reportingPeriod?.label || "Current reporting period"}>
@@ -346,7 +365,7 @@ export default function FamilyReportsWorkspace({
                   </div>
                 </div>
                 <p className="text-sm leading-7 text-slate-600">
-                  These checks are intentionally simple for this first phase. They show whether the main planning, evidence, and reporting ingredients are visible for the current cycle, without claiming full compliance certainty yet.
+                  These checks are intentionally simple for this first phase. They show whether the main planning, evidence, and reporting ingredients are visible for the current cycle, and they adapt to the jurisdiction's compliance posture without claiming full certainty yet.
                 </p>
               </DetailCard>
 

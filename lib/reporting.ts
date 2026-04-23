@@ -1,6 +1,17 @@
 import type { FamilyProfileRow } from "@/lib/familySettings";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
+import {
+  complianceModeLabel,
+  complianceModeSentence,
+  getRequiredArtifactSeeds,
+  jurisdictionDisplayLabel,
+  resolveJurisdictionComplianceProfile,
+  type ComplianceLevel,
+  type ComplianceUiMode,
+  type JurisdictionComplianceProfile,
+  type RequiredArtifactSeed,
+} from "@/lib/jurisdictionCompliance";
 import { supabase } from "@/lib/supabaseClient";
 
 type QueryClient = Pick<typeof supabase, "from">;
@@ -16,6 +27,30 @@ export type EffectiveJurisdiction = {
   localeCode: string;
   spellingStyle: string;
   terminologyMode: string;
+  complianceLevel: ComplianceLevel;
+  complianceUiMode: ComplianceUiMode;
+  regulatoryFamily: string;
+  reportRequired: boolean;
+  requiresNotification: boolean;
+  requiresNotificationAnnual: boolean;
+  requiresAttendanceTracking: boolean;
+  requiresInstructionHours: boolean;
+  requiredInstructionHoursPerYear: number | null;
+  requiredInstructionDaysPerYear: number | null;
+  requiresSubjectList: boolean;
+  requiresYearlyPlan: boolean;
+  requiresQuarterlyReports: boolean;
+  requiresAnnualAssessment: boolean;
+  requiresStandardizedTesting: boolean;
+  requiresProfessionalEvaluation: boolean;
+  requiresPortfolio: boolean;
+  requiresWorkSamples: boolean;
+  requiresParentQualificationCheck: boolean;
+  requiresImmunizationRecordOrExemption: boolean;
+  requiresSubmissionToAuthority: boolean;
+  exportShouldBeBlockedWhenIncomplete: boolean;
+  allowsPortfolioInsteadOfTesting: boolean;
+  allowsEvaluationInsteadOfTesting: boolean;
 };
 
 export type ReportingRuleSet = {
@@ -28,6 +63,30 @@ export type ReportingRuleSet = {
   localeCode: string;
   spellingStyle: string;
   terminologyMode: string;
+  complianceLevel: ComplianceLevel;
+  complianceUiMode: ComplianceUiMode;
+  regulatoryFamily: string;
+  reportRequired: boolean;
+  requiresNotification: boolean;
+  requiresNotificationAnnual: boolean;
+  requiresAttendanceTracking: boolean;
+  requiresInstructionHours: boolean;
+  requiredInstructionHoursPerYear: number | null;
+  requiredInstructionDaysPerYear: number | null;
+  requiresSubjectList: boolean;
+  requiresYearlyPlan: boolean;
+  requiresQuarterlyReports: boolean;
+  requiresAnnualAssessment: boolean;
+  requiresStandardizedTesting: boolean;
+  requiresProfessionalEvaluation: boolean;
+  requiresPortfolio: boolean;
+  requiresWorkSamples: boolean;
+  requiresParentQualificationCheck: boolean;
+  requiresImmunizationRecordOrExemption: boolean;
+  requiresSubmissionToAuthority: boolean;
+  exportShouldBeBlockedWhenIncomplete: boolean;
+  allowsPortfolioInsteadOfTesting: boolean;
+  allowsEvaluationInsteadOfTesting: boolean;
 };
 
 export type RegistrationCycleRecord = {
@@ -86,7 +145,15 @@ export type RequiredArtifactRecord = {
   label: string;
   frequency: string;
   note: string;
-  category: "plan" | "evidence" | "report" | "other";
+  category:
+    | "plan"
+    | "evidence"
+    | "report"
+    | "notification"
+    | "attendance"
+    | "assessment"
+    | "portfolio"
+    | "other";
   status: ArtifactStatus;
 };
 
@@ -109,6 +176,15 @@ export type ReportsBuilderModel = {
   planCount: number;
   evidenceCount: number;
   softWarning: string;
+  complianceLevel: ComplianceLevel;
+  complianceUiMode: ComplianceUiMode;
+  complianceModeLabel: string;
+  complianceSummary: string;
+  reportRequired: boolean;
+  requiresNotification: boolean;
+  requiresAttendanceTracking: boolean;
+  requiredInstructionHoursPerYear: number | null;
+  requiredInstructionDaysPerYear: number | null;
 };
 
 type LoadReportsBuilderOptions = {
@@ -178,16 +254,7 @@ function jurisdictionCodeFrom(countryCode: string, stateCode: string) {
 }
 
 function jurisdictionLabelFromCode(code: string) {
-  const normalized = safe(code).toUpperCase();
-  if (normalized === "AU-QLD") return "Queensland";
-  if (normalized === "AU-NSW") return "New South Wales";
-  if (normalized === "AU-VIC") return "Victoria";
-  if (normalized === "AU-SA") return "South Australia";
-  if (normalized === "AU-WA") return "Western Australia";
-  if (normalized === "AU-TAS") return "Tasmania";
-  if (normalized === "AU-ACT") return "Australian Capital Territory";
-  if (normalized === "AU-NT") return "Northern Territory";
-  return normalized || "Your jurisdiction";
+  return jurisdictionDisplayLabel(code) || safe(code).toUpperCase() || "Your jurisdiction";
 }
 
 function terminologyLabelFor(code: string) {
@@ -199,15 +266,61 @@ function terminologyLabelFor(code: string) {
   return "Reporting workspace";
 }
 
-function normalizeJurisdiction(raw: Record<string, unknown>, fallback: EffectiveJurisdiction): EffectiveJurisdiction {
-  return {
-    code: safe(raw.code) || fallback.code,
+function complianceProfileFromRaw(
+  raw: Record<string, unknown>,
+  fallback: {
+    code: string;
+    countryCode: string;
+    stateCode: string;
+    label: string;
+    reportRequired?: boolean;
+    complianceLevel?: ComplianceLevel;
+    complianceUiMode?: ComplianceUiMode;
+  },
+): JurisdictionComplianceProfile {
+  return resolveJurisdictionComplianceProfile({
+    jurisdictionCode: safe(raw.code) || fallback.code,
     countryCode: safe(raw.country_code) || fallback.countryCode,
     stateCode: safe(raw.state_code) || fallback.stateCode,
-    label:
-      safe(raw.label) ||
-      safe(raw.name) ||
-      jurisdictionLabelFromCode(safe(raw.code) || fallback.code),
+    jurisdictionName: safe(raw.label) || safe(raw.name) || fallback.label,
+    complianceLevel: safe(raw.compliance_level) || fallback.complianceLevel || null,
+    complianceUiMode: safe(raw.compliance_ui_mode) || fallback.complianceUiMode || null,
+    regulatoryFamily: safe(raw.regulatory_family) || null,
+    reportRequired: raw.report_required === undefined ? fallback.reportRequired ?? null : Boolean(raw.report_required),
+    requiresNotification: raw.requires_notification === undefined ? null : Boolean(raw.requires_notification),
+    requiresNotificationAnnual: raw.requires_notification_annual === undefined ? null : Boolean(raw.requires_notification_annual),
+    requiresAttendanceTracking: raw.requires_attendance_tracking === undefined ? null : Boolean(raw.requires_attendance_tracking),
+    requiresInstructionHours: raw.requires_instruction_hours === undefined ? null : Boolean(raw.requires_instruction_hours),
+    requiredInstructionHoursPerYear: Number.isFinite(Number(raw.required_instruction_hours_per_year))
+      ? Number(raw.required_instruction_hours_per_year)
+      : null,
+    requiredInstructionDaysPerYear: Number.isFinite(Number(raw.required_instruction_days_per_year))
+      ? Number(raw.required_instruction_days_per_year)
+      : null,
+    requiresSubjectList: raw.requires_subject_list === undefined ? null : Boolean(raw.requires_subject_list),
+    requiresYearlyPlan: raw.requires_yearly_plan === undefined ? null : Boolean(raw.requires_yearly_plan),
+    requiresQuarterlyReports: raw.requires_quarterly_reports === undefined ? null : Boolean(raw.requires_quarterly_reports),
+    requiresAnnualAssessment: raw.requires_annual_assessment === undefined ? null : Boolean(raw.requires_annual_assessment),
+    requiresStandardizedTesting: raw.requires_standardized_testing === undefined ? null : Boolean(raw.requires_standardized_testing),
+    requiresProfessionalEvaluation: raw.requires_professional_evaluation === undefined ? null : Boolean(raw.requires_professional_evaluation),
+    requiresPortfolio: raw.requires_portfolio === undefined ? null : Boolean(raw.requires_portfolio),
+    requiresWorkSamples: raw.requires_work_samples === undefined ? null : Boolean(raw.requires_work_samples),
+    requiresParentQualificationCheck: raw.requires_parent_qualification_check === undefined ? null : Boolean(raw.requires_parent_qualification_check),
+    requiresImmunizationRecordOrExemption: raw.requires_immunization_record_or_exemption === undefined ? null : Boolean(raw.requires_immunization_record_or_exemption),
+    requiresSubmissionToAuthority: raw.requires_submission_to_authority === undefined ? null : Boolean(raw.requires_submission_to_authority),
+    exportShouldBeBlockedWhenIncomplete: raw.export_should_be_blocked_when_incomplete === undefined ? null : Boolean(raw.export_should_be_blocked_when_incomplete),
+    allowsPortfolioInsteadOfTesting: raw.allows_portfolio_instead_of_testing === undefined ? null : Boolean(raw.allows_portfolio_instead_of_testing),
+    allowsEvaluationInsteadOfTesting: raw.allows_evaluation_instead_of_testing === undefined ? null : Boolean(raw.allows_evaluation_instead_of_testing),
+  });
+}
+
+function normalizeJurisdiction(raw: Record<string, unknown>, fallback: EffectiveJurisdiction): EffectiveJurisdiction {
+  const profile = complianceProfileFromRaw(raw, fallback);
+  return {
+    code: profile.jurisdictionCode,
+    countryCode: profile.countryCode,
+    stateCode: profile.stateCode,
+    label: profile.jurisdictionName,
     reportingMode:
       safe(raw.reporting_mode_label) ||
       safe(raw.reporting_mode) ||
@@ -215,10 +328,35 @@ function normalizeJurisdiction(raw: Record<string, unknown>, fallback: Effective
     localeCode: safe(raw.locale_code) || fallback.localeCode,
     spellingStyle: safe(raw.spelling_style) || fallback.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || fallback.terminologyMode,
+    complianceLevel: profile.complianceLevel,
+    complianceUiMode: profile.complianceUiMode,
+    regulatoryFamily: profile.regulatoryFamily,
+    reportRequired: profile.reportRequired,
+    requiresNotification: profile.requiresNotification,
+    requiresNotificationAnnual: profile.requiresNotificationAnnual,
+    requiresAttendanceTracking: profile.requiresAttendanceTracking,
+    requiresInstructionHours: profile.requiresInstructionHours,
+    requiredInstructionHoursPerYear: profile.requiredInstructionHoursPerYear,
+    requiredInstructionDaysPerYear: profile.requiredInstructionDaysPerYear,
+    requiresSubjectList: profile.requiresSubjectList,
+    requiresYearlyPlan: profile.requiresYearlyPlan,
+    requiresQuarterlyReports: profile.requiresQuarterlyReports,
+    requiresAnnualAssessment: profile.requiresAnnualAssessment,
+    requiresStandardizedTesting: profile.requiresStandardizedTesting,
+    requiresProfessionalEvaluation: profile.requiresProfessionalEvaluation,
+    requiresPortfolio: profile.requiresPortfolio,
+    requiresWorkSamples: profile.requiresWorkSamples,
+    requiresParentQualificationCheck: profile.requiresParentQualificationCheck,
+    requiresImmunizationRecordOrExemption: profile.requiresImmunizationRecordOrExemption,
+    requiresSubmissionToAuthority: profile.requiresSubmissionToAuthority,
+    exportShouldBeBlockedWhenIncomplete: profile.exportShouldBeBlockedWhenIncomplete,
+    allowsPortfolioInsteadOfTesting: profile.allowsPortfolioInsteadOfTesting,
+    allowsEvaluationInsteadOfTesting: profile.allowsEvaluationInsteadOfTesting,
   };
 }
 
 function normalizeRuleSet(raw: Record<string, unknown>, jurisdiction: EffectiveJurisdiction): ReportingRuleSet {
+  const profile = complianceProfileFromRaw(raw, jurisdiction);
   return {
     id: safe(raw.id),
     title: safe(raw.title) || safe(raw.name) || `${jurisdiction.label} reporting rules`,
@@ -233,6 +371,30 @@ function normalizeRuleSet(raw: Record<string, unknown>, jurisdiction: EffectiveJ
     localeCode: safe(raw.locale_code) || jurisdiction.localeCode,
     spellingStyle: safe(raw.spelling_style) || jurisdiction.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || jurisdiction.terminologyMode,
+    complianceLevel: profile.complianceLevel,
+    complianceUiMode: profile.complianceUiMode,
+    regulatoryFamily: profile.regulatoryFamily,
+    reportRequired: profile.reportRequired,
+    requiresNotification: profile.requiresNotification,
+    requiresNotificationAnnual: profile.requiresNotificationAnnual,
+    requiresAttendanceTracking: profile.requiresAttendanceTracking,
+    requiresInstructionHours: profile.requiresInstructionHours,
+    requiredInstructionHoursPerYear: profile.requiredInstructionHoursPerYear,
+    requiredInstructionDaysPerYear: profile.requiredInstructionDaysPerYear,
+    requiresSubjectList: profile.requiresSubjectList,
+    requiresYearlyPlan: profile.requiresYearlyPlan,
+    requiresQuarterlyReports: profile.requiresQuarterlyReports,
+    requiresAnnualAssessment: profile.requiresAnnualAssessment,
+    requiresStandardizedTesting: profile.requiresStandardizedTesting,
+    requiresProfessionalEvaluation: profile.requiresProfessionalEvaluation,
+    requiresPortfolio: profile.requiresPortfolio,
+    requiresWorkSamples: profile.requiresWorkSamples,
+    requiresParentQualificationCheck: profile.requiresParentQualificationCheck,
+    requiresImmunizationRecordOrExemption: profile.requiresImmunizationRecordOrExemption,
+    requiresSubmissionToAuthority: profile.requiresSubmissionToAuthority,
+    exportShouldBeBlockedWhenIncomplete: profile.exportShouldBeBlockedWhenIncomplete,
+    allowsPortfolioInsteadOfTesting: profile.allowsPortfolioInsteadOfTesting,
+    allowsEvaluationInsteadOfTesting: profile.allowsEvaluationInsteadOfTesting,
   };
 }
 
@@ -360,15 +522,38 @@ function artifactCategoryFromRow(raw: Record<string, unknown>) {
     haystack.includes("evidence") ||
     haystack.includes("portfolio") ||
     haystack.includes("sample") ||
-    haystack.includes("record")
+    haystack.includes("record") ||
+    haystack.includes("work log") ||
+    haystack.includes("learning log")
   ) {
     return "evidence" as const;
   }
   if (
     haystack.includes("plan") ||
-    haystack.includes("program")
+    haystack.includes("program") ||
+    haystack.includes("subject")
   ) {
     return "plan" as const;
+  }
+  if (haystack.includes("notification") || haystack.includes("notice")) {
+    return "notification" as const;
+  }
+  if (
+    haystack.includes("attendance") ||
+    haystack.includes("hour") ||
+    haystack.includes("days")
+  ) {
+    return "attendance" as const;
+  }
+  if (
+    haystack.includes("assessment") ||
+    haystack.includes("evaluation") ||
+    haystack.includes("testing")
+  ) {
+    return "assessment" as const;
+  }
+  if (haystack.includes("portfolio")) {
+    return "portfolio" as const;
   }
   return "other" as const;
 }
@@ -421,16 +606,46 @@ export function resolveEffectiveJurisdiction(
   const countryCode = safe(learningConfig.country).toUpperCase() || "AU";
   const stateCode = safe(learningConfig.jurisdictionId).toUpperCase() || "TAS";
   const code = jurisdictionCodeFrom(countryCode, stateCode);
+  const complianceProfile = resolveJurisdictionComplianceProfile({
+    countryCode,
+    stateCode,
+    jurisdictionCode: code,
+    jurisdictionName: jurisdictionLabelFromCode(code),
+  });
 
   return {
     code,
     countryCode,
     stateCode,
-    label: jurisdictionLabelFromCode(code),
+    label: complianceProfile.jurisdictionName,
     reportingMode: withSentenceCase(safe(learningConfig.reportingMode).replace(/-/g, " ")) || "Family summary",
     localeCode: countryCode === "AU" ? "en-AU" : countryCode === "UK" ? "en-GB" : "en-US",
     spellingStyle: countryCode === "AU" || countryCode === "UK" ? "british" : "american",
     terminologyMode: "jurisdiction",
+    complianceLevel: complianceProfile.complianceLevel,
+    complianceUiMode: complianceProfile.complianceUiMode,
+    regulatoryFamily: complianceProfile.regulatoryFamily,
+    reportRequired: complianceProfile.reportRequired,
+    requiresNotification: complianceProfile.requiresNotification,
+    requiresNotificationAnnual: complianceProfile.requiresNotificationAnnual,
+    requiresAttendanceTracking: complianceProfile.requiresAttendanceTracking,
+    requiresInstructionHours: complianceProfile.requiresInstructionHours,
+    requiredInstructionHoursPerYear: complianceProfile.requiredInstructionHoursPerYear,
+    requiredInstructionDaysPerYear: complianceProfile.requiredInstructionDaysPerYear,
+    requiresSubjectList: complianceProfile.requiresSubjectList,
+    requiresYearlyPlan: complianceProfile.requiresYearlyPlan,
+    requiresQuarterlyReports: complianceProfile.requiresQuarterlyReports,
+    requiresAnnualAssessment: complianceProfile.requiresAnnualAssessment,
+    requiresStandardizedTesting: complianceProfile.requiresStandardizedTesting,
+    requiresProfessionalEvaluation: complianceProfile.requiresProfessionalEvaluation,
+    requiresPortfolio: complianceProfile.requiresPortfolio,
+    requiresWorkSamples: complianceProfile.requiresWorkSamples,
+    requiresParentQualificationCheck: complianceProfile.requiresParentQualificationCheck,
+    requiresImmunizationRecordOrExemption: complianceProfile.requiresImmunizationRecordOrExemption,
+    requiresSubmissionToAuthority: complianceProfile.requiresSubmissionToAuthority,
+    exportShouldBeBlockedWhenIncomplete: complianceProfile.exportShouldBeBlockedWhenIncomplete,
+    allowsPortfolioInsteadOfTesting: complianceProfile.allowsPortfolioInsteadOfTesting,
+    allowsEvaluationInsteadOfTesting: complianceProfile.allowsEvaluationInsteadOfTesting,
   };
 }
 
@@ -814,8 +1029,14 @@ const DEFAULT_PROFILE_FALLBACK = {
   notifications_planner_nudges: true,
 } as FamilyProfileRow;
 
-async function loadRequiredArtifactRows(db: QueryClient, ruleSet: ReportingRuleSet | null) {
-  if (!ruleSet) return [];
+async function loadRequiredArtifactRows(
+  db: QueryClient,
+  ruleSet: ReportingRuleSet | null,
+  jurisdictionProfile: JurisdictionComplianceProfile,
+) {
+  if (!ruleSet) {
+    return getRequiredArtifactSeeds(jurisdictionProfile);
+  }
 
   try {
     const rows = await many(db, "jurisdiction_required_artifacts", (query) =>
@@ -830,15 +1051,18 @@ async function loadRequiredArtifactRows(db: QueryClient, ruleSet: ReportingRuleS
   }
 
   try {
-    return await many(db, "jurisdiction_required_artifacts", (query) =>
+    const rows = await many(db, "jurisdiction_required_artifacts", (query) =>
       query
         .select("*")
         .eq("jurisdiction_rule_set_id", ruleSet.id)
         .order("display_order", { ascending: true }),
     );
+    if (rows.length) return rows;
   } catch {
-    return [];
+    // fall through to seeded defaults below
   }
+
+  return getRequiredArtifactSeeds(jurisdictionProfile);
 }
 
 async function loadPlanCount(db: QueryClient, learnerId: string, cycle: RegistrationCycleRecord | null) {
@@ -891,10 +1115,127 @@ async function loadEvidenceCount(db: QueryClient, learnerId: string, cycle: Regi
   }
 }
 
+type AttendanceSummary = {
+  days: number;
+  hours: number;
+  records: number;
+};
+
+async function loadNotificationSubmissionCount(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+) {
+  if (!cycle) return { total: 0, submitted: 0 };
+
+  try {
+    const rows = await many(db, "homeschool_notifications", (query) =>
+      query
+        .select("id,learner_id,registration_cycle_id,status,submitted_at")
+        .eq("learner_id", learnerId)
+        .eq("registration_cycle_id", cycle.id),
+    );
+
+    const submitted = rows.filter((row) => {
+      const status = toLower(row.status);
+      return Boolean(safe(row.submitted_at)) || status === "submitted" || status === "filed" || status === "complete";
+    }).length;
+
+    return {
+      total: rows.length,
+      submitted,
+    };
+  } catch {
+    return { total: 0, submitted: 0 };
+  }
+}
+
+async function loadAttendanceSummary(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+): Promise<AttendanceSummary> {
+  if (!cycle) return { days: 0, hours: 0, records: 0 };
+
+  try {
+    const rows = await many(db, "attendance_hour_logs", (query) =>
+      query
+        .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,school_day")
+        .eq("learner_id", learnerId)
+        .eq("registration_cycle_id", cycle.id),
+    );
+
+    const days = rows.filter((row) => {
+      const schoolDay = row.school_day;
+      const recordedDate = safe(row.recorded_date);
+      return Boolean(schoolDay === true || schoolDay === "true" || recordedDate);
+    }).length;
+
+    const hours = rows.reduce((sum, row) => sum + (Number(row.instructional_hours) || 0), 0);
+
+    return {
+      days,
+      hours,
+      records: rows.length,
+    };
+  } catch {
+    return { days: 0, hours: 0, records: 0 };
+  }
+}
+
+async function loadReviewCount(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+) {
+  try {
+    return await countRows(db, "reviews", (query) => {
+      let next = query.select("id", { count: "exact", head: true }).eq("learner_id", learnerId);
+      if (cycle?.startDate) {
+        next = next.gte("review_date", cycle.startDate);
+      }
+      if (cycle?.endDate) {
+        next = next.lte("review_date", cycle.endDate);
+      }
+      return next;
+    });
+  } catch {
+    return 0;
+  }
+}
+
 function artifactStatusForCategory(
-  category: "plan" | "evidence" | "report" | "other",
-  input: { planCount: number; evidenceCount: number; reportDocument: ReportDocumentRecord | null },
+  category:
+    | "plan"
+    | "evidence"
+    | "report"
+    | "notification"
+    | "attendance"
+    | "assessment"
+    | "portfolio"
+    | "other",
+  input: {
+    planCount: number;
+    evidenceCount: number;
+    reportDocument: ReportDocumentRecord | null;
+    notificationCount: number;
+    submittedNotificationCount: number;
+    attendance: AttendanceSummary;
+    reportRequired: boolean;
+    requiresAttendanceTracking: boolean;
+    requiredInstructionHoursPerYear: number | null;
+    requiredInstructionDaysPerYear: number | null;
+    complianceUiMode: ComplianceUiMode;
+    reviewCount: number;
+  },
 ): ArtifactStatus {
+  if (input.reportRequired === false || input.complianceUiMode === "portfolio") {
+    if (category === "portfolio") {
+      return input.evidenceCount > 0 ? "Ready" : "In progress";
+    }
+    return "Ready";
+  }
+
   if (category === "plan") {
     return input.planCount > 0 ? "Ready" : "Not started";
   }
@@ -902,7 +1243,33 @@ function artifactStatusForCategory(
     return input.evidenceCount > 0 ? "Ready" : "Not started";
   }
   if (category === "report") {
-    return input.reportDocument ? "Ready" : "Not started";
+    return input.reportRequired ? (input.reportDocument ? "Ready" : "Not started") : "Ready";
+  }
+  if (category === "notification") {
+    if (input.submittedNotificationCount > 0) return "Ready";
+    if (input.notificationCount > 0) return "In progress";
+    return "Not started";
+  }
+  if (category === "attendance") {
+    const meetsDays =
+      input.requiredInstructionDaysPerYear != null &&
+      input.attendance.days >= input.requiredInstructionDaysPerYear;
+    const meetsHours =
+      input.requiredInstructionHoursPerYear != null &&
+      input.attendance.hours >= input.requiredInstructionHoursPerYear;
+    if (meetsDays || meetsHours) return "Ready";
+    if (input.attendance.records > 0) return "In progress";
+    return "Not started";
+  }
+  if (category === "assessment") {
+    if (input.reviewCount > 0) return "Ready";
+    if (input.reportDocument || input.evidenceCount > 0) return "In progress";
+    return "Not started";
+  }
+  if (category === "portfolio") {
+    if (input.evidenceCount > 0) return "Ready";
+    if (input.planCount > 0 || input.reportDocument) return "In progress";
+    return "Not started";
   }
   return "Not started";
 }
@@ -913,9 +1280,22 @@ function buildReadinessSentence(input: {
   planCount: number;
   evidenceCount: number;
   reportDocument: ReportDocumentRecord | null;
+  complianceLevel: ComplianceLevel;
+  complianceUiMode: ComplianceUiMode;
+  reportRequired: boolean;
 }) {
+  if (input.reportRequired === false || input.complianceUiMode === "portfolio") {
+    if (input.status === "Ready") {
+      return `Your ${input.jurisdictionLabel} documentation workspace is set up and ready for export.`;
+    }
+    if (input.planCount > 0 || input.evidenceCount > 0 || input.reportDocument) {
+      return `Your ${input.jurisdictionLabel} documentation workspace is in progress. The portfolio is growing, but a few records still need attention.`;
+    }
+    return `Your ${input.jurisdictionLabel} documentation workspace has not been started yet.`;
+  }
+
   if (input.status === "Ready") {
-    return `Your ${input.jurisdictionLabel} reporting workspace is set up and ready for review.`;
+    return `Your ${input.jurisdictionLabel} compliance workspace is set up and ready for review.`;
   }
   if (input.status === "In progress") {
     const completed: string[] = [];
@@ -925,7 +1305,11 @@ function buildReadinessSentence(input: {
     const joined = completed.length
       ? `${completed.slice(0, -1).join(", ")}${completed.length > 1 ? " and " : ""}${completed[completed.length - 1]}`
       : "some reporting items";
-    return `Your ${input.jurisdictionLabel} reporting workspace is in progress. ${withSentenceCase(joined)} exist, but some reporting items still need attention.`;
+    const posture =
+      input.complianceUiMode === "guided" || input.complianceLevel === "moderate"
+        ? "compliance workspace"
+        : "reporting workspace";
+    return `Your ${input.jurisdictionLabel} ${posture} is in progress. ${withSentenceCase(joined)} exist, but some reporting items still need attention.`;
   }
   return "Your reporting workspace has not been started yet.";
 }
@@ -948,6 +1332,15 @@ function buildEmptyModel(learner: FamilyLearner | null, softWarning = ""): Repor
     planCount: 0,
     evidenceCount: 0,
     softWarning,
+    complianceLevel: "high",
+    complianceUiMode: "strict",
+    complianceModeLabel: "Strict compliance mode",
+    complianceSummary: "Your reporting workspace has not been started yet.",
+    reportRequired: true,
+    requiresNotification: false,
+    requiresAttendanceTracking: false,
+    requiredInstructionHoursPerYear: null,
+    requiredInstructionDaysPerYear: null,
   };
 }
 
@@ -965,6 +1358,36 @@ export async function loadReportsBuilderModel(
     db,
     resolveEffectiveJurisdiction(options.profile, learner),
   );
+  const jurisdictionProfile = resolveJurisdictionComplianceProfile({
+    countryCode: effectiveJurisdiction.countryCode,
+    stateCode: effectiveJurisdiction.stateCode,
+    jurisdictionCode: effectiveJurisdiction.code,
+    jurisdictionName: effectiveJurisdiction.label,
+    complianceLevel: effectiveJurisdiction.complianceLevel,
+    complianceUiMode: effectiveJurisdiction.complianceUiMode,
+    regulatoryFamily: effectiveJurisdiction.regulatoryFamily,
+    reportRequired: effectiveJurisdiction.reportRequired,
+    requiresNotification: effectiveJurisdiction.requiresNotification,
+    requiresNotificationAnnual: effectiveJurisdiction.requiresNotificationAnnual,
+    requiresAttendanceTracking: effectiveJurisdiction.requiresAttendanceTracking,
+    requiresInstructionHours: effectiveJurisdiction.requiresInstructionHours,
+    requiredInstructionHoursPerYear: effectiveJurisdiction.requiredInstructionHoursPerYear,
+    requiredInstructionDaysPerYear: effectiveJurisdiction.requiredInstructionDaysPerYear,
+    requiresSubjectList: effectiveJurisdiction.requiresSubjectList,
+    requiresYearlyPlan: effectiveJurisdiction.requiresYearlyPlan,
+    requiresQuarterlyReports: effectiveJurisdiction.requiresQuarterlyReports,
+    requiresAnnualAssessment: effectiveJurisdiction.requiresAnnualAssessment,
+    requiresStandardizedTesting: effectiveJurisdiction.requiresStandardizedTesting,
+    requiresProfessionalEvaluation: effectiveJurisdiction.requiresProfessionalEvaluation,
+    requiresPortfolio: effectiveJurisdiction.requiresPortfolio,
+    requiresWorkSamples: effectiveJurisdiction.requiresWorkSamples,
+    requiresParentQualificationCheck: effectiveJurisdiction.requiresParentQualificationCheck,
+    requiresImmunizationRecordOrExemption: effectiveJurisdiction.requiresImmunizationRecordOrExemption,
+    requiresSubmissionToAuthority: effectiveJurisdiction.requiresSubmissionToAuthority,
+    exportShouldBeBlockedWhenIncomplete: effectiveJurisdiction.exportShouldBeBlockedWhenIncomplete,
+    allowsPortfolioInsteadOfTesting: effectiveJurisdiction.allowsPortfolioInsteadOfTesting,
+    allowsEvaluationInsteadOfTesting: effectiveJurisdiction.allowsEvaluationInsteadOfTesting,
+  });
 
   try {
     const ruleSet = await loadRuleSetRecord(db, effectiveJurisdiction);
@@ -995,25 +1418,44 @@ export async function loadReportsBuilderModel(
       mode,
       client: db,
     });
-    const requiredArtifactRows = await loadRequiredArtifactRows(db, ruleSet);
+    const requiredArtifactRows = await loadRequiredArtifactRows(db, ruleSet, jurisdictionProfile);
     const [planCount, evidenceCount] = await Promise.all([
       loadPlanCount(db, learner.id, registrationCycle),
       loadEvidenceCount(db, learner.id, registrationCycle),
     ]);
+    const [notificationCounts, attendance] = await Promise.all([
+      loadNotificationSubmissionCount(db, learner.id, registrationCycle),
+      loadAttendanceSummary(db, learner.id, registrationCycle),
+    ]);
+    const reviewCount = await loadReviewCount(db, learner.id, registrationCycle);
 
-    const requiredArtifacts = requiredArtifactRows.map((row) => {
+    const requiredArtifacts = requiredArtifactRows.map((row: any) => {
       const category = artifactCategoryFromRow(row);
       return {
-        id: safe(row.id),
-        code: safe(row.code) || safe(row.slug),
-        label: safe(row.label) || safe(row.name) || "Required artifact",
-        frequency: safe(row.frequency) || safe(row.required_frequency) || "Per cycle",
-        note: safe(row.short_note) || safe(row.note),
+        id: safe(row.id) || safe(row.code) || safe(row.artifactType) || safe(row.artifact_type),
+        code: safe(row.code) || safe(row.slug) || safe(row.artifactType) || safe(row.artifact_type),
+        label: safe(row.label) || safe(row.name) || safe(row.title) || "Required artifact",
+        frequency:
+          safe(row.frequency) ||
+          safe(row.required_frequency) ||
+          safe(row.shortNote) ||
+          safe(row.short_note) ||
+          "Per cycle",
+        note: safe(row.shortNote) || safe(row.short_note) || safe(row.note),
         category,
         status: artifactStatusForCategory(category, {
           planCount,
           evidenceCount,
           reportDocument,
+          notificationCount: notificationCounts.total,
+          submittedNotificationCount: notificationCounts.submitted,
+          attendance,
+          reportRequired: jurisdictionProfile.reportRequired,
+          requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
+          requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
+          requiredInstructionDaysPerYear: jurisdictionProfile.requiredInstructionDaysPerYear,
+          complianceUiMode: jurisdictionProfile.complianceUiMode,
+          reviewCount,
         }),
       } satisfies RequiredArtifactRecord;
     });
@@ -1042,6 +1484,9 @@ export async function loadReportsBuilderModel(
           planCount,
           evidenceCount,
           reportDocument,
+          complianceLevel: jurisdictionProfile.complianceLevel,
+          complianceUiMode: jurisdictionProfile.complianceUiMode,
+          reportRequired: jurisdictionProfile.reportRequired,
         }),
         completeCount,
         totalCount: requiredArtifacts.length,
@@ -1049,6 +1494,15 @@ export async function loadReportsBuilderModel(
       planCount,
       evidenceCount,
       softWarning: "",
+      complianceLevel: jurisdictionProfile.complianceLevel,
+      complianceUiMode: jurisdictionProfile.complianceUiMode,
+      complianceModeLabel: complianceModeLabel(jurisdictionProfile),
+      complianceSummary: complianceModeSentence(jurisdictionProfile),
+      reportRequired: jurisdictionProfile.reportRequired,
+      requiresNotification: jurisdictionProfile.requiresNotification,
+      requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
+      requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
+      requiredInstructionDaysPerYear: jurisdictionProfile.requiredInstructionDaysPerYear,
     };
   } catch (error) {
     return buildEmptyModel(
@@ -1062,6 +1516,7 @@ export async function loadReportsBuilderModel(
 }
 
 export function reportingModeLabel(model: ReportsBuilderModel) {
+  if (model.complianceModeLabel) return model.complianceModeLabel;
   if (model.ruleSet?.cycleLabel) return model.ruleSet.cycleLabel;
   if (model.effectiveJurisdiction?.reportingMode) return model.effectiveJurisdiction.reportingMode;
   return "Reporting cycle";
@@ -1091,32 +1546,56 @@ export function nextReportCta(model: ReportsBuilderModel) {
   }
 
   if (model.reportDocument) {
-    return {
-      label: "Open report draft",
-      href: "/reports/output",
-      note: "Your current reporting period already has a draft document ready to review.",
-    };
+    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+      ? {
+          label: "Open documentation export",
+          href: "/reports/output",
+          note: "Your current record is ready for a portfolio-style export and review.",
+        }
+      : {
+          label: "Open report draft",
+          href: "/reports/output",
+          note: "Your current reporting period already has a draft document ready to review.",
+        };
   }
 
   if (model.planCount === 0) {
-    return {
-      label: "Update learning plan",
-      href: "/my-plan",
-      note: "This jurisdiction expects planning evidence, so begin by making the current learning plan visible.",
-    };
+    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+      ? {
+          label: "Open portfolio",
+          href: "/my-portfolio",
+          note: "This jurisdiction is documentation-led, so start by keeping the learning story visible in the portfolio.",
+        }
+      : {
+          label: "Update learning plan",
+          href: "/my-plan",
+          note: "This jurisdiction expects planning evidence, so begin by making the current learning plan visible.",
+        };
   }
 
   if (model.evidenceCount === 0) {
-    return {
-      label: "Review learning evidence",
-      href: "/capture",
-      note: "A report draft will be more useful once at least one evidence item has been captured in this cycle.",
-    };
+    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+      ? {
+          label: "Review portfolio",
+          href: "/my-portfolio",
+          note: "This jurisdiction is documentation-led, so the next calm step is to keep the portfolio broad enough to trust.",
+        }
+      : {
+          label: "Review learning evidence",
+          href: "/capture",
+          note: "A report draft will be more useful once at least one evidence item has been captured in this cycle.",
+        };
   }
 
-  return {
-    label: "Start report draft",
-    href: "/reports/output",
-    note: "A draft document will be created for the current reporting period when you open the report workspace.",
-  };
+  return model.reportRequired === false || model.complianceUiMode === "portfolio"
+    ? {
+        label: "Open documentation export",
+        href: "/reports/output",
+        note: "This jurisdiction can move through a lighter export path once the portfolio is ready.",
+      }
+    : {
+        label: "Start report draft",
+        href: "/reports/output",
+        note: "A draft document will be created for the current reporting period when you open the report workspace.",
+      };
 }

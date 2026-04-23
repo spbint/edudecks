@@ -40,6 +40,8 @@ export type FrameworkOption = {
   defaultJurisdictionId: string;
 };
 
+import { US_STATE_OPTIONS } from "@/lib/jurisdictionCompliance";
+
 export type JurisdictionOption = {
   id: string;
   label: string;
@@ -405,13 +407,10 @@ export const JURISDICTION_OPTIONS: Record<string, JurisdictionOption[]> = {
     { id: "act", label: "Australian Capital Territory" },
     { id: "nt", label: "Northern Territory" },
   ],
-  us: [
-    { id: "ca", label: "California" },
-    { id: "tx", label: "Texas" },
-    { id: "ny", label: "New York" },
-    { id: "fl", label: "Florida" },
-    { id: "wa", label: "Washington" },
-  ],
+  us: US_STATE_OPTIONS.map((state) => ({
+    id: state.stateCode.toLowerCase(),
+    label: state.label,
+  })),
   uk: [{ id: "england", label: "England" }],
   other: [{ id: "custom", label: "Custom / Other" }],
 };

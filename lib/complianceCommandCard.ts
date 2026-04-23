@@ -9,6 +9,8 @@ export type FamilyComplianceCommandCardModel = {
   learnerName: string;
   jurisdictionName: string | null;
   jurisdictionCode: string | null;
+  complianceModeLabel: string;
+  complianceSummary: string;
   readinessStatus: "ready" | "warning" | "not_ready";
   readinessScore: number;
   summary: string;
@@ -125,6 +127,8 @@ export async function loadFamilyComplianceCommandCard(
       reportsModel.effectiveJurisdiction?.label || readiness.jurisdictionName,
     jurisdictionCode:
       reportsModel.effectiveJurisdiction?.code || readiness.jurisdictionCode,
+    complianceModeLabel: reportsModel.complianceModeLabel,
+    complianceSummary: reportsModel.complianceSummary,
     readinessStatus: readiness.status,
     readinessScore: readiness.score,
     summary: readiness.summary,

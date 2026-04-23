@@ -223,6 +223,15 @@ function buildArtifactSignal(artifact: {
   if (haystack.includes("report") || haystack.includes("summary") || haystack.includes("document")) {
     add("report", ["report", "summary", "document"]);
   }
+  if (haystack.includes("notification") || haystack.includes("notice")) {
+    add("report", ["notification", "notice", "filing"]);
+  }
+  if (haystack.includes("attendance") || haystack.includes("hours") || haystack.includes("instructional")) {
+    add("report", ["attendance", "hours", "instructional"]);
+  }
+  if (haystack.includes("assessment") || haystack.includes("evaluation") || haystack.includes("testing")) {
+    add("report", ["assessment", "evaluation", "testing"]);
+  }
   if (haystack.includes("progress") || haystack.includes("achievement")) {
     add("progress", ["progress", "achievement", "growth"]);
   }

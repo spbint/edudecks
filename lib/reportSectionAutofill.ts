@@ -429,6 +429,21 @@ function sectionTerms(title: string) {
   if (normalized.includes("plan") || normalized.includes("program") || normalized.includes("overview")) {
     terms.push("plan", "program", "goal", "intent");
   }
+  if (normalized.includes("portfolio")) {
+    terms.push("portfolio", "sample", "evidence", "collection");
+  }
+  if (normalized.includes("attendance") || normalized.includes("hours")) {
+    terms.push("attendance", "hours", "days", "instructional");
+  }
+  if (normalized.includes("notification") || normalized.includes("notice")) {
+    terms.push("notification", "notice", "filing", "intent");
+  }
+  if (normalized.includes("assessment") || normalized.includes("evaluation") || normalized.includes("testing")) {
+    terms.push("assessment", "evaluation", "testing", "review");
+  }
+  if (normalized.includes("subject")) {
+    terms.push("subject", "curriculum", "coverage", "course");
+  }
   if (normalized.includes("progress") || normalized.includes("achievement")) {
     terms.push("progress", "achievement", "growth");
   }
