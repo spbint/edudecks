@@ -178,10 +178,32 @@ export default function FamilyReportsWorkspace({
     planCount: 0,
     evidenceCount: 0,
     softWarning: "",
+    jurisdictionBehaviour: {
+      jurisdictionId: null,
+      jurisdictionCode: null,
+      jurisdictionName: null,
+      countryCode: null,
+      complianceLevel: "high",
+      complianceMode: "strict",
+      reportRequirementMode: "required",
+      strictGateEnabled: true,
+      advisoryGateEnabled: false,
+      portfolioModeEnabled: false,
+      enforceReportCompletion: true,
+      enforceNotificationCompletion: false,
+      enforceAttendanceCompletion: false,
+      enforceAssessmentCompletion: false,
+      exportShouldBeBlockedWhenIncomplete: true,
+      summaryText: "Your reporting workspace has not been started yet.",
+      reportsText: "Formal report completion is required here.",
+      portfolioText: "Portfolio records support the formal reporting cycle.",
+    },
     complianceLevel: "high",
+    complianceMode: "strict",
     complianceUiMode: "strict",
     complianceModeLabel: "Strict compliance mode",
     complianceSummary: "Your reporting workspace has not been started yet.",
+    reportRequirementMode: "required",
     reportRequired: true,
     requiresNotification: false,
     requiresAttendanceTracking: false,
@@ -257,17 +279,23 @@ export default function FamilyReportsWorkspace({
                     Jurisdiction term
                   </div>
                     <div className="text-[16px] font-bold text-slate-950">
-                      {model?.effectiveJurisdiction?.terminologyMode === "jurisdiction"
-                        ? model.effectiveJurisdiction.label === "Queensland"
-                          ? "Educational progress"
-                          : model.effectiveJurisdiction.label === "New South Wales"
-                            ? "Educational program"
-                            : model.effectiveJurisdiction.label === "Victoria"
-                              ? "Learning plan"
-                              : model.effectiveJurisdiction.label === "South Australia"
-                                ? "Exemption review"
-                                : "Reporting workspace"
-                        : "Reporting workspace"}
+                      {model?.effectiveJurisdiction?.countryCode === "US"
+                        ? model?.jurisdictionBehaviour?.portfolioModeEnabled || model?.reportRequired === false
+                          ? "Homeschool portfolio"
+                          : model?.jurisdictionBehaviour?.strictGateEnabled
+                            ? "Homeschool compliance report"
+                            : "Homeschool documentation"
+                        : model?.effectiveJurisdiction?.terminologyMode === "jurisdiction"
+                          ? model.effectiveJurisdiction.label === "Queensland"
+                            ? "Educational progress"
+                            : model.effectiveJurisdiction.label === "New South Wales"
+                              ? "Educational program"
+                              : model.effectiveJurisdiction.label === "Victoria"
+                                ? "Learning plan"
+                                : model.effectiveJurisdiction.label === "South Australia"
+                                  ? "Exemption review"
+                                  : "Reporting workspace"
+                          : "Reporting workspace"}
                     </div>
                   </div>
                 </div>
@@ -278,7 +306,8 @@ export default function FamilyReportsWorkspace({
                 </div>
                 {model?.reportRequired === false || model?.complianceUiMode === "portfolio" ? (
                   <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-7 text-emerald-800">
-                    This jurisdiction uses a portfolio-first documentation mode, so the workspace focuses on steady records rather than a formal report gate.
+                    {model?.jurisdictionBehaviour?.portfolioText ||
+                      "This jurisdiction uses a portfolio-first documentation mode, so the workspace focuses on steady records rather than a formal report gate."}
                   </div>
                 ) : null}
               </DetailCard>

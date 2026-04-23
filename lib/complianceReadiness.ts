@@ -1,11 +1,14 @@
 import { supabase } from "@/lib/supabaseClient";
 import {
-  complianceModeSentence,
   getRequiredArtifactSeeds,
   jurisdictionDisplayLabel,
   resolveJurisdictionComplianceProfile,
   type JurisdictionComplianceProfile,
 } from "@/lib/jurisdictionCompliance";
+import {
+  buildJurisdictionBehaviour,
+  type JurisdictionBehaviour,
+} from "@/lib/jurisdictionEngine";
 
 type QueryClient = Pick<typeof supabase, "from">;
 
@@ -86,7 +89,9 @@ type RuleSetRow = {
   name?: string | null;
   title?: string | null;
   compliance_level?: string | null;
+  compliance_mode?: string | null;
   compliance_ui_mode?: string | null;
+  report_requirement_mode?: string | null;
   regulatory_family?: string | null;
   report_required?: boolean | null;
   requires_notification?: boolean | null;
@@ -230,6 +235,7 @@ type ArtifactEvaluationContext = {
   openConcernCount: number;
   activeConditionCount: number;
   complianceProfile: JurisdictionComplianceProfile;
+  behaviour: JurisdictionBehaviour;
 };
 
 type NormalizedArtifact = {
@@ -780,24 +786,29 @@ function evaluateArtifactStatus(
 ): ComplianceReadinessItemStatus {
   const key = toLower(artifactType);
   const documentationMode =
-    ctx.complianceProfile.reportRequired === false ||
-    ctx.complianceProfile.complianceUiMode === "portfolio";
+    ctx.behaviour.portfolioModeEnabled ||
+    ctx.behaviour.reportRequirementMode === "not_required";
 
   if (documentationMode) {
-    if (key.includes("attendance") || key.includes("hour")) {
-      return "complete";
+    if (key.includes("attendance") || key.includes("hour") || key.includes("day")) {
+      return ctx.attendanceDays > 0 || ctx.attendanceHours > 0 ? "complete" : "in_progress";
     }
     if (key.includes("notification") || key.includes("notice")) {
-      return "complete";
+      return ctx.notificationCount > 0 ? "complete" : "in_progress";
     }
     if (key.includes("assessment") || key.includes("evaluation") || key.includes("testing")) {
-      return "complete";
+      return ctx.reviewCount > 0 || ctx.reportDocumentCount > 0 ? "complete" : "in_progress";
     }
     if (key.includes("plan") || key.includes("program") || key.includes("subject")) {
-      return "complete";
+      return ctx.planCount > 0 || ctx.linkedPlanCount > 0 ? "complete" : "in_progress";
     }
     if (key.includes("portfolio")) {
       return ctx.linkedEvidenceCount > 0 ? "complete" : "in_progress";
+    }
+    if (key.includes("report")) {
+      return ctx.reportDocumentCount > 0 || ctx.linkedEvidenceCount > 0 || ctx.linkedPlanCount > 0
+        ? "complete"
+        : "in_progress";
     }
   }
 
@@ -833,33 +844,39 @@ function evaluateArtifactStatus(
   if (key.includes("notification") || key.includes("notice")) {
     if (ctx.submittedNotificationCount > 0) return "complete";
     if (ctx.notificationCount > 0) return "in_progress";
-    return documentationMode ? "complete" : "missing";
+    return documentationMode ? "in_progress" : "missing";
   }
 
   if (key.includes("attendance") || key.includes("hour") || key.includes("day")) {
     if (ctx.complianceProfile.requiredInstructionDaysPerYear != null) {
       if (ctx.attendanceDays >= ctx.complianceProfile.requiredInstructionDaysPerYear) return "complete";
       if (ctx.attendanceDays > 0) return "in_progress";
-      return documentationMode ? "complete" : "missing";
+      return documentationMode ? "in_progress" : "missing";
     }
     if (ctx.complianceProfile.requiredInstructionHoursPerYear != null) {
       if (ctx.attendanceHours >= ctx.complianceProfile.requiredInstructionHoursPerYear) return "complete";
       if (ctx.attendanceHours > 0) return "in_progress";
-      return documentationMode ? "complete" : "missing";
+      return documentationMode ? "in_progress" : "missing";
     }
-    return documentationMode ? "complete" : (ctx.attendanceDays > 0 || ctx.attendanceHours > 0 ? "in_progress" : "missing");
+    return documentationMode
+      ? ctx.attendanceDays > 0 || ctx.attendanceHours > 0
+        ? "in_progress"
+        : "in_progress"
+      : ctx.attendanceDays > 0 || ctx.attendanceHours > 0
+        ? "in_progress"
+        : "missing";
   }
 
   if (key.includes("assessment") || key.includes("evaluation") || key.includes("testing")) {
     if (ctx.reviewCount > 0) return "complete";
     if (ctx.reportDocumentCount > 0 || ctx.linkedEvidenceCount > 0) return "in_progress";
-    return documentationMode ? "complete" : "missing";
+    return documentationMode ? "in_progress" : "missing";
   }
 
   if (key.includes("review")) {
     if (ctx.reviewCount > 0) return "complete";
     if (ctx.reportDocumentCount > 0) return "in_progress";
-    return "missing";
+    return documentationMode ? "in_progress" : "missing";
   }
 
   if (key.includes("concern")) {
@@ -874,7 +891,7 @@ function evaluateArtifactStatus(
     return "in_progress";
   }
 
-  return "missing";
+  return documentationMode ? "in_progress" : "missing";
 }
 
 function buildSummary(
@@ -883,21 +900,16 @@ function buildSummary(
   strengths: string[],
   warnings: string[],
   missing: string[],
-  complianceProfile: JurisdictionComplianceProfile,
+  behaviour: JurisdictionBehaviour,
   attendance: AttendanceSummary,
   notificationCount: number,
 ) {
   const jurisdiction = jurisdictionName || "current";
-  const posture = complianceModeSentence({
-    complianceLevel: complianceProfile.complianceLevel,
-    complianceUiMode: complianceProfile.complianceUiMode,
-    reportRequired: complianceProfile.reportRequired,
-    jurisdictionName: jurisdiction,
-  });
+  const posture = behaviour.summaryText;
 
   if (status === "ready") {
     const attendanceNote =
-      complianceProfile.requiresAttendanceTracking && (attendance.days > 0 || attendance.hours > 0)
+      behaviour.enforceAttendanceCompletion && (attendance.days > 0 || attendance.hours > 0)
         ? ` Attendance tracking is visible, and ${notificationCount > 0 ? "notification activity" : "family records"} are in place.`
         : "";
     return `${posture} Compliance readiness for ${jurisdiction} is in a strong position. The core planning, evidence, and reporting records are in place for this learner.${attendanceNote}`;
@@ -921,7 +933,7 @@ function buildNextAction(
   jurisdictionCode: string | null,
   missingItems: string[],
   warningItems: string[],
-  complianceProfile: JurisdictionComplianceProfile,
+  behaviour: JurisdictionBehaviour,
   attendance: AttendanceSummary,
   notificationCount: number,
 ) {
@@ -929,14 +941,14 @@ function buildNextAction(
     return "Confirm the learner jurisdiction settings";
   }
 
-  if (complianceProfile.complianceUiMode === "portfolio" || complianceProfile.reportRequired === false) {
+  if (behaviour.portfolioModeEnabled || behaviour.reportRequirementMode === "not_required") {
     if (missingItems.some((item: string) => toLower(item).includes("portfolio") || toLower(item).includes("sample"))) {
       return "Add one more portfolio sample to keep the documentation visible.";
     }
-    if (attendance.days === 0 && attendance.hours === 0 && complianceProfile.requiresAttendanceTracking) {
+    if (attendance.days === 0 && attendance.hours === 0 && behaviour.enforceAttendanceCompletion) {
       return "Add the first attendance or hours record for this cycle.";
     }
-    if (notificationCount === 0 && complianceProfile.requiresNotification) {
+    if (notificationCount === 0 && behaviour.enforceNotificationCompletion) {
       return "Confirm the required notice or filing status.";
     }
     return "Keep the portfolio broad and current, then export the documentation when it feels complete.";
@@ -970,11 +982,11 @@ function buildNextAction(
     return "Review registration conditions";
   }
 
-  if (attendance.days === 0 && attendance.hours === 0 && complianceProfile.requiresAttendanceTracking) {
+  if (attendance.days === 0 && attendance.hours === 0 && behaviour.enforceAttendanceCompletion) {
     return "Add attendance or instructional hours for the current cycle";
   }
 
-  if (notificationCount === 0 && complianceProfile.requiresNotification) {
+  if (notificationCount === 0 && behaviour.enforceNotificationCompletion) {
     return "Confirm the notice or filing required by this state";
   }
 
@@ -1080,7 +1092,9 @@ export async function loadComplianceReadiness(
       jurisdictionCode,
       jurisdictionName,
       complianceLevel: ruleSet?.compliance_level,
+      complianceMode: ruleSet?.compliance_mode,
       complianceUiMode: ruleSet?.compliance_ui_mode,
+      reportRequirementMode: ruleSet?.report_requirement_mode,
       regulatoryFamily: ruleSet?.regulatory_family,
       reportRequired: ruleSet?.report_required,
       requiresNotification: ruleSet?.requires_notification,
@@ -1103,6 +1117,27 @@ export async function loadComplianceReadiness(
       exportShouldBeBlockedWhenIncomplete: ruleSet?.export_should_be_blocked_when_incomplete,
       allowsPortfolioInsteadOfTesting: ruleSet?.allows_portfolio_instead_of_testing,
       allowsEvaluationInsteadOfTesting: ruleSet?.allows_evaluation_instead_of_testing,
+    });
+    const behaviour = buildJurisdictionBehaviour({
+      jurisdictionId: safe(jurisdiction?.id) || null,
+      jurisdictionCode,
+      jurisdictionName,
+      countryCode,
+      complianceLevel: jurisdictionProfile.complianceLevel,
+      complianceMode: jurisdictionProfile.complianceMode,
+      complianceUiMode: jurisdictionProfile.complianceUiMode,
+      reportRequirementMode: jurisdictionProfile.reportRequirementMode,
+      reportRequired: jurisdictionProfile.reportRequired,
+      requiresNotification: jurisdictionProfile.requiresNotification,
+      requiresNotificationAnnual: jurisdictionProfile.requiresNotificationAnnual,
+      requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
+      requiresInstructionHours: jurisdictionProfile.requiresInstructionHours,
+      requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
+      requiredInstructionDaysPerYear: jurisdictionProfile.requiredInstructionDaysPerYear,
+      requiresAnnualAssessment: jurisdictionProfile.requiresAnnualAssessment,
+      exportShouldBeBlockedWhenIncomplete: jurisdictionProfile.exportShouldBeBlockedWhenIncomplete,
+      allowsPortfolioInsteadOfTesting: jurisdictionProfile.allowsPortfolioInsteadOfTesting,
+      allowsEvaluationInsteadOfTesting: jurisdictionProfile.allowsEvaluationInsteadOfTesting,
     });
     const requiredArtifacts = await loadRequiredArtifacts(db, safe(ruleSet?.id));
 
@@ -1191,6 +1226,7 @@ export async function loadComplianceReadiness(
       openConcernCount,
       activeConditionCount,
       complianceProfile: jurisdictionProfile,
+      behaviour,
     };
 
     const normalizedArtifacts: NormalizedArtifact[] = requiredArtifacts.length
@@ -1263,7 +1299,7 @@ export async function loadComplianceReadiness(
       warnings.push("Evidence exists, but it is not clearly linked back to planning or learning experiences.");
     }
 
-    if (jurisdictionProfile.requiresNotification) {
+    if (behaviour.enforceNotificationCompletion) {
       if (notificationSummary.submitted > 0) {
         strengths.push("Required notification has been submitted.");
       } else if (notificationSummary.total > 0) {
@@ -1275,7 +1311,7 @@ export async function loadComplianceReadiness(
       strengths.push("Notification tracking is visible for this jurisdiction.");
     }
 
-    if (jurisdictionProfile.requiresAttendanceTracking) {
+    if (behaviour.enforceAttendanceCompletion) {
       if (attendance.days > 0 || attendance.hours > 0) {
         strengths.push("Attendance or instructional hours are being tracked.");
       } else {
@@ -1341,7 +1377,7 @@ export async function loadComplianceReadiness(
         strengths,
         warnings,
         missing,
-        jurisdictionProfile,
+        behaviour,
         attendance,
         notificationSummary.submitted,
       ),
@@ -1349,7 +1385,7 @@ export async function loadComplianceReadiness(
         jurisdictionCode,
         missing,
         warnings,
-        jurisdictionProfile,
+        behaviour,
         attendance,
         notificationSummary.submitted,
       ),

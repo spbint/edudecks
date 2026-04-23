@@ -204,6 +204,9 @@ function CompletionGateCard({
         <p className="max-w-[820px] text-sm leading-7 text-slate-600">
           {validation.summary}
         </p>
+        <div className="rounded-[18px] border border-white/80 bg-white/80 px-4 py-4 text-sm leading-7 text-slate-600">
+          {validation.jurisdictionBehaviour.reportsText}
+        </div>
         <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
           {validation.complianceModeLabel}
         </div>
@@ -395,6 +398,9 @@ function ExportGateCard({
         <p className="max-w-[820px] text-sm leading-7 text-slate-600">
           Export is only available after the completion gate confirms the report is ready. The printable export reflects the saved draft content already assembled in the report workspace.
         </p>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
+          {validation.jurisdictionBehaviour.portfolioText}
+        </div>
         <div className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
           {validation.complianceModeLabel}
         </div>

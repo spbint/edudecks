@@ -1,5 +1,11 @@
 export type ComplianceLevel = "high" | "moderate" | "low";
 export type ComplianceUiMode = "strict" | "guided" | "portfolio";
+export type ComplianceMode = ComplianceUiMode;
+export type ReportRequirementMode =
+  | "required"
+  | "conditional"
+  | "optional"
+  | "not_required";
 
 export type JurisdictionComplianceProfile = {
   countryCode: string;
@@ -7,7 +13,9 @@ export type JurisdictionComplianceProfile = {
   jurisdictionCode: string;
   jurisdictionName: string;
   complianceLevel: ComplianceLevel;
+  complianceMode: ComplianceMode;
   complianceUiMode: ComplianceUiMode;
+  reportRequirementMode: ReportRequirementMode;
   regulatoryFamily: string;
   reportRequired: boolean;
   requiresNotification: boolean;
@@ -163,6 +171,46 @@ function lower(value: unknown) {
   return safe(value).toLowerCase();
 }
 
+function normalizeComplianceMode(
+  input: string | null | undefined,
+  fallback: ComplianceLevel,
+): ComplianceMode {
+  const normalized = lower(input);
+  if (normalized === "strict" || normalized === "guided" || normalized === "portfolio") {
+    return normalized;
+  }
+  if (normalized === "high") return "strict";
+  if (normalized === "moderate") return "guided";
+  if (normalized === "low") return "portfolio";
+  if (fallback === "high") return "strict";
+  if (fallback === "moderate") return "guided";
+  return "portfolio";
+}
+
+function normalizeReportRequirementMode(
+  input: string | null | undefined,
+  complianceMode: ComplianceMode,
+  reportRequired: boolean,
+): ReportRequirementMode {
+  const normalized = lower(input);
+  if (
+    normalized === "required" ||
+    normalized === "conditional" ||
+    normalized === "optional" ||
+    normalized === "not_required"
+  ) {
+    return normalized;
+  }
+
+  if (!reportRequired) {
+    return complianceMode === "portfolio" ? "not_required" : "optional";
+  }
+
+  if (complianceMode === "strict") return "required";
+  if (complianceMode === "guided") return "conditional";
+  return "optional";
+}
+
 function classifyState(stateCode: string): ComplianceLevel {
   if (HIGH_STATES.has(stateCode)) return "high";
   if (MODERATE_STATES.has(stateCode)) return "moderate";
@@ -180,7 +228,9 @@ function baseProfile(
     jurisdictionCode: `${countryCode}-${stateCode}`,
     jurisdictionName,
     complianceLevel: "high",
+    complianceMode: "strict",
     complianceUiMode: "strict",
+    reportRequirementMode: "required",
     regulatoryFamily: countryCode === "US" ? "us_homeschool" : "australia_home_education",
     reportRequired: true,
     requiresNotification: false,
@@ -333,7 +383,9 @@ export function resolveJurisdictionComplianceProfile(input: {
   jurisdictionCode?: string | null;
   jurisdictionName?: string | null;
   complianceLevel?: string | null;
+  complianceMode?: string | null;
   complianceUiMode?: string | null;
+  reportRequirementMode?: string | null;
   regulatoryFamily?: string | null;
   reportRequired?: boolean | null;
   requiresNotification?: boolean | null;
@@ -368,6 +420,17 @@ export function resolveJurisdictionComplianceProfile(input: {
 
   if (countryCode === "US") {
     const profile = usProfile(stateCode || "TX", jurisdictionName || usStateName(stateCode || "TX"));
+    const complianceMode = normalizeComplianceMode(
+      input.complianceMode || input.complianceUiMode,
+      profile.complianceLevel,
+    );
+    const reportRequirementMode = normalizeReportRequirementMode(
+      input.reportRequirementMode,
+      complianceMode,
+      input.reportRequired ?? profile.reportRequired,
+    );
+    const reportRequired =
+      input.reportRequired ?? (reportRequirementMode === "required" || reportRequirementMode === "conditional");
 
     return withProfileOverrides(profile, {
       jurisdictionCode,
@@ -375,12 +438,11 @@ export function resolveJurisdictionComplianceProfile(input: {
       complianceLevel:
         (input.complianceLevel as ComplianceLevel | null) ||
         profile.complianceLevel,
-      complianceUiMode:
-        (input.complianceUiMode as ComplianceUiMode | null) ||
-        profile.complianceUiMode,
+      complianceMode,
+      complianceUiMode: complianceMode,
+      reportRequirementMode,
       regulatoryFamily: safe(input.regulatoryFamily) || profile.regulatoryFamily,
-      reportRequired:
-        input.reportRequired ?? profile.reportRequired,
+      reportRequired,
       requiresNotification:
         input.requiresNotification ?? profile.requiresNotification,
       requiresNotificationAnnual:
@@ -425,6 +487,18 @@ export function resolveJurisdictionComplianceProfile(input: {
     });
   }
 
+  const complianceMode = normalizeComplianceMode(
+    input.complianceMode || input.complianceUiMode,
+    input.complianceLevel as ComplianceLevel | null || "high",
+  );
+  const reportRequirementMode = normalizeReportRequirementMode(
+    input.reportRequirementMode,
+    complianceMode,
+    input.reportRequired ?? true,
+  );
+  const reportRequired =
+    input.reportRequired ?? (reportRequirementMode === "required" || reportRequirementMode === "conditional");
+
   return {
     countryCode: countryCode || "AU",
     stateCode,
@@ -432,10 +506,11 @@ export function resolveJurisdictionComplianceProfile(input: {
     jurisdictionName: jurisdictionName || "Current jurisdiction",
     complianceLevel:
       (input.complianceLevel as ComplianceLevel | null) || "high",
-    complianceUiMode:
-      (input.complianceUiMode as ComplianceUiMode | null) || "strict",
+    complianceMode,
+    complianceUiMode: complianceMode,
+    reportRequirementMode,
     regulatoryFamily: safe(input.regulatoryFamily) || "australia_home_education",
-    reportRequired: input.reportRequired ?? true,
+    reportRequired,
     requiresNotification: input.requiresNotification ?? false,
     requiresNotificationAnnual: input.requiresNotificationAnnual ?? false,
     requiresAttendanceTracking: input.requiresAttendanceTracking ?? false,

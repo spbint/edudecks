@@ -2,16 +2,22 @@ import type { FamilyProfileRow } from "@/lib/familySettings";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
 import {
-  complianceModeLabel,
-  complianceModeSentence,
   getRequiredArtifactSeeds,
   jurisdictionDisplayLabel,
   resolveJurisdictionComplianceProfile,
   type ComplianceLevel,
+  type ComplianceMode,
   type ComplianceUiMode,
   type JurisdictionComplianceProfile,
   type RequiredArtifactSeed,
+  type ReportRequirementMode,
 } from "@/lib/jurisdictionCompliance";
+import {
+  buildJurisdictionBehaviour,
+  jurisdictionBehaviourLabel,
+  jurisdictionBehaviourSentence,
+  type JurisdictionBehaviour,
+} from "@/lib/jurisdictionEngine";
 import { supabase } from "@/lib/supabaseClient";
 
 type QueryClient = Pick<typeof supabase, "from">;
@@ -28,7 +34,9 @@ export type EffectiveJurisdiction = {
   spellingStyle: string;
   terminologyMode: string;
   complianceLevel: ComplianceLevel;
+  complianceMode: ComplianceMode;
   complianceUiMode: ComplianceUiMode;
+  reportRequirementMode: ReportRequirementMode;
   regulatoryFamily: string;
   reportRequired: boolean;
   requiresNotification: boolean;
@@ -64,7 +72,9 @@ export type ReportingRuleSet = {
   spellingStyle: string;
   terminologyMode: string;
   complianceLevel: ComplianceLevel;
+  complianceMode: ComplianceMode;
   complianceUiMode: ComplianceUiMode;
+  reportRequirementMode: ReportRequirementMode;
   regulatoryFamily: string;
   reportRequired: boolean;
   requiresNotification: boolean;
@@ -176,10 +186,13 @@ export type ReportsBuilderModel = {
   planCount: number;
   evidenceCount: number;
   softWarning: string;
+  jurisdictionBehaviour: JurisdictionBehaviour;
   complianceLevel: ComplianceLevel;
+  complianceMode: ComplianceMode;
   complianceUiMode: ComplianceUiMode;
   complianceModeLabel: string;
   complianceSummary: string;
+  reportRequirementMode: ReportRequirementMode;
   reportRequired: boolean;
   requiresNotification: boolean;
   requiresAttendanceTracking: boolean;
@@ -275,7 +288,9 @@ function complianceProfileFromRaw(
     label: string;
     reportRequired?: boolean;
     complianceLevel?: ComplianceLevel;
+    complianceMode?: ComplianceMode;
     complianceUiMode?: ComplianceUiMode;
+    reportRequirementMode?: ReportRequirementMode;
   },
 ): JurisdictionComplianceProfile {
   return resolveJurisdictionComplianceProfile({
@@ -284,7 +299,10 @@ function complianceProfileFromRaw(
     stateCode: safe(raw.state_code) || fallback.stateCode,
     jurisdictionName: safe(raw.label) || safe(raw.name) || fallback.label,
     complianceLevel: safe(raw.compliance_level) || fallback.complianceLevel || null,
+    complianceMode: safe(raw.compliance_mode) || fallback.complianceMode || null,
     complianceUiMode: safe(raw.compliance_ui_mode) || fallback.complianceUiMode || null,
+    reportRequirementMode:
+      safe(raw.report_requirement_mode) || fallback.reportRequirementMode || null,
     regulatoryFamily: safe(raw.regulatory_family) || null,
     reportRequired: raw.report_required === undefined ? fallback.reportRequired ?? null : Boolean(raw.report_required),
     requiresNotification: raw.requires_notification === undefined ? null : Boolean(raw.requires_notification),
@@ -329,7 +347,9 @@ function normalizeJurisdiction(raw: Record<string, unknown>, fallback: Effective
     spellingStyle: safe(raw.spelling_style) || fallback.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || fallback.terminologyMode,
     complianceLevel: profile.complianceLevel,
+    complianceMode: profile.complianceMode,
     complianceUiMode: profile.complianceUiMode,
+    reportRequirementMode: profile.reportRequirementMode,
     regulatoryFamily: profile.regulatoryFamily,
     reportRequired: profile.reportRequired,
     requiresNotification: profile.requiresNotification,
@@ -372,7 +392,9 @@ function normalizeRuleSet(raw: Record<string, unknown>, jurisdiction: EffectiveJ
     spellingStyle: safe(raw.spelling_style) || jurisdiction.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || jurisdiction.terminologyMode,
     complianceLevel: profile.complianceLevel,
+    complianceMode: profile.complianceMode,
     complianceUiMode: profile.complianceUiMode,
+    reportRequirementMode: profile.reportRequirementMode,
     regulatoryFamily: profile.regulatoryFamily,
     reportRequired: profile.reportRequired,
     requiresNotification: profile.requiresNotification,
@@ -623,7 +645,9 @@ export function resolveEffectiveJurisdiction(
     spellingStyle: countryCode === "AU" || countryCode === "UK" ? "british" : "american",
     terminologyMode: "jurisdiction",
     complianceLevel: complianceProfile.complianceLevel,
+    complianceMode: complianceProfile.complianceMode,
     complianceUiMode: complianceProfile.complianceUiMode,
+    reportRequirementMode: complianceProfile.reportRequirementMode,
     regulatoryFamily: complianceProfile.regulatoryFamily,
     reportRequired: complianceProfile.reportRequired,
     requiresNotification: complianceProfile.requiresNotification,
@@ -1315,6 +1339,15 @@ function buildReadinessSentence(input: {
 }
 
 function buildEmptyModel(learner: FamilyLearner | null, softWarning = ""): ReportsBuilderModel {
+  const behavior = buildJurisdictionBehaviour({
+    jurisdictionCode: null,
+    jurisdictionName: null,
+    countryCode: null,
+    complianceLevel: "high",
+    complianceMode: "strict",
+    reportRequired: true,
+  });
+
   return {
     learner,
     effectiveJurisdiction: null,
@@ -1332,10 +1365,13 @@ function buildEmptyModel(learner: FamilyLearner | null, softWarning = ""): Repor
     planCount: 0,
     evidenceCount: 0,
     softWarning,
+    jurisdictionBehaviour: behavior,
     complianceLevel: "high",
+    complianceMode: "strict",
     complianceUiMode: "strict",
-    complianceModeLabel: "Strict compliance mode",
+    complianceModeLabel: jurisdictionBehaviourLabel(behavior),
     complianceSummary: "Your reporting workspace has not been started yet.",
+    reportRequirementMode: "required",
     reportRequired: true,
     requiresNotification: false,
     requiresAttendanceTracking: false,
@@ -1364,7 +1400,9 @@ export async function loadReportsBuilderModel(
     jurisdictionCode: effectiveJurisdiction.code,
     jurisdictionName: effectiveJurisdiction.label,
     complianceLevel: effectiveJurisdiction.complianceLevel,
+    complianceMode: effectiveJurisdiction.complianceMode,
     complianceUiMode: effectiveJurisdiction.complianceUiMode,
+    reportRequirementMode: effectiveJurisdiction.reportRequirementMode,
     regulatoryFamily: effectiveJurisdiction.regulatoryFamily,
     reportRequired: effectiveJurisdiction.reportRequired,
     requiresNotification: effectiveJurisdiction.requiresNotification,
@@ -1387,6 +1425,28 @@ export async function loadReportsBuilderModel(
     exportShouldBeBlockedWhenIncomplete: effectiveJurisdiction.exportShouldBeBlockedWhenIncomplete,
     allowsPortfolioInsteadOfTesting: effectiveJurisdiction.allowsPortfolioInsteadOfTesting,
     allowsEvaluationInsteadOfTesting: effectiveJurisdiction.allowsEvaluationInsteadOfTesting,
+  });
+  const jurisdictionBehaviour = buildJurisdictionBehaviour({
+    jurisdictionId: safe(effectiveJurisdiction.code) || null,
+    jurisdictionCode: effectiveJurisdiction.code,
+    jurisdictionName: effectiveJurisdiction.label,
+    countryCode: effectiveJurisdiction.countryCode,
+    stateCode: effectiveJurisdiction.stateCode,
+    complianceLevel: jurisdictionProfile.complianceLevel,
+    complianceMode: effectiveJurisdiction.complianceMode,
+    complianceUiMode: effectiveJurisdiction.complianceUiMode,
+    reportRequirementMode: effectiveJurisdiction.reportRequirementMode,
+    reportRequired: jurisdictionProfile.reportRequired,
+    requiresNotification: jurisdictionProfile.requiresNotification,
+    requiresNotificationAnnual: jurisdictionProfile.requiresNotificationAnnual,
+    requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
+    requiresInstructionHours: jurisdictionProfile.requiresInstructionHours,
+    requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
+    requiredInstructionDaysPerYear: jurisdictionProfile.requiredInstructionDaysPerYear,
+    requiresAnnualAssessment: jurisdictionProfile.requiresAnnualAssessment,
+    exportShouldBeBlockedWhenIncomplete: jurisdictionProfile.exportShouldBeBlockedWhenIncomplete,
+    allowsPortfolioInsteadOfTesting: jurisdictionProfile.allowsPortfolioInsteadOfTesting,
+    allowsEvaluationInsteadOfTesting: jurisdictionProfile.allowsEvaluationInsteadOfTesting,
   });
 
   try {
@@ -1494,10 +1554,13 @@ export async function loadReportsBuilderModel(
       planCount,
       evidenceCount,
       softWarning: "",
+      jurisdictionBehaviour,
       complianceLevel: jurisdictionProfile.complianceLevel,
+      complianceMode: jurisdictionBehaviour.complianceMode,
       complianceUiMode: jurisdictionProfile.complianceUiMode,
-      complianceModeLabel: complianceModeLabel(jurisdictionProfile),
-      complianceSummary: complianceModeSentence(jurisdictionProfile),
+      complianceModeLabel: jurisdictionBehaviourLabel(jurisdictionBehaviour),
+      complianceSummary: jurisdictionBehaviourSentence(jurisdictionBehaviour),
+      reportRequirementMode: jurisdictionBehaviour.reportRequirementMode,
       reportRequired: jurisdictionProfile.reportRequired,
       requiresNotification: jurisdictionProfile.requiresNotification,
       requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
@@ -1516,6 +1579,7 @@ export async function loadReportsBuilderModel(
 }
 
 export function reportingModeLabel(model: ReportsBuilderModel) {
+  if (model.jurisdictionBehaviour) return jurisdictionBehaviourLabel(model.jurisdictionBehaviour);
   if (model.complianceModeLabel) return model.complianceModeLabel;
   if (model.ruleSet?.cycleLabel) return model.ruleSet.cycleLabel;
   if (model.effectiveJurisdiction?.reportingMode) return model.effectiveJurisdiction.reportingMode;

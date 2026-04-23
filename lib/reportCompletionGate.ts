@@ -10,6 +10,11 @@ import type {
   ReportSectionStarterContent,
 } from "@/lib/reportSectionAutofill";
 import type { ReportsBuilderModel } from "@/lib/reporting";
+import {
+  buildJurisdictionBehaviour,
+  requirementImpactForBehaviour,
+  type JurisdictionBehaviour,
+} from "@/lib/jurisdictionEngine";
 
 export type ReportGateStatus = "blocked" | "in_progress" | "ready_for_export";
 
@@ -45,9 +50,12 @@ export type ReportCompletionValidation = {
   reportDocumentId: string | null;
   reportingPeriodId: string | null;
   jurisdictionCode: string | null;
+  jurisdictionBehaviour: JurisdictionBehaviour;
   complianceLevel: ReportsBuilderModel["complianceLevel"];
+  complianceMode: ReportsBuilderModel["complianceMode"];
   complianceUiMode: ReportsBuilderModel["complianceUiMode"];
   complianceModeLabel: string;
+  reportRequirementMode: ReportsBuilderModel["reportRequirementMode"];
   reportRequired: boolean;
   requiresNotification: boolean;
   requiresAttendanceTracking: boolean;
@@ -275,10 +283,25 @@ function nextActionFromIssue(issueItem: ReportValidationIssue) {
   return issueItem.detail;
 }
 
-function buildSummary(status: ReportGateStatus, validation: Pick<ReportCompletionValidation, "completedSectionCount" | "totalSectionCount" | "completedArtifactCount" | "totalArtifactCount" | "blockers" | "warnings" | "complianceUiMode" | "reportRequired">) {
+function buildSummary(
+  status: ReportGateStatus,
+  validation: Pick<
+    ReportCompletionValidation,
+    | "completedSectionCount"
+    | "totalSectionCount"
+    | "completedArtifactCount"
+    | "totalArtifactCount"
+    | "blockers"
+    | "warnings"
+    | "jurisdictionBehaviour"
+    | "reportRequirementMode"
+  >,
+) {
   const sectionText = `${validation.completedSectionCount}/${validation.totalSectionCount || 0} section${validation.totalSectionCount === 1 ? "" : "s"}`;
   const artifactText = `${validation.completedArtifactCount}/${validation.totalArtifactCount || 0} artifact${validation.totalArtifactCount === 1 ? "" : "s"}`;
-  const documentationMode = validation.reportRequired === false || validation.complianceUiMode === "portfolio";
+  const documentationMode =
+    validation.reportRequirementMode === "not_required" ||
+    validation.jurisdictionBehaviour.portfolioModeEnabled;
 
   if (status === "ready_for_export") {
     return documentationMode
@@ -333,12 +356,31 @@ export function buildReportCompletionValidation(
     input.mapping.jurisdictionCode ||
     input.readiness.jurisdictionCode ||
     null;
-  const documentationMode =
-    input.model.reportRequired === false ||
-    input.model.complianceUiMode === "portfolio";
-  const strictBlocking =
-    input.model.effectiveJurisdiction?.exportShouldBeBlockedWhenIncomplete !== false &&
-    !documentationMode;
+  const jurisdictionBehaviour =
+    input.model.jurisdictionBehaviour ||
+    buildJurisdictionBehaviour({
+      jurisdictionId: input.model.effectiveJurisdiction?.code || null,
+      jurisdictionCode: input.model.effectiveJurisdiction?.code || jurisdictionCode,
+      jurisdictionName: input.model.effectiveJurisdiction?.label || null,
+      countryCode: input.model.effectiveJurisdiction?.countryCode || null,
+      complianceLevel: input.model.complianceLevel,
+      complianceMode: input.model.complianceMode,
+      complianceUiMode: input.model.complianceUiMode,
+      reportRequirementMode: input.model.reportRequirementMode,
+      reportRequired: input.model.reportRequired,
+      requiresNotification: input.model.requiresNotification,
+      requiresAttendanceTracking: input.model.requiresAttendanceTracking,
+      requiresInstructionHours: input.model.effectiveJurisdiction?.requiresInstructionHours,
+      requiredInstructionHoursPerYear: input.model.requiredInstructionHoursPerYear,
+      requiredInstructionDaysPerYear: input.model.requiredInstructionDaysPerYear,
+      requiresAnnualAssessment: input.model.effectiveJurisdiction?.requiresAnnualAssessment,
+      exportShouldBeBlockedWhenIncomplete:
+        input.model.effectiveJurisdiction?.exportShouldBeBlockedWhenIncomplete,
+      allowsPortfolioInsteadOfTesting:
+        input.model.effectiveJurisdiction?.allowsPortfolioInsteadOfTesting,
+      allowsEvaluationInsteadOfTesting:
+        input.model.effectiveJurisdiction?.allowsEvaluationInsteadOfTesting,
+    });
 
   const sectionStates = input.assembly.sections.map((section) => {
     const sectionMapping = findMatchingSectionMapping(section, input.mapping.sections);
@@ -388,16 +430,34 @@ export function buildReportCompletionValidation(
   const warnings: ReportValidationIssue[] = [];
   const info: ReportValidationIssue[] = [];
 
-  if (!input.model.reportDocument && strictBlocking) {
-    blockers.push(
-      issue({
-        type: "blocker",
-        code: "missing_report_document",
-        label: "Report document missing",
+  const reportDocumentImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+    required: true,
+    legal: jurisdictionBehaviour.enforceReportCompletion,
+  });
+  const reportingPeriodImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+    required: true,
+    legal: jurisdictionBehaviour.enforceReportCompletion,
+  });
+  const registrationCycleImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+    required: true,
+    legal: jurisdictionBehaviour.enforceReportCompletion,
+  });
+  const ruleSetImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+    required: true,
+    legal: jurisdictionBehaviour.enforceReportCompletion,
+  });
+
+  if (!input.model.reportDocument) {
+    if (reportDocumentImpact === "blocker") {
+      blockers.push(
+        issue({
+          type: "blocker",
+          code: "missing_report_document",
+          label: "Report document missing",
         detail: "A current report document is required before the completion gate can pass.",
       }),
-    );
-  } else if (!input.model.reportDocument) {
+      );
+    } else if (reportDocumentImpact === "warning") {
     warnings.push(
       issue({
         type: "warning",
@@ -405,19 +465,30 @@ export function buildReportCompletionValidation(
         label: "Report document missing",
         detail: "This jurisdiction can still export documentation without a formal report draft.",
       }),
-    );
+      );
+    } else {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_report_document",
+          label: "Report document missing",
+          detail: "A formal report draft is not required for this jurisdiction's current workflow.",
+        }),
+      );
+    }
   }
 
-  if (!input.model.reportingPeriod && strictBlocking) {
-    blockers.push(
-      issue({
-        type: "blocker",
-        code: "missing_reporting_period",
-        label: "Reporting period missing",
+  if (!input.model.reportingPeriod) {
+    if (reportingPeriodImpact === "blocker") {
+      blockers.push(
+        issue({
+          type: "blocker",
+          code: "missing_reporting_period",
+          label: "Reporting period missing",
         detail: "The current reporting period is not resolved yet.",
       }),
-    );
-  } else if (!input.model.reportingPeriod) {
+      );
+    } else if (reportingPeriodImpact === "warning") {
     warnings.push(
       issue({
         type: "warning",
@@ -425,19 +496,30 @@ export function buildReportCompletionValidation(
         label: "Reporting period missing",
         detail: "A formal reporting period has not been resolved yet, but documentation export can still continue.",
       }),
-    );
+      );
+    } else {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_reporting_period",
+          label: "Reporting period missing",
+          detail: "A formal reporting period is not required here, so the workspace can continue in documentation mode.",
+        }),
+      );
+    }
   }
 
-  if (!input.model.registrationCycle && strictBlocking) {
-    blockers.push(
-      issue({
-        type: "blocker",
-        code: "missing_registration_cycle",
-        label: "Registration cycle missing",
+  if (!input.model.registrationCycle) {
+    if (registrationCycleImpact === "blocker") {
+      blockers.push(
+        issue({
+          type: "blocker",
+          code: "missing_registration_cycle",
+          label: "Registration cycle missing",
         detail: "The active registration cycle is not resolved yet.",
       }),
-    );
-  } else if (!input.model.registrationCycle) {
+      );
+    } else if (registrationCycleImpact === "warning") {
     warnings.push(
       issue({
         type: "warning",
@@ -445,19 +527,30 @@ export function buildReportCompletionValidation(
         label: "Registration cycle missing",
         detail: "A registration cycle has not been resolved yet, but this documentation export can still move forward.",
       }),
-    );
+      );
+    } else {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_registration_cycle",
+          label: "Registration cycle missing",
+          detail: "A registration cycle has not been resolved yet, but this documentation workflow can still move forward.",
+        }),
+      );
+    }
   }
 
-  if (!input.model.ruleSet && strictBlocking) {
-    blockers.push(
-      issue({
-        type: "blocker",
-        code: "missing_rule_set",
-        label: "Jurisdiction rule set missing",
+  if (!input.model.ruleSet) {
+    if (ruleSetImpact === "blocker") {
+      blockers.push(
+        issue({
+          type: "blocker",
+          code: "missing_rule_set",
+          label: "Jurisdiction rule set missing",
         detail: "The current jurisdiction rule set is required before this report can be validated.",
       }),
-    );
-  } else if (!input.model.ruleSet) {
+      );
+    } else if (ruleSetImpact === "warning") {
     warnings.push(
       issue({
         type: "warning",
@@ -465,7 +558,17 @@ export function buildReportCompletionValidation(
         label: "Jurisdiction rule set missing",
         detail: "A jurisdiction rule set was not resolved, so the gate is using the lighter documentation posture.",
       }),
-    );
+      );
+    } else {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_rule_set",
+          label: "Jurisdiction rule set missing",
+          detail: "A current rule set was not resolved, so the workspace is using the lighter documentation posture.",
+        }),
+      );
+    }
   }
 
   if (!jurisdictionCode) {
@@ -493,7 +596,13 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    if (section.status === "missing" && strictBlocking) {
+    const sectionImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+      required: true,
+      legal: jurisdictionBehaviour.enforceReportCompletion,
+      progress: section.status === "in_progress",
+    });
+
+    if (section.status === "missing" && sectionImpact === "blocker") {
       blockers.push(
         issue({
           type: "blocker",
@@ -506,7 +615,7 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    if (section.status === "missing") {
+    if (section.status === "missing" && sectionImpact === "warning") {
       warnings.push(
         issue({
           type: "warning",
@@ -519,9 +628,35 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    warnings.push(
+    if (section.status === "missing") {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_section_content",
+          label: section.title,
+          detail: section.notes[0] || "This section still needs persisted draft content.",
+          sectionKey: section.sectionKey,
+        }),
+      );
+      return;
+    }
+
+    if (sectionImpact === "warning") {
+      warnings.push(
+        issue({
+          type: "warning",
+          code: "section_in_progress",
+          label: section.title,
+          detail: section.notes[0] || "This section is moving forward but still needs refinement.",
+          sectionKey: section.sectionKey,
+        }),
+      );
+      return;
+    }
+
+    info.push(
       issue({
-        type: "warning",
+        type: "info",
         code: "section_in_progress",
         label: section.title,
         detail: section.notes[0] || "This section is moving forward but still needs refinement.",
@@ -544,7 +679,13 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    if (artifact.status === "missing" && strictBlocking) {
+    const artifactImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+      required: true,
+      legal: jurisdictionBehaviour.enforceReportCompletion,
+      progress: artifact.status === "in_progress",
+    });
+
+    if (artifact.status === "missing" && artifactImpact === "blocker") {
       blockers.push(
         issue({
           type: "blocker",
@@ -557,7 +698,7 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    if (artifact.status === "missing") {
+    if (artifact.status === "missing" && artifactImpact === "warning") {
       warnings.push(
         issue({
           type: "warning",
@@ -570,9 +711,35 @@ export function buildReportCompletionValidation(
       return;
     }
 
-    warnings.push(
+    if (artifact.status === "missing") {
+      info.push(
+        issue({
+          type: "info",
+          code: "missing_required_artifact",
+          label: artifact.label,
+          detail: artifact.notes[0] || "This required artifact is still missing.",
+          artifactType: artifact.artifactType,
+        }),
+      );
+      return;
+    }
+
+    if (artifactImpact === "warning") {
+      warnings.push(
+        issue({
+          type: "warning",
+          code: "artifact_in_progress",
+          label: artifact.label,
+          detail: artifact.notes[0] || "This required artifact is still in progress.",
+          artifactType: artifact.artifactType,
+        }),
+      );
+      return;
+    }
+
+    info.push(
       issue({
-        type: "warning",
+        type: "info",
         code: "artifact_in_progress",
         label: artifact.label,
         detail: artifact.notes[0] || "This required artifact is still in progress.",
@@ -632,14 +799,30 @@ export function buildReportCompletionValidation(
   });
 
   if (!input.mapping.artifacts.length) {
-    warnings.push(
-      issue({
-        type: "warning",
-        code: "no_required_artifacts",
-        label: "No required artifacts",
-        detail: "The jurisdiction artifact list was not available, so the gate is using section-level evidence only.",
-      }),
-    );
+    const artifactListImpact = requirementImpactForBehaviour(jurisdictionBehaviour, {
+      required: true,
+      legal: jurisdictionBehaviour.enforceReportCompletion,
+    });
+    const issueTone: ReportValidationIssue["type"] =
+      artifactListImpact === "blocker"
+        ? "blocker"
+        : artifactListImpact === "warning"
+          ? "warning"
+          : "info";
+    const artifactListIssue = issue({
+      type: issueTone,
+      code: "no_required_artifacts",
+      label: "No required artifacts",
+      detail: "The jurisdiction artifact list was not available, so the gate is using section-level evidence only.",
+    });
+
+    if (issueTone === "blocker") {
+      blockers.push(artifactListIssue);
+    } else if (issueTone === "warning") {
+      warnings.push(artifactListIssue);
+    } else {
+      info.push(artifactListIssue);
+    }
   }
 
   const completedSectionCount = sectionStates.filter((section) => section.status === "complete").length;
@@ -650,7 +833,7 @@ export function buildReportCompletionValidation(
   const status: ReportGateStatus =
     blockers.length > 0
       ? "blocked"
-      : warnings.length > 0
+      : warnings.length > 0 && !jurisdictionBehaviour.portfolioModeEnabled
         ? "in_progress"
         : "ready_for_export";
 
@@ -672,9 +855,12 @@ export function buildReportCompletionValidation(
     reportDocumentId,
     reportingPeriodId,
     jurisdictionCode,
+    jurisdictionBehaviour,
     complianceLevel: input.model.complianceLevel,
+    complianceMode: input.model.complianceMode,
     complianceUiMode: input.model.complianceUiMode,
     complianceModeLabel: input.model.complianceModeLabel,
+    reportRequirementMode: input.model.reportRequirementMode,
     reportRequired: input.model.reportRequired,
     requiresNotification: input.model.requiresNotification,
     requiresAttendanceTracking: input.model.requiresAttendanceTracking,
@@ -696,8 +882,8 @@ export function buildReportCompletionValidation(
       totalArtifactCount,
       blockers,
       warnings,
-      complianceUiMode: input.model.complianceUiMode,
-      reportRequired: input.model.reportRequired,
+      jurisdictionBehaviour,
+      reportRequirementMode: input.model.reportRequirementMode,
     }),
     nextAction,
   };
