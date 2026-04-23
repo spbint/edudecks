@@ -38,6 +38,7 @@ function statusBadge(status: ForumThreadSummary["status"]): React.CSSProperties 
 
 export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
   const statusLabel = getThreadStatusLabel(thread.status);
+  const preview = thread.body.trim();
 
   return (
     <Link
@@ -90,18 +91,17 @@ export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
           </div>
 
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#475569" }}>
-            {thread.body.length > 180 ? `${thread.body.slice(0, 180)}...` : thread.body}
+            {preview.length > 180 ? `${preview.slice(0, 180)}...` : preview}
           </div>
         </div>
 
         <div style={{ fontSize: 12, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
-          {thread.authorLabel} · {relativeTime(thread.created_at)}
+          {thread.authorLabel} • {relativeTime(thread.created_at)}
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 13, color: "#64748b", fontWeight: 700 }}>
         <span>{thread.replyCount} replies</span>
-        <span>{thread.supportCount} support</span>
         <span>{thread.latestActivityText}</span>
       </div>
     </Link>

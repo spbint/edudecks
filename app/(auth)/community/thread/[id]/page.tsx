@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
   createForumReply,
@@ -43,53 +43,35 @@ type ReplyView = {
 
 function statusBadge(status: ForumThreadStatus): React.CSSProperties {
   if (status === "under_review") {
-    return {
-      border: "1px solid #bfdbfe",
-      background: "#eff6ff",
-      color: "#1d4ed8",
-    };
+    return { border: "1px solid #bfdbfe", background: "#eff6ff", color: "#1d4ed8" };
   }
-
   if (status === "planned") {
-    return {
-      border: "1px solid #fde68a",
-      background: "#fffbeb",
-      color: "#a16207",
-    };
+    return { border: "1px solid #fde68a", background: "#fffbeb", color: "#a16207" };
   }
-
-  return {
-    border: "1px solid #bbf7d0",
-    background: "#f0fdf4",
-    color: "#166534",
-  };
+  return { border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#166534" };
 }
 
-function fallbackThread(id: string): {
-  category: ForumCategory;
-  thread: ThreadView;
-  replies: ReplyView[];
-} {
+function fallbackThread(id: string): { category: ForumCategory; thread: ThreadView; replies: ReplyView[] } {
   return {
     category: {
       id: "general-discussion",
       slug: "general-discussion",
       name: "General Discussion",
-      description:
-        "A calm place for homeschool families to talk through everyday learning and family life.",
-    } as ForumCategory,
+      description: "A calm place for homeschool families to talk through everyday learning and family life.",
+      created_at: new Date().toISOString(),
+    },
     thread: {
       id,
       category_id: "general-discussion",
       user_id: "demo-user",
-      title: "Welcome to the EduDecks community",
+      title: "Welcome to the MyLearna community",
       body:
-        "This is a preview thread so the community space feels alive from first click.\n\nParents will be able to share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
+        "This is a preview thread so the community space feels alive from first click.\n\nFamilies can share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
       is_pinned: true,
       status: "under_review",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      authorLabel: "EduDecks Community",
+      authorLabel: "MyLearna Community",
       supportCount: 0,
       viewerSupports: false,
     },
@@ -98,8 +80,7 @@ function fallbackThread(id: string): {
         id: "reply-1",
         thread_id: id,
         user_id: "demo-user-2",
-        body:
-          "I love the idea of having a forum that feels calm and practical rather than noisy. This would be such a helpful place to swap planning ideas.",
+        body: "I love the idea of having a forum that feels calm and practical rather than noisy.",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         authorLabel: "Homeschool parent",
@@ -108,11 +89,10 @@ function fallbackThread(id: string): {
         id: "reply-2",
         thread_id: id,
         user_id: "demo-user-3",
-        body:
-          "A category for resources and another for new homeschoolers would be especially useful.",
+        body: "A category for resources and another for new homeschoolers would be especially useful.",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        authorLabel: "EduDecks family",
+        authorLabel: "MyLearna family",
       },
     ],
   };
@@ -120,7 +100,6 @@ function fallbackThread(id: string): {
 
 export default function CommunityThreadPage() {
   const params = useParams<{ id: string }>();
-  const router = useRouter();
   const id = String(params?.id ?? "");
 
   const [viewerId, setViewerId] = useState<string | null>(null);
@@ -133,10 +112,7 @@ export default function CommunityThreadPage() {
   const [supporting, setSupporting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const previewMode = useMemo(
-    () => !viewerId || viewerId === "demo-user",
-    [viewerId],
-  );
+  const previewMode = useMemo(() => !viewerId || viewerId === "demo-user", [viewerId]);
 
   useEffect(() => {
     let mounted = true;
@@ -174,9 +150,7 @@ export default function CommunityThreadPage() {
         }
       } catch (error) {
         console.error("Community thread load failed", error);
-
         if (!mounted) return;
-
         const preview = fallbackThread(id);
         setViewerId("demo-user");
         setThread(preview.thread);
@@ -192,7 +166,7 @@ export default function CommunityThreadPage() {
     return () => {
       mounted = false;
     };
-  }, [id, router]);
+  }, [id]);
 
   async function handleReply() {
     if (!thread) return;
@@ -231,10 +205,7 @@ export default function CommunityThreadPage() {
 
       setReplies((current) => [
         ...current,
-        {
-          ...(result.post as ReplyView),
-          authorLabel: "You",
-        },
+        { ...(result.post as ReplyView), authorLabel: "You" },
       ]);
       setReplyBody("");
     } catch (error) {
@@ -250,13 +221,7 @@ export default function CommunityThreadPage() {
 
     if (previewMode) {
       setThread((current) =>
-        current
-          ? {
-              ...current,
-              supportCount: current.supportCount + 1,
-              viewerSupports: true,
-            }
-          : current,
+        current ? { ...current, supportCount: current.supportCount + 1, viewerSupports: true } : current,
       );
       setMessage("Preview support recorded.");
       return;
@@ -271,26 +236,15 @@ export default function CommunityThreadPage() {
         threadId: thread.id,
       });
 
-      if (!result.alreadySupported) {
-        setThread((current) =>
-          current
-            ? {
-                ...current,
-                supportCount: current.supportCount + 1,
-                viewerSupports: true,
-              }
-            : current,
-        );
-      } else {
-        setThread((current) =>
-          current
-            ? {
-                ...current,
-                viewerSupports: true,
-              }
-            : current,
-        );
-      }
+      setThread((current) =>
+        current
+          ? {
+              ...current,
+              supportCount: result.alreadySupported ? current.supportCount : current.supportCount + 1,
+              viewerSupports: true,
+            }
+          : current,
+      );
     } catch (error) {
       console.error("Support failed", error);
       setMessage("Support could not be saved right now.");
@@ -304,7 +258,7 @@ export default function CommunityThreadPage() {
 
   return (
     <FamilyTopNavShell
-      title="EduDecks Family"
+      title="MyLearna Family"
       subtitle="Community"
       heroTitle={thread?.title || "Community"}
       heroText="A structured member conversation with one clear starting post and calm chronological replies."
@@ -388,33 +342,41 @@ export default function CommunityThreadPage() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {category ? (
-                  <Link
-                    href={`/community/category/${category.slug}`}
-                    style={{
-                      border: "1px solid #d1d5db",
-                      background: "#ffffff",
-                      color: "#334155",
-                      borderRadius: 10,
-                      padding: "10px 14px",
-                      fontSize: 14,
-                      fontWeight: 800,
-                      textDecoration: "none",
-                    }}
-                  >
-                    Back to category
-                  </Link>
-                ) : null}
+              {category ? (
+                <Link
+                  href={`/community/category/${category.slug}`}
+                  style={{
+                    border: "1px solid #d1d5db",
+                    background: "#ffffff",
+                    color: "#334155",
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    textDecoration: "none",
+                  }}
+                >
+                  Back to category
+                </Link>
+              ) : null}
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                borderRadius: 18,
+                padding: 16,
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                {thread.authorLabel} • {relativeTime(thread.created_at)}
               </div>
-            </div>
-
-            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
-              {thread.authorLabel} · {relativeTime(thread.created_at)}
-            </div>
-
-            <div style={{ fontSize: 15, lineHeight: 1.75, color: "#334155", whiteSpace: "pre-wrap" }}>
-              {thread.body}
+              <div style={{ fontSize: 15, lineHeight: 1.75, color: "#334155", whiteSpace: "pre-wrap" }}>
+                {thread.body}
+              </div>
             </div>
 
             {isFeatureCategory ? (
@@ -476,7 +438,7 @@ export default function CommunityThreadPage() {
                 }}
               >
                 <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
-                  {reply.authorLabel} · {relativeTime(reply.created_at)}
+                  {reply.authorLabel} • {relativeTime(reply.created_at)}
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: "#334155", whiteSpace: "pre-wrap" }}>
                   {reply.body}
@@ -501,7 +463,11 @@ export default function CommunityThreadPage() {
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               rows={5}
-              placeholder={isFeatureCategory ? "Add a thoughtful reply or build on the idea" : "Write a thoughtful reply"}
+              placeholder={
+                isFeatureCategory
+                  ? "Add a thoughtful reply or build on the idea"
+                  : "Add a thoughtful reply"
+              }
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -533,7 +499,7 @@ export default function CommunityThreadPage() {
                   opacity: replying ? 0.8 : 1,
                 }}
               >
-                {replying ? "Posting..." : "Reply"}
+                {replying ? "Posting..." : "Post reply"}
               </button>
             </div>
           </section>

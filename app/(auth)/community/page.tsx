@@ -24,6 +24,8 @@ type CommunityCategoryCard = {
   tone: string;
   threadCount: number;
   latestThreads: CommunityThreadPreview[];
+  primaryLabel: string;
+  emptyStateLabel: string;
 };
 
 const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
@@ -35,42 +37,26 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
       "A calm place for homeschool families to share wins, ask everyday questions, and encourage one another.",
     tone: "Ask, share, encourage",
     threadCount: 18,
+    primaryLabel: "Join discussion",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-general-1",
-        title: "What does a calm homeschool morning look like in your home?",
-        replyCount: 7,
-        relativeTime: "3 hours ago",
-      },
-      {
-        id: "fallback-general-2",
-        title: "What helped your family settle into this week well?",
-        replyCount: 4,
-        relativeTime: "1 day ago",
-      },
+      { id: "fallback-general-1", title: "What does a calm homeschool morning look like in your home?", replyCount: 7, relativeTime: "3 hours ago" },
+      { id: "fallback-general-2", title: "What helped your family settle into this week well?", replyCount: 4, relativeTime: "1 day ago" },
     ],
   },
   {
-    id: "planning-and-routines",
+    id: "planning-ideas",
     slug: "planning-ideas",
-    name: "Planning & Routines",
+    name: "Planning Ideas",
     description:
       "Talk about planning rhythms, year levels, and how families structure learning across the week.",
     tone: "Plan with confidence",
     threadCount: 24,
+    primaryLabel: "Join discussion",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-planning-1",
-        title: "How do you plan for multiple children at different ages?",
-        replyCount: 10,
-        relativeTime: "5 hours ago",
-      },
-      {
-        id: "fallback-planning-2",
-        title: "What does a realistic weekly rhythm look like for your family?",
-        replyCount: 6,
-        relativeTime: "2 days ago",
-      },
+      { id: "fallback-planning-1", title: "How do you plan for multiple children at different ages?", replyCount: 10, relativeTime: "5 hours ago" },
+      { id: "fallback-planning-2", title: "What does a realistic weekly rhythm look like for your family?", replyCount: 6, relativeTime: "2 days ago" },
     ],
   },
   {
@@ -81,88 +67,88 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
       "Share printable resources, websites, books, games, projects, field trip ideas, and creative learning tools.",
     tone: "Swap useful ideas",
     threadCount: 31,
+    primaryLabel: "Share a resource",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-resources-1",
-        title: "Favourite free resources for Year 2 reading and writing?",
-        replyCount: 12,
-        relativeTime: "2 hours ago",
-      },
-      {
-        id: "fallback-resources-2",
-        title: "Which science videos or kits have worked especially well lately?",
-        replyCount: 5,
-        relativeTime: "1 day ago",
-      },
+      { id: "fallback-resources-1", title: "Favourite free resources for Year 2 reading and writing?", replyCount: 12, relativeTime: "2 hours ago" },
+      { id: "fallback-resources-2", title: "Which science videos or kits have worked especially well lately?", replyCount: 5, relativeTime: "1 day ago" },
     ],
   },
   {
-    id: "new-to-homeschooling",
+    id: "homeschool-resources",
+    slug: "homeschool-resources",
+    name: "Homeschool Resources",
+    description:
+      "Share and discover useful homeschool resources, tools, printables, and curriculum ideas.",
+    tone: "Share what helps",
+    threadCount: 0,
+    primaryLabel: "Share a resource",
+    emptyStateLabel: "Be the first to share a helpful resource",
+    latestThreads: [],
+  },
+  {
+    id: "classical-education",
+    slug: "classical-education",
+    name: "Classical Education",
+    description:
+      "Discuss classical education approaches, great books, memory work, and structured learning rhythms.",
+    tone: "Structured learning",
+    threadCount: 0,
+    primaryLabel: "Join discussion",
+    emptyStateLabel: "Start the first classical education discussion",
+    latestThreads: [],
+  },
+  {
+    id: "getting-started",
     slug: "getting-started",
-    name: "New to Homeschooling",
+    name: "Getting Started",
     description:
       "A gentle starting point for families beginning the homeschool journey and wanting practical advice without pressure or noise.",
     tone: "A gentle first step",
     threadCount: 15,
+    primaryLabel: "Join discussion",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-starting-1",
-        title: "What should I focus on in my first month of homeschooling?",
-        replyCount: 8,
-        relativeTime: "6 hours ago",
-      },
+      { id: "fallback-starting-1", title: "What should I focus on in my first month of homeschooling?", replyCount: 8, relativeTime: "6 hours ago" },
     ],
   },
   {
-    id: "faith-and-family",
+    id: "christian-homeschooling",
     slug: "christian-homeschooling",
     name: "Faith & Family",
     description:
       "Discuss Bible learning, Christian parenting, prayer, memory verses, and how faith shapes homeschool life.",
     tone: "Encourage one another",
     threadCount: 12,
+    primaryLabel: "Join discussion",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-faith-1",
-        title: "How do you build a simple Bible rhythm into the week?",
-        replyCount: 4,
-        relativeTime: "1 day ago",
-      },
+      { id: "fallback-faith-1", title: "How do you build a simple Bible rhythm into the week?", replyCount: 4, relativeTime: "1 day ago" },
     ],
   },
   {
-    id: "feature-suggestions",
+    id: "help-shape-edudecks",
     slug: "help-shape-edudecks",
-    name: "Feature Suggestions",
+    name: "Help Shape MyLearna",
     description:
       "Help shape MyLearna by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful.",
     tone: "Help shape MyLearna",
     threadCount: 9,
+    primaryLabel: "Help shape MyLearna",
+    emptyStateLabel: "Be the first to start this conversation",
     latestThreads: [
-      {
-        id: "fallback-feature-1",
-        title: "A better way to compare multiple children's weekly plans",
-        replyCount: 3,
-        relativeTime: "8 hours ago",
-      },
+      { id: "fallback-feature-1", title: "A better way to compare multiple children's weekly plans", replyCount: 3, relativeTime: "8 hours ago" },
     ],
   },
 ];
 
-async function withTimeout<T>(
-  promise: Promise<T>,
-  label: string,
-  ms = 3500,
-): Promise<T> {
+async function withTimeout<T>(promise: Promise<T>, label: string, ms = 3500): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) => {
-        timer = setTimeout(() => {
-          reject(new Error(`${label} timed out after ${ms}ms`));
-        }, ms);
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
       }),
     ]);
   } finally {
@@ -181,35 +167,35 @@ function normalizeCategory(category: ForumCategorySummary): CommunityCategoryCar
     FALLBACK_CATEGORIES.find((item) => item.slug === slug) ||
     FALLBACK_CATEGORIES.find((item) => item.id === String(category.id));
 
+  const name =
+    category.name === "Help Shape EduDecks"
+      ? "Help Shape MyLearna"
+      : category.name;
+
   return {
     id: String(category.id),
     slug,
-    name:
-      category.name === "Feature Suggestions"
-        ? "Help Shape MyLearna"
-        : category.name,
+    name,
     description:
-      category.name === "Feature Suggestions"
-        ? "Share feature ideas, pain points, and practical suggestions that would make MyLearna more helpful for real families."
+      name === "Help Shape MyLearna"
+        ? "Help shape MyLearna by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful."
         : category.description,
     tone:
-      category.name === "Feature Suggestions"
+      name === "Help Shape MyLearna"
         ? "Help shape MyLearna"
         : fallback?.tone || "Join the conversation",
-    threadCount:
-      typeof (category as { threadCount?: unknown }).threadCount === "number"
-        ? Number((category as { threadCount?: number }).threadCount)
-        : fallback?.threadCount || 0,
-    latestThreads:
-      Array.isArray((category as { latestThreads?: unknown }).latestThreads) &&
-      (category as { latestThreads?: CommunityThreadPreview[] }).latestThreads?.length
-        ? ((category as { latestThreads?: CommunityThreadPreview[] }).latestThreads ?? []).slice(0, 2)
-        : fallback?.latestThreads || [],
+    threadCount: typeof category.threadCount === "number" ? category.threadCount : fallback?.threadCount || 0,
+    latestThreads: Array.isArray(category.latestThreads) && category.latestThreads.length
+      ? category.latestThreads.slice(0, 2)
+      : fallback?.latestThreads || [],
+    primaryLabel: fallback?.primaryLabel || "Join discussion",
+    emptyStateLabel: fallback?.emptyStateLabel || "Be the first to start this conversation",
   };
 }
 
 function CategoryCard({ category }: { category: CommunityCategoryCard }) {
   const hasThreads = category.latestThreads.length > 0;
+  const composeHref = `/community/new?category=${encodeURIComponent(category.slug)}`;
 
   return (
     <article
@@ -244,7 +230,6 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
           >
             {category.tone}
           </div>
-
           <div
             style={{
               fontSize: 24,
@@ -273,15 +258,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
         </div>
       </div>
 
-      <div
-        style={{
-          fontSize: 14,
-          lineHeight: 1.7,
-          color: "#475569",
-        }}
-      >
-        {category.description}
-      </div>
+      <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>{category.description}</div>
 
       <div
         style={{
@@ -307,7 +284,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
           category.latestThreads.map((thread) => (
             <Link
               key={thread.id}
-              href={`/community/category/${category.slug}`}
+              href={`/community/thread/${thread.id}`}
               style={{
                 textDecoration: "none",
                 border: "1px solid #e2e8f0",
@@ -357,10 +334,10 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
                 color: "#334155",
               }}
             >
-              Be the first to start this conversation
+              {category.emptyStateLabel}
             </div>
             <Link
-              href={`/community/category/${category.slug}`}
+              href={composeHref}
               style={{
                 width: "fit-content",
                 border: "1px solid #d1d5db",
@@ -381,7 +358,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Link
-          href={`/community/category/${category.slug}`}
+          href={hasThreads ? `/community/category/${category.slug}` : composeHref}
           style={{
             border: "1px solid #2563eb",
             background: "#2563eb",
@@ -393,7 +370,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             textDecoration: "none",
           }}
         >
-          {hasThreads ? "Join discussion" : "Start a discussion"}
+          {hasThreads ? category.primaryLabel : "Start a discussion"}
         </Link>
 
         <Link
@@ -431,11 +408,7 @@ export default function CommunityHomePage() {
       setLoading(true);
 
       try {
-        const userId = await withTimeout(
-          requireCommunityUserId(),
-          "community user",
-          2000,
-        ).catch(() => null);
+        const userId = await withTimeout(requireCommunityUserId(), "community user", 2000).catch(() => null);
 
         if (!mounted) return;
 
@@ -443,17 +416,11 @@ export default function CommunityHomePage() {
 
         if (!userId) {
           setCategories(FALLBACK_CATEGORIES);
-          setMessage(
-            "Starter categories are being shown while live community sign-in settles.",
-          );
+          setMessage("Starter categories are being shown while live community sign-in settles.");
           return;
         }
 
-        const data = await withTimeout(
-          loadCommunityHomeData(userId),
-          "community home",
-          2500,
-        ).catch(() => null);
+        const data = await withTimeout(loadCommunityHomeData(userId), "community home", 2500).catch(() => null);
 
         if (!mounted) return;
 
@@ -462,9 +429,7 @@ export default function CommunityHomePage() {
           setMessage("");
         } else {
           setCategories(FALLBACK_CATEGORIES);
-          setMessage(
-            "Starter categories are being shown while the first live discussions are prepared.",
-          );
+          setMessage("Starter categories are being shown while the first live discussions are prepared.");
         }
       } catch (error) {
         console.error("Community home load failed", error);
@@ -473,9 +438,7 @@ export default function CommunityHomePage() {
 
         setViewerId("demo-user");
         setCategories(FALLBACK_CATEGORIES);
-        setMessage(
-          "Starter categories are being shown while the community connection settles.",
-        );
+        setMessage("Starter categories are being shown while the community connection settles.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -490,18 +453,9 @@ export default function CommunityHomePage() {
 
   const featuredActions = useMemo(
     () => [
-      {
-        label: "Ask a question",
-        href: "/community/category/general-discussion",
-      },
-      {
-        label: "Share a resource",
-        href: "/community/category/resources-and-ideas",
-      },
-      {
-        label: "Help shape MyLearna",
-        href: "/community/category/help-shape-edudecks",
-      },
+      { label: "Ask a question", href: "/community/new?category=general-discussion" },
+      { label: "Share a resource", href: "/community/new?category=homeschool-resources" },
+      { label: "Help shape MyLearna", href: "/community/new?category=help-shape-edudecks" },
     ],
     [],
   );
