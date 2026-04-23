@@ -102,7 +102,13 @@ function DetailCard({
   );
 }
 
-export default function FamilyReportsWorkspace() {
+type FamilyReportsWorkspaceProps = {
+  includeShell?: boolean;
+};
+
+export default function FamilyReportsWorkspace({
+  includeShell = true,
+}: FamilyReportsWorkspaceProps) {
   const {
     workspace,
     activeLearner,
@@ -174,15 +180,8 @@ export default function FamilyReportsWorkspace() {
     softWarning: "",
   }), [activeLearner, model]);
 
-  return (
-    <FamilyTopNavShell
-      subtitle="My Reports"
-      heroTitle="Build the right report for the current reporting cycle"
-      heroText="See what your jurisdiction expects, what has already been gathered, and the next calm step toward a trustworthy report draft."
-      heroAsideTitle="Jurisdiction-aware builder"
-      heroAsideText="This workspace reads your family and learner settings first, then shapes the reporting flow around the learner's effective jurisdiction."
-    >
-      <div className="grid gap-5 pb-14">
+  const content = (
+    <div className="grid gap-5 pb-14">
         <LearnerSelector
           familyName={workspace.profile.family_display_name || "My family"}
           learners={learnerOptions}
@@ -370,6 +369,21 @@ export default function FamilyReportsWorkspace() {
           </>
         )}
       </div>
+  );
+
+  if (!includeShell) {
+    return content;
+  }
+
+  return (
+    <FamilyTopNavShell
+      subtitle="My Reports"
+      heroTitle="Build the right report for the current reporting cycle"
+      heroText="See what your jurisdiction expects, what has already been gathered, and the next calm step toward a trustworthy report draft."
+      heroAsideTitle="Jurisdiction-aware builder"
+      heroAsideText="This workspace reads your family and learner settings first, then shapes the reporting flow around the learner's effective jurisdiction."
+    >
+      {content}
     </FamilyTopNavShell>
   );
 }
