@@ -33,6 +33,12 @@ import {
   replaceSectionContent,
 } from "@/lib/reportSectionActions";
 import {
+  buildReportCompletionValidation,
+  type ReportCompletionValidation,
+  type ReportGateStatus,
+  type ReportValidationIssue,
+} from "@/lib/reportCompletionGate";
+import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
   reportingModeLabel,
@@ -108,6 +114,225 @@ function renderStarterBlock(block: ReportSectionStarterBlock, key: string) {
   );
 }
 
+function gateTone(status: ReportGateStatus) {
+  if (status === "ready_for_export") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "blocked") return "border-rose-200 bg-rose-50 text-rose-700";
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
+function issueTone(type: ReportValidationIssue["type"]) {
+  if (type === "blocker") return "border-rose-200 bg-rose-50 text-rose-700";
+  if (type === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function sectionStatusTone(status: ReportCompletionValidation["sectionStates"][number]["supportStatus"]) {
+  if (status === "strong") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "partial") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (status === "weak") return "border-orange-200 bg-orange-50 text-orange-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function artifactGateTone(status: ReportCompletionValidation["artifactStates"][number]["status"]) {
+  if (status === "complete") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "in_progress") return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function CompletionGateCard({
+  validation,
+}: {
+  validation: ReportCompletionValidation;
+}) {
+  const topBlockers = validation.blockers.slice(0, 3);
+  const topWarnings = validation.warnings.slice(0, 3);
+  const completedSections = validation.sectionStates
+    .filter((section) => section.status === "complete")
+    .slice(0, 4);
+  const incompleteSections = validation.sectionStates
+    .filter((section) => section.blocking)
+    .slice(0, 4);
+
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(238,245,255,0.94)_58%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="grid gap-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Completion gate
+            </div>
+            <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+              Pre-export authority validation
+            </h2>
+          </div>
+          <span
+            className={cx(
+              "inline-flex rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em]",
+              gateTone(validation.status),
+            )}
+          >
+            {validation.status.replace("_", " ")}
+          </span>
+        </div>
+
+        <p className="max-w-[820px] text-sm leading-7 text-slate-600">
+          {validation.summary}
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[18px] border border-slate-200 bg-white/80 px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Sections complete
+            </div>
+            <div className="mt-2 text-[24px] font-black text-slate-950">
+              {validation.completedSectionCount}/{validation.totalSectionCount || 0}
+            </div>
+          </div>
+          <div className="rounded-[18px] border border-slate-200 bg-white/80 px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Required artifacts
+            </div>
+            <div className="mt-2 text-[24px] font-black text-slate-950">
+              {validation.completedArtifactCount}/{validation.totalArtifactCount || 0}
+            </div>
+          </div>
+          <div className="rounded-[18px] border border-slate-200 bg-white/80 px-4 py-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Gate score
+            </div>
+            <div className="mt-2 text-[24px] font-black text-slate-950">
+              {validation.score}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-2 rounded-[20px] border border-slate-200 bg-white px-4 py-4">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Blocking issues
+            </div>
+            {topBlockers.length ? (
+              <div className="grid gap-2">
+                {topBlockers.map((issue) => (
+                  <div
+                    key={`${issue.code}-${issue.label}`}
+                    className={cx("rounded-[14px] border px-3 py-3 text-sm leading-6", issueTone(issue.type))}
+                  >
+                    <div className="font-bold text-slate-950">{issue.label}</div>
+                    <div className="mt-1">{issue.detail}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm leading-6 text-emerald-800">
+                No blocking issues are currently detected.
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-2 rounded-[20px] border border-slate-200 bg-white px-4 py-4">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Warnings and notes
+            </div>
+            {topWarnings.length ? (
+              <div className="grid gap-2">
+                {topWarnings.map((issue) => (
+                  <div
+                    key={`${issue.code}-${issue.label}`}
+                    className={cx("rounded-[14px] border px-3 py-3 text-sm leading-6", issueTone(issue.type))}
+                  >
+                    <div className="font-bold text-slate-950">{issue.label}</div>
+                    <div className="mt-1">{issue.detail}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-6 text-slate-600">
+                No current warnings are preventing export readiness.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-3 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 py-4">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+            Section status
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {completedSections.length ? (
+              completedSections.map((section) => (
+                <span
+                  key={section.sectionKey}
+                  className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700"
+                >
+                  {section.title}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm leading-6 text-slate-600">
+                No sections have cleared the gate yet.
+              </span>
+            )}
+          </div>
+          {incompleteSections.length ? (
+            <div className="flex flex-wrap gap-2">
+              {incompleteSections.map((section) => (
+                <span
+                  key={section.sectionKey}
+                  className={cx(
+                    "inline-flex rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em]",
+                    sectionStatusTone(section.supportStatus),
+                  )}
+                >
+                  {section.title}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <aside className="grid gap-3 rounded-[22px] border border-white/80 bg-white/88 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Next action
+          </div>
+          <div className="mt-2 text-[16px] font-bold text-slate-950">
+            {validation.nextAction || "Continue strengthening the draft"}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Jurisdiction
+          </div>
+          <div className="mt-2 text-sm font-bold text-slate-950">
+            {validation.jurisdictionCode || "Not resolved"}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Report document
+          </div>
+          <div className="mt-2 text-sm font-bold text-slate-950">
+            {validation.reportDocumentId ? "Draft present" : "Not available"}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Reporting period
+          </div>
+          <div className="mt-2 text-sm font-bold text-slate-950">
+            {validation.reportingPeriodId ? "Resolved" : "Not available"}
+          </div>
+        </div>
+      </aside>
+    </section>
+  );
+}
+
 function EmptyState({
   title,
   message,
@@ -144,6 +369,7 @@ export default function ReportsOutputPage() {
   const [assembly, setAssembly] = useState<ReportAssemblyWorkspace | null>(null);
   const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
   const [autofill, setAutofill] = useState<ReportSectionAutofillModel | null>(null);
+  const [validation, setValidation] = useState<ReportCompletionValidation | null>(null);
   const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
   const [sectionPending, setSectionPending] = useState<Record<string, string>>({});
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
@@ -159,6 +385,7 @@ export default function ReportsOutputPage() {
           setAssembly(null);
           setMapping(null);
           setAutofill(null);
+          setValidation(null);
           setDismissedSections({});
           setSectionPending({});
           setSectionErrors({});
@@ -188,6 +415,13 @@ export default function ReportsOutputPage() {
         model: next,
         mapping: mappingResult,
       });
+      const validationResult = buildReportCompletionValidation({
+        model: next,
+        readiness: readinessResult,
+        assembly: assemblyResult,
+        mapping: mappingResult,
+        autofill: autofillResult,
+      });
 
       if (mounted) {
         setModel(next);
@@ -195,6 +429,7 @@ export default function ReportsOutputPage() {
         setAssembly(assemblyResult);
         setMapping(mappingResult);
         setAutofill(autofillResult);
+        setValidation(validationResult);
         setDismissedSections({});
         setSectionPending({});
         setSectionErrors({});
@@ -335,6 +570,8 @@ export default function ReportsOutputPage() {
           {[model.softWarning, assembly.softWarning].filter(Boolean).join(" ")}
         </div>
       ) : null}
+
+      {validation ? <CompletionGateCard validation={validation} /> : null}
 
       <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.92)_58%,rgba(248,250,252,0.96)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_260px]">
         <div className="grid gap-4">
