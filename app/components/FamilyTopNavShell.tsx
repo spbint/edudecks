@@ -239,6 +239,7 @@ export default function FamilyTopNavShell({
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
+  const communityActive = pathname === "/community";
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -273,12 +274,37 @@ export default function FamilyTopNavShell({
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
-            <div className="min-w-0 pr-1 lg:text-right">
-              {resolvedTitle ? (
-                <div className="truncate text-[14px] font-bold tracking-[-0.01em] text-slate-900">{resolvedTitle}</div>
-              ) : null}
-              <div className="truncate text-[13px] font-medium tracking-[-0.01em] text-slate-500">{resolvedSubtitle}</div>
-            </div>
+            <Link
+              href="/community"
+              aria-current={communityActive ? "page" : undefined}
+              className={cx(
+                "group min-w-0 rounded-[18px] px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2",
+                communityActive
+                  ? "bg-slate-100/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)]"
+                  : "hover:bg-slate-50",
+              )}
+            >
+              <div
+                className={cx(
+                  "truncate text-[14px] font-bold tracking-[-0.01em] transition duration-150",
+                  communityActive
+                    ? "text-slate-950"
+                    : "text-slate-900 group-hover:text-slate-950",
+                )}
+              >
+                MyLearna Family
+              </div>
+              <div
+                className={cx(
+                  "truncate text-[13px] font-medium tracking-[-0.01em] transition duration-150",
+                  communityActive
+                    ? "text-slate-700"
+                    : "text-slate-500 group-hover:text-slate-700",
+                )}
+              >
+                My Community
+              </div>
+            </Link>
 
             <span
               aria-label="Workspace status"
