@@ -26,6 +26,13 @@ import {
   type ReportSectionStarterBlock,
 } from "@/lib/reportSectionAutofill";
 import {
+  appendStarterToSection,
+  applyStarterToSection,
+  dismissStarterForSection,
+  insertStarterAtTop,
+  replaceSectionContent,
+} from "@/lib/reportSectionActions";
+import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
   reportingModeLabel,
@@ -137,6 +144,9 @@ export default function ReportsOutputPage() {
   const [assembly, setAssembly] = useState<ReportAssemblyWorkspace | null>(null);
   const [mapping, setMapping] = useState<ReportEvidenceMapping | null>(null);
   const [autofill, setAutofill] = useState<ReportSectionAutofillModel | null>(null);
+  const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
+  const [sectionPending, setSectionPending] = useState<Record<string, string>>({});
+  const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let mounted = true;
@@ -149,6 +159,9 @@ export default function ReportsOutputPage() {
           setAssembly(null);
           setMapping(null);
           setAutofill(null);
+          setDismissedSections({});
+          setSectionPending({});
+          setSectionErrors({});
         }
         return;
       }
@@ -182,6 +195,9 @@ export default function ReportsOutputPage() {
         setAssembly(assemblyResult);
         setMapping(mappingResult);
         setAutofill(autofillResult);
+        setDismissedSections({});
+        setSectionPending({});
+        setSectionErrors({});
       }
     }
 
@@ -216,6 +232,100 @@ export default function ReportsOutputPage() {
         }
       />
     );
+  }
+
+  async function runSectionAction(input: {
+    sectionId: string;
+    title: string;
+    order: number;
+    blocks: ReportSectionStarterBlock[];
+    currentContent: string;
+    action:
+      | "use_starter"
+      | "append_starter"
+      | "insert_at_top"
+      | "replace_section";
+  }) {
+    const activeModel = model;
+    const sectionKey = normalizeSectionKey(input.title);
+    if (!activeModel?.reportDocument) return;
+
+    setSectionPending((current) => ({ ...current, [sectionKey]: input.action }));
+    setSectionErrors((current) => ({ ...current, [sectionKey]: "" }));
+
+    try {
+      const common = {
+        reportDocumentId: activeModel.reportDocument.id,
+        sectionId: input.sectionId,
+        title: input.title,
+        order: input.order,
+        starterBlocks: input.blocks,
+        existingContent: input.currentContent,
+      };
+
+      const updated =
+        input.action === "append_starter"
+          ? await appendStarterToSection(common)
+          : input.action === "insert_at_top"
+            ? await insertStarterAtTop(common)
+            : input.action === "replace_section"
+              ? await replaceSectionContent(common)
+              : await applyStarterToSection(common);
+
+      setAssembly((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          sections: current.sections.map((section) =>
+            normalizeSectionKey(section.title) === sectionKey
+              ? {
+                  ...section,
+                  id: updated.id || section.id,
+                  status: updated.status || "in_progress",
+                  contentPreview: updated.content,
+                  hasContent: Boolean(updated.content),
+                  sourceMode: updated.sourceMode || section.sourceMode,
+                  scaffoldOnly: false,
+                }
+              : section,
+          ),
+        };
+      });
+
+      setAutofill((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          sections: current.sections.map((section) =>
+            section.sectionKey === sectionKey
+              ? {
+                  ...section,
+                  status:
+                    input.action === "replace_section" || input.action === "use_starter"
+                      ? "in_progress"
+                      : section.status === "missing"
+                        ? "in_progress"
+                        : section.status,
+                }
+              : section,
+          ),
+        };
+      });
+    } catch (error) {
+      setSectionErrors((current) => ({
+        ...current,
+        [sectionKey]:
+          error instanceof Error
+            ? error.message
+            : "This section could not be updated right now.",
+      }));
+    } finally {
+      setSectionPending((current) => {
+        const next = { ...current };
+        delete next[sectionKey];
+        return next;
+      });
+    }
   }
 
   return (
@@ -351,13 +461,21 @@ export default function ReportsOutputPage() {
           {assembly.sections.length ? (
             <div className="grid gap-3">
               {assembly.sections.map((section) => {
+                const sectionKey = normalizeSectionKey(section.title);
                 const sectionMap =
                   mapping.sections.find((item) => item.title === section.title) ||
-                  mapping.sections.find((item) => item.sectionKey === normalizeSectionKey(section.title));
+                  mapping.sections.find((item) => item.sectionKey === sectionKey);
                 const sectionAutofill =
                   autofill.sections.find((item) => item.title === section.title) ||
-                  autofill.sections.find((item) => item.sectionKey === normalizeSectionKey(section.title));
+                  autofill.sections.find((item) => item.sectionKey === sectionKey);
                 const sectionStatus = sectionMap?.status || "missing";
+                const starterDismissed = Boolean(dismissedSections[sectionKey]);
+                const pendingAction = sectionPending[sectionKey];
+                const sectionError = sectionErrors[sectionKey];
+                const canMutate =
+                  Boolean(sectionAutofill?.blocks.length) &&
+                  !section.locked &&
+                  !pendingAction;
 
                 return (
                   <div
@@ -418,7 +536,7 @@ export default function ReportsOutputPage() {
                         ) : null}
                       </div>
                     ) : null}
-                    {sectionAutofill ? (
+                    {sectionAutofill && !starterDismissed ? (
                       <div className="grid gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="grid gap-1">
@@ -449,6 +567,129 @@ export default function ReportsOutputPage() {
                               `${section.id}-starter-${index + 1}`,
                             ),
                           )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {!section.hasContent ? (
+                            <button
+                              type="button"
+                              disabled={!canMutate}
+                              onClick={() =>
+                                void runSectionAction({
+                                  sectionId: section.id,
+                                  title: section.title,
+                                  order: section.order,
+                                  blocks: sectionAutofill.blocks,
+                                  currentContent: section.contentPreview,
+                                  action: "use_starter",
+                                })
+                              }
+                              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {pendingAction === "use_starter" ? "Using starter..." : "Use starter"}
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                disabled={!canMutate}
+                                onClick={() =>
+                                  void runSectionAction({
+                                    sectionId: section.id,
+                                    title: section.title,
+                                    order: section.order,
+                                    blocks: sectionAutofill.blocks,
+                                    currentContent: section.contentPreview,
+                                    action: "append_starter",
+                                  })
+                                }
+                                className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {pendingAction === "append_starter" ? "Appending..." : "Append starter"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canMutate}
+                                onClick={() =>
+                                  void runSectionAction({
+                                    sectionId: section.id,
+                                    title: section.title,
+                                    order: section.order,
+                                    blocks: sectionAutofill.blocks,
+                                    currentContent: section.contentPreview,
+                                    action: "insert_at_top",
+                                  })
+                                }
+                                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {pendingAction === "insert_at_top" ? "Inserting..." : "Insert at top"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canMutate}
+                                onClick={() => {
+                                  if (!window.confirm("Replace the current section draft with the structured starter content?")) {
+                                    return;
+                                  }
+
+                                  void runSectionAction({
+                                    sectionId: section.id,
+                                    title: section.title,
+                                    order: section.order,
+                                    blocks: sectionAutofill.blocks,
+                                    currentContent: section.contentPreview,
+                                    action: "replace_section",
+                                  });
+                                }}
+                                className="inline-flex items-center justify-center rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {pendingAction === "replace_section" ? "Replacing..." : "Replace section"}
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            disabled={Boolean(pendingAction)}
+                            onClick={() =>
+                              setDismissedSections((current) => ({
+                                ...current,
+                                [dismissStarterForSection(sectionKey)]: true,
+                              }))
+                            }
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            Dismiss suggestions
+                          </button>
+                        </div>
+                        {section.locked ? (
+                          <div className="rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2 text-[13px] leading-6 text-amber-800">
+                            This section is locked, so starter content cannot be promoted here.
+                          </div>
+                        ) : null}
+                        {sectionError ? (
+                          <div className="rounded-[12px] border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] leading-6 text-rose-800">
+                            {sectionError}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {sectionAutofill && starterDismissed ? (
+                      <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-[13px] leading-6 text-slate-600">
+                            Structured starter suggestions are hidden for this section.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDismissedSections((current) => ({
+                                ...current,
+                                [sectionKey]: false,
+                              }))
+                            }
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-50"
+                          >
+                            Show suggestions
+                          </button>
                         </div>
                       </div>
                     ) : null}
