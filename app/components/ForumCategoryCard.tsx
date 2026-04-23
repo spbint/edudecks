@@ -2,7 +2,10 @@
 
 import React from "react";
 import Link from "next/link";
-import { type ForumCategorySummary } from "@/lib/communityForum";
+import {
+  buildCommunityCategoryHref,
+  type ForumCategorySummary,
+} from "@/lib/communityForum";
 
 type ForumCategoryCardProps = {
   category: ForumCategorySummary;
@@ -11,7 +14,7 @@ type ForumCategoryCardProps = {
 export default function ForumCategoryCard({ category }: ForumCategoryCardProps) {
   return (
     <Link
-      href={`/community/category/${category.slug}`}
+      href={buildCommunityCategoryHref(category.slug)}
       style={{
         border: "1px solid #e5e7eb",
         background: "#ffffff",

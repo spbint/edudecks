@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
+  buildCommunityCategoryHref,
+  buildCommunityThreadHref,
   loadCommunityHomeData,
   requireCommunityUserId,
   type ForumCategorySummary,
@@ -11,6 +13,7 @@ import {
 
 type CommunityThreadPreview = {
   id: string;
+  categorySlug?: string;
   title: string;
   replyCount: number;
   relativeTime: string;
@@ -284,7 +287,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
           category.latestThreads.map((thread) => (
             <Link
               key={thread.id}
-              href={`/community/thread/${thread.id}`}
+              href={buildCommunityThreadHref(thread.categorySlug || category.slug, thread.id)}
               style={{
                 textDecoration: "none",
                 border: "1px solid #e2e8f0",
@@ -358,7 +361,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <Link
-          href={hasThreads ? `/community/category/${category.slug}` : composeHref}
+          href={hasThreads ? buildCommunityCategoryHref(category.slug) : composeHref}
           style={{
             border: "1px solid #2563eb",
             background: "#2563eb",
@@ -374,7 +377,7 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
         </Link>
 
         <Link
-          href={`/community/category/${category.slug}`}
+          href={buildCommunityCategoryHref(category.slug)}
           style={{
             border: "1px solid #d1d5db",
             background: "#ffffff",

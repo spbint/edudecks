@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
+  buildCommunityCategoryHref,
+  buildCommunityThreadHref,
   createForumThread,
   loadCommunityHomeData,
   requireCommunityUserId,
@@ -176,7 +178,7 @@ export default function CommunityComposePage() {
         body,
       });
 
-      router.push(`/community/thread/${result.thread.id}`);
+      router.push(buildCommunityThreadHref(selectedCategory.slug, result.thread.id));
     } catch (error) {
       console.error("Create thread failed", error);
       setMessage("That discussion could not be posted right now.");
@@ -229,7 +231,7 @@ export default function CommunityComposePage() {
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Link
-              href={selectedCategory ? `/community/category/${selectedCategory.slug}` : "/community"}
+              href={selectedCategory ? buildCommunityCategoryHref(selectedCategory.slug) : "/community"}
               style={{
                 border: "1px solid #d1d5db",
                 background: "#ffffff",

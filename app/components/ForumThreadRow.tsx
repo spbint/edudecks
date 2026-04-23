@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import {
+  buildCommunityThreadHref,
   getThreadStatusLabel,
   relativeTime,
   type ForumThreadSummary,
@@ -42,7 +43,7 @@ export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
 
   return (
     <Link
-      href={`/community/thread/${thread.id}`}
+      href={buildCommunityThreadHref(thread.categorySlug, thread.id)}
       style={{
         border: "1px solid #e5e7eb",
         background: "#ffffff",
