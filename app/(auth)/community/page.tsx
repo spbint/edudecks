@@ -39,13 +39,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "A calm place for homeschool families to share wins, ask everyday questions, and encourage one another.",
     tone: "Ask, share, encourage",
-    threadCount: 18,
+    threadCount: 0,
     primaryLabel: "Join discussion",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-general-1", title: "What does a calm homeschool morning look like in your home?", replyCount: 7, relativeTime: "3 hours ago" },
-      { id: "fallback-general-2", title: "What helped your family settle into this week well?", replyCount: 4, relativeTime: "1 day ago" },
-    ],
+    latestThreads: [],
   },
   {
     id: "planning-ideas",
@@ -54,13 +51,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "Talk about planning rhythms, year levels, and how families structure learning across the week.",
     tone: "Plan with confidence",
-    threadCount: 24,
+    threadCount: 0,
     primaryLabel: "Join discussion",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-planning-1", title: "How do you plan for multiple children at different ages?", replyCount: 10, relativeTime: "5 hours ago" },
-      { id: "fallback-planning-2", title: "What does a realistic weekly rhythm look like for your family?", replyCount: 6, relativeTime: "2 days ago" },
-    ],
+    latestThreads: [],
   },
   {
     id: "resources-and-ideas",
@@ -69,13 +63,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "Share printable resources, websites, books, games, projects, field trip ideas, and creative learning tools.",
     tone: "Swap useful ideas",
-    threadCount: 31,
+    threadCount: 0,
     primaryLabel: "Share a resource",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-resources-1", title: "Favourite free resources for Year 2 reading and writing?", replyCount: 12, relativeTime: "2 hours ago" },
-      { id: "fallback-resources-2", title: "Which science videos or kits have worked especially well lately?", replyCount: 5, relativeTime: "1 day ago" },
-    ],
+    latestThreads: [],
   },
   {
     id: "homeschool-resources",
@@ -108,12 +99,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "A gentle starting point for families beginning the homeschool journey and wanting practical advice without pressure or noise.",
     tone: "A gentle first step",
-    threadCount: 15,
+    threadCount: 0,
     primaryLabel: "Join discussion",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-starting-1", title: "What should I focus on in my first month of homeschooling?", replyCount: 8, relativeTime: "6 hours ago" },
-    ],
+    latestThreads: [],
   },
   {
     id: "christian-homeschooling",
@@ -122,12 +111,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "Discuss Bible learning, Christian parenting, prayer, memory verses, and how faith shapes homeschool life.",
     tone: "Encourage one another",
-    threadCount: 12,
+    threadCount: 0,
     primaryLabel: "Join discussion",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-faith-1", title: "How do you build a simple Bible rhythm into the week?", replyCount: 4, relativeTime: "1 day ago" },
-    ],
+    latestThreads: [],
   },
   {
     id: "help-shape-edudecks",
@@ -136,12 +123,10 @@ const FALLBACK_CATEGORIES: CommunityCategoryCard[] = [
     description:
       "Help shape MyLearna by sharing feature ideas, pain points, and practical suggestions that would make the platform more helpful.",
     tone: "Help shape MyLearna",
-    threadCount: 9,
+    threadCount: 0,
     primaryLabel: "Help shape MyLearna",
     emptyStateLabel: "Be the first to start this conversation",
-    latestThreads: [
-      { id: "fallback-feature-1", title: "A better way to compare multiple children's weekly plans", replyCount: 3, relativeTime: "8 hours ago" },
-    ],
+    latestThreads: [],
   },
 ];
 
@@ -196,7 +181,13 @@ function normalizeCategory(category: ForumCategorySummary): CommunityCategoryCar
   };
 }
 
-function CategoryCard({ category }: { category: CommunityCategoryCard }) {
+function CategoryCard({
+  category,
+  canStartDiscussion,
+}: {
+  category: CommunityCategoryCard;
+  canStartDiscussion: boolean;
+}) {
   const hasThreads = category.latestThreads.length > 0;
   const composeHref = `/community/new?category=${encodeURIComponent(category.slug)}`;
 
@@ -339,42 +330,75 @@ function CategoryCard({ category }: { category: CommunityCategoryCard }) {
             >
               {category.emptyStateLabel}
             </div>
-            <Link
-              href={composeHref}
-              style={{
-                width: "fit-content",
-                border: "1px solid #d1d5db",
-                background: "#ffffff",
-                color: "#334155",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
-            >
-              Start a discussion
-            </Link>
+            {canStartDiscussion ? (
+              <Link
+                href={composeHref}
+                style={{
+                  width: "fit-content",
+                  border: "1px solid #d1d5db",
+                  background: "#ffffff",
+                  color: "#334155",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                Start a discussion
+              </Link>
+            ) : (
+              <span
+                style={{
+                  width: "fit-content",
+                  border: "1px solid #d1d5db",
+                  background: "#f8fafc",
+                  color: "#64748b",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                }}
+              >
+                Sign in to start a conversation
+              </span>
+            )}
           </div>
         )}
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Link
-          href={hasThreads ? buildCommunityCategoryHref(category.slug) : composeHref}
-          style={{
-            border: "1px solid #2563eb",
-            background: "#2563eb",
-            color: "#ffffff",
-            borderRadius: 10,
-            padding: "10px 14px",
-            fontSize: 14,
-            fontWeight: 800,
-            textDecoration: "none",
-          }}
-        >
-          {hasThreads ? category.primaryLabel : "Start a discussion"}
-        </Link>
+        {hasThreads || canStartDiscussion ? (
+          <Link
+            href={hasThreads ? buildCommunityCategoryHref(category.slug) : composeHref}
+            style={{
+              border: "1px solid #2563eb",
+              background: "#2563eb",
+              color: "#ffffff",
+              borderRadius: 10,
+              padding: "10px 14px",
+              fontSize: 14,
+              fontWeight: 800,
+              textDecoration: "none",
+            }}
+          >
+            {hasThreads ? category.primaryLabel : "Start a discussion"}
+          </Link>
+        ) : (
+          <span
+            style={{
+              border: "1px solid #d1d5db",
+              background: "#f8fafc",
+              color: "#64748b",
+              borderRadius: 10,
+              padding: "10px 14px",
+              fontSize: 14,
+              fontWeight: 800,
+            }}
+          >
+            Sign in to start a conversation
+          </span>
+        )}
 
         <Link
           href={buildCommunityCategoryHref(category.slug)}
@@ -400,9 +424,7 @@ export default function CommunityHomePage() {
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [categories, setCategories] = useState<CommunityCategoryCard[]>(FALLBACK_CATEGORIES);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(
-    "Starter categories are being shown so the community feels ready from first visit.",
-  );
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -415,11 +437,11 @@ export default function CommunityHomePage() {
 
         if (!mounted) return;
 
-        setViewerId(userId ?? "demo-user");
+        setViewerId(userId);
 
         if (!userId) {
           setCategories(FALLBACK_CATEGORIES);
-          setMessage("Starter categories are being shown while live community sign-in settles.");
+          setMessage("Sign in to start a conversation");
           return;
         }
 
@@ -432,16 +454,16 @@ export default function CommunityHomePage() {
           setMessage("");
         } else {
           setCategories(FALLBACK_CATEGORIES);
-          setMessage("Starter categories are being shown while the first live discussions are prepared.");
+          setMessage("");
         }
       } catch (error) {
         console.error("Community home load failed", error);
 
         if (!mounted) return;
 
-        setViewerId("demo-user");
+        setViewerId(null);
         setCategories(FALLBACK_CATEGORIES);
-        setMessage("Starter categories are being shown while the community connection settles.");
+        setMessage("Community data could not be loaded right now.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -462,6 +484,7 @@ export default function CommunityHomePage() {
     ],
     [],
   );
+  const canStartDiscussion = Boolean(viewerId);
 
   return (
     <FamilyTopNavShell
@@ -520,24 +543,40 @@ export default function CommunityHomePage() {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {featuredActions.map((action) => (
-            <Link
-              key={action.label}
-              href={action.href}
+          {canStartDiscussion ? (
+            featuredActions.map((action) => (
+              <Link
+                key={action.label}
+                href={action.href}
+                style={{
+                  border: "1px solid #2563eb",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                {action.label}
+              </Link>
+            ))
+          ) : (
+            <span
               style={{
-                border: "1px solid #2563eb",
-                background: "#2563eb",
-                color: "#ffffff",
+                border: "1px solid #d1d5db",
+                background: "#f8fafc",
+                color: "#64748b",
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 14,
                 fontWeight: 800,
-                textDecoration: "none",
               }}
             >
-              {action.label}
-            </Link>
-          ))}
+              Sign in to start a conversation
+            </span>
+          )}
         </div>
 
         {message ? (
@@ -565,7 +604,7 @@ export default function CommunityHomePage() {
         }}
       >
         {categories.map((category) => (
-          <CategoryCard key={category.id} category={category} />
+          <CategoryCard key={category.id} category={category} canStartDiscussion={canStartDiscussion} />
         ))}
       </section>
 

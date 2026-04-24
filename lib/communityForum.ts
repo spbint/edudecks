@@ -72,14 +72,6 @@ export type ForumThreadSummary = ForumThread & {
   viewerSupports: boolean;
 };
 
-type LocalForumStore = {
-  categories: ForumCategory[];
-  threads: ForumThread[];
-  posts: ForumPost[];
-  supports: ForumThreadSupport[];
-};
-
-const STORAGE_KEY = "edudecks.forum.v3";
 export const FEATURE_CATEGORY_SLUG = "help-shape-edudecks";
 
 const CATEGORY_SEED_DATA = [
@@ -112,16 +104,6 @@ export const DEFAULT_FORUM_CATEGORIES: ForumCategory[] = CATEGORY_SEED_DATA.map(
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function parseJson<T>(value: string | null, fallback: T): T {
-  if (!value) return fallback;
-
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function plainTextSnippet(value: string, maxLength = 180) {
@@ -197,23 +179,6 @@ function normalizeActivityRecord(activity: Partial<ForumThreadActivity>, thread?
   };
 }
 
-function buildLocalActivities(threads: ForumThread[], posts: ForumPost[]) {
-  return threads.map((thread) => {
-    const replies = posts
-      .filter((post) => post.thread_id === thread.id)
-      .sort((a, b) => safe(b.updated_at || b.created_at).localeCompare(safe(a.updated_at || a.created_at)));
-    const latestReply = replies[0] || null;
-    return {
-      thread_id: thread.id,
-      category_id: thread.category_id,
-      reply_count: replies.length,
-      last_activity_at: safe(latestReply?.updated_at || latestReply?.created_at || thread.updated_at || thread.created_at),
-      latest_reply_excerpt: latestReply ? latestReply.excerpt : null,
-      updated_at: safe(latestReply?.updated_at || latestReply?.created_at || thread.updated_at || thread.created_at),
-    } satisfies ForumThreadActivity;
-  });
-}
-
 export function isMissingRelationOrColumn(err: any) {
   const message = String(err?.message ?? "").toLowerCase();
   return message.includes("does not exist") && (message.includes("relation") || message.includes("column"));
@@ -259,43 +224,6 @@ export function buildCommunityCategoryHref(slug: string) {
 
 export function buildCommunityThreadHref(categorySlug: string, threadId: string) {
   return `${buildCommunityCategoryHref(categorySlug)}/${encodeURIComponent(threadId)}`;
-}
-
-export function readLocalForum(): LocalForumStore {
-  if (typeof window === "undefined") {
-    return { categories: DEFAULT_FORUM_CATEGORIES, threads: [], posts: [], supports: [] };
-  }
-
-  const parsed = parseJson<Partial<LocalForumStore>>(window.localStorage.getItem(STORAGE_KEY), {});
-
-  const categories =
-    Array.isArray(parsed.categories) && parsed.categories.length
-      ? parsed.categories.map((category, index) => normalizeCategoryRecord(category, index))
-      : DEFAULT_FORUM_CATEGORIES;
-
-  const threads = Array.isArray(parsed.threads)
-    ? parsed.threads.map((thread) => normalizeThreadRecord(thread))
-    : [];
-
-  const posts = Array.isArray(parsed.posts)
-    ? parsed.posts.map((post) => normalizePostRecord(post))
-    : [];
-
-  const supports = Array.isArray(parsed.supports)
-    ? parsed.supports.map((support) => ({
-        id: safe((support as ForumThreadSupport).id),
-        thread_id: safe((support as ForumThreadSupport).thread_id),
-        user_id: safe((support as ForumThreadSupport).user_id),
-        created_at: safe((support as ForumThreadSupport).created_at) || nowIso(),
-      }))
-    : [];
-
-  return { categories, threads, posts, supports };
-}
-
-export function writeLocalForum(store: LocalForumStore) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
 export async function requireCommunityUserId(): Promise<string | null> {
@@ -407,6 +335,8 @@ async function loadDatabaseCategories() {
 }
 
 async function loadDatabaseActivities(threadIds?: string[]) {
+  if (threadIds && threadIds.length === 0) return [];
+
   let query = supabase
     .from("community_thread_activity")
     .select("thread_id,category_id,reply_count,last_activity_at,latest_reply_excerpt,updated_at");
@@ -424,6 +354,8 @@ async function loadDatabaseActivities(threadIds?: string[]) {
 }
 
 async function loadDatabaseSupports(threadIds?: string[]) {
+  if (threadIds && threadIds.length === 0) return [];
+
   let query = supabase
     .from("community_thread_support")
     .select("id,thread_id,user_id,created_at");
@@ -439,18 +371,12 @@ async function loadDatabaseSupports(threadIds?: string[]) {
 }
 
 export async function loadCommunityHomeData(viewerId: string | null) {
-  const local = readLocalForum();
-
   try {
     const categories = await loadDatabaseCategories();
     if (!categories.length) {
       return {
-        categories: buildCategorySummaries(
-          local.categories,
-          local.threads,
-          buildLocalActivities(local.threads, local.posts),
-        ),
-        source: "local" as const,
+        categories: buildCategorySummaries(DEFAULT_FORUM_CATEGORIES, [], []),
+        source: "default" as const,
       };
     }
 
@@ -478,38 +404,23 @@ export async function loadCommunityHomeData(viewerId: string | null) {
     }
 
     return {
-      categories: buildCategorySummaries(
-        local.categories,
-        local.threads,
-        buildLocalActivities(local.threads, local.posts),
-      ),
-      source: "local" as const,
+      categories: buildCategorySummaries(DEFAULT_FORUM_CATEGORIES, [], []),
+      source: "default" as const,
     };
   }
 }
 
 export async function loadCategoryPageData(slug: string, viewerId: string | null) {
-  const local = readLocalForum();
-  const localCategory = local.categories.find((category) => category.slug === slug) || null;
-
   try {
     const categories = await loadDatabaseCategories();
     const category = categories.find((item) => item.slug === slug) || null;
 
     if (!category) {
-      return localCategory
-        ? {
-            category: localCategory,
-            threads: buildThreadSummaries(
-              local.threads.filter((thread) => thread.category_id === localCategory.id),
-              local.categories,
-              buildLocalActivities(local.threads, local.posts),
-              local.supports,
-              viewerId,
-            ),
-            source: "local" as const,
-          }
-        : { category: null, threads: [], source: "local" as const };
+      return {
+        category: DEFAULT_FORUM_CATEGORIES.find((item) => item.slug === slug) || null,
+        threads: [],
+        source: "default" as const,
+      };
     }
 
     const threadsResp = await supabase
@@ -539,26 +450,15 @@ export async function loadCategoryPageData(slug: string, viewerId: string | null
       console.error("Community category database load failed", error);
     }
 
-    return localCategory
-      ? {
-          category: localCategory,
-          threads: buildThreadSummaries(
-            local.threads.filter((thread) => thread.category_id === localCategory.id),
-            local.categories,
-            buildLocalActivities(local.threads, local.posts),
-            local.supports,
-            viewerId,
-          ),
-          source: "local" as const,
-        }
-      : { category: null, threads: [], source: "local" as const };
+    return {
+      category: DEFAULT_FORUM_CATEGORIES.find((item) => item.slug === slug) || null,
+      threads: [],
+      source: "default" as const,
+    };
   }
 }
 
 export async function loadThreadPageData(id: string, viewerId: string | null) {
-  const local = readLocalForum();
-  const localThread = local.threads.find((thread) => thread.id === id) || null;
-
   try {
     const threadResp = await supabase
       .from("community_threads")
@@ -570,32 +470,7 @@ export async function loadThreadPageData(id: string, viewerId: string | null) {
 
     const thread = threadResp.data ? normalizeThreadRecord(threadResp.data as Partial<ForumThread>) : null;
     if (!thread) {
-      return localThread
-        ? {
-            thread: {
-              ...localThread,
-              categorySlug:
-                local.categories.find((category) => category.id === localThread.category_id)?.slug || "",
-              authorLabel: memberLabel(localThread.user_id, viewerId),
-              replyCount: local.posts.filter((post) => post.thread_id === localThread.id).length,
-              latestActivityAt: safe(localThread.updated_at || localThread.created_at),
-              latestActivityText: `Started ${relativeTime(localThread.created_at)}`,
-              supportCount: local.supports.filter((support) => support.thread_id === localThread.id).length,
-              viewerSupports: local.supports.some(
-                (support) => support.thread_id === localThread.id && support.user_id === viewerId,
-              ),
-            },
-            replies: local.posts
-              .filter((post) => post.thread_id === localThread.id)
-              .sort((a, b) => safe(a.created_at).localeCompare(safe(b.created_at)))
-              .map((post) => ({
-                ...post,
-                authorLabel: memberLabel(post.user_id, viewerId),
-              })),
-            category: local.categories.find((category) => category.id === localThread.category_id) || null,
-            source: "local" as const,
-          }
-        : { thread: null, replies: [], category: null, source: "local" as const };
+      return { thread: null, replies: [], category: null, source: "database" as const };
     }
 
     const [categories, repliesResp, activities, supports] = await Promise.all([
@@ -640,32 +515,7 @@ export async function loadThreadPageData(id: string, viewerId: string | null) {
       console.error("Community thread database load failed", error);
     }
 
-    return localThread
-      ? {
-          thread: {
-            ...localThread,
-            categorySlug:
-              local.categories.find((category) => category.id === localThread.category_id)?.slug || "",
-            authorLabel: memberLabel(localThread.user_id, viewerId),
-            replyCount: local.posts.filter((post) => post.thread_id === localThread.id).length,
-            latestActivityAt: safe(localThread.updated_at || localThread.created_at),
-            latestActivityText: `Started ${relativeTime(localThread.created_at)}`,
-            supportCount: local.supports.filter((support) => support.thread_id === localThread.id).length,
-            viewerSupports: local.supports.some(
-              (support) => support.thread_id === localThread.id && support.user_id === viewerId,
-            ),
-          },
-          replies: local.posts
-            .filter((post) => post.thread_id === localThread.id)
-            .sort((a, b) => safe(a.created_at).localeCompare(safe(b.created_at)))
-            .map((post) => ({
-              ...post,
-              authorLabel: memberLabel(post.user_id, viewerId),
-            })),
-          category: local.categories.find((category) => category.id === localThread.category_id) || null,
-          source: "local" as const,
-        }
-      : { thread: null, replies: [], category: null, source: "local" as const };
+    return { thread: null, replies: [], category: null, source: "database" as const };
   }
 }
 
@@ -702,18 +552,7 @@ export async function loadThreadRouteMeta(id: string) {
     }
   }
 
-  const local = readLocalForum();
-  const thread = local.threads.find((item) => item.id === id);
-  if (!thread) return null;
-
-  const categorySlug = local.categories.find((category) => category.id === thread.category_id)?.slug || "";
-  if (!categorySlug) return null;
-
-  return {
-    threadId: thread.id,
-    categorySlug,
-    href: buildCommunityThreadHref(categorySlug, thread.id),
-  };
+  return null;
 }
 
 export async function createForumThread(input: {
@@ -722,6 +561,10 @@ export async function createForumThread(input: {
   title: string;
   body: string;
 }) {
+  if (!safe(input.viewerId)) {
+    throw new Error("Sign in to start a conversation.");
+  }
+
   const payload = {
     category_id: input.category.id,
     user_id: input.viewerId,
@@ -746,27 +589,7 @@ export async function createForumThread(input: {
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community thread create failed", error);
     }
-
-    const local = readLocalForum();
-    const nextThread: ForumThread = {
-      id: `local-thread-${Date.now()}`,
-      category_id: input.category.id,
-      user_id: input.viewerId,
-      title: safe(input.title),
-      body: safe(input.body),
-      excerpt: plainTextSnippet(input.body),
-      is_pinned: false,
-      status: null,
-      created_at: nowIso(),
-      updated_at: nowIso(),
-    };
-
-    writeLocalForum({
-      ...local,
-      threads: [nextThread, ...local.threads],
-    });
-
-    return { thread: nextThread, source: "local" as const };
+    throw error;
   }
 }
 
@@ -775,6 +598,10 @@ export async function createForumReply(input: {
   threadId: string;
   body: string;
 }) {
+  if (!safe(input.viewerId)) {
+    throw new Error("Sign in to reply.");
+  }
+
   const payload = {
     thread_id: input.threadId,
     user_id: input.viewerId,
@@ -796,29 +623,7 @@ export async function createForumReply(input: {
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community reply create failed", error);
     }
-
-    const local = readLocalForum();
-    const nextPost: ForumPost = {
-      id: `local-post-${Date.now()}`,
-      thread_id: input.threadId,
-      user_id: input.viewerId,
-      body: safe(input.body),
-      excerpt: plainTextSnippet(input.body),
-      created_at: nowIso(),
-      updated_at: nowIso(),
-    };
-
-    writeLocalForum({
-      ...local,
-      posts: [...local.posts, nextPost],
-      threads: local.threads.map((thread) =>
-        thread.id === input.threadId
-          ? { ...thread, updated_at: nextPost.updated_at }
-          : thread,
-      ),
-    });
-
-    return { post: nextPost, source: "local" as const };
+    throw error;
   }
 }
 
@@ -826,6 +631,10 @@ export async function supportForumThread(input: {
   viewerId: string;
   threadId: string;
 }) {
+  if (!safe(input.viewerId)) {
+    throw new Error("Sign in to support this idea.");
+  }
+
   try {
     const existingResp = await supabase
       .from("community_thread_support")
@@ -861,32 +670,6 @@ export async function supportForumThread(input: {
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community thread support failed", error);
     }
-
-    const local = readLocalForum();
-    const existing = local.supports.find(
-      (support) => support.thread_id === input.threadId && support.user_id === input.viewerId,
-    );
-
-    if (existing) {
-      return { alreadySupported: true, source: "local" as const };
-    }
-
-    const nextSupport: ForumThreadSupport = {
-      id: `local-support-${Date.now()}`,
-      thread_id: input.threadId,
-      user_id: input.viewerId,
-      created_at: nowIso(),
-    };
-
-    writeLocalForum({
-      ...local,
-      supports: [...local.supports, nextSupport],
-    });
-
-    return {
-      support: nextSupport,
-      alreadySupported: false,
-      source: "local" as const,
-    };
+    throw error;
   }
 }

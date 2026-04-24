@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -57,62 +57,6 @@ function statusBadge(status: ForumThreadStatus): React.CSSProperties {
   return { border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#166534" };
 }
 
-function fallbackThread(
-  categorySlug: string,
-  id: string,
-): { category: ForumCategory; thread: ThreadView; replies: ReplyView[] } {
-  return {
-    category: {
-      id: categorySlug || "general-discussion",
-      slug: categorySlug || "general-discussion",
-      name: categorySlug === "help-shape-edudecks" ? "Help Shape MyLearna" : "General Discussion",
-      description: "A calm place for homeschool families to talk through everyday learning and family life.",
-      created_at: new Date().toISOString(),
-    },
-    thread: {
-      id,
-      category_id: categorySlug || "general-discussion",
-      categorySlug: categorySlug || "general-discussion",
-      user_id: "demo-user",
-      title: "Welcome to the MyLearna community",
-      body:
-        "This is a preview thread so the community space feels alive from first click.\n\nFamilies can share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
-      excerpt: "This is a preview thread so the community space feels alive from first click.",
-      is_pinned: true,
-      status: "under_review",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      authorLabel: "MyLearna Community",
-      replyCount: 2,
-      latestActivityAt: new Date().toISOString(),
-      supportCount: 0,
-      viewerSupports: false,
-    },
-    replies: [
-      {
-        id: "reply-1",
-        thread_id: id,
-        user_id: "demo-user-2",
-        body: "I love the idea of having a forum that feels calm and practical rather than noisy.",
-        excerpt: "I love the idea of having a forum that feels calm and practical rather than noisy.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        authorLabel: "Homeschool parent",
-      },
-      {
-        id: "reply-2",
-        thread_id: id,
-        user_id: "demo-user-3",
-        body: "A category for resources and another for new homeschoolers would be especially useful.",
-        excerpt: "A category for resources and another for new homeschoolers would be especially useful.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        authorLabel: "MyLearna family",
-      },
-    ],
-  };
-}
-
 export default function CommunityThreadPage() {
   const params = useParams<{ categorySlug: string; threadId: string }>();
   const categorySlug = String(params?.categorySlug ?? "");
@@ -128,8 +72,6 @@ export default function CommunityThreadPage() {
   const [supporting, setSupporting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const previewMode = useMemo(() => !viewerId || viewerId === "demo-user", [viewerId]);
-
   useEffect(() => {
     let mounted = true;
 
@@ -139,16 +81,7 @@ export default function CommunityThreadPage() {
 
         if (!mounted) return;
 
-        setViewerId(userId ?? "demo-user");
-
-        if (!userId) {
-          const preview = fallbackThread(categorySlug, threadId);
-          setThread(preview.thread);
-          setReplies(preview.replies);
-          setCategory(preview.category);
-          setLoading(false);
-          return;
-        }
+        setViewerId(userId);
 
         const data = await loadThreadPageData(threadId, userId);
 
@@ -159,19 +92,17 @@ export default function CommunityThreadPage() {
           setReplies((data.replies as ReplyView[]) ?? []);
           setCategory(data.category);
         } else {
-          const preview = fallbackThread(categorySlug, threadId);
-          setThread(preview.thread);
-          setReplies(preview.replies);
-          setCategory(preview.category);
+          setThread(null);
+          setReplies([]);
+          setCategory(null);
         }
       } catch (error) {
         console.error("Community thread load failed", error);
         if (!mounted) return;
-        const preview = fallbackThread(categorySlug, threadId);
-        setViewerId("demo-user");
-        setThread(preview.thread);
-        setReplies(preview.replies);
-        setCategory(preview.category);
+        setViewerId(null);
+        setThread(null);
+        setReplies([]);
+        setCategory(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -186,38 +117,12 @@ export default function CommunityThreadPage() {
 
   async function handleReply() {
     if (!thread) return;
-    if (!replyBody.trim()) {
-      setMessage("Write a reply first.");
+    if (!viewerId) {
+      setMessage("Sign in to reply");
       return;
     }
-
-    if (previewMode) {
-      const nextTimestamp = new Date().toISOString();
-      setReplies((current) => [
-        ...current,
-        {
-          id: `preview-reply-${Date.now()}`,
-          thread_id: thread.id,
-          user_id: "demo-user",
-          body: replyBody,
-          excerpt: replyBody,
-          created_at: nextTimestamp,
-          updated_at: nextTimestamp,
-          authorLabel: "You",
-        },
-      ]);
-      setThread((current) =>
-        current
-          ? {
-              ...current,
-              replyCount: current.replyCount + 1,
-              latestActivityAt: nextTimestamp,
-              updated_at: nextTimestamp,
-            }
-          : current,
-      );
-      setReplyBody("");
-      setMessage("Preview reply added. Live posting will work once community sign-in is connected.");
+    if (!replyBody.trim()) {
+      setMessage("Write a reply first.");
       return;
     }
 
@@ -257,12 +162,8 @@ export default function CommunityThreadPage() {
 
   async function handleSupport() {
     if (!thread || thread.viewerSupports) return;
-
-    if (previewMode) {
-      setThread((current) =>
-        current ? { ...current, supportCount: current.supportCount + 1, viewerSupports: true } : current,
-      );
-      setMessage("Preview support recorded.");
+    if (!viewerId) {
+      setMessage("Sign in to support this idea.");
       return;
     }
 
@@ -295,6 +196,7 @@ export default function CommunityThreadPage() {
   const statusLabel = getThreadStatusLabel(thread?.status ?? null);
   const isFeatureCategory = isFeatureSuggestionCategory(category);
   const backHref = category ? buildCommunityCategoryHref(category.slug) : buildCommunityCategoryHref(categorySlug);
+  const canReply = Boolean(viewerId);
 
   return (
     <FamilyTopNavShell
@@ -442,20 +344,27 @@ export default function CommunityThreadPage() {
                 <button
                   type="button"
                   onClick={() => void handleSupport()}
-                  disabled={thread.viewerSupports || supporting}
+                  disabled={thread.viewerSupports || supporting || !viewerId}
                   style={{
-                    border: thread.viewerSupports ? "1px solid #bbf7d0" : "1px solid #2563eb",
-                    background: thread.viewerSupports ? "#f0fdf4" : "#2563eb",
-                    color: thread.viewerSupports ? "#166534" : "#ffffff",
+                    border:
+                      thread.viewerSupports || !viewerId ? "1px solid #d1d5db" : "1px solid #2563eb",
+                    background: thread.viewerSupports ? "#f0fdf4" : !viewerId ? "#f8fafc" : "#2563eb",
+                    color: thread.viewerSupports ? "#166534" : !viewerId ? "#64748b" : "#ffffff",
                     borderRadius: 10,
                     padding: "10px 14px",
                     fontSize: 14,
                     fontWeight: 800,
-                    cursor: thread.viewerSupports ? "default" : "pointer",
-                    opacity: supporting ? 0.8 : 1,
+                    cursor: thread.viewerSupports || !viewerId ? "default" : "pointer",
+                    opacity: supporting || !viewerId ? 0.8 : 1,
                   }}
                 >
-                  {thread.viewerSupports ? "You support this idea" : supporting ? "Saving..." : "Support this idea"}
+                  {!viewerId
+                    ? "Sign in to support this idea"
+                    : thread.viewerSupports
+                      ? "You support this idea"
+                      : supporting
+                        ? "Saving..."
+                        : "Support this idea"}
                 </button>
               </div>
             ) : null}
@@ -501,8 +410,11 @@ export default function CommunityThreadPage() {
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
               rows={5}
+              disabled={!canReply || replying}
               placeholder={
-                isFeatureCategory
+                !canReply
+                  ? "Sign in to reply"
+                  : isFeatureCategory
                   ? "Add a thoughtful reply or build on the idea"
                   : "Add a thoughtful reply"
               }
@@ -513,7 +425,7 @@ export default function CommunityThreadPage() {
                 padding: "12px 14px",
                 fontSize: 14,
                 lineHeight: 1.6,
-                background: "#ffffff",
+                background: canReply ? "#ffffff" : "#f8fafc",
                 resize: "vertical",
               }}
             />
@@ -524,20 +436,20 @@ export default function CommunityThreadPage() {
               <button
                 type="button"
                 onClick={() => void handleReply()}
-                disabled={replying}
+                disabled={!canReply || replying}
                 style={{
-                  border: "1px solid #2563eb",
-                  background: "#2563eb",
-                  color: "#ffffff",
+                  border: canReply ? "1px solid #2563eb" : "1px solid #d1d5db",
+                  background: canReply ? "#2563eb" : "#f8fafc",
+                  color: canReply ? "#ffffff" : "#64748b",
                   borderRadius: 10,
                   padding: "10px 14px",
                   fontSize: 14,
                   fontWeight: 800,
-                  cursor: replying ? "wait" : "pointer",
-                  opacity: replying ? 0.8 : 1,
+                  cursor: !canReply ? "default" : replying ? "wait" : "pointer",
+                  opacity: replying || !canReply ? 0.8 : 1,
                 }}
               >
-                {replying ? "Posting..." : "Post reply"}
+                {!canReply ? "Sign in to reply" : replying ? "Posting..." : "Post reply"}
               </button>
             </div>
           </section>

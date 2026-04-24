@@ -87,10 +87,11 @@ export default function CommunityComposePage() {
 
         if (!mounted) return;
 
-        setViewerId(userId ?? "demo-user");
+        setViewerId(userId);
 
         if (!userId) {
           setCategories(FALLBACK_OPTIONS);
+          setMessage("Sign in to start a conversation");
           return;
         }
 
@@ -105,8 +106,9 @@ export default function CommunityComposePage() {
       } catch (error) {
         console.error("Community compose load failed", error);
         if (!mounted) return;
-        setViewerId("demo-user");
+        setViewerId(null);
         setCategories(FALLBACK_OPTIONS);
+        setMessage("Community categories could not be loaded right now.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -121,6 +123,7 @@ export default function CommunityComposePage() {
 
   const selectedCategory =
     categories.find((category) => category.slug === categorySlug) || categories[0] || FALLBACK_OPTIONS[0];
+  const canPost = Boolean(viewerId);
 
   const composerTitle =
     selectedCategory.slug === "help-shape-edudecks"
@@ -144,6 +147,11 @@ export default function CommunityComposePage() {
         : "Write your opening post";
 
   async function handleSubmit() {
+    if (!viewerId) {
+      setMessage("Sign in to start a conversation");
+      return;
+    }
+
     if (!title.trim()) {
       setMessage("Add a title first.");
       return;
@@ -151,11 +159,6 @@ export default function CommunityComposePage() {
 
     if (!body.trim()) {
       setMessage("Add a message before posting.");
-      return;
-    }
-
-    if (!viewerId || viewerId === "demo-user") {
-      setMessage("Preview mode is active. Live posting will work once community sign-in is connected.");
       return;
     }
 
@@ -254,7 +257,7 @@ export default function CommunityComposePage() {
             <select
               value={categorySlug}
               onChange={(event) => setCategorySlug(event.target.value)}
-              disabled={loading}
+              disabled={loading || !canPost}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -278,13 +281,14 @@ export default function CommunityComposePage() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder={titlePlaceholder}
+              disabled={!canPost}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
                 borderRadius: 12,
                 padding: "12px 14px",
                 fontSize: 14,
-                background: "#ffffff",
+                background: canPost ? "#ffffff" : "#f8fafc",
               }}
             />
           </label>
@@ -296,6 +300,7 @@ export default function CommunityComposePage() {
               onChange={(event) => setBody(event.target.value)}
               rows={7}
               placeholder={bodyPlaceholder}
+              disabled={!canPost}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -303,7 +308,7 @@ export default function CommunityComposePage() {
                 padding: "12px 14px",
                 fontSize: 14,
                 lineHeight: 1.6,
-                background: "#ffffff",
+                background: canPost ? "#ffffff" : "#f8fafc",
                 resize: "vertical",
               }}
             />
@@ -317,20 +322,20 @@ export default function CommunityComposePage() {
             <button
               type="button"
               onClick={() => void handleSubmit()}
-              disabled={saving}
+              disabled={saving || loading || !canPost}
               style={{
-                border: "1px solid #2563eb",
-                background: "#2563eb",
-                color: "#ffffff",
+                border: canPost ? "1px solid #2563eb" : "1px solid #d1d5db",
+                background: canPost ? "#2563eb" : "#f8fafc",
+                color: canPost ? "#ffffff" : "#64748b",
                 borderRadius: 10,
                 padding: "10px 14px",
                 fontSize: 14,
                 fontWeight: 800,
-                cursor: saving ? "wait" : "pointer",
-                opacity: saving ? 0.8 : 1,
+                cursor: !canPost ? "default" : saving ? "wait" : "pointer",
+                opacity: saving || !canPost ? 0.8 : 1,
               }}
             >
-              {saving ? "Posting..." : "Post discussion"}
+              {!canPost ? "Sign in to start a conversation" : saving ? "Posting..." : "Post discussion"}
             </button>
           </div>
         </div>

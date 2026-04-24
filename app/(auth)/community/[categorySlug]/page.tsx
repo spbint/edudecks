@@ -13,38 +13,6 @@ import {
   type ForumThreadSummary,
 } from "@/lib/communityForum";
 
-type FallbackThread = ForumThreadSummary & {
-  authorLabel?: string;
-  latestActivityText?: string;
-  viewerSupports?: boolean;
-};
-
-function makeFallbackThread(
-  thread: Omit<
-    FallbackThread,
-    "user_id" | "authorLabel" | "latestActivityText" | "viewerSupports" | "excerpt" | "categorySlug" | "latestActivityAt"
-  > & {
-    user_id?: string;
-    authorLabel?: string;
-    latestActivityText?: string;
-    viewerSupports?: boolean;
-    excerpt?: string;
-    categorySlug?: string;
-    latestActivityAt?: string;
-  },
-): FallbackThread {
-  return {
-    ...thread,
-    user_id: thread.user_id ?? "demo-user",
-    excerpt: thread.excerpt ?? thread.body,
-    categorySlug: thread.categorySlug ?? String(thread.category_id),
-    authorLabel: thread.authorLabel ?? "MyLearna Community",
-    latestActivityText: thread.latestActivityText ?? "No replies yet",
-    latestActivityAt: thread.latestActivityAt ?? thread.updated_at,
-    viewerSupports: thread.viewerSupports ?? false,
-  };
-}
-
 const CATEGORY_FALLBACKS: Record<
   string,
   {
@@ -52,7 +20,6 @@ const CATEGORY_FALLBACKS: Record<
     description: string;
     emptyTitle: string;
     emptyText: string;
-    starterThreads: FallbackThread[];
   }
 > = {
   "general-discussion": {
@@ -62,22 +29,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Be the first to start this conversation",
     emptyText:
       "This is the place for everyday homeschool conversation, practical questions, and warm encouragement.",
-    starterThreads: [
-      makeFallbackThread({
-        id: "sample-general-1",
-        category_id: "general-discussion",
-        categorySlug: "general-discussion",
-        title: "What does a calm homeschool morning look like for your family?",
-        body: "Share one thing that helps the day begin well.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        replyCount: 0,
-        is_pinned: true,
-        status: "under_review",
-        supportCount: 0,
-        authorLabel: "MyLearna Community",
-      }),
-    ],
   },
   "planning-ideas": {
     name: "Planning Ideas",
@@ -86,22 +37,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Start the first planning discussion",
     emptyText:
       "Ask about weekly planning, year levels, and how other families organise their learning.",
-    starterThreads: [
-      makeFallbackThread({
-        id: "sample-plan-1",
-        category_id: "planning-ideas",
-        categorySlug: "planning-ideas",
-        title: "How do you plan for multiple children at different ages?",
-        body: "Share routines, tools, or simple systems that actually help.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        replyCount: 0,
-        is_pinned: true,
-        status: "under_review",
-        supportCount: 0,
-        authorLabel: "MyLearna Community",
-      }),
-    ],
   },
   "homeschool-resources": {
     name: "Homeschool Resources",
@@ -110,7 +45,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Be the first to share a helpful resource",
     emptyText:
       "Useful recommendations, printables, tools, and curriculum ideas can begin here.",
-    starterThreads: [],
   },
   "classical-education": {
     name: "Classical Education",
@@ -119,7 +53,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Start the first classical education discussion",
     emptyText:
       "A calm place to discuss classical approaches, great books, memory work, and structured rhythms.",
-    starterThreads: [],
   },
   "getting-started": {
     name: "Getting Started",
@@ -128,22 +61,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Ask the first beginner question",
     emptyText:
       "This category is for new families who need a simple, safe starting point.",
-    starterThreads: [
-      makeFallbackThread({
-        id: "sample-new-1",
-        category_id: "getting-started",
-        categorySlug: "getting-started",
-        title: "What should I focus on first in my first month of homeschooling?",
-        body: "Share simple advice for families just getting started.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        replyCount: 0,
-        is_pinned: true,
-        status: "under_review",
-        supportCount: 0,
-        authorLabel: "MyLearna Community",
-      }),
-    ],
   },
   "christian-homeschooling": {
     name: "Christian Homeschooling",
@@ -152,22 +69,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Start the first faith discussion",
     emptyText:
       "A gentle space for Christian homeschool families to share faith-based ideas and encouragement.",
-    starterThreads: [
-      makeFallbackThread({
-        id: "sample-faith-1",
-        category_id: "christian-homeschooling",
-        categorySlug: "christian-homeschooling",
-        title: "What has helped your family build a simple Bible routine?",
-        body: "Share practical ideas for keeping Christ central in the week.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        replyCount: 0,
-        is_pinned: true,
-        status: "under_review",
-        supportCount: 0,
-        authorLabel: "MyLearna Community",
-      }),
-    ],
   },
   "help-shape-edudecks": {
     name: "Help Shape MyLearna",
@@ -176,22 +77,6 @@ const CATEGORY_FALLBACKS: Record<
     emptyTitle: "Share the first MyLearna idea",
     emptyText:
       "Tell us what would help your family most and why it matters.",
-    starterThreads: [
-      makeFallbackThread({
-        id: "sample-feature-1",
-        category_id: "help-shape-edudecks",
-        categorySlug: "help-shape-edudecks",
-        title: "A better way to compare multiple children's weekly plans",
-        body: "This could help families with more than one learner see the whole week at a glance.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        replyCount: 0,
-        is_pinned: true,
-        status: "under_review",
-        supportCount: 3,
-        authorLabel: "MyLearna Community",
-      }),
-    ],
   },
 };
 
@@ -204,7 +89,6 @@ function getFallbackCategory(slug: string) {
       emptyTitle: "Start the first discussion",
       emptyText:
         "This category is ready for the first thoughtful conversation.",
-      starterThreads: [],
     }
   );
 }
@@ -215,6 +99,7 @@ export default function CommunityCategoryPage() {
 
   const [category, setCategory] = useState<ForumCategory | null>(null);
   const [threads, setThreads] = useState<ForumThreadSummary[]>([]);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fallback = useMemo(() => getFallbackCategory(slug), [slug]);
@@ -226,10 +111,11 @@ export default function CommunityCategoryPage() {
     async function load() {
       try {
         const userId = await requireCommunityUserId();
-        const data = await loadCategoryPageData(slug, userId ?? "demo-user");
+        const data = await loadCategoryPageData(slug, userId);
 
         if (!mounted) return;
 
+        setViewerId(userId);
         setCategory(
           data.category ||
             ({
@@ -244,13 +130,14 @@ export default function CommunityCategoryPage() {
         if (data.threads?.length) {
           setThreads(data.threads);
         } else {
-          setThreads(fallback.starterThreads);
+          setThreads([]);
         }
       } catch (error) {
         console.error("Community category load failed", error);
 
         if (!mounted) return;
 
+        setViewerId(null);
         setCategory({
           id: slug,
           slug,
@@ -258,7 +145,7 @@ export default function CommunityCategoryPage() {
           description: fallback.description,
           created_at: new Date().toISOString(),
         } as ForumCategory);
-        setThreads(fallback.starterThreads);
+        setThreads([]);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -269,7 +156,7 @@ export default function CommunityCategoryPage() {
     return () => {
       mounted = false;
     };
-  }, [fallback.description, fallback.name, fallback.starterThreads, slug]);
+  }, [fallback.description, fallback.name, slug]);
 
   const resolvedCategory = category || ({
     id: slug,
@@ -279,6 +166,7 @@ export default function CommunityCategoryPage() {
     created_at: new Date().toISOString(),
   } as ForumCategory);
   const isFeatureCategory = isFeatureSuggestionCategory(resolvedCategory);
+  const canStartDiscussion = Boolean(viewerId);
 
   return (
     <FamilyTopNavShell
@@ -339,21 +227,38 @@ export default function CommunityCategoryPage() {
             >
               Back to categories
             </Link>
-            <Link
-              href={composeHref}
-              style={{
-                border: "1px solid #2563eb",
-                background: "#2563eb",
-                color: "#ffffff",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
-            >
-              {isFeatureCategory ? "Start a discussion" : "Start a discussion"}
-            </Link>
+            {canStartDiscussion ? (
+              <Link
+                href={composeHref}
+                style={{
+                  border: "1px solid #2563eb",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                }}
+              >
+                {isFeatureCategory ? "Start a discussion" : "Start a discussion"}
+              </Link>
+            ) : (
+              <span
+                style={{
+                  border: "1px solid #d1d5db",
+                  background: "#f8fafc",
+                  color: "#64748b",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  display: "inline-flex",
+                }}
+              >
+                Sign in to start a conversation
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -389,22 +294,39 @@ export default function CommunityCategoryPage() {
             {fallback.emptyText}
           </div>
           <div>
-            <Link
-              href={composeHref}
-              style={{
-                border: "1px solid #2563eb",
-                background: "#2563eb",
-                color: "#ffffff",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                textDecoration: "none",
-                display: "inline-flex",
-              }}
-            >
-              Start a discussion
-            </Link>
+            {canStartDiscussion ? (
+              <Link
+                href={composeHref}
+                style={{
+                  border: "1px solid #2563eb",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  textDecoration: "none",
+                  display: "inline-flex",
+                }}
+              >
+                Start a discussion
+              </Link>
+            ) : (
+              <span
+                style={{
+                  border: "1px solid #d1d5db",
+                  background: "#f8fafc",
+                  color: "#64748b",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  display: "inline-flex",
+                }}
+              >
+                Sign in to start a conversation
+              </span>
+            )}
           </div>
         </section>
       ) : (
