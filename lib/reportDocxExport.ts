@@ -3,6 +3,7 @@ import {
   Document,
   HeadingLevel,
   Packer,
+  PageBreak,
   Paragraph,
   TextRun,
   type IParagraphOptions,
@@ -41,7 +42,7 @@ function sanitizeFilename(title: string) {
 
 function metadataParagraph(label: string, value: string) {
   return new Paragraph({
-    spacing: { after: 120 },
+    spacing: { after: 90 },
     children: [
       new TextRun({ text: `${label}: `, bold: true }),
       new TextRun({ text: value || "Not available" }),
@@ -57,6 +58,49 @@ function sectionHeading(
     text,
     heading: level,
     spacing: { before: 240, after: 120 },
+  });
+}
+
+function spacer(size = 120) {
+  return new Paragraph({
+    spacing: { after: size },
+    children: [],
+  });
+}
+
+function divider() {
+  return new Paragraph({
+    border: {
+      bottom: {
+        color: "D7DFE8",
+        space: 1,
+        size: 6,
+        style: "single",
+      },
+    },
+    spacing: { after: 120 },
+  });
+}
+
+function cardTitle(text: string) {
+  return new Paragraph({
+    text,
+    heading: HeadingLevel.HEADING_2,
+    spacing: { before: 120, after: 60 },
+    shading: {
+      fill: "F8FAFC",
+      color: "auto",
+      type: "clear",
+    },
+    border: {
+      left: {
+        color: "CBD5E1",
+        space: 1,
+        size: 12,
+        style: "single",
+      },
+    },
+    indent: { left: 120, right: 120 },
   });
 }
 
@@ -126,8 +170,14 @@ export function buildAuthorityDocxDocument(model: ReportExportModel) {
       text: model.reportTitle || "Authority Report",
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
-      spacing: { after: 240 },
+      spacing: { after: 180 },
     }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 220 },
+      children: [new TextRun({ italics: true, text: "Validated report export" })],
+    }),
+    cardTitle("Report metadata"),
     metadataParagraph("Learner", model.learnerName),
     metadataParagraph(
       "Jurisdiction",
@@ -137,11 +187,20 @@ export function buildAuthorityDocxDocument(model: ReportExportModel) {
       "Reporting period",
       model.reportingPeriodLabel || "Not available",
     ),
+    divider(),
   ];
 
-  model.sections.forEach((section) => {
+  model.sections.forEach((section, index) => {
+    if (index > 0) {
+      children.push(
+        new Paragraph({
+          children: [new PageBreak()],
+        }),
+      );
+    }
     children.push(sectionHeading(section.title));
     children.push(...plainTextToDocxParagraphs(section.contentHtml));
+    children.push(spacer(50));
   });
 
   return new Document({
@@ -184,45 +243,53 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
       text: "Learning Portfolio",
       heading: HeadingLevel.TITLE,
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { after: 120 },
     }),
     new Paragraph({
-      text: model.learnerName,
       alignment: AlignmentType.CENTER,
-      spacing: { after: 200 },
+      spacing: { after: 120 },
+      children: [
+        new TextRun({
+          text: model.learnerName,
+          bold: true,
+          size: 30,
+        }),
+      ],
     }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 180 },
+      children: [
+        new TextRun({
+          text: "A record of learning, growth, projects, and reflections.",
+          italics: true,
+          color: "8B5E3C",
+        }),
+      ],
+    }),
+    cardTitle("Portfolio overview"),
     metadataParagraph(
       "Reporting period",
       model.reportingPeriodLabel || "Current learning record",
     ),
+    divider(),
   ];
 
   if (portfolioContent.highlights.length) {
     children.push(sectionHeading("Learning Highlights"));
     portfolioContent.highlights.forEach((item) => {
-      children.push(
-        new Paragraph({
-          text: item.title,
-          heading: HeadingLevel.HEADING_2,
-          spacing: { after: 80 },
-        }),
-      );
+      children.push(cardTitle(item.title));
       children.push(
         ...plainTextToDocxParagraphs(item.description || "Saved learning highlight."),
       );
+      children.push(spacer(40));
     });
   }
 
   if (portfolioContent.workSamples.length) {
     children.push(sectionHeading("Projects and Work Samples"));
     portfolioContent.workSamples.forEach((item) => {
-      children.push(
-        new Paragraph({
-          text: item.title,
-          heading: HeadingLevel.HEADING_2,
-          spacing: { after: 80 },
-        }),
-      );
+      children.push(cardTitle(item.title));
       if (item.subjectLabel) {
         children.push(metadataParagraph("Subject", item.subjectLabel));
       }
@@ -231,6 +298,7 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
           item.description || "Saved work sample from the portfolio record.",
         ),
       );
+      children.push(spacer(40));
     });
   }
 
@@ -245,6 +313,7 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
         }),
       );
     });
+    children.push(spacer(40));
   }
 
   if (portfolioContent.reflections.length) {
@@ -258,18 +327,19 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
         }),
       );
     });
+    children.push(spacer(40));
   }
 
+  children.push(
+    new Paragraph({
+      children: [new PageBreak()],
+    }),
+  );
   children.push(sectionHeading("Saved Portfolio Sections"));
   model.sections.forEach((section) => {
-    children.push(
-      new Paragraph({
-        text: section.title,
-        heading: HeadingLevel.HEADING_2,
-        spacing: { after: 80 },
-      }),
-    );
+    children.push(cardTitle(section.title));
     children.push(...plainTextToDocxParagraphs(section.contentHtml));
+    children.push(spacer(40));
   });
 
   return new Document({

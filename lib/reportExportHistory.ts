@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 type QueryClient = Pick<typeof supabase, "from">;
 
 export type ReportExportPhase = "validated_server_export";
-export type ReportExportFormat = "html" | "docx";
+export type ReportExportFormat = "html" | "docx" | "pdf";
 
 export type ReportExportHistoryEntry = {
   id: string;

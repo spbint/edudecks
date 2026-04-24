@@ -207,11 +207,14 @@ function exportUiCopy(reportIntent: ReportIntent) {
       openingLabel: "Opening portfolio view...",
       downloadHtmlLabel: "Download portfolio HTML",
       downloadingHtmlLabel: "Downloading portfolio HTML...",
+      downloadPdfLabel: "Download portfolio PDF",
+      downloadingPdfLabel: "Downloading portfolio PDF...",
       downloadDocxLabel: "Download portfolio DOCX",
       downloadingDocxLabel: "Downloading portfolio DOCX...",
       trustNote: "This creates a family documentation record.",
       successOpen: "Portfolio print view opened in a new tab.",
       successHtmlDownload: "Portfolio HTML downloaded successfully.",
+      successPdfDownload: "Portfolio PDF downloaded successfully.",
       successDocxDownload: "Portfolio DOCX downloaded successfully.",
       errorFallback: "The portfolio export could not be created right now.",
     };
@@ -228,12 +231,15 @@ function exportUiCopy(reportIntent: ReportIntent) {
     openingLabel: "Opening export...",
     downloadHtmlLabel: "Download HTML",
     downloadingHtmlLabel: "Downloading HTML...",
+    downloadPdfLabel: "Download authority PDF",
+    downloadingPdfLabel: "Downloading authority PDF...",
     downloadDocxLabel: "Download authority DOCX",
     downloadingDocxLabel: "Downloading authority DOCX...",
     trustNote:
       "This export stays tied to the saved report draft and the validation gate. It does not bypass the completion check.",
     successOpen: "Printable HTML export opened in a new tab.",
     successHtmlDownload: "Printable HTML export downloaded successfully.",
+    successPdfDownload: "Authority PDF downloaded successfully.",
     successDocxDownload: "Authority DOCX downloaded successfully.",
     errorFallback: "The printable export could not be created right now.",
   };
@@ -665,15 +671,17 @@ function ExportGateCard({
   exportBusy,
   onOpenPrintable,
   onDownloadHtml,
+  onDownloadPdf,
   onDownloadDocx,
 }: {
   validation: ReportCompletionValidation;
   canExport: boolean;
   exportMessage: string;
   exportError: string;
-  exportBusy: "open" | "download_html" | "download_docx" | "";
+  exportBusy: "open" | "download_html" | "download_pdf" | "download_docx" | "";
   onOpenPrintable: () => void;
   onDownloadHtml: () => void;
+  onDownloadPdf: () => void;
   onDownloadDocx: () => void;
 }) {
   const blockers = validation.blockers.slice(0, 3);
@@ -787,6 +795,15 @@ function ExportGateCard({
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {exportBusy === "download_html" ? copy.downloadingHtmlLabel : copy.downloadHtmlLabel}
+        </button>
+
+        <button
+          type="button"
+          disabled={!canExport || Boolean(exportBusy)}
+          onClick={onDownloadPdf}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {exportBusy === "download_pdf" ? copy.downloadingPdfLabel : copy.downloadPdfLabel}
         </button>
 
         <button
@@ -1111,7 +1128,7 @@ export default function ReportsOutputPage() {
   const [exportHistory, setExportHistory] = useState<ReportExportHistoryEntry[]>([]);
   const [exportHistoryLoading, setExportHistoryLoading] = useState(false);
   const [exportHistoryError, setExportHistoryError] = useState("");
-  const [exportBusy, setExportBusy] = useState<"open" | "download_html" | "download_docx" | "">("");
+  const [exportBusy, setExportBusy] = useState<"open" | "download_html" | "download_pdf" | "download_docx" | "">("");
   const [exportMessage, setExportMessage] = useState("");
   const [exportError, setExportError] = useState("");
   const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
@@ -1360,7 +1377,7 @@ export default function ReportsOutputPage() {
 
   async function fetchValidatedExport(input: {
     mode: "open" | "download";
-    format: "html" | "docx";
+    format: "html" | "docx" | "pdf";
   }) {
     const accessToken = await getAccessToken();
     if (!accessToken) {
@@ -1412,17 +1429,17 @@ export default function ReportsOutputPage() {
 
     return {
       body:
-        input.format === "docx"
-          ? await response.arrayBuffer()
-          : await response.text(),
+        input.format === "html"
+          ? await response.text()
+          : await response.arrayBuffer(),
       filename,
       disposition: response.headers.get("content-disposition") || "",
     };
   }
 
   async function handleValidatedExport(input: {
-    action: "open" | "download_html" | "download_docx";
-    format: "html" | "docx";
+    action: "open" | "download_html" | "download_pdf" | "download_docx";
+    format: "html" | "docx" | "pdf";
     mode: "open" | "download";
   }) {
     if (!canExport || exportBusy) return;
@@ -1446,6 +1463,14 @@ export default function ReportsOutputPage() {
           filename,
         );
         setExportMessage(copy.successDocxDownload);
+      } else if (input.format === "pdf") {
+        downloadBlob(
+          new Blob([body as ArrayBuffer], {
+            type: "application/pdf",
+          }),
+          filename,
+        );
+        setExportMessage(copy.successPdfDownload);
       } else if (input.mode === "download") {
         downloadBlob(new Blob([body as string], { type: "text/html;charset=utf-8" }), filename);
         setExportMessage(copy.successHtmlDownload);
@@ -1671,6 +1696,7 @@ export default function ReportsOutputPage() {
           exportBusy={exportBusy}
           onOpenPrintable={() => void handleValidatedExport({ action: "open", format: "html", mode: "open" })}
           onDownloadHtml={() => void handleValidatedExport({ action: "download_html", format: "html", mode: "download" })}
+          onDownloadPdf={() => void handleValidatedExport({ action: "download_pdf", format: "pdf", mode: "download" })}
           onDownloadDocx={() => void handleValidatedExport({ action: "download_docx", format: "docx", mode: "download" })}
         />
       ) : null}

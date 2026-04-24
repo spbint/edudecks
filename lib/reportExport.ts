@@ -1793,7 +1793,7 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
 
 export function buildReportExportFilename(
   model: ReportExportModel,
-  format: "html" | "docx" = "html",
+  format: "html" | "docx" | "pdf" = "html",
 ) {
   const clean = safe(model.reportTitle)
     .toLowerCase()

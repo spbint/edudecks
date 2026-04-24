@@ -7,6 +7,7 @@ import {
   recordValidatedReportExportEvent,
 } from "@/lib/reportExport";
 import { buildDocxFilename, generateReportDocxBuffer } from "@/lib/reportDocxExport";
+import { buildPdfFilename, generateReportPdfBuffer } from "@/lib/reportPdfExport";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +40,13 @@ export async function GET(request: NextRequest) {
     safe(url.searchParams.get("reportDocumentId")) ||
     safe(url.searchParams.get("report_document_id")) ||
     safe(url.searchParams.get("documentId"));
-  const format = safe(url.searchParams.get("format")).toLowerCase() === "docx" ? "docx" : "html";
+  const requestedFormat = safe(url.searchParams.get("format")).toLowerCase();
+  const format =
+    requestedFormat === "docx"
+      ? "docx"
+      : requestedFormat === "pdf"
+        ? "pdf"
+        : "html";
   const mode = url.searchParams.get("mode") === "download" ? "download" : "open";
   const accessToken = readBearerToken(request);
 
@@ -57,7 +64,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  if (format === "docx") {
+  if (format === "docx" || format === "pdf") {
     const payload = await buildServerValidatedReportExportPayload({
       reportDocumentId,
       accessToken,
@@ -81,8 +88,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const buffer = await generateReportDocxBuffer(payload.exportModel);
-    const filename = buildDocxFilename(payload.exportModel);
+    const buffer =
+      format === "docx"
+        ? await generateReportDocxBuffer(payload.exportModel)
+        : await generateReportPdfBuffer(payload.exportModel);
+    const filename =
+      format === "docx"
+        ? buildDocxFilename(payload.exportModel)
+        : buildPdfFilename(payload.exportModel);
     const bytes = new Uint8Array(buffer);
     const contentHash = await crypto.subtle.digest("SHA-256", bytes);
     const hashHex = Array.from(new Uint8Array(contentHash))
@@ -91,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     const exportEvent = await recordValidatedReportExportEvent({
       payload,
-      exportFormat: "docx",
+      exportFormat: format,
       filename,
       contentHash: hashHex,
     });
@@ -101,7 +114,9 @@ export async function GET(request: NextRequest) {
       headers: {
         "cache-control": "no-store",
         "content-type":
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          format === "docx"
+            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            : "application/pdf",
         "content-disposition": `attachment; filename="${filename}"`,
         "x-report-export-filename": filename,
         "x-report-export-status": payload.validation.status,
