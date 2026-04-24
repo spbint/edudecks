@@ -1053,7 +1053,13 @@ async function loadReportDocumentRecord(input: {
   const preferredDocumentId = safe(input.preferredDocumentId);
   if (preferredDocumentId) {
     try {
-      return await loadDocumentById(preferredDocumentId, fallback, db);
+      const preferredDocument = await loadDocumentById(preferredDocumentId, fallback, db);
+      if (
+        preferredDocument &&
+        (!input.learner || !preferredDocument.studentId || preferredDocument.studentId === input.learner.id)
+      ) {
+        return preferredDocument;
+      }
     } catch {
       // fall through to current-period lookup
     }

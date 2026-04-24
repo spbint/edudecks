@@ -388,12 +388,10 @@ export default function MyDayWorkspace() {
   const canCapture = canonicalReady && Boolean(activeLearnerId);
 
   const quickCaptureHref = activeLearnerId
-    ? `/capture?learner=${encodeURIComponent(activeLearnerId)}&date=${encodeURIComponent(todayYmd)}`
+    ? `/capture?date=${encodeURIComponent(todayYmd)}`
     : "/capture";
 
-  const portfolioHref = activeLearnerId
-    ? `/my-portfolio?learner=${encodeURIComponent(activeLearnerId)}`
-    : "/my-portfolio";
+  const portfolioHref = "/my-portfolio";
 
   const headerState: HomeSurfaceState = !hasActiveLearner
     ? "empty"
@@ -455,9 +453,9 @@ export default function MyDayWorkspace() {
                     key={block.id}
                     block={block}
                     planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
-                    captureHref={`/capture?learner=${encodeURIComponent(
-                      activeLearnerId,
-                    )}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
+                    captureHref={`/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(
+                      block.id,
+                    )}`}
                     canCapture={canCapture}
                     preset={preset}
                   />
@@ -526,9 +524,9 @@ export default function MyDayWorkspace() {
               }
               captureHref={
                 dayView?.nextUp
-                  ? `/capture?learner=${encodeURIComponent(
-                      activeLearnerId,
-                    )}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(dayView.nextUp.id)}`
+                  ? `/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(
+                      dayView.nextUp.id,
+                    )}`
                   : quickCaptureHref
               }
               canCapture={canCapture}

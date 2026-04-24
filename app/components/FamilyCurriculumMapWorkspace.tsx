@@ -252,8 +252,8 @@ export default function FamilyCurriculumMapWorkspace() {
             evidenceCount: signal?.evidenceCount ?? 0,
             lastTouchedAt: signal?.lastTouchedAt ? recentLabel(signal.lastTouchedAt) : null,
             viewHref: signal?.evidenceIds.length
-              ? `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&evidence=${encodeURIComponent(signal.evidenceIds.join(","))}`
-              : `/my-portfolio?learner=${encodeURIComponent(activeLearner?.id || "")}&subject=${encodeURIComponent(subject.title)}`,
+              ? `/my-portfolio?evidence=${encodeURIComponent(signal.evidenceIds.join(","))}`
+              : `/my-portfolio?subject=${encodeURIComponent(subject.title)}`,
           };
         });
 
@@ -283,7 +283,7 @@ export default function FamilyCurriculumMapWorkspace() {
         counts: totalCounts,
       };
     });
-  }, [activeLearner?.id, outcomeSignals, preset]);
+  }, [outcomeSignals, preset]);
 
   const selectedSubject =
     subjectViews.find((subject) => subject.id === selectedSubjectId) ?? subjectViews[0];

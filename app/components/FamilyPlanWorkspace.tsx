@@ -817,7 +817,7 @@ export default function FamilyPlanWorkspace() {
                   subject: plannerChip,
                   onClick: () => void addBlockForDate(day, plannerChip, plannerChip),
                 }))}
-                captureHref={`/capture?learner=${encodeURIComponent(activeLearner?.id || "")}&date=${encodeURIComponent(key)}`}
+                captureHref={`/capture?date=${encodeURIComponent(key)}`}
                 renderBlockCurriculum={(block) => (
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between gap-3">

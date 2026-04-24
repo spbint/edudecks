@@ -157,7 +157,6 @@ function contextualizeReportCta(
       href: buildContextHref({
         pathname: "/reports/output",
         params: {
-          learner: model?.learner?.id || activeLearnerId,
           documentId: model?.reportDocument?.id || null,
           reportingPeriodId: model?.reportingPeriod?.id || null,
         },
@@ -170,9 +169,6 @@ function contextualizeReportCta(
       ...cta,
       href: buildContextHref({
         pathname: "/capture",
-        params: {
-          learner: model?.learner?.id || activeLearnerId,
-        },
       }),
     };
   }

@@ -74,7 +74,6 @@ function buildContextHref(input: {
 function secondaryCtaFor(
   readiness: ComplianceReadiness,
   input: {
-    learnerId?: string | null;
     reportDocumentId?: string | null;
     reportingPeriodId?: string | null;
   },
@@ -103,12 +102,7 @@ function secondaryCtaFor(
   ) {
     return {
       label: "Review evidence",
-      href: buildContextHref({
-        pathname: "/capture",
-        params: {
-          learner: input.learnerId,
-        },
-      }),
+      href: "/capture",
     };
   }
 
@@ -121,7 +115,6 @@ function secondaryCtaFor(
       href: buildContextHref({
         pathname: "/reports",
         params: {
-          learner: input.learnerId,
           documentId: input.reportDocumentId,
           reportingPeriodId: input.reportingPeriodId,
         },
@@ -158,7 +151,6 @@ export async function loadFamilyComplianceCommandCard(
 
   const primary = nextReportCta(reportsModel);
   const secondary = secondaryCtaFor(readiness, {
-    learnerId: input.learner.id,
     reportDocumentId: reportsModel.reportDocument?.id || null,
     reportingPeriodId: reportsModel.reportingPeriod?.id || null,
   });

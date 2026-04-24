@@ -35,6 +35,7 @@ type FamilyWorkspaceContextValue = {
     userId?: string | null;
   }) => void;
   setActiveLearner: (learnerId: string | null | undefined) => void;
+  setActiveLearnerId: (learnerId: string | null | undefined) => void;
 };
 
 const FamilyWorkspaceContext = createContext<FamilyWorkspaceContextValue>({
@@ -46,6 +47,7 @@ const FamilyWorkspaceContext = createContext<FamilyWorkspaceContextValue>({
   reloadWorkspace: async () => {},
   setWorkspacePatch: () => {},
   setActiveLearner: () => {},
+  setActiveLearnerId: () => {},
 });
 
 function applyActiveLearner(
@@ -92,7 +94,6 @@ export function FamilyWorkspaceProvider({
       setWorkspace(nextWorkspace);
       setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
     } catch (err) {
-      console.error("FamilyWorkspaceProvider reload failed", err);
       const fallback = buildLocalFamilyWorkspaceSnapshot();
       setWorkspace((prev) => ({
         ...fallback,
@@ -224,6 +225,7 @@ export function FamilyWorkspaceProvider({
       reloadWorkspace,
       setWorkspacePatch,
       setActiveLearner: handleSetActiveLearner,
+      setActiveLearnerId: handleSetActiveLearner,
     }),
     [workspace, activeLearnerId, activeLearner, loading, error],
   );
