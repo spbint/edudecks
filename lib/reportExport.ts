@@ -42,6 +42,7 @@ export type ReportExportModel = {
   learnerName: string;
   jurisdictionName: string | null;
   jurisdictionCode: string | null;
+  localeCode: string;
   reportIntent: "authority" | "portfolio";
   reportingPeriodLabel: string | null;
   reportTitle: string;
@@ -55,6 +56,10 @@ export type ReportExportModel = {
   completedArtifactCount: number;
   totalArtifactCount: number;
   sections: ReportExportSection[];
+  packItems: Array<{
+    label: string;
+    note: string;
+  }>;
   artifacts: Array<{
     label: string;
     status: "complete" | "in_progress" | "missing";
@@ -155,6 +160,12 @@ function reportSectionStatusLabel(status: ReportExportSection["status"]) {
   if (status === "complete") return "Complete";
   if (status === "in_progress") return "In progress";
   return "Missing";
+}
+
+function sectionStatusClass(status: ReportExportSection["status"]) {
+  if (status === "complete") return "complete";
+  if (status === "in_progress") return "in_progress";
+  return "missing";
 }
 
 function buildExportFilename(title: string) {
@@ -546,9 +557,12 @@ function buildSectionHtml(section: ReportExportSection) {
 export function buildReportExportModel(
   input: BuildReportExportModelInput,
 ): ReportExportModel {
+  const learnerName = safe(input.model.learner?.label) || "Learner";
   const reportTitle =
-    safe(input.model.reportDocument?.title) ||
-    `${safe(input.model.effectiveJurisdiction?.label) || "Reporting"} ${reportIntentHeading(input.model.reportIntent)}`;
+    input.model.reportIntent === "portfolio"
+      ? `${learnerName} Learning Portfolio`
+      : safe(input.model.reportDocument?.title) ||
+        `${safe(input.model.effectiveJurisdiction?.label) || "Reporting"} ${reportIntentHeading(input.model.reportIntent)}`;
 
   const reportDocumentId =
     safe(input.model.reportDocument?.id) ||
@@ -558,7 +572,7 @@ export function buildReportExportModel(
   return {
     reportDocumentId,
     learnerId: safe(input.model.learner?.id),
-    learnerName: safe(input.model.learner?.label) || "Learner",
+    learnerName,
     jurisdictionName:
       safe(input.model.effectiveJurisdiction?.label) ||
       input.validation.jurisdictionCode ||
@@ -567,6 +581,11 @@ export function buildReportExportModel(
       input.model.effectiveJurisdiction?.code ||
       input.validation.jurisdictionCode ||
       null,
+    localeCode:
+      safe(input.model.reportDocument?.localeCode) ||
+      safe(input.model.ruleSet?.localeCode) ||
+      safe(input.model.effectiveJurisdiction?.localeCode) ||
+      "en-AU",
     reportIntent: input.model.reportIntent,
     reportingPeriodLabel: safe(input.model.reportingPeriod?.label) || null,
     reportTitle,
@@ -592,6 +611,10 @@ export function buildReportExportModel(
           (item) => item.sectionKey === normalizeSectionKey(section.title),
         )?.notes || [],
     })),
+    packItems: input.assembly.packItems.map((item) => ({
+      label: item.label,
+      note: item.note,
+    })),
     artifacts: input.mapping.artifacts.map((artifact) => ({
       label: artifact.label,
       status: artifact.status,
@@ -604,6 +627,12 @@ export function buildReportExportModel(
 }
 
 export function generatePrintableHtml(model: ReportExportModel) {
+  return model.reportIntent === "portfolio"
+    ? generatePortfolioPrintableHtml(model)
+    : generateAuthorityPrintableHtml(model);
+}
+
+function generateAuthorityPrintableHtml(model: ReportExportModel) {
   const blockerCount = model.blockers.length;
   const warningCount = model.warnings.length;
   const infoCount = model.info.length;
@@ -630,7 +659,7 @@ export function generatePrintableHtml(model: ReportExportModel) {
       )
       .join("");
 
-  const sectionHtml = model.sections.map(buildSectionHtml).join("");
+  const sectionHtml = model.sections.map(buildAuthoritySectionHtml).join("");
 
   return `<!doctype html>
 <html lang="en">
@@ -1012,6 +1041,625 @@ export function generatePrintableHtml(model: ReportExportModel) {
 
     <div class="footer">
       This printable export is generated from persisted draft content and is only available after validation passes.
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function buildAuthoritySectionHtml(section: ReportExportSection) {
+  return `
+    <section class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-kicker">Section</div>
+          <h2>${escapeHtml(section.title)}</h2>
+        </div>
+        <span class="section-status ${sectionStatusClass(section.status)}">${reportSectionStatusLabel(section.status)}</span>
+      </div>
+      <div class="section-body">
+        ${section.contentHtml}
+      </div>
+      ${
+        section.notes.length
+          ? `<div class="section-notes">${section.notes.map((note) => `<div>${escapeHtml(note)}</div>`).join("")}</div>`
+          : ""
+      }
+    </section>
+  `;
+}
+
+function stripHtml(value: string) {
+  return safe(value)
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function excerptText(value: string, limit = 180) {
+  const clean = stripHtml(value);
+  if (!clean) return "";
+  if (clean.length <= limit) return clean;
+  return `${clean.slice(0, Math.max(0, limit - 3)).trimEnd()}...`;
+}
+
+function formatGeneratedAt(value: string, localeCode: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString(localeCode || "en-AU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function isUsLocale(model: ReportExportModel) {
+  const locale = safe(model.localeCode).toLowerCase();
+  const jurisdiction = safe(model.jurisdictionCode).toLowerCase();
+  return locale.includes("en-us") || jurisdiction.startsWith("us-");
+}
+
+function isAuLocale(model: ReportExportModel) {
+  const locale = safe(model.localeCode).toLowerCase();
+  const jurisdiction = safe(model.jurisdictionCode).toLowerCase();
+  return locale.includes("en-au") || jurisdiction.startsWith("au-");
+}
+
+function localizedPortfolioTerm(
+  model: ReportExportModel,
+  values: { us: string; au: string; fallback?: string },
+) {
+  if (isUsLocale(model)) return values.us;
+  if (isAuLocale(model)) return values.au;
+  return values.fallback || values.au;
+}
+
+function matchesPortfolioSection(
+  section: ReportExportSection,
+  patterns: RegExp[],
+) {
+  const haystack = `${section.sectionKey} ${section.title}`.toLowerCase();
+  return patterns.some((pattern) => pattern.test(haystack));
+}
+
+function portfolioHighlights(model: ReportExportModel) {
+  const highlightSections = model.sections.filter((section) =>
+    matchesPortfolioSection(section, [/overview/, /story/, /highlight/, /progress/, /growth/]),
+  );
+  const workSampleSections = model.sections.filter((section) =>
+    matchesPortfolioSection(section, [/work/, /sample/, /artefact/, /artifact/, /project/, /evidence/]),
+  );
+  const skillsSections = model.sections.filter((section) =>
+    matchesPortfolioSection(section, [/subject/, /coverage/, /learning area/, /program/, /skill/]),
+  );
+  const reflectionSections = model.sections.filter((section) =>
+    matchesPortfolioSection(section, [/reflection/, /memory/, /next step/, /growth/]),
+  );
+  const resourceSections = model.sections.filter((section) =>
+    matchesPortfolioSection(section, [/resource/, /book/, /field trip/, /excursion/, /environment/]),
+  );
+
+  return {
+    highlightSections,
+    workSampleSections,
+    skillsSections,
+    reflectionSections,
+    resourceSections,
+  };
+}
+
+function buildPortfolioSummaryCard(input: {
+  title: string;
+  body: string;
+  eyebrow?: string;
+}) {
+  const eyebrow = safe(input.eyebrow);
+  return `
+    <article class="portfolio-summary-card">
+      ${eyebrow ? `<div class="portfolio-summary-eyebrow">${escapeHtml(eyebrow)}</div>` : ""}
+      <h3>${escapeHtml(input.title)}</h3>
+      <p>${escapeHtml(input.body)}</p>
+    </article>
+  `;
+}
+
+function buildPortfolioSectionHtml(section: ReportExportSection) {
+  const sectionType = matchesPortfolioSection(section, [/reflection/, /memory/, /next step/, /growth/])
+    ? "reflection"
+    : matchesPortfolioSection(section, [/work/, /sample/, /artefact/, /artifact/, /project/, /evidence/])
+      ? "samples"
+      : matchesPortfolioSection(section, [/overview/, /story/, /highlight/])
+        ? "highlight"
+        : "default";
+
+  return `
+    <section class="portfolio-section portfolio-section-${sectionType}">
+      <div class="portfolio-section-head">
+        <div>
+          <div class="portfolio-section-kicker">${escapeHtml(reportSectionStatusLabel(section.status))}</div>
+          <h2>${escapeHtml(section.title)}</h2>
+        </div>
+      </div>
+      <div class="portfolio-section-body">
+        ${section.contentHtml}
+      </div>
+      ${
+        section.notes.length
+          ? `<div class="portfolio-section-notes">${section.notes.map((note) => `<div>${escapeHtml(note)}</div>`).join("")}</div>`
+          : ""
+      }
+    </section>
+  `;
+}
+
+function generatePortfolioPrintableHtml(model: ReportExportModel) {
+  const generatedAtLabel = formatGeneratedAt(model.generatedAt, model.localeCode);
+  const skillsLabel = localizedPortfolioTerm(model, {
+    us: "Skills Practiced",
+    au: "Skills Practised",
+  });
+  const mathsLabel = localizedPortfolioTerm(model, {
+    us: "Math",
+    au: "Maths",
+  });
+  const favouriteLabel = localizedPortfolioTerm(model, {
+    us: "Favorite moments",
+    au: "Favourite moments",
+  });
+  const contextLabel = model.reportingPeriodLabel || "Current learning record";
+  const title = "Learning Portfolio";
+  const highlights = portfolioHighlights(model);
+
+  const summaryCards: string[] = [];
+
+  if (highlights.highlightSections.length) {
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: "Learning Highlights",
+        body: excerptText(highlights.highlightSections[0].contentHtml) || "Saved highlights from this reporting period appear here.",
+        eyebrow: favouriteLabel,
+      }),
+    );
+  }
+
+  if (highlights.workSampleSections.length || model.packItems.length) {
+    const packTitleList = model.packItems.slice(0, 4).map((item) => item.label).filter(Boolean);
+    const workSampleBody = model.packItems.length
+      ? `${model.packItems.length} linked record${model.packItems.length === 1 ? "" : "s"}: ${packTitleList.join(", ")}${model.packItems.length > packTitleList.length ? ", and more" : ""}.`
+      : excerptText(highlights.workSampleSections[0]?.contentHtml || "") || "Saved projects and work samples are included in the section cards below.";
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: "Projects and Work Samples",
+        body: workSampleBody,
+      }),
+    );
+  }
+
+  if (highlights.skillsSections.length) {
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: skillsLabel,
+        body:
+          excerptText(highlights.skillsSections[0].contentHtml) ||
+          `${mathsLabel}, literacy, and broader learning areas are reflected in the saved portfolio sections.`,
+      }),
+    );
+  }
+
+  if (highlights.reflectionSections.length) {
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: "Reflections and Memories",
+        body: excerptText(highlights.reflectionSections[0].contentHtml) || "Reflections, growth, and memorable learning moments are kept together here.",
+      }),
+    );
+  }
+
+  if (highlights.resourceSections.length) {
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: "Books, Resources, and Field Trips",
+        body: excerptText(highlights.resourceSections[0].contentHtml) || "Saved references to books, resources, and outings are included in this record.",
+      }),
+    );
+  }
+
+  const workSamplePanel = highlights.workSampleSections.length || model.packItems.length
+    ? `
+      <section class="portfolio-panel portfolio-panel-break">
+        <div class="portfolio-panel-head">
+          <div>
+            <div class="portfolio-panel-kicker">Portfolio records</div>
+            <h2>Projects and Work Samples</h2>
+          </div>
+          ${
+            model.packItems.length
+              ? `<div class="portfolio-count-pill">${model.packItems.length} linked item${model.packItems.length === 1 ? "" : "s"}</div>`
+              : ""
+          }
+        </div>
+        ${
+          model.packItems.length
+            ? `<div class="portfolio-chip-list">${model.packItems
+                .map((item) => `<span class="portfolio-chip">${escapeHtml(item.label)}</span>`)
+                .join("")}</div>`
+            : ""
+        }
+        ${
+          highlights.workSampleSections.length
+            ? `<div class="portfolio-panel-grid">${highlights.workSampleSections
+                .map((section) => buildPortfolioSectionHtml(section))
+                .join("")}</div>`
+            : `<div class="portfolio-soft-note">Saved linked items are available for this portfolio, but no dedicated work-sample section content was found.</div>`
+        }
+      </section>
+    `
+    : "";
+
+  const reflectionPanel = highlights.reflectionSections.length
+    ? `
+      <section class="portfolio-panel">
+        <div class="portfolio-panel-head">
+          <div>
+            <div class="portfolio-panel-kicker">Family reflection</div>
+            <h2>Reflections and Memories</h2>
+          </div>
+        </div>
+        <div class="portfolio-panel-grid">
+          ${highlights.reflectionSections.map((section) => buildPortfolioSectionHtml(section)).join("")}
+        </div>
+      </section>
+    `
+    : "";
+
+  const primarySectionHtml = model.sections.map((section) => buildPortfolioSectionHtml(section)).join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(model.reportTitle)}</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #34261d;
+      --muted: #72594b;
+      --line: #e7d8c9;
+      --card: #fffaf5;
+      --card-strong: #fff4ea;
+      --card-soft: #f9efe6;
+      --rose: #fff2f1;
+      --gold: #fff7e8;
+      --sage: #edf5ed;
+      --plum: #f8f1fb;
+    }
+    @page { size: A4; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Georgia", "Times New Roman", serif;
+      color: var(--ink);
+      background: #fffdfb;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .portfolio-page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 24px 20px 42px;
+    }
+    .portfolio-cover {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 30px 28px;
+      background:
+        radial-gradient(circle at top left, rgba(255, 248, 236, 0.95), transparent 38%),
+        linear-gradient(145deg, #fffdfb 0%, #fff4ea 54%, #fffaf4 100%);
+      display: grid;
+      gap: 22px;
+      page-break-after: always;
+    }
+    .portfolio-cover-kicker,
+    .portfolio-intro-kicker,
+    .portfolio-panel-kicker,
+    .portfolio-section-kicker,
+    .portfolio-summary-eyebrow,
+    .portfolio-meta-label {
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #8b6f5d;
+    }
+    .portfolio-title {
+      margin: 0;
+      font-size: 40px;
+      line-height: 1.05;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .portfolio-subtitle {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    .portfolio-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .portfolio-meta {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.74);
+    }
+    .portfolio-meta-value {
+      margin-top: 6px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .portfolio-context {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+    .portfolio-intro {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px 22px 20px;
+      background: var(--card);
+      page-break-inside: avoid;
+    }
+    .portfolio-intro h2,
+    .portfolio-panel h2,
+    .portfolio-section h2 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.15;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    .portfolio-intro p,
+    .portfolio-section-body,
+    .portfolio-section-body p,
+    .portfolio-soft-note,
+    .portfolio-footer {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+    .portfolio-summary-grid,
+    .portfolio-panel-grid,
+    .portfolio-sections {
+      display: grid;
+      gap: 16px;
+    }
+    .portfolio-summary-grid {
+      margin-top: 20px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .portfolio-summary-card {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      background: white;
+      break-inside: avoid;
+    }
+    .portfolio-summary-card h3 {
+      margin: 8px 0 8px;
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+    .portfolio-summary-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--muted);
+    }
+    .portfolio-panel {
+      margin-top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,250,245,0.96) 100%);
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .portfolio-panel-break {
+      page-break-before: always;
+    }
+    .portfolio-panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .portfolio-count-pill {
+      align-self: center;
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: white;
+      padding: 8px 12px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7a6050;
+    }
+    .portfolio-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .portfolio-chip {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fffdfb;
+      padding: 7px 11px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: #7a6050;
+    }
+    .portfolio-section {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      background: white;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .portfolio-section-highlight { background: var(--card-strong); }
+    .portfolio-section-samples { background: var(--gold); }
+    .portfolio-section-reflection { background: var(--plum); }
+    .portfolio-section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .portfolio-section-body p { margin: 0 0 10px; }
+    .portfolio-section-body ul {
+      margin: 0 0 12px 18px;
+      padding: 0;
+    }
+    .portfolio-section-body li { margin: 0 0 7px; }
+    .portfolio-section-notes {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--line);
+      display: grid;
+      gap: 6px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #7a6050;
+    }
+    .report-starter-block {
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(203, 176, 150, 0.45);
+      background: rgba(255,255,255,0.72);
+    }
+    .report-starter-block h4 {
+      margin: 0 0 8px;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 800;
+      color: var(--ink);
+    }
+    .portfolio-soft-note {
+      border: 1px dashed var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255,255,255,0.6);
+    }
+    .portfolio-footer {
+      margin-top: 22px;
+      text-align: center;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 12px;
+    }
+    @media print {
+      .portfolio-page { padding: 0; }
+      .portfolio-cover, .portfolio-panel, .portfolio-section, .portfolio-summary-card, .portfolio-intro {
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="portfolio-page">
+    <section class="portfolio-cover">
+      <div>
+        <div class="portfolio-cover-kicker">Family documentation record</div>
+        <h1 class="portfolio-title">${escapeHtml(title)}</h1>
+        <p class="portfolio-subtitle">${escapeHtml(model.learnerName)} &middot; ${escapeHtml(contextLabel)}</p>
+      </div>
+
+      <div class="portfolio-meta-grid">
+        <div class="portfolio-meta">
+          <div class="portfolio-meta-label">Learner</div>
+          <div class="portfolio-meta-value">${escapeHtml(model.learnerName)}</div>
+        </div>
+        <div class="portfolio-meta">
+          <div class="portfolio-meta-label">Record period</div>
+          <div class="portfolio-meta-value">${escapeHtml(model.reportingPeriodLabel || "Current learning record")}</div>
+        </div>
+        <div class="portfolio-meta">
+          <div class="portfolio-meta-label">Context</div>
+          <div class="portfolio-meta-value">${escapeHtml(model.jurisdictionName || model.jurisdictionCode || "Family learning context")}</div>
+        </div>
+        <div class="portfolio-meta">
+          <div class="portfolio-meta-label">Saved on</div>
+          <div class="portfolio-meta-value">${escapeHtml(generatedAtLabel)}</div>
+        </div>
+      </div>
+
+      <div class="portfolio-context">
+        <strong>A record of learning, growth, projects, and reflections.</strong>
+        This print view brings together the saved portfolio sections for this learner in one warm, readable document for family records.
+      </div>
+    </section>
+
+    <section class="portfolio-intro">
+      <div class="portfolio-intro-kicker">Portfolio introduction</div>
+      <h2>A record of learning, growth, projects, and reflections.</h2>
+      <p>
+        This learning portfolio is designed as a family-facing record. It keeps the learner's story, work, practiced skills, reflections, and memorable moments together without turning the document into a formal filing.
+      </p>
+    </section>
+
+    ${
+      summaryCards.length
+        ? `<section class="portfolio-summary-grid">${summaryCards.join("")}</section>`
+        : ""
+    }
+
+    ${workSamplePanel}
+    ${reflectionPanel}
+
+    <section class="portfolio-panel">
+      <div class="portfolio-panel-head">
+        <div>
+          <div class="portfolio-panel-kicker">Saved sections</div>
+          <h2>Portfolio Sections</h2>
+        </div>
+        <div class="portfolio-count-pill">${model.sections.length} section${model.sections.length === 1 ? "" : "s"}</div>
+      </div>
+      <div class="portfolio-sections">
+        ${primarySectionHtml}
+      </div>
+    </section>
+
+    <div class="portfolio-footer">
+      This portfolio print view is generated from the saved section content already stored in the workspace.
     </div>
   </div>
 </body>

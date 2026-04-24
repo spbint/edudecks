@@ -193,6 +193,45 @@ function complianceModeSentence(validation: ReportCompletionValidation) {
   return "Recommended for a complete record in this jurisdiction.";
 }
 
+function exportUiCopy(reportIntent: ReportIntent) {
+  if (reportIntent === "portfolio") {
+    return {
+      title: "Portfolio HTML export",
+      intro:
+        "Export is only available after the completion gate confirms the record is ready. The portfolio print view reflects the saved section content already assembled in the report workspace.",
+      ready:
+        "The portfolio is ready for export. The buttons below will produce a warm printable HTML record from the persisted section content.",
+      nextAction: "Open portfolio print view",
+      openLabel: "Open portfolio print view",
+      openingLabel: "Opening portfolio view...",
+      downloadLabel: "Download portfolio HTML",
+      downloadingLabel: "Downloading portfolio...",
+      trustNote: "This creates a family documentation record.",
+      successOpen: "Portfolio print view opened in a new tab.",
+      successDownload: "Portfolio HTML downloaded successfully.",
+      errorFallback: "The portfolio export could not be created right now.",
+    };
+  }
+
+  return {
+    title: "Printable HTML export",
+    intro:
+      "Export is only available after the completion gate confirms the report is ready. The printable export reflects the saved draft content already assembled in the report workspace.",
+    ready:
+      "The report is ready for export. The buttons below will produce a printable HTML version from the persisted draft content.",
+    nextAction: "Open printable export",
+    openLabel: "Open printable export",
+    openingLabel: "Opening export...",
+    downloadLabel: "Download HTML",
+    downloadingLabel: "Downloading...",
+    trustNote:
+      "This export stays tied to the saved report draft and the validation gate. It does not bypass the completion check.",
+    successOpen: "Printable HTML export opened in a new tab.",
+    successDownload: "Printable HTML export downloaded successfully.",
+    errorFallback: "The printable export could not be created right now.",
+  };
+}
+
 function complianceStatusTone(isComplete: boolean, isAttentionNeeded: boolean) {
   if (isComplete) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (isAttentionNeeded) return "border-amber-200 bg-amber-50 text-amber-700";
@@ -630,6 +669,7 @@ function ExportGateCard({
 }) {
   const blockers = validation.blockers.slice(0, 3);
   const exportSentence = complianceModeSentence(validation);
+  const copy = exportUiCopy(validation.reportIntent);
 
   return (
     <section
@@ -642,11 +682,11 @@ function ExportGateCard({
             Validated export
           </div>
           <h2 className="text-[24px] font-black tracking-tight text-slate-950">
-            Printable HTML export
+            {copy.title}
           </h2>
         </div>
         <p className="max-w-[820px] text-sm leading-7 text-slate-600">
-          Export is only available after the completion gate confirms the report is ready. The printable export reflects the saved draft content already assembled in the report workspace.
+          {copy.intro}
         </p>
         <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
           {validation.jurisdictionBehaviour.portfolioText}
@@ -707,7 +747,7 @@ function ExportGateCard({
           </div>
         ) : (
           <div className="rounded-[20px] border border-emerald-200 bg-emerald-50/80 px-4 py-4 text-sm leading-7 text-emerald-800">
-            The report is ready for export. The buttons below will produce a printable HTML version from the persisted draft content.
+            {copy.ready}
           </div>
         )}
       </div>
@@ -718,7 +758,7 @@ function ExportGateCard({
             Next export action
           </div>
           <div className="mt-2 text-[16px] font-bold text-slate-950">
-            {canExport ? "Open printable export" : "Resolve gate blockers first"}
+            {canExport ? copy.nextAction : "Resolve gate blockers first"}
           </div>
         </div>
 
@@ -728,7 +768,7 @@ function ExportGateCard({
           onClick={onOpenPrintable}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {exportBusy === "open" ? "Opening export..." : "Open printable export"}
+          {exportBusy === "open" ? copy.openingLabel : copy.openLabel}
         </button>
 
         <button
@@ -737,11 +777,11 @@ function ExportGateCard({
           onClick={onDownloadHtml}
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {exportBusy === "download" ? "Downloading..." : "Download HTML"}
+          {exportBusy === "download" ? copy.downloadingLabel : copy.downloadLabel}
         </button>
 
         <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-          This export stays tied to the saved report draft and the validation gate. It does not bypass the completion check.
+          {copy.trustNote}
         </div>
       </aside>
     </section>
@@ -1280,18 +1320,19 @@ export default function ReportsOutputPage() {
     setExportBusy(mode);
     setExportMessage("");
     setExportError("");
+    const copy = exportUiCopy(validation?.reportIntent || "authority");
 
     try {
       const { html, filename } = await fetchValidatedExport(mode);
 
       if (mode === "download") {
         downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), filename);
-        setExportMessage("Printable HTML export downloaded successfully.");
+        setExportMessage(copy.successDownload);
       } else {
         if (!openPrintableHtml(html)) {
           throw new Error("The browser blocked the printable export window.");
         }
-        setExportMessage("Printable HTML export opened in a new tab.");
+        setExportMessage(copy.successOpen);
       }
 
       try {
@@ -1313,7 +1354,7 @@ export default function ReportsOutputPage() {
       setExportError(
         error instanceof Error
           ? error.message
-          : "The printable export could not be created right now.",
+          : copy.errorFallback,
       );
     } finally {
       setExportBusy("");
