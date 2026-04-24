@@ -10,6 +10,9 @@ import {
   type LearnerOption,
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
+import { AttendanceComplianceCard } from "@/app/components/family/compliance/AttendanceComplianceCard";
+import { NotificationComplianceCard } from "@/app/components/family/compliance/NotificationComplianceCard";
+import { SubjectsPlanComplianceCard } from "@/app/components/family/compliance/SubjectsPlanComplianceCard";
 import {
   CountrySelector,
   CurriculumSetupEmptyState,
@@ -25,6 +28,10 @@ import {
   loadFamilyComplianceCommandCard,
   type FamilyComplianceCommandCardModel,
 } from "@/lib/complianceCommandCard";
+import {
+  loadReportsBuilderModel,
+  type ReportsBuilderModel,
+} from "@/lib/reporting";
 import {
   persistSettingsToLocalStorage,
   type FamilySettings,
@@ -282,6 +289,8 @@ export default function FamilyLearningSetupWorkspace() {
   const [error, setError] = useState("");
   const [commandCard, setCommandCard] = useState<FamilyComplianceCommandCardModel | null>(null);
   const [commandCardLoading, setCommandCardLoading] = useState(false);
+  const [reportsModel, setReportsModel] = useState<ReportsBuilderModel | null>(null);
+  const [reportsModelLoading, setReportsModelLoading] = useState(false);
 
   useEffect(() => {
     setDraft(workspace.profile);
@@ -326,6 +335,51 @@ export default function FamilyLearningSetupWorkspace() {
     }
 
     void hydrateCommandCard();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeLearner, workspace.profile, workspace.userId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateReportsModel() {
+      if (!activeLearner) {
+        if (mounted) {
+          setReportsModel(null);
+          setReportsModelLoading(false);
+        }
+        return;
+      }
+
+      if (mounted) {
+        setReportsModelLoading(true);
+      }
+
+      try {
+        const next = await loadReportsBuilderModel({
+          profile: workspace.profile,
+          learner: activeLearner,
+          userId: workspace.userId,
+          mode: "read",
+        });
+
+        if (mounted) {
+          setReportsModel(next);
+        }
+      } catch {
+        if (mounted) {
+          setReportsModel(null);
+        }
+      } finally {
+        if (mounted) {
+          setReportsModelLoading(false);
+        }
+      }
+    }
+
+    void hydrateReportsModel();
 
     return () => {
       mounted = false;
@@ -420,6 +474,35 @@ export default function FamilyLearningSetupWorkspace() {
           loading={commandCardLoading}
           model={commandCard}
         />
+
+        <FamilyLearningSetupCard
+          title="Compliance setup"
+          note="Keep notification, attendance, and subject tracking visible here so the jurisdiction engine can guide the right next step without forcing a separate workflow."
+        >
+          <div className="grid gap-4 xl:grid-cols-3">
+            <NotificationComplianceCard
+              learner={activeLearner}
+              reportsModel={reportsModel}
+              userId={workspace.userId}
+              loading={reportsModelLoading}
+              onSaved={() => void reloadWorkspace()}
+            />
+            <AttendanceComplianceCard
+              learner={activeLearner}
+              reportsModel={reportsModel}
+              userId={workspace.userId}
+              loading={reportsModelLoading}
+              onSaved={() => void reloadWorkspace()}
+            />
+            <SubjectsPlanComplianceCard
+              learner={activeLearner}
+              reportsModel={reportsModel}
+              userId={workspace.userId}
+              loading={reportsModelLoading}
+              onSaved={() => void reloadWorkspace()}
+            />
+          </div>
+        </FamilyLearningSetupCard>
 
         <FamilyLearningSetupCard
           title="Family Learning Setup"
