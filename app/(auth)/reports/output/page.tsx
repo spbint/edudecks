@@ -135,6 +135,14 @@ function issueTone(type: ReportValidationIssue["type"]) {
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
+function issueActionLabel(issue: ReportValidationIssue) {
+  return issue.actionLabel || "Fix this";
+}
+
+function issueActionHref(issue: ReportValidationIssue) {
+  return issue.actionTarget || null;
+}
+
 function sectionStatusTone(status: ReportCompletionValidation["sectionStates"][number]["supportStatus"]) {
   if (status === "strong") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "partial") return "border-amber-200 bg-amber-50 text-amber-700";
@@ -165,6 +173,198 @@ function historyLabels(entry: ReportExportHistoryEntry) {
   };
 }
 
+function complianceModeSentence(validation: ReportCompletionValidation) {
+  if (validation.jurisdictionBehaviour.strictGateEnabled) {
+    return "Required before this report can be exported.";
+  }
+
+  if (validation.jurisdictionBehaviour.portfolioModeEnabled) {
+    return "Optional for your records, but helpful for documentation.";
+  }
+
+  return "Recommended for a complete record in this jurisdiction.";
+}
+
+function complianceStatusTone(isComplete: boolean, isAttentionNeeded: boolean) {
+  if (isComplete) return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (isAttentionNeeded) return "border-amber-200 bg-amber-50 text-amber-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function complianceRecordLabel(status: string | null | undefined, fallback: string) {
+  const normalized = String(status ?? "").trim().toLowerCase();
+  if (!normalized) return fallback;
+  if (normalized === "submitted" || normalized === "acknowledged") return "Ready";
+  if (normalized === "not_required" || normalized === "waived") return "Not required";
+  if (normalized === "draft" || normalized === "due") return "In progress";
+  return normalized.replace(/_/g, " ");
+}
+
+function complianceSummaryLabel(model: ReportsBuilderModel, validation: ReportCompletionValidation) {
+  const requiredNotification = Boolean(model.requiresNotification);
+  const notificationSubmitted =
+    model.notificationSummary.submitted > 0 ||
+    ["submitted", "acknowledged", "not_required", "waived"].includes(
+      String(model.notificationSummary.latestStatus ?? "").toLowerCase(),
+    );
+  const attendanceStarted =
+    model.attendanceSummary.records > 0 ||
+    model.attendanceSummary.days > 0 ||
+    model.attendanceSummary.hours > 0;
+  const planCoverage = model.planCount > 0 || model.subjectLogCount > 0;
+
+  return {
+    notification: requiredNotification
+      ? notificationSubmitted
+        ? "Notification submitted"
+        : model.notificationSummary.total > 0
+          ? "Notification in progress"
+          : "Needs attention"
+      : "No formal notification required",
+    attendance: Boolean(model.requiresAttendanceTracking)
+      ? attendanceStarted
+        ? `${model.attendanceSummary.days} days and ${model.attendanceSummary.hours} hours recorded`
+        : "Attendance tracking is still empty"
+      : "Attendance tracking optional",
+    plan: Boolean(model.ruleSet?.requiresYearlyPlan || model.ruleSet?.requiresSubjectList)
+      ? planCoverage
+        ? `${model.planCount} plan${model.planCount === 1 ? "" : "s"} and ${model.subjectLogCount} subject log${model.subjectLogCount === 1 ? "" : "s"}`
+        : "Plan and subject coverage still need attention"
+      : "Plan tracking is optional",
+    behavior: complianceModeSentence(validation),
+  };
+}
+
+function ComplianceContextPanel({
+  model,
+  readiness,
+  validation,
+}: {
+  model: ReportsBuilderModel;
+  readiness: ComplianceReadiness;
+  validation: ReportCompletionValidation;
+}) {
+  const summary = complianceSummaryLabel(model, validation);
+  const notificationSubmitted =
+    model.notificationSummary.submitted > 0 ||
+    ["submitted", "acknowledged", "not_required", "waived"].includes(
+      String(model.notificationSummary.latestStatus ?? "").toLowerCase(),
+    );
+  const attendanceStarted =
+    model.attendanceSummary.records > 0 ||
+    model.attendanceSummary.days > 0 ||
+    model.attendanceSummary.hours > 0;
+  const planCoverage = model.planCount > 0 || model.subjectLogCount > 0;
+  const readyTone = readiness.status === "ready";
+  const attentionTone =
+    readiness.status === "warning" || validation.status === "blocked" || validation.blockers.length > 0;
+
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(239,246,255,0.94)_58%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="grid gap-1.5">
+            <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Compliance context
+            </div>
+            <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+              Inputs reflected in reporting
+            </h2>
+          </div>
+          <span
+            className={cx(
+              "inline-flex rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em]",
+              complianceStatusTone(readyTone, attentionTone),
+            )}
+          >
+            {validation.complianceModeLabel}
+          </span>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[18px] border border-white/80 bg-white/85 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Notification
+            </div>
+            <div className="mt-2 text-[15px] font-bold text-slate-950">
+              {summary.notification}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-slate-600">
+              {model.notificationSummary.latestStatus
+                ? `Status: ${complianceRecordLabel(model.notificationSummary.latestStatus, "Not started")}`
+                : "No saved notification record yet"}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] border border-white/80 bg-white/85 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Attendance
+            </div>
+            <div className="mt-2 text-[15px] font-bold text-slate-950">
+              {summary.attendance}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-slate-600">
+              {model.attendanceSummary.records > 0
+                ? `${model.attendanceSummary.records} summary record${model.attendanceSummary.records === 1 ? "" : "s"}`
+                : "No attendance summary has been saved yet"}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] border border-white/80 bg-white/85 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Plan / subjects
+            </div>
+            <div className="mt-2 text-[15px] font-bold text-slate-950">
+              {summary.plan}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-slate-600">
+              {model.planCount > 0
+                ? `${model.planCount} learning plan${model.planCount === 1 ? "" : "s"} in view`
+                : "No plan has been captured yet"}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] border border-white/80 bg-white/85 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Behaviour mode
+            </div>
+            <div className="mt-2 text-[15px] font-bold text-slate-950">
+              {validation.complianceModeLabel}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-slate-600">
+              {summary.behavior}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200 bg-white/80 px-4 py-4 text-sm leading-7 text-slate-600">
+          {validation.jurisdictionBehaviour.reportsText}
+        </div>
+      </div>
+
+      <aside className="grid gap-3 rounded-[22px] border border-white/80 bg-white/88 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+        <div>
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Readiness
+          </div>
+          <div className="mt-2 text-[34px] font-black tracking-tight text-slate-950">
+            {readiness.score}
+          </div>
+        </div>
+        <div className="text-sm leading-6 text-slate-600">{readiness.summary}</div>
+        <div
+          className={cx(
+            "inline-flex w-fit rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em]",
+            readinessTone(readiness.status),
+          )}
+        >
+          {readiness.status.replace("_", " ")}
+        </div>
+      </aside>
+    </section>
+  );
+}
+
 function CompletionGateCard({
   validation,
 }: {
@@ -180,7 +380,7 @@ function CompletionGateCard({
     .slice(0, 4);
 
   return (
-    <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(238,245,255,0.94)_58%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px]">
+    <section id="report-completion-gate" className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(238,245,255,0.94)_58%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px]">
       <div className="grid gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="grid gap-1.5">
@@ -252,6 +452,16 @@ function CompletionGateCard({
                   >
                     <div className="font-bold text-slate-950">{issue.label}</div>
                     <div className="mt-1">{issue.detail}</div>
+                    {issueActionHref(issue) ? (
+                      <div className="mt-3">
+                        <Link
+                          href={issueActionHref(issue)!}
+                          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-3 py-2 text-[12px] font-bold text-white transition hover:bg-slate-800"
+                        >
+                          {issueActionLabel(issue)}
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -275,6 +485,16 @@ function CompletionGateCard({
                   >
                     <div className="font-bold text-slate-950">{issue.label}</div>
                     <div className="mt-1">{issue.detail}</div>
+                    {issueActionHref(issue) ? (
+                      <div className="mt-3">
+                        <Link
+                          href={issueActionHref(issue)!}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[12px] font-bold text-slate-900 transition hover:bg-slate-50"
+                        >
+                          {issueActionLabel(issue)}
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -383,9 +603,13 @@ function ExportGateCard({
   onDownloadHtml: () => void;
 }) {
   const blockers = validation.blockers.slice(0, 3);
+  const exportSentence = complianceModeSentence(validation);
 
   return (
-    <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)] lg:grid-cols-[minmax(0,1fr)_280px]">
+    <section
+      id="report-export"
+      className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)] lg:grid-cols-[minmax(0,1fr)_280px]"
+    >
       <div className="grid gap-4">
         <div className="grid gap-1.5">
           <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -403,6 +627,9 @@ function ExportGateCard({
         </div>
         <div className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
           {validation.complianceModeLabel}
+        </div>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
+          {exportSentence}
         </div>
 
         {exportError ? (
@@ -434,6 +661,16 @@ function ExportGateCard({
                   >
                     <div className="font-bold text-slate-950">{issue.label}</div>
                     <div className="mt-1">{issue.detail}</div>
+                    {issueActionHref(issue) ? (
+                      <div className="mt-3">
+                        <Link
+                          href={issueActionHref(issue)!}
+                          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-3 py-2 text-[12px] font-bold text-white transition hover:bg-slate-800"
+                        >
+                          {issueActionLabel(issue)}
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -1249,6 +1486,14 @@ export default function ReportsOutputPage() {
         </aside>
       </section>
 
+      {validation ? (
+        <ComplianceContextPanel
+          model={model}
+          readiness={readiness}
+          validation={validation}
+        />
+      ) : null}
+
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <article className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
           <div className="grid gap-1.5">
@@ -1287,6 +1532,7 @@ export default function ReportsOutputPage() {
                 return (
                   <div
                     key={section.id}
+                    id={`report-section-${sectionKey}`}
                     className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-3">

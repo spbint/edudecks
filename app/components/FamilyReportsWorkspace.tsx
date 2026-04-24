@@ -177,6 +177,18 @@ export default function FamilyReportsWorkspace({
     },
     planCount: 0,
     evidenceCount: 0,
+    notificationSummary: {
+      total: 0,
+      submitted: 0,
+      latestStatus: null,
+      dueDate: null,
+    },
+    attendanceSummary: {
+      days: 0,
+      hours: 0,
+      records: 0,
+    },
+    subjectLogCount: 0,
     softWarning: "",
     jurisdictionBehaviour: {
       jurisdictionId: null,

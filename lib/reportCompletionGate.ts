@@ -25,6 +25,9 @@ export type ReportValidationIssue = {
   detail: string;
   sectionKey?: string | null;
   artifactType?: string | null;
+  actionType?: "family_card" | "report_section" | "report_workspace" | "plan_page" | "output_section" | "settings_page" | "reports_page" | null;
+  actionTarget?: string | null;
+  actionLabel?: string | null;
 };
 
 export type ReportSectionGateState = {
@@ -132,7 +135,84 @@ function findMatchingAutofillSection(
 }
 
 function issue(input: ValidationIssueInput): ReportValidationIssue {
-  return input;
+  return {
+    ...input,
+    ...buildIssueAction(input),
+  };
+}
+
+function buildIssueAction(input: {
+  code: string;
+  label: string;
+  sectionKey?: string | null;
+  artifactType?: string | null;
+}): Pick<ReportValidationIssue, "actionLabel" | "actionTarget" | "actionType"> {
+  const sectionKey = safe(input.sectionKey);
+  const artifactType = toLower(input.artifactType);
+  const label = safe(input.label);
+  const lowerCode = toLower(input.code);
+
+  if (sectionKey) {
+    return {
+      actionType: "report_section",
+      actionTarget: `#report-section-${sectionKey}`,
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (artifactType.includes("notification") || lowerCode.includes("notification")) {
+    return {
+      actionType: "family_card",
+      actionTarget: "/family#notification-compliance",
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (artifactType.includes("attendance") || lowerCode.includes("attendance")) {
+    return {
+      actionType: "family_card",
+      actionTarget: "/family#attendance-compliance",
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (artifactType.includes("plan") || artifactType.includes("subject") || lowerCode.includes("plan")) {
+    return {
+      actionType: "plan_page",
+      actionTarget: "/my-plan",
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (lowerCode.includes("report_document") || lowerCode.includes("reporting_period")) {
+    return {
+      actionType: "reports_page",
+      actionTarget: "/reports",
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (lowerCode.includes("registration_cycle") || lowerCode.includes("rule_set") || lowerCode.includes("jurisdiction")) {
+    return {
+      actionType: "settings_page",
+      actionTarget: "/family#family-learning-setup",
+      actionLabel: "Fix this",
+    };
+  }
+
+  if (lowerCode.includes("concern") || lowerCode.includes("condition")) {
+    return {
+      actionType: "output_section",
+      actionTarget: "#report-completion-gate",
+      actionLabel: "Review",
+    };
+  }
+
+  return {
+    actionType: null,
+    actionTarget: null,
+    actionLabel: label ? "Fix this" : null,
+  };
 }
 
 function supportStatusForSection(input: {

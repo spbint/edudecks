@@ -579,16 +579,26 @@ function sectionTermsForTitle(title: string) {
   if (normalized.includes("resource") || normalized.includes("environment")) terms.push("resource", "material", "environment", "tool");
   if (normalized.includes("social")) terms.push("social", "community", "group", "peer");
   if (normalized.includes("standard") || normalized.includes("curriculum")) terms.push("standard", "curriculum", "framework");
+  if (normalized.includes("subject") || normalized.includes("learning area") || normalized.includes("coverage")) terms.push("subject", "learning area", "coverage", "curriculum");
   if (normalized.includes("next") || normalized.includes("proposed") || normalized.includes("upcoming")) terms.push("next", "proposed", "future", "upcoming");
   if (normalized.includes("review")) terms.push("review", "finding", "reflection");
   if (normalized.includes("progress") || normalized.includes("achievement")) terms.push("progress", "achievement", "growth");
   if (normalized.includes("plan") || normalized.includes("program")) terms.push("plan", "program", "goal", "intent");
   if (normalized.includes("evidence") || normalized.includes("record")) terms.push("evidence", "record", "sample", "capture");
+  if (normalized.includes("attendance") || normalized.includes("hours")) terms.push("attendance", "hours", "days", "instructional");
+  if (normalized.includes("notification") || normalized.includes("notice")) terms.push("notification", "notice", "filing", "intent");
+  if (normalized.includes("reporting")) terms.push("report", "summary", "document");
   if (!terms.length) terms.push(normalized);
   return Array.from(new Set(terms));
 }
 
-function buildSectionNotes(section: SectionRecord, artifactResults: ArtifactMappingResult[], evidenceCount: number, planCount: number) {
+function buildSectionNotes(
+  section: SectionRecord,
+  artifactResults: ArtifactMappingResult[],
+  evidenceCount: number,
+  planCount: number,
+  complianceNotes: string[],
+) {
   const notes: string[] = [];
   if (section.hasContent) {
     notes.push("This section already contains draft content.");
@@ -607,7 +617,96 @@ function buildSectionNotes(section: SectionRecord, artifactResults: ArtifactMapp
     notes.push("No required artifacts have been matched to this section yet.");
   }
 
+  if (complianceNotes.length) {
+    notes.push(...complianceNotes);
+  }
+
   return notes;
+}
+
+function complianceNotesForSection(sectionTitle: string, model: ReportsBuilderModel) {
+  const normalized = toLower(sectionTitle);
+  const notes: string[] = [];
+
+  const notificationSubmitted =
+    model.notificationSummary.submitted > 0 ||
+    ["submitted", "acknowledged", "not_required", "waived"].includes(
+      toLower(model.notificationSummary.latestStatus),
+    );
+  const attendanceStarted =
+    model.attendanceSummary.records > 0 ||
+    model.attendanceSummary.days > 0 ||
+    model.attendanceSummary.hours > 0;
+  const planCoverage = model.planCount > 0 || model.subjectLogCount > 0;
+
+  if (normalized.includes("notification") || normalized.includes("notice")) {
+    if (notificationSubmitted) {
+      notes.push("Notification input is already reflected in the readiness model.");
+    } else if (model.requiresNotification) {
+      notes.push("Notification is still open and should be completed for a stronger export path.");
+    } else {
+      notes.push("Notification is optional here, so it is treated as supporting context.");
+    }
+  }
+
+  if (normalized.includes("attendance") || normalized.includes("hours") || normalized.includes("progress")) {
+    if (attendanceStarted) {
+      notes.push(
+        `Attendance summary data is present with ${model.attendanceSummary.days} day${model.attendanceSummary.days === 1 ? "" : "s"} and ${model.attendanceSummary.hours} hour${model.attendanceSummary.hours === 1 ? "" : "s"}.`,
+      );
+    } else if (model.requiresAttendanceTracking) {
+      notes.push("Attendance tracking is required here, but no summary has been saved yet.");
+    } else {
+      notes.push("Attendance is optional in this jurisdiction, so it is treated as documentary support.");
+    }
+  }
+
+  if (normalized.includes("plan") || normalized.includes("subject") || normalized.includes("curriculum")) {
+    if (planCoverage) {
+      notes.push(
+        `Plan support is visible through ${model.planCount} plan${model.planCount === 1 ? "" : "s"} and ${model.subjectLogCount} subject log${model.subjectLogCount === 1 ? "" : "s"}.`,
+      );
+    } else if (model.ruleSet?.requiresYearlyPlan || model.ruleSet?.requiresSubjectList) {
+      notes.push("Plan and subject coverage are still needed for a stronger report draft.");
+    } else {
+      notes.push("Plan coverage is optional here, so it is treated as helpful context rather than a blocker.");
+    }
+  }
+
+  return notes;
+}
+
+function hasComplianceSupportForSection(sectionTitle: string, model: ReportsBuilderModel) {
+  const normalized = toLower(sectionTitle);
+
+  if (normalized.includes("notification") || normalized.includes("notice")) {
+    return (
+      model.notificationSummary.submitted > 0 ||
+      ["submitted", "acknowledged", "not_required", "waived"].includes(
+        toLower(model.notificationSummary.latestStatus),
+      ) ||
+      Boolean(model.requiresNotification && model.notificationSummary.total > 0)
+    );
+  }
+
+  if (normalized.includes("attendance") || normalized.includes("hours") || normalized.includes("progress")) {
+    return (
+      model.attendanceSummary.records > 0 ||
+      model.attendanceSummary.days > 0 ||
+      model.attendanceSummary.hours > 0 ||
+      Boolean(model.requiresAttendanceTracking)
+    );
+  }
+
+  if (normalized.includes("plan") || normalized.includes("subject") || normalized.includes("curriculum")) {
+    return (
+      model.planCount > 0 ||
+      model.subjectLogCount > 0 ||
+      Boolean(model.ruleSet?.requiresYearlyPlan || model.ruleSet?.requiresSubjectList)
+    );
+  }
+
+  return false;
 }
 
 function nextActionFromArtifacts(artifacts: ArtifactMappingResult[]) {
@@ -806,6 +905,8 @@ export async function loadReportEvidenceMapping(
       (sum, artifact) => sum + artifact.supportingCounts.plans,
       0,
     );
+    const complianceNotes = complianceNotesForSection(section.title, model);
+    const complianceSupport = hasComplianceSupportForSection(section.title, model);
 
     let status: SectionCompletionStatus = "missing";
     if (
@@ -818,7 +919,8 @@ export async function loadReportEvidenceMapping(
       section.hasContent ||
       supportingEvidenceCount > 0 ||
       supportingPlanCount > 0 ||
-      supportedArtifacts.some((artifact) => artifact.status === "in_progress" || artifact.status === "complete")
+      supportedArtifacts.some((artifact) => artifact.status === "in_progress" || artifact.status === "complete") ||
+      complianceSupport
     ) {
       status = "in_progress";
     }
@@ -830,7 +932,13 @@ export async function loadReportEvidenceMapping(
       supportedArtifactTypes: supportedArtifacts.map((artifact) => artifact.artifactType),
       supportingEvidenceCount,
       supportingPlanCount,
-      notes: buildSectionNotes(section, supportedArtifacts, supportingEvidenceCount, supportingPlanCount),
+      notes: buildSectionNotes(
+        section,
+        supportedArtifacts,
+        supportingEvidenceCount,
+        supportingPlanCount,
+        complianceNotes,
+      ),
     } satisfies SectionMappingResult;
   });
 

@@ -198,6 +198,18 @@ export type ReportsBuilderModel = {
   requiresAttendanceTracking: boolean;
   requiredInstructionHoursPerYear: number | null;
   requiredInstructionDaysPerYear: number | null;
+  notificationSummary: {
+    total: number;
+    submitted: number;
+    latestStatus: string | null;
+    dueDate: string | null;
+  };
+  attendanceSummary: {
+    days: number;
+    hours: number;
+    records: number;
+  };
+  subjectLogCount: number;
 };
 
 type LoadReportsBuilderOptions = {
@@ -216,6 +228,11 @@ function safe(value: unknown) {
 
 function toLower(value: unknown) {
   return safe(value).toLowerCase();
+}
+
+function toNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function asStringArray(value: unknown): string[] {
@@ -1145,32 +1162,167 @@ type AttendanceSummary = {
   records: number;
 };
 
+type AttendanceHourRow = {
+  school_day?: boolean | string | null;
+  recorded_date?: string | null;
+  instructional_hours?: number | string | null;
+  instructional_minutes?: number | string | null;
+  total_instruction_minutes?: number | string | null;
+  [key: string]: unknown;
+};
+
+type AttendanceSummaryRow = {
+  total_days?: number | string | null;
+  days?: number | string | null;
+  instructional_days?: number | string | null;
+  total_hours?: number | string | null;
+  hours?: number | string | null;
+  instructional_hours?: number | string | null;
+  total_instruction_minutes?: number | string | null;
+  instructional_minutes?: number | string | null;
+  [key: string]: unknown;
+};
+
+function summarizeAttendanceDayRows(rows: AttendanceHourRow[]) {
+  const days = rows.filter((row) => {
+    const schoolDay = row.school_day;
+    const recordedDate = safe(row.recorded_date);
+    const status = toLower(row.school_day);
+    return Boolean(
+      schoolDay === true ||
+        schoolDay === "true" ||
+        status === "present" ||
+        status === "attended" ||
+        status === "school_day" ||
+        status === "complete" ||
+        recordedDate,
+    );
+  }).length;
+
+  const hours = rows.reduce((sum, row) => {
+    const instructionalHours = Number(row.instructional_hours);
+    if (Number.isFinite(instructionalHours)) {
+      return sum + instructionalHours;
+    }
+
+    const rowObject = row as Record<string, unknown>;
+    const instructionalMinutes = Number(rowObject.instructional_minutes);
+    if (Number.isFinite(instructionalMinutes)) {
+      return sum + instructionalMinutes / 60;
+    }
+
+    return sum;
+  }, 0);
+
+  return {
+    days,
+    hours,
+    records: rows.length,
+  };
+}
+
+function summarizeAttendanceSummaryRows(rows: AttendanceSummaryRow[]) {
+  const days = rows.reduce(
+    (max, row) =>
+      Math.max(max, toNumber(row.total_days), toNumber(row.days), toNumber(row.instructional_days)),
+    0,
+  );
+
+  const hours = rows.reduce(
+    (max, row) =>
+      Math.max(max, toNumber(row.total_hours), toNumber(row.hours), toNumber(row.instructional_hours)),
+    0,
+  );
+
+  return {
+    days,
+    hours,
+    records: rows.length,
+  };
+}
+
+async function loadAttendanceDaySummary(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+): Promise<AttendanceSummary> {
+  try {
+    const rows = await many(db, "homeschool_attendance_days", (query) => {
+      let next = query
+        .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,instructional_minutes,school_day")
+        .eq("learner_id", learnerId);
+      if (cycle?.id) {
+        next = next.eq("registration_cycle_id", cycle.id);
+      }
+      return next;
+    });
+
+    return summarizeAttendanceDayRows(rows as AttendanceHourRow[]);
+  } catch {
+    return { days: 0, hours: 0, records: 0 };
+  }
+}
+
+async function loadAttendanceSummaryRows(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+): Promise<AttendanceSummary> {
+  try {
+    const rows = await many(db, "homeschool_attendance_summaries", (query) => {
+      let next = query
+        .select("id,learner_id,registration_cycle_id,academic_year,total_days,days,instructional_days,total_hours,hours,instructional_hours")
+        .eq("learner_id", learnerId);
+      if (cycle?.id) {
+        next = next.eq("registration_cycle_id", cycle.id);
+      }
+      return next;
+    });
+
+    return summarizeAttendanceSummaryRows(rows as AttendanceSummaryRow[]);
+  } catch {
+    return { days: 0, hours: 0, records: 0 };
+  }
+}
+
 async function loadNotificationSubmissionCount(
   db: QueryClient,
   learnerId: string,
   cycle: RegistrationCycleRecord | null,
 ) {
-  if (!cycle) return { total: 0, submitted: 0 };
+  if (!cycle) return { total: 0, submitted: 0, latestStatus: null, dueDate: null };
 
   try {
     const rows = await many(db, "homeschool_notifications", (query) =>
       query
-        .select("id,learner_id,registration_cycle_id,status,submitted_at")
+        .select("id,learner_id,registration_cycle_id,status,submitted_at,due_date,updated_at")
         .eq("learner_id", learnerId)
-        .eq("registration_cycle_id", cycle.id),
+        .eq("registration_cycle_id", cycle.id)
+        .order("updated_at", { ascending: false })
+        .limit(10),
     );
 
     const submitted = rows.filter((row) => {
       const status = toLower(row.status);
-      return Boolean(safe(row.submitted_at)) || status === "submitted" || status === "filed" || status === "complete";
+      return (
+        Boolean(safe(row.submitted_at)) ||
+        status === "submitted" ||
+        status === "acknowledged" ||
+        status === "not_required" ||
+        status === "waived" ||
+        status === "filed" ||
+        status === "complete"
+      );
     }).length;
 
     return {
       total: rows.length,
       submitted,
+      latestStatus: safe(rows[0]?.status) || null,
+      dueDate: safe(rows[0]?.due_date) || null,
     };
   } catch {
-    return { total: 0, submitted: 0 };
+    return { total: 0, submitted: 0, latestStatus: null, dueDate: null };
   }
 }
 
@@ -1181,29 +1333,48 @@ async function loadAttendanceSummary(
 ): Promise<AttendanceSummary> {
   if (!cycle) return { days: 0, hours: 0, records: 0 };
 
+  const [daySummary, summaryRows] = await Promise.all([
+    loadAttendanceDaySummary(db, learnerId, cycle),
+    loadAttendanceSummaryRows(db, learnerId, cycle),
+  ]);
+
+  const legacySummary = await (async () => {
+    try {
+      const rows = await many(db, "attendance_hour_logs", (query) =>
+        query
+          .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,school_day")
+          .eq("learner_id", learnerId)
+          .eq("registration_cycle_id", cycle.id),
+      );
+      return summarizeAttendanceDayRows(rows as AttendanceHourRow[]);
+    } catch {
+      return { days: 0, hours: 0, records: 0 };
+    }
+  })();
+
+  return {
+    days: Math.max(daySummary.days, summaryRows.days, legacySummary.days),
+    hours: Math.max(daySummary.hours, summaryRows.hours, legacySummary.hours),
+    records: daySummary.records + summaryRows.records + legacySummary.records,
+  };
+}
+
+async function loadSubjectLogCount(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRecord | null,
+) {
   try {
-    const rows = await many(db, "attendance_hour_logs", (query) =>
-      query
-        .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,school_day")
-        .eq("learner_id", learnerId)
-        .eq("registration_cycle_id", cycle.id),
-    );
-
-    const days = rows.filter((row) => {
-      const schoolDay = row.school_day;
-      const recordedDate = safe(row.recorded_date);
-      return Boolean(schoolDay === true || schoolDay === "true" || recordedDate);
-    }).length;
-
-    const hours = rows.reduce((sum, row) => sum + (Number(row.instructional_hours) || 0), 0);
-
-    return {
-      days,
-      hours,
-      records: rows.length,
-    };
+    const rows = await many(db, "homeschool_instruction_subject_logs", (query) => {
+      let next = query.select("id,learner_id,registration_cycle_id").eq("learner_id", learnerId);
+      if (cycle?.id) {
+        next = next.eq("registration_cycle_id", cycle.id);
+      }
+      return next;
+    });
+    return rows.length;
   } catch {
-    return { days: 0, hours: 0, records: 0 };
+    return 0;
   }
 }
 
@@ -1245,6 +1416,7 @@ function artifactStatusForCategory(
     notificationCount: number;
     submittedNotificationCount: number;
     attendance: AttendanceSummary;
+    subjectLogCount: number;
     reportRequired: boolean;
     requiresAttendanceTracking: boolean;
     requiredInstructionHoursPerYear: number | null;
@@ -1261,7 +1433,9 @@ function artifactStatusForCategory(
   }
 
   if (category === "plan") {
-    return input.planCount > 0 ? "Ready" : "Not started";
+    if (input.planCount > 0 && input.subjectLogCount > 0) return "Ready";
+    if (input.planCount > 0 || input.subjectLogCount > 0) return "In progress";
+    return "Not started";
   }
   if (category === "evidence") {
     return input.evidenceCount > 0 ? "Ready" : "Not started";
@@ -1294,6 +1468,9 @@ function artifactStatusForCategory(
     if (input.evidenceCount > 0) return "Ready";
     if (input.planCount > 0 || input.reportDocument) return "In progress";
     return "Not started";
+  }
+  if (input.subjectLogCount > 0) {
+    return input.planCount > 0 ? "Ready" : "In progress";
   }
   return "Not started";
 }
@@ -1377,6 +1554,18 @@ function buildEmptyModel(learner: FamilyLearner | null, softWarning = ""): Repor
     requiresAttendanceTracking: false,
     requiredInstructionHoursPerYear: null,
     requiredInstructionDaysPerYear: null,
+    notificationSummary: {
+      total: 0,
+      submitted: 0,
+      latestStatus: null,
+      dueDate: null,
+    },
+    attendanceSummary: {
+      days: 0,
+      hours: 0,
+      records: 0,
+    },
+    subjectLogCount: 0,
   };
 }
 
@@ -1483,9 +1672,10 @@ export async function loadReportsBuilderModel(
       loadPlanCount(db, learner.id, registrationCycle),
       loadEvidenceCount(db, learner.id, registrationCycle),
     ]);
-    const [notificationCounts, attendance] = await Promise.all([
+    const [notificationCounts, attendance, subjectLogCount] = await Promise.all([
       loadNotificationSubmissionCount(db, learner.id, registrationCycle),
       loadAttendanceSummary(db, learner.id, registrationCycle),
+      loadSubjectLogCount(db, learner.id, registrationCycle),
     ]);
     const reviewCount = await loadReviewCount(db, learner.id, registrationCycle);
 
@@ -1510,6 +1700,7 @@ export async function loadReportsBuilderModel(
           notificationCount: notificationCounts.total,
           submittedNotificationCount: notificationCounts.submitted,
           attendance,
+          subjectLogCount,
           reportRequired: jurisdictionProfile.reportRequired,
           requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
           requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
@@ -1566,6 +1757,9 @@ export async function loadReportsBuilderModel(
       requiresAttendanceTracking: jurisdictionProfile.requiresAttendanceTracking,
       requiredInstructionHoursPerYear: jurisdictionProfile.requiredInstructionHoursPerYear,
       requiredInstructionDaysPerYear: jurisdictionProfile.requiredInstructionDaysPerYear,
+      notificationSummary: notificationCounts,
+      attendanceSummary: attendance,
+      subjectLogCount,
     };
   } catch (error) {
     return buildEmptyModel(

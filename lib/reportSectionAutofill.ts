@@ -174,16 +174,21 @@ function formatDateRange(startDate: string | null, endDate: string | null) {
   return `Until ${end?.toLocaleDateString(undefined, { dateStyle: "medium" })}`;
 }
 
-function confidenceFrom(status: "complete" | "in_progress" | "missing", counts: ReportSectionStarterContent["sourceCounts"]) {
+function confidenceFrom(
+  status: "complete" | "in_progress" | "missing",
+  counts: ReportSectionStarterContent["sourceCounts"],
+  complianceSignals: number,
+) {
   const supportTotal =
     counts.plans +
     counts.experiences +
     counts.evidence +
     counts.pairs +
     counts.reviews;
+  const totalSignal = supportTotal + complianceSignals;
 
-  if (status === "complete" && supportTotal >= 4) return "high" as const;
-  if (status !== "missing" && supportTotal >= 2) return "medium" as const;
+  if (status === "complete" && totalSignal >= 4) return "high" as const;
+  if (status !== "missing" && totalSignal >= 2) return "medium" as const;
   return "low" as const;
 }
 
@@ -537,6 +542,93 @@ function nextStepForSection(input: {
   return "Refine this starter block into a submitted draft when you are ready.";
 }
 
+function complianceContextForSection(input: {
+  section: SectionMappingResult;
+  model: ReportsBuilderModel;
+}) {
+  const title = input.section.title.toLowerCase();
+  const lines: string[] = [];
+
+  const notificationSubmitted =
+    input.model.notificationSummary.submitted > 0 ||
+    ["submitted", "acknowledged", "not_required", "waived"].includes(
+      String(input.model.notificationSummary.latestStatus ?? "").toLowerCase(),
+    );
+  const attendanceStarted =
+    input.model.attendanceSummary.records > 0 ||
+    input.model.attendanceSummary.days > 0 ||
+    input.model.attendanceSummary.hours > 0;
+  const planCoverage = input.model.planCount > 0 || input.model.subjectLogCount > 0;
+
+  if (title.includes("notification") || title.includes("notice")) {
+    lines.push(
+      notificationSubmitted
+        ? "Notification is already reflected in the readiness model."
+        : input.model.requiresNotification
+          ? "Notification is still open and can strengthen export readiness."
+          : "Notification is optional here, so it is treated as supportive context.",
+    );
+  }
+
+  if (title.includes("attendance") || title.includes("hours") || title.includes("progress")) {
+    lines.push(
+      attendanceStarted
+        ? `Attendance summary is present with ${input.model.attendanceSummary.days} day${input.model.attendanceSummary.days === 1 ? "" : "s"} and ${input.model.attendanceSummary.hours} hour${input.model.attendanceSummary.hours === 1 ? "" : "s"}.`
+        : input.model.requiresAttendanceTracking
+          ? "Attendance tracking is required here, but no summary has been saved yet."
+          : "Attendance is optional here and is treated as documentary support.",
+    );
+  }
+
+  if (title.includes("plan") || title.includes("subject") || title.includes("curriculum")) {
+    lines.push(
+      planCoverage
+        ? `Plan support is visible through ${input.model.planCount} plan${input.model.planCount === 1 ? "" : "s"} and ${input.model.subjectLogCount} subject log${input.model.subjectLogCount === 1 ? "" : "s"}.`
+        : input.model.ruleSet?.requiresYearlyPlan || input.model.ruleSet?.requiresSubjectList
+          ? "Plan and subject coverage are still needed for a stronger draft."
+          : "Plan coverage is optional here, so it is helpful but not required.",
+    );
+  }
+
+  return lines;
+}
+
+function hasComplianceSupportForSection(input: {
+  section: SectionMappingResult;
+  model: ReportsBuilderModel;
+}) {
+  const title = input.section.title.toLowerCase();
+
+  if (title.includes("notification") || title.includes("notice")) {
+    return (
+      input.model.notificationSummary.submitted > 0 ||
+      ["submitted", "acknowledged", "not_required", "waived"].includes(
+        String(input.model.notificationSummary.latestStatus ?? "").toLowerCase(),
+      ) ||
+      Boolean(input.model.requiresNotification && input.model.notificationSummary.total > 0)
+    );
+  }
+
+  if (title.includes("attendance") || title.includes("hours") || title.includes("progress")) {
+    return (
+      input.model.attendanceSummary.records > 0 ||
+      input.model.attendanceSummary.days > 0 ||
+      input.model.attendanceSummary.hours > 0 ||
+      Boolean(input.model.requiresAttendanceTracking)
+    );
+  }
+
+  if (title.includes("plan") || title.includes("subject") || title.includes("curriculum")) {
+    return (
+      input.model.planCount > 0 ||
+      input.model.subjectLogCount > 0 ||
+      Boolean(input.model.ruleSet?.requiresYearlyPlan || input.model.ruleSet?.requiresSubjectList)
+    );
+  }
+
+  return false;
+}
+
 function buildStarterBlocks(input: {
   section: SectionMappingResult;
   model: ReportsBuilderModel;
@@ -564,6 +656,7 @@ function buildStarterBlocks(input: {
     source.reviews.flatMap((review) => review.findings),
     3,
   );
+  const complianceContext = complianceContextForSection({ section, model });
 
   const blocks: ReportSectionStarterBlock[] = [
     {
@@ -591,6 +684,14 @@ function buildStarterBlocks(input: {
       ],
     },
   ];
+
+  if (complianceContext.length) {
+    blocks.push({
+      type: "prompt",
+      title: "Compliance context",
+      lines: complianceContext,
+    });
+  }
 
   if (planTitles.length || learningAreas.length || goals.length) {
     blocks.push({
@@ -664,6 +765,9 @@ function buildStarterBlocks(input: {
     counts,
     notes: [
       `Starter content is built from current learner records for ${section.title}.`,
+      complianceContext.length
+        ? "Compliance inputs are reflected in this section's starter guidance."
+        : "No direct compliance inputs were needed for this section.",
       section.status === "complete"
         ? "This section already has a strong support chain."
         : section.status === "in_progress"
@@ -782,6 +886,10 @@ export async function loadReportSectionAutofill(
       concernCount: sourceBundle.concernCount,
       conditionCount: sourceBundle.conditionCount,
     });
+    const hasComplianceSupport = hasComplianceSupportForSection({
+      section,
+      model: input.model,
+    });
 
     const sectionKey = normalizeSectionKey(section.title);
     const canAutofill =
@@ -796,7 +904,7 @@ export async function loadReportSectionAutofill(
       sectionKey,
       title: section.title,
       status: section.status,
-      confidence: confidenceFrom(section.status, starter.counts),
+      confidence: confidenceFrom(section.status, starter.counts, hasComplianceSupport ? 1 : 0),
       blocks: starter.blocks,
       sourceCounts: starter.counts,
       notes: [

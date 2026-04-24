@@ -476,125 +476,137 @@ export default function FamilyLearningSetupWorkspace() {
           )}
         />
 
-        <ComplianceCommandCard
-          loading={commandCardLoading}
-          model={commandCard}
-        />
+        <div id="family-compliance-command" className="grid gap-4">
+          <ComplianceCommandCard
+            loading={commandCardLoading}
+            model={commandCard}
+          />
+        </div>
 
-        <FamilyLearningSetupCard
-          title="Compliance setup"
-          note="Keep notification, attendance, and subject tracking visible here so the jurisdiction engine can guide the right next step without forcing a separate workflow."
-        >
-          <div className="grid gap-4 xl:grid-cols-3">
-            <NotificationComplianceCard
-              learner={activeLearner}
-              reportsModel={reportsModel}
-              familyProfileId={workspace.profile.id}
-              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
-              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
-              userId={workspace.userId}
-              loading={reportsModelLoading}
-              onSaved={() => void handleComplianceSaved()}
-            />
-            <AttendanceComplianceCard
-              learner={activeLearner}
-              reportsModel={reportsModel}
-              familyProfileId={workspace.profile.id}
-              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
-              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
-              userId={workspace.userId}
-              loading={reportsModelLoading}
-              onSaved={() => void handleComplianceSaved()}
-            />
-            <SubjectsPlanComplianceCard
-              learner={activeLearner}
-              reportsModel={reportsModel}
-              familyProfileId={workspace.profile.id}
-              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
-              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
-              userId={workspace.userId}
-              loading={reportsModelLoading}
-              onSaved={() => void handleComplianceSaved()}
-            />
-          </div>
-        </FamilyLearningSetupCard>
+        <div id="family-compliance-inputs" className="grid gap-4">
+          <FamilyLearningSetupCard
+            title="Compliance setup"
+            note="Keep notification, attendance, and subject tracking visible here so the jurisdiction engine can guide the right next step without forcing a separate workflow."
+          >
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div id="notification-compliance">
+                <NotificationComplianceCard
+                  learner={activeLearner}
+                  reportsModel={reportsModel}
+                  familyProfileId={workspace.profile.id}
+                  jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+                  registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
+                  userId={workspace.userId}
+                  loading={reportsModelLoading}
+                  onSaved={() => void handleComplianceSaved()}
+                />
+              </div>
+              <div id="attendance-compliance">
+                <AttendanceComplianceCard
+                  learner={activeLearner}
+                  reportsModel={reportsModel}
+                  familyProfileId={workspace.profile.id}
+                  jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+                  registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
+                  userId={workspace.userId}
+                  loading={reportsModelLoading}
+                  onSaved={() => void handleComplianceSaved()}
+                />
+              </div>
+              <div id="subjects-plan-compliance">
+                <SubjectsPlanComplianceCard
+                  learner={activeLearner}
+                  reportsModel={reportsModel}
+                  familyProfileId={workspace.profile.id}
+                  jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+                  registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
+                  userId={workspace.userId}
+                  loading={reportsModelLoading}
+                  onSaved={() => void handleComplianceSaved()}
+                />
+              </div>
+            </div>
+          </FamilyLearningSetupCard>
+        </div>
 
-        <FamilyLearningSetupCard
-          title="Family Learning Setup"
-          note="Choose the default curriculum and reporting setup once, then let each learner inherit it unless you need something different."
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Country">
-              <CountrySelector
-                value={draft.country}
-                onChange={(value) =>
-                  setDraft((current) => ({
-                    ...current,
-                    country: value,
-                    preferred_market:
-                      value === "us" || value === "uk" ? value : "au",
-                    curriculum_framework_id:
-                      value === "us"
-                        ? "us-common-core"
-                        : value === "uk"
-                          ? "uk-national"
-                          : value === "other"
-                            ? "custom-homeschool"
-                            : "au-v9",
-                    curriculum_jurisdiction_id:
-                      value === "us"
-                        ? "ca"
-                        : value === "uk"
-                          ? "england"
-                          : value === "other"
-                            ? "custom"
-                            : "tas",
-                  }))
-                }
-              />
-            </Field>
-            <Field label="Curriculum framework">
-              <FrameworkSelector
-                country={draft.country}
-                frameworkId={draft.curriculum_framework_id}
-                onChange={(value) =>
-                  setDraft((current) => ({ ...current, curriculum_framework_id: value }))
-                }
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <JurisdictionSelector
-              country={draft.country}
-              frameworkId={draft.curriculum_framework_id}
-              jurisdictionId={draft.curriculum_jurisdiction_id}
-              onChange={(value) =>
-                setDraft((current) => ({ ...current, curriculum_jurisdiction_id: value }))
-              }
-            />
-            <Field
-              label="Reporting preference"
-              note="This becomes the family default report style unless a learner needs something different."
-            >
-              <div className="grid gap-3">
-                <ReportingModeSelector
-                  value={draft.reporting_mode}
+        <div id="family-learning-setup">
+          <FamilyLearningSetupCard
+            title="Family Learning Setup"
+            note="Choose the default curriculum and reporting setup once, then let each learner inherit it unless you need something different."
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Country">
+                <CountrySelector
+                  value={draft.country}
                   onChange={(value) =>
                     setDraft((current) => ({
                       ...current,
-                      reporting_mode: value,
-                      report_tone_default:
-                        value === "authority-ready" || value === "progress-review"
-                          ? value
-                          : "family-summary",
+                      country: value,
+                      preferred_market:
+                        value === "us" || value === "uk" ? value : "au",
+                      curriculum_framework_id:
+                        value === "us"
+                          ? "us-common-core"
+                          : value === "uk"
+                            ? "uk-national"
+                            : value === "other"
+                              ? "custom-homeschool"
+                              : "au-v9",
+                      curriculum_jurisdiction_id:
+                        value === "us"
+                          ? "ca"
+                          : value === "uk"
+                            ? "england"
+                            : value === "other"
+                              ? "custom"
+                              : "tas",
                     }))
                   }
                 />
-              </div>
-            </Field>
-          </div>
-        </FamilyLearningSetupCard>
+              </Field>
+              <Field label="Curriculum framework">
+                <FrameworkSelector
+                  country={draft.country}
+                  frameworkId={draft.curriculum_framework_id}
+                  onChange={(value) =>
+                    setDraft((current) => ({ ...current, curriculum_framework_id: value }))
+                  }
+                />
+              </Field>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <JurisdictionSelector
+                country={draft.country}
+                frameworkId={draft.curriculum_framework_id}
+                jurisdictionId={draft.curriculum_jurisdiction_id}
+                onChange={(value) =>
+                  setDraft((current) => ({ ...current, curriculum_jurisdiction_id: value }))
+                }
+              />
+              <Field
+                label="Reporting preference"
+                note="This becomes the family default report style unless a learner needs something different."
+              >
+                <div className="grid gap-3">
+                  <ReportingModeSelector
+                    value={draft.reporting_mode}
+                    onChange={(value) =>
+                      setDraft((current) => ({
+                        ...current,
+                        reporting_mode: value,
+                        report_tone_default:
+                          value === "authority-ready" || value === "progress-review"
+                            ? value
+                            : "family-summary",
+                      }))
+                    }
+                  />
+                </div>
+              </Field>
+            </div>
+          </FamilyLearningSetupCard>
+        </div>
 
         <FamilyLearningSetupCard
           title="Learners"
