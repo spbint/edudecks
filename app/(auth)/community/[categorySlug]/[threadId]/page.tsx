@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -57,62 +57,6 @@ function statusBadge(status: ForumThreadStatus): React.CSSProperties {
   return { border: "1px solid #bbf7d0", background: "#f0fdf4", color: "#166534" };
 }
 
-function fallbackThread(
-  categorySlug: string,
-  id: string,
-): { category: ForumCategory; thread: ThreadView; replies: ReplyView[] } {
-  return {
-    category: {
-      id: categorySlug || "general-discussion",
-      slug: categorySlug || "general-discussion",
-      name: categorySlug === "help-shape-edudecks" ? "Help Shape MyLearna" : "General Discussion",
-      description: "A calm place for homeschool families to talk through everyday learning and family life.",
-      created_at: new Date().toISOString(),
-    },
-    thread: {
-      id,
-      category_id: categorySlug || "general-discussion",
-      categorySlug: categorySlug || "general-discussion",
-      user_id: "demo-user",
-      title: "Welcome to the MyLearna community",
-      body:
-        "This is a preview thread so the community space feels alive from first click.\n\nFamilies can share ideas, resources, routines, questions, and encouragement here in a calm, structured format.",
-      excerpt: "This is a preview thread so the community space feels alive from first click.",
-      is_pinned: true,
-      status: "under_review",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      authorLabel: "MyLearna Community",
-      replyCount: 2,
-      latestActivityAt: new Date().toISOString(),
-      supportCount: 0,
-      viewerSupports: false,
-    },
-    replies: [
-      {
-        id: "reply-1",
-        thread_id: id,
-        user_id: "demo-user-2",
-        body: "I love the idea of having a forum that feels calm and practical rather than noisy.",
-        excerpt: "I love the idea of having a forum that feels calm and practical rather than noisy.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        authorLabel: "Homeschool parent",
-      },
-      {
-        id: "reply-2",
-        thread_id: id,
-        user_id: "demo-user-3",
-        body: "A category for resources and another for new homeschoolers would be especially useful.",
-        excerpt: "A category for resources and another for new homeschoolers would be especially useful.",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        authorLabel: "MyLearna family",
-      },
-    ],
-  };
-}
-
 export default function CommunityThreadPage() {
   const params = useParams<{ categorySlug: string; threadId: string }>();
   const categorySlug = String(params?.categorySlug ?? "");
@@ -127,8 +71,7 @@ export default function CommunityThreadPage() {
   const [replying, setReplying] = useState(false);
   const [supporting, setSupporting] = useState(false);
   const [message, setMessage] = useState("");
-
-  const previewMode = useMemo(() => !viewerId || viewerId === "demo-user", [viewerId]);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -139,18 +82,9 @@ export default function CommunityThreadPage() {
 
         if (!mounted) return;
 
-        setViewerId(userId ?? "demo-user");
+        setViewerId(userId);
 
-        if (!userId) {
-          const preview = fallbackThread(categorySlug, threadId);
-          setThread(preview.thread);
-          setReplies(preview.replies);
-          setCategory(preview.category);
-          setLoading(false);
-          return;
-        }
-
-        const data = await loadThreadPageData(threadId, userId);
+        const data = await loadThreadPageData(threadId, userId ?? null);
 
         if (!mounted) return;
 
@@ -158,20 +92,19 @@ export default function CommunityThreadPage() {
           setThread(data.thread as ThreadView);
           setReplies((data.replies as ReplyView[]) ?? []);
           setCategory(data.category);
+          setLoadError(false);
         } else {
-          const preview = fallbackThread(categorySlug, threadId);
-          setThread(preview.thread);
-          setReplies(preview.replies);
-          setCategory(preview.category);
+          setThread(null);
+          setReplies([]);
+          setCategory(data.category);
         }
       } catch (error) {
         console.error("Community thread load failed", error);
         if (!mounted) return;
-        const preview = fallbackThread(categorySlug, threadId);
-        setViewerId("demo-user");
-        setThread(preview.thread);
-        setReplies(preview.replies);
-        setCategory(preview.category);
+        setThread(null);
+        setReplies([]);
+        setCategory(null);
+        setLoadError(true);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -191,33 +124,8 @@ export default function CommunityThreadPage() {
       return;
     }
 
-    if (previewMode) {
-      const nextTimestamp = new Date().toISOString();
-      setReplies((current) => [
-        ...current,
-        {
-          id: `preview-reply-${Date.now()}`,
-          thread_id: thread.id,
-          user_id: "demo-user",
-          body: replyBody,
-          excerpt: replyBody,
-          created_at: nextTimestamp,
-          updated_at: nextTimestamp,
-          authorLabel: "You",
-        },
-      ]);
-      setThread((current) =>
-        current
-          ? {
-              ...current,
-              replyCount: current.replyCount + 1,
-              latestActivityAt: nextTimestamp,
-              updated_at: nextTimestamp,
-            }
-          : current,
-      );
-      setReplyBody("");
-      setMessage("Preview reply added. Live posting will work once community sign-in is connected.");
+    if (!viewerId) {
+      setMessage("Please sign in to reply thoughtfully.");
       return;
     }
 
@@ -258,11 +166,8 @@ export default function CommunityThreadPage() {
   async function handleSupport() {
     if (!thread || thread.viewerSupports) return;
 
-    if (previewMode) {
-      setThread((current) =>
-        current ? { ...current, supportCount: current.supportCount + 1, viewerSupports: true } : current,
-      );
-      setMessage("Preview support recorded.");
+    if (!viewerId) {
+      setMessage("Please sign in to support this idea.");
       return;
     }
 
@@ -329,7 +234,14 @@ export default function CommunityThreadPage() {
             gap: 10,
           }}
         >
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Thread not found</div>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>
+            {loadError ? "We couldn’t open this conversation just now." : "This conversation could not be found."}
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+            {loadError
+              ? "Try again in a moment. You can also return to the community area."
+              : "It may have been removed or is not available right now."}
+          </div>
           <Link href="/community" style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none" }}>
             Back to Community
           </Link>
@@ -462,29 +374,48 @@ export default function CommunityThreadPage() {
           </section>
 
           <section style={{ display: "grid", gap: 14, marginBottom: 18 }}>
-            {replies.map((reply) => (
+            {replies.length === 0 ? (
               <article
-                key={reply.id}
                 style={{
                   border: "1px solid #e5e7eb",
                   background: "#ffffff",
                   borderRadius: 18,
-                  padding: 16,
-                  boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                  padding: 20,
                   display: "grid",
-                  gap: 10,
+                  gap: 8,
                 }}
               >
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
-                  {reply.authorLabel} - {relativeTime(reply.created_at)}
-                </div>
-                <div style={{ fontSize: 14, lineHeight: 1.7, color: "#334155", whiteSpace: "pre-wrap" }}>
-                  {reply.body}
+                <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>No replies yet</div>
+                <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+                  When someone responds, the conversation will appear here.
                 </div>
               </article>
-            ))}
+            ) : (
+              replies.map((reply) => (
+                <article
+                  key={reply.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    background: "#ffffff",
+                    borderRadius: 18,
+                    padding: 16,
+                    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    {reply.authorLabel} - {relativeTime(reply.created_at)}
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.7, color: "#334155", whiteSpace: "pre-wrap" }}>
+                    {reply.body}
+                  </div>
+                </article>
+              ))
+            )}
           </section>
 
+          {viewerId ? (
           <section
             style={{
               border: "1px solid #e5e7eb",
@@ -541,6 +472,24 @@ export default function CommunityThreadPage() {
               </button>
             </div>
           </section>
+          ) : (
+            <section
+              style={{
+                border: "1px solid #e5e7eb",
+                background: "#ffffff",
+                borderRadius: 22,
+                padding: 20,
+                boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>Reply thoughtfully</div>
+              <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+                Sign in to add a reply to this conversation.
+              </div>
+            </section>
+          )}
         </>
       )}
     </FamilyTopNavShell>
