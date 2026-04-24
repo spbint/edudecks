@@ -41,6 +41,7 @@ import {
 import {
   buildReportExportFilename,
 } from "@/lib/reportExport";
+import { buildPortfolioContentModel } from "@/lib/portfolioContent";
 import {
   loadReportExportHistory,
   summarizeReportExportHistoryEntry,
@@ -788,6 +789,62 @@ function ExportGateCard({
   );
 }
 
+function PortfolioContentPanel({
+  highlightsCount,
+  workSamplesCount,
+  skillsCount,
+  reflectionPromptCount,
+}: {
+  highlightsCount: number;
+  workSamplesCount: number;
+  skillsCount: number;
+  reflectionPromptCount: number;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+      <div className="grid gap-1.5">
+        <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+          Portfolio content
+        </div>
+        <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+          Saved enrichment signals
+        </h2>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Highlights
+          </div>
+          <div className="mt-2 text-[24px] font-black text-slate-950">{highlightsCount}</div>
+        </div>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Work samples
+          </div>
+          <div className="mt-2 text-[24px] font-black text-slate-950">{workSamplesCount}</div>
+        </div>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Skills
+          </div>
+          <div className="mt-2 text-[24px] font-black text-slate-950">{skillsCount}</div>
+        </div>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Reflection prompts
+          </div>
+          <div className="mt-2 text-[24px] font-black text-slate-950">{reflectionPromptCount}</div>
+        </div>
+      </div>
+
+      <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
+        Portfolio mode can surface saved highlights, work samples, skill signals, and reflection prompts without changing the persisted report sections themselves.
+      </div>
+    </section>
+  );
+}
+
 function ExportHistoryCard({
   reportDocumentId,
   history,
@@ -1215,6 +1272,31 @@ export default function ReportsOutputPage() {
 
   const reportDocumentId = validation?.reportDocumentId || model.reportDocument?.id || "";
   const canExport = validation?.status === "ready_for_export" && Boolean(reportDocumentId);
+  const portfolioContent =
+    model.reportIntent === "portfolio"
+      ? buildPortfolioContentModel({
+          sections: assembly.sections.map((section) => ({
+            id: section.id,
+            section_key: normalizeSectionKey(section.title),
+            title: section.title,
+            contentPreview: section.contentPreview,
+            learnerId: activeLearner.id,
+            reportDocumentId: model.reportDocument?.id || null,
+          })),
+          packItems: assembly.packItems.map((item) => ({
+            id: item.id,
+            label: item.label,
+            note: item.note,
+            learnerId: activeLearner.id,
+            reportDocumentId: model.reportDocument?.id || null,
+          })),
+          localeCode:
+            model.reportDocument?.localeCode ||
+            model.ruleSet?.localeCode ||
+            model.effectiveJurisdiction?.localeCode ||
+            "en-AU",
+        })
+      : null;
 
   if (!model.reportDocument) {
     return (
@@ -1531,6 +1613,15 @@ export default function ReportsOutputPage() {
       </section>
 
       {validation ? <CompletionGateCard validation={validation} /> : null}
+
+      {model.reportIntent === "portfolio" && portfolioContent ? (
+        <PortfolioContentPanel
+          highlightsCount={portfolioContent.highlights.length}
+          workSamplesCount={portfolioContent.workSamples.length}
+          skillsCount={portfolioContent.skills.length}
+          reflectionPromptCount={portfolioContent.reflections.length}
+        />
+      ) : null}
 
       {validation ? (
         <ExportGateCard

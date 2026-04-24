@@ -26,6 +26,10 @@ import {
   reportIntentLabel,
   reportIntentSentence,
 } from "@/lib/reporting";
+import {
+  buildPortfolioContentModel,
+  classifyPortfolioSection,
+} from "@/lib/portfolioContent";
 import { reportIntentHeading } from "@/lib/reportTemplates";
 
 export type ReportExportSection = {
@@ -1122,40 +1126,6 @@ function localizedPortfolioTerm(
   return values.fallback || values.au;
 }
 
-function matchesPortfolioSection(
-  section: ReportExportSection,
-  patterns: RegExp[],
-) {
-  const haystack = `${section.sectionKey} ${section.title}`.toLowerCase();
-  return patterns.some((pattern) => pattern.test(haystack));
-}
-
-function portfolioHighlights(model: ReportExportModel) {
-  const highlightSections = model.sections.filter((section) =>
-    matchesPortfolioSection(section, [/overview/, /story/, /highlight/, /progress/, /growth/]),
-  );
-  const workSampleSections = model.sections.filter((section) =>
-    matchesPortfolioSection(section, [/work/, /sample/, /artefact/, /artifact/, /project/, /evidence/]),
-  );
-  const skillsSections = model.sections.filter((section) =>
-    matchesPortfolioSection(section, [/subject/, /coverage/, /learning area/, /program/, /skill/]),
-  );
-  const reflectionSections = model.sections.filter((section) =>
-    matchesPortfolioSection(section, [/reflection/, /memory/, /next step/, /growth/]),
-  );
-  const resourceSections = model.sections.filter((section) =>
-    matchesPortfolioSection(section, [/resource/, /book/, /field trip/, /excursion/, /environment/]),
-  );
-
-  return {
-    highlightSections,
-    workSampleSections,
-    skillsSections,
-    reflectionSections,
-    resourceSections,
-  };
-}
-
 function buildPortfolioSummaryCard(input: {
   title: string;
   body: string;
@@ -1172,16 +1142,21 @@ function buildPortfolioSummaryCard(input: {
 }
 
 function buildPortfolioSectionHtml(section: ReportExportSection) {
-  const sectionType = matchesPortfolioSection(section, [/reflection/, /memory/, /next step/, /growth/])
-    ? "reflection"
-    : matchesPortfolioSection(section, [/work/, /sample/, /artefact/, /artifact/, /project/, /evidence/])
-      ? "samples"
-      : matchesPortfolioSection(section, [/overview/, /story/, /highlight/])
-        ? "highlight"
-        : "default";
+  const sectionType = classifyPortfolioSection({
+    section_key: section.sectionKey,
+    title: section.title,
+  });
+  const sectionClass =
+    sectionType === "reflection"
+      ? "reflection"
+      : sectionType === "work_sample" || sectionType === "project"
+        ? "samples"
+        : sectionType === "highlight" || sectionType === "overview" || sectionType === "milestone"
+          ? "highlight"
+          : "default";
 
   return `
-    <section class="portfolio-section portfolio-section-${sectionType}">
+    <section class="portfolio-section portfolio-section-${sectionClass}">
       <div class="portfolio-section-head">
         <div>
           <div class="portfolio-section-kicker">${escapeHtml(reportSectionStatusLabel(section.status))}</div>
@@ -1216,25 +1191,59 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
   });
   const contextLabel = model.reportingPeriodLabel || "Current learning record";
   const title = "Learning Portfolio";
-  const highlights = portfolioHighlights(model);
+  const portfolioContent = buildPortfolioContentModel({
+    sections: model.sections.map((section) => ({
+      id: section.sectionKey || section.title,
+      section_key: section.sectionKey,
+      title: section.title,
+      contentHtml: section.contentHtml,
+      learnerId: model.learnerId,
+      reportDocumentId: model.reportDocumentId,
+    })),
+    packItems: model.packItems.map((item) => ({
+      ...item,
+      learnerId: model.learnerId,
+      reportDocumentId: model.reportDocumentId,
+    })),
+    localeCode: model.localeCode,
+  });
+  const reflectionSections = model.sections.filter(
+    (section) =>
+      classifyPortfolioSection({
+        section_key: section.sectionKey,
+        title: section.title,
+      }) === "reflection",
+  );
+  const resourceSections = model.sections.filter(
+    (section) =>
+      classifyPortfolioSection({
+        section_key: section.sectionKey,
+        title: section.title,
+      }) === "resources",
+  );
 
   const summaryCards: string[] = [];
 
-  if (highlights.highlightSections.length) {
+  if (portfolioContent.highlights.length) {
     summaryCards.push(
       buildPortfolioSummaryCard({
         title: "Learning Highlights",
-        body: excerptText(highlights.highlightSections[0].contentHtml) || "Saved highlights from this reporting period appear here.",
+        body:
+          portfolioContent.highlights[0]?.description ||
+          "Saved highlights from this reporting period appear here.",
         eyebrow: favouriteLabel,
       }),
     );
   }
 
-  if (highlights.workSampleSections.length || model.packItems.length) {
-    const packTitleList = model.packItems.slice(0, 4).map((item) => item.label).filter(Boolean);
-    const workSampleBody = model.packItems.length
-      ? `${model.packItems.length} linked record${model.packItems.length === 1 ? "" : "s"}: ${packTitleList.join(", ")}${model.packItems.length > packTitleList.length ? ", and more" : ""}.`
-      : excerptText(highlights.workSampleSections[0]?.contentHtml || "") || "Saved projects and work samples are included in the section cards below.";
+  if (portfolioContent.workSamples.length) {
+    const sampleTitleList = portfolioContent.workSamples
+      .slice(0, 4)
+      .map((item) => item.title)
+      .filter(Boolean);
+    const workSampleBody =
+      portfolioContent.workSamples[0]?.description ||
+      `${portfolioContent.workSamples.length} saved sample${portfolioContent.workSamples.length === 1 ? "" : "s"}: ${sampleTitleList.join(", ")}${portfolioContent.workSamples.length > sampleTitleList.length ? ", and more" : ""}.`;
     summaryCards.push(
       buildPortfolioSummaryCard({
         title: "Projects and Work Samples",
@@ -1243,36 +1252,42 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
     );
   }
 
-  if (highlights.skillsSections.length) {
+  if (portfolioContent.skills.length) {
+    const topSkills = portfolioContent.skills
+      .slice(0, 3)
+      .map((item) => `${item.label} (${item.count})`)
+      .join(", ");
     summaryCards.push(
       buildPortfolioSummaryCard({
         title: skillsLabel,
-        body:
-          excerptText(highlights.skillsSections[0].contentHtml) ||
-          `${mathsLabel}, literacy, and broader learning areas are reflected in the saved portfolio sections.`,
+        body: topSkills || `${mathsLabel}, literacy, and broader learning areas are reflected in the saved portfolio sections.`,
       }),
     );
   }
 
-  if (highlights.reflectionSections.length) {
+  if (reflectionSections.length) {
     summaryCards.push(
       buildPortfolioSummaryCard({
         title: "Reflections and Memories",
-        body: excerptText(highlights.reflectionSections[0].contentHtml) || "Reflections, growth, and memorable learning moments are kept together here.",
+        body:
+          excerptText(reflectionSections[0]?.contentHtml || "") ||
+          "Reflections, growth, and memorable learning moments are kept together here.",
       }),
     );
   }
 
-  if (highlights.resourceSections.length) {
+  if (resourceSections.length) {
     summaryCards.push(
       buildPortfolioSummaryCard({
         title: "Books, Resources, and Field Trips",
-        body: excerptText(highlights.resourceSections[0].contentHtml) || "Saved references to books, resources, and outings are included in this record.",
+        body:
+          excerptText(resourceSections[0]?.contentHtml || "") ||
+          "Saved references to books, resources, and outings are included in this record.",
       }),
     );
   }
 
-  const workSamplePanel = highlights.workSampleSections.length || model.packItems.length
+  const workSamplePanel = portfolioContent.workSamples.length
     ? `
       <section class="portfolio-panel portfolio-panel-break">
         <div class="portfolio-panel-head">
@@ -1281,30 +1296,62 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
             <h2>Projects and Work Samples</h2>
           </div>
           ${
-            model.packItems.length
-              ? `<div class="portfolio-count-pill">${model.packItems.length} linked item${model.packItems.length === 1 ? "" : "s"}</div>`
+            portfolioContent.workSamples.length
+              ? `<div class="portfolio-count-pill">${portfolioContent.workSamples.length} saved item${portfolioContent.workSamples.length === 1 ? "" : "s"}</div>`
               : ""
           }
         </div>
-        ${
-          model.packItems.length
-            ? `<div class="portfolio-chip-list">${model.packItems
-                .map((item) => `<span class="portfolio-chip">${escapeHtml(item.label)}</span>`)
-                .join("")}</div>`
-            : ""
-        }
-        ${
-          highlights.workSampleSections.length
-            ? `<div class="portfolio-panel-grid">${highlights.workSampleSections
-                .map((section) => buildPortfolioSectionHtml(section))
-                .join("")}</div>`
-            : `<div class="portfolio-soft-note">Saved linked items are available for this portfolio, but no dedicated work-sample section content was found.</div>`
-        }
+        <div class="portfolio-panel-grid">
+          ${portfolioContent.workSamples
+            .map(
+              (item) => `
+                <article class="portfolio-section portfolio-section-samples">
+                  <div class="portfolio-section-head">
+                    <div>
+                      <div class="portfolio-section-kicker">Work sample</div>
+                      <h2>${escapeHtml(item.title)}</h2>
+                    </div>
+                  </div>
+                  ${
+                    item.subjectLabel || item.createdAt
+                      ? `<div class="portfolio-chip-list">
+                          ${item.subjectLabel ? `<span class="portfolio-chip">${escapeHtml(item.subjectLabel)}</span>` : ""}
+                          ${item.createdAt ? `<span class="portfolio-chip">${escapeHtml(item.createdAt)}</span>` : ""}
+                        </div>`
+                      : ""
+                  }
+                  <div class="portfolio-section-body">
+                    <p>${escapeHtml(item.description || "Saved work sample from the portfolio record.")}</p>
+                  </div>
+                </article>
+              `,
+            )
+            .join("")}
+        </div>
       </section>
     `
     : "";
 
-  const reflectionPanel = highlights.reflectionSections.length
+  const skillsPanel = portfolioContent.skills.length
+    ? `
+      <section class="portfolio-panel">
+        <div class="portfolio-panel-head">
+          <div>
+            <div class="portfolio-panel-kicker">Skills summary</div>
+            <h2>${escapeHtml(skillsLabel)}</h2>
+          </div>
+          <div class="portfolio-count-pill">${portfolioContent.skills.length} skill area${portfolioContent.skills.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="portfolio-chip-list">
+          ${portfolioContent.skills
+            .map((item) => `<span class="portfolio-chip">${escapeHtml(item.label)} (${item.count})</span>`)
+            .join("")}
+        </div>
+      </section>
+    `
+    : "";
+
+  const reflectionPanel = reflectionSections.length || portfolioContent.reflections.length
     ? `
       <section class="portfolio-panel">
         <div class="portfolio-panel-head">
@@ -1313,9 +1360,31 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
             <h2>Reflections and Memories</h2>
           </div>
         </div>
-        <div class="portfolio-panel-grid">
-          ${highlights.reflectionSections.map((section) => buildPortfolioSectionHtml(section)).join("")}
-        </div>
+        ${
+          reflectionSections.length
+            ? `<div class="portfolio-panel-grid">
+                ${reflectionSections.map((section) => buildPortfolioSectionHtml(section)).join("")}
+              </div>`
+            : `<div class="portfolio-panel-grid">
+                ${portfolioContent.reflections
+                  .map(
+                    (item) => `
+                      <article class="portfolio-section portfolio-section-reflection">
+                        <div class="portfolio-section-head">
+                          <div>
+                            <div class="portfolio-section-kicker">Reflection prompt</div>
+                            <h2>${escapeHtml(item.prompt)}</h2>
+                          </div>
+                        </div>
+                        <div class="portfolio-section-body">
+                          <p>Use this prompt to preserve a meaningful family reflection in the saved portfolio record.</p>
+                        </div>
+                      </article>
+                    `,
+                  )
+                  .join("")}
+              </div>`
+        }
       </section>
     `
     : "";
@@ -1643,6 +1712,7 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
     }
 
     ${workSamplePanel}
+    ${skillsPanel}
     ${reflectionPanel}
 
     <section class="portfolio-panel">
