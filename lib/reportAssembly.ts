@@ -1,5 +1,6 @@
 import { loadComplianceReadiness, type ComplianceReadiness, type ComplianceReadinessItemStatus } from "@/lib/complianceReadiness";
 import type { ReportPackItemRecord, ReportSectionRecord, ReportsBuilderModel } from "@/lib/reporting";
+import { getReportSectionTemplates } from "@/lib/reportTemplates";
 import { supabase } from "@/lib/supabaseClient";
 
 type QueryClient = Pick<typeof supabase, "from">;
@@ -369,7 +370,7 @@ export function getSectionScaffoldsForJurisdiction(
 function buildHeaderTitle(model: ReportsBuilderModel) {
   const jurisdictionName = model.effectiveJurisdiction?.label || "Current";
   const reportingLabel = model.reportingPeriod?.label || reportingModeFallback(model);
-  if (model.reportRequired === false || model.complianceUiMode === "portfolio") {
+  if (model.reportIntent === "portfolio" || model.reportRequired === false || model.complianceUiMode === "portfolio") {
     if (reportingLabel) {
       return `${jurisdictionName} ${reportingLabel} Documentation Draft`;
     }
@@ -433,14 +434,20 @@ function normalizeSectionRecords(
 
 function buildScaffoldSections(
   jurisdictionCode: string | null,
+  intent: ReportsBuilderModel["reportIntent"],
   complianceUiMode: ReportsBuilderModel["complianceUiMode"] = "strict",
   reportRequired = true,
 ): ReportAssemblySection[] {
-  return getSectionScaffoldsForJurisdiction(jurisdictionCode, complianceUiMode, reportRequired).map((section, index) => ({
+  return getReportSectionTemplates({
+    intent,
+    jurisdictionCode,
+    complianceUiMode,
+    reportRequired,
+  }).map((section, index) => ({
     id: `scaffold-${index + 1}`,
     title: section.title,
-    status: "scaffold",
-    contentPreview: section.hint,
+    status: section.requiredForCompletion ? "scaffold" : "optional_scaffold",
+    contentPreview: `${section.description}${section.starterPrompt ? ` ${section.starterPrompt}` : ""}`,
     hasContent: false,
     sourceMode: "scaffold",
     locked: false,
@@ -677,6 +684,7 @@ export async function loadReportAssemblyWorkspace(
       headerTitle: buildHeaderTitle(model),
       sections: buildScaffoldSections(
         model.effectiveJurisdiction?.code || readiness.jurisdictionCode,
+        model.reportIntent,
         model.complianceUiMode,
         model.reportRequired,
       ),
@@ -698,6 +706,7 @@ export async function loadReportAssemblyWorkspace(
   if (!sections.length) {
     sections = buildScaffoldSections(
       jurisdictionCode,
+      model.reportIntent,
       model.complianceUiMode,
       model.reportRequired,
     );

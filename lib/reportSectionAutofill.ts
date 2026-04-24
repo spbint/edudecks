@@ -1,5 +1,6 @@
 import type { ReportEvidenceMapping, SectionMappingResult } from "@/lib/reportEvidenceMapping";
 import type { ReportsBuilderModel } from "@/lib/reporting";
+import { resolveReportSectionTemplate, reportIntentHeading, reportIntentIntro } from "@/lib/reportTemplates";
 import { supabase } from "@/lib/supabaseClient";
 
 type QueryClient = Pick<typeof supabase, "from">;
@@ -526,7 +527,11 @@ function buildSummaryLine(input: {
 function nextStepForSection(input: {
   section: SectionMappingResult;
   counts: ReportSectionStarterContent["sourceCounts"];
+  requiredForCompletion: boolean;
 }) {
+  if (!input.requiredForCompletion) {
+    return "This section is optional in the current mode, so keep it only if it strengthens the record.";
+  }
   if (input.counts.evidence === 0 && input.counts.plans > 0) {
     return "Add at least one evidence item linked to the current plan to strengthen this section.";
   }
@@ -637,6 +642,13 @@ function buildStarterBlocks(input: {
   conditionCount: number;
 }) {
   const { section, model, source } = input;
+  const template = resolveReportSectionTemplate(section.title, {
+    intent: model.reportIntent,
+    jurisdictionCode: model.effectiveJurisdiction?.code || null,
+    countryCode: model.effectiveJurisdiction?.countryCode || null,
+    complianceUiMode: model.complianceUiMode,
+    reportRequired: model.reportRequired,
+  });
   const counts = {
     plans: source.plans.length,
     experiences: source.experiences.length,
@@ -659,6 +671,14 @@ function buildStarterBlocks(input: {
   const complianceContext = complianceContextForSection({ section, model });
 
   const blocks: ReportSectionStarterBlock[] = [
+    {
+      type: "prompt",
+      title: reportIntentHeading(model.reportIntent),
+      lines: [
+        reportIntentIntro(model.reportIntent),
+        template?.description || "Use this section to keep the report structure readable and mode-appropriate.",
+      ],
+    },
     {
       type: "summary",
       title: "Starter summary",
@@ -757,7 +777,7 @@ function buildStarterBlocks(input: {
   blocks.push({
     type: "next_step",
     title: "Suggested next step",
-    lines: [nextStepForSection({ section, counts })],
+    lines: [nextStepForSection({ section, counts, requiredForCompletion: template?.requiredForCompletion ?? true })],
   });
 
   return {
@@ -765,6 +785,7 @@ function buildStarterBlocks(input: {
     counts,
     notes: [
       `Starter content is built from current learner records for ${section.title}.`,
+      template?.starterPrompt ? `Prompt: ${template.starterPrompt}` : "No intent-specific starter prompt was needed here.",
       complianceContext.length
         ? "Compliance inputs are reflected in this section's starter guidance."
         : "No direct compliance inputs were needed for this section.",

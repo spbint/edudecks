@@ -1629,18 +1629,22 @@ export default function ReportsOutputPage() {
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <article className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
           <div className="grid gap-1.5">
-            <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Sections
-            </div>
-            <h2 className="text-[18px] font-bold tracking-tight text-slate-950">
-              Section scaffold
-            </h2>
-            <p className="text-sm leading-7 text-slate-600">
-              {assembly.sections.some((section) => section.scaffoldOnly)
-                ? "Your report draft has been created. Sections are ready to be assembled next."
-                : "These sections reflect the current draft structure for this reporting period."}
-            </p>
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Sections
           </div>
+          <h2 className="text-[18px] font-bold tracking-tight text-slate-950">
+            {model.reportIntent === "portfolio" ? "Portfolio scaffold" : "Authority scaffold"}
+          </h2>
+          <p className="text-sm leading-7 text-slate-600">
+            {assembly.sections.some((section) => section.scaffoldOnly)
+              ? model.reportIntent === "portfolio"
+                ? "Your portfolio draft has been created. The scaffold favours learning story, samples, and reflections."
+                : "Your report draft has been created. The scaffold favours formal compliance, filing, and review sections."
+              : model.reportIntent === "portfolio"
+                ? "These sections reflect the current portfolio structure for this reporting period."
+                : "These sections reflect the current authority-ready draft structure for this reporting period."}
+          </p>
+        </div>
 
           {assembly.sections.length ? (
             <div className="grid gap-3">
@@ -1675,13 +1679,24 @@ export default function ReportsOutputPage() {
                             ? `Source: ${section.sourceMode}`
                             : section.scaffoldOnly
                               ? "Jurisdiction scaffold"
-                              : "Existing report section"}
+                            : "Existing report section"}
                           {section.locked ? " - Locked" : ""}
                         </div>
                       </div>
-                      <span className={cx("inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em]", artifactTone(sectionStatus))}>
-                        {sectionStatus.replace("_", " ")}
-                      </span>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={cx("inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em]", artifactTone(sectionStatus))}>
+                          {sectionStatus.replace("_", " ")}
+                        </span>
+                        {validation?.sectionStates.find((item) => item.sectionKey === sectionKey)?.requiredForCompletion ? (
+                          <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-rose-700">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">
+                            Optional
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="text-sm leading-7 text-slate-600">
                       {section.hasContent

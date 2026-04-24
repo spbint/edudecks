@@ -26,6 +26,7 @@ import {
   reportIntentLabel,
   reportIntentSentence,
 } from "@/lib/reporting";
+import { reportIntentHeading } from "@/lib/reportTemplates";
 
 export type ReportExportSection = {
   sectionKey: string;
@@ -547,7 +548,7 @@ export function buildReportExportModel(
 ): ReportExportModel {
   const reportTitle =
     safe(input.model.reportDocument?.title) ||
-    `${safe(input.model.effectiveJurisdiction?.label) || "Reporting"} report`;
+    `${safe(input.model.effectiveJurisdiction?.label) || "Reporting"} ${reportIntentHeading(input.model.reportIntent)}`;
 
   const reportDocumentId =
     safe(input.model.reportDocument?.id) ||

@@ -10,6 +10,7 @@ import type {
   ReportSectionStarterContent,
 } from "@/lib/reportSectionAutofill";
 import type { ReportsBuilderModel } from "@/lib/reporting";
+import { resolveReportSectionTemplate } from "@/lib/reportTemplates";
 import {
   buildJurisdictionBehaviour,
   requirementImpactForBehaviour,
@@ -37,6 +38,7 @@ export type ReportSectionGateState = {
   hasPersistedContent: boolean;
   supportStatus: "strong" | "partial" | "weak" | "none";
   blocking: boolean;
+  requiredForCompletion: boolean;
   notes: string[];
 };
 
@@ -479,6 +481,13 @@ export function buildReportCompletionValidation(
   const sectionStates = input.assembly.sections.map((section) => {
     const sectionMapping = findMatchingSectionMapping(section, input.mapping.sections);
     const autofillSection = findMatchingAutofillSection(section, input.autofill.sections);
+    const template = resolveReportSectionTemplate(section.title, {
+      intent: input.model.reportIntent,
+      jurisdictionCode,
+      countryCode: input.model.effectiveJurisdiction?.countryCode || null,
+      complianceUiMode: input.model.complianceUiMode,
+      reportRequired: input.model.reportRequired,
+    });
     const supportStatus = supportStatusForSection({
       section,
       sectionMapping,
@@ -488,10 +497,12 @@ export function buildReportCompletionValidation(
     const status =
       hasPersistedContent && supportStatus === "strong"
         ? "complete"
-        : hasPersistedContent && (supportStatus === "partial" || supportStatus === "weak")
+      : hasPersistedContent && (supportStatus === "partial" || supportStatus === "weak")
           ? "in_progress"
           : "missing";
-    const blocking = !hasPersistedContent || supportStatus === "weak" || supportStatus === "none";
+    const requiredForCompletion = template?.requiredForCompletion ?? true;
+    const blocking =
+      requiredForCompletion && (!hasPersistedContent || supportStatus === "weak" || supportStatus === "none");
 
     return {
       sectionKey: normalizeSectionKey(section.title),
@@ -500,6 +511,7 @@ export function buildReportCompletionValidation(
       hasPersistedContent,
       supportStatus,
       blocking,
+      requiredForCompletion,
       notes: sectionNotes({
         section,
         sectionMapping,
@@ -684,6 +696,19 @@ export function buildReportCompletionValidation(
           code: "section_complete",
           label: section.title,
           detail: "This section is complete enough for the current validation gate.",
+          sectionKey: section.sectionKey,
+        }),
+      );
+      return;
+    }
+
+    if (!section.requiredForCompletion) {
+      info.push(
+        issue({
+          type: "info",
+          code: "optional_section_support",
+          label: section.title,
+          detail: section.notes[0] || "This section is optional in the current mode and can be used as supportive context.",
           sectionKey: section.sectionKey,
         }),
       );
