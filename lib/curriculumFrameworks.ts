@@ -398,14 +398,14 @@ export const FRAMEWORK_OPTIONS: FrameworkOption[] = [
 
 export const JURISDICTION_OPTIONS: Record<string, JurisdictionOption[]> = {
   au: [
+    { id: "qld", label: "Queensland" },
     { id: "nsw", label: "New South Wales" },
     { id: "vic", label: "Victoria" },
-    { id: "qld", label: "Queensland" },
-    { id: "wa", label: "Western Australia" },
     { id: "sa", label: "South Australia" },
+    { id: "wa", label: "Western Australia" },
     { id: "tas", label: "Tasmania" },
-    { id: "act", label: "Australian Capital Territory" },
     { id: "nt", label: "Northern Territory" },
+    { id: "act", label: "Australian Capital Territory" },
   ],
   us: US_STATE_OPTIONS.map((state) => ({
     id: state.stateCode.toLowerCase(),
@@ -421,8 +421,10 @@ export function frameworkOptionById(frameworkId?: string | null) {
 }
 
 export function jurisdictionOptionsForCountry(country?: string | null) {
-  const key = country === "us" || country === "uk" || country === "other" ? country : "au";
-  return JURISDICTION_OPTIONS[key];
+  if (country === "au" || country === "us" || country === "uk" || country === "other") {
+    return JURISDICTION_OPTIONS[country];
+  }
+  return [];
 }
 
 export function jurisdictionLabelFor(

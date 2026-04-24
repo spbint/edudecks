@@ -74,6 +74,7 @@ export const US_STATE_OPTIONS: Array<JurisdictionDisplayInfo> = [
   { code: "US-CO", label: "Colorado", countryCode: "US", stateCode: "CO" },
   { code: "US-CT", label: "Connecticut", countryCode: "US", stateCode: "CT" },
   { code: "US-DE", label: "Delaware", countryCode: "US", stateCode: "DE" },
+  { code: "US-DC", label: "District of Columbia", countryCode: "US", stateCode: "DC" },
   { code: "US-FL", label: "Florida", countryCode: "US", stateCode: "FL" },
   { code: "US-GA", label: "Georgia", countryCode: "US", stateCode: "GA" },
   { code: "US-HI", label: "Hawaii", countryCode: "US", stateCode: "HI" },

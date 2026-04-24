@@ -19,8 +19,19 @@ import {
 } from "@/lib/familySettings";
 import { saveFamilyWorkspaceSettings } from "@/lib/familyWorkspace";
 
-function friendlySettingsMessage() {
+function friendlySettingsMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
   return "Settings storage is still getting ready. Try saving again in a moment.";
+}
+
+function defaultFrameworkForCountry(country: FamilySettings["country"] | "") {
+  if (country === "us") return "us-common-core";
+  if (country === "uk") return "uk-national";
+  if (country === "other") return "custom-homeschool";
+  if (country === "au") return "au-v9";
+  return "";
 }
 
 export default function FamilySettingsWorkspace() {
@@ -44,8 +55,8 @@ export default function FamilySettingsWorkspace() {
       setWorkspacePatch({ profile: saved });
       persistSettingsToLocalStorage(saved);
       setStatus("Settings saved.");
-    } catch {
-      setError(friendlySettingsMessage());
+    } catch (saveError) {
+      setError(friendlySettingsMessage(saveError));
     } finally {
       setSaving(false);
     }
@@ -73,23 +84,13 @@ export default function FamilySettingsWorkspace() {
                     ...current,
                     country: value,
                     preferred_market:
-                      value === "us" || value === "uk" ? value : "au",
-                    curriculum_framework_id:
-                      value === "us"
-                        ? "us-common-core"
-                        : value === "uk"
-                          ? "uk-national"
-                          : value === "other"
-                            ? "custom-homeschool"
-                            : "au-v9",
-                    curriculum_jurisdiction_id:
-                      value === "us"
-                        ? "ca"
-                        : value === "uk"
-                          ? "england"
-                          : value === "other"
-                            ? "custom"
-                            : "tas",
+                      value === "us" || value === "uk"
+                        ? value
+                        : value === "au"
+                          ? "au"
+                          : current.preferred_market,
+                    curriculum_framework_id: defaultFrameworkForCountry(value),
+                    curriculum_jurisdiction_id: "",
                   }))
                 }
               />

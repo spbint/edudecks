@@ -3,6 +3,7 @@ import {
   familyYearLevelLabelFromStored,
   familyYearLevelToStoredNumber,
 } from "@/lib/familyLearnerYearLevel";
+import { US_STATE_OPTIONS } from "@/lib/jurisdictionCompliance";
 
 export type MarketKey = "au" | "uk" | "us";
 export type FamilyCountry = MarketKey | "other";
@@ -37,7 +38,7 @@ export type ChildOption = {
 export type FamilySettings = {
   family_display_name: string;
   preferred_market: MarketKey;
-  country: FamilyCountry;
+  country: FamilyCountry | "";
   curriculum_framework_id: string;
   curriculum_jurisdiction_id: string;
   reporting_mode: ReportingMode;
@@ -70,8 +71,33 @@ export type FamilyProfileRow = FamilySettings & {
   updated_at?: string;
 };
 
-type FamilyProfileWritePayload = Omit<FamilyProfileRow, "id"> & {
+type FamilyProfileWritePayload = Omit<FamilyProfileRow, "id" | "country" | "curriculum_jurisdiction_id"> & {
   id?: string;
+  country?: FamilyCountry | "" | null;
+  curriculum_jurisdiction_id?: string | null;
+};
+
+type CanonicalFamilyJurisdictionRow = {
+  family_id?: string | null;
+  country_code?: string | null;
+  state_code?: string | null;
+};
+
+type RowToSettingsOptions = {
+  defaultJurisdiction?: boolean;
+  canonicalJurisdiction?: CanonicalFamilyJurisdictionRow | null;
+};
+
+type FamilySettingsSource = Partial<
+  Omit<
+    FamilyProfileRow,
+    "preferred_market" | "country" | "curriculum_framework_id" | "curriculum_jurisdiction_id"
+  >
+> & {
+  preferred_market?: MarketKey | null;
+  country?: FamilyCountry | "" | null;
+  curriculum_framework_id?: string | null;
+  curriculum_jurisdiction_id?: string | null;
 };
 
 const FAMILY_PROFILE_SELECT_COLUMNS = [
@@ -174,6 +200,9 @@ const STORAGE_KEYS = {
   CHILDREN: "edudecks_children_seed_v1",
 };
 
+const AU_STATE_CODES = new Set(["QLD", "NSW", "VIC", "SA", "WA", "TAS", "NT", "ACT"]);
+const US_STATE_CODES = new Set(US_STATE_OPTIONS.map((option) => option.stateCode));
+
 function canUseBrowserStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
@@ -219,9 +248,110 @@ function asMarketKey(value: unknown): MarketKey {
   return value === "uk" || value === "us" ? value : "au";
 }
 
-function asFamilyCountry(value: unknown): FamilyCountry {
+function asFamilyCountry(value: unknown): FamilyCountry | "" {
+  if (value === "") return "";
   if (value === "uk" || value === "us" || value === "other") return value;
   return "au";
+}
+
+function hasValue(value: unknown) {
+  return safeString(value).length > 0;
+}
+
+function defaultFrameworkIdForCountry(country: FamilyCountry | "") {
+  if (country === "us") return "us-common-core";
+  if (country === "uk") return "uk-national";
+  if (country === "other") return "custom-homeschool";
+  if (country === "au") return "au-v9";
+  return "";
+}
+
+function normalizeCountryCode(value: unknown) {
+  const upper = safeString(value).toUpperCase();
+  if (upper === "US" || upper === "AU") return upper;
+  return "";
+}
+
+function normalizeStateCode(countryCode: string, value: unknown) {
+  const upper = safeString(value).toUpperCase();
+  if (!upper) return "";
+  if (countryCode === "US" && US_STATE_CODES.has(upper)) return upper;
+  if (countryCode === "AU" && AU_STATE_CODES.has(upper)) return upper;
+  return "";
+}
+
+function stateCodeToJurisdictionId(countryCode: string, stateCode: string) {
+  if (!countryCode || !stateCode) return "";
+  return stateCode.toLowerCase();
+}
+
+function countryCodeToCountry(countryCode: string): FamilyCountry | "" {
+  if (countryCode === "US") return "us";
+  if (countryCode === "AU") return "au";
+  return "";
+}
+
+function countryCodeToMarket(countryCode: string, fallback: MarketKey): MarketKey {
+  if (countryCode === "US") return "us";
+  if (countryCode === "AU") return "au";
+  return fallback;
+}
+
+function resolveCanonicalJurisdiction(settings: Pick<FamilySettings, "country" | "curriculum_jurisdiction_id">) {
+  const countryCode =
+    settings.country === "us"
+      ? "US"
+      : settings.country === "au"
+        ? "AU"
+        : "";
+  const stateCode = normalizeStateCode(countryCode, settings.curriculum_jurisdiction_id);
+
+  return {
+    country_code: countryCode || null,
+    state_code: stateCode || null,
+  };
+}
+
+async function selectCanonicalFamilyJurisdiction(familyId: string) {
+  const cleanFamilyId = safeString(familyId);
+  if (!cleanFamilyId) return null;
+
+  const response = await withTimeout(
+    supabase
+      .from("family_settings")
+      .select("family_id,country_code,state_code")
+      .eq("family_id", cleanFamilyId)
+      .maybeSingle(),
+    "family_settings select by family_id",
+    12000,
+  );
+
+  if (response.error) throw response.error;
+  return (response.data as CanonicalFamilyJurisdictionRow | null) ?? null;
+}
+
+async function upsertCanonicalFamilyJurisdiction(
+  familyId: string,
+  settings: Pick<FamilySettings, "country" | "curriculum_jurisdiction_id">,
+) {
+  const cleanFamilyId = safeString(familyId);
+  if (!cleanFamilyId) return null;
+
+  const canonical = resolveCanonicalJurisdiction(settings);
+  const payload = {
+    family_id: cleanFamilyId,
+    country_code: canonical.country_code,
+    state_code: canonical.state_code,
+  };
+
+  const response = await withTimeout(
+    supabase.from("family_settings").upsert(payload, { onConflict: "family_id" }),
+    "family_settings upsert",
+    12000,
+  );
+
+  if (response.error) throw response.error;
+  return payload satisfies CanonicalFamilyJurisdictionRow;
 }
 
 function asExperienceMode(value: unknown): ExperienceMode {
@@ -282,11 +412,12 @@ function toFamilyProfilePayload(settings: FamilySettings, userId: string, existi
     owner_user_id: userId,
     family_display_name: safeString(settings.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: asMarketKey(settings.preferred_market),
-    country: asFamilyCountry(settings.country),
+    country: hasValue(settings.country) ? asFamilyCountry(settings.country) : null,
     curriculum_framework_id:
-      safeString(settings.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
-    curriculum_jurisdiction_id:
-      safeString(settings.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+      safeString(settings.curriculum_framework_id) ||
+      defaultFrameworkIdForCountry(settings.country) ||
+      DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    curriculum_jurisdiction_id: safeString(settings.curriculum_jurisdiction_id) || null,
     reporting_mode: asReportingMode(settings.reporting_mode),
     academic_structure_type: asAcademicStructureType(settings.academic_structure_type),
     cycle_count: asNullableNumber(settings.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
@@ -378,20 +509,45 @@ function normalizeChildOption(value: unknown): ChildOption | null {
   };
 }
 
-export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined): FamilySettings {
+export function rowToSettings(
+  row: FamilySettingsSource | null | undefined,
+  options?: RowToSettingsOptions,
+): FamilySettings {
   const storedFamilyName = safeString(row?.family_display_name);
+  const defaultJurisdiction = options?.defaultJurisdiction !== false;
+  const canonicalCountryCode = normalizeCountryCode(options?.canonicalJurisdiction?.country_code);
+  const canonicalStateCode = normalizeStateCode(
+    canonicalCountryCode,
+    options?.canonicalJurisdiction?.state_code,
+  );
+  const rawCountry = canonicalCountryCode
+    ? countryCodeToCountry(canonicalCountryCode)
+    : safeString(row?.country ?? row?.preferred_market);
+  const country = hasValue(rawCountry)
+    ? asFamilyCountry(rawCountry)
+    : (defaultJurisdiction ? DEFAULT_FAMILY_SETTINGS.country : "");
+  const rawFrameworkId = safeString(row?.curriculum_framework_id);
+  const rawJurisdictionId = canonicalStateCode
+    ? stateCodeToJurisdictionId(canonicalCountryCode, canonicalStateCode)
+    : safeString(row?.curriculum_jurisdiction_id);
+  const frameworkId =
+    rawFrameworkId ||
+    defaultFrameworkIdForCountry(country) ||
+    (defaultJurisdiction ? DEFAULT_FAMILY_SETTINGS.curriculum_framework_id : "");
 
   return {
     family_display_name:
       storedFamilyName === "Your family"
         ? "My family"
         : storedFamilyName || DEFAULT_FAMILY_SETTINGS.family_display_name,
-    preferred_market: asMarketKey(row?.preferred_market),
-    country: asFamilyCountry(row?.country ?? row?.preferred_market),
-    curriculum_framework_id:
-      safeString(row?.curriculum_framework_id) || DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    preferred_market: canonicalCountryCode
+      ? countryCodeToMarket(canonicalCountryCode, asMarketKey(row?.preferred_market))
+      : asMarketKey(row?.preferred_market),
+    country,
+    curriculum_framework_id: frameworkId,
     curriculum_jurisdiction_id:
-      safeString(row?.curriculum_jurisdiction_id) || DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+      rawJurisdictionId ||
+      (defaultJurisdiction ? DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id : ""),
     reporting_mode: asReportingMode(row?.reporting_mode ?? row?.report_tone_default),
     academic_structure_type: asAcademicStructureType(row?.academic_structure_type),
     cycle_count: asNullableNumber(row?.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
@@ -417,7 +573,9 @@ export function rowToSettings(row: Partial<FamilyProfileRow> | null | undefined)
 
 export function loadSettingsFromLocalStorage(): FamilySettings {
   const raw = readJson<Partial<FamilySettings> | null>(STORAGE_KEYS.SETTINGS, null);
-  return rowToSettings(raw ?? undefined);
+  return rowToSettings(raw ?? undefined, {
+    defaultJurisdiction: raw == null,
+  });
 }
 
 export function persistSettingsToLocalStorage(settings: FamilySettings) {
@@ -495,7 +653,24 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 
   try {
     const profile = await selectFamilyProfileRow(userId);
-    if (profile) return profile;
+    if (profile) {
+      const canonicalJurisdiction = await selectCanonicalFamilyJurisdiction(safeString(profile.id)).catch(
+        () => null,
+      );
+      const settings = rowToSettings(profile, {
+        defaultJurisdiction: false,
+        canonicalJurisdiction,
+      });
+
+      return {
+        ...DEFAULT_FAMILY_PROFILE,
+        ...profile,
+        ...settings,
+        id: safeString(profile.id) || DEFAULT_FAMILY_PROFILE.id,
+        user_id: safeString(profile.user_id) || userId,
+        owner_user_id: safeString(profile.owner_user_id) || userId,
+      };
+    }
   } catch (error) {
     console.error("loadFamilyProfile failed", { userId, error });
   }
@@ -507,7 +682,7 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
   };
 }
 
-async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow | null> {
+async function selectFamilyProfileRow(userId: string): Promise<Partial<FamilyProfileRow> | null> {
   const variants = [FAMILY_PROFILE_SELECT_COLUMNS, FAMILY_PROFILE_SELECT_COLUMNS_BASE];
   let response:
     | {
@@ -540,7 +715,6 @@ async function selectFamilyProfileRow(userId: string): Promise<FamilyProfileRow 
 
   const data = response.data as unknown as Partial<FamilyProfileRow>;
   return {
-    ...DEFAULT_FAMILY_PROFILE,
     ...data,
     id: safeString(data.id) || DEFAULT_FAMILY_PROFILE.id,
     user_id: safeString(data.user_id) || userId,
@@ -606,11 +780,21 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
   for (const variant of saveVariants) {
     const writeResponse = await withTimeout(variant.run(), "upsertFamilyProfile write");
     if (!writeResponse.error) {
-      return {
+      const savedProfile = {
         ...DEFAULT_FAMILY_PROFILE,
         ...(existingProfile ?? {}),
         ...payload,
         id: safeString(existingProfile?.id) || safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
+      };
+
+      const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
+
+      return {
+        ...savedProfile,
+        ...rowToSettings(savedProfile, {
+          defaultJurisdiction: true,
+          canonicalJurisdiction,
+        }),
       };
     }
 
@@ -625,11 +809,21 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
       );
 
       if (!fallbackResponse.error) {
-        return {
+        const savedProfile = {
           ...DEFAULT_FAMILY_PROFILE,
           ...(existingProfile ?? {}),
           ...payload,
           id: safeString(existingProfile?.id) || safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
+        };
+
+        const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
+
+        return {
+          ...savedProfile,
+          ...rowToSettings(savedProfile, {
+            defaultJurisdiction: true,
+            canonicalJurisdiction,
+          }),
         };
       }
 
@@ -643,10 +837,20 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
       );
 
       if (!retryResponse.error) {
-        return {
+        const savedProfile = {
           ...DEFAULT_FAMILY_PROFILE,
           ...payload,
           id: safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
+        };
+
+        const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
+
+        return {
+          ...savedProfile,
+          ...rowToSettings(savedProfile, {
+            defaultJurisdiction: true,
+            canonicalJurisdiction,
+          }),
         };
       }
 

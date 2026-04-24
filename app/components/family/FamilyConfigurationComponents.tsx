@@ -33,13 +33,13 @@ type FamilyLearningSetupCardProps = {
 };
 
 type FrameworkSelectorProps = {
-  country: FamilyCountry;
+  country: FamilyCountry | "";
   frameworkId: string;
   onChange: (value: string) => void;
 };
 
 type JurisdictionSelectorProps = {
-  country: FamilyCountry;
+  country: FamilyCountry | "";
   frameworkId: string;
   jurisdictionId: string;
   onChange: (value: string) => void;
@@ -61,7 +61,7 @@ type AcademicStructureSelectorProps = {
 
 type LearnerCurriculumSettingsCardProps = {
   learner: FamilyLearner;
-  familyCountry: FamilyCountry;
+  familyCountry: FamilyCountry | "";
   familyFrameworkId: string;
   familyJurisdictionId: string;
   familyReportingMode: ReportingMode;
@@ -75,14 +75,6 @@ type LearnerCurriculumSettingsCardProps = {
     },
   ) => void;
 };
-
-function firstFrameworkForCountry(country: FamilyCountry) {
-  return FRAMEWORK_OPTIONS.find((option) => option.country === country) ?? FRAMEWORK_OPTIONS[0];
-}
-
-function firstJurisdictionForCountry(country: FamilyCountry) {
-  return jurisdictionOptionsForCountry(country)[0];
-}
 
 export function FamilyLearningSetupCard({
   title,
@@ -123,15 +115,18 @@ export function CountrySelector({
   value,
   onChange,
 }: {
-  value: FamilyCountry;
-  onChange: (value: FamilyCountry) => void;
+  value: FamilyCountry | "";
+  onChange: (value: FamilyCountry | "") => void;
 }) {
+  const safeValue = COUNTRY_OPTIONS.some((option) => option.id === value) ? value : "";
+
   return (
     <select
       className={INPUT_STYLE}
-      value={value}
-      onChange={(event) => onChange(event.target.value as FamilyCountry)}
+      value={safeValue}
+      onChange={(event) => onChange(event.target.value as FamilyCountry | "")}
     >
+      <option value="">Select a country</option>
       {COUNTRY_OPTIONS.map((option) => (
         <option key={option.id} value={option.id}>
           {option.label}
@@ -147,10 +142,9 @@ export function FrameworkSelector({
   onChange,
 }: FrameworkSelectorProps) {
   const options = FRAMEWORK_OPTIONS.filter((option) => option.country === country);
-  const fallback = firstFrameworkForCountry(country);
   const safeFrameworkId = options.some((option) => option.id === frameworkId)
     ? frameworkId
-    : fallback?.id || "";
+    : "";
 
   return (
     <select
@@ -158,6 +152,9 @@ export function FrameworkSelector({
       value={safeFrameworkId}
       onChange={(event) => onChange(event.target.value)}
     >
+      <option value="">
+        {options.length ? "Select a framework" : "Select a country first"}
+      </option>
       {options.map((option) => (
         <option key={option.id} value={option.id}>
           {option.label}
@@ -174,11 +171,18 @@ export function JurisdictionSelector({
   onChange,
 }: JurisdictionSelectorProps) {
   const options = jurisdictionOptionsForCountry(country);
-  const fallback = firstJurisdictionForCountry(country);
   const safeJurisdictionId = options.some((option) => option.id === jurisdictionId)
     ? jurisdictionId
-    : fallback?.id || "";
+    : "";
   const label = frameworkOptionById(frameworkId)?.jurisdictionLabel || "Jurisdiction";
+  const placeholder =
+    country === "us"
+      ? "Select a state"
+      : country === "au"
+        ? "Select a state or territory"
+        : options.length
+          ? `Select ${label.toLowerCase()}`
+          : "Select a country first";
 
   return (
     <div className="grid gap-2">
@@ -188,6 +192,7 @@ export function JurisdictionSelector({
         value={safeJurisdictionId}
         onChange={(event) => onChange(event.target.value)}
       >
+        <option value="">{placeholder}</option>
         {options.map((option) => (
           <option key={option.id} value={option.id}>
             {option.label}

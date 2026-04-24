@@ -347,31 +347,14 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
 export async function saveFamilyWorkspaceSettings(
   settings: FamilySettings,
 ): Promise<FamilyProfileRow> {
-  const startedAt = Date.now();
-  console.info("saveFamilyWorkspaceSettings payload", settings);
   persistSettingsToLocalStorage(settings);
 
   try {
-    console.info("saveFamilyWorkspaceSettings before DB call", {
-      startedAt: new Date(startedAt).toISOString(),
-    });
-
     const saved = await upsertFamilyProfile(settings);
-
-    console.info("saveFamilyWorkspaceSettings after DB call", {
-      durationMs: Date.now() - startedAt,
-      saved,
-    });
-
     persistSettingsToLocalStorage(saved);
     dispatchFamilyWorkspaceEvent();
     return saved;
   } catch (error) {
-    console.error("saveFamilyWorkspaceSettings failed", {
-      durationMs: Date.now() - startedAt,
-      error,
-      settings,
-    });
     throw error;
   }
 }
