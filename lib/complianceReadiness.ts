@@ -219,9 +219,36 @@ type AttendanceHourRow = {
   school_day?: boolean | string | null;
 };
 
+type AttendanceSummaryRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  registration_cycle_id?: string | null;
+  academic_year?: string | null;
+  total_days?: number | string | null;
+  days?: number | string | null;
+  instructional_days?: number | string | null;
+  total_hours?: number | string | null;
+  hours?: number | string | null;
+  instructional_hours?: number | string | null;
+};
+
+type SubjectLogRow = {
+  id?: string | null;
+  learner_id?: string | null;
+  registration_cycle_id?: string | null;
+  academic_year?: string | null;
+  subject_name?: string | null;
+  subject?: string | null;
+  title?: string | null;
+  name?: string | null;
+  label?: string | null;
+  log_text?: string | null;
+};
+
 type ArtifactEvaluationContext = {
   planCount: number;
   linkedPlanCount: number;
+  subjectLogCount: number;
   experienceCount: number;
   linkedExperienceCount: number;
   evidenceCount: number;
@@ -267,6 +294,20 @@ function safe(value: unknown) {
 
 function toLower(value: unknown) {
   return safe(value).toLowerCase();
+}
+
+function toNumber(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isMissingColumnError(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message).toLowerCase();
+  return (
+    message.includes("does not exist") ||
+    message.includes("column") ||
+    message.includes("schema cache")
+  );
 }
 
 function asDate(value: unknown) {
@@ -637,19 +678,45 @@ async function loadNotificationSummary(
   learnerId: string,
   cycle: RegistrationCycleRow | null,
 ) {
-  if (!cycle) return { total: 0, submitted: 0 };
-
   try {
-    const rows: HomeschoolNotificationRow[] = await many<HomeschoolNotificationRow>(db, "homeschool_notifications", (query) =>
-      query
+    const configure = (query: ReturnType<typeof db.from>) => {
+      let next = query
         .select("id,learner_id,registration_cycle_id,notification_type,submitted_at,due_date,status")
-        .eq("learner_id", learnerId)
-        .eq("registration_cycle_id", cycle.id),
-    );
+        .eq("learner_id", learnerId);
+
+      if (cycle?.id) {
+        next = next.eq("registration_cycle_id", cycle.id);
+      }
+
+      return next;
+    };
+
+    let rows: HomeschoolNotificationRow[] = [];
+
+    try {
+      rows = await many<HomeschoolNotificationRow>(db, "homeschool_notifications", configure);
+    } catch (error) {
+      if (!cycle?.id || !isMissingColumnError(error)) {
+        throw error;
+      }
+
+      rows = await many<HomeschoolNotificationRow>(db, "homeschool_notifications", (query) =>
+        query
+          .select("id,learner_id,notification_type,submitted_at,due_date,status")
+          .eq("learner_id", learnerId),
+      );
+    }
 
     const submitted = rows.filter((row) => {
       const status = toLower(row.status);
-      return Boolean(safe(row.submitted_at)) || status === "submitted" || status === "filed" || status === "complete";
+      return (
+        Boolean(safe(row.submitted_at)) ||
+        status === "submitted" ||
+        status === "acknowledged" ||
+        status === "filed" ||
+        status === "complete" ||
+        status === "completed"
+      );
     }).length;
 
     return {
@@ -661,36 +728,174 @@ async function loadNotificationSummary(
   }
 }
 
+function summarizeAttendanceHourRows(rows: AttendanceHourRow[]): AttendanceSummary {
+  const days = rows.filter((row) => {
+    const schoolDay = row.school_day;
+    const recordedDate = safe(row.recorded_date);
+    return Boolean(schoolDay === true || schoolDay === "true" || recordedDate);
+  }).length;
+
+  const hours = rows.reduce(
+    (sum, row) => sum + toNumber(row.instructional_hours),
+    0,
+  );
+
+  return {
+    days,
+    hours,
+    records: rows.length,
+  };
+}
+
+function summarizeAttendanceSummaryRows(rows: AttendanceSummaryRow[]): AttendanceSummary {
+  const days = rows.reduce(
+    (max, row) =>
+      Math.max(
+        max,
+        toNumber(row.total_days),
+        toNumber(row.days),
+        toNumber(row.instructional_days),
+      ),
+    0,
+  );
+
+  const hours = rows.reduce(
+    (max, row) =>
+      Math.max(
+        max,
+        toNumber(row.total_hours),
+        toNumber(row.hours),
+        toNumber(row.instructional_hours),
+      ),
+    0,
+  );
+
+  return {
+    days,
+    hours,
+    records: rows.length,
+  };
+}
+
+async function loadAttendanceHourSummary(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRow | null,
+): Promise<AttendanceSummary> {
+  try {
+    if (cycle?.id) {
+      try {
+        const rows: AttendanceHourRow[] = await many<AttendanceHourRow>(db, "attendance_hour_logs", (query) =>
+          query
+            .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,school_day")
+            .eq("learner_id", learnerId)
+            .eq("registration_cycle_id", cycle.id),
+        );
+
+        return summarizeAttendanceHourRows(rows);
+      } catch (error) {
+        if (!isMissingColumnError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const rows: AttendanceHourRow[] = await many<AttendanceHourRow>(db, "attendance_hour_logs", (query) =>
+      query
+        .select("id,learner_id,recorded_date,instructional_hours,school_day")
+        .eq("learner_id", learnerId),
+    );
+
+    return summarizeAttendanceHourRows(rows);
+  } catch {
+    return { days: 0, hours: 0, records: 0 };
+  }
+}
+
+async function loadAttendanceManualSummary(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRow | null,
+): Promise<AttendanceSummary> {
+  try {
+    if (cycle?.id) {
+      try {
+        const rows: AttendanceSummaryRow[] = await many<AttendanceSummaryRow>(db, "homeschool_attendance_summaries", (query) =>
+          query
+            .select("id,learner_id,registration_cycle_id,academic_year,total_days,days,instructional_days,total_hours,hours,instructional_hours")
+            .eq("learner_id", learnerId)
+            .eq("registration_cycle_id", cycle.id),
+        );
+
+        return summarizeAttendanceSummaryRows(rows);
+      } catch (error) {
+        if (!isMissingColumnError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const rows: AttendanceSummaryRow[] = await many<AttendanceSummaryRow>(db, "homeschool_attendance_summaries", (query) =>
+      query
+        .select("id,learner_id,academic_year,total_days,days,instructional_days,total_hours,hours,instructional_hours")
+        .eq("learner_id", learnerId),
+    );
+
+    return summarizeAttendanceSummaryRows(rows);
+  } catch {
+    return { days: 0, hours: 0, records: 0 };
+  }
+}
+
 async function loadAttendanceSummary(
   db: QueryClient,
   learnerId: string,
   cycle: RegistrationCycleRow | null,
 ): Promise<AttendanceSummary> {
-  if (!cycle) return { days: 0, hours: 0, records: 0 };
+  const [logSummary, manualSummary] = await Promise.all([
+    loadAttendanceHourSummary(db, learnerId, cycle),
+    loadAttendanceManualSummary(db, learnerId, cycle),
+  ]);
 
+  return {
+    days: Math.max(logSummary.days, manualSummary.days),
+    hours: Math.max(logSummary.hours, manualSummary.hours),
+    records: logSummary.records + manualSummary.records,
+  };
+}
+
+async function loadSubjectLogCount(
+  db: QueryClient,
+  learnerId: string,
+  cycle: RegistrationCycleRow | null,
+): Promise<number> {
   try {
-    const rows: AttendanceHourRow[] = await many<AttendanceHourRow>(db, "attendance_hour_logs", (query) =>
+    if (cycle?.id) {
+      try {
+        const rows = await many<SubjectLogRow>(db, "homeschool_instruction_subject_logs", (query) =>
+          query
+            .select("id,learner_id,registration_cycle_id")
+            .eq("learner_id", learnerId)
+            .eq("registration_cycle_id", cycle.id),
+        );
+
+        return rows.length;
+      } catch (error) {
+        if (!isMissingColumnError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const rows = await many<SubjectLogRow>(db, "homeschool_instruction_subject_logs", (query) =>
       query
-        .select("id,learner_id,registration_cycle_id,recorded_date,instructional_hours,school_day")
-        .eq("learner_id", learnerId)
-        .eq("registration_cycle_id", cycle.id),
+        .select("id,learner_id")
+        .eq("learner_id", learnerId),
     );
 
-    const days = rows.filter((row) => {
-      const schoolDay = row.school_day;
-      const recordedDate = safe(row.recorded_date);
-      return Boolean(schoolDay === true || schoolDay === "true" || recordedDate);
-    }).length;
-
-    const hours = rows.reduce((sum, row) => sum + (Number(row.instructional_hours) || 0), 0);
-
-    return {
-      days,
-      hours,
-      records: rows.length,
-    };
+    return rows.length;
   } catch {
-    return { days: 0, hours: 0, records: 0 };
+    return 0;
   }
 }
 
@@ -799,7 +1004,12 @@ function evaluateArtifactStatus(
     if (key.includes("assessment") || key.includes("evaluation") || key.includes("testing")) {
       return ctx.reviewCount > 0 || ctx.reportDocumentCount > 0 ? "complete" : "in_progress";
     }
-    if (key.includes("plan") || key.includes("program") || key.includes("subject")) {
+    if (key.includes("subject")) {
+      return ctx.subjectLogCount > 0 || ctx.planCount > 0 || ctx.linkedPlanCount > 0
+        ? "complete"
+        : "in_progress";
+    }
+    if (key.includes("plan") || key.includes("program")) {
       return ctx.planCount > 0 || ctx.linkedPlanCount > 0 ? "complete" : "in_progress";
     }
     if (key.includes("portfolio")) {
@@ -812,9 +1022,15 @@ function evaluateArtifactStatus(
     }
   }
 
+  if (key.includes("subject")) {
+    if (ctx.subjectLogCount > 0) return "complete";
+    if (ctx.planCount > 0 || ctx.linkedPlanCount > 0) return "in_progress";
+    return documentationMode ? "in_progress" : "missing";
+  }
+
   if (key.includes("plan") || key.includes("program")) {
     if (ctx.linkedPlanCount > 0) return "complete";
-    if (ctx.planCount > 0) return "in_progress";
+    if (ctx.planCount > 0 || ctx.subjectLogCount > 0) return "in_progress";
     return "missing";
   }
 
@@ -1118,6 +1334,7 @@ export async function loadComplianceReadiness(
       allowsPortfolioInsteadOfTesting: ruleSet?.allows_portfolio_instead_of_testing,
       allowsEvaluationInsteadOfTesting: ruleSet?.allows_evaluation_instead_of_testing,
     });
+
     const behaviour = buildJurisdictionBehaviour({
       jurisdictionId: safe(jurisdiction?.id) || null,
       jurisdictionCode,
@@ -1139,6 +1356,7 @@ export async function loadComplianceReadiness(
       allowsPortfolioInsteadOfTesting: jurisdictionProfile.allowsPortfolioInsteadOfTesting,
       allowsEvaluationInsteadOfTesting: jurisdictionProfile.allowsEvaluationInsteadOfTesting,
     });
+
     const requiredArtifacts = await loadRequiredArtifacts(db, safe(ruleSet?.id));
 
     const registrationCycles = await loadRegistrationCycles(db, learnerId);
@@ -1161,6 +1379,9 @@ export async function loadComplianceReadiness(
       reviews,
       concerns,
       registrationConditions,
+      notificationSummary,
+      attendance,
+      subjectLogCount,
     ] = await Promise.all([
       loadPlans(db, learnerId, cycleStartDate, cycleEndDate),
       loadExperiences(db, learnerId, cycleStartDate, cycleEndDate),
@@ -1169,14 +1390,10 @@ export async function loadComplianceReadiness(
       loadReviews(db, learnerId, cycleStartDate, cycleEndDate),
       loadConcerns(db, learnerId),
       loadRegistrationConditions(db, learnerId),
+      loadNotificationSummary(db, learnerId, currentCycle),
+      loadAttendanceSummary(db, learnerId, currentCycle),
+      loadSubjectLogCount(db, learnerId, currentCycle),
     ]);
-
-    const planIds = new Set(
-      plans.map((row: PlanRow) => safe(row.id)).filter(Boolean),
-    );
-    const experienceIds = new Set(
-      experiences.map((row: ExperienceRow) => safe(row.id)).filter(Boolean),
-    );
 
     const linkedPlanCount = plans.filter((plan) => {
       const planId = safe(plan.id);
@@ -1207,12 +1424,10 @@ export async function loadComplianceReadiness(
       return status === "" || status === "open" || status === "active" || status === "pending";
     }).length;
 
-    const notificationSummary = await loadNotificationSummary(db, learnerId, currentCycle);
-    const attendance = await loadAttendanceSummary(db, learnerId, currentCycle);
-
     const ctx: ArtifactEvaluationContext = {
       planCount: plans.length,
       linkedPlanCount,
+      subjectLogCount,
       experienceCount: experiences.length,
       linkedExperienceCount,
       evidenceCount: evidenceItems.length,
@@ -1291,6 +1506,10 @@ export async function loadComplianceReadiness(
       strengths.push("Planning is linked to recorded learning.");
     } else if (plans.length > 0) {
       warnings.push("Plans exist, but they are not yet clearly linked to recorded learning.");
+    }
+
+    if (subjectLogCount > 0) {
+      strengths.push("Subject tracking is visible for this learner.");
     }
 
     if (linkedEvidenceCount > 0) {
