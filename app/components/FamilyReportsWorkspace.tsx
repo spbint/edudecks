@@ -115,6 +115,71 @@ function intentTone(intent: ReportIntent, active: boolean) {
   return "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100";
 }
 
+function buildContextHref(input: {
+  pathname: string;
+  params?: Record<string, string | null | undefined>;
+  hash?: string | null;
+}) {
+  const params = new URLSearchParams();
+
+  Object.entries(input.params ?? {}).forEach(([key, value]) => {
+    const cleanValue = String(value ?? "").trim();
+    if (cleanValue) {
+      params.set(key, cleanValue);
+    }
+  });
+
+  const query = params.toString();
+  const hash = String(input.hash ?? "").trim();
+  return `${input.pathname}${query ? `?${query}` : ""}${hash ? `#${hash}` : ""}`;
+}
+
+function contextualizeReportCta(
+  cta: ReturnType<typeof nextReportCta>,
+  model: ReportsBuilderModel | null,
+  activeLearnerId: string,
+) {
+  if (!cta) return cta;
+
+  if (cta.href === "/family") {
+    return {
+      ...cta,
+      href: buildContextHref({
+        pathname: "/family",
+        hash: activeLearnerId ? "family-learning-setup" : "learner-management",
+      }),
+    };
+  }
+
+  if (cta.href === "/reports/output") {
+    return {
+      ...cta,
+      href: buildContextHref({
+        pathname: "/reports/output",
+        params: {
+          learner: model?.learner?.id || activeLearnerId,
+          documentId: model?.reportDocument?.id || null,
+          reportingPeriodId: model?.reportingPeriod?.id || null,
+        },
+      }),
+    };
+  }
+
+  if (cta.href === "/capture") {
+    return {
+      ...cta,
+      href: buildContextHref({
+        pathname: "/capture",
+        params: {
+          learner: model?.learner?.id || activeLearnerId,
+        },
+      }),
+    };
+  }
+
+  return cta;
+}
+
 type FamilyReportsWorkspaceProps = {
   includeShell?: boolean;
 };
@@ -134,6 +199,7 @@ export default function FamilyReportsWorkspace({
   const [intentSaving, setIntentSaving] = useState<ReportIntent | "">("");
   const [intentMessage, setIntentMessage] = useState("");
   const [intentError, setIntentError] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -145,15 +211,27 @@ export default function FamilyReportsWorkspace({
     let mounted = true;
 
     async function hydrate() {
-      const next = await loadReportsBuilderModel({
-        profile: workspace.profile,
-        learner: activeLearner,
-        userId: workspace.userId,
-        mode: "read",
-      });
+      try {
+        const next = await loadReportsBuilderModel({
+          profile: workspace.profile,
+          learner: activeLearner,
+          userId: workspace.userId,
+          mode: "read",
+        });
 
-      if (mounted) {
-        setModel(next);
+        if (mounted) {
+          setModel(next);
+          setLoadError("");
+        }
+      } catch (error) {
+        if (mounted) {
+          setModel(null);
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : "The reports workspace could not be loaded right now.",
+          );
+        }
       }
     }
 
@@ -178,68 +256,76 @@ export default function FamilyReportsWorkspace({
         : "placeholder"
       : "empty";
 
-  const cta = useMemo(() => nextReportCta(model ?? {
-    learner: activeLearner,
-    effectiveJurisdiction: null,
-    ruleSet: null,
-    registrationCycle: null,
-    reportingPeriod: null,
-    reportDocument: null,
-    requiredArtifacts: [],
-    readiness: {
-      status: "Not started",
-      sentence: "Your reporting workspace has not been started yet.",
-      completeCount: 0,
-      totalCount: 0,
-    },
-    planCount: 0,
-    evidenceCount: 0,
-    notificationSummary: {
-      total: 0,
-      submitted: 0,
-      latestStatus: null,
-      dueDate: null,
-    },
-    attendanceSummary: {
-      days: 0,
-      hours: 0,
-      records: 0,
-    },
-    subjectLogCount: 0,
-    softWarning: "",
-    jurisdictionBehaviour: {
-      jurisdictionId: null,
-      jurisdictionCode: null,
-      jurisdictionName: null,
-      countryCode: null,
-      complianceLevel: "high",
-      complianceMode: "strict",
-      reportRequirementMode: "required",
-      strictGateEnabled: true,
-      advisoryGateEnabled: false,
-      portfolioModeEnabled: false,
-      enforceReportCompletion: true,
-      enforceNotificationCompletion: false,
-      enforceAttendanceCompletion: false,
-      enforceAssessmentCompletion: false,
-      exportShouldBeBlockedWhenIncomplete: true,
-      summaryText: "Your reporting workspace has not been started yet.",
-      reportsText: "Formal report completion is required here.",
-      portfolioText: "Portfolio records support the formal reporting cycle.",
-    },
-    complianceLevel: "high",
-    complianceMode: "strict",
-    complianceUiMode: "strict",
-    complianceModeLabel: "Strict compliance mode",
-    complianceSummary: "Your reporting workspace has not been started yet.",
-    reportRequirementMode: "required",
-    reportRequired: true,
-    requiresNotification: false,
-    requiresAttendanceTracking: false,
-    requiredInstructionHoursPerYear: null,
-    requiredInstructionDaysPerYear: null,
-    reportIntent: "authority",
-  } as ReportsBuilderModel), [activeLearner, model]);
+  const cta = useMemo(
+    () =>
+      contextualizeReportCta(
+        nextReportCta(model ?? {
+          learner: activeLearner,
+          effectiveJurisdiction: null,
+          ruleSet: null,
+          registrationCycle: null,
+          reportingPeriod: null,
+          reportDocument: null,
+          requiredArtifacts: [],
+          readiness: {
+            status: "Not started",
+            sentence: "Your reporting workspace has not been started yet.",
+            completeCount: 0,
+            totalCount: 0,
+          },
+          planCount: 0,
+          evidenceCount: 0,
+          notificationSummary: {
+            total: 0,
+            submitted: 0,
+            latestStatus: null,
+            dueDate: null,
+          },
+          attendanceSummary: {
+            days: 0,
+            hours: 0,
+            records: 0,
+          },
+          subjectLogCount: 0,
+          softWarning: "",
+          jurisdictionBehaviour: {
+            jurisdictionId: null,
+            jurisdictionCode: null,
+            jurisdictionName: null,
+            countryCode: null,
+            complianceLevel: "high",
+            complianceMode: "strict",
+            reportRequirementMode: "required",
+            strictGateEnabled: true,
+            advisoryGateEnabled: false,
+            portfolioModeEnabled: false,
+            enforceReportCompletion: true,
+            enforceNotificationCompletion: false,
+            enforceAttendanceCompletion: false,
+            enforceAssessmentCompletion: false,
+            exportShouldBeBlockedWhenIncomplete: true,
+            summaryText: "Your reporting workspace has not been started yet.",
+            reportsText: "Formal report completion is required here.",
+            portfolioText: "Portfolio records support the formal reporting cycle.",
+          },
+          complianceLevel: "high",
+          complianceMode: "strict",
+          complianceUiMode: "strict",
+          complianceModeLabel: "Strict compliance mode",
+          complianceSummary: "Your reporting workspace has not been started yet.",
+          reportRequirementMode: "required",
+          reportRequired: true,
+          requiresNotification: false,
+          requiresAttendanceTracking: false,
+          requiredInstructionHoursPerYear: null,
+          requiredInstructionDaysPerYear: null,
+          reportIntent: "authority",
+        } as ReportsBuilderModel),
+        model,
+        activeLearnerId,
+      ),
+    [activeLearner, activeLearnerId, model],
+  );
 
   async function handleReportIntentChange(nextIntent: ReportIntent) {
     const reportDocumentId = model?.reportDocument?.id;
@@ -318,6 +404,12 @@ export default function FamilyReportsWorkspace({
             {model?.softWarning ? (
               <div className="rounded-[20px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm leading-7 text-amber-800">
                 {model.softWarning}
+              </div>
+            ) : null}
+
+            {loadError ? (
+              <div className="rounded-[20px] border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-7 text-rose-800">
+                {loadError}
               </div>
             ) : null}
 

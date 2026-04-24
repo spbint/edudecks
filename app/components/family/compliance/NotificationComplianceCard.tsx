@@ -341,7 +341,6 @@ export function NotificationComplianceCard({
         if (!mounted) return;
         setRecord(null);
         setTableUnavailable(true);
-        console.error("Notification card hydrate failed", err);
         setError("Notification tracking is not available in this setup yet.");
       }
     }

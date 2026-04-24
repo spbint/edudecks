@@ -457,7 +457,6 @@ export function AttendanceComplianceCard({
         setSummaryRecord(null);
         setAttendanceRows([]);
         setTableUnavailable(true);
-        console.error("Attendance card hydrate failed", err);
         setError("Attendance tracking is not available in this setup yet.");
       }
     }

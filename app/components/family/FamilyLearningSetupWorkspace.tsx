@@ -51,6 +51,21 @@ function friendlyFamilySetupMessage() {
   return "Learning setup storage is still getting ready. Try saving again in a moment.";
 }
 
+function describeFamilySetupError(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  return friendlyFamilySetupMessage();
+}
+
+function defaultFrameworkForCountry(country: FamilySettings["country"] | "") {
+  if (country === "us") return "us-common-core";
+  if (country === "uk") return "uk-national";
+  if (country === "other") return "custom-homeschool";
+  if (country === "au") return "au-v9";
+  return "";
+}
+
 function applyLocalLearnerPatch(
   learners: FamilyLearner[],
   learnerId: string,
@@ -440,8 +455,8 @@ export default function FamilyLearningSetupWorkspace() {
       }
 
       setStatus("Family learning setup saved.");
-    } catch {
-      setError(friendlyFamilySetupMessage());
+    } catch (saveError) {
+      setError(describeFamilySetupError(saveError));
     } finally {
       setSaving(false);
     }
@@ -464,17 +479,19 @@ export default function FamilyLearningSetupWorkspace() {
       <div className="grid gap-5 pb-14">
         {!workspace.learners.length ? <CurriculumSetupEmptyState /> : null}
 
-        <LearnerSelector
-          familyName={workspace.profile.family_display_name || "My family"}
-          learners={learnerOptions}
-          activeLearnerId={activeLearnerId}
-          onSelectLearner={setActiveLearner}
-          state={learnerSelectorState(
-            workspaceLoading,
-            workspace.learners,
-            workspace.storageMode,
-          )}
-        />
+        <div id="learner-management">
+          <LearnerSelector
+            familyName={workspace.profile.family_display_name || "My family"}
+            learners={learnerOptions}
+            activeLearnerId={activeLearnerId}
+            onSelectLearner={setActiveLearner}
+            state={learnerSelectorState(
+              workspaceLoading,
+              workspace.learners,
+              workspace.storageMode,
+            )}
+          />
+        </div>
 
         <div id="family-compliance-command" className="grid gap-4">
           <ComplianceCommandCard
@@ -543,23 +560,13 @@ export default function FamilyLearningSetupWorkspace() {
                       ...current,
                       country: value,
                       preferred_market:
-                        value === "us" || value === "uk" ? value : "au",
-                      curriculum_framework_id:
-                        value === "us"
-                          ? "us-common-core"
-                          : value === "uk"
-                            ? "uk-national"
-                            : value === "other"
-                              ? "custom-homeschool"
-                              : "au-v9",
-                      curriculum_jurisdiction_id:
-                        value === "us"
-                          ? "ca"
-                          : value === "uk"
-                            ? "england"
-                            : value === "other"
-                              ? "custom"
-                              : "tas",
+                        value === "us" || value === "uk"
+                          ? value
+                          : value === "au"
+                            ? "au"
+                            : current.preferred_market,
+                      curriculum_framework_id: defaultFrameworkForCountry(value),
+                      curriculum_jurisdiction_id: "",
                     }))
                   }
                 />

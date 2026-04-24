@@ -2,7 +2,10 @@ import type { ComplianceReadiness } from "@/lib/complianceReadiness";
 import { loadComplianceReadiness } from "@/lib/complianceReadiness";
 import type { FamilyProfileRow } from "@/lib/familySettings";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
-import { loadReportsBuilderModel, nextReportCta } from "@/lib/reporting";
+import {
+  loadReportsBuilderModel,
+  nextReportCta,
+} from "@/lib/reporting";
 
 export type FamilyComplianceCommandCardModel = {
   learnerId: string;
@@ -51,7 +54,31 @@ function pickTopMissing(readiness: ComplianceReadiness) {
   return readiness.missing.filter(Boolean).slice(0, 3);
 }
 
-function secondaryCtaFor(readiness: ComplianceReadiness) {
+function buildContextHref(input: {
+  pathname: string;
+  params?: Record<string, string | null | undefined>;
+}) {
+  const params = new URLSearchParams();
+
+  Object.entries(input.params ?? {}).forEach(([key, value]) => {
+    const cleanValue = safe(value);
+    if (cleanValue) {
+      params.set(key, cleanValue);
+    }
+  });
+
+  const query = params.toString();
+  return `${input.pathname}${query ? `?${query}` : ""}`;
+}
+
+function secondaryCtaFor(
+  readiness: ComplianceReadiness,
+  input: {
+    learnerId?: string | null;
+    reportDocumentId?: string | null;
+    reportingPeriodId?: string | null;
+  },
+) {
   const missing = readiness.missing.map((item) => toLower(item));
   const nextAction = toLower(readiness.nextAction);
 
@@ -76,7 +103,12 @@ function secondaryCtaFor(readiness: ComplianceReadiness) {
   ) {
     return {
       label: "Review evidence",
-      href: "/capture",
+      href: buildContextHref({
+        pathname: "/capture",
+        params: {
+          learner: input.learnerId,
+        },
+      }),
     };
   }
 
@@ -86,7 +118,14 @@ function secondaryCtaFor(readiness: ComplianceReadiness) {
   ) {
     return {
       label: "Open report workspace",
-      href: "/reports",
+      href: buildContextHref({
+        pathname: "/reports",
+        params: {
+          learner: input.learnerId,
+          documentId: input.reportDocumentId,
+          reportingPeriodId: input.reportingPeriodId,
+        },
+      }),
     };
   }
 
@@ -118,7 +157,11 @@ export async function loadFamilyComplianceCommandCard(
   ]);
 
   const primary = nextReportCta(reportsModel);
-  const secondary = secondaryCtaFor(readiness);
+  const secondary = secondaryCtaFor(readiness, {
+    learnerId: input.learner.id,
+    reportDocumentId: reportsModel.reportDocument?.id || null,
+    reportingPeriodId: reportsModel.reportingPeriod?.id || null,
+  });
 
   return {
     learnerId: input.learner.id,

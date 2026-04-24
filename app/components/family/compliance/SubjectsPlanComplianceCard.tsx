@@ -307,7 +307,6 @@ export function SubjectsPlanComplianceCard({
         setAreasRows([]);
         setGoalRows([]);
         setTableUnavailable(true);
-        console.error("Subjects card hydrate failed", err);
         setError("Subject tracking is not available in this setup yet.");
       }
     }
