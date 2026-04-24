@@ -291,6 +291,7 @@ export default function FamilyLearningSetupWorkspace() {
   const [commandCardLoading, setCommandCardLoading] = useState(false);
   const [reportsModel, setReportsModel] = useState<ReportsBuilderModel | null>(null);
   const [reportsModelLoading, setReportsModelLoading] = useState(false);
+  const [complianceRefreshTick, setComplianceRefreshTick] = useState(0);
 
   useEffect(() => {
     setDraft(workspace.profile);
@@ -339,7 +340,7 @@ export default function FamilyLearningSetupWorkspace() {
     return () => {
       mounted = false;
     };
-  }, [activeLearner, workspace.profile, workspace.userId]);
+  }, [activeLearner, workspace.profile, workspace.userId, complianceRefreshTick]);
 
   useEffect(() => {
     let mounted = true;
@@ -384,7 +385,12 @@ export default function FamilyLearningSetupWorkspace() {
     return () => {
       mounted = false;
     };
-  }, [activeLearner, workspace.profile, workspace.userId]);
+  }, [activeLearner, workspace.profile, workspace.userId, complianceRefreshTick]);
+
+  async function handleComplianceSaved() {
+    setComplianceRefreshTick((current) => current + 1);
+    await reloadWorkspace();
+  }
 
   function patchLearner(
     learnerId: string,
@@ -483,23 +489,32 @@ export default function FamilyLearningSetupWorkspace() {
             <NotificationComplianceCard
               learner={activeLearner}
               reportsModel={reportsModel}
+              familyProfileId={workspace.profile.id}
+              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
               userId={workspace.userId}
               loading={reportsModelLoading}
-              onSaved={() => void reloadWorkspace()}
+              onSaved={() => void handleComplianceSaved()}
             />
             <AttendanceComplianceCard
               learner={activeLearner}
               reportsModel={reportsModel}
+              familyProfileId={workspace.profile.id}
+              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
               userId={workspace.userId}
               loading={reportsModelLoading}
-              onSaved={() => void reloadWorkspace()}
+              onSaved={() => void handleComplianceSaved()}
             />
             <SubjectsPlanComplianceCard
               learner={activeLearner}
               reportsModel={reportsModel}
+              familyProfileId={workspace.profile.id}
+              jurisdictionId={reportsModel?.effectiveJurisdiction?.code ?? null}
+              registrationCycleId={reportsModel?.registrationCycle?.id ?? null}
               userId={workspace.userId}
               loading={reportsModelLoading}
-              onSaved={() => void reloadWorkspace()}
+              onSaved={() => void handleComplianceSaved()}
             />
           </div>
         </FamilyLearningSetupCard>
