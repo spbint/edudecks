@@ -135,6 +135,7 @@ export type ReportDocumentRecord = {
   title: string;
   status: string;
   documentType: string;
+  reportIntent: ReportIntent;
   localeCode: string;
   spellingStyle: string;
   terminologyMode: string;
@@ -146,6 +147,8 @@ export type ReportDocumentRecord = {
   linkedPackItems: ReportPackItemRecord[];
   updatedAt: string | null;
 };
+
+export type ReportIntent = "authority" | "portfolio";
 
 export type ArtifactStatus = "Ready" | "In progress" | "Not started";
 
@@ -181,6 +184,7 @@ export type ReportsBuilderModel = {
   registrationCycle: RegistrationCycleRecord | null;
   reportingPeriod: ReportingPeriodRecord | null;
   reportDocument: ReportDocumentRecord | null;
+  reportIntent: ReportIntent;
   requiredArtifacts: RequiredArtifactRecord[];
   readiness: ReportReadinessSummary;
   planCount: number;
@@ -233,6 +237,38 @@ function toLower(value: unknown) {
 function toNumber(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeReportIntent(value: unknown, fallback: ReportIntent): ReportIntent {
+  const normalized = safe(value).toLowerCase();
+  if (normalized === "portfolio" || normalized === "authority") {
+    return normalized;
+  }
+  if (normalized === "documentation") {
+    return "portfolio";
+  }
+  return fallback;
+}
+
+export function reportIntentLabel(intent: ReportIntent) {
+  return intent === "portfolio" ? "Portfolio mode" : "Authority-ready mode";
+}
+
+export function reportIntentSentence(intent: ReportIntent) {
+  return intent === "portfolio"
+    ? "This documentation view keeps the record calm, useful, and exportable with lighter validation."
+    : "This authority-ready view keeps the record formal and compliance-focused.";
+}
+
+function defaultReportIntentForJurisdiction(ruleSet: ReportingRuleSet | null, jurisdiction: EffectiveJurisdiction | null): ReportIntent {
+  if (!jurisdiction) return "authority";
+  if (ruleSet?.complianceUiMode === "portfolio" || ruleSet?.reportRequired === false) {
+    return "portfolio";
+  }
+  if (jurisdiction.complianceUiMode === "portfolio" || jurisdiction.reportRequired === false) {
+    return "portfolio";
+  }
+  return "authority";
 }
 
 function asStringArray(value: unknown): string[] {
@@ -520,11 +556,17 @@ function normalizePackItems(raw: Record<string, unknown>): ReportPackItemRecord[
 }
 
 function normalizeDocument(raw: Record<string, unknown>, fallback: { label: string; localeCode: string; spellingStyle: string; terminologyMode: string }): ReportDocumentRecord {
+  const intentFallback =
+    safe(raw.document_type).toLowerCase() === "portfolio" ||
+    safe(raw.tone_profile).toLowerCase().includes("portfolio")
+      ? "portfolio"
+      : "authority";
   return {
     id: safe(raw.id),
     title: safe(raw.title) || `${fallback.label} report draft`,
     status: safe(raw.status) || "draft",
     documentType: safe(raw.document_type) || "authority_ready",
+    reportIntent: normalizeReportIntent(raw.report_intent, intentFallback),
     localeCode: safe(raw.locale_code) || fallback.localeCode,
     spellingStyle: safe(raw.spelling_style) || fallback.spellingStyle,
     terminologyMode: safe(raw.terminology_mode) || fallback.terminologyMode,
@@ -931,12 +973,14 @@ async function createReportDocumentRecord(
   ruleSet: ReportingRuleSet | null,
   db: QueryClient,
 ) {
+  const reportIntent = defaultReportIntentForJurisdiction(ruleSet, jurisdiction);
   const payload = {
     reporting_period_id: reportingPeriod.id,
     student_id: learner.id,
     user_id: safe(userId) || null,
     title: `${reportingPeriod.label} report draft`,
     document_type: "authority_ready",
+    report_intent: reportIntent,
     locale_code: ruleSet?.localeCode || jurisdiction.localeCode,
     spelling_style: ruleSet?.spellingStyle || jurisdiction.spellingStyle,
     terminology_mode: "jurisdiction",
@@ -954,10 +998,36 @@ async function createReportDocumentRecord(
   if (response.error) throw response.error;
   return response.data
     ? normalizeDocument(asObject(response.data), {
-        label: reportingPeriod.label,
-        localeCode: payload.locale_code,
-        spellingStyle: payload.spelling_style,
-        terminologyMode: payload.terminology_mode,
+      label: reportingPeriod.label,
+      localeCode: payload.locale_code,
+      spellingStyle: payload.spelling_style,
+      terminologyMode: payload.terminology_mode,
+    })
+    : null;
+}
+
+export async function saveReportDocumentIntent(
+  reportDocumentId: string,
+  reportIntent: ReportIntent,
+  client?: QueryClient,
+) {
+  const db = client ?? supabase;
+  const response = await db
+    .from("report_documents")
+    .update({
+      report_intent: reportIntent,
+    })
+    .eq("id", reportDocumentId)
+    .select("*")
+    .maybeSingle();
+
+  if (response.error) throw response.error;
+  return response.data
+    ? normalizeDocument(asObject(response.data), {
+        label: "Reporting",
+        localeCode: "en-AU",
+        spellingStyle: "british",
+        terminologyMode: "jurisdiction",
       })
     : null;
 }
@@ -1481,13 +1551,19 @@ function buildReadinessSentence(input: {
   planCount: number;
   evidenceCount: number;
   reportDocument: ReportDocumentRecord | null;
+  reportIntent: ReportIntent;
   complianceLevel: ComplianceLevel;
   complianceUiMode: ComplianceUiMode;
   reportRequired: boolean;
 }) {
-  if (input.reportRequired === false || input.complianceUiMode === "portfolio") {
+  const documentationMode =
+    input.reportIntent === "portfolio" ||
+    input.reportRequired === false ||
+    input.complianceUiMode === "portfolio";
+
+  if (documentationMode) {
     if (input.status === "Ready") {
-      return `Your ${input.jurisdictionLabel} documentation workspace is set up and ready for export.`;
+      return `Your ${input.jurisdictionLabel} documentation workspace is set up and ready for export.`; 
     }
     if (input.planCount > 0 || input.evidenceCount > 0 || input.reportDocument) {
       return `Your ${input.jurisdictionLabel} documentation workspace is in progress. The portfolio is growing, but a few records still need attention.`;
@@ -1532,6 +1608,7 @@ function buildEmptyModel(learner: FamilyLearner | null, softWarning = ""): Repor
     registrationCycle: null,
     reportingPeriod: null,
     reportDocument: null,
+    reportIntent: "authority",
     requiredArtifacts: [],
     readiness: {
       status: "Not started",
@@ -1726,6 +1803,9 @@ export async function loadReportsBuilderModel(
       registrationCycle,
       reportingPeriod: resolvedReportingPeriod,
       reportDocument,
+      reportIntent:
+        reportDocument?.reportIntent ||
+        defaultReportIntentForJurisdiction(ruleSet, effectiveJurisdiction),
       requiredArtifacts,
       readiness: {
         status: readinessStatus,
@@ -1735,6 +1815,9 @@ export async function loadReportsBuilderModel(
           planCount,
           evidenceCount,
           reportDocument,
+          reportIntent:
+            reportDocument?.reportIntent ||
+            defaultReportIntentForJurisdiction(ruleSet, effectiveJurisdiction),
           complianceLevel: jurisdictionProfile.complianceLevel,
           complianceUiMode: jurisdictionProfile.complianceUiMode,
           reportRequired: jurisdictionProfile.reportRequired,
@@ -1787,6 +1870,8 @@ export function currentPeriodRangeLabel(model: ReportsBuilderModel) {
 }
 
 export function nextReportCta(model: ReportsBuilderModel) {
+  const documentationMode = model.reportIntent === "portfolio" || model.complianceUiMode === "portfolio" || model.reportRequired === false;
+
   if (!model.learner) {
     return {
       label: "Choose learner",
@@ -1804,7 +1889,7 @@ export function nextReportCta(model: ReportsBuilderModel) {
   }
 
   if (model.reportDocument) {
-    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+    return documentationMode
       ? {
           label: "Open documentation export",
           href: "/reports/output",
@@ -1818,7 +1903,7 @@ export function nextReportCta(model: ReportsBuilderModel) {
   }
 
   if (model.planCount === 0) {
-    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+    return documentationMode
       ? {
           label: "Open portfolio",
           href: "/my-portfolio",
@@ -1832,7 +1917,7 @@ export function nextReportCta(model: ReportsBuilderModel) {
   }
 
   if (model.evidenceCount === 0) {
-    return model.reportRequired === false || model.complianceUiMode === "portfolio"
+    return documentationMode
       ? {
           label: "Review portfolio",
           href: "/my-portfolio",
@@ -1845,7 +1930,7 @@ export function nextReportCta(model: ReportsBuilderModel) {
         };
   }
 
-  return model.reportRequired === false || model.complianceUiMode === "portfolio"
+  return documentationMode
     ? {
         label: "Open documentation export",
         href: "/reports/output",

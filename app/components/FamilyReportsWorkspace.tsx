@@ -14,8 +14,11 @@ import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
   nextReportCta,
+  reportIntentLabel,
+  saveReportDocumentIntent,
   reportingModeLabel,
   type ArtifactStatus,
+  type ReportIntent,
   type ReportsBuilderModel,
 } from "@/lib/reporting";
 
@@ -102,6 +105,16 @@ function DetailCard({
   );
 }
 
+function intentTone(intent: ReportIntent, active: boolean) {
+  if (active) {
+    return "border-slate-950 bg-slate-950 text-white";
+  }
+  if (intent === "portfolio") {
+    return "border-slate-200 bg-white text-slate-700 hover:bg-slate-50";
+  }
+  return "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100";
+}
+
 type FamilyReportsWorkspaceProps = {
   includeShell?: boolean;
 };
@@ -117,6 +130,10 @@ export default function FamilyReportsWorkspace({
     setActiveLearner,
   } = useFamilyWorkspace();
   const [model, setModel] = useState<ReportsBuilderModel | null>(null);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [intentSaving, setIntentSaving] = useState<ReportIntent | "">("");
+  const [intentMessage, setIntentMessage] = useState("");
+  const [intentError, setIntentError] = useState("");
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -145,7 +162,7 @@ export default function FamilyReportsWorkspace({
     return () => {
       mounted = false;
     };
-  }, [activeLearner, workspace.profile, workspace.userId]);
+  }, [activeLearner, refreshTick, workspace.profile, workspace.userId]);
 
   const surfaceState = stateFromModel({
     workspaceLoading,
@@ -221,7 +238,48 @@ export default function FamilyReportsWorkspace({
     requiresAttendanceTracking: false,
     requiredInstructionHoursPerYear: null,
     requiredInstructionDaysPerYear: null,
+    reportIntent: "authority",
   } as ReportsBuilderModel), [activeLearner, model]);
+
+  async function handleReportIntentChange(nextIntent: ReportIntent) {
+    const reportDocumentId = model?.reportDocument?.id;
+    if (!reportDocumentId || intentSaving) return;
+
+    setIntentSaving(nextIntent);
+    setIntentMessage("");
+    setIntentError("");
+
+    try {
+      const saved = await saveReportDocumentIntent(reportDocumentId, nextIntent);
+      if (saved?.reportIntent) {
+        setModel((current) =>
+          current
+            ? {
+                ...current,
+                reportIntent: saved.reportIntent,
+              }
+            : current,
+        );
+      } else {
+        setModel((current) =>
+          current
+            ? {
+                ...current,
+                reportIntent: nextIntent,
+              }
+            : current,
+        );
+      }
+      setIntentMessage(`${reportIntentLabel(nextIntent)} saved.`);
+      setRefreshTick((current) => current + 1);
+    } catch (error) {
+      setIntentError(
+        error instanceof Error ? error.message : "The report intent could not be saved right now.",
+      );
+    } finally {
+      setIntentSaving("");
+    }
+  }
 
   const content = (
     <div className="grid gap-5 pb-14">
@@ -269,6 +327,55 @@ export default function FamilyReportsWorkspace({
               completeCount={model?.readiness.completeCount || 0}
               totalCount={model?.readiness.totalCount || 0}
             />
+
+            <DetailCard eyebrow="Report intent" title="Choose how this report should behave">
+              <div className="grid gap-3">
+                <p className="text-sm leading-7 text-slate-600">
+                  {model?.reportIntent === "portfolio"
+                    ? "Portfolio mode keeps the export calm and documentation-focused."
+                    : "Authority-ready mode keeps the export formal and validation-aware."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleReportIntentChange("authority")}
+                    disabled={!model?.reportDocument || Boolean(intentSaving)}
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60",
+                      intentTone("authority", model?.reportIntent === "authority"),
+                    )}
+                  >
+                    {intentSaving === "authority" ? "Saving..." : reportIntentLabel("authority")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleReportIntentChange("portfolio")}
+                    disabled={!model?.reportDocument || Boolean(intentSaving)}
+                    className={cx(
+                      "inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60",
+                      intentTone("portfolio", model?.reportIntent === "portfolio"),
+                    )}
+                  >
+                    {intentSaving === "portfolio" ? "Saving..." : reportIntentLabel("portfolio")}
+                  </button>
+                </div>
+                <div className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm leading-7 text-slate-600">
+                  {model?.reportIntent === "portfolio"
+                    ? "This mode is better when the family wants a documentation record rather than a formal submission."
+                    : "This mode is better when the report is being prepared for review, registration, or formal authority use."}
+                </div>
+                {intentMessage ? (
+                  <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-7 text-emerald-800">
+                    {intentMessage}
+                  </div>
+                ) : null}
+                {intentError ? (
+                  <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-7 text-rose-800">
+                    {intentError}
+                  </div>
+                ) : null}
+              </div>
+            </DetailCard>
 
             <section className="grid gap-4 lg:grid-cols-2">
               <DetailCard eyebrow="Jurisdiction" title={model?.effectiveJurisdiction?.label || "Jurisdiction not resolved"}>

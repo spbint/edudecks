@@ -49,7 +49,11 @@ import {
 import {
   currentPeriodRangeLabel,
   loadReportsBuilderModel,
+  reportIntentLabel,
+  reportIntentSentence,
+  saveReportDocumentIntent,
   reportingModeLabel,
+  type ReportIntent,
   type ReportsBuilderModel,
 } from "@/lib/reporting";
 import { supabase } from "@/lib/supabaseClient";
@@ -174,6 +178,10 @@ function historyLabels(entry: ReportExportHistoryEntry) {
 }
 
 function complianceModeSentence(validation: ReportCompletionValidation) {
+  if (validation.reportIntent === "portfolio") {
+    return "This export is treated as a documentation record, not a required submission.";
+  }
+
   if (validation.jurisdictionBehaviour.strictGateEnabled) {
     return "Required before this report can be exported.";
   }
@@ -189,6 +197,12 @@ function complianceStatusTone(isComplete: boolean, isAttentionNeeded: boolean) {
   if (isComplete) return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (isAttentionNeeded) return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function intentTone(intent: ReportIntent, active: boolean) {
+  if (active) return "border-slate-950 bg-slate-950 text-white";
+  if (intent === "portfolio") return "border-slate-200 bg-white text-slate-700 hover:bg-slate-50";
+  return "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100";
 }
 
 function complianceRecordLabel(status: string | null | undefined, fallback: string) {
@@ -333,6 +347,18 @@ function ComplianceContextPanel({
             </div>
             <div className="mt-1 text-sm leading-6 text-slate-600">
               {summary.behavior}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] border border-white/80 bg-white/85 p-4">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Report intent
+            </div>
+            <div className="mt-2 text-[15px] font-bold text-slate-950">
+              {reportIntentLabel(model.reportIntent)}
+            </div>
+            <div className="mt-1 text-sm leading-6 text-slate-600">
+              {reportIntentSentence(model.reportIntent)}
             </div>
           </div>
         </div>
@@ -627,6 +653,9 @@ function ExportGateCard({
         </div>
         <div className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
           {validation.complianceModeLabel}
+        </div>
+        <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
+          {reportIntentLabel(validation.reportIntent)}
         </div>
         <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
           {exportSentence}
@@ -974,6 +1003,10 @@ export default function ReportsOutputPage() {
   const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
   const [sectionPending, setSectionPending] = useState<Record<string, string>>({});
   const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({});
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [intentSaving, setIntentSaving] = useState<ReportIntent | "">("");
+  const [intentMessage, setIntentMessage] = useState("");
+  const [intentError, setIntentError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -1087,7 +1120,45 @@ export default function ReportsOutputPage() {
     return () => {
       mounted = false;
     };
-  }, [activeLearner, searchParams, workspace.profile, workspace.userId]);
+  }, [activeLearner, refreshTick, searchParams, workspace.profile, workspace.userId]);
+
+  async function handleReportIntentChange(nextIntent: ReportIntent) {
+    if (!model?.reportDocument?.id || intentSaving) return;
+
+    setIntentSaving(nextIntent);
+    setIntentMessage("");
+    setIntentError("");
+
+    try {
+      const saved = await saveReportDocumentIntent(model.reportDocument.id, nextIntent);
+      const resolvedIntent = saved?.reportIntent || nextIntent;
+
+      setModel((current) =>
+        current
+          ? {
+              ...current,
+              reportIntent: resolvedIntent,
+            }
+          : current,
+      );
+      setValidation((current) =>
+        current
+          ? {
+              ...current,
+              reportIntent: resolvedIntent,
+            }
+          : current,
+      );
+      setIntentMessage(`${reportIntentLabel(resolvedIntent)} saved.`);
+      setRefreshTick((current) => current + 1);
+    } catch (error) {
+      setIntentError(
+        error instanceof Error ? error.message : "The report intent could not be saved right now.",
+      );
+    } finally {
+      setIntentSaving("");
+    }
+  }
 
   if (!activeLearner) {
     return (
@@ -1356,6 +1427,67 @@ export default function ReportsOutputPage() {
           {[model.softWarning, assembly.softWarning].filter(Boolean).join(" ")}
         </div>
       ) : null}
+
+      <section className="grid gap-4 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(239,246,255,0.94)_58%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid gap-3">
+          <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Report intent
+          </div>
+          <h2 className="text-[24px] font-black tracking-tight text-slate-950">
+            Choose authority-ready or portfolio mode
+          </h2>
+          <p className="max-w-[760px] text-sm leading-7 text-slate-600">
+            {reportIntentSentence(model.reportIntent)}
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => void handleReportIntentChange("authority")}
+              disabled={Boolean(intentSaving) || !model.reportDocument?.id}
+              className={cx(
+                "inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60",
+                intentTone("authority", model.reportIntent === "authority"),
+              )}
+            >
+              {intentSaving === "authority" ? "Saving..." : reportIntentLabel("authority")}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleReportIntentChange("portfolio")}
+              disabled={Boolean(intentSaving) || !model.reportDocument?.id}
+              className={cx(
+                "inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60",
+                intentTone("portfolio", model.reportIntent === "portfolio"),
+              )}
+            >
+              {intentSaving === "portfolio" ? "Saving..." : reportIntentLabel("portfolio")}
+            </button>
+          </div>
+          {intentMessage ? (
+            <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm leading-7 text-emerald-800">
+              {intentMessage}
+            </div>
+          ) : null}
+          {intentError ? (
+            <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-7 text-rose-800">
+              {intentError}
+            </div>
+          ) : null}
+        </div>
+        <aside className="grid gap-3 rounded-[22px] border border-white/80 bg-white/88 p-5 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Current mode
+          </div>
+          <div className="text-[18px] font-bold tracking-tight text-slate-950">
+            {reportIntentLabel(model.reportIntent)}
+          </div>
+          <div className="text-sm leading-6 text-slate-600">
+            {model.reportIntent === "portfolio"
+              ? "Missing formal artifacts are treated as recommendations first."
+              : "Required artifacts remain blockers where the jurisdiction says they should."}
+          </div>
+        </aside>
+      </section>
 
       {validation ? <CompletionGateCard validation={validation} /> : null}
 

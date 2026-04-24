@@ -21,7 +21,11 @@ import { loadReadinessForReportAssembly, loadReportAssemblyWorkspace } from "@/l
 import { loadReportEvidenceMapping } from "@/lib/reportEvidenceMapping";
 import { loadReportSectionAutofill } from "@/lib/reportSectionAutofill";
 import { buildReportCompletionValidation } from "@/lib/reportCompletionGate";
-import { loadReportsBuilderModel } from "@/lib/reporting";
+import {
+  loadReportsBuilderModel,
+  reportIntentLabel,
+  reportIntentSentence,
+} from "@/lib/reporting";
 
 export type ReportExportSection = {
   sectionKey: string;
@@ -37,6 +41,7 @@ export type ReportExportModel = {
   learnerName: string;
   jurisdictionName: string | null;
   jurisdictionCode: string | null;
+  reportIntent: "authority" | "portfolio";
   reportingPeriodLabel: string | null;
   reportTitle: string;
   generatedAt: string;
@@ -561,6 +566,7 @@ export function buildReportExportModel(
       input.model.effectiveJurisdiction?.code ||
       input.validation.jurisdictionCode ||
       null,
+    reportIntent: input.model.reportIntent,
     reportingPeriodLabel: safe(input.model.reportingPeriod?.label) || null,
     reportTitle,
     generatedAt: new Date().toISOString(),
@@ -702,6 +708,20 @@ export function generatePrintableHtml(model: ReportExportModel) {
       margin-top: 4px;
       font-size: 14px;
       font-weight: 700;
+    }
+    .intent {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
     }
     .status-band {
       display: grid;
@@ -909,6 +929,10 @@ export function generatePrintableHtml(model: ReportExportModel) {
         <h1 class="title">${escapeHtml(model.reportTitle)}</h1>
         <div class="subtle">
           Generated from the saved report draft only after completion validation passed.
+        </div>
+        <div style="margin-top:10px;">
+          <div class="intent">${escapeHtml(reportIntentLabel(model.reportIntent))}</div>
+          <div class="subtle" style="margin-top:8px;">${escapeHtml(reportIntentSentence(model.reportIntent))}</div>
         </div>
       </div>
 

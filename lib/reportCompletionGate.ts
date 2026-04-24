@@ -58,6 +58,7 @@ export type ReportCompletionValidation = {
   complianceMode: ReportsBuilderModel["complianceMode"];
   complianceUiMode: ReportsBuilderModel["complianceUiMode"];
   complianceModeLabel: string;
+  reportIntent: ReportsBuilderModel["reportIntent"];
   reportRequirementMode: ReportsBuilderModel["reportRequirementMode"];
   reportRequired: boolean;
   requiresNotification: boolean;
@@ -374,12 +375,14 @@ function buildSummary(
     | "blockers"
     | "warnings"
     | "jurisdictionBehaviour"
+    | "reportIntent"
     | "reportRequirementMode"
   >,
 ) {
   const sectionText = `${validation.completedSectionCount}/${validation.totalSectionCount || 0} section${validation.totalSectionCount === 1 ? "" : "s"}`;
   const artifactText = `${validation.completedArtifactCount}/${validation.totalArtifactCount || 0} artifact${validation.totalArtifactCount === 1 ? "" : "s"}`;
   const documentationMode =
+    validation.reportIntent === "portfolio" ||
     validation.reportRequirementMode === "not_required" ||
     validation.jurisdictionBehaviour.portfolioModeEnabled;
 
@@ -391,12 +394,14 @@ function buildSummary(
 
   if (status === "blocked") {
     const blockerCount = validation.blockers.length;
-    return `This report is blocked. ${blockerCount} blocking issue${blockerCount === 1 ? "" : "s"} still need attention before it can move forward.`;
+    return documentationMode
+      ? `This documentation export needs attention. ${blockerCount} issue${blockerCount === 1 ? "" : "s"} still need attention before it can move forward.`
+      : `This report is blocked. ${blockerCount} blocking issue${blockerCount === 1 ? "" : "s"} still need attention before it can move forward.`;
   }
 
   const warningCount = validation.warnings.length;
   return documentationMode
-    ? `This documentation export is in progress. ${sectionText} and ${artifactText} are moving forward, but ${warningCount} warning${warningCount === 1 ? "" : "s"} still need attention.`
+    ? `This documentation export is in progress. ${sectionText} and ${artifactText} are moving forward, and ${warningCount} note${warningCount === 1 ? "" : "s"} remain to review.`
     : `This report is in progress. ${sectionText} and ${artifactText} are moving forward, but ${warningCount} warning${warningCount === 1 ? "" : "s"} still need attention.`;
 }
 
@@ -417,6 +422,14 @@ function computeScore(input: {
 
 function readinessIssues(readiness: ComplianceReadiness) {
   return readiness.warnings.filter((item) => /concern|condition/i.test(item));
+}
+
+function isFormalContentIssue(issue: ReportValidationIssue) {
+  return Boolean(
+    issue.sectionKey ||
+      issue.artifactType ||
+      issue.code === "no_required_artifacts",
+  );
 }
 
 export function buildReportCompletionValidation(
@@ -461,6 +474,7 @@ export function buildReportCompletionValidation(
       allowsEvaluationInsteadOfTesting:
         input.model.effectiveJurisdiction?.allowsEvaluationInsteadOfTesting,
     });
+  const reportIntent = input.model.reportIntent;
 
   const sectionStates = input.assembly.sections.map((section) => {
     const sectionMapping = findMatchingSectionMapping(section, input.mapping.sections);
@@ -905,6 +919,34 @@ export function buildReportCompletionValidation(
     }
   }
 
+  if (reportIntent === "portfolio") {
+    const downgradedBlockers: ReportValidationIssue[] = [];
+    blockers.forEach((issueItem) => {
+      if (isFormalContentIssue(issueItem)) {
+        warnings.push({
+          ...issueItem,
+          type: "warning",
+          detail:
+            issueItem.detail ||
+            "This item is still helpful, but it is treated as a recommendation in portfolio mode.",
+        });
+      } else {
+        downgradedBlockers.push(issueItem);
+      }
+    });
+    blockers.length = 0;
+    blockers.push(...downgradedBlockers);
+
+    warnings.forEach((issueItem, index) => {
+      if (isFormalContentIssue(issueItem) && issueItem.type === "blocker") {
+        warnings[index] = {
+          ...issueItem,
+          type: "warning",
+        };
+      }
+    });
+  }
+
   const completedSectionCount = sectionStates.filter((section) => section.status === "complete").length;
   const totalSectionCount = sectionStates.length;
   const completedArtifactCount = artifactStates.filter((artifact) => artifact.status === "complete").length;
@@ -913,7 +955,7 @@ export function buildReportCompletionValidation(
   const status: ReportGateStatus =
     blockers.length > 0
       ? "blocked"
-      : warnings.length > 0 && !jurisdictionBehaviour.portfolioModeEnabled
+      : warnings.length > 0 && reportIntent !== "portfolio" && !jurisdictionBehaviour.portfolioModeEnabled
         ? "in_progress"
         : "ready_for_export";
 
@@ -940,6 +982,7 @@ export function buildReportCompletionValidation(
     complianceMode: input.model.complianceMode,
     complianceUiMode: input.model.complianceUiMode,
     complianceModeLabel: input.model.complianceModeLabel,
+    reportIntent,
     reportRequirementMode: input.model.reportRequirementMode,
     reportRequired: input.model.reportRequired,
     requiresNotification: input.model.requiresNotification,
@@ -963,6 +1006,7 @@ export function buildReportCompletionValidation(
       blockers,
       warnings,
       jurisdictionBehaviour,
+      reportIntent,
       reportRequirementMode: input.model.reportRequirementMode,
     }),
     nextAction,
