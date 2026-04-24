@@ -176,7 +176,6 @@ function ComplianceCommandCard({
           </h2>
           <div className="text-sm leading-6 text-slate-600">
             {model.jurisdictionName || "Jurisdiction not resolved"}
-            {model.draftState?.cycleLabel ? ` - ${model.draftState.cycleLabel}` : ""}
           </div>
           <div className="inline-flex w-fit rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">
             {model.complianceModeLabel}
@@ -249,20 +248,18 @@ function ComplianceCommandCard({
           </div>
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-              Reporting period
+              Learning setup
             </div>
             <div className="mt-2 text-sm font-bold text-slate-950">
-              {model.draftState?.reportingPeriodLabel || "Not yet established"}
+              {model.complianceModeLabel}
             </div>
           </div>
           <div>
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-              Draft state
+              Next step
             </div>
             <div className="mt-2 text-sm font-bold text-slate-950">
-              {model.draftState?.hasReportDraft
-                ? model.draftState.reportStatus || "Draft underway"
-                : "No draft started"}
+              {model.primaryCta?.label || model.nextAction || "Keep setup current"}
             </div>
           </div>
           {model.primaryCta ? (

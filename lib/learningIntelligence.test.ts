@@ -17,7 +17,7 @@ const THIN_AREA_LABELS: LearningThinAreaLabel[] = [
   "Evidence is still thin",
   "The week needs a starting point",
   "The learning story is still narrow",
-  "A short report draft would help next",
+  "A progress reflection would help next",
 ];
 
 function makeInput(overrides: Partial<LearningIntelligenceInput> = {}): LearningIntelligenceInput {
@@ -30,8 +30,6 @@ function makeInput(overrides: Partial<LearningIntelligenceInput> = {}): Learning
     recentEvidenceCount: 0,
     linkedEvidenceCount: 0,
     coverageAreaCount: 0,
-    hasSavedDraft: false,
-    hasReportSelection: false,
     hasFamilyNote: false,
     ...overrides,
   };
@@ -99,31 +97,29 @@ describe("deriveLearningIntelligence", () => {
     expect(result.reason.toLowerCase()).toContain("story is still narrow");
   });
 
-  it("prefers reports when stronger report-shaping signals are present", () => {
+  it("prefers My Reports when stronger reflection signals are present", () => {
     const result = deriveLearningIntelligence(
       makeInput({
         evidenceCount: 3,
         recentEvidenceCount: 2,
-        hasReportSelection: true,
+        linkedEvidenceCount: 2,
         coverageAreaCount: 2,
       }),
     );
 
     expect(result.targetPage).toBe("reports");
-    expect(result.targetHref).toContain("/reports");
-    expect(result.targetHref).toContain("focus=refine-evidence");
-    expect(result.ctaLabel).toBe("Shape this into a report");
+    expect(result.targetHref).toContain("/my-reports");
+    expect(result.ctaLabel).toBe("Open My Reports");
     expect(result.momentumLabel).toBe("Close to usable");
-    expect(result.thinAreaLabel).toBe("A short report draft would help next");
-    expect(result.reason.toLowerCase()).toContain("evidence gathered");
+    expect(result.thinAreaLabel).toBe("A progress reflection would help next");
+    expect(result.reason.toLowerCase()).toContain("evidence connected");
   });
 
-  it("does not treat a bare saved draft with thin evidence as report-ready", () => {
+  it("keeps thin evidence in the capture branch", () => {
     const result = deriveLearningIntelligence(
       makeInput({
         evidenceCount: 1,
         recentEvidenceCount: 1,
-        hasSavedDraft: true,
       }),
     );
 
@@ -132,13 +128,12 @@ describe("deriveLearningIntelligence", () => {
     expect(result.thinAreaLabel).toBe("Evidence is still thin");
   });
 
-  it("does not let report-ready signals fall through to the portfolio branch", () => {
+  it("does not let reflection-ready signals fall through to the portfolio branch", () => {
     const result = deriveLearningIntelligence(
       makeInput({
         evidenceCount: 3,
         recentEvidenceCount: 2,
-        hasSavedDraft: true,
-        hasReportSelection: true,
+        linkedEvidenceCount: 2,
         coverageAreaCount: 3,
       }),
     );

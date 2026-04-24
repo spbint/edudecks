@@ -5,6 +5,7 @@ import type { FamilyLearner } from "@/lib/familyWorkspace";
 import {
   loadReportsBuilderModel,
   nextReportCta,
+  type ReportsBuilderModel,
 } from "@/lib/reporting";
 
 export type FamilyComplianceCommandCardModel = {
@@ -27,12 +28,6 @@ export type FamilyComplianceCommandCardModel = {
     label: string;
     href: string;
   } | null;
-  draftState: {
-    hasReportDraft: boolean;
-    reportStatus: string | null;
-    reportingPeriodLabel: string | null;
-    cycleLabel: string | null;
-  } | null;
   helperNote: string | null;
 };
 
@@ -51,33 +46,19 @@ function toLower(value: unknown) {
 }
 
 function pickTopMissing(readiness: ComplianceReadiness) {
-  return readiness.missing.filter(Boolean).slice(0, 3);
+  return readiness.missing
+    .filter(Boolean)
+    .filter((item) => {
+      const value = toLower(item);
+      return !(
+        (value.includes("report") && value.includes("draft")) ||
+        (value.includes("report") && value.includes("document"))
+      );
+    })
+    .slice(0, 3);
 }
 
-function buildContextHref(input: {
-  pathname: string;
-  params?: Record<string, string | null | undefined>;
-}) {
-  const params = new URLSearchParams();
-
-  Object.entries(input.params ?? {}).forEach(([key, value]) => {
-    const cleanValue = safe(value);
-    if (cleanValue) {
-      params.set(key, cleanValue);
-    }
-  });
-
-  const query = params.toString();
-  return `${input.pathname}${query ? `?${query}` : ""}`;
-}
-
-function secondaryCtaFor(
-  readiness: ComplianceReadiness,
-  input: {
-    reportDocumentId?: string | null;
-    reportingPeriodId?: string | null;
-  },
-) {
+function secondaryCtaFor(readiness: ComplianceReadiness) {
   const missing = readiness.missing.map((item) => toLower(item));
   const nextAction = toLower(readiness.nextAction);
 
@@ -111,27 +92,46 @@ function secondaryCtaFor(
     nextAction.includes("review")
   ) {
     return {
-      label: "Open report workspace",
-      href: buildContextHref({
-        pathname: "/reports",
-        params: {
-          documentId: input.reportDocumentId,
-          reportingPeriodId: input.reportingPeriodId,
-        },
-      }),
+      label: "Open My Reports",
+      href: "/my-reports",
     };
   }
 
   return null;
 }
 
+function familyReportCtaFor(model: ReportsBuilderModel) {
+  const cta = nextReportCta(model);
+  if (!cta) return null;
+
+  const label = toLower(cta.label);
+  const href = safe(cta.href);
+
+  if (
+    href.includes("/reports") ||
+    label.includes("report") ||
+    label.includes("draft") ||
+    label.includes("documentation export")
+  ) {
+    return {
+      label: "Open My Reports",
+      href: "/my-reports",
+    };
+  }
+
+  return {
+    label: cta.label,
+    href: cta.href,
+  };
+}
+
 function helperNoteFor(readiness: ComplianceReadiness) {
   const count = readiness.totalCount;
   if (!count) {
-    return "Based on current planning, evidence, and reporting records.";
+    return "Based on current planning, evidence, and setup records.";
   }
 
-  return `Based on ${readiness.completedCount} of ${readiness.totalCount} tracked compliance artifacts for this learner.`;
+  return `Based on ${readiness.completedCount} of ${readiness.totalCount} tracked setup items for this learner.`;
 }
 
 export async function loadFamilyComplianceCommandCard(
@@ -149,11 +149,8 @@ export async function loadFamilyComplianceCommandCard(
     }),
   ]);
 
-  const primary = nextReportCta(reportsModel);
-  const secondary = secondaryCtaFor(readiness, {
-    reportDocumentId: reportsModel.reportDocument?.id || null,
-    reportingPeriodId: reportsModel.reportingPeriod?.id || null,
-  });
+  const primary = familyReportCtaFor(reportsModel);
+  const secondary = secondaryCtaFor(readiness);
 
   return {
     learnerId: input.learner.id,
@@ -176,15 +173,6 @@ export async function loadFamilyComplianceCommandCard(
         }
       : null,
     secondaryCta: secondary,
-    draftState: {
-      hasReportDraft: Boolean(reportsModel.reportDocument),
-      reportStatus: reportsModel.reportDocument?.status || null,
-      reportingPeriodLabel: reportsModel.reportingPeriod?.label || null,
-      cycleLabel:
-        reportsModel.registrationCycle?.label ||
-        reportsModel.ruleSet?.cycleLabel ||
-        null,
-    },
     helperNote: helperNoteFor(readiness),
   };
 }

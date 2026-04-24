@@ -48,6 +48,7 @@ type LoadComplianceReadinessInput = {
   learnerId: string;
   today?: Date | string;
   client?: QueryClient;
+  includeReportArtifacts?: boolean;
 };
 
 type LearnerRow = {
@@ -985,6 +986,15 @@ function normalizeArtifactLabel(row: RequiredArtifactRow) {
   return safe(row.label) || safe(row.name) || "Required artifact";
 }
 
+function isReportDocumentArtifact(artifactType: string, label: string) {
+  const value = `${artifactType} ${label}`.toLowerCase();
+  return (
+    value.includes("report_document") ||
+    value.includes("report document") ||
+    (value.includes("report") && value.includes("draft"))
+  );
+}
+
 function evaluateArtifactStatus(
   artifactType: string,
   ctx: ArtifactEvaluationContext,
@@ -1254,6 +1264,7 @@ export async function loadComplianceReadiness(
   input: LoadComplianceReadinessInput,
 ): Promise<ComplianceReadiness> {
   const learnerId = safe(input.learnerId);
+  const includeReportArtifacts = input.includeReportArtifacts === true;
   if (!learnerId) {
     return {
       ...EMPTY_READINESS,
@@ -1386,7 +1397,9 @@ export async function loadComplianceReadiness(
       loadPlans(db, learnerId, cycleStartDate, cycleEndDate),
       loadExperiences(db, learnerId, cycleStartDate, cycleEndDate),
       loadEvidence(db, learnerId, cycleStartDate, cycleEndDate),
-      loadReportDocuments(db, learnerId, safe(currentPeriod?.id) || null),
+      includeReportArtifacts
+        ? loadReportDocuments(db, learnerId, safe(currentPeriod?.id) || null)
+        : Promise.resolve([] as ReportDocumentRow[]),
       loadReviews(db, learnerId, cycleStartDate, cycleEndDate),
       loadConcerns(db, learnerId),
       loadRegistrationConditions(db, learnerId),
@@ -1444,8 +1457,16 @@ export async function loadComplianceReadiness(
       behaviour,
     };
 
-    const normalizedArtifacts: NormalizedArtifact[] = requiredArtifacts.length
-      ? requiredArtifacts.map((row: RequiredArtifactRow) => {
+    const readinessArtifactRows = includeReportArtifacts
+      ? requiredArtifacts
+      : requiredArtifacts.filter((row: RequiredArtifactRow) => {
+          const artifactType = normalizeArtifactType(row);
+          const label = normalizeArtifactLabel(row);
+          return !isReportDocumentArtifact(artifactType, label);
+        });
+
+    const normalizedArtifacts: NormalizedArtifact[] = readinessArtifactRows.length
+      ? readinessArtifactRows.map((row: RequiredArtifactRow) => {
           const artifactType = normalizeArtifactType(row);
           return {
             artifactType,
@@ -1464,11 +1485,15 @@ export async function loadComplianceReadiness(
             label: "Evidence record",
             status: evaluateArtifactStatus("evidence_items", ctx),
           },
-          {
-            artifactType: "report_document",
-            label: "Report draft",
-            status: evaluateArtifactStatus("report_document", ctx),
-          },
+          ...(includeReportArtifacts
+            ? [
+                {
+                  artifactType: "report_document",
+                  label: "Report document",
+                  status: evaluateArtifactStatus("report_document", ctx),
+                },
+              ]
+            : []),
         ];
 
     const completedCount = normalizedArtifacts.filter((item: NormalizedArtifact) => item.status === "complete").length;
@@ -1544,7 +1569,7 @@ export async function loadComplianceReadiness(
       strengths.push("Attendance records are available for family reference.");
     }
 
-    if (reportDocuments.length > 0) {
+    if (includeReportArtifacts && reportDocuments.length > 0) {
       strengths.push("A report document exists for the current reporting flow.");
     }
 

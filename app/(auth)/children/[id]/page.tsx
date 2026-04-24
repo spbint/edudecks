@@ -11,7 +11,6 @@ import {
   loadLinkedFamilyStudentIds,
 } from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import { listSavedDrafts, type SavedReportDraft } from "@/lib/reporting/reportDraftStorage";
 import {
   deriveLearningIntelligence,
   type LearningIntelligenceInput,
@@ -126,7 +125,6 @@ export default function ChildWorkspacePage() {
   const [err, setErr] = useState("");
   const [child, setChild] = useState<ChildRow | null>(null);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
-  const [savedDrafts, setSavedDrafts] = useState<SavedReportDraft[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -190,7 +188,6 @@ export default function ChildWorkspacePage() {
 
       setChild(childRow);
       setEvidence(evidenceRows);
-      setSavedDrafts(listSavedDrafts().filter((d) => d.studentId === childId));
       setActiveLearner(childId);
     } catch (e: any) {
       setErr(String(e?.message ?? e));
@@ -296,7 +293,7 @@ export default function ChildWorkspacePage() {
   const weakestArea =
     coverageRows.length >= 2 ? coverageRows[coverageRows.length - 1]?.area : "a broader spread of evidence";
 
-  const reportReadiness =
+  const reflectionReadiness =
     evidence.length >= 8 ? "Strong" : evidence.length >= 4 ? "Growing" : "Early";
 
   const metricCards = useMemo(
@@ -312,17 +309,17 @@ export default function ChildWorkspacePage() {
         caption: "Different pathways with evidence",
       },
       {
-        label: "Saved drafts",
-        value: String(savedDrafts.length),
-        caption: "Reports waiting for review",
+        label: "Reflection readiness",
+        value: reflectionReadiness,
+        caption: "How much learning context is visible",
       },
       {
         label: "Record readiness",
-        value: reportReadiness,
+        value: reflectionReadiness,
         caption: "Where this workspace is holding steady",
       },
     ],
-    [coverageRows, evidence.length, reportReadiness, savedDrafts.length]
+    [coverageRows, evidence.length, reflectionReadiness]
   );
 
   const countRecentEvidence = (items: EvidenceRow[]) =>
@@ -337,11 +334,6 @@ export default function ChildWorkspacePage() {
   );
   const evidenceCount = evidence.length;
   const coverageAreaCount = coverageRows.length;
-  const hasSavedDraft = savedDrafts.length > 0;
-  const hasReportSelection = useMemo(
-    () => savedDrafts.some((draft) => draft.selectedEvidenceIds.length > 0),
-    [savedDrafts],
-  );
   const latestEvidenceId = latestEvidence?.id;
   const learnerWorkflowSignals = useMemo<LearningIntelligenceInput>(
     () => ({
@@ -350,15 +342,11 @@ export default function ChildWorkspacePage() {
       evidenceCount,
       recentEvidenceCount,
       coverageAreaCount,
-      hasSavedDraft,
-      hasReportSelection,
     }),
     [
       childId,
       coverageAreaCount,
       evidenceCount,
-      hasReportSelection,
-      hasSavedDraft,
       latestEvidenceId,
       recentEvidenceCount,
     ],
@@ -367,8 +355,6 @@ export default function ChildWorkspacePage() {
   const bestNextMove = useMemo(() => {
     return deriveLearningIntelligence(learnerWorkflowSignals);
   }, [learnerWorkflowSignals]);
-
-  const latestDraft = savedDrafts[0] || null;
 
   return (
     <FamilyTopNavShell
@@ -380,9 +366,7 @@ export default function ChildWorkspacePage() {
       heroAsideText={
         !evidence.length
           ? "The workspace is ready to begin. One captured learning moment will bring it to life."
-          : latestDraft
-            ? `A saved report draft already exists for ${name}. You can reopen it or keep deepening the evidence base.`
-            : `The record is strongest in ${strongestArea} and would benefit from more depth in ${weakestArea}.`
+          : `The record is strongest in ${strongestArea} and would benefit from more depth in ${weakestArea}.`
       }
     >
       <section
@@ -732,12 +716,10 @@ export default function ChildWorkspacePage() {
                     }}
                   >
                     <div style={{ fontSize: 12, fontWeight: 800, color: "#64748b", marginBottom: 4 }}>
-                      Saved drafts
+                      Reflection readiness
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>
-                      {savedDrafts.length
-                        ? `${savedDrafts.length} draft${savedDrafts.length === 1 ? "" : "s"} waiting for review`
-                        : "No drafts yet"}
+                      {reflectionReadiness}
                     </div>
                   </div>
                 </div>

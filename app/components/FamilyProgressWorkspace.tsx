@@ -18,7 +18,6 @@ import {
 } from "@/app/components/progress/ProgressOverviewComponents";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import { loadFamilyWeeklyPlan } from "@/lib/familyPlanner";
-import { listReportDrafts, type ReportDraftRow } from "@/lib/reportDrafts";
 import { listStudentProfileSnapshots } from "@/lib/studentProfileSnapshots";
 
 type EvidenceRow = {
@@ -77,6 +76,11 @@ function dateValue(row: EvidenceRow) {
   return safe(row.occurred_on) || safe(row.created_at);
 }
 
+function isReflectionEvidence(row: EvidenceRow) {
+  const value = safe(row.evidence_type).toLowerCase();
+  return value.includes("reflect") || value.includes("reflection");
+}
+
 function buildTrend(rows: EvidenceRow[]): TrendPoint[] {
   const now = new Date();
   const weekStarts = Array.from({ length: 6 }, (_, index) => {
@@ -108,15 +112,15 @@ function percentageFromSignals(args: {
   evidenceCount: number;
   recentEvidenceCount: number;
   coverageCount: number;
-  reportCount: number;
+  reflectionCount: number;
   planActions: number;
 }) {
-  const evidenceScore = Math.min(args.evidenceCount * 5, 40);
+  const evidenceScore = Math.min(args.evidenceCount * 5, 38);
   const recentScore = Math.min(args.recentEvidenceCount * 6, 18);
   const coverageScore = Math.min(args.coverageCount * 7, 28);
-  const reportScore = Math.min(args.reportCount * 8, 8);
-  const planScore = Math.min(args.planActions * 3, 6);
-  return Math.max(0, Math.min(100, evidenceScore + recentScore + coverageScore + reportScore + planScore));
+  const reflectionScore = Math.min(args.reflectionCount * 4, 8);
+  const planScore = Math.min(args.planActions * 4, 8);
+  return Math.max(0, Math.min(100, evidenceScore + recentScore + coverageScore + reflectionScore + planScore));
 }
 
 function readinessLabel(percent: number) {
@@ -183,7 +187,6 @@ function deriveAreas(
 export default function FamilyProgressWorkspace() {
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
   const [evidenceRows, setEvidenceRows] = useState<EvidenceRow[]>([]);
-  const [reportDrafts, setReportDrafts] = useState<ReportDraftRow[]>([]);
   const [snapshot, setSnapshot] = useState<SnapshotRow | null>(null);
   const [planActionCount, setPlanActionCount] = useState(0);
   const [loadingInsights, setLoadingInsights] = useState(true);
@@ -212,7 +215,6 @@ export default function FamilyProgressWorkspace() {
       if (!hasActiveLearner) {
         if (mounted) {
           setEvidenceRows([]);
-          setReportDrafts([]);
           setSnapshot(null);
           setPlanActionCount(0);
           setLoadingInsights(false);
@@ -223,7 +225,6 @@ export default function FamilyProgressWorkspace() {
       if (!canonicalReady || !activeLearner?.id) {
         if (mounted) {
           setEvidenceRows([]);
-          setReportDrafts([]);
           setSnapshot(null);
           setPlanActionCount(0);
           setLoadingInsights(false);
@@ -235,12 +236,11 @@ export default function FamilyProgressWorkspace() {
         setLoadingInsights(true);
 
         const weekKey = getWeekKey(new Date());
-        const [evidence, drafts, snapshots, weeklyPlan] = await Promise.all([
+        const [evidence, snapshots, weeklyPlan] = await Promise.all([
           loadEvidenceEntriesWithVariants<EvidenceRow>(EVIDENCE_SELECTS, {
             studentId: activeLearner.id,
             limit: 60,
           }),
-          listReportDrafts().catch(() => []),
           listStudentProfileSnapshots(activeLearner.id).catch(() => []),
           loadFamilyWeeklyPlan({
             familyProfileId: workspace.profile.id,
@@ -252,12 +252,6 @@ export default function FamilyProgressWorkspace() {
         if (!mounted) return;
 
         setEvidenceRows(evidence);
-        setReportDrafts(
-          drafts.filter(
-            (draft) =>
-              draft.student_id === activeLearner.id || draft.child_id === activeLearner.id,
-          ),
-        );
         setSnapshot((snapshots[0] as SnapshotRow | undefined) ?? null);
         setPlanActionCount(weeklyPlan?.actions.length ?? 0);
       } finally {
@@ -277,7 +271,7 @@ export default function FamilyProgressWorkspace() {
     : !hasLearners || !hasActiveLearner
       ? "empty"
       : canonicalReady
-        ? evidenceRows.length || reportDrafts.length || snapshot || planActionCount
+        ? evidenceRows.length || snapshot || planActionCount
           ? "live"
           : "empty"
         : "placeholder";
@@ -300,7 +294,7 @@ export default function FamilyProgressWorkspace() {
       return Date.now() - value.getTime() <= 1000 * 60 * 60 * 24 * 30;
     }).length;
   const { strengths, focusAreas, coverageCount, primaryArea } = deriveAreas(evidenceRows, snapshot);
-  const reportCount = reportDrafts.length;
+  const reflectionCount = evidenceRows.filter(isReflectionEvidence).length;
   const readinessPercent =
     progressState === "placeholder"
       ? 58
@@ -308,7 +302,7 @@ export default function FamilyProgressWorkspace() {
           evidenceCount,
           recentEvidenceCount,
           coverageCount,
-          reportCount,
+          reflectionCount,
           planActions: planActionCount,
         });
 
@@ -379,7 +373,7 @@ export default function FamilyProgressWorkspace() {
     !hasActiveLearner
       ? {
           title: "Choose a learner first",
-          note: "Once a learner is in focus, My Progress can turn planning, evidence, and reports into clearer guidance.",
+          note: "Once a learner is in focus, My Progress can turn planning, evidence, and reflection into clearer guidance.",
           href: learnerSetupHref,
           cta: learnerSetupCta,
           state: "empty" as HomeSurfaceState,
@@ -387,17 +381,17 @@ export default function FamilyProgressWorkspace() {
       : progressState === "live" && evidenceCount < 4
         ? {
             title: `Capture one more moment for ${activeLearnerName}`,
-            note: "A little more evidence will make strengths, trends, and report readiness easier to trust.",
+            note: "A little more evidence will make strengths, trends, and reflection readiness easier to trust.",
             href: "/capture",
             cta: "Capture evidence",
             state: "derived" as HomeSurfaceState,
           }
-        : progressState === "live" && reportCount === 0
+        : progressState === "live" && evidenceCount >= 4 && coverageCount >= 2
           ? {
-              title: `Build a first report for ${activeLearnerName}`,
-              note: "You already have enough visible progress to turn the strongest moments into a draft report.",
+              title: `Prepare a report from ${activeLearnerName}'s learning records`,
+              note: "Use captured evidence to reflect on progress from the dedicated reports workspace.",
               href: "/my-reports",
-              cta: "Build My Report",
+              cta: "Open My Reports",
               state: "live" as HomeSurfaceState,
             }
           : {
@@ -468,7 +462,7 @@ export default function FamilyProgressWorkspace() {
             value={progressState === "loading" ? "" : readinessLabel(readinessPercent)}
             note={
               progressState === "live"
-                ? `${activeLearnerName}'s progress is being shaped by planning, evidence, and reports`
+                ? `${activeLearnerName}'s progress is being shaped by planning, evidence, and reflection`
                 : hasActiveLearner
                   ? "Readiness becomes clearer as the system stays connected"
                   : "Choose a learner to see readiness"
@@ -491,19 +485,27 @@ export default function FamilyProgressWorkspace() {
             state={progressState}
           />
           <CoverageReadinessCard
-            eyebrow="Report readiness"
-            title="Report readiness"
-            value={progressState === "loading" ? "" : reportCount ? "Ready to build" : "Still forming"}
+            eyebrow="Reflection"
+            title="Reflection readiness"
+            value={
+              progressState === "loading"
+                ? ""
+                : reflectionCount
+                  ? "Reflections visible"
+                  : evidenceCount >= 4
+                    ? "Ready to reflect"
+                    : "Still forming"
+            }
             note={
               progressState === "live"
-                ? reportCount
-                  ? `${reportCount} draft report${reportCount === 1 ? "" : "s"} already in progress`
-                  : `No report draft yet for ${activeLearnerName}`
+                ? reflectionCount
+                  ? `${reflectionCount} reflection signal${reflectionCount === 1 ? "" : "s"} visible for ${activeLearnerName}`
+                  : `Use captured evidence to reflect on ${activeLearnerName}'s progress`
                 : hasActiveLearner
-                  ? "Reports become easier once the evidence picture is clearer"
-                  : "Report readiness appears after learner setup"
+                  ? "Reflection becomes easier once the evidence picture is clearer"
+                  : "Reflection readiness appears after learner setup"
             }
-            progress={progressState === "placeholder" ? 44 : reportCount ? 68 : Math.min(42, evidenceCount * 4)}
+            progress={progressState === "placeholder" ? 44 : Math.min(68, evidenceCount * 8 + reflectionCount * 10)}
             state={progressState === "live" ? "derived" : progressState}
           />
         </section>

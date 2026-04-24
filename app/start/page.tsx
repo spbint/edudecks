@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
 import { buildGuidedStartPdf, type GuidedStartSession } from "@/lib/guidedStartPdf";
-import { saveReportDraft } from "@/lib/reportDrafts";
 
 type GuidedStep =
   | "child"
@@ -249,7 +248,7 @@ function buildPrintMarkup(session: GuidedStartSession) {
     <h2>Optional note</h2>
     <div class="card">${safe(session.capture.note) || "No extra note added"}</div>
 
-    <h2>Report-ready summary</h2>
+    <h2>Learning summary</h2>
     <div class="card">${safe(session.report.summary)}</div>
 
     <h2>Portfolio preview</h2>
@@ -584,31 +583,6 @@ function GuidedStartPageContent() {
       if (typeof window !== "undefined" && insertedEvidenceId) {
         window.localStorage.setItem(PORTFOLIO_HIGHLIGHT_EVIDENCE_KEY, insertedEvidenceId);
         window.localStorage.setItem(REPORTS_HIGHLIGHT_EVIDENCE_KEY, insertedEvidenceId);
-      }
-
-      if (insertedEvidenceId) {
-        await saveReportDraft({
-          child_id: childId,
-          student_id: childId,
-          child_name: childName,
-          report_mode: "family-summary",
-          period_mode: "term",
-          preferred_market: "au",
-          selected_evidence_ids: [insertedEvidenceId],
-          selection_meta: {
-            [insertedEvidenceId]: {
-              role: "core",
-              required: true,
-            },
-          },
-          selected_areas: [learningArea],
-          include_appendix: false,
-          include_action_plan: true,
-          include_weekly_plan: true,
-          include_readiness_notes: false,
-          notes: reportSummary,
-          status: "draft",
-        });
       }
 
       if (typeof window !== "undefined") {
@@ -960,15 +934,15 @@ function GuidedStartPageContent() {
               <div>
                 <div style={uiLabel()}>4. Reports</div>
                 <div style={uiTitle()}>
-                  Here&apos;s how EduDecks turns that moment into a report-ready summary.
+                  Here&apos;s a first reflection from that moment.
                 </div>
                 <div style={uiBody()}>
-                  This is a calm preview of how one small learning moment becomes something you can keep building.
+                  This stays as a learning record. You can prepare a report from My Reports later when you choose.
                 </div>
               </div>
 
               <div style={uiSoftPanel()}>
-                <div style={uiFieldLabel()}>Draft summary</div>
+                <div style={uiFieldLabel()}>Learning summary</div>
                 <div style={{ fontSize: 15, lineHeight: 1.7, color: "#334155" }}>{reportSummary}</div>
               </div>
 
@@ -1004,7 +978,7 @@ function GuidedStartPageContent() {
                     <strong>{safe(session.capture.happened) || "One learning moment added"}</strong>
                   </div>
                   <div style={uiMiniStat()}>
-                    <span style={uiMiniLabel()}>Report summary</span>
+                    <span style={uiMiniLabel()}>Reflection summary</span>
                     <strong>{reportSummary}</strong>
                   </div>
                 </div>

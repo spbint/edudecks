@@ -8,7 +8,7 @@ export type LearningThinAreaLabel =
   | "Evidence is still thin"
   | "The week needs a starting point"
   | "The learning story is still narrow"
-  | "A short report draft would help next";
+  | "A progress reflection would help next";
 
 export type LearningIntelligenceInput = {
   studentId?: string;
@@ -19,8 +19,6 @@ export type LearningIntelligenceInput = {
   recentEvidenceCount?: number;
   linkedEvidenceCount?: number;
   coverageAreaCount?: number;
-  hasSavedDraft?: boolean;
-  hasReportSelection?: boolean;
   hasFamilyNote?: boolean;
 };
 
@@ -42,8 +40,6 @@ type NormalizedSignals = {
   recentEvidenceCount: number;
   linkedEvidenceCount: number;
   coverageAreaCount: number;
-  hasSavedDraft: boolean;
-  hasReportSelection: boolean;
   hasFamilyNote: boolean;
 };
 
@@ -66,8 +62,6 @@ function normalizeSignals(input: LearningIntelligenceInput): NormalizedSignals {
     recentEvidenceCount: input.recentEvidenceCount ?? 0,
     linkedEvidenceCount: input.linkedEvidenceCount ?? 0,
     coverageAreaCount: input.coverageAreaCount ?? 0,
-    hasSavedDraft: Boolean(input.hasSavedDraft),
-    hasReportSelection: Boolean(input.hasReportSelection),
     hasFamilyNote: Boolean(input.hasFamilyNote),
   };
 }
@@ -96,12 +90,12 @@ function buildPortfolioHref(signals: NormalizedSignals) {
 
 function buildReportsHref(signals: NormalizedSignals) {
   const params = new URLSearchParams();
-  params.set("focus", "refine-evidence");
   if (signals.studentId) params.set("studentId", signals.studentId);
   if (signals.highlightEvidenceId) {
     params.set("highlightEvidenceId", signals.highlightEvidenceId);
   }
-  return `/reports?${params.toString()}`;
+  const query = params.toString();
+  return query ? `/my-reports?${query}` : "/my-reports";
 }
 
 function hasAnyPlanning(signals: NormalizedSignals) {
@@ -124,14 +118,8 @@ function hasReviewableEvidence(signals: NormalizedSignals) {
   return signals.evidenceCount >= 2;
 }
 
-function hasDraftWithEvidence(signals: NormalizedSignals) {
-  return signals.hasSavedDraft && (signals.hasReportSelection || signals.evidenceCount >= 2);
-}
-
 function hasReportShapingSignals(signals: NormalizedSignals) {
   return (
-    hasDraftWithEvidence(signals) ||
-    signals.hasReportSelection ||
     signals.linkedEvidenceCount >= 2 ||
     (signals.evidenceCount >= 4 && signals.hasFamilyNote)
   );
@@ -199,11 +187,11 @@ function buildPortfolioReason(signals: NormalizedSignals, storyIsNarrow: boolean
 }
 
 function buildReportsReason(signals: NormalizedSignals) {
-  if (signals.hasReportSelection) {
-    return "You already have evidence gathered for a report, so shaping it is the clearest next move.";
+  if (signals.linkedEvidenceCount >= 2) {
+    return "You have evidence connected to learning activity, so My Reports is the clearest place to reflect on progress.";
   }
 
-  return "You already have enough here to begin shaping a report.";
+  return "You have enough captured evidence to prepare a report from My Reports when you choose.";
 }
 
 export function deriveLearningIntelligence(
@@ -249,10 +237,10 @@ export function deriveLearningIntelligence(
     return buildSummary(
       "reports",
       buildReportsHref(signals),
-      "Shape this into a report",
+      "Open My Reports",
       buildReportsReason(signals),
       "Close to usable",
-      "A short report draft would help next",
+      "A progress reflection would help next",
     );
   }
 

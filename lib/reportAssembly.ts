@@ -745,5 +745,5 @@ export async function loadReadinessForReportAssembly(
   learnerId: string,
   client?: QueryClient,
 ) {
-  return loadComplianceReadiness({ learnerId, client });
+  return loadComplianceReadiness({ learnerId, client, includeReportArtifacts: true });
 }
