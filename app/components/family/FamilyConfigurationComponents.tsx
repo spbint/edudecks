@@ -76,6 +76,14 @@ type LearnerCurriculumSettingsCardProps = {
   ) => void;
 };
 
+function firstFrameworkForCountry(country: FamilyCountry) {
+  return FRAMEWORK_OPTIONS.find((option) => option.country === country) ?? FRAMEWORK_OPTIONS[0];
+}
+
+function firstJurisdictionForCountry(country: FamilyCountry) {
+  return jurisdictionOptionsForCountry(country)[0];
+}
+
 export function FamilyLearningSetupCard({
   title,
   note,
@@ -139,11 +147,15 @@ export function FrameworkSelector({
   onChange,
 }: FrameworkSelectorProps) {
   const options = FRAMEWORK_OPTIONS.filter((option) => option.country === country);
+  const fallback = firstFrameworkForCountry(country);
+  const safeFrameworkId = options.some((option) => option.id === frameworkId)
+    ? frameworkId
+    : fallback?.id || "";
 
   return (
     <select
       className={INPUT_STYLE}
-      value={frameworkId}
+      value={safeFrameworkId}
       onChange={(event) => onChange(event.target.value)}
     >
       {options.map((option) => (
@@ -162,6 +174,10 @@ export function JurisdictionSelector({
   onChange,
 }: JurisdictionSelectorProps) {
   const options = jurisdictionOptionsForCountry(country);
+  const fallback = firstJurisdictionForCountry(country);
+  const safeJurisdictionId = options.some((option) => option.id === jurisdictionId)
+    ? jurisdictionId
+    : fallback?.id || "";
   const label = frameworkOptionById(frameworkId)?.jurisdictionLabel || "Jurisdiction";
 
   return (
@@ -169,7 +185,7 @@ export function JurisdictionSelector({
       <div className={LABEL_STYLE}>{label}</div>
       <select
         className={INPUT_STYLE}
-        value={jurisdictionId}
+        value={safeJurisdictionId}
         onChange={(event) => onChange(event.target.value)}
       >
         {options.map((option) => (
@@ -289,8 +305,14 @@ export function LearnerCurriculumSettingsCard({
   onPatch,
 }: LearnerCurriculumSettingsCardProps) {
   const learnerCountry = familyCountry;
-  const frameworkId = learner.curriculum_framework_id || familyFrameworkId;
-  const jurisdictionId = learner.curriculum_jurisdiction_id || familyJurisdictionId;
+  const frameworkOptions = FRAMEWORK_OPTIONS.filter((option) => option.country === learnerCountry);
+  const frameworkId = frameworkOptions.some((option) => option.id === learner.curriculum_framework_id)
+    ? learner.curriculum_framework_id || familyFrameworkId
+    : familyFrameworkId;
+  const jurisdictionOptions = jurisdictionOptionsForCountry(learnerCountry);
+  const jurisdictionId = jurisdictionOptions.some((option) => option.id === learner.curriculum_jurisdiction_id)
+    ? learner.curriculum_jurisdiction_id || familyJurisdictionId
+    : familyJurisdictionId;
   const reportingMode = (learner.reporting_mode || familyReportingMode) as ReportingMode;
 
   return (
@@ -392,12 +414,9 @@ export function CurriculumSetupEmptyState() {
   return (
     <section className="grid gap-3 rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
       <div className={LABEL_STYLE}>Learning settings</div>
-      <h2 className={SECTION_TITLE_STYLE}>
-        Set your family’s curriculum and reporting setup
-      </h2>
+      <h2 className={SECTION_TITLE_STYLE}>Set your family’s curriculum and reporting setup</h2>
       <p className={BODY_STYLE}>
-        Start with one family default, then adjust a learner only where it really
-        helps.
+        Start with one family default, then adjust a learner only where it really helps.
       </p>
     </section>
   );
