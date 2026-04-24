@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { buildServerValidatedReportExport } from "@/lib/reportExport";
+import {
+  buildReportExportFilename,
+  buildServerValidatedReportExport,
+  buildServerValidatedReportExportPayload,
+  recordValidatedReportExportEvent,
+} from "@/lib/reportExport";
+import { buildDocxFilename, generateReportDocxBuffer } from "@/lib/reportDocxExport";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +39,7 @@ export async function GET(request: NextRequest) {
     safe(url.searchParams.get("reportDocumentId")) ||
     safe(url.searchParams.get("report_document_id")) ||
     safe(url.searchParams.get("documentId"));
+  const format = safe(url.searchParams.get("format")).toLowerCase() === "docx" ? "docx" : "html";
   const mode = url.searchParams.get("mode") === "download" ? "download" : "open";
   const accessToken = readBearerToken(request);
 
@@ -47,6 +54,64 @@ export async function GET(request: NextRequest) {
     return failureResponse(401, {
       error: "A signed-in access token is required for report export.",
       code: "unauthorized",
+    });
+  }
+
+  if (format === "docx") {
+    const payload = await buildServerValidatedReportExportPayload({
+      reportDocumentId,
+      accessToken,
+    });
+
+    if (!payload.ok) {
+      return failureResponse(payload.status, {
+        error: payload.error,
+        code: payload.code,
+        status: payload.status,
+        validation: payload.validation
+          ? {
+              status: payload.validation.status,
+              summary: payload.validation.summary,
+              nextAction: payload.validation.nextAction,
+              blockers: payload.validation.blockers,
+              warnings: payload.validation.warnings,
+              info: payload.validation.info,
+            }
+          : null,
+      });
+    }
+
+    const buffer = await generateReportDocxBuffer(payload.exportModel);
+    const filename = buildDocxFilename(payload.exportModel);
+    const bytes = new Uint8Array(buffer);
+    const contentHash = await crypto.subtle.digest("SHA-256", bytes);
+    const hashHex = Array.from(new Uint8Array(contentHash))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+
+    const exportEvent = await recordValidatedReportExportEvent({
+      payload,
+      exportFormat: "docx",
+      filename,
+      contentHash: hashHex,
+    });
+
+    return new NextResponse(bytes, {
+      status: 200,
+      headers: {
+        "cache-control": "no-store",
+        "content-type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "content-disposition": `attachment; filename="${filename}"`,
+        "x-report-export-filename": filename,
+        "x-report-export-status": payload.validation.status,
+        ...(exportEvent
+          ? {
+              "x-report-export-event-id": exportEvent.id,
+              "x-report-export-created-at": exportEvent.createdAt,
+            }
+          : {}),
+      },
     });
   }
 
@@ -79,7 +144,7 @@ export async function GET(request: NextRequest) {
     headers: {
       "cache-control": "no-store",
       "content-type": "text/html; charset=utf-8",
-      "content-disposition": `${mode === "download" ? "attachment" : "inline"}; filename="${result.filename}"`,
+      "content-disposition": `${mode === "download" ? "attachment" : "inline"}; filename="${result.filename || buildReportExportFilename(result.exportModel)}"`,
       "x-report-export-filename": result.filename,
       "x-report-export-status": result.validation.status,
       ...(result.exportEvent

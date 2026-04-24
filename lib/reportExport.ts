@@ -8,6 +8,7 @@ import type { ReportSectionAutofillModel } from "@/lib/reportSectionAutofill";
 import type { ReportsBuilderModel } from "@/lib/reporting";
 import {
   recordReportExportEvent,
+  type ReportExportFormat,
   type ReportExportHistoryEntry,
 } from "@/lib/reportExportHistory";
 import { createServerSupabaseClient } from "@/lib/supabaseClient";
@@ -241,6 +242,19 @@ export type ServerValidatedReportExportResult =
   | ServerValidatedReportExportSuccess
   | ServerValidatedReportExportFailure;
 
+export type ServerValidatedReportExportPayload = {
+  ok: true;
+  client: ReturnType<typeof createServerSupabaseClient>;
+  context: {
+    userId: string;
+    userDisplayName: string | null;
+    familyId: string;
+  };
+  model: ReportsBuilderModel;
+  exportModel: ReportExportModel;
+  validation: ReportCompletionValidation;
+};
+
 async function loadAuthorizedReportExportContext(
   reportDocumentId: string,
   accessToken: string,
@@ -409,6 +423,48 @@ export async function buildServerValidatedReportExport(input: {
   accessToken: string;
   mode?: "open" | "download";
 }): Promise<ServerValidatedReportExportResult> {
+  const payload = await buildServerValidatedReportExportPayload(input);
+  if (!payload.ok) {
+    return payload;
+  }
+
+  const html = generatePrintableHtml(payload.exportModel);
+  const filename = buildReportExportFilename(payload.exportModel, "html");
+  const contentHash = await sha256Hex(html);
+
+  let exportEvent: ReportExportHistoryEntry;
+  try {
+    exportEvent = await recordValidatedReportExportEvent({
+      payload,
+      exportFormat: "html",
+      filename,
+      contentHash,
+    });
+  } catch {
+    return {
+      ok: false as const,
+      status: 500,
+      code: "export_history_write_failed",
+      error: "The validated export could not be recorded for audit history.",
+      validation: payload.validation,
+    };
+  }
+
+  return {
+    ok: true,
+    status: 200,
+    filename,
+    html,
+    exportModel: payload.exportModel,
+    validation: payload.validation,
+    exportEvent,
+  };
+}
+
+export async function buildServerValidatedReportExportPayload(input: {
+  reportDocumentId: string;
+  accessToken: string;
+}): Promise<ServerValidatedReportExportPayload | ServerValidatedReportExportFailure> {
   const reportDocumentId = safe(input.reportDocumentId);
   if (!reportDocumentId) {
     return {
@@ -491,49 +547,48 @@ export async function buildServerValidatedReportExport(input: {
     autofill,
     validation,
   });
-
-  const html = generatePrintableHtml(exportModel);
-  const filename = buildReportExportFilename(exportModel);
-  const contentHash = await sha256Hex(html);
-
-  let exportEvent: ReportExportHistoryEntry;
-  try {
-    exportEvent = await recordReportExportEvent(context.client, {
-      reportDocumentId: exportModel.reportDocumentId || reportDocumentId,
-      reportingPeriodId:
-        model.reportingPeriod?.id || validation.reportingPeriodId || null,
-      learnerId: exportModel.learnerId,
-      familyId: context.profile.id,
-      jurisdictionCode: exportModel.jurisdictionCode,
-      exportFormat: "html",
-      exportPhase: "validated_server_export",
-      exportedByUserId: context.userId,
-      exportedByDisplayName: context.userDisplayName,
-      validationStatus: validation.status,
-      validationScore: validation.score,
-      filename,
-      contentHash,
-      sectionCount: exportModel.sections.length,
-    });
-  } catch {
-    return {
-      ok: false as const,
-      status: 500,
-      code: "export_history_write_failed",
-      error: "The validated export could not be recorded for audit history.",
-      validation,
-    };
-  }
-
   return {
     ok: true,
-    status: 200,
-    filename,
-    html,
+    client: context.client,
+    context: {
+      userId: context.userId,
+      userDisplayName: context.userDisplayName,
+      familyId: context.profile.id,
+    },
+    model,
     exportModel,
     validation,
-    exportEvent,
   };
+}
+
+export async function recordValidatedReportExportEvent(input: {
+  payload: ServerValidatedReportExportPayload;
+  exportFormat: ReportExportFormat;
+  filename: string;
+  contentHash: string;
+}) {
+  return recordReportExportEvent(input.payload.client, {
+    reportDocumentId:
+      input.payload.exportModel.reportDocumentId ||
+      input.payload.validation.reportDocumentId ||
+      "",
+    reportingPeriodId:
+      input.payload.model.reportingPeriod?.id ||
+      input.payload.validation.reportingPeriodId ||
+      null,
+    learnerId: input.payload.exportModel.learnerId,
+    familyId: input.payload.context.familyId,
+    jurisdictionCode: input.payload.exportModel.jurisdictionCode,
+    exportFormat: input.exportFormat,
+    exportPhase: "validated_server_export",
+    exportedByUserId: input.payload.context.userId,
+    exportedByDisplayName: input.payload.context.userDisplayName,
+    validationStatus: input.payload.validation.status,
+    validationScore: input.payload.validation.score,
+    filename: input.filename,
+    contentHash: input.contentHash,
+    sectionCount: input.payload.exportModel.sections.length,
+  });
 }
 
 function buildSectionHtml(section: ReportExportSection) {
@@ -1736,6 +1791,13 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
 </html>`;
 }
 
-export function buildReportExportFilename(model: ReportExportModel) {
-  return buildExportFilename(model.reportTitle);
+export function buildReportExportFilename(
+  model: ReportExportModel,
+  format: "html" | "docx" = "html",
+) {
+  const clean = safe(model.reportTitle)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${clean || "report-export"}.${format}`;
 }

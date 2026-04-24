@@ -205,11 +205,14 @@ function exportUiCopy(reportIntent: ReportIntent) {
       nextAction: "Open portfolio print view",
       openLabel: "Open portfolio print view",
       openingLabel: "Opening portfolio view...",
-      downloadLabel: "Download portfolio HTML",
-      downloadingLabel: "Downloading portfolio...",
+      downloadHtmlLabel: "Download portfolio HTML",
+      downloadingHtmlLabel: "Downloading portfolio HTML...",
+      downloadDocxLabel: "Download portfolio DOCX",
+      downloadingDocxLabel: "Downloading portfolio DOCX...",
       trustNote: "This creates a family documentation record.",
       successOpen: "Portfolio print view opened in a new tab.",
-      successDownload: "Portfolio HTML downloaded successfully.",
+      successHtmlDownload: "Portfolio HTML downloaded successfully.",
+      successDocxDownload: "Portfolio DOCX downloaded successfully.",
       errorFallback: "The portfolio export could not be created right now.",
     };
   }
@@ -223,12 +226,15 @@ function exportUiCopy(reportIntent: ReportIntent) {
     nextAction: "Open printable export",
     openLabel: "Open printable export",
     openingLabel: "Opening export...",
-    downloadLabel: "Download HTML",
-    downloadingLabel: "Downloading...",
+    downloadHtmlLabel: "Download HTML",
+    downloadingHtmlLabel: "Downloading HTML...",
+    downloadDocxLabel: "Download authority DOCX",
+    downloadingDocxLabel: "Downloading authority DOCX...",
     trustNote:
       "This export stays tied to the saved report draft and the validation gate. It does not bypass the completion check.",
     successOpen: "Printable HTML export opened in a new tab.",
-    successDownload: "Printable HTML export downloaded successfully.",
+    successHtmlDownload: "Printable HTML export downloaded successfully.",
+    successDocxDownload: "Authority DOCX downloaded successfully.",
     errorFallback: "The printable export could not be created right now.",
   };
 }
@@ -659,14 +665,16 @@ function ExportGateCard({
   exportBusy,
   onOpenPrintable,
   onDownloadHtml,
+  onDownloadDocx,
 }: {
   validation: ReportCompletionValidation;
   canExport: boolean;
   exportMessage: string;
   exportError: string;
-  exportBusy: "open" | "download" | "";
+  exportBusy: "open" | "download_html" | "download_docx" | "";
   onOpenPrintable: () => void;
   onDownloadHtml: () => void;
+  onDownloadDocx: () => void;
 }) {
   const blockers = validation.blockers.slice(0, 3);
   const exportSentence = complianceModeSentence(validation);
@@ -778,7 +786,16 @@ function ExportGateCard({
           onClick={onDownloadHtml}
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {exportBusy === "download" ? copy.downloadingLabel : copy.downloadLabel}
+          {exportBusy === "download_html" ? copy.downloadingHtmlLabel : copy.downloadHtmlLabel}
+        </button>
+
+        <button
+          type="button"
+          disabled={!canExport || Boolean(exportBusy)}
+          onClick={onDownloadDocx}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {exportBusy === "download_docx" ? copy.downloadingDocxLabel : copy.downloadDocxLabel}
         </button>
 
         <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-600">
@@ -1094,7 +1111,7 @@ export default function ReportsOutputPage() {
   const [exportHistory, setExportHistory] = useState<ReportExportHistoryEntry[]>([]);
   const [exportHistoryLoading, setExportHistoryLoading] = useState(false);
   const [exportHistoryError, setExportHistoryError] = useState("");
-  const [exportBusy, setExportBusy] = useState<"open" | "download" | "">("");
+  const [exportBusy, setExportBusy] = useState<"open" | "download_html" | "download_docx" | "">("");
   const [exportMessage, setExportMessage] = useState("");
   const [exportError, setExportError] = useState("");
   const [dismissedSections, setDismissedSections] = useState<Record<string, boolean>>({});
@@ -1341,7 +1358,10 @@ export default function ReportsOutputPage() {
     return false;
   }
 
-  async function fetchValidatedExport(mode: "open" | "download") {
+  async function fetchValidatedExport(input: {
+    mode: "open" | "download";
+    format: "html" | "docx";
+  }) {
     const accessToken = await getAccessToken();
     if (!accessToken) {
       throw new Error("A signed-in session is required before export can run.");
@@ -1349,7 +1369,8 @@ export default function ReportsOutputPage() {
 
     const url = new URL("/api/report/export", window.location.origin);
     url.searchParams.set("reportDocumentId", reportDocumentId);
-    url.searchParams.set("mode", mode);
+    url.searchParams.set("mode", input.mode);
+    url.searchParams.set("format", input.format);
 
     const response = await fetch(url.toString(), {
       method: "GET",
@@ -1387,31 +1408,49 @@ export default function ReportsOutputPage() {
       response.headers.get("x-report-export-filename") ||
       buildReportExportFilename({
         reportTitle: fallbackExportTitle,
-      } as any);
+      } as any, input.format);
 
     return {
-      html: await response.text(),
+      body:
+        input.format === "docx"
+          ? await response.arrayBuffer()
+          : await response.text(),
       filename,
       disposition: response.headers.get("content-disposition") || "",
     };
   }
 
-  async function handlePrintableExport(mode: "open" | "download") {
+  async function handleValidatedExport(input: {
+    action: "open" | "download_html" | "download_docx";
+    format: "html" | "docx";
+    mode: "open" | "download";
+  }) {
     if (!canExport || exportBusy) return;
 
-    setExportBusy(mode);
+    setExportBusy(input.action);
     setExportMessage("");
     setExportError("");
     const copy = exportUiCopy(validation?.reportIntent || "authority");
 
     try {
-      const { html, filename } = await fetchValidatedExport(mode);
+      const { body, filename } = await fetchValidatedExport({
+        mode: input.mode,
+        format: input.format,
+      });
 
-      if (mode === "download") {
-        downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), filename);
-        setExportMessage(copy.successDownload);
+      if (input.format === "docx") {
+        downloadBlob(
+          new Blob([body as ArrayBuffer], {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          }),
+          filename,
+        );
+        setExportMessage(copy.successDocxDownload);
+      } else if (input.mode === "download") {
+        downloadBlob(new Blob([body as string], { type: "text/html;charset=utf-8" }), filename);
+        setExportMessage(copy.successHtmlDownload);
       } else {
-        if (!openPrintableHtml(html)) {
+        if (!openPrintableHtml(body as string)) {
           throw new Error("The browser blocked the printable export window.");
         }
         setExportMessage(copy.successOpen);
@@ -1630,8 +1669,9 @@ export default function ReportsOutputPage() {
           exportMessage={exportMessage}
           exportError={exportError}
           exportBusy={exportBusy}
-          onOpenPrintable={() => void handlePrintableExport("open")}
-          onDownloadHtml={() => void handlePrintableExport("download")}
+          onOpenPrintable={() => void handleValidatedExport({ action: "open", format: "html", mode: "open" })}
+          onDownloadHtml={() => void handleValidatedExport({ action: "download_html", format: "html", mode: "download" })}
+          onDownloadDocx={() => void handleValidatedExport({ action: "download_docx", format: "docx", mode: "download" })}
         />
       ) : null}
 
