@@ -470,7 +470,7 @@ export default function FamilyProfilePage() {
                     <div style={S.cardTitle}>{safe(row.title) || "Untitled learning"}</div>
                     <div style={S.helperText}>
                       {learnerNameById.get(safe(row.student_id)) || "Unknown learner"}
-                      {" · "}
+                      {" Â· "}
                       {formatTimestamp(row.created_at)}
                     </div>
                     {safe(row.summary) ? (
@@ -510,108 +510,4 @@ const S: Record<string, React.CSSProperties> = {
   learningRowText: { display: "grid", gap: 4 },
   activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
   emptyCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 18, display: "grid", gap: 8 },
-};arner overrides. My Settings holds reporting and academic structure defaults.
-            </div>
-            <div style={S.summaryGrid}>
-              <div style={S.summaryCard}>
-                <div style={S.summaryLabel}>Framework</div>
-                <div style={S.summaryValue}>{effectiveLearningConfig.frameworkLabel}</div>
-              </div>
-              <div style={S.summaryCard}>
-                <div style={S.summaryLabel}>Jurisdiction</div>
-                <div style={S.summaryValue}>{effectiveLearningConfig.jurisdictionLabel}</div>
-              </div>
-              <div style={S.summaryCard}>
-                <div style={S.summaryLabel}>Reporting mode</div>
-                <div style={S.summaryValue}>{effectiveLearningConfig.reportingMode}</div>
-              </div>
-            </div>
-            <div style={S.actionRow}>
-              <Link href="/family" style={S.linkButton}>
-                Open My Family
-              </Link>
-              <Link href="/settings" style={S.linkButton}>
-                Open My Settings
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <section style={S.section}>
-          <div style={S.sectionHeader}>
-            <div>
-              <div style={S.eyebrow}>Learning record</div>
-              <h2 style={S.sectionTitle}>Recent learning</h2>
-            </div>
-          </div>
-          <div style={S.activityGrid}>
-            {recentEvidence.length ? recentEvidence.map((row) => (
-              <div key={row.id} style={S.learningRow}>
-                <div style={S.learningRowText}>
-                  <div style={S.cardTitle}>{safe(row.title) || "Untitled learning"}</div>
-                  <div style={S.helperText}>
-                    {learnerNameById.get(safe(row.student_id)) || "Unknown learner"}
-                    {" · "}
-                    {formatTimestamp(row.created_at)}
-                  </div>
-                  {safe(row.summary) ? <div style={S.activityRow}>{safe(row.summary)}</div> : null}
-                </div>
-              </div>
-            )) : <div style={S.helperText}>No learning has been captured yet.</div>}
-            <div style={S.activityCard}>
-              <div style={S.cardTitle}>Recent reports</div>
-              {recentReports.length ? recentReports.map((row) => (
-                <div key={row.id} style={S.activityRow}>
-                  {(safe(row.title) || "Untitled report")} · {statusLabel(row.status)}
-                </div>
-              )) : <div style={S.helperText}>No recent report drafts yet.</div>}
-            </div>
-          </div>
-        </section>
-      </div>
-    </FamilyTopNavShell>
-  );
-}
-
-const S: Record<string, React.CSSProperties> = {
-  page: { display: "grid", gap: 18, paddingBottom: 56 },
-  section: { display: "grid", gap: 14 },
-  sectionHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "end", flexWrap: "wrap" },
-  eyebrow: { fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" },
-  sectionTitle: { margin: 0, fontSize: 22, fontWeight: 900, color: "#0f172a" },
-  summaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12 },
-  summaryCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 8 },
-  summaryLabel: { fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.6 },
-  summaryValue: { fontSize: 16, fontWeight: 900, color: "#0f172a" },
-  addCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
-  addHeader: { display: "grid", gap: 4 },
-  captureHeaderRow: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" },
-  captureContext: { display: "grid", gap: 6 },
-  captureForm: { display: "grid", gap: 10 },
-  captureActions: { display: "flex", gap: 10, flexWrap: "wrap" },
-  learnerList: { display: "grid", gap: 12 },
-  learnerCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 12 },
-  learnerHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" },
-  cardTitle: { fontSize: 16, fontWeight: 900, color: "#0f172a" },
-  helperText: { fontSize: 13, lineHeight: 1.5, color: "#64748b" },
-  formRow: { display: "flex", gap: 10, flexWrap: "wrap" },
-  actionRow: { display: "flex", gap: 10, flexWrap: "wrap" },
-  input: { flex: "1 1 220px", minWidth: 0, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
-  inputSmall: { width: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14 },
-  textarea: { width: "100%", minHeight: 110, borderRadius: 12, border: "1px solid #cbd5e1", padding: "11px 12px", fontSize: 14, resize: "vertical" },
-  primaryButton: { border: "none", borderRadius: 12, background: "#0f172a", color: "#ffffff", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  secondaryButton: { border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  linkButton: { textDecoration: "none", border: "1px solid #cbd5e1", borderRadius: 12, background: "#ffffff", color: "#0f172a", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  buttonDisabled: { border: "1px solid #e5e7eb", borderRadius: 12, background: "#f8fafc", color: "#94a3b8", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "not-allowed" },
-  dangerButton: { border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b91c1c", padding: "11px 14px", fontWeight: 800, fontSize: 14, cursor: "pointer" },
-  successBanner: { border: "1px solid #bbf7d0", borderRadius: 16, background: "#f0fdf4", color: "#166534", padding: "12px 14px", fontSize: 14 },
-  warningBanner: { border: "1px solid #fde68a", borderRadius: 16, background: "#fffbeb", color: "#92400e", padding: "12px 14px", fontSize: 14 },
-  errorBanner: { border: "1px solid #fdba74", borderRadius: 16, background: "#fff7ed", color: "#9a3412", padding: "12px 14px", fontSize: 14 },
-  chip: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", padding: "6px 10px", fontSize: 12, fontWeight: 800 },
-  activityGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 12 },
-  activityCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 10 },
-  infoCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 8 },
-  activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
-  learningRow: { border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc", padding: 14, display: "grid", gap: 8 },
-  learningRowText: { display: "grid", gap: 4 },
 };
