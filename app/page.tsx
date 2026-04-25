@@ -77,7 +77,7 @@ export default function HomePage() {
 
   return (
     <PublicSiteShell
-      title="EduDecks"
+      title="MyLearna"
       eyebrow=""
       heroTitle="Capture learning as it happens. Build a record that grows over time."
       heroText="Plan learning, capture real moments, and turn them into clear records for reporting and assessment."

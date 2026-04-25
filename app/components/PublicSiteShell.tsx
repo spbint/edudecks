@@ -166,7 +166,6 @@ export default function PublicSiteShell({
     </section>
   ) : null;
 
-  void title;
   void eyebrow;
   void asideItems;
   void asideTitle;
@@ -304,13 +303,13 @@ export default function PublicSiteShell({
                   }}
                 >
                   <Image
-                    src="/branding/ed-logo-beta-v1.jpg"
-                    alt="EduDecks"
-                    width={520}
-                    height={220}
+                    src="/branding/MyLearna Logo.png"
+                    alt="MyLearna logo"
+                    width={1916}
+                    height={821}
                     priority
                     style={{
-                      width: isMobile ? "280px" : isTablet ? "380px" : "500px",
+                      width: isMobile ? "280px" : isTablet ? "420px" : "560px",
                       maxWidth: "100%",
                       height: "auto",
                       display: "block",
@@ -468,7 +467,7 @@ export default function PublicSiteShell({
                 marginBottom: 4,
               }}
             >
-              EduDecks
+              {title}
             </div>
             <div
               style={{
