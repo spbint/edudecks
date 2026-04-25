@@ -2,10 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import ForumThreadRow from "@/app/components/ForumThreadRow";
 import {
+  buildCommunityThreadHref,
+  createForumThread,
   isFeatureSuggestionCategory,
   loadCategoryPageData,
   requireCommunityUserId,
@@ -94,6 +96,7 @@ function getFallbackCategory(slug: string) {
 }
 
 export default function CommunityCategoryPage() {
+  const router = useRouter();
   const params = useParams<{ categorySlug: string }>();
   const slug = String(params?.categorySlug ?? "");
 
@@ -101,9 +104,13 @@ export default function CommunityCategoryPage() {
   const [threads, setThreads] = useState<ForumThreadSummary[]>([]);
   const [viewerId, setViewerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showComposer, setShowComposer] = useState(false);
+  const [threadTitle, setThreadTitle] = useState("");
+  const [threadBody, setThreadBody] = useState("");
+  const [savingThread, setSavingThread] = useState(false);
+  const [message, setMessage] = useState("");
 
   const fallback = useMemo(() => getFallbackCategory(slug), [slug]);
-  const composeHref = `/community/new?category=${encodeURIComponent(slug)}`;
 
   useEffect(() => {
     let mounted = true;
@@ -168,6 +175,38 @@ export default function CommunityCategoryPage() {
   const isFeatureCategory = isFeatureSuggestionCategory(resolvedCategory);
   const canStartDiscussion = Boolean(viewerId);
 
+  async function handleCreateThread() {
+    if (!threadTitle.trim() || !threadBody.trim()) {
+      setMessage("Add a title and message to start the conversation.");
+      return;
+    }
+
+    if (!viewerId) {
+      setMessage("Sign in to start a conversation");
+      return;
+    }
+
+    setSavingThread(true);
+    setMessage("");
+
+    try {
+      const result = await createForumThread({
+        viewerId,
+        category: resolvedCategory,
+        title: threadTitle,
+        body: threadBody,
+      });
+
+      setMessage("Conversation started. Opening discussion...");
+      router.push(buildCommunityThreadHref(resolvedCategory.slug, result.thread.id));
+    } catch (error) {
+      console.error("Create thread failed", error);
+      setMessage("That discussion could not be posted right now.");
+    } finally {
+      setSavingThread(false);
+    }
+  }
+
   return (
     <FamilyTopNavShell
       title="MyLearna Family"
@@ -228,8 +267,9 @@ export default function CommunityCategoryPage() {
               Back to categories
             </Link>
             {canStartDiscussion ? (
-              <Link
-                href={composeHref}
+              <button
+                type="button"
+                onClick={() => setShowComposer((current) => !current)}
                 style={{
                   border: "1px solid #2563eb",
                   background: "#2563eb",
@@ -238,11 +278,11 @@ export default function CommunityCategoryPage() {
                   padding: "10px 14px",
                   fontSize: 14,
                   fontWeight: 800,
-                  textDecoration: "none",
+                  cursor: "pointer",
                 }}
               >
-                {isFeatureCategory ? "Start a discussion" : "Start a discussion"}
-              </Link>
+                {showComposer ? "Close" : isFeatureCategory ? "Start a conversation" : "Start a conversation"}
+              </button>
             ) : (
               <span
                 style={{
@@ -261,6 +301,71 @@ export default function CommunityCategoryPage() {
             )}
           </div>
         </div>
+
+        {showComposer ? (
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              padding: 14,
+              display: "grid",
+              gap: 10,
+              background: "#f8fafc",
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>Start a conversation</div>
+            <input
+              value={threadTitle}
+              onChange={(event) => setThreadTitle(event.target.value)}
+              placeholder="Discussion title"
+              style={{
+                width: "100%",
+                border: "1px solid #d1d5db",
+                borderRadius: 10,
+                padding: "10px 12px",
+                fontSize: 14,
+                background: "#ffffff",
+              }}
+            />
+            <textarea
+              value={threadBody}
+              onChange={(event) => setThreadBody(event.target.value)}
+              rows={5}
+              placeholder="Write the opening post for this conversation."
+              style={{
+                width: "100%",
+                border: "1px solid #d1d5db",
+                borderRadius: 10,
+                padding: "10px 12px",
+                fontSize: 14,
+                lineHeight: 1.6,
+                background: "#ffffff",
+                resize: "vertical",
+              }}
+            />
+            {message ? <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div> : null}
+            <div>
+              <button
+                type="button"
+                onClick={() => void handleCreateThread()}
+                disabled={savingThread}
+                style={{
+                  border: "1px solid #2563eb",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  borderRadius: 10,
+                  padding: "10px 14px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  cursor: savingThread ? "wait" : "pointer",
+                  opacity: savingThread ? 0.8 : 1,
+                }}
+              >
+                {savingThread ? "Starting..." : "Start conversation"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {loading ? (
@@ -295,8 +400,9 @@ export default function CommunityCategoryPage() {
           </div>
           <div>
             {canStartDiscussion ? (
-              <Link
-                href={composeHref}
+              <button
+                type="button"
+                onClick={() => setShowComposer(true)}
                 style={{
                   border: "1px solid #2563eb",
                   background: "#2563eb",
@@ -305,12 +411,12 @@ export default function CommunityCategoryPage() {
                   padding: "10px 14px",
                   fontSize: 14,
                   fontWeight: 800,
-                  textDecoration: "none",
                   display: "inline-flex",
+                  cursor: "pointer",
                 }}
               >
-                Start a discussion
-              </Link>
+                Start a conversation
+              </button>
             ) : (
               <span
                 style={{

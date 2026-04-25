@@ -584,7 +584,25 @@ export async function createForumThread(input: {
 
     if (resp.error) throw resp.error;
 
-    return { thread: normalizeThreadRecord(resp.data as Partial<ForumThread>), source: "database" as const };
+    const thread = normalizeThreadRecord(resp.data as Partial<ForumThread>);
+
+    try {
+      await supabase.from("community_thread_activity").upsert(
+        {
+          thread_id: thread.id,
+          category_id: thread.category_id,
+          reply_count: 0,
+          last_activity_at: thread.created_at,
+          latest_reply_excerpt: null,
+          updated_at: thread.updated_at || thread.created_at,
+        },
+        { onConflict: "thread_id" },
+      );
+    } catch {
+      // Best-effort activity sync; thread creation has already succeeded.
+    }
+
+    return { thread, source: "database" as const };
   } catch (error) {
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community thread create failed", error);
@@ -618,7 +636,55 @@ export async function createForumReply(input: {
 
     if (postResp.error) throw postResp.error;
 
-    return { post: normalizePostRecord(postResp.data as Partial<ForumPost>), source: "database" as const };
+    const post = normalizePostRecord(postResp.data as Partial<ForumPost>);
+    const activityTimestamp = safe(post.updated_at || post.created_at) || nowIso();
+
+    try {
+      const threadResp = await supabase
+        .from("community_threads")
+        .select("id,category_id")
+        .eq("id", input.threadId)
+        .maybeSingle();
+
+      if (threadResp.error) throw threadResp.error;
+
+      const activityResp = await supabase
+        .from("community_thread_activity")
+        .select("category_id,reply_count")
+        .eq("thread_id", input.threadId)
+        .maybeSingle();
+
+      if (activityResp.error) throw activityResp.error;
+
+      const currentReplyCount = Number((activityResp.data as { reply_count?: unknown } | null)?.reply_count ?? 0);
+      const nextReplyCount = Number.isFinite(currentReplyCount) ? currentReplyCount + 1 : 1;
+      const categoryId =
+        safe((threadResp.data as { category_id?: unknown } | null)?.category_id) ||
+        safe((activityResp.data as { category_id?: unknown } | null)?.category_id);
+
+      if (categoryId) {
+        await supabase.from("community_thread_activity").upsert(
+          {
+            thread_id: input.threadId,
+            category_id: categoryId,
+            reply_count: nextReplyCount,
+            last_activity_at: activityTimestamp,
+            latest_reply_excerpt: plainTextSnippet(post.body),
+            updated_at: activityTimestamp,
+          },
+          { onConflict: "thread_id" },
+        );
+      }
+
+      await supabase
+        .from("community_threads")
+        .update({ updated_at: activityTimestamp })
+        .eq("id", input.threadId);
+    } catch {
+      // Best-effort activity sync; reply creation has already succeeded.
+    }
+
+    return { post, source: "database" as const };
   } catch (error) {
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community reply create failed", error);

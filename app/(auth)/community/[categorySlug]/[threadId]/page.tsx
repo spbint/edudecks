@@ -371,27 +371,48 @@ export default function CommunityThreadPage() {
           </section>
 
           <section style={{ display: "grid", gap: 14, marginBottom: 18 }}>
-            {replies.map((reply) => (
+            {replies.length === 0 ? (
               <article
-                key={reply.id}
                 style={{
                   border: "1px solid #e5e7eb",
                   background: "#ffffff",
                   borderRadius: 18,
-                  padding: 16,
+                  padding: 18,
                   boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
                   display: "grid",
-                  gap: 10,
+                  gap: 8,
                 }}
               >
-                <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
-                  {reply.authorLabel} - {relativeTime(reply.created_at)}
+                <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
+                  This conversation is ready for the first reply.
                 </div>
-                <div style={{ fontSize: 14, lineHeight: 1.7, color: "#334155", whiteSpace: "pre-wrap" }}>
-                  {reply.body}
+                <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+                  Add a thoughtful response to help the discussion begin.
                 </div>
               </article>
-            ))}
+            ) : (
+              replies.map((reply) => (
+                <article
+                  key={reply.id}
+                  style={{
+                    border: "1px solid #e5e7eb",
+                    background: "#ffffff",
+                    borderRadius: 18,
+                    padding: 16,
+                    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                    {reply.authorLabel} - {relativeTime(reply.created_at)}
+                  </div>
+                  <div style={{ fontSize: 14, lineHeight: 1.7, color: "#334155", whiteSpace: "pre-wrap" }}>
+                    {reply.body}
+                  </div>
+                </article>
+              ))
+            )}
           </section>
 
           <section
