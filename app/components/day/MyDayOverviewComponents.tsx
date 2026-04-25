@@ -365,8 +365,8 @@ export function MyDayEmptyState() {
           Nothing is planned for today yet
         </h2>
         <p className="max-w-[56ch] text-[14px] leading-6 text-slate-600">
-          Start by shaping one live block in My Plan. Use My Calendar when you need to adjust the
-          reusable weekly rhythm behind it.
+          Start with My Calendar when the weekly rhythm needs shape, use My Programs for the longer
+          sequence, and use My Plan to shape the live week into one clear next step.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -466,17 +466,22 @@ export function MyDayQuickLinks() {
     {
       href: "/my-calendar",
       label: "My Calendar",
-      note: "Adjust the reusable weekly rhythm that programs and live planning build on.",
-    },
-    {
-      href: "/my-plan",
-      label: "My Plan",
-      note: "Shape the live week, add blocks, and keep the next few days clear.",
+      note: "Set the reusable weekly rhythm that the rest of the workflow lands into.",
     },
     {
       href: "/my-programs",
       label: "My Programs",
-      note: "Refine longer sequences before they generate back into the live week.",
+      note: "Build the longer sequence before it drops into the live week.",
+    },
+    {
+      href: "/my-plan",
+      label: "My Plan",
+      note: "Edit the live week, add blocks, and keep the next few days clear.",
+    },
+    {
+      href: "/capture",
+      label: "Capture",
+      note: "Run the day and save evidence while the learning is still fresh.",
     },
   ];
 
@@ -485,10 +490,10 @@ export function MyDayQuickLinks() {
       <div className="grid gap-1.5">
         <div className={LABEL}>Quick links</div>
         <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">
-          Keep the wider planning flow close
+          Know where each layer lives
         </h2>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {items.map((item) => (
           <Link
             key={item.href}
@@ -500,6 +505,10 @@ export function MyDayQuickLinks() {
           </Link>
         ))}
       </div>
+      <p className="text-[13px] leading-6 text-slate-500">
+        Outputs in the top navigation groups My Curriculum, My Portfolio, My Reports, and My
+        Progress. Community stays separate in the header so planning and discussion do not compete.
+      </p>
     </section>
   );
 }

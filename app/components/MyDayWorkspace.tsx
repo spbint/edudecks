@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
@@ -84,7 +84,7 @@ function learnerStatusText({
   if (!isActiveLearner) return "Ready to review";
 
   if (blocksCount > 0 && evidenceCount > 0) {
-    return `${blocksCount} planned Â· ${evidenceCount} captured`;
+    return `${blocksCount} planned, ${evidenceCount} captured`;
   }
 
   if (blocksCount > 0) {
@@ -128,15 +128,19 @@ function TodayEmptyGuidance({
         <div className="text-[13px] font-bold text-slate-950">Recommended start</div>
         <div className="grid gap-2 text-[13px] leading-5 text-slate-600">
           <div>
-            <span className="font-semibold text-slate-900">1.</span> Add one clear block in My
-            Plan.
+            <span className="font-semibold text-slate-900">1.</span> Use My Calendar to shape the
+            weekly rhythm behind the day.
           </div>
           <div>
-            <span className="font-semibold text-slate-900">2.</span> Use My Calendar when you want
-            your weekly rhythm to guide the day.
+            <span className="font-semibold text-slate-900">2.</span> Build the longer sequence in
+            My Programs before it lands in the live week.
           </div>
           <div>
-            <span className="font-semibold text-slate-900">3.</span> Capture a real learning moment
+            <span className="font-semibold text-slate-900">3.</span> Shape one clear live block in
+            My Plan.
+          </div>
+          <div>
+            <span className="font-semibold text-slate-900">4.</span> Capture a real learning moment
             if today has already started.
           </div>
         </div>
@@ -151,7 +155,7 @@ function TodayEmptyGuidance({
         </Link>
 
         <Link
-          href="/calendar"
+          href="/my-calendar"
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
         >
           Review My Calendar rhythm
@@ -222,12 +226,12 @@ function TodayAtAGlancePanel({
 
         <div className="flex items-center justify-between gap-3">
           <span className="text-slate-500">Planned blocks</span>
-          <span className="font-bold text-slate-950">{loading ? "â€¦" : blocksCount}</span>
+          <span className="font-bold text-slate-950">{loading ? "..." : blocksCount}</span>
         </div>
 
         <div className="flex items-center justify-between gap-3">
           <span className="text-slate-500">Captured today</span>
-          <span className="font-bold text-slate-950">{loading ? "â€¦" : capturedCount}</span>
+          <span className="font-bold text-slate-950">{loading ? "..." : capturedCount}</span>
         </div>
 
         <div className="rounded-[16px] border border-slate-100 bg-slate-50 p-3">
@@ -407,7 +411,7 @@ export default function MyDayWorkspace() {
     return {
       id: learner.id,
       label: learner.label,
-      note: `${learner.yearLabel || learner.year_band || "Learner"} Â· ${learnerStatusText({
+      note: `${learner.yearLabel || learner.year_band || "Learner"} - ${learnerStatusText({
         active: Boolean(activeLearner),
         blocksCount: isActiveLearner ? blocksToday.length : 0,
         evidenceCount: isActiveLearner ? evidenceToday.length : 0,
@@ -430,6 +434,7 @@ export default function MyDayWorkspace() {
       subtitle="My Day"
       heroTitle="Move through today's learning with clarity"
       heroText="See what is planned for today, keep the next useful step close, and capture evidence without leaving the flow."
+      workflowHelperText="My Calendar sets the weekly rhythm. My Programs shapes the longer sequence. My Plan edits the live week. Capture runs the day. Outputs groups curriculum, portfolio, reports, and progress, while Community stays separate from the core workflow."
       heroAsideTitle="Today at a glance"
       heroAsideText={heroAsideText}
     >
@@ -548,3 +553,4 @@ export default function MyDayWorkspace() {
     </FamilyTopNavShell>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import React from "react";
@@ -61,6 +61,14 @@ const SECONDARY_NAV = [
   { href: "/my-progress", label: "My Progress" },
 ] as const;
 
+function normalizeOutputRoute(pathname: string) {
+  if (pathname === "/curriculum" || pathname === "/curriculum-map") return "/curriculum";
+  if (pathname === "/my-portfolio" || pathname === "/portfolio") return "/my-portfolio";
+  if (pathname === "/my-reports" || pathname.startsWith("/reports")) return "/my-reports";
+  if (pathname === "/my-progress") return "/my-progress";
+  return "";
+}
+
 function normalizeRoute(pathname: string) {
   if (pathname === "/dashboard" || pathname === "/home" || pathname === "/my-day") {
     return "/my-day";
@@ -84,7 +92,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
-  if (pathname === "/community") return "Community";
+  if (pathname === "/community" || pathname.startsWith("/community/")) return "Community";
   return "MyLearna";
 }
 
@@ -95,7 +103,7 @@ function routeTitle(pathname: string) {
 
 function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
-    return "Move through today’s learning with clarity";
+    return "Move through today's learning with clarity";
   }
   if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "See the week clearly before it fills up";
@@ -118,7 +126,7 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-progress") {
     return "Notice what is moving well and what needs the next gentle step";
   }
-  if (pathname === "/community") {
+  if (pathname === "/community" || pathname.startsWith("/community/")) {
     return "A place to ask, share, and encourage";
   }
   return subtitle;
@@ -149,7 +157,7 @@ function routeHeroText(pathname: string) {
   if (pathname === "/my-progress") {
     return "Readiness, coverage, and suggested improvements belong in one calm view so you can decide the next best move without overwhelm.";
   }
-  if (pathname === "/community") {
+  if (pathname === "/community" || pathname.startsWith("/community/")) {
     return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
   }
   return "Keep your learning system connected and ready for the next meaningful step.";
@@ -158,7 +166,8 @@ function routeHeroText(pathname: string) {
 function OutputsDropdown({ pathname }: { pathname: string }) {
   const [open, setOpen] = React.useState(false);
 
-  const secondaryActive = SECONDARY_NAV.some((item) => item.href === pathname);
+  const normalizedOutputPath = normalizeOutputRoute(pathname);
+  const secondaryActive = Boolean(normalizedOutputPath);
 
   React.useEffect(() => {
     setOpen(false);
@@ -178,13 +187,13 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        Outputs ▾
+        Outputs
       </button>
 
       {open ? (
         <div className="absolute right-0 z-50 mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white/98 p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.14)] backdrop-blur">
           {SECONDARY_NAV.map((item) => {
-            const active = pathname === item.href;
+            const active = normalizedOutputPath === item.href;
             return (
               <Link
                 key={item.href}
@@ -239,7 +248,7 @@ export default function FamilyTopNavShell({
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
-  const communityActive = pathname === "/community";
+  const communityActive = pathname === "/community" || pathname.startsWith("/community/");
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -292,7 +301,7 @@ export default function FamilyTopNavShell({
                     : "text-slate-900 group-hover:text-slate-950",
                 )}
               >
-                MyLearna Family
+                Community
               </div>
               <div
                 className={cx(
@@ -302,7 +311,7 @@ export default function FamilyTopNavShell({
                     : "text-slate-500 group-hover:text-slate-700",
                 )}
               >
-                My Community
+                Separate from the core workflow
               </div>
             </Link>
 
@@ -327,7 +336,7 @@ export default function FamilyTopNavShell({
           <section className="mb-6 grid gap-5 rounded-[26px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.96)_100%)] px-6 py-7 shadow-[0_16px_44px_rgba(15,23,42,0.05)] md:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.75fr)]">
             <div className="max-w-[860px]">
               <div className="mb-2 text-xs font-black uppercase tracking-[0.22em] text-slate-500">
-                Plan • Capture • Grow
+                Plan / Capture / Reflect / Grow
               </div>
               <h1 className="text-[28px] font-black leading-tight text-slate-950 md:text-[36px]">
                 {resolvedHeroTitle}
@@ -455,3 +464,4 @@ export function FamilyCommandLayer({
     </section>
   );
 }
+
