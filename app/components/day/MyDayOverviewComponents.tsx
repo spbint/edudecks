@@ -466,31 +466,31 @@ export function MyDayQuickLinks() {
     {
       href: "/my-calendar",
       label: "My Calendar",
-      note: "Set the reusable weekly rhythm that the rest of the workflow lands into.",
+      note: "Start here to set the weekly rhythm that My Programs and My Plan use.",
     },
     {
       href: "/my-programs",
       label: "My Programs",
-      note: "Build the longer sequence before it drops into the live week.",
+      note: "Build the longer sequence, then place it into that calendar rhythm.",
     },
     {
       href: "/my-plan",
       label: "My Plan",
-      note: "Edit the live week, add blocks, and keep the next few days clear.",
+      note: "Edit the live week so today has one clear next block.",
     },
     {
       href: "/capture",
       label: "Capture",
-      note: "Run the day and save evidence while the learning is still fresh.",
+      note: "Run the day and capture evidence while learning is still fresh.",
     },
   ];
 
   return (
     <section className="grid gap-4">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Quick links</div>
+        <div className={LABEL}>Where to start</div>
         <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">
-          Know where each layer lives
+          Follow the core workflow in order
         </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -507,7 +507,8 @@ export function MyDayQuickLinks() {
       </div>
       <p className="text-[13px] leading-6 text-slate-500">
         Outputs in the top navigation groups My Curriculum, My Portfolio, My Reports, and My
-        Progress. Community stays separate in the header so planning and discussion do not compete.
+        Progress for reflection. Community stays separate in the header so planning and discussion
+        do not compete.
       </p>
     </section>
   );

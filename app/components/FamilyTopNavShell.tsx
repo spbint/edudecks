@@ -259,7 +259,7 @@ export default function FamilyTopNavShell({
               <BrandHomeLink href="/my-day" />
             </div>
 
-            <nav className="hidden min-w-0 items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 p-1 lg:flex">
+            <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-full border border-slate-200/80 bg-slate-50/80 p-1">
               {PRIMARY_NAV.map((item) => {
                 const active = normalizedPath === item.href;
                 return (
