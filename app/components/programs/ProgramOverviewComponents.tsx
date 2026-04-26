@@ -19,7 +19,8 @@ export const INPUT =
 export function ProgramsFirstRunCard({
   onStartSetup,
   onLearnHow,
-  primaryLabel = "Start setup",
+  primaryLabel = "Set up My Calendar",
+  secondaryLabel = "Learn how Programs work",
   hasCalendarTemplate = false,
   hasProgram = false,
   generationReady = false,
@@ -28,6 +29,7 @@ export function ProgramsFirstRunCard({
   onStartSetup: () => void;
   onLearnHow?: () => void;
   primaryLabel?: string;
+  secondaryLabel?: string;
   hasCalendarTemplate?: boolean;
   hasProgram?: boolean;
   generationReady?: boolean;
@@ -78,9 +80,9 @@ export function ProgramsFirstRunCard({
     <section className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Getting started</div>
-        <h2 className={H2}>Build your first program</h2>
+        <h2 className={H2}>Build learning sequences before they become weekly plans</h2>
         <p className={BODY}>
-          My Programs is where the longer sequence comes together before it drops into My Calendar and opens into My Plan.
+          Your calendar sets the rhythm. Programs hold the sequence. My Plan becomes the live week.
         </p>
       </div>
 
@@ -119,7 +121,7 @@ export function ProgramsFirstRunCard({
             onClick={onLearnHow}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Learn how it works
+            {secondaryLabel}
           </button>
         ) : null}
       </div>
@@ -197,9 +199,9 @@ export function ProgramList({
   onCreate: () => void;
   firstRun?: boolean;
 }) {
-  const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
+  const heading = firstRun ? "Create your first program when your rhythm is ready" : "Shape the longer sequence before it reaches the live week";
   const support = firstRun
-    ? "Start with the sample program below, rename what you need, then map it into one calendar slot."
+    ? "Use programs for topics, units, projects, or longer learning arcs before they become weekly plans."
     : "Build reusable units, terms, or sequences here, then place them into My Calendar so they can flow into My Plan.";
 
   return (
@@ -210,17 +212,15 @@ export function ProgramList({
           <h2 className={H2}>{heading}</h2>
           <p className={BODY}>{support}</p>
         </div>
-        <button
-          type="button"
-          onClick={onCreate}
-          className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-[14px] font-semibold transition ${
-            firstRun
-              ? "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-              : "bg-slate-950 text-white hover:bg-slate-800"
-          }`}
-        >
-          New program
-        </button>
+        {!firstRun ? (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+          >
+            New program
+          </button>
+        ) : null}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -440,6 +440,8 @@ export function ProgramCalendarAssignmentPanel({
   onGenerate,
   generating,
   generationReady,
+  hasSegments,
+  hasLearner,
 }: {
   templates: CalendarTemplate[];
   selectedTemplateId: string;
@@ -451,6 +453,8 @@ export function ProgramCalendarAssignmentPanel({
   onGenerate: () => void;
   generating?: boolean;
   generationReady: boolean;
+  hasSegments: boolean;
+  hasLearner: boolean;
 }) {
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ?? null;
@@ -458,6 +462,10 @@ export function ProgramCalendarAssignmentPanel({
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) ?? null;
   const state = !templates.length
     ? "blocked_template"
+    : !hasLearner
+      ? "blocked_learner"
+      : !hasSegments
+        ? "blocked_segments"
     : !selectedTemplateId
       ? "ready_choose_template"
       : !slots.length
@@ -472,6 +480,10 @@ export function ProgramCalendarAssignmentPanel({
   const panelTitle =
     state === "blocked_template"
       ? "Set your weekly rhythm first"
+      : state === "blocked_learner"
+        ? "Choose a learner to continue"
+      : state === "blocked_segments"
+        ? "Add at least one segment before generating"
       : state === "blocked_slots"
         ? "Create a slot to continue"
         : state === "ready_choose_slot"
@@ -484,6 +496,10 @@ export function ProgramCalendarAssignmentPanel({
   const panelNote =
     state === "blocked_template"
       ? "Use My Calendar first, then return here to place this sequence into one reusable weekly slot."
+      : state === "blocked_learner"
+        ? "Choose a learner first so generated blocks can land in the right My Plan week."
+      : state === "blocked_segments"
+        ? "Add at least one program segment, then choose where it should land in your weekly rhythm."
       : state === "blocked_slots"
         ? "This template exists, but it still needs at least one reusable slot before generation can begin."
         : state === "ready_choose_slot"
@@ -584,6 +600,10 @@ export function ProgramCalendarAssignmentPanel({
           <div className={META}>
             Set your weekly rhythm in My Calendar first, then return here to map the sequence into one reusable slot.
           </div>
+        ) : !hasLearner ? (
+          <div className={META}>Choose a learner to continue.</div>
+        ) : !hasSegments ? (
+          <div className={META}>Add at least one program segment before generating.</div>
         ) : !selectedTemplateId ? (
           <div className={META}>Choose where this program should land.</div>
         ) : !slots.length ? (
