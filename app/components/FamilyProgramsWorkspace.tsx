@@ -206,13 +206,20 @@ export default function FamilyProgramsWorkspace() {
   const hasCalendarTemplate = templates.some((template) => template.slots.length > 0);
   const hasPrograms = loadedProgramCount > 0;
   const hasVisiblePrograms = programs.length > 0;
+  const selectedProgramHasSegments = (selectedProgram?.segments.length || 0) > 0;
   const hasGeneratedItems = generatedBlockCount > 0;
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
   );
   const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
-    selectedProgram && assignmentTemplateId && assignmentSlotId && assignmentStartDate && hasCalendarTemplate,
+    selectedProgram &&
+      assignmentTemplateId &&
+      assignmentSlotId &&
+      assignmentStartDate &&
+      hasCalendarTemplate &&
+      selectedProgramHasSegments &&
+      activeLearner?.id,
   );
 
   const selectedSegment =
@@ -253,7 +260,7 @@ export default function FamilyProgramsWorkspace() {
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
     setLoadedProgramCount((current) => Math.max(current, 1));
-    setStatus("A starter program is ready to shape.");
+    setStatus("Your first program is ready. Add segments when you're ready.");
     setError("");
   }
 
@@ -318,7 +325,7 @@ export default function FamilyProgramsWorkspace() {
       };
       const saved = await saveFamilyProgram(nextProgram);
       updateProgram(saved);
-      setStatus("Program saved.");
+      setStatus("Program saved. Keep shaping segments, or generate it into My Plan when you're ready.");
     } catch {
       setError(friendlyProgramsMessage("save"));
     } finally {
@@ -375,9 +382,9 @@ export default function FamilyProgramsWorkspace() {
     <FamilyTopNavShell
       subtitle="My Programs"
       heroTitle="My Programs"
-      heroText="Build the longer sequence here, let it land in My Calendar, then generate it into My Plan."
+      heroText="Build learning sequences before they become weekly plans."
       heroAsideTitle="Program templates"
-      heroAsideText="Programs hold the longer story. My Calendar decides where that story lands, and My Plan turns it into the live week."
+      heroAsideText="My Calendar sets your rhythm. Programs hold the sequence. My Plan becomes the live week."
     >
       <div className="grid gap-5 pb-14">
         {showGenerationSuccess ? (
@@ -416,9 +423,9 @@ export default function FamilyProgramsWorkspace() {
             const target = document.getElementById("programs-workspace");
             target?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
-          primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
+          primaryLabel={!hasCalendarTemplate ? "Set up My Calendar" : "Create your first program"}
           hasCalendarTemplate={hasCalendarTemplate}
-          hasProgram={hasVisiblePrograms}
+          hasProgram={hasPrograms}
           generationReady={generationReady}
           hasGeneratedItems={hasGeneratedItems}
         />
@@ -426,8 +433,8 @@ export default function FamilyProgramsWorkspace() {
 
         {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
           <ProgramsGuidedSetupBanner
-            title="Your weekly rhythm is ready. Now let's build your program."
-            note="Start with a sample program, rename a few segments, then map it into one My Calendar slot."
+            title="Your weekly rhythm is ready. Next, create your first program."
+            note="Start with one subject, topic, or project you want to build over several weeks."
           />
         ) : null}
 
@@ -543,6 +550,9 @@ export default function FamilyProgramsWorkspace() {
                 onGenerate={() => void handleGenerate()}
                 generating={generating}
                 generationReady={generationReady}
+                hasProgram={Boolean(selectedProgram)}
+                hasSegments={selectedProgramHasSegments}
+                hasLearner={Boolean(activeLearner?.id)}
               />
 
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -552,12 +562,18 @@ export default function FamilyProgramsWorkspace() {
                   {error ||
                     status ||
                     (!hasCalendarTemplate
-                      ? "Create a My Calendar template first so this program has somewhere reusable to land."
+                      ? "Set up My Calendar first so this program has a weekly rhythm."
+                      : !selectedProgram
+                        ? "Create a program first, then choose where it should land each week."
+                        : !selectedProgramHasSegments
+                          ? "Add at least one program segment before generating."
+                          : !activeLearner?.id
+                            ? "Choose a learner to continue."
                       : !assignmentSlotId
                         ? "Choose a reusable slot first, then generation will become available."
                       : !assignmentStartDate
                         ? "Choose a start date to complete the setup for generation."
-                          : "Assign this program to My Calendar, then generate it into My Plan.")}
+                          : "Your sequence is ready. Generate it when your week is set.")}
                 </div>
                 <div className="mt-4 flex gap-3">
                   <button
