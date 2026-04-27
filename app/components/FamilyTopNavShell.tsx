@@ -165,6 +165,7 @@ function routeHeroText(pathname: string) {
 
 function OutputsDropdown({ pathname }: { pathname: string }) {
   const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
 
   const normalizedOutputPath = normalizeOutputRoute(pathname);
   const secondaryActive = Boolean(normalizedOutputPath);
@@ -173,8 +174,31 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
     setOpen(false);
   }, [pathname]);
 
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (!open) return;
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={menuRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
@@ -186,18 +210,26 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
         )}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="outputs-menu"
       >
         Outputs
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white/98 p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.14)] backdrop-blur">
+        <div
+          id="outputs-menu"
+          role="menu"
+          aria-label="Outputs links"
+          className="absolute right-0 z-50 mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white/98 p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.14)] backdrop-blur"
+        >
           {SECONDARY_NAV.map((item) => {
             const active = normalizedOutputPath === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                role="menuitem"
+                aria-current={active ? "page" : undefined}
                 className={cx(
                   "block rounded-[16px] px-4 py-3 text-sm font-semibold tracking-[-0.01em] transition duration-150",
                   active
@@ -464,4 +496,3 @@ export function FamilyCommandLayer({
     </section>
   );
 }
-
