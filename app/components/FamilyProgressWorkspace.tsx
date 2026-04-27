@@ -127,21 +127,21 @@ function readinessLabel(percent: number) {
   if (percent >= 70) return "On track";
   if (percent >= 52) return "Building confidence";
   if (percent >= 30) return "Growing steadily";
-  return "Just beginning";
+  return "Starting to build";
 }
 
 function coverageLabel(count: number) {
   if (count >= 5) return "Healthy spread";
   if (count >= 3) return "Growing";
   if (count >= 1) return "Emerging";
-  return "Just starting";
+  return "Coverage will grow here";
 }
 
 function momentumLabel(recentCount: number) {
   if (recentCount >= 4) return "Building steadily";
   if (recentCount >= 2) return "Moving";
   if (recentCount >= 1) return "Starting to build";
-  return "Waiting for fresh evidence";
+  return "Ready for new evidence";
 }
 
 function deriveAreas(
@@ -494,7 +494,7 @@ export default function FamilyProgressWorkspace() {
                   ? "Reflections visible"
                   : evidenceCount >= 4
                     ? "Ready to reflect"
-                    : "Still forming"
+                    : "Reflection is building"
             }
             note={
               progressState === "live"
