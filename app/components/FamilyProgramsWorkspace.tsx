@@ -207,12 +207,20 @@ export default function FamilyProgramsWorkspace() {
   const hasPrograms = loadedProgramCount > 0;
   const hasVisiblePrograms = programs.length > 0;
   const hasGeneratedItems = generatedBlockCount > 0;
+  const hasLearnerSelected = Boolean(activeLearner?.id);
+  const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
   );
   const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
-    selectedProgram && assignmentTemplateId && assignmentSlotId && assignmentStartDate && hasCalendarTemplate,
+    selectedProgram &&
+      assignmentTemplateId &&
+      assignmentSlotId &&
+      assignmentStartDate &&
+      hasCalendarTemplate &&
+      hasLearnerSelected &&
+      hasProgramSegments,
   );
 
   const selectedSegment =
@@ -253,7 +261,7 @@ export default function FamilyProgramsWorkspace() {
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
     setLoadedProgramCount((current) => Math.max(current, 1));
-    setStatus("A starter program is ready to shape.");
+    setStatus("Starter program ready. Next: add or edit segments.");
     setError("");
   }
 
@@ -318,7 +326,7 @@ export default function FamilyProgramsWorkspace() {
       };
       const saved = await saveFamilyProgram(nextProgram);
       updateProgram(saved);
-      setStatus("Program saved.");
+      setStatus("Program saved. When ready, generate it into My Plan.");
     } catch {
       setError(friendlyProgramsMessage("save"));
     } finally {
@@ -363,7 +371,7 @@ export default function FamilyProgramsWorkspace() {
       setGeneratedBlockCount((current) => current + generated.length);
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
-      setStatus(`${generated.length} live planning block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
+      setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
     } catch {
       setError(friendlyProgramsMessage("generate"));
     } finally {
@@ -398,8 +406,8 @@ export default function FamilyProgramsWorkspace() {
 
         {!workspaceLoading && !activeLearner ? (
           <ProgramsGuidedSetupBanner
-            title="You can set up rhythm and sequence before choosing a learner"
-            note="My Calendar and My Programs can be shaped now. Choose a learner when you want generated planning to feel specific inside My Plan and My Day."
+            title="You can build here now"
+            note="Choose a learner before generating into My Plan."
           />
         ) : null}
 
@@ -426,22 +434,22 @@ export default function FamilyProgramsWorkspace() {
 
         {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
           <ProgramsGuidedSetupBanner
-            title="Your weekly rhythm is ready. Now let's build your program."
-            note="Start with a sample program, rename a few segments, then map it into one My Calendar slot."
+            title="Your weekly rhythm is ready"
+            note="Start with a sample program, then add segments."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && !hasMapping && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
-            title="Choose where this program should land next"
-            note="Assign the current program to one reusable My Calendar slot so it can flow into your live week."
+            title="Map this program to one slot"
+            note="Pick the My Calendar slot and start date to unlock generation."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
-            title="You're one step away from the live week"
-            note="Choose the start date, then generate this sequence into My Plan and review it in My Day."
+            title="Ready to generate"
+            note="Generate into My Plan, then review in My Day."
           />
         ) : null}
 
@@ -467,7 +475,7 @@ export default function FamilyProgramsWorkspace() {
                   <div className="grid gap-1.5">
                     <div className={LABEL}>Segments</div>
                     <h2 className={H2}>Build the sequence</h2>
-                    <p className={BODY}>Keep each segment lightweight. It only needs enough detail to make live planning easier later.</p>
+                    <p className={BODY}>Add segments in order so the next step is clear.</p>
                   </div>
                   <button
                     type="button"
@@ -543,6 +551,8 @@ export default function FamilyProgramsWorkspace() {
                 onGenerate={() => void handleGenerate()}
                 generating={generating}
                 generationReady={generationReady}
+                hasLearner={hasLearnerSelected}
+                hasSegments={hasProgramSegments}
               />
 
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -557,7 +567,11 @@ export default function FamilyProgramsWorkspace() {
                         ? "Choose a reusable slot first, then generation will become available."
                       : !assignmentStartDate
                         ? "Choose a start date to complete the setup for generation."
-                          : "Assign this program to My Calendar, then generate it into My Plan.")}
+                        : !hasLearnerSelected
+                          ? "Choose a learner above to generate into My Plan."
+                          : !hasProgramSegments
+                            ? "Add at least one segment before generating."
+                            : "Ready. Generate this program into My Plan.")}
                 </div>
                 <div className="mt-4 flex gap-3">
                   <button
