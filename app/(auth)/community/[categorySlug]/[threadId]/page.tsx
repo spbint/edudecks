@@ -70,7 +70,8 @@ export default function CommunityThreadPage() {
   const [replyBody, setReplyBody] = useState("");
   const [replying, setReplying] = useState(false);
   const [supporting, setSupporting] = useState(false);
-  const [message, setMessage] = useState("");
+  const [replyMessage, setReplyMessage] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -118,16 +119,16 @@ export default function CommunityThreadPage() {
   async function handleReply() {
     if (!thread) return;
     if (!viewerId) {
-      setMessage("Sign in to reply");
+      setReplyMessage("Sign in to reply");
       return;
     }
     if (!replyBody.trim()) {
-      setMessage("Write a reply first.");
+      setReplyMessage("Write your reply before posting.");
       return;
     }
 
     setReplying(true);
-    setMessage("");
+    setReplyMessage("");
 
     try {
       const result = await createForumReply({
@@ -152,9 +153,10 @@ export default function CommunityThreadPage() {
           : current,
       );
       setReplyBody("");
+      setReplyMessage("Reply posted. It now appears in this conversation.");
     } catch (error) {
       console.error("Reply failed", error);
-      setMessage("That reply could not be posted right now.");
+      setReplyMessage("Your reply could not be posted right now.");
     } finally {
       setReplying(false);
     }
@@ -163,12 +165,12 @@ export default function CommunityThreadPage() {
   async function handleSupport() {
     if (!thread || thread.viewerSupports) return;
     if (!viewerId) {
-      setMessage("Sign in to support this idea.");
+      setSupportMessage("Sign in to support this idea.");
       return;
     }
 
     setSupporting(true);
-    setMessage("");
+    setSupportMessage("");
 
     try {
       const result = await supportForumThread({
@@ -185,9 +187,10 @@ export default function CommunityThreadPage() {
             }
           : current,
       );
+      setSupportMessage("Thanks for supporting this idea.");
     } catch (error) {
       console.error("Support failed", error);
-      setMessage("Support could not be saved right now.");
+      setSupportMessage("Support could not be saved right now.");
     } finally {
       setSupporting(false);
     }
@@ -205,7 +208,7 @@ export default function CommunityThreadPage() {
       heroTitle={thread?.title || "Community"}
       heroText="A structured member conversation with one clear starting post and calm chronological replies."
       hideHeroAside={true}
-      workflowHelperText="Community threads stay simple: one opening post, then a readable reply list."
+      workflowHelperText="Community threads stay simple: one opening post, then clear and thoughtful replies."
     >
       {loading ? (
         <section
@@ -314,6 +317,10 @@ export default function CommunityThreadPage() {
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
                 {thread.authorLabel} - {relativeTime(thread.created_at)}
               </div>
+              <div style={{ fontSize: 12, color: "#64748b", fontWeight: 700 }}>
+                {thread.replyCount} repl{thread.replyCount === 1 ? "y" : "ies"} • Latest activity{" "}
+                {relativeTime(thread.latestActivityAt)}
+              </div>
               <div style={{ fontSize: 15, lineHeight: 1.75, color: "#334155", whiteSpace: "pre-wrap" }}>
                 {thread.body}
               </div>
@@ -366,11 +373,19 @@ export default function CommunityThreadPage() {
                         ? "Saving..."
                         : "Support this idea"}
                 </button>
+                {supportMessage ? (
+                  <div style={{ fontSize: 12, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
+                    {supportMessage}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </section>
 
           <section style={{ display: "grid", gap: 14, marginBottom: 18 }}>
+            <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase", color: "#64748b" }}>
+              Replies
+            </div>
             {replies.length === 0 ? (
               <article
                 style={{
@@ -384,10 +399,10 @@ export default function CommunityThreadPage() {
                 }}
               >
                 <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>
-                  This conversation is ready for the first reply.
+                  No replies yet.
                 </div>
                 <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
-                  Add a thoughtful response to help the discussion begin.
+                  When someone responds, the conversation will appear here.
                 </div>
               </article>
             ) : (
@@ -427,6 +442,9 @@ export default function CommunityThreadPage() {
             }}
           >
             <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>Reply to this discussion</div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b" }}>
+              Your reply is posted to this thread and shown in time order.
+            </div>
             <textarea
               value={replyBody}
               onChange={(e) => setReplyBody(e.target.value)}
@@ -450,8 +468,11 @@ export default function CommunityThreadPage() {
                 resize: "vertical",
               }}
             />
-            {message ? (
-              <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div>
+            {!canReply ? (
+              <div style={{ fontSize: 13, color: "#64748b", fontWeight: 700 }}>Sign in to reply</div>
+            ) : null}
+            {replyMessage ? (
+              <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{replyMessage}</div>
             ) : null}
             <div>
               <button
@@ -472,6 +493,9 @@ export default function CommunityThreadPage() {
               >
                 {!canReply ? "Sign in to reply" : replying ? "Posting..." : "Post reply"}
               </button>
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+              Keep replies practical, kind, and family-focused.
             </div>
           </section>
         </>

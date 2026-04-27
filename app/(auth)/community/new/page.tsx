@@ -130,21 +130,21 @@ export default function CommunityComposePage() {
       ? "Help shape MyLearna"
       : selectedCategory.slug === "homeschool-resources"
         ? "Share a resource"
-        : "Start a discussion";
+        : "Start a conversation";
 
   const titlePlaceholder =
     selectedCategory.slug === "homeschool-resources"
       ? "Resource title"
       : selectedCategory.slug === "general-discussion"
-        ? "Question or discussion title"
-        : "Discussion title";
+        ? "Question or conversation title"
+        : "Conversation title";
 
   const bodyPlaceholder =
     selectedCategory.slug === "help-shape-edudecks"
       ? "Describe the idea, the problem it solves, and how it would help your family."
       : selectedCategory.slug === "homeschool-resources"
         ? "Share the resource, why it helped, and who it might suit."
-        : "Write your opening post";
+        : "Share context so families can reply in a helpful way.";
 
   async function handleSubmit() {
     if (!viewerId) {
@@ -153,12 +153,12 @@ export default function CommunityComposePage() {
     }
 
     if (!title.trim()) {
-      setMessage("Add a title first.");
+      setMessage("Add a clear title so families can scan this conversation quickly.");
       return;
     }
 
     if (!body.trim()) {
-      setMessage("Add a message before posting.");
+      setMessage("Add your opening message before posting.");
       return;
     }
 
@@ -184,7 +184,7 @@ export default function CommunityComposePage() {
       router.push(buildCommunityThreadHref(selectedCategory.slug, result.thread.id));
     } catch (error) {
       console.error("Create thread failed", error);
-      setMessage("That discussion could not be posted right now.");
+      setMessage("Your conversation could not be posted right now.");
     } finally {
       setSaving(false);
     }
@@ -195,9 +195,9 @@ export default function CommunityComposePage() {
       title="MyLearna Family"
       subtitle="Community"
       heroTitle={composerTitle}
-      heroText="Start a calm, readable discussion with one clear opening post."
+      heroText="Start a calm, readable conversation with one clear opening post."
       hideHeroAside={true}
-      workflowHelperText="Community threads stay simple: choose a category, write one strong opening post, and let replies build from there."
+      workflowHelperText="Choose the right category, share clear context, and help families reply with practical support."
     >
       <section
         style={{
@@ -222,13 +222,16 @@ export default function CommunityComposePage() {
                 marginBottom: 8,
               }}
             >
-              New thread
+              New conversation
             </div>
             <div style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 900, color: "#0f172a" }}>
               {composerTitle}
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
-              Choose the right category, then write one clear opening post that helps other families understand the conversation.
+              Choose the right category, then share one clear opening post so families can understand how to help.
+            </div>
+            <div style={{ fontSize: 12, lineHeight: 1.6, color: "#64748b", marginTop: 8 }}>
+              Keep posts practical, kind, and family-focused.
             </div>
           </div>
 
@@ -246,7 +249,7 @@ export default function CommunityComposePage() {
                 textDecoration: "none",
               }}
             >
-              Back
+              Back to category
             </Link>
           </div>
         </div>
@@ -294,7 +297,7 @@ export default function CommunityComposePage() {
           </label>
 
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>Message</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>Opening post</span>
             <textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
@@ -335,9 +338,9 @@ export default function CommunityComposePage() {
                 opacity: saving || !canPost ? 0.8 : 1,
               }}
             >
-              {!canPost ? "Sign in to start a conversation" : saving ? "Posting..." : "Post discussion"}
-            </button>
-          </div>
+                {!canPost ? "Sign in to start a conversation" : saving ? "Posting..." : "Post conversation"}
+              </button>
+            </div>
         </div>
       </section>
     </FamilyTopNavShell>
