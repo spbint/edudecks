@@ -719,6 +719,7 @@ export function VisualWeeklyPlanner({
 }) {
   return (
     <section
+      id="weekly-planner"
       className={cx(
         "grid gap-4 rounded-[26px] border px-6 py-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]",
         surfaceTone(state),

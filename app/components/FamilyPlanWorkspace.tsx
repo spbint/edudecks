@@ -554,7 +554,7 @@ export default function FamilyPlanWorkspace() {
                 ? "Ready to shape"
                 : "Needs shaping"
             : hasActiveLearner
-              ? "Preview"
+              ? "Needs setup"
               : "Choose learner",
       note:
         planState === "live"
@@ -573,7 +573,7 @@ export default function FamilyPlanWorkspace() {
           : planState === "live"
             ? String(totalWeekBlocks)
             : hasActiveLearner
-              ? "Preview"
+              ? "No blocks yet"
               : "0",
       note:
         planState === "live"
@@ -631,7 +631,7 @@ export default function FamilyPlanWorkspace() {
   const healthCards: PlanMetricCardProps[] = [
     {
       label: "Active blocks",
-      value: planState === "loading" ? "" : planState === "live" ? String(totalWeekBlocks) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(totalWeekBlocks) : hasActiveLearner ? "No blocks yet" : "0",
       note:
         planState === "live"
           ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} across this week`
@@ -643,7 +643,7 @@ export default function FamilyPlanWorkspace() {
     },
     {
       label: "Ready now",
-      value: planState === "loading" ? "" : planState === "live" ? String(completedActions) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(completedActions) : hasActiveLearner ? "Not started" : "0",
       note:
         planState === "live"
           ? `${completedActions} action${completedActions === 1 ? "" : "s"} already settled`
@@ -655,7 +655,7 @@ export default function FamilyPlanWorkspace() {
     },
     {
       label: "Needs shaping",
-      value: planState === "loading" ? "" : planState === "live" ? String(openDays) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(openDays) : hasActiveLearner ? "Nothing scheduled yet" : "0",
       note:
         planState === "live"
           ? `${openDays} day${openDays === 1 ? "" : "s"} still open this week`
@@ -709,7 +709,7 @@ export default function FamilyPlanWorkspace() {
           : {
               title: `Start ${activeLearnerName}'s first visual plan`,
               note: "Use one small learning block to make the week feel settled. My Calendar sets the rhythm behind it, but My Plan is the right place to start the live week.",
-              ctaHref: "/my-plan",
+              ctaHref: "#weekly-planner",
               ctaLabel: "Continue planning",
               state: hasActiveLearner ? "placeholder" as HomeSurfaceState : "empty" as HomeSurfaceState,
             };
