@@ -259,27 +259,29 @@ export default function FamilyTopNavShell({
               <BrandHomeLink href="/my-day" />
             </div>
 
-            <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-full border border-slate-200/80 bg-slate-50/80 p-1">
-              {PRIMARY_NAV.map((item) => {
-                const active = normalizedPath === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cx(
-                      "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
-                      active
-                        ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
-                        : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <div className="min-w-0 overflow-x-auto">
+              <nav className="flex min-w-max items-center gap-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 p-1">
+                {PRIMARY_NAV.map((item) => {
+                  const active = normalizedPath === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cx(
+                        "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
+                        active
+                          ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
+                          : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
 
-              <OutputsDropdown pathname={pathname} />
-            </nav>
+                <OutputsDropdown pathname={pathname} />
+              </nav>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
@@ -464,4 +466,3 @@ export function FamilyCommandLayer({
     </section>
   );
 }
-
