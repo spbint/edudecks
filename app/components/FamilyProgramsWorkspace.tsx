@@ -210,9 +210,17 @@ export default function FamilyProgramsWorkspace() {
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
   );
+  const hasLearnerSelected = Boolean(activeLearner?.id);
+  const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
-    selectedProgram && assignmentTemplateId && assignmentSlotId && assignmentStartDate && hasCalendarTemplate,
+    selectedProgram &&
+      hasLearnerSelected &&
+      hasProgramSegments &&
+      assignmentTemplateId &&
+      assignmentSlotId &&
+      assignmentStartDate &&
+      hasCalendarTemplate,
   );
 
   const selectedSegment =
@@ -363,7 +371,7 @@ export default function FamilyProgramsWorkspace() {
       setGeneratedBlockCount((current) => current + generated.length);
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
-      setStatus(`${generated.length} live planning block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
+      setStatus("Program generated into My Plan. Open My Plan to adjust the week.");
     } catch {
       setError(friendlyProgramsMessage("generate"));
     } finally {
