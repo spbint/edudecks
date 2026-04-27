@@ -11,7 +11,7 @@ import type {
 export const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 export const H2 = "text-[18px] font-bold tracking-tight text-slate-950";
 export const H3 = "text-[15px] font-semibold text-slate-950";
-export const BODY = "text-[14px] leading-6 text-slate-600";
+export const BODY = "text-[14px] leading-5 text-slate-600";
 export const META = "text-[13px] leading-5 text-slate-500";
 export const INPUT =
   "w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[14px] text-slate-900 outline-none transition focus:border-blue-200 focus:ring-4 focus:ring-blue-100";
@@ -152,6 +152,7 @@ export function ProgramGenerationSuccessBanner({
   onOpenPlan: () => void;
   onStayHere: () => void;
 }) {
+  void count;
   return (
     <section className="grid gap-4 rounded-[24px] border border-emerald-200 bg-emerald-50/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
@@ -160,7 +161,7 @@ export function ProgramGenerationSuccessBanner({
         </div>
         <h2 className={H2}>Your program is now live in your weekly plan</h2>
         <p className={BODY}>
-          {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
+          Program generated into My Plan. Open My Plan to adjust the week.
         </p>
         <p className={META}>Open My Plan to view the generated week, or stay here and keep refining the sequence.</p>
       </div>
