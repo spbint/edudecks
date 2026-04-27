@@ -27,9 +27,9 @@ function makeId(prefix: string) {
 
 function friendlyCalendarMessage(kind: "load" | "save") {
   if (kind === "load") {
-    return "My Calendar is still settling. Your weekly rhythm is safe, and you can try again in a moment.";
+    return "We couldn't load your calendar template right now. Please try again.";
   }
-  return "Your weekly rhythm could not be saved just yet. Keep shaping it here, then save again in a moment.";
+  return "We couldn't save your calendar template right now. Please try again.";
 }
 
 export default function FamilyCalendarTemplateWorkspace() {
@@ -121,12 +121,12 @@ export default function FamilyCalendarTemplateWorkspace() {
     setError("");
   }
 
-  function handleAddSlot() {
+  function handleAddSlot(dayOfWeek = 1) {
     if (!selectedTemplate) return;
     const nextSlot: TemplateSlot = {
       id: makeId("slot"),
       templateId: selectedTemplate.id,
-      dayOfWeek: 1,
+      dayOfWeek,
       startTime: "",
       endTime: "",
       subjectId: "",
@@ -255,12 +255,13 @@ export default function FamilyCalendarTemplateWorkspace() {
               slots={selectedTemplate?.slots || []}
               selectedSlotId={selectedSlotId}
               onSelectSlot={setSelectedSlotId}
+              onAddFirstSlot={handleAddSlot}
             />
             <CalendarTemplateSlotEditor
               slot={selectedSlot}
               onChange={handleSlotChange}
               onDelete={handleDeleteSlot}
-              onAddNew={handleAddSlot}
+              onAddNew={() => handleAddSlot()}
             />
           </div>
         )}
@@ -281,7 +282,7 @@ export default function FamilyCalendarTemplateWorkspace() {
           <button
             type="button"
             onClick={() => void handleSave()}
-            disabled={saving || !selectedTemplate}
+            disabled={saving || !selectedTemplate || !templateReady}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             {saving ? "Saving..." : returnTo ? "Save template and continue" : "Save template"}
