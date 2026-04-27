@@ -276,17 +276,18 @@ function EmailAuthPageContent() {
 
   return (
     <PublicSiteShell
-      eyebrow="Sign in to EduDecks"
-      heroTitle="Password-first family sign-in"
-      heroText="Use your email and password to get back into the family workspace quickly and repeatably."
+      title="MyLearna"
+      eyebrow="Sign in to MyLearna"
+      heroTitle="Sign in to your family workspace"
+      heroText="Use your email and password to return to your family workspace."
       heroBadges={[]}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
       footerPrimaryCta={{ label: "Back to login", href: "/login" }}
-      footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
+      footerSecondaryCta={{ label: "See how MyLearna works", href: "/get-started" }}
       asideTitle="Simple auth"
-      asideText="EduDecks now uses a single password-first login flow for everyday family use and repeated testing."
+      asideText="MyLearna uses a single password-first login flow for everyday family use and repeated testing."
       showWorkflowStrip={false}
     >
       <section
@@ -333,7 +334,7 @@ function EmailAuthPageContent() {
               maxWidth: 720,
             }}
           >
-            Sign in with your EduDecks email and password. If you need to set a new password, use the reset link below.
+            Sign in with your MyLearna email and password. If you need to set a new password, use the reset link below.
           </div>
 
           <form
@@ -535,7 +536,7 @@ function EmailAuthPageContent() {
           </div>
 
           <Link href="/get-started" style={secondaryButtonStyle()}>
-            See how EduDecks works
+            See how MyLearna works
           </Link>
         </div>
       </section>

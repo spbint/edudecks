@@ -71,7 +71,7 @@ export default function AuthModal({ open, onClose, returnPath }: AuthModalProps)
               color: "#475569",
             }}
           >
-            EduDecks now uses one password-first login flow. Continue there, then come back to finish what you were doing.
+            MyLearna now uses one password-first login flow. Continue there, then come back to finish what you were doing.
           </div>
         </div>
 
