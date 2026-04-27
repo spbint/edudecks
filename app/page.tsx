@@ -22,12 +22,12 @@ const STEPS = [
   },
   {
     number: "3",
-    title: "Build",
-    text: "Turn moments into a structured learning record.",
+    title: "Reflect",
+    text: "Turn moments into useful evidence.",
   },
   {
     number: "4",
-    title: "Report",
+    title: "Grow",
     text: "See progress clearly over time.",
   },
 ];
