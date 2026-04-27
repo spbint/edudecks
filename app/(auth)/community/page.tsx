@@ -441,7 +441,7 @@ export default function CommunityHomePage() {
 
         if (!userId) {
           setCategories(FALLBACK_CATEGORIES);
-          setMessage("Sign in to start a conversation");
+          setMessage("Sign in to start a conversation.");
           return;
         }
 
@@ -463,7 +463,7 @@ export default function CommunityHomePage() {
 
         setViewerId(null);
         setCategories(FALLBACK_CATEGORIES);
-        setMessage("Community data could not be loaded right now.");
+        setMessage("Community is not loading just yet. Please try again in a moment.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -538,20 +538,20 @@ export default function CommunityHomePage() {
             maxWidth: 860,
           }}
         >
-          Share ideas, ask questions, post resources, encourage other parents,
-          and start thoughtful discussions in the category that fits best.
+          Share ideas, ask questions, post resources, and encourage other parents in the category
+          that fits best.
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {canStartDiscussion ? (
-            featuredActions.map((action) => (
+            featuredActions.map((action, index) => (
               <Link
                 key={action.label}
                 href={action.href}
                 style={{
-                  border: "1px solid #2563eb",
-                  background: "#2563eb",
-                  color: "#ffffff",
+                  border: index === 0 ? "1px solid #2563eb" : "1px solid #d1d5db",
+                  background: index === 0 ? "#2563eb" : "#ffffff",
+                  color: index === 0 ? "#ffffff" : "#334155",
                   borderRadius: 10,
                   padding: "10px 14px",
                   fontSize: 14,
@@ -574,7 +574,7 @@ export default function CommunityHomePage() {
                 fontWeight: 800,
               }}
             >
-              Sign in to start a conversation
+              Sign in to start a conversation.
             </span>
           )}
         </div>

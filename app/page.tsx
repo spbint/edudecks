@@ -13,22 +13,22 @@ const STEPS = [
   {
     number: "1",
     title: "Plan",
-    text: "Set a learning focus for the moment.",
+    text: "Set one clear learning step.",
   },
   {
     number: "2",
     title: "Capture",
-    text: "Record what actually happened.",
+    text: "Record what happened while it is fresh.",
   },
   {
     number: "3",
-    title: "Build",
-    text: "Turn moments into a structured learning record.",
+    title: "Reflect",
+    text: "Review what helped and what to adjust next.",
   },
   {
     number: "4",
-    title: "Report",
-    text: "See progress clearly over time.",
+    title: "Grow",
+    text: "Build a stronger record over time.",
   },
 ];
 

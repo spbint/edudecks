@@ -91,7 +91,7 @@ export default function CommunityComposePage() {
 
         if (!userId) {
           setCategories(FALLBACK_OPTIONS);
-          setMessage("Sign in to start a conversation");
+          setMessage("Sign in to start a conversation.");
           return;
         }
 
@@ -148,7 +148,7 @@ export default function CommunityComposePage() {
 
   async function handleSubmit() {
     if (!viewerId) {
-      setMessage("Sign in to start a conversation");
+      setMessage("Sign in to start a conversation.");
       return;
     }
 
@@ -228,7 +228,8 @@ export default function CommunityComposePage() {
               {composerTitle}
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
-              Choose the right category, then write one clear opening post that helps other families understand the conversation.
+              Choose the right category, then write one clear opening post so other families can
+              follow and reply.
             </div>
           </div>
 
@@ -246,7 +247,7 @@ export default function CommunityComposePage() {
                 textDecoration: "none",
               }}
             >
-              Back
+              Back to category
             </Link>
           </div>
         </div>
@@ -335,7 +336,7 @@ export default function CommunityComposePage() {
                 opacity: saving || !canPost ? 0.8 : 1,
               }}
             >
-              {!canPost ? "Sign in to start a conversation" : saving ? "Posting..." : "Post discussion"}
+              {!canPost ? "Sign in to start a conversation." : saving ? "Posting..." : "Post discussion"}
             </button>
           </div>
         </div>
