@@ -561,15 +561,51 @@ export async function createForumThread(input: {
   title: string;
   body: string;
 }) {
-  if (!safe(input.viewerId)) {
+  const authViewerId = await requireCommunityUserId();
+  if (!authViewerId) {
     throw new Error("Sign in to start a conversation.");
   }
 
+  const title = safe(input.title);
+  const body = safe(input.body);
+  if (!title || !body) {
+    throw new Error("Add a title and message to start the conversation.");
+  }
+
+  const categorySlug = safe(input.category.slug);
+  if (!categorySlug) {
+    throw new Error("This category could not be found. Go back and try again.");
+  }
+
+  let resolvedCategoryId = safe(input.category.id);
+  try {
+    const categoryResp = await supabase
+      .from("community_categories")
+      .select("id")
+      .eq("slug", categorySlug)
+      .maybeSingle();
+
+    if (categoryResp.error) throw categoryResp.error;
+    resolvedCategoryId = safe((categoryResp.data as { id?: unknown } | null)?.id);
+  } catch (error: any) {
+    if (isMissingRelationOrColumn(error)) {
+      throw error;
+    }
+    if (error?.code === "42501") {
+      throw new Error("Sign in to start a conversation.");
+    }
+    throw new Error("This category could not be found. Go back and try again.");
+  }
+
+  if (!resolvedCategoryId) {
+    throw new Error("This category could not be found. Go back and try again.");
+  }
+
   const payload = {
-    category_id: input.category.id,
-    user_id: input.viewerId,
-    title: safe(input.title),
-    body: safe(input.body),
+    category_id: resolvedCategoryId,
+    user_id: authViewerId,
+    title,
+    body,
     excerpt: plainTextSnippet(input.body),
     is_pinned: false,
     status: null,
@@ -604,6 +640,13 @@ export async function createForumThread(input: {
 
     return { thread, source: "database" as const };
   } catch (error) {
+    const errorCode = String((error as { code?: unknown })?.code ?? "");
+    if (errorCode === "42501") {
+      throw new Error("Sign in to start a conversation.");
+    }
+    if (errorCode === "23503") {
+      throw new Error("This category could not be found. Go back and try again.");
+    }
     if (!isMissingRelationOrColumn(error)) {
       console.error("Community thread create failed", error);
     }
