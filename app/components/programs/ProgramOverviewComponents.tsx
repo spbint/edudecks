@@ -11,7 +11,7 @@ import type {
 export const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 export const H2 = "text-[18px] font-bold tracking-tight text-slate-950";
 export const H3 = "text-[15px] font-semibold text-slate-950";
-export const BODY = "text-[14px] leading-6 text-slate-600";
+export const BODY = "text-[14px] leading-5 text-slate-600";
 export const META = "text-[13px] leading-5 text-slate-500";
 export const INPUT =
   "w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[14px] text-slate-900 outline-none transition focus:border-blue-200 focus:ring-4 focus:ring-blue-100";
@@ -80,7 +80,7 @@ export function ProgramsFirstRunCard({
         <div className={LABEL}>Getting started</div>
         <h2 className={H2}>Build your first program</h2>
         <p className={BODY}>
-          My Programs is where the longer sequence comes together before it drops into My Calendar and opens into My Plan.
+          Set rhythm in My Calendar, build the sequence here, then generate the live week in My Plan.
         </p>
       </div>
 
@@ -158,11 +158,11 @@ export function ProgramGenerationSuccessBanner({
         <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
           Generation complete
         </div>
-        <h2 className={H2}>Your program is now live in your weekly plan</h2>
+        <h2 className={H2}>Generated into My Plan</h2>
         <p className={BODY}>
-          {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
+          {count} planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready.
         </p>
-        <p className={META}>Open My Plan to view the generated week, or stay here and keep refining the sequence.</p>
+        <p className={META}>Open My Plan to adjust the week, or stay here and keep refining the sequence.</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button
@@ -199,8 +199,8 @@ export function ProgramList({
 }) {
   const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
   const support = firstRun
-    ? "Start with the sample program below, rename what you need, then map it into one calendar slot."
-    : "Build reusable units, terms, or sequences here, then place them into My Calendar so they can flow into My Plan.";
+    ? "Start with the sample below, rename it, then map it to one slot."
+    : "Build the sequence here, map it to My Calendar, then generate into My Plan.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -244,9 +244,28 @@ export function ProgramList({
               <span className={META}>
                 {[program.subjectId, program.periodLabel].filter(Boolean).join(" • ")}
               </span>
-              <span className={META}>
-                {program.segments.length} segment{program.segments.length === 1 ? "" : "s"}
-              </span>
+              <div className="mt-1 flex flex-wrap gap-2">
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                    program.segments.length
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                      : "border-amber-200 bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {program.segments.length
+                    ? `${program.segments.length} segment${program.segments.length === 1 ? "" : "s"}`
+                    : "Add segments"}
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${
+                    program.scheduleMapping?.calendarTemplateSlotId
+                      ? "border-violet-200 bg-violet-50 text-violet-700"
+                      : "border-slate-200 bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {program.scheduleMapping?.calendarTemplateSlotId ? "Rhythm set" : "Map slot"}
+                </span>
+              </div>
             </button>
           );
         })}
@@ -305,7 +324,7 @@ export function ProgramEditor({
         <div className={LABEL}>Your first program</div>
         <h2 className={H2}>Shape this program</h2>
         <p className={BODY}>
-          Start by renaming the title or adjusting one segment. You can refine the rest after it reaches the live week.
+          Rename the title, adjust a segment, then refine more after it reaches My Plan.
         </p>
       </div>
 
@@ -483,16 +502,16 @@ export function ProgramCalendarAssignmentPanel({
               : "Choose where this program should land";
   const panelNote =
     state === "blocked_template"
-      ? "Use My Calendar first, then return here to place this sequence into one reusable weekly slot."
+      ? "Set the rhythm in My Calendar first, then place this sequence into one reusable slot."
       : state === "blocked_slots"
-        ? "This template exists, but it still needs at least one reusable slot before generation can begin."
+        ? "This template needs at least one slot before generation can begin."
         : state === "ready_choose_slot"
-          ? "Pick the slot that best matches where this program should usually land in the week."
+          ? "Pick the slot where this program should usually land."
           : state === "ready_choose_date"
-            ? "Choose the first week this program should begin, then generation will become available."
+            ? "Choose the start date to unlock generation."
             : state === "ready_generate"
-              ? "This will place each segment into the next matching week and open those generated blocks in My Plan for live adjustment."
-              : "Assign this program to a reusable calendar slot, then choose when to start.";
+              ? "Generate now to place segments into matching weeks in My Plan."
+              : "Assign this program to a slot, then choose when to start.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -574,8 +593,8 @@ export function ProgramCalendarAssignmentPanel({
         </div>
         <div className={`mt-3 ${BODY}`}>
           {generationReady
-            ? "Generation will place each program segment into the next matching week for this slot, then open those blocks in My Plan for live adjustment."
-            : "Generation becomes available as soon as the template, slot, and start date are all in place."}
+            ? "Ready to generate into My Plan."
+            : "Generation unlocks when template, slot, and start date are set."}
         </div>
       </div>
 
@@ -594,7 +613,7 @@ export function ProgramCalendarAssignmentPanel({
           <div className={META}>Choose when this sequence should begin.</div>
         ) : (
           <div className={META}>
-            The first segment will land in the first matching week, then the rest will flow forward one week at a time.
+            Ready. Generate into My Plan when your week is set.
           </div>
         )}
         <button

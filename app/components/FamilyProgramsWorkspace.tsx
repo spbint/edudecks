@@ -96,12 +96,12 @@ function ymd(date: Date) {
 
 function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "load") {
-    return "My Programs is still settling. Your sequence is safe, and you can try again in a moment.";
+    return "My Programs is still loading. Your sequence is safe—try again in a moment.";
   }
   if (kind === "save") {
-    return "Your sequence could not be saved just yet. Keep shaping it here, then save again in a moment.";
+    return "Program not saved yet. Keep shaping here, then try again in a moment.";
   }
-  return "Generation is not ready just yet. Check the My Calendar slot and start date, then try again in a moment.";
+  return "Generation is not ready yet. Check the slot and start date, then try again.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -210,6 +210,7 @@ export default function FamilyProgramsWorkspace() {
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
   );
+  const hasSegments = (selectedProgram?.segments.length || 0) > 0;
   const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
     selectedProgram && assignmentTemplateId && assignmentSlotId && assignmentStartDate && hasCalendarTemplate,
@@ -375,9 +376,9 @@ export default function FamilyProgramsWorkspace() {
     <FamilyTopNavShell
       subtitle="My Programs"
       heroTitle="My Programs"
-      heroText="Build the longer sequence here, let it land in My Calendar, then generate it into My Plan."
+      heroText="Build the sequence here, map it in My Calendar, then generate it into My Plan."
       heroAsideTitle="Program templates"
-      heroAsideText="Programs hold the longer story. My Calendar decides where that story lands, and My Plan turns it into the live week."
+      heroAsideText="My Calendar sets rhythm. My Programs sets sequence. My Plan runs the live week."
     >
       <div className="grid gap-5 pb-14">
         {showGenerationSuccess ? (
@@ -398,8 +399,8 @@ export default function FamilyProgramsWorkspace() {
 
         {!workspaceLoading && !activeLearner ? (
           <ProgramsGuidedSetupBanner
-            title="You can set up rhythm and sequence before choosing a learner"
-            note="My Calendar and My Programs can be shaped now. Choose a learner when you want generated planning to feel specific inside My Plan and My Day."
+            title="You can set rhythm and sequence before choosing a learner"
+            note="Choose a learner when you want generation to be specific in My Plan and My Day."
           />
         ) : null}
 
@@ -426,22 +427,22 @@ export default function FamilyProgramsWorkspace() {
 
         {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
           <ProgramsGuidedSetupBanner
-            title="Your weekly rhythm is ready. Now let's build your program."
-            note="Start with a sample program, rename a few segments, then map it into one My Calendar slot."
+            title="Rhythm is ready. Build your first program next."
+            note="Start with a sample, rename a few segments, then map it to one slot."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && !hasMapping && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
-            title="Choose where this program should land next"
-            note="Assign the current program to one reusable My Calendar slot so it can flow into your live week."
+            title="Map this program to a weekly slot"
+            note="Pick one reusable My Calendar slot so this sequence can flow into the live week."
           />
         ) : null}
 
         {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
           <ProgramsGuidedSetupBanner
-            title="You're one step away from the live week"
-            note="Choose the start date, then generate this sequence into My Plan and review it in My Day."
+            title="Sequence ready"
+            note="Choose the start date, then generate into My Plan."
           />
         ) : null}
 
@@ -467,7 +468,7 @@ export default function FamilyProgramsWorkspace() {
                   <div className="grid gap-1.5">
                     <div className={LABEL}>Segments</div>
                     <h2 className={H2}>Build the sequence</h2>
-                    <p className={BODY}>Keep each segment lightweight. It only needs enough detail to make live planning easier later.</p>
+                    <p className={BODY}>Keep each segment light. Add only what helps when planning the live week.</p>
                   </div>
                   <button
                     type="button"
@@ -528,7 +529,7 @@ export default function FamilyProgramsWorkspace() {
                 <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
                   <div className={LABEL}>Curriculum</div>
                   <h2 className={`mt-2 ${H2}`}>Select a segment to attach curriculum</h2>
-                  <p className={`mt-2 ${BODY}`}>Program curriculum stays quieter if it lives on the segment that will later generate the real live block.</p>
+                  <p className={`mt-2 ${BODY}`}>Attach curriculum at the segment level so generation stays clear.</p>
                 </section>
               )}
 
@@ -547,17 +548,30 @@ export default function FamilyProgramsWorkspace() {
 
               <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                 <div className={LABEL}>Status</div>
-                <div className={`mt-2 ${H2}`}>Publish to the live week when ready</div>
-                <div className={`mt-2 ${error ? "text-[14px] text-rose-600" : META}`}>
+                <div className={`mt-2 ${H2}`}>Next step</div>
+                <div className="mt-3 grid gap-2">
+                  <div className={META}>
+                    {hasCalendarTemplate ? "Rhythm set" : "Set rhythm first in My Calendar"}
+                  </div>
+                  <div className={META}>
+                    {hasSegments ? "Segments added" : "Add segments to this program"}
+                  </div>
+                  <div className={META}>
+                    {hasMapping ? "Ready to generate" : "Map a slot and start date"}
+                  </div>
+                </div>
+                <div className={`mt-3 ${error ? "text-[14px] text-rose-600" : META}`}>
                   {error ||
                     status ||
                     (!hasCalendarTemplate
-                      ? "Create a My Calendar template first so this program has somewhere reusable to land."
-                      : !assignmentSlotId
-                        ? "Choose a reusable slot first, then generation will become available."
+                      ? "Set rhythm in My Calendar first."
+                      : !hasSegments
+                        ? "Program saved. Add segments when you're ready."
+                        : !assignmentSlotId
+                        ? "Choose a reusable slot to continue."
                       : !assignmentStartDate
-                        ? "Choose a start date to complete the setup for generation."
-                          : "Assign this program to My Calendar, then generate it into My Plan.")}
+                        ? "Choose a start date to finish setup."
+                          : "Sequence ready. Generate into My Plan when your week is set.")}
                 </div>
                 <div className="mt-4 flex gap-3">
                   <button
