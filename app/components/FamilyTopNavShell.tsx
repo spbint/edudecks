@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import React from "react";
@@ -165,6 +165,7 @@ function routeHeroText(pathname: string) {
 
 function OutputsDropdown({ pathname }: { pathname: string }) {
   const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
 
   const normalizedOutputPath = normalizeOutputRoute(pathname);
   const secondaryActive = Boolean(normalizedOutputPath);
@@ -173,31 +174,66 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
     setOpen(false);
   }, [pathname]);
 
+  React.useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(event.target as Node)) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="relative">
+    <div ref={menuRef} className="relative shrink-0">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cx(
-          "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
+          "inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2",
           secondaryActive
             ? "bg-slate-950 text-white shadow-[0_12px_30px_rgba(15,23,42,0.16)]"
-            : "text-slate-500 hover:bg-slate-100 hover:text-slate-900",
+            : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
         )}
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="outputs-navigation-menu"
       >
         Outputs
+        <span aria-hidden="true" className="text-[11px] leading-none">
+          ▾
+        </span>
       </button>
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white/98 p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.14)] backdrop-blur">
+        <div
+          id="outputs-navigation-menu"
+          role="menu"
+          className="absolute left-0 top-full z-[100] mt-3 w-72 rounded-[22px] border border-slate-200/90 bg-white p-2.5 shadow-[0_22px_50px_rgba(15,23,42,0.18)]"
+        >
           {SECONDARY_NAV.map((item) => {
             const active = normalizedOutputPath === item.href;
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                role="menuitem"
+                aria-current={active ? "page" : undefined}
                 className={cx(
                   "block rounded-[16px] px-4 py-3 text-sm font-semibold tracking-[-0.01em] transition duration-150",
                   active
@@ -259,27 +295,29 @@ export default function FamilyTopNavShell({
               <BrandHomeLink href="/my-day" />
             </div>
 
-            <nav className="flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-full border border-slate-200/80 bg-slate-50/80 p-1">
-              {PRIMARY_NAV.map((item) => {
-                const active = normalizedPath === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cx(
-                      "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
-                      active
-                        ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
-                        : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <div className="min-w-0 rounded-full border border-slate-200/80 bg-slate-50/80 p-1">
+              <nav className="flex min-w-max items-center gap-1.5 overflow-visible">
+                {PRIMARY_NAV.map((item) => {
+                  const active = normalizedPath === item.href;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cx(
+                        "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
+                        active
+                          ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
+                          : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
 
-              <OutputsDropdown pathname={pathname} />
-            </nav>
+                <OutputsDropdown pathname={pathname} />
+              </nav>
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
@@ -464,4 +502,3 @@ export function FamilyCommandLayer({
     </section>
   );
 }
-
