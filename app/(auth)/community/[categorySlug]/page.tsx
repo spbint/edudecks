@@ -182,7 +182,7 @@ export default function CommunityCategoryPage() {
     }
 
     if (!viewerId) {
-      setMessage("Sign in to start a conversation");
+      setMessage("Sign in to start a conversation.");
       return;
     }
 
@@ -264,7 +264,7 @@ export default function CommunityCategoryPage() {
                 textDecoration: "none",
               }}
             >
-              Back to categories
+              Back to Community
             </Link>
             {canStartDiscussion ? (
               <button
@@ -296,7 +296,7 @@ export default function CommunityCategoryPage() {
                   display: "inline-flex",
                 }}
               >
-                Sign in to start a conversation
+                Sign in to start a conversation.
               </span>
             )}
           </div>
@@ -331,7 +331,7 @@ export default function CommunityCategoryPage() {
               value={threadBody}
               onChange={(event) => setThreadBody(event.target.value)}
               rows={5}
-              placeholder="Write the opening post for this conversation."
+              placeholder="Write one clear opening post for this discussion."
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -430,7 +430,7 @@ export default function CommunityCategoryPage() {
                   display: "inline-flex",
                 }}
               >
-                Sign in to start a conversation
+                Sign in to start a conversation.
               </span>
             )}
           </div>

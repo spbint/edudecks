@@ -118,7 +118,7 @@ export default function CommunityThreadPage() {
   async function handleReply() {
     if (!thread) return;
     if (!viewerId) {
-      setMessage("Sign in to reply");
+      setMessage("Sign in to reply.");
       return;
     }
     if (!replyBody.trim()) {
@@ -232,6 +232,10 @@ export default function CommunityThreadPage() {
           }}
         >
           <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Thread not found</div>
+          <div style={{ fontSize: 14, lineHeight: 1.6, color: "#475569" }}>
+            This discussion may have moved or been removed. Open Community to choose another
+            conversation.
+          </div>
           <Link href="/community" style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none" }}>
             Back to Community
           </Link>
@@ -359,7 +363,7 @@ export default function CommunityThreadPage() {
                   }}
                 >
                   {!viewerId
-                    ? "Sign in to support this idea"
+                    ? "Sign in to support this idea."
                     : thread.viewerSupports
                       ? "You support this idea"
                       : supporting
@@ -434,7 +438,7 @@ export default function CommunityThreadPage() {
               disabled={!canReply || replying}
               placeholder={
                 !canReply
-                  ? "Sign in to reply"
+                  ? "Sign in to reply."
                   : isFeatureCategory
                   ? "Add a thoughtful reply or build on the idea"
                   : "Add a thoughtful reply"
@@ -470,7 +474,7 @@ export default function CommunityThreadPage() {
                   opacity: replying || !canReply ? 0.8 : 1,
                 }}
               >
-                {!canReply ? "Sign in to reply" : replying ? "Posting..." : "Post reply"}
+                {!canReply ? "Sign in to reply." : replying ? "Posting..." : "Post reply"}
               </button>
             </div>
           </section>

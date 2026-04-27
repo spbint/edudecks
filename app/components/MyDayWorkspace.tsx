@@ -119,8 +119,8 @@ function TodayEmptyGuidance({
           Nothing is planned for today yet
         </div>
         <p className="max-w-[64ch] text-[14px] leading-6 text-slate-600">
-          Nothing is broken. My Day will fill in once you add a learning block, pull in your
-          calendar rhythm, or capture something that already happened today for {learnerName}.
+          My Day will fill in once you add a block in My Plan, shape your weekly rhythm in My
+          Calendar, or capture a learning moment for {learnerName}.
         </p>
       </div>
 
@@ -176,8 +176,8 @@ function TodayEmptyGuidance({
       </div>
 
       <p className="text-[12px] leading-5 text-slate-500">
-        You do not need a perfect plan to begin. One planned block or one captured learning moment
-        is enough to make today visible.
+        Start with one clear step. One planned block or one captured learning moment is enough to
+        make today visible.
       </p>
     </section>
   );
@@ -553,4 +553,3 @@ export default function MyDayWorkspace() {
     </FamilyTopNavShell>
   );
 }
-
