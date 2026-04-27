@@ -565,12 +565,45 @@ export async function createForumThread(input: {
     throw new Error("Sign in to start a conversation.");
   }
 
+  const title = safe(input.title);
+  const body = safe(input.body);
+
+  if (!title || !body) {
+    throw new Error("Add a title and message to start the conversation.");
+  }
+
+  const categoryId = safe(input.category.id);
+  const categorySlug = safe(input.category.slug);
+  const hasCategoryContext = Boolean(categoryId && categorySlug);
+
+  if (!hasCategoryContext) {
+    throw new Error("This category could not be found.");
+  }
+
+  const categoryLookupResp = await supabase
+    .from("community_categories")
+    .select("id,slug")
+    .eq("id", categoryId)
+    .eq("slug", categorySlug)
+    .maybeSingle();
+
+  if (categoryLookupResp.error) {
+    if (!isMissingRelationOrColumn(categoryLookupResp.error)) {
+      console.error("Community thread category lookup failed", categoryLookupResp.error);
+    }
+    throw categoryLookupResp.error;
+  }
+
+  if (!categoryLookupResp.data) {
+    throw new Error("This category could not be found.");
+  }
+
   const payload = {
-    category_id: input.category.id,
+    category_id: categoryId,
     user_id: input.viewerId,
-    title: safe(input.title),
-    body: safe(input.body),
-    excerpt: plainTextSnippet(input.body),
+    title,
+    body,
+    excerpt: plainTextSnippet(body),
     is_pinned: false,
     status: null,
   };

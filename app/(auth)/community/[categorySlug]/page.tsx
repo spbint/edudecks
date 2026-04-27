@@ -175,6 +175,24 @@ export default function CommunityCategoryPage() {
   const isFeatureCategory = isFeatureSuggestionCategory(resolvedCategory);
   const canStartDiscussion = Boolean(viewerId);
 
+  function getCreateThreadMessage(error: unknown) {
+    const message = String((error as { message?: unknown } | null)?.message ?? "").toLowerCase();
+
+    if (message.includes("sign in")) {
+      return "Sign in to start a conversation.";
+    }
+
+    if (message.includes("category could not be found")) {
+      return "This category could not be found. Go back to Community and choose a category again.";
+    }
+
+    if (message.includes("title and message")) {
+      return "Add a title and message to start the conversation.";
+    }
+
+    return "We could not post this conversation yet. Check that you are signed in and try again.";
+  }
+
   async function handleCreateThread() {
     if (!threadTitle.trim() || !threadBody.trim()) {
       setMessage("Add a title and message to start the conversation.");
@@ -182,7 +200,7 @@ export default function CommunityCategoryPage() {
     }
 
     if (!viewerId) {
-      setMessage("Sign in to start a conversation");
+      setMessage("Sign in to start a conversation.");
       return;
     }
 
@@ -201,7 +219,7 @@ export default function CommunityCategoryPage() {
       router.push(buildCommunityThreadHref(resolvedCategory.slug, result.thread.id));
     } catch (error) {
       console.error("Create thread failed", error);
-      setMessage("That discussion could not be posted right now.");
+      setMessage(getCreateThreadMessage(error));
     } finally {
       setSavingThread(false);
     }
@@ -348,7 +366,7 @@ export default function CommunityCategoryPage() {
               <button
                 type="button"
                 onClick={() => void handleCreateThread()}
-                disabled={savingThread}
+                disabled={savingThread || !viewerId}
                 style={{
                   border: "1px solid #2563eb",
                   background: "#2563eb",
@@ -357,8 +375,8 @@ export default function CommunityCategoryPage() {
                   padding: "10px 14px",
                   fontSize: 14,
                   fontWeight: 800,
-                  cursor: savingThread ? "wait" : "pointer",
-                  opacity: savingThread ? 0.8 : 1,
+                  cursor: savingThread ? "wait" : !viewerId ? "not-allowed" : "pointer",
+                  opacity: savingThread || !viewerId ? 0.8 : 1,
                 }}
               >
                 {savingThread ? "Starting..." : "Start conversation"}
