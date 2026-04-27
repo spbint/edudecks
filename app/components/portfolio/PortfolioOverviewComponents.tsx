@@ -164,9 +164,9 @@ export function PortfolioEmptyState({
         *
       </div>
       <div className="grid gap-2">
-        <h2 className={SECTION_TITLE}>No evidence yet for {learnerName}</h2>
+        <h2 className={SECTION_TITLE}>Start capturing learning moments to build {learnerName}&rsquo;s portfolio.</h2>
         <p className={`mx-auto max-w-[460px] ${BODY_TEXT}`}>
-          Capture your first learning moment to begin building the story.
+          This is where your learning story will grow over time.
         </p>
       </div>
       <div className="flex justify-center">
