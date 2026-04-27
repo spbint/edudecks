@@ -182,7 +182,7 @@ export default function CommunityCategoryPage() {
     }
 
     if (!viewerId) {
-      setMessage("Sign in to start a conversation");
+      setMessage("Sign in to start a conversation.");
       return;
     }
 
@@ -201,7 +201,11 @@ export default function CommunityCategoryPage() {
       router.push(buildCommunityThreadHref(resolvedCategory.slug, result.thread.id));
     } catch (error) {
       console.error("Create thread failed", error);
-      setMessage("That discussion could not be posted right now.");
+      const nextMessage =
+        error instanceof Error && error.message
+          ? error.message
+          : "Something didn’t go through. Try again in a moment.";
+      setMessage(nextMessage);
     } finally {
       setSavingThread(false);
     }
