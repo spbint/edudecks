@@ -11,7 +11,7 @@ import type {
 export const LABEL = "text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 export const H2 = "text-[18px] font-bold tracking-tight text-slate-950";
 export const H3 = "text-[15px] font-semibold text-slate-950";
-export const BODY = "text-[14px] leading-6 text-slate-600";
+export const BODY = "text-[14px] leading-5 text-slate-600";
 export const META = "text-[13px] leading-5 text-slate-500";
 export const INPUT =
   "w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[14px] text-slate-900 outline-none transition focus:border-blue-200 focus:ring-4 focus:ring-blue-100";
@@ -79,9 +79,7 @@ export function ProgramsFirstRunCard({
       <div className="grid gap-1.5">
         <div className={LABEL}>Getting started</div>
         <h2 className={H2}>Build your first program</h2>
-        <p className={BODY}>
-          My Programs is where the longer sequence comes together before it drops into My Calendar and opens into My Plan.
-        </p>
+        <p className={BODY}>Build the sequence here, then place it into My Plan.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -162,7 +160,7 @@ export function ProgramGenerationSuccessBanner({
         <p className={BODY}>
           {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
         </p>
-        <p className={META}>Open My Plan to view the generated week, or stay here and keep refining the sequence.</p>
+        <p className={META}>Program generated into My Plan. Open My Plan to adjust the week.</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button
@@ -199,8 +197,8 @@ export function ProgramList({
 }) {
   const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
   const support = firstRun
-    ? "Start with the sample program below, rename what you need, then map it into one calendar slot."
-    : "Build reusable units, terms, or sequences here, then place them into My Calendar so they can flow into My Plan.";
+    ? "Start with the sample, rename it, then map it to one slot."
+    : "Shape your sequence here, then generate it into My Plan.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -304,9 +302,7 @@ export function ProgramEditor({
       <div className="grid gap-1.5">
         <div className={LABEL}>Your first program</div>
         <h2 className={H2}>Shape this program</h2>
-        <p className={BODY}>
-          Start by renaming the title or adjusting one segment. You can refine the rest after it reaches the live week.
-        </p>
+        <p className={BODY}>Rename the program, then shape the segments.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -440,6 +436,8 @@ export function ProgramCalendarAssignmentPanel({
   onGenerate,
   generating,
   generationReady,
+  hasLearner,
+  hasSegments,
 }: {
   templates: CalendarTemplate[];
   selectedTemplateId: string;
@@ -451,6 +449,8 @@ export function ProgramCalendarAssignmentPanel({
   onGenerate: () => void;
   generating?: boolean;
   generationReady: boolean;
+  hasLearner: boolean;
+  hasSegments: boolean;
 }) {
   const selectedTemplate =
     templates.find((template) => template.id === selectedTemplateId) ?? null;
@@ -466,6 +466,10 @@ export function ProgramCalendarAssignmentPanel({
           ? "ready_choose_slot"
           : !startDate
             ? "ready_choose_date"
+            : !hasLearner
+              ? "blocked_learner"
+              : !hasSegments
+                ? "blocked_segments"
             : generationReady
               ? "ready_generate"
               : "partial";
@@ -478,6 +482,10 @@ export function ProgramCalendarAssignmentPanel({
           ? "Choose a slot to continue"
           : state === "ready_choose_date"
             ? "Choose when this sequence should begin"
+            : state === "blocked_learner"
+              ? "Choose a learner to generate"
+              : state === "blocked_segments"
+                ? "Add at least one segment"
             : state === "ready_generate"
               ? "Generate into My Plan"
               : "Choose where this program should land";
@@ -487,9 +495,13 @@ export function ProgramCalendarAssignmentPanel({
       : state === "blocked_slots"
         ? "This template exists, but it still needs at least one reusable slot before generation can begin."
         : state === "ready_choose_slot"
-          ? "Pick the slot that best matches where this program should usually land in the week."
-          : state === "ready_choose_date"
-            ? "Choose the first week this program should begin, then generation will become available."
+        ? "Pick the slot that best matches where this program should usually land in the week."
+        : state === "ready_choose_date"
+          ? "Choose the first week this program should begin, then generation will become available."
+          : state === "blocked_learner"
+            ? "Generation needs a learner so blocks can be placed into the right plan."
+            : state === "blocked_segments"
+              ? "This program needs at least one segment before it can generate."
             : state === "ready_generate"
               ? "This will place each segment into the next matching week and open those generated blocks in My Plan for live adjustment."
               : "Assign this program to a reusable calendar slot, then choose when to start.";
@@ -592,6 +604,10 @@ export function ProgramCalendarAssignmentPanel({
           <div className={META}>Choose a slot to continue.</div>
         ) : !startDate ? (
           <div className={META}>Choose when this sequence should begin.</div>
+        ) : !hasLearner ? (
+          <div className={META}>Choose a learner above to continue.</div>
+        ) : !hasSegments ? (
+          <div className={META}>Add at least one segment to continue.</div>
         ) : (
           <div className={META}>
             The first segment will land in the first matching week, then the rest will flow forward one week at a time.
