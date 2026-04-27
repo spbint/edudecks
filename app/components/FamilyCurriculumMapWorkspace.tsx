@@ -69,7 +69,7 @@ function addDays(date: Date, days: number) {
 
 function recentLabel(value?: string | null) {
   const trimmed = safe(value);
-  if (!trimmed) return "Not yet";
+  if (!trimmed) return "Getting started";
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) return "Recently";
   const diffDays = Math.round((Date.now() - parsed.getTime()) / (1000 * 60 * 60 * 24));
@@ -251,9 +251,11 @@ export default function FamilyCurriculumMapWorkspace() {
             status,
             evidenceCount: signal?.evidenceCount ?? 0,
             lastTouchedAt: signal?.lastTouchedAt ? recentLabel(signal.lastTouchedAt) : null,
+            canView: Boolean(signal?.evidenceIds.length),
             viewHref: signal?.evidenceIds.length
               ? `/my-portfolio?evidence=${encodeURIComponent(signal.evidenceIds.join(","))}`
-              : `/my-portfolio?subject=${encodeURIComponent(subject.title)}`,
+              : undefined,
+            viewUnavailableReason: "Capture evidence for this outcome to open a detailed view.",
           };
         });
 
@@ -296,7 +298,7 @@ export default function FamilyCurriculumMapWorkspace() {
   const summaryCards = [
     {
       label: "Coverage confidence",
-      value: mapState === "loading" ? "" : mapState === "empty" ? "Not yet" : `${coverageConfidence}%`,
+      value: mapState === "loading" ? "" : mapState === "empty" ? "Ready to begin" : `${coverageConfidence}%`,
       note:
         mapState === "live"
           ? "Coverage becomes clearer as planning and evidence connect"
@@ -347,12 +349,12 @@ export default function FamilyCurriculumMapWorkspace() {
         }
       : mapState === "empty"
         ? {
-            title: `Tag the first curriculum signal for ${activeLearner?.label || "this learner"}`,
-            note: "Start by planning one tagged learning block or capturing one linked learning moment.",
-            href: "/my-plan",
-            cta: "Open My Plan",
-            state: "empty" as HomeSurfaceState,
-          }
+          title: `Tag the first curriculum signal for ${activeLearner?.label || "this learner"}`,
+          note: "Start by planning one tagged learning block or capturing one linked learning moment.",
+          href: "/capture",
+          cta: "Capture your first learning moment",
+          state: "empty" as HomeSurfaceState,
+        }
         : {
             title: `Strengthen ${selectedSubject?.title || "the next subject"} coverage`,
             note:
@@ -360,7 +362,7 @@ export default function FamilyCurriculumMapWorkspace() {
                 ? `Add one more capture to support ${selectedSubject?.strands.find((strand) => strand.counts.needs_support > 0)?.title || "the next strand"}.`
                 : `Plan one learning block for ${selectedSubject?.strands.find((strand) => strand.counts.not_started > 0)?.title || "the next strand"} this week.`,
             href: summaryCounts.needs_support > 0 ? "/capture" : "/my-plan",
-            cta: summaryCounts.needs_support > 0 ? "Capture Evidence" : "Open My Plan",
+            cta: summaryCounts.needs_support > 0 ? "Capture a learning moment" : "Open My Plan",
             state: mapState,
           };
 
