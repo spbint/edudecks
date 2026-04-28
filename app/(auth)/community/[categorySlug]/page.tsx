@@ -10,6 +10,7 @@ import {
   createForumThread,
   isFeatureSuggestionCategory,
   loadCategoryPageData,
+  relativeTime,
   requireCommunityUserId,
   type ForumCategory,
   type ForumThreadSummary,
@@ -174,10 +175,13 @@ export default function CommunityCategoryPage() {
   } as ForumCategory);
   const isFeatureCategory = isFeatureSuggestionCategory(resolvedCategory);
   const canStartDiscussion = Boolean(viewerId);
+  const latestActivityLabel = threads.length
+    ? `Latest activity ${relativeTime(threads[0].latestActivityAt)}`
+    : "No activity yet";
 
   async function handleCreateThread() {
     if (!threadTitle.trim() || !threadBody.trim()) {
-      setMessage("Add a title and message to start the conversation.");
+      setMessage("Add a title and opening post so families can quickly understand your conversation.");
       return;
     }
 
@@ -197,7 +201,7 @@ export default function CommunityCategoryPage() {
         body: threadBody,
       });
 
-      setMessage("Conversation started. Opening discussion...");
+      setMessage("Conversation posted. Opening your new thread...");
       router.push(buildCommunityThreadHref(resolvedCategory.slug, result.thread.id));
     } catch (error) {
       console.error("Create thread failed", error);
@@ -214,7 +218,7 @@ export default function CommunityCategoryPage() {
       heroTitle={resolvedCategory.name}
       heroText={resolvedCategory.description}
       hideHeroAside={true}
-      workflowHelperText="Community categories stay calm and readable: a clear title, recent discussions, and one simple path to start a new thread."
+      workflowHelperText="Community categories stay calm and readable: scan recent conversations, then start one clear discussion when needed."
     >
       <section
         style={{
@@ -247,6 +251,34 @@ export default function CommunityCategoryPage() {
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
               {resolvedCategory.description}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+              <span
+                style={{
+                  border: "1px solid #dbeafe",
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderRadius: 999,
+                  padding: "5px 10px",
+                  fontSize: 12,
+                  fontWeight: 800,
+                }}
+              >
+                {threads.length} conversation{threads.length === 1 ? "" : "s"}
+              </span>
+              <span
+                style={{
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#475569",
+                  borderRadius: 999,
+                  padding: "5px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {latestActivityLabel}
+              </span>
             </div>
           </div>
 
@@ -314,10 +346,13 @@ export default function CommunityCategoryPage() {
             }}
           >
             <div style={{ fontSize: 16, fontWeight: 900, color: "#0f172a" }}>Start a conversation</div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#64748b" }}>
+              Start with one question, resource, or idea that could help another family.
+            </div>
             <input
               value={threadTitle}
               onChange={(event) => setThreadTitle(event.target.value)}
-              placeholder="Discussion title"
+              placeholder={isFeatureCategory ? "Idea title" : "Conversation title"}
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -331,7 +366,11 @@ export default function CommunityCategoryPage() {
               value={threadBody}
               onChange={(event) => setThreadBody(event.target.value)}
               rows={5}
-              placeholder="Write the opening post for this conversation."
+              placeholder={
+                isFeatureCategory
+                  ? "Describe what would help your family and why."
+                  : "Share the context and the question or resource you want to discuss."
+              }
               style={{
                 width: "100%",
                 border: "1px solid #d1d5db",
@@ -363,6 +402,9 @@ export default function CommunityCategoryPage() {
               >
                 {savingThread ? "Starting..." : "Start conversation"}
               </button>
+            </div>
+            <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+              Keep conversations practical, kind, and family-focused.
             </div>
           </div>
         ) : null}
@@ -396,7 +438,7 @@ export default function CommunityCategoryPage() {
             {fallback.emptyTitle}
           </div>
           <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
-            {fallback.emptyText}
+            No conversations here yet. This area is ready for the first question or resource.
           </div>
           <div>
             {canStartDiscussion ? (
@@ -437,6 +479,9 @@ export default function CommunityCategoryPage() {
         </section>
       ) : (
         <section style={{ display: "grid", gap: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 1.1, textTransform: "uppercase", color: "#64748b" }}>
+            Conversations
+          </div>
           {threads.map((thread) => (
             <ForumThreadRow key={thread.id} thread={thread} />
           ))}
