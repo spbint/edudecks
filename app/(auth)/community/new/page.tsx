@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -36,10 +36,6 @@ export default function CommunityComposePage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setCategorySlug(requestedCategory || "");
-  }, [requestedCategory]);
-
-  useEffect(() => {
     let mounted = true;
 
     async function load() {
@@ -51,8 +47,8 @@ export default function CommunityComposePage() {
         setViewerId(userId);
 
         if (!userId) {
-          setMessage("Sign in to start a conversation");
           setCategories([]);
+          setMessage("Sign in to start a conversation.");
           return;
         }
 
@@ -70,22 +66,20 @@ export default function CommunityComposePage() {
 
           setCategories(normalized);
 
-          // ensure selected slug is valid
-          if (!normalized.find((c) => c.slug === categorySlug)) {
+          if (!normalized.find((c) => c.slug === requestedCategory)) {
             setCategorySlug(normalized[0]?.slug || "");
           }
         } else {
-          // 🚨 DO NOT FALL BACK — BLOCK WRITE
           setCategories([]);
           setMessage("Community categories are not ready yet. Refresh and try again.");
         }
       } catch (error) {
-        console.error("Community compose load failed", error);
+        console.error("Community load failed", error);
         if (!mounted) return;
 
-        setViewerId(null);
         setCategories([]);
-        setMessage("Community categories could not be loaded right now.");
+        setViewerId(null);
+        setMessage("Community could not load.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -96,37 +90,37 @@ export default function CommunityComposePage() {
     return () => {
       mounted = false;
     };
-  }, [categorySlug]);
+  }, [requestedCategory]);
 
   const selectedCategory =
-    categories.find((category) => category.slug === categorySlug) || null;
+    categories.find((c) => c.slug === categorySlug) || null;
 
   const canPost = Boolean(viewerId && selectedCategory);
 
   async function handleSubmit() {
     if (!viewerId) {
-      setMessage("Sign in to start a conversation");
+      setMessage("Sign in to start a conversation.");
       return;
     }
 
     if (!selectedCategory) {
-      setMessage("Select a valid category first.");
+      setMessage("Select a valid category.");
       return;
     }
 
-    // 🚨 BLOCK fallback IDs (critical fix)
+    // 🚨 CRITICAL FIX: block fallback IDs
     if (selectedCategory.id.startsWith("default-")) {
-      setMessage("This category is not ready yet. Refresh and try again.");
+      setMessage("Category not ready. Refresh the page.");
       return;
     }
 
     if (!title.trim()) {
-      setMessage("Add a title first.");
+      setMessage("Add a title.");
       return;
     }
 
     if (!body.trim()) {
-      setMessage("Add a message before posting.");
+      setMessage("Add a message.");
       return;
     }
 
@@ -153,17 +147,16 @@ export default function CommunityComposePage() {
     } catch (error) {
       console.error("Create thread failed", {
         error,
-        selectedCategory,
         viewerId,
+        selectedCategory,
       });
 
       const errorMessage =
-        error instanceof Error ? error.message : "";
+        error instanceof Error
+          ? error.message
+          : JSON.stringify(error);
 
-      setMessage(
-        errorMessage ||
-          "That discussion could not be posted right now."
-      );
+      setMessage(errorMessage || "Unknown error occurred.");
     } finally {
       setSaving(false);
     }
@@ -176,40 +169,9 @@ export default function CommunityComposePage() {
       heroTitle="Start a discussion"
       heroText="Start a calm, readable discussion with one clear opening post."
       hideHeroAside={true}
-      workflowHelperText="Community threads stay simple: choose a category, write one strong opening post, and let replies build from there."
+      workflowHelperText="Choose a category, write a strong opening post, and let replies build."
     >
-      <section
-        style={{
-          border: "1px solid #e5e7eb",
-          background: "#ffffff",
-          borderRadius: 22,
-          padding: 20,
-          boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-          display: "grid",
-          gap: 14,
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>
-              New thread
-            </div>
-            <div style={{ fontSize: 28, fontWeight: 900 }}>
-              Start a discussion
-            </div>
-          </div>
-
-          <Link
-            href={
-              selectedCategory
-                ? buildCommunityCategoryHref(selectedCategory.slug)
-                : "/community"
-            }
-          >
-            Back
-          </Link>
-        </div>
-
+      <section style={{ display: "grid", gap: 12 }}>
         <select
           value={categorySlug}
           onChange={(e) => setCategorySlug(e.target.value)}
