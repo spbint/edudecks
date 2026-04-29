@@ -21,53 +21,14 @@ type CategoryOption = {
   description: string;
 };
 
-const FALLBACK_OPTIONS: CategoryOption[] = [
-  {
-    id: "default-general-discussion",
-    slug: "general-discussion",
-    name: "General Discussion",
-    description: "Ask everyday questions and share practical homeschool encouragement.",
-  },
-  {
-    id: "default-homeschool-resources",
-    slug: "homeschool-resources",
-    name: "Homeschool Resources",
-    description: "Share and discover useful homeschool resources, tools, printables, and curriculum ideas.",
-  },
-  {
-    id: "default-classical-education",
-    slug: "classical-education",
-    name: "Classical Education",
-    description: "Discuss classical education approaches, great books, memory work, and structured learning rhythms.",
-  },
-  {
-    id: "default-help-shape-edudecks",
-    slug: "help-shape-edudecks",
-    name: "Help Shape MyLearna",
-    description: "Share ideas, pain points, and practical suggestions that would make MyLearna more helpful.",
-  },
-];
-
-function normalizeCategory(category: ForumCategorySummary): CategoryOption {
-  return {
-    id: category.id,
-    slug: category.slug,
-    name: category.name === "Help Shape EduDecks" ? "Help Shape MyLearna" : category.name,
-    description:
-      category.name === "Help Shape EduDecks"
-        ? "Share ideas, pain points, and practical suggestions that would make MyLearna more helpful."
-        : category.description,
-  };
-}
-
 export default function CommunityComposePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedCategory = String(searchParams.get("category") ?? "").trim();
 
   const [viewerId, setViewerId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<CategoryOption[]>(FALLBACK_OPTIONS);
-  const [categorySlug, setCategorySlug] = useState(requestedCategory || FALLBACK_OPTIONS[0].slug);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [categorySlug, setCategorySlug] = useState(requestedCategory || "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -75,7 +36,7 @@ export default function CommunityComposePage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    setCategorySlug(requestedCategory || FALLBACK_OPTIONS[0].slug);
+    setCategorySlug(requestedCategory || "");
   }, [requestedCategory]);
 
   useEffect(() => {
@@ -90,24 +51,40 @@ export default function CommunityComposePage() {
         setViewerId(userId);
 
         if (!userId) {
-          setCategories(FALLBACK_OPTIONS);
           setMessage("Sign in to start a conversation");
+          setCategories([]);
           return;
         }
 
         const data = await loadCommunityHomeData(userId);
+
         if (!mounted) return;
 
         if (data.categories?.length) {
-          setCategories(data.categories.map(normalizeCategory));
+          const normalized = data.categories.map((c: ForumCategorySummary) => ({
+            id: c.id,
+            slug: c.slug,
+            name: c.name,
+            description: c.description,
+          }));
+
+          setCategories(normalized);
+
+          // ensure selected slug is valid
+          if (!normalized.find((c) => c.slug === categorySlug)) {
+            setCategorySlug(normalized[0]?.slug || "");
+          }
         } else {
-          setCategories(FALLBACK_OPTIONS);
+          // 🚨 DO NOT FALL BACK — BLOCK WRITE
+          setCategories([]);
+          setMessage("Community categories are not ready yet. Refresh and try again.");
         }
       } catch (error) {
         console.error("Community compose load failed", error);
         if (!mounted) return;
+
         setViewerId(null);
-        setCategories(FALLBACK_OPTIONS);
+        setCategories([]);
         setMessage("Community categories could not be loaded right now.");
       } finally {
         if (mounted) setLoading(false);
@@ -119,36 +96,27 @@ export default function CommunityComposePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [categorySlug]);
 
   const selectedCategory =
-    categories.find((category) => category.slug === categorySlug) || categories[0] || FALLBACK_OPTIONS[0];
-  const canPost = Boolean(viewerId);
+    categories.find((category) => category.slug === categorySlug) || null;
 
-  const composerTitle =
-    selectedCategory.slug === "help-shape-edudecks"
-      ? "Help shape MyLearna"
-      : selectedCategory.slug === "homeschool-resources"
-        ? "Share a resource"
-        : "Start a discussion";
-
-  const titlePlaceholder =
-    selectedCategory.slug === "homeschool-resources"
-      ? "Resource title"
-      : selectedCategory.slug === "general-discussion"
-        ? "Question or discussion title"
-        : "Discussion title";
-
-  const bodyPlaceholder =
-    selectedCategory.slug === "help-shape-edudecks"
-      ? "Describe the idea, the problem it solves, and how it would help your family."
-      : selectedCategory.slug === "homeschool-resources"
-        ? "Share the resource, why it helped, and who it might suit."
-        : "Write your opening post";
+  const canPost = Boolean(viewerId && selectedCategory);
 
   async function handleSubmit() {
     if (!viewerId) {
       setMessage("Sign in to start a conversation");
+      return;
+    }
+
+    if (!selectedCategory) {
+      setMessage("Select a valid category first.");
+      return;
+    }
+
+    // 🚨 BLOCK fallback IDs (critical fix)
+    if (selectedCategory.id.startsWith("default-")) {
+      setMessage("This category is not ready yet. Refresh and try again.");
       return;
     }
 
@@ -181,10 +149,21 @@ export default function CommunityComposePage() {
         body,
       });
 
-      router.push(buildCommunityThreadHref(selectedCategory.slug, result.thread.id));
+      router.push(buildCommunityThreadHref(category.slug, result.thread.id));
     } catch (error) {
-      console.error("Create thread failed", error);
-      setMessage("That discussion could not be posted right now.");
+      console.error("Create thread failed", {
+        error,
+        selectedCategory,
+        viewerId,
+      });
+
+      const errorMessage =
+        error instanceof Error ? error.message : "";
+
+      setMessage(
+        errorMessage ||
+          "That discussion could not be posted right now."
+      );
     } finally {
       setSaving(false);
     }
@@ -194,7 +173,7 @@ export default function CommunityComposePage() {
     <FamilyTopNavShell
       title="MyLearna Family"
       subtitle="Community"
-      heroTitle={composerTitle}
+      heroTitle="Start a discussion"
       heroText="Start a calm, readable discussion with one clear opening post."
       hideHeroAside={true}
       workflowHelperText="Community threads stay simple: choose a category, write one strong opening post, and let replies build from there."
@@ -210,135 +189,61 @@ export default function CommunityComposePage() {
           gap: 14,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 900,
-                letterSpacing: 1.1,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 8,
-              }}
-            >
+            <div style={{ fontSize: 12, fontWeight: 900, color: "#64748b" }}>
               New thread
             </div>
-            <div style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 900, color: "#0f172a" }}>
-              {composerTitle}
-            </div>
-            <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569", marginTop: 8, maxWidth: 760 }}>
-              Choose the right category, then write one clear opening post that helps other families understand the conversation.
+            <div style={{ fontSize: 28, fontWeight: 900 }}>
+              Start a discussion
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Link
-              href={selectedCategory ? buildCommunityCategoryHref(selectedCategory.slug) : "/community"}
-              style={{
-                border: "1px solid #d1d5db",
-                background: "#ffffff",
-                color: "#334155",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                textDecoration: "none",
-              }}
-            >
-              Back
-            </Link>
-          </div>
+          <Link
+            href={
+              selectedCategory
+                ? buildCommunityCategoryHref(selectedCategory.slug)
+                : "/community"
+            }
+          >
+            Back
+          </Link>
         </div>
 
-        <div style={{ display: "grid", gap: 12 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>Category</span>
-            <select
-              value={categorySlug}
-              onChange={(event) => setCategorySlug(event.target.value)}
-              disabled={loading || !canPost}
-              style={{
-                width: "100%",
-                border: "1px solid #d1d5db",
-                borderRadius: 12,
-                padding: "12px 14px",
-                fontSize: 14,
-                background: "#ffffff",
-              }}
-            >
-              {categories.map((category) => (
-                <option key={category.slug} value={category.slug}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <select
+          value={categorySlug}
+          onChange={(e) => setCategorySlug(e.target.value)}
+          disabled={!canPost}
+        >
+          {categories.map((c) => (
+            <option key={c.slug} value={c.slug}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>Title</span>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder={titlePlaceholder}
-              disabled={!canPost}
-              style={{
-                width: "100%",
-                border: "1px solid #d1d5db",
-                borderRadius: 12,
-                padding: "12px 14px",
-                fontSize: 14,
-                background: canPost ? "#ffffff" : "#f8fafc",
-              }}
-            />
-          </label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Discussion title"
+          disabled={!canPost}
+        />
 
-          <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#334155" }}>Message</span>
-            <textarea
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              rows={7}
-              placeholder={bodyPlaceholder}
-              disabled={!canPost}
-              style={{
-                width: "100%",
-                border: "1px solid #d1d5db",
-                borderRadius: 12,
-                padding: "12px 14px",
-                fontSize: 14,
-                lineHeight: 1.6,
-                background: canPost ? "#ffffff" : "#f8fafc",
-                resize: "vertical",
-              }}
-            />
-          </label>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Write your opening post"
+          disabled={!canPost}
+        />
 
-          {message ? (
-            <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div>
-          ) : null}
+        {message && <div>{message}</div>}
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => void handleSubmit()}
-              disabled={saving || loading || !canPost}
-              style={{
-                border: canPost ? "1px solid #2563eb" : "1px solid #d1d5db",
-                background: canPost ? "#2563eb" : "#f8fafc",
-                color: canPost ? "#ffffff" : "#64748b",
-                borderRadius: 10,
-                padding: "10px 14px",
-                fontSize: 14,
-                fontWeight: 800,
-                cursor: !canPost ? "default" : saving ? "wait" : "pointer",
-                opacity: saving || !canPost ? 0.8 : 1,
-              }}
-            >
-              {!canPost ? "Sign in to start a conversation" : saving ? "Posting..." : "Post discussion"}
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={() => void handleSubmit()}
+          disabled={!canPost || saving}
+        >
+          {saving ? "Posting..." : "Post discussion"}
+        </button>
       </section>
     </FamilyTopNavShell>
   );
