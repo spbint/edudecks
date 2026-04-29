@@ -77,10 +77,12 @@ export function CalendarTemplateGrid({
   slots,
   selectedSlotId,
   onSelectSlot,
+  onAddFirstSlot,
 }: {
   slots: TemplateSlot[];
   selectedSlotId?: string | null;
   onSelectSlot: (slotId: string) => void;
+  onAddFirstSlot: (dayOfWeek: number) => void;
 }) {
   const hasSlots = slots.length > 0;
 
@@ -130,9 +132,13 @@ export function CalendarTemplateGrid({
                     );
                   })
                 ) : (
-                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-3 py-5 text-center text-[13px] font-medium text-slate-500">
+                  <button
+                    type="button"
+                    onClick={() => onAddFirstSlot(day.value)}
+                    className="rounded-[16px] border border-dashed border-slate-200 bg-white px-3 py-5 text-center text-[13px] font-medium text-slate-500 transition hover:border-slate-300 hover:bg-slate-50"
+                  >
                     Add the first slot
-                  </div>
+                  </button>
                 )}
               </div>
             </article>
