@@ -97,7 +97,7 @@ export default function ForumThreadRow({ thread }: ForumThreadRowProps) {
         </div>
 
         <div style={{ fontSize: 12, lineHeight: 1.6, color: "#64748b", fontWeight: 700 }}>
-          {thread.authorLabel} • {relativeTime(thread.created_at)}
+          {thread.authorLabel} - {relativeTime(thread.created_at)}
         </div>
       </div>
 

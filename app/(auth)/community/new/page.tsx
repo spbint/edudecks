@@ -1,25 +1,29 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
-  buildCommunityCategoryHref,
   buildCommunityThreadHref,
   createForumThread,
   loadCommunityHomeData,
   requireCommunityUserId,
-  type ForumCategory,
   type ForumCategorySummary,
 } from "@/lib/communityForum";
 
-type CategoryOption = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-};
+type CategoryOption = Pick<ForumCategorySummary, "id" | "slug" | "name" | "description">;
+
+function panelStyle(): React.CSSProperties {
+  return {
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+    borderRadius: 22,
+    padding: 20,
+    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    display: "grid",
+    gap: 12,
+  };
+}
 
 export default function CommunityComposePage() {
   const router = useRouter();
@@ -41,11 +45,9 @@ export default function CommunityComposePage() {
     async function load() {
       try {
         const userId = await requireCommunityUserId();
-
         if (!mounted) return;
 
         setViewerId(userId);
-
         if (!userId) {
           setCategories([]);
           setMessage("Sign in to start a conversation.");
@@ -53,33 +55,36 @@ export default function CommunityComposePage() {
         }
 
         const data = await loadCommunityHomeData(userId);
-
         if (!mounted) return;
 
-        if (data.categories?.length) {
-          const normalized = data.categories.map((c: ForumCategorySummary) => ({
-            id: c.id,
-            slug: c.slug,
-            name: c.name,
-            description: c.description,
-          }));
+        const nextCategories = data.categories.map((category) => ({
+          id: category.id,
+          slug: category.slug,
+          name: category.name,
+          description: category.description,
+        }));
 
-          setCategories(normalized);
+        setCategories(nextCategories);
 
-          if (!normalized.find((c) => c.slug === requestedCategory)) {
-            setCategorySlug(normalized[0]?.slug || "");
-          }
-        } else {
-          setCategories([]);
-          setMessage("Community categories are not ready yet. Refresh and try again.");
+        if (nextCategories.length === 0) {
+          setMessage("Community categories are not ready yet.");
+          setCategorySlug("");
+          return;
         }
+
+        if (requestedCategory && !nextCategories.find((category) => category.slug === requestedCategory)) {
+          setMessage("That category is not ready yet. Choose another category.");
+          setCategorySlug(nextCategories[0].slug);
+          return;
+        }
+
+        setCategorySlug(requestedCategory || nextCategories[0].slug);
       } catch (error) {
-        console.error("Community load failed", error);
+        console.error("Community compose load failed", error);
         if (!mounted) return;
 
         setCategories([]);
-        setViewerId(null);
-        setMessage("Community could not load.");
+        setMessage(error instanceof Error ? error.message : "Community could not load.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -92,10 +97,8 @@ export default function CommunityComposePage() {
     };
   }, [requestedCategory]);
 
-  const selectedCategory =
-    categories.find((c) => c.slug === categorySlug) || null;
-
-  const canPost = Boolean(viewerId && selectedCategory);
+  const selectedCategory = categories.find((category) => category.slug === categorySlug) || null;
+  const canPost = Boolean(viewerId && selectedCategory && !loading && !saving);
 
   async function handleSubmit() {
     if (!viewerId) {
@@ -104,23 +107,17 @@ export default function CommunityComposePage() {
     }
 
     if (!selectedCategory) {
-      setMessage("Select a valid category.");
-      return;
-    }
-
-    // 🚨 CRITICAL FIX: block fallback IDs
-    if (selectedCategory.id.startsWith("default-")) {
-      setMessage("Category not ready. Refresh the page.");
+      setMessage("Choose a real category to continue.");
       return;
     }
 
     if (!title.trim()) {
-      setMessage("Add a title.");
+      setMessage("Add a discussion title.");
       return;
     }
 
     if (!body.trim()) {
-      setMessage("Add a message.");
+      setMessage("Add an opening post.");
       return;
     }
 
@@ -128,35 +125,17 @@ export default function CommunityComposePage() {
     setMessage("");
 
     try {
-      const category: ForumCategory = {
-        id: selectedCategory.id,
-        slug: selectedCategory.slug,
-        name: selectedCategory.name,
-        description: selectedCategory.description,
-        created_at: new Date().toISOString(),
-      };
-
       const result = await createForumThread({
         viewerId,
-        category,
+        categoryId: selectedCategory.id,
         title,
         body,
       });
 
-      router.push(buildCommunityThreadHref(category.slug, result.thread.id));
+      router.push(buildCommunityThreadHref(result.category.slug, result.thread.id));
     } catch (error) {
-      console.error("Create thread failed", {
-        error,
-        viewerId,
-        selectedCategory,
-      });
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : JSON.stringify(error);
-
-      setMessage(errorMessage || "Unknown error occurred.");
+      console.error("Create thread failed", error);
+      setMessage(error instanceof Error ? error.message : "Community could not post that discussion.");
     } finally {
       setSaving(false);
     }
@@ -167,46 +146,105 @@ export default function CommunityComposePage() {
       title="MyLearna Family"
       subtitle="Community"
       heroTitle="Start a discussion"
-      heroText="Start a calm, readable discussion with one clear opening post."
+      heroText="Start one real discussion in the right category."
       hideHeroAside={true}
-      workflowHelperText="Choose a category, write a strong opening post, and let replies build."
+      workflowHelperText="Choose a real category, write one clear opening post, and let replies build from there."
     >
-      <section style={{ display: "grid", gap: 12 }}>
-        <select
-          value={categorySlug}
-          onChange={(e) => setCategorySlug(e.target.value)}
-          disabled={!canPost}
-        >
-          {categories.map((c) => (
-            <option key={c.slug} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+      {loading ? (
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 15, color: "#475569", fontWeight: 700 }}>Loading Community...</div>
+        </section>
+      ) : !viewerId ? (
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Sign in to start a conversation</div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+            Community posting is available only when you are signed in.
+          </div>
+        </section>
+      ) : categories.length === 0 ? (
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Community is not ready yet</div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+            {message || "Community categories have not loaded from the database yet."}
+          </div>
+        </section>
+      ) : (
+        <section style={panelStyle()}>
+          <select
+            value={categorySlug}
+            onChange={(event) => setCategorySlug(event.target.value)}
+            disabled={!canPost}
+            style={{
+              width: "100%",
+              border: "1px solid #d1d5db",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 14,
+              background: "#ffffff",
+            }}
+          >
+            {categories.map((category) => (
+              <option key={category.id} value={category.slug}>
+                {category.name}
+              </option>
+            ))}
+          </select>
 
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Discussion title"
-          disabled={!canPost}
-        />
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Discussion title"
+            disabled={!viewerId || saving}
+            style={{
+              width: "100%",
+              border: "1px solid #d1d5db",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 14,
+              background: "#ffffff",
+            }}
+          />
 
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Write your opening post"
-          disabled={!canPost}
-        />
+          <textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder="Write your opening post"
+            rows={7}
+            disabled={!viewerId || saving}
+            style={{
+              width: "100%",
+              border: "1px solid #d1d5db",
+              borderRadius: 12,
+              padding: "12px 14px",
+              fontSize: 14,
+              lineHeight: 1.6,
+              background: "#ffffff",
+              resize: "vertical",
+            }}
+          />
 
-        {message && <div>{message}</div>}
+          {message ? <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div> : null}
 
-        <button
-          onClick={() => void handleSubmit()}
-          disabled={!canPost || saving}
-        >
-          {saving ? "Posting..." : "Post discussion"}
-        </button>
-      </section>
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={!canPost}
+            style={{
+              border: canPost ? "1px solid #2563eb" : "1px solid #d1d5db",
+              background: canPost ? "#2563eb" : "#f8fafc",
+              color: canPost ? "#ffffff" : "#64748b",
+              borderRadius: 10,
+              padding: "10px 14px",
+              fontSize: 14,
+              fontWeight: 800,
+              cursor: canPost ? (saving ? "wait" : "pointer") : "default",
+              opacity: saving ? 0.8 : 1,
+            }}
+          >
+            {saving ? "Posting..." : "Post discussion"}
+          </button>
+        </section>
+      )}
     </FamilyTopNavShell>
   );
 }

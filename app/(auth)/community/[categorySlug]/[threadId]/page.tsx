@@ -47,6 +47,18 @@ type ReplyView = {
   authorLabel: string;
 };
 
+function panelStyle(): React.CSSProperties {
+  return {
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+    borderRadius: 22,
+    padding: 20,
+    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    display: "grid",
+    gap: 12,
+  };
+}
+
 function statusBadge(status: ForumThreadStatus): React.CSSProperties {
   if (status === "under_review") {
     return { border: "1px solid #bfdbfe", background: "#eff6ff", color: "#1d4ed8" };
@@ -78,31 +90,39 @@ export default function CommunityThreadPage() {
     async function load() {
       try {
         const userId = await requireCommunityUserId();
-
         if (!mounted) return;
 
         setViewerId(userId);
+        if (!userId) {
+          setThread(null);
+          setReplies([]);
+          setCategory(null);
+          setMessage("Sign in to browse Community.");
+          return;
+        }
 
         const data = await loadThreadPageData(threadId, userId);
-
         if (!mounted) return;
 
         if (data.thread) {
           setThread(data.thread as ThreadView);
           setReplies((data.replies as ReplyView[]) ?? []);
           setCategory(data.category);
+          setMessage("");
         } else {
           setThread(null);
           setReplies([]);
           setCategory(null);
+          setMessage("This discussion could not be found in the database.");
         }
       } catch (error) {
         console.error("Community thread load failed", error);
         if (!mounted) return;
-        setViewerId(null);
+
         setThread(null);
         setReplies([]);
         setCategory(null);
+        setMessage(error instanceof Error ? error.message : "Community could not load this discussion.");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -118,7 +138,7 @@ export default function CommunityThreadPage() {
   async function handleReply() {
     if (!thread) return;
     if (!viewerId) {
-      setMessage("Sign in to reply");
+      setMessage("Sign in to reply.");
       return;
     }
     if (!replyBody.trim()) {
@@ -131,16 +151,13 @@ export default function CommunityThreadPage() {
 
     try {
       const result = await createForumReply({
-        viewerId: viewerId as string,
+        viewerId,
         threadId: thread.id,
         body: replyBody,
       });
 
       const nextTimestamp = result.post.updated_at || result.post.created_at;
-      setReplies((current) => [
-        ...current,
-        { ...(result.post as ReplyView), authorLabel: "You" },
-      ]);
+      setReplies((current) => [...current, { ...(result.post as ReplyView), authorLabel: "You" }]);
       setThread((current) =>
         current
           ? {
@@ -152,9 +169,10 @@ export default function CommunityThreadPage() {
           : current,
       );
       setReplyBody("");
+      setMessage("Reply posted.");
     } catch (error) {
       console.error("Reply failed", error);
-      setMessage("That reply could not be posted right now.");
+      setMessage(error instanceof Error ? error.message : "Community could not post that reply.");
     } finally {
       setReplying(false);
     }
@@ -172,7 +190,7 @@ export default function CommunityThreadPage() {
 
     try {
       const result = await supportForumThread({
-        viewerId: viewerId as string,
+        viewerId,
         threadId: thread.id,
       });
 
@@ -185,9 +203,10 @@ export default function CommunityThreadPage() {
             }
           : current,
       );
+      setMessage(result.alreadySupported ? "You already support this idea." : "Support saved.");
     } catch (error) {
       console.error("Support failed", error);
-      setMessage("Support could not be saved right now.");
+      setMessage(error instanceof Error ? error.message : "Community could not save that support.");
     } finally {
       setSupporting(false);
     }
@@ -196,7 +215,7 @@ export default function CommunityThreadPage() {
   const statusLabel = getThreadStatusLabel(thread?.status ?? null);
   const isFeatureCategory = isFeatureSuggestionCategory(category);
   const backHref = category ? buildCommunityCategoryHref(category.slug) : buildCommunityCategoryHref(categorySlug);
-  const canReply = Boolean(viewerId);
+  const canReply = Boolean(viewerId && thread);
 
   return (
     <FamilyTopNavShell
@@ -208,48 +227,29 @@ export default function CommunityThreadPage() {
       workflowHelperText="Community threads stay simple: one opening post, then a readable reply list."
     >
       {loading ? (
-        <section
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#ffffff",
-            borderRadius: 20,
-            padding: 18,
-            color: "#475569",
-            fontWeight: 700,
-          }}
-        >
-          Loading discussion...
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 15, color: "#475569", fontWeight: 700 }}>Loading discussion...</div>
+        </section>
+      ) : !viewerId ? (
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Community sign-in required</div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+            Sign in to read this discussion, reply, or support an idea.
+          </div>
         </section>
       ) : !thread ? (
-        <section
-          style={{
-            border: "1px solid #e5e7eb",
-            background: "#ffffff",
-            borderRadius: 20,
-            padding: 24,
-            display: "grid",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Thread not found</div>
+        <section style={panelStyle()}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "#0f172a" }}>Discussion not found</div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, color: "#475569" }}>
+            {message || "This discussion could not be found in the database."}
+          </div>
           <Link href="/community" style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none" }}>
             Back to Community
           </Link>
         </section>
       ) : (
         <>
-          <section
-            style={{
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
-              borderRadius: 22,
-              padding: 20,
-              boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-              marginBottom: 18,
-              display: "grid",
-              gap: 14,
-            }}
-          >
+          <section style={{ ...panelStyle(), marginBottom: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
               <div>
                 <div
@@ -346,8 +346,7 @@ export default function CommunityThreadPage() {
                   onClick={() => void handleSupport()}
                   disabled={thread.viewerSupports || supporting || !viewerId}
                   style={{
-                    border:
-                      thread.viewerSupports || !viewerId ? "1px solid #d1d5db" : "1px solid #2563eb",
+                    border: thread.viewerSupports || !viewerId ? "1px solid #d1d5db" : "1px solid #2563eb",
                     background: thread.viewerSupports ? "#f0fdf4" : !viewerId ? "#f8fafc" : "#2563eb",
                     color: thread.viewerSupports ? "#166534" : !viewerId ? "#64748b" : "#ffffff",
                     borderRadius: 10,
@@ -415,29 +414,19 @@ export default function CommunityThreadPage() {
             )}
           </section>
 
-          <section
-            style={{
-              border: "1px solid #e5e7eb",
-              background: "#ffffff",
-              borderRadius: 22,
-              padding: 20,
-              boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-              display: "grid",
-              gap: 12,
-            }}
-          >
+          <section style={panelStyle()}>
             <div style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>Reply to this discussion</div>
             <textarea
               value={replyBody}
-              onChange={(e) => setReplyBody(e.target.value)}
+              onChange={(event) => setReplyBody(event.target.value)}
               rows={5}
               disabled={!canReply || replying}
               placeholder={
                 !canReply
                   ? "Sign in to reply"
                   : isFeatureCategory
-                  ? "Add a thoughtful reply or build on the idea"
-                  : "Add a thoughtful reply"
+                    ? "Add a thoughtful reply or build on the idea"
+                    : "Add a thoughtful reply"
               }
               style={{
                 width: "100%",
@@ -450,9 +439,7 @@ export default function CommunityThreadPage() {
                 resize: "vertical",
               }}
             />
-            {message ? (
-              <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div>
-            ) : null}
+            {message ? <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{message}</div> : null}
             <div>
               <button
                 type="button"
