@@ -617,6 +617,24 @@ export async function requireCommunityUserId(): Promise<string | null> {
   return response.data.user?.id || null;
 }
 
+async function requireCommunityAuthenticatedSession(expectedUserId: string) {
+  const [sessionResponse, userResponse] = await Promise.all([
+    supabase.auth.getSession(),
+    supabase.auth.getUser(),
+  ]);
+
+  const session = sessionResponse.data.session;
+  const user = userResponse.data.user;
+
+  if (!session?.access_token || !user?.id) {
+    throw new Error("Your sign-in session is missing. Sign out and sign in again before posting.");
+  }
+
+  if (user.id !== expectedUserId) {
+    throw new Error("Your current sign-in changed. Refresh Community and try posting again.");
+  }
+}
+
 export async function loadCommunityHomeData(viewerId: string) {
   if (!text(viewerId)) {
     throw new Error("Sign in to browse Community.");
@@ -750,6 +768,8 @@ export async function createForumThread(input: {
   if (!body) {
     throw new Error("Add an opening post.");
   }
+
+  await requireCommunityAuthenticatedSession(viewerId);
 
   const category = await loadCategoryById(categoryId);
   if (!category) {

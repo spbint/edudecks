@@ -1,23 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 
-const bundledPublicSupabaseUrl = "https://jgllsqixpfypunnstinl.supabase.co";
-const bundledPublicSupabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGxzcWl4cGZ5cHVubnN0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MTc0MDYsImV4cCI6MjA4MjQ5MzQwNn0.YYKiRuxYye7_iDfQ4nZ6U4pFiTVtt1lIGSSwQa98CBE";
-
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || bundledPublicSupabaseUrl;
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || bundledPublicSupabaseAnonKey;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
 const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
 
-if (
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-) {
-  console.warn(
-    "Supabase public environment variables are missing. Using bundled public project auth configuration as a fallback.",
+if (!hasSupabaseEnv) {
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Configure explicit Supabase environment values to avoid writing to the wrong project.",
   );
 }
 
@@ -43,8 +34,8 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
 }
 
 export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
+  supabaseUrl as string,
+  supabaseAnonKey as string,
   {
     auth: {
       persistSession: true,
@@ -58,7 +49,7 @@ export const supabase = createClient(
 );
 
 export function createServerSupabaseClient(accessToken: string) {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(supabaseUrl as string, supabaseAnonKey as string, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
