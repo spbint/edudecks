@@ -272,7 +272,7 @@ export default function FamilyTopNavShell({
 }: FamilyTopNavShellProps) {
   const pathname = usePathname();
   const { user } = useAuthUser();
-  const { workspace, activeLearner } = useFamilyWorkspace();
+  const { workspace, activeLearner, loading, error } = useFamilyWorkspace();
 
   const resolvedTitle = title ?? routeTitle(pathname);
   const resolvedSubtitle = subtitle ?? routeSubtitle(pathname);
@@ -285,6 +285,19 @@ export default function FamilyTopNavShell({
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
   const communityActive = pathname === "/community" || pathname.startsWith("/community/");
+  const workspaceIssue = error || workspace.syncIssue || "";
+  const workspaceStatusLabel = loading
+    ? "Syncing"
+    : workspaceIssue
+      ? "Local fallback"
+      : workspace.storageMode === "database"
+        ? "In sync"
+        : "Local mode";
+  const workspaceStatusTitle =
+    workspaceIssue ||
+    (workspace.storageMode === "database"
+      ? "Workspace profile and learners loaded from Supabase."
+      : "Workspace profile and learners are available from local cache.");
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -355,9 +368,15 @@ export default function FamilyTopNavShell({
 
             <span
               aria-label="Workspace status"
-              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+              title={workspaceStatusTitle}
+              className={cx(
+                "inline-flex items-center rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_20px_rgba(15,23,42,0.04)]",
+                workspaceIssue
+                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                  : "border-slate-200 bg-white text-slate-500",
+              )}
             >
-              In sync
+              {workspaceStatusLabel}
             </span>
 
             <FamilyProfileMenu

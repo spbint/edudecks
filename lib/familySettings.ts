@@ -237,7 +237,8 @@ function describeSupabaseError(error: unknown) {
 }
 
 function isMissingColumnError(error: unknown) {
-  return describeSupabaseError(error).toLowerCase().includes("column");
+  const message = describeSupabaseError(error).toLowerCase();
+  return message.includes("column") || message.includes("schema cache");
 }
 
 function asBoolean(value: unknown, fallback: boolean): boolean {
@@ -683,7 +684,17 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 }
 
 async function selectFamilyProfileRow(userId: string): Promise<Partial<FamilyProfileRow> | null> {
-  const variants = [FAMILY_PROFILE_SELECT_COLUMNS, FAMILY_PROFILE_SELECT_COLUMNS_BASE];
+  const withoutOwnerUserId = (select: string) =>
+    select
+      .split(",")
+      .filter((column) => column !== "owner_user_id")
+      .join(",");
+  const variants: Array<{ select: string; filterColumn: "owner_user_id" | "user_id" }> = [
+    { select: FAMILY_PROFILE_SELECT_COLUMNS, filterColumn: "owner_user_id" },
+    { select: FAMILY_PROFILE_SELECT_COLUMNS_BASE, filterColumn: "owner_user_id" },
+    { select: withoutOwnerUserId(FAMILY_PROFILE_SELECT_COLUMNS), filterColumn: "user_id" },
+    { select: withoutOwnerUserId(FAMILY_PROFILE_SELECT_COLUMNS_BASE), filterColumn: "user_id" },
+  ];
   let response:
     | {
         data: unknown;
@@ -691,15 +702,15 @@ async function selectFamilyProfileRow(userId: string): Promise<Partial<FamilyPro
       }
     | null = null;
 
-  for (const select of variants) {
+  for (const variant of variants) {
     const attempt = await withTimeout(
       supabase
         .from("family_profiles")
-        .select(select)
-        .eq("owner_user_id", userId)
+        .select(variant.select)
+        .eq(variant.filterColumn, userId)
         .limit(1)
         .maybeSingle(),
-      "family_profiles select by owner_user_id",
+      `family_profiles select by ${variant.filterColumn}`,
       12000,
     );
 

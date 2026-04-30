@@ -1,6 +1,14 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
 import {
   ACTIVE_CHILD_EVENT,
@@ -84,34 +92,47 @@ export function FamilyWorkspaceProvider({
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const reloadInFlightRef = useRef<Promise<void> | null>(null);
 
-  async function reloadWorkspace() {
-    setLoading(true);
-    setError("");
-
-    try {
-      const nextWorkspace = await loadFamilyWorkspace();
-      setWorkspace(nextWorkspace);
-      setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
-    } catch (err) {
-      const fallback = buildLocalFamilyWorkspaceSnapshot();
-      setWorkspace((prev) => ({
-        ...fallback,
-        userId: prev.userId,
-      }));
-      setActiveLearnerIdState(applyActiveLearner(fallback));
-      setError("Family workspace is using the last local snapshot.");
-    } finally {
-      setLoading(false);
+  const reloadWorkspace = useCallback(async () => {
+    if (reloadInFlightRef.current) {
+      return reloadInFlightRef.current;
     }
-  }
 
-  function setWorkspacePatch(patch: {
+    const run = (async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const nextWorkspace = await loadFamilyWorkspace();
+        setWorkspace(nextWorkspace);
+        setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
+        setError(nextWorkspace.syncIssue ?? "");
+      } catch {
+        const fallback = buildLocalFamilyWorkspaceSnapshot();
+        setWorkspace((prev) => ({
+          ...fallback,
+          userId: prev.userId,
+          syncIssue: "Family workspace is using the last local snapshot.",
+        }));
+        setActiveLearnerIdState(applyActiveLearner(fallback));
+        setError("Family workspace is using the last local snapshot.");
+      } finally {
+        setLoading(false);
+        reloadInFlightRef.current = null;
+      }
+    })();
+
+    reloadInFlightRef.current = run;
+    return run;
+  }, []);
+
+  const setWorkspacePatch = useCallback((patch: {
     profile?: FamilyProfileRow | FamilySettings;
     learners?: FamilyLearner[];
     storageMode?: "database" | "local";
     userId?: string | null;
-  }) {
+  }) => {
     setWorkspace((prev) => {
       const nextWorkspace: FamilyWorkspaceState = {
         profile: patch.profile
@@ -133,9 +154,9 @@ export function FamilyWorkspaceProvider({
       setActiveLearnerIdState(applyActiveLearner(nextWorkspace));
       return nextWorkspace;
     });
-  }
+  }, []);
 
-  function handleSetActiveLearner(learnerId: string | null | undefined) {
+  const handleSetActiveLearner = useCallback((learnerId: string | null | undefined) => {
     const nextId = resolveCanonicalActiveLearnerId(
       workspace.learners,
       workspace.profile,
@@ -143,11 +164,11 @@ export function FamilyWorkspaceProvider({
     );
     setActiveLearnerId(nextId || null);
     setActiveLearnerIdState(nextId);
-  }
+  }, [workspace.learners, workspace.profile]);
 
   useEffect(() => {
     void reloadWorkspace();
-  }, [user?.id]);
+  }, [reloadWorkspace, user?.id]);
 
   useEffect(() => {
     function handleWorkspaceChanged() {
@@ -194,7 +215,7 @@ export function FamilyWorkspaceProvider({
       );
       window.removeEventListener("storage", handleStorage);
     };
-  }, [user?.id, workspace.learners, workspace.profile]);
+  }, [reloadWorkspace, workspace]);
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -210,7 +231,7 @@ export function FamilyWorkspaceProvider({
     }
 
     setActiveLearnerIdState(applyActiveLearner(workspace));
-  }, [workspace.learners, workspace.profile, activeLearnerId]);
+  }, [workspace, activeLearnerId]);
 
   const activeLearner =
     workspace.learners.find((learner) => learner.id === activeLearnerId) ?? null;
@@ -227,7 +248,16 @@ export function FamilyWorkspaceProvider({
       setActiveLearner: handleSetActiveLearner,
       setActiveLearnerId: handleSetActiveLearner,
     }),
-    [workspace, activeLearnerId, activeLearner, loading, error],
+    [
+      workspace,
+      activeLearnerId,
+      activeLearner,
+      loading,
+      error,
+      reloadWorkspace,
+      setWorkspacePatch,
+      handleSetActiveLearner,
+    ],
   );
 
   return (

@@ -43,6 +43,7 @@ export type FamilyWorkspaceState = {
   learners: FamilyLearner[];
   userId: string | null;
   storageMode: "database" | "local";
+  syncIssue?: string;
 };
 
 type LearnerIdentity = {
@@ -62,7 +63,16 @@ function isMissingColumnError(error: unknown) {
   const message = String(
     (error as { message?: unknown })?.message ?? "",
   ).toLowerCase();
-  return message.includes("does not exist") && message.includes("column");
+  return (
+    message.includes("column") ||
+    message.includes("schema cache") ||
+    message.includes("could not find")
+  );
+}
+
+function isDatabaseFamilyProfileId(value: unknown) {
+  const id = safe(value);
+  return !!id && id !== "local" && !id.startsWith("local-");
 }
 
 async function withTimeout<T>(
@@ -220,10 +230,15 @@ export async function loadLinkedLearners(
   userId: string,
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
-  const resolvedFamilyProfileId =
-    safe(familyProfileId) || (await resolveCurrentFamilyProfileId(userId));
+  const explicitFamilyProfileId = safe(familyProfileId);
+  if (explicitFamilyProfileId && !isDatabaseFamilyProfileId(explicitFamilyProfileId)) {
+    return [];
+  }
 
-  if (!resolvedFamilyProfileId) {
+  const resolvedFamilyProfileId =
+    explicitFamilyProfileId || (await resolveCurrentFamilyProfileId(userId));
+
+  if (!isDatabaseFamilyProfileId(resolvedFamilyProfileId)) {
     return [];
   }
 
@@ -297,19 +312,32 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     return localSnapshot;
   }
 
-  try {
-    const profile = await withTimeout(
-      loadFamilyProfile().catch(() => localProfile) as Promise<FamilyProfileRow>,
-      "load family profile",
-    );
-    const dbLearners = await withTimeout(
-      loadLinkedLearners(userId, profile.id).catch((error) => {
-        console.error("loadLinkedLearners fallback", error);
-        return localLearners;
-      }),
-      "load family learners",
-    );
+  let profile = localProfile;
+  let dbLearners: FamilyLearner[] = [];
+  let syncIssue = "";
 
+  try {
+    profile = await withTimeout(loadFamilyProfile(), "load family profile");
+  } catch (error) {
+    console.error("loadFamilyProfile fallback", error);
+    syncIssue = "Family profile is using the local fallback.";
+  }
+
+  if (!isDatabaseFamilyProfileId(profile.id)) {
+    syncIssue ||= "Family profile is using the local fallback.";
+  } else {
+    try {
+      dbLearners = await withTimeout(
+        loadLinkedLearners(userId, profile.id),
+        "load family learners",
+      );
+    } catch (error) {
+      console.error("loadLinkedLearners fallback", error);
+      syncIssue = "Learners are using the local fallback.";
+    }
+  }
+
+  try {
     const learners = mergeLearners(dbLearners, localLearners);
 
     const mergedProfile: FamilyProfileRow = {
@@ -323,7 +351,7 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     };
 
     persistSettingsToLocalStorage(mergedProfile);
-    persistLearnersToLocalCache(learners);
+    persistLearnersToLocalCache(learners, { notify: false });
 
     return {
       profile: mergedProfile,
@@ -334,12 +362,14 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
         dbLearners.length === 0
           ? "local"
           : "database",
+      syncIssue: syncIssue || undefined,
     };
   } catch (error) {
     console.error("loadFamilyWorkspace fallback", error);
     return {
       ...localSnapshot,
       userId,
+      syncIssue: "Family workspace is using the local fallback.",
     };
   }
 }
