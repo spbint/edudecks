@@ -66,7 +66,7 @@ const STANDARD_PROGRAMS: Array<{
     id: "maths",
     title: "Maths",
     subjectTitle: "Maths",
-    description: "Number, operations, measurement, data, geometry, patterns, fractions, and review.",
+    description: "Number, operations, measurement, data, space, patterns, fractions, and review.",
   },
   {
     id: "english",
@@ -197,7 +197,7 @@ const MATHS_YEAR_PROFILES: Record<string, MathsYearProfile> = {
     operations: "efficient operations across whole numbers, decimals, fractions, and percentages",
     measurement: "area, volume, time, rates, money, angle, scale, and conversion problems",
     data: "data investigations, graph critique, probability, and evidence-based claims",
-    geometry: "coordinates, transformations, angles, nets, and geometric reasoning",
+    geometry: "coordinates, transformations, angles, nets, and spatial reasoning",
     patterns: "rules, multiples, generalisations, and introductory algebraic thinking",
     fractions: "fractions, decimals, percentages, money, and revision",
     review: "whole-number, fraction, decimal, percentage, and problem-solving fluency",
@@ -682,7 +682,7 @@ function buildMathsNumberYearPath(input: {
 
 type MathsPathWeekTemplate = {
   title: string;
-  strandLabel: "Number" | "Operations" | "Measurement" | "Data" | "Geometry" | "Patterns" | "Fractions" | "Review";
+  strandLabel: "Number" | "Operations" | "Measurement" | "Data" | "Space" | "Patterns" | "Fractions" | "Review";
   describe: (profile: MathsYearProfile) => string;
 };
 
@@ -725,7 +725,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       },
       {
         title: "Shape and position",
-        strandLabel: "Geometry",
+        strandLabel: "Space",
         describe: (profile) => `Describe, sort, and compare ${profile.geometry}.`,
       },
       {
@@ -784,8 +784,8 @@ const MATHS_YEAR_PATH_TERMS: Array<{
         describe: (profile) => `Read displays, compare categories, and make claims from ${profile.data}.`,
       },
       {
-        title: "Geometry features",
-        strandLabel: "Geometry",
+        title: "Space features",
+        strandLabel: "Space",
         describe: (profile) => `Name features, compare shapes, and reason with ${profile.geometry}.`,
       },
       {
@@ -796,7 +796,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Term 2 review",
         strandLabel: "Review",
-        describe: (profile) => `Review operations, number lines, measurement, data, geometry, and patterns for ${profile.label}.`,
+        describe: (profile) => `Review operations, number lines, measurement, data, space, and patterns for ${profile.label}.`,
       },
     ],
   },
@@ -835,12 +835,12 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       },
       {
         title: "Angles and transformations",
-        strandLabel: "Geometry",
+        strandLabel: "Space",
         describe: (profile) => `Explore location, movement, angles, and transformations through ${profile.geometry}.`,
       },
       {
         title: "Location and mapping",
-        strandLabel: "Geometry",
+        strandLabel: "Space",
         describe: (profile) => `Use position, coordinates, direction, or mapping language within ${profile.geometry}.`,
       },
       {
@@ -851,7 +851,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Term 3 review",
         strandLabel: "Review",
-        describe: (profile) => `Connect operations, fractions, geometry, money contexts, and ${profile.patterns}.`,
+        describe: (profile) => `Connect operations, fractions, space, money contexts, and ${profile.patterns}.`,
       },
     ],
   },
@@ -884,8 +884,8 @@ const MATHS_YEAR_PATH_TERMS: Array<{
         describe: (profile) => `Use place value, estimation, and comparison across ${profile.comparing}.`,
       },
       {
-        title: "Geometry investigation",
-        strandLabel: "Geometry",
+        title: "Space investigation",
+        strandLabel: "Space",
         describe: (profile) => `Investigate, draw, build, or classify ideas from ${profile.geometry}.`,
       },
       {
@@ -896,7 +896,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Applied maths project",
         strandLabel: "Review",
-        describe: (profile) => `Apply number, operations, measurement, data, geometry, and fractions in one project.`,
+        describe: (profile) => `Apply number, operations, measurement, data, space, and fractions in one project.`,
       },
       {
         title: "Year consolidation",
@@ -1171,7 +1171,7 @@ function buildStandardProgramPathTerms(input: {
   if (input.programId === "maths") {
     return buildBalancedMathsYearPath({ yearKey });
   }
-  return buildGenericStandardYearPath({ programId: input.programId, yearKey });
+  return [];
 }
 
 function buildDraftProgram(input: {
@@ -1569,7 +1569,7 @@ export default function FamilyProgramsWorkspace() {
     setSelectedProgramId(next.id);
     setSelectedSegmentId(null);
     setShowNewProgramGuide(false);
-    setStatus("Next step: Place into My Calendar");
+    setStatus("Next: place this program into My Calendar.");
     setError("");
   }
 
@@ -1747,6 +1747,7 @@ export default function FamilyProgramsWorkspace() {
                   onToggleProgramPathTile={toggleProgramPathTile}
                   onToggleProgramPathTerm={toggleProgramPathTerm}
                   onToggleProgramPathYear={toggleProgramPathYear}
+                  onClearProgramPathSelection={() => setSelectedProgramPathTileIds([])}
                   onCreateDraft={handleCreateProgram}
                   onCancel={() => {
                     setShowNewProgramGuide(false);
@@ -1834,6 +1835,7 @@ export default function FamilyProgramsWorkspace() {
                       <div className="grid gap-1.5">
                         <div className={LABEL}>Outcome mapping</div>
                         <h2 className={H2}>Link standards later</h2>
+                        <p className={META}>Link standards after choosing the program path.</p>
                       </div>
                       <CurriculumTagPills
                         preset={preset}
@@ -1865,6 +1867,7 @@ export default function FamilyProgramsWorkspace() {
                     <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
                       <div className={LABEL}>Outcome mapping</div>
                       <h2 className={`mt-2 ${H2}`}>Select a segment</h2>
+                      <p className={`mt-2 ${META}`}>Link standards after choosing the program path.</p>
                     </section>
                   )}
 

@@ -257,40 +257,56 @@ function ProgramSetupSelect({
 
 function SuggestedProgramPath({
   terms,
+  pathwaySubtitle,
   selectedTileIds,
   onToggleTile,
   onToggleTerm,
   onToggleYear,
+  onClearSelection,
 }: {
   terms: SuggestedProgramPathTerm[];
+  pathwaySubtitle: string;
   selectedTileIds: string[];
   onToggleTile: (tileId: string) => void;
   onToggleTerm: (termId: string) => void;
   onToggleYear: () => void;
+  onClearSelection: () => void;
 }) {
   const allTileIds = terms.flatMap((term) => term.tiles.map((tile) => tile.id));
   const allYearSelected = allTileIds.length > 0 && allTileIds.every((tileId) => selectedTileIds.includes(tileId));
+  const hasSelectedTiles = selectedTileIds.length > 0;
 
   return (
     <section className="grid gap-4 rounded-[22px] border border-slate-200 bg-slate-50/70 p-4 md:col-span-2">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="grid gap-1.5">
-          <h3 className={H2}>Suggested year pathway</h3>
-          <p className={BODY}>Choose the weeks or term you want to turn into a program.</p>
+          <h3 className={H2}>Suggested year program</h3>
+          <p className={BODY}>{pathwaySubtitle}</p>
         </div>
         {terms.length ? (
-          <button
-            type="button"
-            onClick={onToggleYear}
-            className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            {allYearSelected ? "Clear year" : "Select entire year"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onToggleYear}
+              className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              {allYearSelected ? "Clear year" : "Select entire year"}
+            </button>
+            {hasSelectedTiles ? (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Clear selected weeks
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 
       {terms.length ? (
-        <div className="grid gap-4 xl:grid-cols-4">
+        <div className="grid gap-4">
         {terms.map((term) => {
           const termTileIds = term.tiles.map((tile) => tile.id);
           const allTermSelected = termTileIds.length > 0 && termTileIds.every((tileId) => selectedTileIds.includes(tileId));
@@ -306,11 +322,11 @@ function SuggestedProgramPath({
                   onClick={() => onToggleTerm(term.id)}
                   className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
                 >
-                  {allTermSelected ? "Clear Term" : "Select Term"}
+                  {allTermSelected ? "Clear term" : "Select term"}
                 </button>
               </div>
 
-              <div className="grid gap-2">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
                 {term.tiles.map((tile) => {
                   const selected = selectedTileIds.includes(tile.id);
                   return (
@@ -353,7 +369,7 @@ function SuggestedProgramPath({
         </div>
       ) : (
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-white px-4 py-5">
-          <div className={H3}>No suggested pathway yet for this area.</div>
+          <div className={H3}>Suggested pathway coming soon for this subject.</div>
         </div>
       )}
     </section>
@@ -372,6 +388,7 @@ export function ProgramGuidedSetupPanel({
   onToggleProgramPathTile,
   onToggleProgramPathTerm,
   onToggleProgramPathYear,
+  onClearProgramPathSelection,
   onCreateDraft,
   onCancel,
   canCreateDraft,
@@ -388,18 +405,25 @@ export function ProgramGuidedSetupPanel({
   onToggleProgramPathTile: (tileId: string) => void;
   onToggleProgramPathTerm: (termId: string) => void;
   onToggleProgramPathYear: () => void;
+  onClearProgramPathSelection: () => void;
   onCreateDraft: () => void;
   onCancel: () => void;
   canCreateDraft: boolean;
   prefillLabel: string;
 }) {
+  const selectedProgram = programOptions.find((program) => program.id === selectedProgramId);
+  const pathwaySubtitle =
+    selectedProgramId === "maths"
+      ? `Standard maths pathway \u00b7 ${selectedProgram?.yearLabel || "Year X"}`
+      : `${selectedProgram?.title || "Subject"} pathway`;
+
   return (
     <section className="grid gap-5 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="grid gap-1.5">
           <div className={LABEL}>Draft setup</div>
           <h2 className={H2}>Build a new program</h2>
-          <p className={BODY}>Choose a standard year program, then select the weeks to include.</p>
+          <p className={BODY}>Choose a standard year program, select weeks, then place the draft into My Calendar.</p>
         </div>
         {prefillLabel ? (
           <span className={`${CHIP_BASE} border-slate-200 bg-slate-50 text-slate-600`}>
@@ -449,15 +473,17 @@ export function ProgramGuidedSetupPanel({
 
         <SuggestedProgramPath
           terms={programPathTerms}
+          pathwaySubtitle={pathwaySubtitle}
           selectedTileIds={selectedProgramPathTileIds}
           onToggleTile={onToggleProgramPathTile}
           onToggleTerm={onToggleProgramPathTerm}
           onToggleYear={onToggleProgramPathYear}
+          onClearSelection={onClearProgramPathSelection}
         />
 
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4">
           <div className={LABEL}>Outcome mapping</div>
-          <h3 className={`mt-2 ${H3}`}>Link standards later</h3>
+          <p className={`mt-2 ${BODY}`}>Link standards after choosing the program path.</p>
         </section>
       </div>
 
@@ -468,7 +494,7 @@ export function ProgramGuidedSetupPanel({
           disabled={!canCreateDraft}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create program from selected weeks
+          Create draft program from selected weeks
         </button>
         <button
           type="button"
@@ -478,7 +504,7 @@ export function ProgramGuidedSetupPanel({
           Cancel
         </button>
         <span className={META}>
-          {canCreateDraft ? "Creates a local draft only." : "Select at least one week."}
+          {canCreateDraft ? "Creates a local draft only. Next: place this program into My Calendar." : "Select at least one week."}
         </span>
       </div>
     </section>
