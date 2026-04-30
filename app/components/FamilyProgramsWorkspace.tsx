@@ -66,7 +66,7 @@ const STANDARD_PROGRAMS: Array<{
     id: "maths",
     title: "Maths",
     subjectTitle: "Maths",
-    description: "Number, operations, patterns, fractions, money, and review.",
+    description: "Number, operations, measurement, data, geometry, patterns, fractions, and review.",
   },
   {
     id: "english",
@@ -90,116 +90,116 @@ const STANDARD_PROGRAMS: Array<{
 
 type MathsYearPathKey = "foundation" | 1 | 2 | 3 | 4 | 5 | 6;
 
-const MATHS_NUMBER_YEAR_PROFILES: Record<string, {
+type MathsYearProfile = {
   label: string;
   countRange: string;
-  representation: string;
+  representation?: string;
   placeValue: string;
   comparing: string;
-  addition: string;
-  subtraction: string;
-  pattern: string;
-  grouping: string;
+  addition?: string;
+  subtraction?: string;
+  operations: string;
+  measurement: string;
+  data: string;
+  geometry: string;
+  pattern?: string;
+  grouping?: string;
+  patterns: string;
   fractions: string;
-  money: string;
+  money?: string;
   review: string;
-}> = {
+};
+
+const MATHS_YEAR_PROFILES: Record<string, MathsYearProfile> = {
   foundation: {
     label: "Foundation",
     countRange: "small collections, oral counting, and numbers to 20",
-    representation: "objects, fingers, drawings, and simple marks",
     placeValue: "teen numbers as ten and some more",
     comparing: "more, less, same, before, and after",
-    addition: "joining small groups and counting all",
-    subtraction: "taking away from small groups",
-    pattern: "repeating patterns and counting by ones",
-    grouping: "sharing materials into equal groups",
+    operations: "joining, taking away, grouping, and sharing with concrete materials",
+    measurement: "direct comparisons of length, mass, capacity, duration, and everyday money",
+    data: "sorting, asking simple questions, and reading picture displays",
+    geometry: "shapes, position, movement, and everyday location language",
+    patterns: "repeating patterns, copy-change-continue routines, and counting by ones",
     fractions: "halves through folding, sharing, and everyday objects",
-    money: "coins as real objects to sort, count, and compare",
     review: "counting, matching, comparing, and explaining number choices",
   },
   1: {
     label: "Year 1",
     countRange: "small collections and two-digit numbers",
-    representation: "objects, drawings, numerals, ten-frames, and number lines",
     placeValue: "ones, tens, and teen numbers",
     comparing: "two-digit quantities with everyday language and symbols",
-    addition: "combine small groups and make ten",
-    subtraction: "take away from small collections",
-    pattern: "twos, fives, tens, and simple repeats",
-    grouping: "equal groups with hands-on materials",
+    operations: "addition, subtraction, equal groups, and make-ten strategies",
+    measurement: "informal units, days and months, simple time, and coin contexts",
+    data: "yes/no questions, categories, tally marks, and simple displays",
+    geometry: "2D shapes, 3D objects, turns, direction, and position",
+    patterns: "twos, fives, tens, repeated patterns, and simple pattern rules",
     fractions: "halves, coins, and everyday sharing",
-    money: "coins, small totals, and simple shop contexts",
     review: "two-digit number sense, facts, patterns, and sharing",
   },
   2: {
     label: "Year 2",
     countRange: "two- and three-digit numbers",
-    representation: "bundles, base-ten materials, drawings, and number lines",
     placeValue: "hundreds, tens, and ones",
     comparing: "three-digit numbers using place value and benchmarks",
-    addition: "mental addition with place value",
-    subtraction: "count back, bridge, and use difference",
-    pattern: "skip counting and growing patterns",
-    grouping: "arrays, equal groups, and sharing",
+    operations: "mental addition, subtraction, arrays, equal groups, and sharing",
+    measurement: "length, area, capacity, mass, time, calendars, and money totals",
+    data: "collecting data, making displays, and comparing categories",
+    geometry: "shape features, symmetry, turns, maps, and simple grids",
+    patterns: "skip counting, growing patterns, and rule-based sequences",
     fractions: "halves, quarters, money, and revision",
-    money: "coin collections, totals, change, and estimates",
     review: "place value, mental strategies, equal groups, and fractions",
   },
   3: {
     label: "Year 3",
     countRange: "numbers into the thousands",
-    representation: "expanded notation, number lines, models, and equations",
     placeValue: "thousands, hundreds, tens, and ones",
     comparing: "larger numbers using place value and efficient benchmarks",
-    addition: "efficient addition strategies",
-    subtraction: "efficient subtraction strategies",
-    pattern: "skip counting and number patterns",
-    grouping: "grouping, sharing, and early multiplication",
+    operations: "efficient addition, subtraction, multiplication, and division strategies",
+    measurement: "length, perimeter, mass, capacity, time, money, and unit choice",
+    data: "surveys, tables, column graphs, and interpreting displays",
+    geometry: "angles, 2D shapes, 3D objects, location, and transformations",
+    patterns: "skip counting, multiplication patterns, and number rules",
     fractions: "simple fractions, money, and revision",
-    money: "totals, change, rounding, and practical decisions",
     review: "number representation, operations, patterns, and fractions",
   },
   4: {
     label: "Year 4",
     countRange: "larger whole numbers",
-    representation: "expanded form, equations, arrays, and number lines",
     placeValue: "expanded notation and flexible partitioning",
     comparing: "large numbers and decimal-sized quantities",
-    addition: "multi-step addition problems",
-    subtraction: "multi-step subtraction problems",
-    pattern: "multiplicative patterns and rules",
-    grouping: "multiplication and division connections",
+    operations: "multi-step addition, subtraction, multiplication, and division problems",
+    measurement: "perimeter, area, volume, time, money, angles, and unit conversions",
+    data: "survey design, tables, displays, chance language, and comparisons",
+    geometry: "shape properties, angles, symmetry, transformations, and maps",
+    patterns: "multiplicative patterns, factors, multiples, and rules",
     fractions: "fractions, decimals, money, and revision",
-    money: "decimal notation, totals, change, and estimation",
     review: "large numbers, operations, fractions, decimals, and reasoning",
   },
   5: {
     label: "Year 5",
     countRange: "large whole numbers and decimals",
-    representation: "place-value charts, expanded decimals, models, and equations",
     placeValue: "place value across whole numbers and decimals",
     comparing: "whole numbers, decimals, and benchmark fractions",
-    addition: "addition with decimals and estimates",
-    subtraction: "subtraction with decimals and estimates",
-    pattern: "factors, multiples, and pattern rules",
-    grouping: "multiplication, division, and remainders",
+    operations: "decimal operations, written strategies, factors, multiples, and remainders",
+    measurement: "area, volume, time, rates, money, angles, and metric conversions",
+    data: "data collection, graph choice, averages, chance, and interpretation",
+    geometry: "angles, transformations, coordinates, nets, and shape classification",
+    patterns: "factors, multiples, growing patterns, and rule testing",
     fractions: "fractions, decimals, money, and revision",
-    money: "budgets, totals, discounts, change, and estimates",
     review: "decimals, fractions, operations, and flexible strategy choice",
   },
   6: {
     label: "Year 6",
     countRange: "whole numbers, decimals, and fractions",
-    representation: "equivalent forms, ratio-style models, number lines, and equations",
     placeValue: "renaming numbers across forms",
     comparing: "fractions, decimals, percentages, and large numbers",
-    addition: "efficient strategies across number types",
-    subtraction: "efficient strategies across number types",
-    pattern: "rules, multiples, and generalisations",
-    grouping: "multiplication and division with larger numbers",
+    operations: "efficient operations across whole numbers, decimals, fractions, and percentages",
+    measurement: "area, volume, time, rates, money, angle, scale, and conversion problems",
+    data: "data investigations, graph critique, probability, and evidence-based claims",
+    geometry: "coordinates, transformations, angles, nets, and geometric reasoning",
+    patterns: "rules, multiples, generalisations, and introductory algebraic thinking",
     fractions: "fractions, decimals, percentages, money, and revision",
-    money: "rates, totals, percentages, budgets, and estimates",
     review: "whole-number, fraction, decimal, percentage, and problem-solving fluency",
   },
 };
@@ -293,7 +293,7 @@ function buildMathsNumberYearPath(input: {
   strandLabel: string;
   strandOutcomes: Array<{ code: string; label: string }>;
 }): SuggestedProgramPathTerm[] {
-  const profile = MATHS_NUMBER_YEAR_PROFILES[input.yearKey] ?? MATHS_NUMBER_YEAR_PROFILES[3];
+  const profile = MATHS_YEAR_PROFILES[input.yearKey] ?? MATHS_YEAR_PROFILES[3];
   const strandLabel = input.strandLabel || "Number";
   const terms = [
     {
@@ -680,6 +680,261 @@ function buildMathsNumberYearPath(input: {
   }));
 }
 
+type MathsPathWeekTemplate = {
+  title: string;
+  strandLabel: "Number" | "Operations" | "Measurement" | "Data" | "Geometry" | "Patterns" | "Fractions" | "Review";
+  describe: (profile: MathsYearProfile) => string;
+};
+
+const MATHS_YEAR_PATH_TERMS: Array<{
+  term: number;
+  weeks: MathsPathWeekTemplate[];
+}> = [
+  {
+    term: 1,
+    weeks: [
+      {
+        title: "Number sense",
+        strandLabel: "Number",
+        describe: (profile) => `Represent, count, and compare ${profile.countRange}.`,
+      },
+      {
+        title: "Place value",
+        strandLabel: "Number",
+        describe: (profile) => `Build confidence with ${profile.placeValue}.`,
+      },
+      {
+        title: "Comparing and ordering",
+        strandLabel: "Number",
+        describe: (profile) => `Order and compare ${profile.comparing}.`,
+      },
+      {
+        title: "Addition foundations",
+        strandLabel: "Operations",
+        describe: (profile) => `Start efficient work with ${profile.operations}.`,
+      },
+      {
+        title: "Subtraction foundations",
+        strandLabel: "Operations",
+        describe: (profile) => `Model take-away, difference, and inverse thinking through ${profile.operations}.`,
+      },
+      {
+        title: "Measurement benchmarks",
+        strandLabel: "Measurement",
+        describe: (profile) => `Use practical benchmarks for ${profile.measurement}.`,
+      },
+      {
+        title: "Shape and position",
+        strandLabel: "Geometry",
+        describe: (profile) => `Describe, sort, and compare ${profile.geometry}.`,
+      },
+      {
+        title: "Data questions",
+        strandLabel: "Data",
+        describe: (profile) => `Ask useful questions and begin ${profile.data}.`,
+      },
+      {
+        title: "Patterns and rules",
+        strandLabel: "Patterns",
+        describe: (profile) => `Build and explain ${profile.patterns}.`,
+      },
+      {
+        title: "Term 1 review",
+        strandLabel: "Review",
+        describe: (profile) => `Consolidate ${profile.countRange}, early operations, measurement, data, and shape work.`,
+      },
+    ],
+  },
+  {
+    term: 2,
+    weeks: [
+      {
+        title: "Mental addition",
+        strandLabel: "Operations",
+        describe: (profile) => `Choose mental and modelled strategies for ${profile.operations}.`,
+      },
+      {
+        title: "Mental subtraction",
+        strandLabel: "Operations",
+        describe: (profile) => `Use counting back, counting up, partitioning, or written models for ${profile.operations}.`,
+      },
+      {
+        title: "Number lines",
+        strandLabel: "Number",
+        describe: (profile) => `Locate, estimate, and reason with ${profile.countRange} on number lines.`,
+      },
+      {
+        title: "Time and calendars",
+        strandLabel: "Measurement",
+        describe: (profile) => `Connect time, duration, and calendar thinking within ${profile.measurement}.`,
+      },
+      {
+        title: "Length, mass, and capacity",
+        strandLabel: "Measurement",
+        describe: (profile) => `Measure, compare, estimate, and explain choices for ${profile.measurement}.`,
+      },
+      {
+        title: "Collecting data",
+        strandLabel: "Data",
+        describe: (profile) => `Plan a small investigation, gather data, and organise results through ${profile.data}.`,
+      },
+      {
+        title: "Interpreting displays",
+        strandLabel: "Data",
+        describe: (profile) => `Read displays, compare categories, and make claims from ${profile.data}.`,
+      },
+      {
+        title: "Geometry features",
+        strandLabel: "Geometry",
+        describe: (profile) => `Name features, compare shapes, and reason with ${profile.geometry}.`,
+      },
+      {
+        title: "Pattern problem solving",
+        strandLabel: "Patterns",
+        describe: (profile) => `Use ${profile.patterns} to predict, explain, and solve problems.`,
+      },
+      {
+        title: "Term 2 review",
+        strandLabel: "Review",
+        describe: (profile) => `Review operations, number lines, measurement, data, geometry, and patterns for ${profile.label}.`,
+      },
+    ],
+  },
+  {
+    term: 3,
+    weeks: [
+      {
+        title: "Grouping and arrays",
+        strandLabel: "Operations",
+        describe: (profile) => `Represent equal groups, arrays, sharing, and related operations through ${profile.operations}.`,
+      },
+      {
+        title: "Multiplication thinking",
+        strandLabel: "Operations",
+        describe: (profile) => `Connect repeated groups, factors, models, and efficient strategies for ${profile.operations}.`,
+      },
+      {
+        title: "Division thinking",
+        strandLabel: "Operations",
+        describe: (profile) => `Use sharing, grouping, remainders where useful, and inverse thinking for ${profile.operations}.`,
+      },
+      {
+        title: "Fractions as equal parts",
+        strandLabel: "Fractions",
+        describe: (profile) => `Represent ${profile.fractions}.`,
+      },
+      {
+        title: "Fractions on number lines",
+        strandLabel: "Fractions",
+        describe: (profile) => `Place fraction ideas alongside whole-number and decimal thinking for ${profile.label}.`,
+      },
+      {
+        title: "Money and practical number",
+        strandLabel: "Number",
+        describe: (profile) => `Use number sense and operations in practical money, estimating, and checking contexts.`,
+      },
+      {
+        title: "Angles and transformations",
+        strandLabel: "Geometry",
+        describe: (profile) => `Explore location, movement, angles, and transformations through ${profile.geometry}.`,
+      },
+      {
+        title: "Location and mapping",
+        strandLabel: "Geometry",
+        describe: (profile) => `Use position, coordinates, direction, or mapping language within ${profile.geometry}.`,
+      },
+      {
+        title: "Growing patterns",
+        strandLabel: "Patterns",
+        describe: (profile) => `Extend, describe, and test rules in ${profile.patterns}.`,
+      },
+      {
+        title: "Term 3 review",
+        strandLabel: "Review",
+        describe: (profile) => `Connect operations, fractions, geometry, money contexts, and ${profile.patterns}.`,
+      },
+    ],
+  },
+  {
+    term: 4,
+    weeks: [
+      {
+        title: "Fractions and decimals",
+        strandLabel: "Fractions",
+        describe: (profile) => `Connect equivalent forms and practical models for ${profile.fractions}.`,
+      },
+      {
+        title: "Measurement project",
+        strandLabel: "Measurement",
+        describe: (profile) => `Plan, measure, record, and explain a practical task using ${profile.measurement}.`,
+      },
+      {
+        title: "Chance and data decisions",
+        strandLabel: "Data",
+        describe: (profile) => `Use data and chance language to compare outcomes and justify decisions.`,
+      },
+      {
+        title: "Multi-step operations",
+        strandLabel: "Operations",
+        describe: (profile) => `Choose efficient strategies for multi-step problems involving ${profile.operations}.`,
+      },
+      {
+        title: "Mixed number reasoning",
+        strandLabel: "Number",
+        describe: (profile) => `Use place value, estimation, and comparison across ${profile.comparing}.`,
+      },
+      {
+        title: "Geometry investigation",
+        strandLabel: "Geometry",
+        describe: (profile) => `Investigate, draw, build, or classify ideas from ${profile.geometry}.`,
+      },
+      {
+        title: "Pattern investigation",
+        strandLabel: "Patterns",
+        describe: (profile) => `Create a pattern investigation and explain the rule behind ${profile.patterns}.`,
+      },
+      {
+        title: "Applied maths project",
+        strandLabel: "Review",
+        describe: (profile) => `Apply number, operations, measurement, data, geometry, and fractions in one project.`,
+      },
+      {
+        title: "Year consolidation",
+        strandLabel: "Review",
+        describe: (profile) => `Review ${profile.review}.`,
+      },
+      {
+        title: "Next-year bridge",
+        strandLabel: "Review",
+        describe: () => "Identify secure skills, support needs, and the next learning move.",
+      },
+    ],
+  },
+];
+
+function buildBalancedMathsYearPath(input: {
+  yearKey: MathsYearPathKey;
+}): SuggestedProgramPathTerm[] {
+  const profile = MATHS_YEAR_PROFILES[input.yearKey] ?? MATHS_YEAR_PROFILES[3];
+
+  return MATHS_YEAR_PATH_TERMS.map((term) => ({
+    id: `maths-${input.yearKey}-term-${term.term}`,
+    term: term.term,
+    label: `Term ${term.term}`,
+    tiles: term.weeks.map((week, weekIndex) =>
+      makePathTile({
+        programId: "maths",
+        yearKey: input.yearKey,
+        term: term.term,
+        week: (term.term - 1) * 10 + weekIndex + 1,
+        title: week.title,
+        description: week.describe(profile),
+        strandLabel: week.strandLabel,
+      }),
+    ),
+  }));
+}
+
 const STANDARD_PROGRAM_TERM_THEMES: Record<Exclude<StandardProgramId, "maths">, Array<{
   strandLabel: string;
   focus: string;
@@ -914,11 +1169,7 @@ function buildStandardProgramPathTerms(input: {
   const yearKey = yearPathKeyFromLabel(input.yearLevel);
   if (!yearKey) return [];
   if (input.programId === "maths") {
-    return buildMathsNumberYearPath({
-      yearKey,
-      strandLabel: "Maths",
-      strandOutcomes: [],
-    });
+    return buildBalancedMathsYearPath({ yearKey });
   }
   return buildGenericStandardYearPath({ programId: input.programId, yearKey });
 }
@@ -1067,7 +1318,7 @@ export default function FamilyProgramsWorkspace() {
   const selectedStandardProgram =
     STANDARD_PROGRAMS.find((program) => program.id === programSetupDraft.programId) ??
     STANDARD_PROGRAMS[0]!;
-  const selectedProgramYearLabel = yearLevelOptionLabel(programSetupDraft.yearLevel);
+  const selectedProgramYearLabel = yearLevelOptionLabel(programSetupDraft.yearLevel) || "Year X";
   const standardProgramOptions: StandardProgramOption[] = useMemo(
     () =>
       STANDARD_PROGRAMS.map((program) => ({
@@ -1581,13 +1832,13 @@ export default function FamilyProgramsWorkspace() {
                   {selectedSegment ? (
                     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                       <div className="grid gap-1.5">
-                        <div className={LABEL}>Curriculum</div>
-                        <h2 className={H2}>Linked outcomes</h2>
+                        <div className={LABEL}>Outcome mapping</div>
+                        <h2 className={H2}>Link standards later</h2>
                       </div>
                       <CurriculumTagPills
                         preset={preset}
                         outcomeIds={selectedSegment.curriculumOutcomeIds}
-                        emptyLabel="No linked outcomes yet"
+                        emptyLabel="No linked standards yet"
                       />
                       {editingCurriculumSegmentId === selectedSegment.id ? (
                         <CurriculumAttachPanel
@@ -1606,13 +1857,13 @@ export default function FamilyProgramsWorkspace() {
                           onClick={() => setEditingCurriculumSegmentId(selectedSegment.id)}
                           className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
                         >
-                          {selectedSegment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+                          {selectedSegment.curriculumOutcomeIds.length ? "Edit standards" : "Link standards"}
                         </button>
                       )}
                     </section>
                   ) : (
                     <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
-                      <div className={LABEL}>Curriculum</div>
+                      <div className={LABEL}>Outcome mapping</div>
                       <h2 className={`mt-2 ${H2}`}>Select a segment</h2>
                     </section>
                   )}

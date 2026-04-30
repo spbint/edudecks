@@ -456,8 +456,8 @@ export function ProgramGuidedSetupPanel({
         />
 
         <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4">
-          <div className={LABEL}>Curriculum mapping</div>
-          <h3 className={`mt-2 ${H3}`}>Map outcomes later</h3>
+          <div className={LABEL}>Outcome mapping</div>
+          <h3 className={`mt-2 ${H3}`}>Link standards later</h3>
         </section>
       </div>
 
@@ -468,7 +468,7 @@ export function ProgramGuidedSetupPanel({
           disabled={!canCreateDraft}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create program from selection
+          Create program from selected weeks
         </button>
         <button
           type="button"
@@ -621,7 +621,7 @@ export function ProgramSegmentCard({
                 onClick={() => onAttachCurriculum(segment.id)}
                 className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
               >
-                {segment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+                {segment.curriculumOutcomeIds.length ? "Edit standards" : "Link standards"}
               </button>
             </div>
           </div>
