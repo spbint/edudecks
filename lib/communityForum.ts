@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, supabaseProjectRef } from "@/lib/supabaseClient";
 
 export type ForumThreadStatus = "under_review" | "planned" | "released" | null;
 
@@ -613,8 +613,23 @@ export function buildCommunityThreadHref(categorySlug: string, threadId: string)
 }
 
 export async function requireCommunityUserId(): Promise<string | null> {
-  const response = await supabase.auth.getUser();
-  return response.data.user?.id || null;
+  const [userResponse, sessionResponse] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.auth.getSession(),
+  ]);
+
+  const userId = userResponse.data.user?.id || null;
+  const hasAccessToken = Boolean(sessionResponse.data.session?.access_token);
+
+  if (typeof window !== "undefined") {
+    console.info("[CommunityAuthDiag]", {
+      supabaseProjectRef,
+      hasAccessToken,
+      userId,
+    });
+  }
+
+  return userId;
 }
 
 export async function loadCommunityHomeData(viewerId: string) {
