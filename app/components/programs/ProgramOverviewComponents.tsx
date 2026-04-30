@@ -16,6 +16,51 @@ export const META = "text-[13px] leading-5 text-slate-500";
 export const INPUT =
   "w-full rounded-[14px] border border-slate-200 bg-white px-4 py-3 text-[14px] text-slate-900 outline-none transition focus:border-blue-200 focus:ring-4 focus:ring-blue-100";
 
+const CHIP_BASE =
+  "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]";
+
+function readinessForProgram(program: Program) {
+  if (!program.segments.length) {
+    return {
+      label: "Needs segment",
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (!program.scheduleMapping?.calendarTemplateSlotId) {
+    return {
+      label: "Needs slot",
+      tone: "border-blue-200 bg-blue-50 text-blue-700",
+    };
+  }
+
+  return {
+    label: "Ready",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+}
+
+function readinessForSegment(segment: ProgramSegment, hasSlot: boolean) {
+  if (!segment.title.trim()) {
+    return {
+      label: "Needs segment",
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (!hasSlot) {
+    return {
+      label: "Needs slot",
+      tone: "border-blue-200 bg-blue-50 text-blue-700",
+    };
+  }
+
+  return {
+    label: "Ready",
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+}
+
 export function ProgramsFirstRunCard({
   onStartSetup,
   onLearnHow,
@@ -75,11 +120,10 @@ export function ProgramsFirstRunCard({
   ] as const;
 
   return (
-    <section className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+    <section className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_100%)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Getting started</div>
         <h2 className={H2}>Build your first program</h2>
-        <p className={BODY}>Build the sequence here, then place it into My Plan.</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -117,7 +161,7 @@ export function ProgramsFirstRunCard({
             onClick={onLearnHow}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
           >
-            Learn how it works
+            View planner
           </button>
         ) : null}
       </div>
@@ -156,11 +200,8 @@ export function ProgramGenerationSuccessBanner({
         <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
           Generation complete
         </div>
-        <h2 className={H2}>Your program is now live in your weekly plan</h2>
-        <p className={BODY}>
-          {count} live planning block{count === 1 ? "" : "s"} {count === 1 ? "is" : "are"} ready in My Plan and can be adjusted there at any time.
-        </p>
-        <p className={META}>Program generated into My Plan. Open My Plan to adjust the week.</p>
+        <h2 className={H2}>{count} block{count === 1 ? "" : "s"} generated into My Plan</h2>
+        <p className={META}>Open My Plan to adjust the live week.</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button
@@ -195,18 +236,12 @@ export function ProgramList({
   onCreate: () => void;
   firstRun?: boolean;
 }) {
-  const heading = firstRun ? "First program" : "Program list";
-  const support = firstRun
-    ? "Rename, segment, place."
-    : "Choose a sequence to shape.";
-
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <div className={LABEL}>My Programs</div>
-          <h2 className={H2}>{heading}</h2>
-          <p className={BODY}>{support}</p>
+          <h2 className={H2}>Program list</h2>
         </div>
         <button
           type="button"
@@ -221,15 +256,31 @@ export function ProgramList({
         </button>
       </div>
 
+      {!programs.length ? (
+        <div className="grid gap-3 rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
+          <div className={H3}>No programs yet</div>
+          <div className={BODY}>Start with one short sequence you can place into the week.</div>
+          <button
+            type="button"
+            onClick={onCreate}
+            className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+          >
+            New program
+          </button>
+        </div>
+      ) : null}
+
       <div className="grid gap-3">
         {programs.map((program) => {
           const active = program.id === selectedProgramId;
+          const readiness = readinessForProgram(program);
           return (
             <button
               key={program.id}
               type="button"
               onClick={() => onSelect(program.id)}
-              className={`grid gap-3 rounded-[18px] border px-4 py-4 text-left transition ${
+              aria-current={active ? "true" : undefined}
+              className={`relative grid gap-3 overflow-hidden rounded-[18px] border px-4 py-4 text-left transition ${
                 active
                   ? firstRun
                     ? "border-amber-200 bg-amber-50 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]"
@@ -237,23 +288,26 @@ export function ProgramList({
                   : "border-slate-200 bg-slate-50 hover:bg-slate-100"
               }`}
             >
+              <span
+                aria-hidden="true"
+                className={`absolute inset-y-0 left-0 w-1 ${active ? "bg-slate-950" : "bg-transparent"}`}
+              />
               <div className="flex items-start justify-between gap-3">
                 <span className={H3}>{program.title}</span>
-                <span className="inline-flex min-w-8 justify-center rounded-full border border-slate-200 bg-white px-2 py-1 text-[12px] font-semibold text-slate-600">
-                  {program.segments.length}
+                <span className={`${CHIP_BASE} ${readiness.tone}`}>
+                  {readiness.label}
                 </span>
               </div>
               <span className={META}>
                 {[program.subjectId, program.periodLabel].filter(Boolean).join(" • ")}
               </span>
-              <span className={META}>
-                {program.segments.length} segment{program.segments.length === 1 ? "" : "s"}
-              </span>
-              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className="h-full rounded-full bg-slate-950"
-                  style={{ width: `${Math.min(100, Math.max(12, program.segments.length * 16))}%` }}
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-slate-600">
+                  {program.segments.length} segment{program.segments.length === 1 ? "" : "s"}
+                </span>
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[12px] font-semibold text-slate-600">
+                  {program.periodLabel || "Draft"}
+                </span>
               </div>
             </button>
           );
@@ -273,36 +327,8 @@ export function ProgramEditor({
   if (!program) {
     return (
       <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
-        <div className={LABEL}>Program onboarding</div>
-        <h2 className={`mt-2 ${H2}`}>Move from template to live plan in three gentle steps</h2>
-        <div className="mt-4 grid gap-3">
-          {[
-            {
-              step: "Step 1",
-              title: "Create calendar template",
-              note: "Set up the reusable weekly rhythm your programs can land inside.",
-            },
-            {
-              step: "Step 2",
-              title: "Build program",
-              note: "Shape a term, unit, or sequence without scheduling every week manually.",
-            },
-            {
-              step: "Step 3",
-              title: "Generate into plan",
-              note: "Drop the program into a calendar slot and let My Plan pre-populate the live week.",
-            },
-          ].map((item) => (
-            <article
-              key={item.step}
-              className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
-            >
-              <div className={LABEL}>{item.step}</div>
-              <div className={H3}>{item.title}</div>
-              <div className={BODY}>{item.note}</div>
-            </article>
-          ))}
-        </div>
+        <div className={LABEL}>Program detail</div>
+        <h2 className={`mt-2 ${H2}`}>No program selected</h2>
       </section>
     );
   }
@@ -310,8 +336,8 @@ export function ProgramEditor({
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Program frame</div>
-        <h2 className={H2}>Name, subject, span</h2>
+        <div className={LABEL}>Program setup</div>
+        <h2 className={H2}>Name and span</h2>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -390,13 +416,17 @@ export function ProgramEditor({
 
 export function ProgramSegmentCard({
   segment,
+  hasSlot = true,
   onChange,
   onAttachCurriculum,
 }: {
   segment: ProgramSegment;
+  hasSlot?: boolean;
   onChange: (segment: ProgramSegment) => void;
   onAttachCurriculum: (segmentId: string) => void;
 }) {
+  const readiness = readinessForSegment(segment, hasSlot);
+
   return (
     <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.03)]">
       <div className="grid md:grid-cols-[74px_minmax(0,1fr)]">
@@ -412,16 +442,20 @@ export function ProgramSegmentCard({
         <div className="grid gap-4 p-4">
           <div className="flex items-start justify-between gap-3">
             <div className="grid gap-1">
-              <div className={LABEL}>Sequence row</div>
-              <div className={H3}>{segment.title}</div>
+              <div className={LABEL}>Segment {segment.order}</div>
+              <div className={H3}>{segment.title || "Untitled segment"}</div>
+              {segment.notes ? <div className={META}>{segment.notes}</div> : null}
             </div>
-            <button
-              type="button"
-              onClick={() => onAttachCurriculum(segment.id)}
-              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
-            >
-              {segment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
-            </button>
+            <div className="flex flex-wrap justify-end gap-2">
+              <span className={`${CHIP_BASE} ${readiness.tone}`}>{readiness.label}</span>
+              <button
+                type="button"
+                onClick={() => onAttachCurriculum(segment.id)}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                {segment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+              </button>
+            </div>
           </div>
 
           <input
@@ -436,10 +470,12 @@ export function ProgramSegmentCard({
             onChange={(event) => onChange({ ...segment, notes: event.target.value })}
             placeholder="Focus for this segment"
           />
-          <div className={META}>
-            {segment.curriculumOutcomeIds.length
-              ? `${segment.curriculumOutcomeIds.length} linked outcome${segment.curriculumOutcomeIds.length === 1 ? "" : "s"}`
-              : "No linked outcomes yet"}
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[12px] font-semibold text-slate-600">
+              {segment.curriculumOutcomeIds.length
+                ? `${segment.curriculumOutcomeIds.length} outcome${segment.curriculumOutcomeIds.length === 1 ? "" : "s"}`
+                : "No outcomes"}
+            </span>
           </div>
         </div>
       </div>
@@ -513,35 +549,32 @@ export function ProgramCalendarAssignmentPanel({
               : "Choose where this program should land";
   const panelNote =
     state === "blocked_template"
-      ? "Set the reusable week first."
+      ? "Choose a calendar slot"
       : state === "blocked_slots"
-        ? "Add one reusable slot."
+        ? "Choose a calendar slot"
         : state === "ready_choose_slot"
-        ? "Pick the weekly slot."
+        ? "Choose a calendar slot"
         : state === "ready_choose_date"
-          ? "Choose the first week."
+          ? "Choose a start date"
           : state === "blocked_learner"
-            ? "Choose a learner."
+            ? "Choose a learner"
             : state === "blocked_segments"
-              ? "Add one segment."
+              ? "Add at least one segment"
             : state === "ready_generate"
               ? "Generate blocks into My Plan."
-              : "Choose slot and start date.";
+              : "Choose a calendar slot";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Program to calendar</div>
+        <div className={LABEL}>Calendar slot</div>
         <h2 className={H2}>{panelTitle}</h2>
-        <p className={BODY}>{panelNote}</p>
+        <p className={BODY}>Choose where this program belongs in the week.</p>
       </div>
 
       {!templates.length ? (
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
           <div className={H3}>My Calendar rhythm not set yet</div>
-          <div className={`mt-2 ${BODY}`}>
-            Set the weekly rhythm in My Calendar first.
-          </div>
           <Link
             href="/my-calendar"
             className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -569,7 +602,7 @@ export function ProgramCalendarAssignmentPanel({
           </select>
         </label>
         <label className="grid gap-2">
-          <span className={LABEL}>Template slot</span>
+          <span className={LABEL}>Calendar slot</span>
           <select
             className={INPUT}
             value={selectedSlotId}
@@ -597,7 +630,8 @@ export function ProgramCalendarAssignmentPanel({
       </div>
 
       <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-        <div className={H3}>{selectedSlot?.label || "No slot selected"}</div>
+        <div className={LABEL}>Selected slot</div>
+        <div className={`mt-2 ${H3}`}>{selectedSlot?.label || "No slot selected"}</div>
         <div className={`mt-1 ${META}`}>
           {[
             selectedSlot?.subjectId,
@@ -606,32 +640,33 @@ export function ProgramCalendarAssignmentPanel({
             .filter(Boolean)
             .join(" • ") || "Choose a slot to continue"}
         </div>
-        <div className={`mt-3 ${BODY}`}>
-          {generationReady ? "Ready to generate into My Plan." : "Choose template, slot, and start date."}
-        </div>
       </div>
 
       <div className="grid gap-3">
         {!templates.length ? (
-          <div className={META}>
-            Set your weekly rhythm in My Calendar first, then return here to map the sequence into one reusable slot.
-          </div>
+          <div className={META}>Choose a calendar slot</div>
         ) : !selectedTemplateId ? (
-          <div className={META}>Choose where this program should land.</div>
+          <div className={META}>Choose a calendar slot</div>
         ) : !slots.length ? (
-          <div className={META}>Create a calendar slot first.</div>
-        ) : !selectedSlotId ? (
-          <div className={META}>Choose a slot to continue.</div>
-        ) : !startDate ? (
-          <div className={META}>Choose when this sequence should begin.</div>
-        ) : !hasLearner ? (
-          <div className={META}>Choose a learner above to continue.</div>
-        ) : !hasSegments ? (
-          <div className={META}>Add at least one segment to continue.</div>
-        ) : (
-          <div className={META}>
-            Segments will flow forward one week at a time.
+          <div className="flex flex-wrap items-center gap-3">
+            <div className={META}>Choose a calendar slot</div>
+            <Link
+              href="/my-calendar"
+              className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Open My Calendar
+            </Link>
           </div>
+        ) : !selectedSlotId ? (
+          <div className={META}>Choose a calendar slot</div>
+        ) : !startDate ? (
+          <div className={META}>Choose a start date</div>
+        ) : !hasLearner ? (
+          <div className={META}>Choose a learner</div>
+        ) : !hasSegments ? (
+          <div className={META}>Add at least one segment</div>
+        ) : (
+          <div className={META}>{panelNote}</div>
         )}
         <button
           type="button"

@@ -58,19 +58,19 @@ function buildSeedProgram(input: {
   const segments = [
     {
       title: "Number patterns and place value",
-      notes: "Start with number fluency and warm, visible maths routines.",
+      notes: "Number fluency and visible maths routines.",
     },
     {
       title: "Addition and subtraction strategies",
-      notes: "Use real materials and short practice blocks to build confidence.",
+      notes: "Materials, models, and short practice blocks.",
     },
     {
       title: "Fractions in everyday contexts",
-      notes: "Keep fractions practical through food, measuring, and sharing.",
+      notes: "Food, measuring, sharing, and comparison.",
     },
     {
       title: "Measurement and time",
-      notes: "Bring maths into the week through time, length, and simple comparisons.",
+      notes: "Time, length, and practical comparisons.",
     },
   ];
 
@@ -96,12 +96,55 @@ function ymd(date: Date) {
 
 function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "load") {
-    return "My Programs is still settling. Your sequence is safe, and you can try again in a moment.";
+    return "My Programs could not load. You can keep shaping a draft here.";
   }
   if (kind === "save") {
-    return "Your sequence could not be saved just yet. Keep shaping it here, then save again in a moment.";
+    return "Your program could not be saved just yet. Keep editing, then save again.";
   }
-  return "Generation is not ready just yet. Check the My Calendar slot and start date, then try again in a moment.";
+  return "Generation is not ready yet. Check learner, slot, segment, and start date.";
+}
+
+const DETAIL_CHIP =
+  "inline-flex w-fit items-center rounded-full border px-3 py-1.5 text-[12px] font-semibold uppercase tracking-[0.12em]";
+
+function detailStatus(input: {
+  hasLearner: boolean;
+  hasSegments: boolean;
+  hasCalendarTemplate: boolean;
+  hasSlot: boolean;
+  hasStartDate: boolean;
+  generationReady: boolean;
+}) {
+  if (!input.hasLearner) {
+    return { label: "Choose learner", tone: "border-slate-200 bg-slate-50 text-slate-600" };
+  }
+  if (!input.hasSegments) {
+    return { label: "Needs segment", tone: "border-amber-200 bg-amber-50 text-amber-700" };
+  }
+  if (!input.hasCalendarTemplate || !input.hasSlot) {
+    return { label: "Needs slot", tone: "border-blue-200 bg-blue-50 text-blue-700" };
+  }
+  if (!input.hasStartDate) {
+    return { label: "Needs date", tone: "border-violet-200 bg-violet-50 text-violet-700" };
+  }
+  if (input.generationReady) {
+    return { label: "Ready", tone: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  }
+  return { label: "Draft workspace", tone: "border-slate-200 bg-slate-50 text-slate-600" };
+}
+
+function generationGuidance(input: {
+  hasLearner: boolean;
+  hasSegments: boolean;
+  hasCalendarTemplate: boolean;
+  hasSlot: boolean;
+  hasStartDate: boolean;
+}) {
+  if (!input.hasLearner) return "Choose a learner";
+  if (!input.hasSegments) return "Add at least one segment";
+  if (!input.hasCalendarTemplate || !input.hasSlot) return "Choose a calendar slot";
+  if (!input.hasStartDate) return "Choose a start date";
+  return "Ready. Generate this program into My Plan.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -161,29 +204,16 @@ export default function FamilyProgramsWorkspace() {
           }).catch(() => 0);
         }
         if (!mounted) return;
-        let filteredPrograms = nextPrograms.filter(
+
+        const filteredPrograms = nextPrograms.filter(
           (program) => !program.learnerId || program.learnerId === activeLearner?.id,
         );
+
         setLoadedProgramCount(filteredPrograms.length);
-        if (!filteredPrograms.length) {
-          filteredPrograms = [
-            buildSeedProgram({
-              familyId: workspace.profile.id,
-              learnerId: activeLearner?.id || null,
-              frameworkId: learningConfig.frameworkId,
-              jurisdictionId: learningConfig.jurisdictionId,
-              periodLabel:
-                learningConfig.academicStructureType === "semesters"
-                  ? "Semester 1"
-                  : "Term 1",
-            }),
-          ];
-        }
         setPrograms(filteredPrograms);
         setTemplates(nextTemplates);
         setGeneratedBlockCount(generatedCount);
-        const firstProgram = filteredPrograms[0] ?? null;
-        setSelectedProgramId(firstProgram?.id || "");
+        setSelectedProgramId(filteredPrograms[0]?.id || "");
         setAssignmentTemplateId(nextTemplates[0]?.id || "");
       } catch {
         if (!mounted) return;
@@ -197,18 +227,31 @@ export default function FamilyProgramsWorkspace() {
     return () => {
       mounted = false;
     };
-  }, [activeLearner?.id, workspace.profile.id]);
+  }, [
+    activeLearner?.id,
+    learningConfig.academicStructureType,
+    learningConfig.frameworkId,
+    learningConfig.jurisdictionId,
+    workspace.profile.id,
+  ]);
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === selectedProgramId) ?? null,
     [programs, selectedProgramId],
   );
+  const selectedTemplate = useMemo(
+    () => templates.find((template) => template.id === assignmentTemplateId) ?? null,
+    [assignmentTemplateId, templates],
+  );
+  const selectedSlot = selectedTemplate?.slots.find((slot) => slot.id === assignmentSlotId) ?? null;
   const hasCalendarTemplate = templates.some((template) => template.slots.length > 0);
   const hasPrograms = loadedProgramCount > 0;
   const hasVisiblePrograms = programs.length > 0;
   const hasGeneratedItems = generatedBlockCount > 0;
   const hasLearnerSelected = Boolean(activeLearner?.id);
   const hasProgramSegments = Boolean(selectedProgram?.segments.length);
+  const hasCalendarSlot = Boolean(selectedSlot);
+  const hasStartDate = Boolean(assignmentStartDate);
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
   );
@@ -225,6 +268,28 @@ export default function FamilyProgramsWorkspace() {
 
   const selectedSegment =
     selectedProgram?.segments.find((segment) => segment.id === selectedSegmentId) ?? null;
+  const selectedStatus = detailStatus({
+    hasLearner: hasLearnerSelected,
+    hasSegments: hasProgramSegments,
+    hasCalendarTemplate,
+    hasSlot: hasCalendarSlot,
+    hasStartDate,
+    generationReady,
+  });
+  const currentGuidance = generationGuidance({
+    hasLearner: hasLearnerSelected,
+    hasSegments: hasProgramSegments,
+    hasCalendarTemplate,
+    hasSlot: hasCalendarSlot,
+    hasStartDate,
+  });
+  const saveStateLabel = saving
+    ? "Saving"
+    : workspace.storageMode === "local"
+      ? "Saved locally"
+      : status
+        ? "Saved"
+        : "Draft workspace";
 
   useEffect(() => {
     if (!selectedProgram) {
@@ -261,7 +326,7 @@ export default function FamilyProgramsWorkspace() {
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
     setLoadedProgramCount((current) => Math.max(current, 1));
-    setStatus("Starter program ready. Next: add or edit segments.");
+    setStatus("Draft workspace ready.");
     setError("");
   }
 
@@ -326,7 +391,7 @@ export default function FamilyProgramsWorkspace() {
       };
       const saved = await saveFamilyProgram(nextProgram);
       updateProgram(saved);
-      setStatus("Program saved. When ready, generate it into My Plan.");
+      setStatus("Program saved.");
     } catch {
       setError(friendlyProgramsMessage("save"));
     } finally {
@@ -383,9 +448,9 @@ export default function FamilyProgramsWorkspace() {
     <FamilyTopNavShell
       subtitle="My Programs"
       heroTitle="My Programs"
-      heroText="Build longer sequences and place them into the weekly rhythm."
-      heroAsideTitle="Program templates"
-      heroAsideText="Left: program list. Right: sequence, curriculum, and calendar placement."
+      heroText="Build longer learning sequences, then place them into the live week."
+      heroAsideTitle="Program planner"
+      heroAsideText="Select a program, shape its segments, then place it into My Calendar."
     >
       <div className="grid gap-5 pb-14">
         {showGenerationSuccess ? (
@@ -406,50 +471,29 @@ export default function FamilyProgramsWorkspace() {
 
         {!workspaceLoading && !activeLearner ? (
           <ProgramsGuidedSetupBanner
-            title="You can build here now"
-            note="Choose a learner before generating into My Plan."
+            title="Choose a learner"
+            note="Generation unlocks after a learner is selected."
           />
         ) : null}
 
         {isFirstRun ? (
-        <ProgramsFirstRunCard
-          onStartSetup={() => {
+          <ProgramsFirstRunCard
+            onStartSetup={() => {
               if (!hasCalendarTemplate) {
                 router.push("/my-calendar?returnTo=/my-programs&setup=1");
                 return;
               }
               handleCreateProgram();
-          }}
-          onLearnHow={() => {
-            const target = document.getElementById("programs-workspace");
-            target?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-          primaryLabel={!hasCalendarTemplate ? "Start setup" : "Start with a sample program"}
-          hasCalendarTemplate={hasCalendarTemplate}
-          hasProgram={hasVisiblePrograms}
-          generationReady={generationReady}
-          hasGeneratedItems={hasGeneratedItems}
-        />
-        ) : null}
-
-        {!isFirstRun && hasCalendarTemplate && !hasPrograms ? (
-          <ProgramsGuidedSetupBanner
-            title="Your weekly rhythm is ready"
-            note="Start with a sample program, then add segments."
-          />
-        ) : null}
-
-        {!isFirstRun && hasVisiblePrograms && !hasMapping && !showGenerationSuccess ? (
-          <ProgramsGuidedSetupBanner
-            title="Map this program to one slot"
-            note="Pick the My Calendar slot and start date to unlock generation."
-          />
-        ) : null}
-
-        {!isFirstRun && hasVisiblePrograms && hasMapping && !hasGeneratedItems && !showGenerationSuccess ? (
-          <ProgramsGuidedSetupBanner
-            title="Ready to generate"
-            note="Generate into My Plan, then review in My Day."
+            }}
+            onLearnHow={() => {
+              const target = document.getElementById("programs-workspace");
+              target?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            primaryLabel={!hasCalendarTemplate ? "Open My Calendar" : "New program"}
+            hasCalendarTemplate={hasCalendarTemplate}
+            hasProgram={hasVisiblePrograms}
+            generationReady={generationReady}
+            hasGeneratedItems={hasGeneratedItems}
           />
         ) : null}
 
@@ -458,7 +502,7 @@ export default function FamilyProgramsWorkspace() {
             <div className={BODY}>Loading programs...</div>
           </section>
         ) : (
-          <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
             <div className="xl:sticky xl:top-4 xl:self-start">
               <ProgramList
                 programs={programs}
@@ -469,125 +513,151 @@ export default function FamilyProgramsWorkspace() {
               />
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-              <div className="grid gap-5">
-                <ProgramEditor program={selectedProgram} onChange={updateProgram} />
+            <section className="grid gap-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
+              <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="grid gap-1.5">
+                  <div className={LABEL}>Selected program</div>
+                  <h2 className="text-[24px] font-black leading-tight text-slate-950">
+                    {selectedProgram?.title || "No program selected"}
+                  </h2>
+                  <div className={META}>
+                    {[selectedProgram?.subjectId, selectedProgram?.periodLabel].filter(Boolean).join(" - ") ||
+                      "Create or select a program."}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`${DETAIL_CHIP} ${selectedStatus.tone}`}>{selectedStatus.label}</span>
+                  <span className={`${DETAIL_CHIP} border-slate-200 bg-slate-50 text-slate-600`}>
+                    {selectedProgram?.segments.length || 0} segment{selectedProgram?.segments.length === 1 ? "" : "s"}
+                  </span>
+                  <span className={`${DETAIL_CHIP} border-slate-200 bg-slate-50 text-slate-600`}>
+                    {selectedSlot?.label || "No slot"}
+                  </span>
+                </div>
+              </div>
 
-                <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="grid gap-1.5">
-                      <div className={LABEL}>Segments</div>
-                      <h2 className={H2}>Sequence rows</h2>
+              <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
+                <div className="grid gap-5">
+                  <ProgramEditor program={selectedProgram} onChange={updateProgram} />
+
+                  <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="grid gap-1.5">
+                        <div className={LABEL}>Segments</div>
+                        <h2 className={H2}>Sequence rows</h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={addSegment}
+                        disabled={!selectedProgram}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Add segment
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={addSegment}
-                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
-                    >
-                      Add segment
-                    </button>
-                  </div>
 
-                  <div className="grid gap-4">
-                    {(selectedProgram?.segments || []).map((segment) => (
-                      <ProgramSegmentCard
-                        key={segment.id}
-                        segment={segment}
-                        onChange={updateSegment}
-                        onAttachCurriculum={setEditingCurriculumSegmentId}
+                    <div className="grid gap-3">
+                      {(selectedProgram?.segments || []).map((segment) => (
+                        <ProgramSegmentCard
+                          key={segment.id}
+                          segment={segment}
+                          hasSlot={hasCalendarSlot}
+                          onChange={updateSegment}
+                          onAttachCurriculum={setEditingCurriculumSegmentId}
+                        />
+                      ))}
+                      {selectedProgram && !selectedProgram.segments.length ? (
+                        <div className="rounded-[18px] border border-dashed border-slate-200 bg-white px-4 py-5">
+                          <div className={H2}>No segments yet</div>
+                          <div className={`mt-1 ${META}`}>Add at least one segment</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </section>
+                </div>
+
+                <div className="grid gap-5">
+                  {selectedSegment ? (
+                    <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                      <div className="grid gap-1.5">
+                        <div className={LABEL}>Curriculum</div>
+                        <h2 className={H2}>Linked outcomes</h2>
+                      </div>
+                      <CurriculumTagPills
+                        preset={preset}
+                        outcomeIds={selectedSegment.curriculumOutcomeIds}
+                        emptyLabel="No linked outcomes yet"
                       />
-                    ))}
-                  </div>
-                </section>
-              </div>
-
-              <div className="grid gap-5">
-                {selectedSegment ? (
-                  <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-                  <div className="grid gap-1.5">
-                    <div className={LABEL}>Curriculum</div>
-                    <h2 className={H2}>Linked outcomes for this segment</h2>
-                  </div>
-                  <CurriculumTagPills
-                    preset={preset}
-                    outcomeIds={selectedSegment.curriculumOutcomeIds}
-                    emptyLabel="No linked outcomes yet"
-                  />
-                  {editingCurriculumSegmentId === selectedSegment.id ? (
-                    <CurriculumAttachPanel
-                      preset={preset}
-                      selectedOutcomeIds={selectedSegment.curriculumOutcomeIds}
-                      onApply={(outcomeIds) => {
-                        updateSegment({ ...selectedSegment, curriculumOutcomeIds: outcomeIds });
-                        setEditingCurriculumSegmentId(null);
-                      }}
-                      onCancel={() => setEditingCurriculumSegmentId(null)}
-                      state="derived"
-                    />
+                      {editingCurriculumSegmentId === selectedSegment.id ? (
+                        <CurriculumAttachPanel
+                          preset={preset}
+                          selectedOutcomeIds={selectedSegment.curriculumOutcomeIds}
+                          onApply={(outcomeIds) => {
+                            updateSegment({ ...selectedSegment, curriculumOutcomeIds: outcomeIds });
+                            setEditingCurriculumSegmentId(null);
+                          }}
+                          onCancel={() => setEditingCurriculumSegmentId(null)}
+                          state="derived"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditingCurriculumSegmentId(selectedSegment.id)}
+                          className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+                        >
+                          {selectedSegment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+                        </button>
+                      )}
+                    </section>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => setEditingCurriculumSegmentId(selectedSegment.id)}
-                      className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
-                    >
-                      {selectedSegment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
-                    </button>
+                    <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
+                      <div className={LABEL}>Curriculum</div>
+                      <h2 className={`mt-2 ${H2}`}>Select a segment</h2>
+                    </section>
                   )}
-                  </section>
-                ) : (
-                  <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
-                  <div className={LABEL}>Curriculum</div>
-                  <h2 className={`mt-2 ${H2}`}>Select a segment to attach curriculum</h2>
-                  <p className={`mt-2 ${BODY}`}>Program curriculum stays quieter if it lives on the segment that will later generate the real live block.</p>
-                  </section>
-                )}
 
-                <ProgramCalendarAssignmentPanel
-                  templates={templates}
-                  selectedTemplateId={assignmentTemplateId}
-                  selectedSlotId={assignmentSlotId}
-                  startDate={assignmentStartDate}
-                  onTemplateChange={setAssignmentTemplateId}
-                  onSlotChange={setAssignmentSlotId}
-                  onStartDateChange={setAssignmentStartDate}
-                  onGenerate={() => void handleGenerate()}
-                  generating={generating}
-                  generationReady={generationReady}
-                  hasLearner={hasLearnerSelected}
-                  hasSegments={hasProgramSegments}
-                />
+                  <ProgramCalendarAssignmentPanel
+                    templates={templates}
+                    selectedTemplateId={assignmentTemplateId}
+                    selectedSlotId={assignmentSlotId}
+                    startDate={assignmentStartDate}
+                    onTemplateChange={setAssignmentTemplateId}
+                    onSlotChange={setAssignmentSlotId}
+                    onStartDateChange={setAssignmentStartDate}
+                    onGenerate={() => void handleGenerate()}
+                    generating={generating}
+                    generationReady={generationReady}
+                    hasLearner={hasLearnerSelected}
+                    hasSegments={hasProgramSegments}
+                  />
 
-                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-                <div className={LABEL}>Status</div>
-                <div className={`mt-2 ${H2}`}>Publish to the live week when ready</div>
-                <div className={`mt-2 ${error ? "text-[14px] text-rose-600" : META}`}>
-                  {error ||
-                    status ||
-                    (!hasCalendarTemplate
-                      ? "Create a My Calendar template first so this program has somewhere reusable to land."
-                      : !assignmentSlotId
-                        ? "Choose a reusable slot first, then generation will become available."
-                      : !assignmentStartDate
-                        ? "Choose a start date to complete the setup for generation."
-                        : !hasLearnerSelected
-                          ? "Choose a learner above to generate into My Plan."
-                          : !hasProgramSegments
-                            ? "Add at least one segment before generating."
-                            : "Ready. Generate this program into My Plan.")}
+                  <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className={LABEL}>Save state</div>
+                        <div className={`mt-2 ${H2}`}>Place when ready</div>
+                      </div>
+                      <span className={`${DETAIL_CHIP} border-slate-200 bg-slate-50 text-slate-600`}>
+                        {saveStateLabel}
+                      </span>
+                    </div>
+                    <div className={`mt-3 ${error ? "text-[14px] text-rose-600" : META}`}>
+                      {error || status || currentGuidance}
+                    </div>
+                    <div className="mt-4 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveProgram()}
+                        disabled={saving || !selectedProgram}
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {saving ? "Saving..." : "Save program"}
+                      </button>
+                    </div>
+                  </section>
                 </div>
-                <div className="mt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void handleSaveProgram()}
-                    disabled={saving || !selectedProgram}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {saving ? "Saving..." : "Save program"}
-                  </button>
-                </div>
-                </section>
               </div>
-            </div>
+            </section>
           </div>
         )}
       </div>
