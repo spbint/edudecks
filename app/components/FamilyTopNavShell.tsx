@@ -49,7 +49,6 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
-  { href: "/my-month", label: "My Month" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-programs", label: "My Programs" },
 ] as const;
@@ -73,7 +72,7 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/dashboard" || pathname === "/home" || pathname === "/my-day") {
     return "/my-day";
   }
-  if (pathname === "/my-month") return "/my-month";
+  if (pathname === "/my-month") return "/my-calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
@@ -82,7 +81,7 @@ function normalizeRoute(pathname: string) {
 
 function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
-  if (pathname === "/my-month") return "My Month";
+  if (pathname === "/my-month") return "My Calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
@@ -111,7 +110,7 @@ function routeHeroTitle(pathname: string, subtitle: string) {
     return "See the week clearly before it fills up";
   }
   if (pathname === "/my-month") {
-    return "See the month ahead before the week fills up";
+    return "See the week clearly before it fills up";
   }
   if (pathname === "/my-programs") {
     return "Shape longer sequences before they land in the live week";
@@ -145,7 +144,7 @@ function routeHeroText(pathname: string) {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
   if (pathname === "/my-month") {
-    return "Review the month ahead, active programs, and the next planning moves before opening the weekly calendar.";
+    return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
   if (pathname === "/my-programs") {
     return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";

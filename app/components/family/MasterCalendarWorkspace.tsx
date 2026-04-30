@@ -12,7 +12,7 @@ const SECTIONS = [
   },
   {
     title: "Subjects",
-    description: "The subject lanes that make programs and month views easier to scan.",
+    description: "The subject lanes that make calendar blocks and programs easier to scan.",
     items: ["Core", "Project", "Flexible"],
   },
   {
@@ -37,7 +37,7 @@ export default function MasterCalendarWorkspace() {
     <FamilyTopNavShell
       subtitle="Master Calendar"
       heroTitle="Master Calendar"
-      heroText="Set the reusable structure your month, week, programs, and day build from."
+      heroText="Set the reusable structure your calendar, programs, and day build from."
       heroAsideTitle="Settings layer"
       heroAsideText="This is the reusable template layer. Active day-to-day planning stays in My Calendar and My Day."
     >
@@ -50,7 +50,7 @@ export default function MasterCalendarWorkspace() {
                 Master Calendar
               </h1>
               <p className="mt-2 max-w-[760px] text-[15px] leading-6 text-slate-600">
-                Set the reusable structure your month, week, programs, and day build from.
+                Set the reusable structure your calendar, programs, and day build from.
               </p>
               <p className="mt-2 max-w-[760px] text-[13px] font-semibold leading-5 text-slate-500">
                 Visual settings surface only. No saved template logic or active day-to-day planning is wired here.
@@ -102,10 +102,10 @@ export default function MasterCalendarWorkspace() {
               <div className={LABEL}>Where this fits</div>
               <h2 className={H2}>Reusable setup layer</h2>
               <p className={BODY}>
-                Master Calendar sits above My Month, My Calendar, My Programs, and My Day.
+                Master Calendar sits above My Calendar, My Programs, My Day, and Outputs.
               </p>
               <div className="grid gap-2">
-                {["Master Calendar", "My Month", "My Calendar", "My Programs", "My Day"].map((item) => (
+                {["Master Calendar", "My Calendar", "My Programs", "My Day", "Outputs"].map((item) => (
                   <div
                     key={item}
                     className="rounded-[16px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-semibold text-slate-700"
@@ -118,20 +118,14 @@ export default function MasterCalendarWorkspace() {
 
             <section className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
               <div className={LABEL}>Next planning surface</div>
-              <h2 className={H2}>Move to My Month</h2>
+              <h2 className={H2}>Move to My Calendar</h2>
               <p className={BODY}>
-                Use My Month to view the month ahead after the reusable structure is understood.
+                Use My Calendar to shape the active weekly rhythm after the reusable structure is understood.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href="/my-month"
-                  className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Open My Month
-                </Link>
-                <Link
                   href="/my-calendar"
-                  className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+                  className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
                 >
                   Open My Calendar
                 </Link>

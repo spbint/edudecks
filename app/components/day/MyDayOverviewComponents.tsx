@@ -230,11 +230,6 @@ export function MyDayEmptyState() {
 export function MyDayQuickLinks() {
   const items = [
     {
-      href: "/my-month",
-      label: "My Month",
-      note: "Overview",
-    },
-    {
       href: "/my-calendar",
       label: "My Calendar",
       note: "Rhythm",

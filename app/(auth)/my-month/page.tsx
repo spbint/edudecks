@@ -1,8 +1,5 @@
-"use client";
-
-import React from "react";
-import MyMonthWorkspace from "@/app/components/MyMonthWorkspace";
+import { redirect } from "next/navigation";
 
 export default function MyMonthPage() {
-  return <MyMonthWorkspace />;
+  redirect("/my-calendar");
 }
