@@ -14,7 +14,6 @@ import {
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import {
   ProgramGenerationSuccessBanner,
-  ProgramsFirstRunCard,
   ProgramsGuidedSetupBanner,
   ProgramCalendarAssignmentPanel,
   ProgramEditor,
@@ -37,7 +36,6 @@ import {
   type ProgramSegment,
 } from "@/lib/familyPlanningTemplates";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
-import { countFamilyGeneratedCalendarBlocks } from "@/lib/familyPlanner";
 
 function buildSeedProgram(input: {
   familyId: string;
@@ -163,10 +161,8 @@ export default function FamilyProgramsWorkspace() {
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [generatedBlockCount, setGeneratedBlockCount] = useState(0);
   const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
-  const [loadedProgramCount, setLoadedProgramCount] = useState(0);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -196,23 +192,14 @@ export default function FamilyProgramsWorkspace() {
           loadFamilyPrograms({ familyId: workspace.profile.id }),
           loadFamilyCalendarTemplates({ familyId: workspace.profile.id }),
         ]);
-        let generatedCount = 0;
-        if (activeLearner?.id) {
-          generatedCount = await countFamilyGeneratedCalendarBlocks({
-            familyProfileId: workspace.profile.id,
-            studentId: activeLearner.id,
-          }).catch(() => 0);
-        }
         if (!mounted) return;
 
         const filteredPrograms = nextPrograms.filter(
           (program) => !program.learnerId || program.learnerId === activeLearner?.id,
         );
 
-        setLoadedProgramCount(filteredPrograms.length);
         setPrograms(filteredPrograms);
         setTemplates(nextTemplates);
-        setGeneratedBlockCount(generatedCount);
         setSelectedProgramId(filteredPrograms[0]?.id || "");
         setAssignmentTemplateId(nextTemplates[0]?.id || "");
       } catch {
@@ -245,17 +232,10 @@ export default function FamilyProgramsWorkspace() {
   );
   const selectedSlot = selectedTemplate?.slots.find((slot) => slot.id === assignmentSlotId) ?? null;
   const hasCalendarTemplate = templates.some((template) => template.slots.length > 0);
-  const hasPrograms = loadedProgramCount > 0;
-  const hasVisiblePrograms = programs.length > 0;
-  const hasGeneratedItems = generatedBlockCount > 0;
   const hasLearnerSelected = Boolean(activeLearner?.id);
   const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const hasCalendarSlot = Boolean(selectedSlot);
   const hasStartDate = Boolean(assignmentStartDate);
-  const hasMapping = Boolean(
-    selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
-  );
-  const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
     selectedProgram &&
       assignmentTemplateId &&
@@ -322,11 +302,10 @@ export default function FamilyProgramsWorkspace() {
       frameworkId: learningConfig.frameworkId,
       jurisdictionId: learningConfig.jurisdictionId,
       periodLabel: learningConfig.academicStructureType === "semesters" ? "Semester 1" : "Term 1",
-    });
-    setPrograms((current) => [next, ...current]);
-    setSelectedProgramId(next.id);
-    setLoadedProgramCount((current) => Math.max(current, 1));
-    setStatus("Draft workspace ready.");
+      });
+      setPrograms((current) => [next, ...current]);
+      setSelectedProgramId(next.id);
+      setStatus("Draft workspace ready.");
     setError("");
   }
 
@@ -433,7 +412,6 @@ export default function FamilyProgramsWorkspace() {
         slotId: assignmentSlotId,
         startDate: assignmentStartDate,
       });
-      setGeneratedBlockCount((current) => current + generated.length);
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
       setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} generated into My Calendar.`);
@@ -476,27 +454,6 @@ export default function FamilyProgramsWorkspace() {
           />
         ) : null}
 
-        {isFirstRun ? (
-          <ProgramsFirstRunCard
-            onStartSetup={() => {
-              if (!hasCalendarTemplate) {
-                router.push("/my-calendar?returnTo=/my-programs&setup=1");
-                return;
-              }
-              handleCreateProgram();
-            }}
-            onLearnHow={() => {
-              const target = document.getElementById("programs-workspace");
-              target?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            primaryLabel={!hasCalendarTemplate ? "Open My Calendar" : "New program"}
-            hasCalendarTemplate={hasCalendarTemplate}
-            hasProgram={hasVisiblePrograms}
-            generationReady={generationReady}
-            hasGeneratedItems={hasGeneratedItems}
-          />
-        ) : null}
-
         {loading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div className={BODY}>Loading programs...</div>
@@ -509,7 +466,6 @@ export default function FamilyProgramsWorkspace() {
                 selectedProgramId={selectedProgram?.id}
                 onSelect={setSelectedProgramId}
                 onCreate={handleCreateProgram}
-                firstRun={isFirstRun}
               />
             </div>
 

@@ -61,114 +61,6 @@ function readinessForSegment(segment: ProgramSegment, hasSlot: boolean) {
   };
 }
 
-export function ProgramsFirstRunCard({
-  onStartSetup,
-  onLearnHow,
-  primaryLabel = "Start setup",
-  hasCalendarTemplate = false,
-  hasProgram = false,
-  generationReady = false,
-  hasGeneratedItems = false,
-}: {
-  onStartSetup: () => void;
-  onLearnHow?: () => void;
-  primaryLabel?: string;
-  hasCalendarTemplate?: boolean;
-  hasProgram?: boolean;
-  generationReady?: boolean;
-  hasGeneratedItems?: boolean;
-}) {
-  const steps = [
-    {
-      step: "Step 1",
-      title: "Set your weekly rhythm",
-      note: hasCalendarTemplate ? "My Calendar rhythm is ready." : "Use My Calendar to set the repeating weekly shape first.",
-      stateLabel: hasCalendarTemplate ? "Complete" : "Next",
-      stateTone: hasCalendarTemplate
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : "border-blue-200 bg-blue-50 text-blue-700",
-      cta: !hasCalendarTemplate ? "Open My Calendar" : null,
-    },
-    {
-      step: "Step 2",
-      title: "Shape your sequence",
-      note: hasProgram ? "Your first sequence is ready to edit." : "Use My Programs to shape the first learning sequence.",
-      stateLabel: hasProgram ? "Active" : hasCalendarTemplate ? "Next" : "Waiting",
-      stateTone: hasProgram
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : hasCalendarTemplate
-          ? "border-blue-200 bg-blue-50 text-blue-700"
-          : "border-slate-200 bg-slate-50 text-slate-600",
-      cta: hasCalendarTemplate && !hasProgram ? "Start program" : null,
-    },
-    {
-      step: "Step 3",
-      title: "Open the live week",
-      note: hasGeneratedItems
-        ? "The live week already has generated program blocks."
-        : generationReady
-          ? "Your sequence is ready to flow into My Calendar."
-          : "Choose the weekly slot and the first start date when you are ready.",
-      stateLabel: hasGeneratedItems ? "Complete" : generationReady ? "Ready" : hasProgram ? "Upcoming" : "Later",
-      stateTone: hasGeneratedItems
-        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-        : generationReady
-          ? "border-violet-200 bg-violet-50 text-violet-700"
-        : "border-slate-200 bg-slate-50 text-slate-600",
-      cta: hasGeneratedItems ? "Open My Calendar" : generationReady ? "Generate into My Calendar" : null,
-    },
-  ] as const;
-
-  return (
-    <section className="grid gap-4 rounded-[24px] border border-blue-100 bg-[linear-gradient(135deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.94)_100%)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
-      <div className="grid gap-1.5">
-        <div className={LABEL}>Getting started</div>
-        <h2 className={H2}>Build your first program</h2>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-3">
-        {steps.map((item) => (
-          <article
-            key={item.step}
-            className="grid gap-1 rounded-[18px] border border-slate-200 bg-white/90 px-4 py-4"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className={LABEL}>{item.step}</div>
-              <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[12px] font-semibold uppercase tracking-[0.14em] ${item.stateTone}`}
-              >
-                {item.stateLabel}
-              </span>
-            </div>
-            <div className={H3}>{item.title}</div>
-            <div className={META}>{item.note}</div>
-            {item.cta ? <div className="pt-1 text-[13px] font-semibold text-slate-700">{item.cta}</div> : null}
-          </article>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onStartSetup}
-          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
-        >
-          {primaryLabel}
-        </button>
-        {onLearnHow ? (
-          <button
-            type="button"
-            onClick={onLearnHow}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            View planner
-          </button>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
 export function ProgramsGuidedSetupBanner({
   title,
   note,
@@ -228,13 +120,11 @@ export function ProgramList({
   selectedProgramId,
   onSelect,
   onCreate,
-  firstRun = false,
 }: {
   programs: Program[];
   selectedProgramId?: string;
   onSelect: (programId: string) => void;
   onCreate: () => void;
-  firstRun?: boolean;
 }) {
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -246,11 +136,7 @@ export function ProgramList({
         <button
           type="button"
           onClick={onCreate}
-          className={`inline-flex items-center justify-center rounded-full px-4 py-2 text-[14px] font-semibold transition ${
-            firstRun
-              ? "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
-              : "bg-slate-950 text-white hover:bg-slate-800"
-          }`}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
           New program
         </button>
@@ -282,9 +168,7 @@ export function ProgramList({
               aria-current={active ? "true" : undefined}
               className={`relative grid gap-3 overflow-hidden rounded-[18px] border px-4 py-4 text-left transition ${
                 active
-                  ? firstRun
-                    ? "border-amber-200 bg-amber-50 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]"
-                    : "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+                  ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
                   : "border-slate-200 bg-slate-50 hover:bg-slate-100"
               }`}
             >
@@ -533,7 +417,7 @@ export function ProgramCalendarAssignmentPanel({
               : "partial";
   const panelTitle =
     state === "blocked_template"
-      ? "Set your weekly rhythm first"
+      ? "Choose a calendar slot"
       : state === "blocked_slots"
         ? "Create a slot to continue"
         : state === "ready_choose_slot"
