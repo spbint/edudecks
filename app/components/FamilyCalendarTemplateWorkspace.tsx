@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
   CalendarTemplateGrid,
   CalendarTemplateSelector,
@@ -10,32 +10,59 @@ import {
   BODY,
   H2,
   LABEL,
+  META,
 } from "@/app/components/calendar/CalendarTemplateOverviewComponents";
-import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
-  defaultCalendarTemplate,
   loadFamilyCalendarTemplates,
   saveFamilyCalendarTemplate,
   type CalendarTemplate,
   type TemplateSlot,
 } from "@/lib/familyPlanningTemplates";
-import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
-function makeId(prefix: string) {
+function makeLocalId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function buildEmptyTemplate(input: {
+  familyId: string;
+  academicStructureType?: string | null;
+}): CalendarTemplate {
+  const id = makeLocalId("calendar-template");
+
+  return {
+    id,
+    familyId: input.familyId,
+    title: "My Calendar Template",
+    cycleType: "weekly",
+    cycleLength: 5,
+    academicStructureType: input.academicStructureType || "terms",
+    slots: [],
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function buildBlankSlot(templateId: string): TemplateSlot {
+  return {
+    id: makeLocalId("slot"),
+    templateId,
+    dayOfWeek: 1,
+    startTime: null,
+    endTime: null,
+    subjectId: null,
+    label: "Learning block",
+    notes: "",
+  };
 }
 
 function friendlyCalendarMessage(kind: "load" | "save") {
   if (kind === "load") {
-    return "My Calendar is still settling. Your weekly rhythm is safe, and you can try again in a moment.";
+    return "My Calendar could not load. You can still shape a local template.";
   }
-  return "Your weekly rhythm could not be saved just yet. Keep shaping it here, then save again in a moment.";
+  return "My Calendar could not save just yet. Keep editing here, then save again.";
 }
 
 export default function FamilyCalendarTemplateWorkspace() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { workspace, activeLearner } = useFamilyWorkspace();
+  const { workspace, loading: workspaceLoading } = useFamilyWorkspace();
   const [templates, setTemplates] = useState<CalendarTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
@@ -43,10 +70,6 @@ export default function FamilyCalendarTemplateWorkspace() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-
-  const learningConfig = resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner);
-  const returnTo = searchParams.get("returnTo");
-  const isSetupFlow = searchParams.get("setup") === "1";
 
   useEffect(() => {
     let mounted = true;
@@ -59,18 +82,23 @@ export default function FamilyCalendarTemplateWorkspace() {
 
       try {
         setLoading(true);
-        const rows = await loadFamilyCalendarTemplates({ familyId: workspace.profile.id });
+        setError("");
+        const nextTemplates = await loadFamilyCalendarTemplates({
+          familyId: workspace.profile.id,
+        });
+
         if (!mounted) return;
-        const next = rows.length
-          ? rows
-          : [defaultCalendarTemplate({
-              familyId: workspace.profile.id,
-              academicStructureType: workspace.profile.academic_structure_type,
-            })];
-        setTemplates(next);
-        setSelectedTemplateId(next[0]?.id || "");
+
+        setTemplates(nextTemplates);
+        setSelectedTemplateId((current) => {
+          if (nextTemplates.some((template) => template.id === current)) return current;
+          return nextTemplates[0]?.id || "";
+        });
       } catch {
         if (!mounted) return;
+        setTemplates([]);
+        setSelectedTemplateId("");
+        setSelectedSlotId(null);
         setError(friendlyCalendarMessage("load"));
       } finally {
         if (mounted) setLoading(false);
@@ -78,106 +106,119 @@ export default function FamilyCalendarTemplateWorkspace() {
     }
 
     void hydrate();
+
     return () => {
       mounted = false;
     };
-  }, [workspace.profile.academic_structure_type, workspace.profile.id]);
+  }, [workspace.profile.id]);
 
   const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === selectedTemplateId) ?? templates[0] ?? null,
+    () => templates.find((template) => template.id === selectedTemplateId) ?? null,
     [selectedTemplateId, templates],
   );
 
-  const selectedSlot =
-    selectedTemplate?.slots.find((slot) => slot.id === selectedSlotId) ?? null;
-  const templateReady = Boolean(selectedTemplate?.slots.length);
+  const selectedSlot = useMemo(
+    () => selectedTemplate?.slots.find((slot) => slot.id === selectedSlotId) ?? null,
+    [selectedSlotId, selectedTemplate],
+  );
 
   useEffect(() => {
-    if (!selectedTemplate) return;
-    if (!selectedTemplate.slots.length) {
+    if (!selectedTemplate) {
       setSelectedSlotId(null);
       return;
     }
-    if (!selectedSlotId || !selectedTemplate.slots.some((slot) => slot.id === selectedSlotId)) {
-      setSelectedSlotId(selectedTemplate.slots[0]?.id || null);
+
+    if (
+      selectedSlotId &&
+      selectedTemplate.slots.some((slot) => slot.id === selectedSlotId)
+    ) {
+      return;
     }
+
+    setSelectedSlotId(selectedTemplate.slots[0]?.id || null);
   }, [selectedSlotId, selectedTemplate]);
 
-  function upsertTemplate(nextTemplate: CalendarTemplate) {
-    setTemplates((current) =>
-      current.map((template) => (template.id === nextTemplate.id ? nextTemplate : template)),
-    );
+  function replaceTemplate(nextTemplate: CalendarTemplate) {
+    setTemplates((current) => {
+      const exists = current.some((template) => template.id === nextTemplate.id);
+      if (!exists) return [nextTemplate, ...current];
+      return current.map((template) => (template.id === nextTemplate.id ? nextTemplate : template));
+    });
   }
 
   function handleCreateTemplate() {
-    const next = defaultCalendarTemplate({
-      familyId: workspace.profile.id,
+    const nextTemplate = buildEmptyTemplate({
+      familyId: workspace.profile.id || "local",
       academicStructureType: workspace.profile.academic_structure_type,
     });
-    setTemplates((current) => [next, ...current]);
-    setSelectedTemplateId(next.id);
-    setSelectedSlotId(next.slots[0]?.id || null);
-    setStatus("A fresh calendar template is ready to shape.");
+
+    setTemplates((current) => [nextTemplate, ...current]);
+    setSelectedTemplateId(nextTemplate.id);
+    setSelectedSlotId(null);
+    setStatus("Draft workspace ready.");
     setError("");
   }
 
-  function handleAddSlot() {
-    if (!selectedTemplate) return;
-    const nextSlot: TemplateSlot = {
-      id: makeId("slot"),
-      templateId: selectedTemplate.id,
-      dayOfWeek: 1,
-      startTime: "",
-      endTime: "",
-      subjectId: "",
-      label: "Learning block",
-      notes: "",
-    };
-    const nextTemplate = {
-      ...selectedTemplate,
-      slots: [...selectedTemplate.slots, nextSlot],
-    };
-    upsertTemplate(nextTemplate);
-    setSelectedSlotId(nextSlot.id);
+  function ensureTemplateForEdit() {
+    if (selectedTemplate) return selectedTemplate;
+
+    const nextTemplate = buildEmptyTemplate({
+      familyId: workspace.profile.id || "local",
+      academicStructureType: workspace.profile.academic_structure_type,
+    });
+    setTemplates((current) => [nextTemplate, ...current]);
+    setSelectedTemplateId(nextTemplate.id);
+    return nextTemplate;
   }
 
-  function handleSlotChange(nextSlot: TemplateSlot) {
+  function handleAddSlot() {
+    const template = ensureTemplateForEdit();
+    const nextSlot = buildBlankSlot(template.id);
+    replaceTemplate({
+      ...template,
+      slots: [...template.slots, nextSlot],
+      updatedAt: new Date().toISOString(),
+    });
+    setSelectedTemplateId(template.id);
+    setSelectedSlotId(nextSlot.id);
+    setStatus("Slot added.");
+    setError("");
+  }
+
+  function handleChangeSlot(nextSlot: TemplateSlot) {
     if (!selectedTemplate) return;
-    upsertTemplate({
+    replaceTemplate({
       ...selectedTemplate,
-      slots: selectedTemplate.slots.map((slot) =>
-        slot.id === nextSlot.id ? nextSlot : slot,
-      ),
+      slots: selectedTemplate.slots.map((slot) => (slot.id === nextSlot.id ? nextSlot : slot)),
+      updatedAt: new Date().toISOString(),
     });
   }
 
   function handleDeleteSlot(slotId: string) {
     if (!selectedTemplate) return;
     const nextSlots = selectedTemplate.slots.filter((slot) => slot.id !== slotId);
-    upsertTemplate({
+    replaceTemplate({
       ...selectedTemplate,
       slots: nextSlots,
+      updatedAt: new Date().toISOString(),
     });
     setSelectedSlotId(nextSlots[0]?.id || null);
+    setStatus("Slot removed.");
+    setError("");
   }
 
-  async function handleSave() {
+  async function handleSaveTemplate() {
     if (!selectedTemplate) return;
+
     setSaving(true);
     setStatus("");
     setError("");
+
     try {
       const saved = await saveFamilyCalendarTemplate(selectedTemplate);
-      upsertTemplate(saved);
-      const nextStatus = returnTo
-        ? "Your weekly rhythm is ready. Now let's build your program."
-        : "Calendar template saved.";
-      setStatus(nextStatus);
-      if (returnTo) {
-        window.setTimeout(() => {
-          router.push(returnTo);
-        }, 500);
-      }
+      replaceTemplate(saved);
+      setSelectedTemplateId(saved.id);
+      setStatus(workspace.storageMode === "local" ? "Saved locally." : "Calendar saved.");
     } catch {
       setError(friendlyCalendarMessage("save"));
     } finally {
@@ -185,108 +226,90 @@ export default function FamilyCalendarTemplateWorkspace() {
     }
   }
 
+  const workspaceStateLabel = workspace.storageMode === "local" ? "Saved locally" : "Synced workspace";
+
   return (
-    <FamilyTopNavShell
-      subtitle="My Calendar"
-      heroTitle="My Calendar"
-      heroText="A reusable weekly timetable for program blocks."
-      heroAsideTitle="Calendar template"
-      heroAsideText="Set the reusable week here. Run today in My Day."
-    >
+    <FamilyTopNavShell subtitle="My Calendar" hideHero>
       <div className="grid gap-5 pb-14">
+        <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] md:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] md:items-center">
+          <div>
+            <div className={LABEL}>Draft workspace</div>
+            <h1 className="mt-2 text-[28px] font-black leading-tight text-slate-950">
+              My Calendar
+            </h1>
+            <p className="mt-2 text-[15px] leading-6 text-slate-600">
+              Shape the weekly rhythm your plans and programs use.
+            </p>
+          </div>
+
+          <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <div className={LABEL}>Master Calendar</div>
+            <div className={`mt-2 ${H2}`}>Planning defaults</div>
+            <p className={`mt-1 ${META}`}>Set reusable rotations and planning defaults</p>
+          </div>
+        </section>
+
+        {error || status ? (
+          <section
+            className={`rounded-[18px] border px-4 py-3 text-[14px] font-semibold ${
+              error
+                ? "border-rose-200 bg-rose-50 text-rose-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {error || status}
+          </section>
+        ) : null}
+
         <CalendarTemplateSelector
           templates={templates}
-          selectedTemplateId={selectedTemplate?.id || ""}
+          selectedTemplateId={selectedTemplateId}
           onSelect={setSelectedTemplateId}
           onCreate={handleCreateTemplate}
         />
 
-        <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] md:grid-cols-4">
-          {[
-            { label: "Academic structure", value: workspace.profile.academic_structure_type || "terms" },
-            { label: "Cycles", value: String(workspace.profile.cycle_count || 4) },
-            { label: "Weeks per cycle", value: String(workspace.profile.weeks_per_cycle || 10) },
-            { label: "Framework", value: learningConfig.frameworkLabel },
-          ].map((item) => (
-            <article key={item.label} className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div className={LABEL}>{item.label}</div>
-            <div className={H2}>{item.value}</div>
-          </article>
-        ))}
-      </section>
-
-        {isSetupFlow ? (
-          <section className="rounded-[24px] border border-sky-200 bg-sky-50/70 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-            <div className={LABEL}>Create your weekly rhythm</div>
-            <h2 className={`mt-2 ${H2}`}>When do subjects usually happen in a normal week?</h2>
-            <p className={`mt-2 ${BODY}`}>Add one to three slots first.</p>
-          </section>
-        ) : null}
-
-        <section className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] md:grid-cols-3">
-          {[
-            {
-              title: "1. Rhythm",
-              note: "Reusable weekly slots.",
-            },
-            {
-              title: "2. Sequence",
-              note: "Programs choose what lands there.",
-            },
-            {
-              title: "3. Live week",
-              note: "My Plan and My Day run it.",
-            },
-          ].map((item) => (
-            <article key={item.title} className="grid gap-1 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div className={H2}>{item.title}</div>
-              <div className={BODY}>{item.note}</div>
-            </article>
-          ))}
-        </section>
-
-        {loading ? (
+        {loading || workspaceLoading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-            <div className={BODY}>Loading your calendar template…</div>
+            <div className={BODY}>Loading calendar...</div>
           </section>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
             <CalendarTemplateGrid
               slots={selectedTemplate?.slots || []}
               selectedSlotId={selectedSlotId}
               onSelectSlot={setSelectedSlotId}
             />
-            <CalendarTemplateSlotEditor
-              slot={selectedSlot}
-              onChange={handleSlotChange}
-              onDelete={handleDeleteSlot}
-              onAddNew={handleAddSlot}
-            />
+
+            <div className="xl:sticky xl:top-4 xl:self-start">
+              <CalendarTemplateSlotEditor
+                slot={selectedSlot}
+                onChange={handleChangeSlot}
+                onDelete={handleDeleteSlot}
+                onAddNew={handleAddSlot}
+              />
+            </div>
           </div>
         )}
 
-        <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-slate-200 bg-white/95 px-5 py-4 shadow-[0_18px_34px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="grid gap-1">
-            <div className="text-[15px] font-semibold text-slate-950">Save timetable</div>
-            <div className={error ? "text-[13px] text-rose-600" : "text-[13px] text-slate-500"}>
-              {error ||
-                status ||
-                (!templateReady
-                  ? "Add at least one reusable slot."
-                  : returnTo
-                    ? "Ready. Save and continue."
-                    : "Ready for My Programs and My Plan.")}
-            </div>
+        <section className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200 bg-white/95 px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.14)] backdrop-blur md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-600">
+              Draft workspace
+            </span>
+            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-600">
+              {workspaceStateLabel}
+            </span>
           </div>
+
           <button
             type="button"
-            onClick={() => void handleSave()}
+            onClick={() => void handleSaveTemplate()}
             disabled={saving || !selectedTemplate}
-            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {saving ? "Saving..." : returnTo ? "Save template and continue" : "Save template"}
+            {saving ? "Saving..." : "Save calendar"}
           </button>
-        </div>
+        </section>
       </div>
     </FamilyTopNavShell>
   );

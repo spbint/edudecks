@@ -19,6 +19,14 @@ export const WEEKDAY_OPTIONS = [
   { value: 5, label: "Friday" },
 ];
 
+const DAYPARTS = [
+  { id: "morning", label: "Morning" },
+  { id: "midday", label: "Midday" },
+  { id: "afternoon", label: "Afternoon" },
+] as const;
+
+type DaypartId = (typeof DAYPARTS)[number]["id"];
+
 function slotAccentStyle(slot: TemplateSlot): React.CSSProperties {
   const key = `${slot.subjectId || ""} ${slot.label || ""}`.toLowerCase();
   if (key.includes("math")) return { background: "#2563eb" };
@@ -43,6 +51,21 @@ function sortSlots(slots: TemplateSlot[]) {
   });
 }
 
+function slotDaypart(slot: TemplateSlot, fallbackIndex: number): DaypartId {
+  if (slot.startTime) {
+    const hour = Number(slot.startTime.split(":")[0]);
+    if (Number.isFinite(hour)) {
+      if (hour < 12) return "morning";
+      if (hour < 14) return "midday";
+      return "afternoon";
+    }
+  }
+
+  if (fallbackIndex === 0) return "morning";
+  if (fallbackIndex === 1) return "midday";
+  return "afternoon";
+}
+
 export function CalendarTemplateSelector({
   templates,
   selectedTemplateId,
@@ -58,8 +81,8 @@ export function CalendarTemplateSelector({
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1.5">
-          <div className={LABEL}>My Calendar Template</div>
-          <h2 className={H2}>Reusable weekly rhythm</h2>
+          <div className={LABEL}>Templates</div>
+          <h2 className={H2}>Weekly rhythms</h2>
         </div>
         <button
           type="button"
@@ -106,26 +129,39 @@ export function CalendarTemplateGrid({
   onSelectSlot: (slotId: string) => void;
 }) {
   const hasSlots = slots.length > 0;
-  const dayColumns = WEEKDAY_OPTIONS.map((day) => ({
-    ...day,
-    slots: sortSlots(slots.filter((slot) => slot.dayOfWeek === day.value)),
-  }));
-  const rowCount = Math.max(1, ...dayColumns.map((day) => day.slots.length));
+  const dayColumns = WEEKDAY_OPTIONS.map((day) => {
+    const daySlots = sortSlots(slots.filter((slot) => slot.dayOfWeek === day.value));
+    const slotsByDaypart: Record<DaypartId, TemplateSlot[]> = {
+      morning: [],
+      midday: [],
+      afternoon: [],
+    };
+
+    daySlots.forEach((slot, index) => {
+      slotsByDaypart[slotDaypart(slot, index)].push(slot);
+    });
+
+    return {
+      ...day,
+      slots: daySlots,
+      slotsByDaypart,
+    };
+  });
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Timetable view</div>
-        <h2 className={H2}>Template week</h2>
+        <h2 className={H2}>Weekly grid</h2>
       </div>
 
       <div className="overflow-x-auto">
         <div className="min-w-[760px] overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50/80">
-          <div className="grid grid-cols-[96px_repeat(5,minmax(120px,1fr))] border-b border-slate-200 bg-white">
-            <div className={`${LABEL} px-3 py-3`}>Slot</div>
+          <div className="grid grid-cols-[108px_repeat(5,minmax(124px,1fr))] border-b border-slate-200 bg-white">
+            <div className={`${LABEL} px-3 py-3`}>Time</div>
             {dayColumns.map((day) => (
               <div key={day.value} className="border-l border-slate-200 px-3 py-3">
-                <div className={H3}>{day.label.slice(0, 3)}</div>
+                <div className={H3}>{day.label}</div>
                 <div className={META}>
                   {day.slots.length ? `${day.slots.length} block${day.slots.length === 1 ? "" : "s"}` : "Open"}
                 </div>
@@ -134,50 +170,65 @@ export function CalendarTemplateGrid({
           </div>
 
           <div className="grid">
-            {Array.from({ length: rowCount }).map((_, rowIndex) => (
+            {DAYPARTS.map((daypart) => (
               <div
-                key={rowIndex}
-                className="grid min-h-[118px] grid-cols-[96px_repeat(5,minmax(120px,1fr))] border-b border-slate-200 last:border-b-0"
+                key={daypart.id}
+                className="grid min-h-[138px] grid-cols-[108px_repeat(5,minmax(124px,1fr))] border-b border-slate-200 last:border-b-0"
               >
-                <div className="flex items-start px-3 py-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  {rowIndex === 0 ? "First" : `Slot ${rowIndex + 1}`}
+                <div className="flex items-start px-3 py-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  {daypart.label}
                 </div>
                 {dayColumns.map((day) => {
-                  const slot = day.slots[rowIndex] ?? null;
+                  const daypartSlots = day.slotsByDaypart[daypart.id];
 
-                  if (!slot) {
+                  if (!daypartSlots.length) {
                     return (
-                      <div key={day.value} className="border-l border-slate-200 p-2">
-                        <div className="flex h-full min-h-[92px] items-center justify-center rounded-[16px] border border-dashed border-slate-200 bg-white/70 text-[12px] font-semibold text-slate-400">
-                          {hasSlots ? "Open" : "Add slot"}
+                      <div key={`${day.value}-${daypart.id}`} className="border-l border-slate-200 p-2">
+                        <div className="flex h-full min-h-[104px] items-center justify-center rounded-[16px] border border-dashed border-slate-200 bg-white/70 text-[12px] font-semibold text-slate-400">
+                          + Add slot
                         </div>
                       </div>
                     );
                   }
 
-                  const active = slot.id === selectedSlotId;
                   return (
-                    <div key={day.value} className="border-l border-slate-200 p-2">
-                      <button
-                        type="button"
-                        onClick={() => onSelectSlot(slot.id)}
-                        className={`grid h-full min-h-[92px] overflow-hidden rounded-[16px] border text-left transition ${
-                          active
-                            ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
-                            : "border-slate-200 bg-white hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="h-2" style={slotAccentStyle(slot)} />
-                        <div className="grid gap-1 p-3">
-                          <div className={H3}>{slot.label}</div>
-                          <div className={META}>{formatSlotTime(slot)}</div>
-                          {slot.subjectId ? (
-                            <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                              {slot.subjectId}
+                    <div key={`${day.value}-${daypart.id}`} className="grid gap-2 border-l border-slate-200 p-2">
+                      {daypartSlots.map((slot) => {
+                        const active = slot.id === selectedSlotId;
+                        const subjectLabel = slot.subjectId || slot.label;
+
+                        return (
+                          <button
+                            key={slot.id}
+                            type="button"
+                            onClick={() => onSelectSlot(slot.id)}
+                            aria-label={`Edit ${slot.label}`}
+                            className={`grid min-h-[104px] overflow-hidden rounded-[16px] border text-left transition ${
+                              active
+                                ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
+                                : "border-slate-200 bg-white hover:bg-slate-50"
+                            }`}
+                          >
+                            <div className="h-2" style={slotAccentStyle(slot)} />
+                            <div className="grid gap-1.5 p-3">
+                              <div className="text-[14px] font-bold leading-5 text-slate-950">
+                                {subjectLabel}
+                              </div>
+                              <div className={META}>{formatSlotTime(slot)}</div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {slot.subjectId && slot.label !== slot.subjectId ? (
+                                  <span className="inline-flex w-fit rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                    {slot.label}
+                                  </span>
+                                ) : null}
+                                <span className="inline-flex w-fit rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                  {active ? "Selected" : "Draft"}
+                                </span>
+                              </div>
                             </div>
-                          ) : null}
-                        </div>
-                      </button>
+                          </button>
+                        );
+                      })}
                     </div>
                   );
                 })}
@@ -186,6 +237,12 @@ export function CalendarTemplateGrid({
           </div>
         </div>
       </div>
+
+      {!hasSlots ? (
+        <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-semibold text-slate-500">
+          Use the slot editor to add the first block.
+        </div>
+      ) : null}
     </section>
   );
 }
