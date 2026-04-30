@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeNextPath } from "@/lib/authRedirect";
-import { resolveCurrentFamilyProfileId } from "@/lib/familyLearnerService";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -34,6 +33,18 @@ function parseNumber(value?: string | null) {
   if (!value) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function localLearnerCount() {
+  if (typeof window === "undefined") return 0;
+
+  try {
+    const raw = window.localStorage.getItem("edudecks_children_seed_v1");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.length : 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number) {
@@ -180,21 +191,9 @@ function AuthCallbackPageContent() {
                   onboarding_complete: onboardingComplete,
                 });
 
-                const familyProfileId = await resolveCurrentFamilyProfileId(user.id);
-                let linkedChildrenCount = 0;
-
-                if (familyProfileId) {
-                  const studentsResp = await supabase
-                    .from("students")
-                    .select("id", { count: "exact", head: true })
-                    .eq("family_profile_id", familyProfileId);
-
-                  linkedChildrenCount = studentsResp.count ?? 0;
-                }
-
                 return {
                   onboardingComplete,
-                  linkedChildrenCount,
+                  linkedChildrenCount: localLearnerCount(),
                 };
               })(),
               1200,

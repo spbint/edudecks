@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 const CHILDREN_KEY = "edudecks_children_seed_v1";
 
-type StudentRow = {
+type LearnerRow = {
   id: string;
   preferred_name?: string | null;
   first_name?: string | null;
@@ -73,21 +73,21 @@ function isMissingRelationOrColumn(err: any) {
   return msg.includes("does not exist") && (msg.includes("relation") || msg.includes("column"));
 }
 
-function studentName(student?: StudentRow | null) {
-  if (!student) return "Your child";
-  const first = safe(student.preferred_name || student.first_name);
-  const last = safe(student.surname || student.family_name || student.last_name);
+function learnerName(learner?: LearnerRow | null) {
+  if (!learner) return "Your child";
+  const first = safe(learner.preferred_name || learner.first_name);
+  const last = safe(learner.surname || learner.family_name || learner.last_name);
   return `${first} ${last}`.trim() || "Your child";
 }
 
-function firstNameOf(student?: StudentRow | null) {
-  return safe(student?.preferred_name || student?.first_name) || "your child";
+function firstNameOf(learner?: LearnerRow | null) {
+  return safe(learner?.preferred_name || learner?.first_name) || "your child";
 }
 
-function studentYearLabel(student?: StudentRow | null) {
-  if (!student) return "";
-  if (student.year_level != null && safe(student.year_level)) return `Year ${safe(student.year_level)}`;
-  return safe(student.yearLabel);
+function learnerYearLabel(learner?: LearnerRow | null) {
+  if (!learner) return "";
+  if (learner.year_level != null && safe(learner.year_level)) return `Year ${safe(learner.year_level)}`;
+  return safe(learner.yearLabel);
 }
 
 function textOfEvidence(row: EvidenceRow) {
@@ -124,7 +124,7 @@ function daysSince(value?: string | null) {
   return Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-function buildSeedStudents(): StudentRow[] {
+function buildSeedLearners(): LearnerRow[] {
   if (typeof window === "undefined") return [];
   const raw = parseJson<any[]>(window.localStorage.getItem(CHILDREN_KEY), []);
   return raw.map((child, index) => ({
@@ -135,7 +135,7 @@ function buildSeedStudents(): StudentRow[] {
   }));
 }
 
-async function loadStudents(): Promise<StudentRow[]> {
+async function loadLearners(): Promise<LearnerRow[]> {
   const variants = [
     "id,preferred_name,first_name,surname,family_name,last_name,year_level",
     "id,preferred_name,first_name,surname,last_name,year_level",
@@ -145,10 +145,11 @@ async function loadStudents(): Promise<StudentRow[]> {
   let lastErr: any = null;
 
   for (const select of variants) {
-    const res = await supabase.from("students").select(select);
+    void select;
+    const res = { error: null, data: buildSeedLearners() };
 
     // ✅ FIXED CAST
-    if (!res.error) return ((res.data || []) as unknown) as StudentRow[];
+    if (!res.error) return ((res.data || []) as unknown) as LearnerRow[];
 
     lastErr = res.error;
     if (!isMissingRelationOrColumn(res.error)) break;
@@ -184,13 +185,13 @@ async function loadEvidence(): Promise<EvidenceRow[]> {
 }
 
 export default function GoalsPage() {
-  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [learners, setLearners] = useState<LearnerRow[]>([]);
   const [evidence, setEvidence] = useState<EvidenceRow[]>([]);
 
   useEffect(() => {
     async function init() {
-      const [s, e] = await Promise.all([loadStudents(), loadEvidence()]);
-      setStudents(s);
+      const [s, e] = await Promise.all([loadLearners(), loadEvidence()]);
+      setLearners(s);
       setEvidence(e);
     }
     init();
@@ -199,7 +200,7 @@ export default function GoalsPage() {
   return (
     <main style={{ padding: 24 }}>
       <h1>Goals</h1>
-      <div>Students loaded: {students.length}</div>
+      <div>Learners loaded: {learners.length}</div>
       <div>Evidence loaded: {evidence.length}</div>
     </main>
   );

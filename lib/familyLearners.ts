@@ -1,6 +1,6 @@
-import { getCurrentUserId } from "@/lib/familySettings";
-import { resolveCurrentFamilyProfileId } from "@/lib/familyLearnerService";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { familyYearLevelToStoredNumber } from "@/lib/familyLearnerYearLevel";
+
+const FAMILY_CHILDREN_CACHE_KEY = "edudecks_children_seed_v1";
 
 export function safeFamilyValue(value: unknown) {
   return typeof value === "string" ? value.trim() : String(value ?? "").trim();
@@ -23,6 +23,91 @@ export function isMissingLearnerRelationOrColumn(error: unknown) {
   );
 }
 
+type LocalFamilyLearnerRow = {
+  id: string;
+  label?: string | null;
+  name?: string | null;
+  preferred_name?: string | null;
+  first_name?: string | null;
+  surname?: string | null;
+  family_name?: string | null;
+  year_level?: number | string | null;
+  yearLabel?: string | null;
+  created_at?: string | null;
+  connectedAt?: string | null;
+  photo_url?: string | null;
+  [key: string]: unknown;
+};
+
+function canUseStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function readLocalLearnerRows(): LocalFamilyLearnerRow[] {
+  if (!canUseStorage()) return [];
+
+  try {
+    const raw = window.localStorage.getItem(FAMILY_CHILDREN_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const rows = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object"
+        ? Object.values(parsed)
+        : [];
+
+    return rows
+      .map((item, index): LocalFamilyLearnerRow | null => {
+        if (!item || typeof item !== "object") return null;
+        const row = item as Record<string, unknown>;
+        const id = safeFamilyValue(row.id) || `local-${index + 1}`;
+        const label =
+          safeFamilyValue(row.label) ||
+          safeFamilyValue(row.name) ||
+          safeFamilyValue(row.preferred_name) ||
+          safeFamilyValue(row.first_name) ||
+          `Learner ${index + 1}`;
+        const yearLevel = familyYearLevelToStoredNumber(row.year_level ?? row.yearLabel);
+
+        return {
+          ...row,
+          id,
+          label,
+          name: label,
+          preferred_name: safeFamilyValue(row.preferred_name) || label,
+          first_name: safeFamilyValue(row.first_name) || label,
+          surname: safeFamilyValue(row.surname) || null,
+          family_name: safeFamilyValue(row.family_name) || null,
+          year_level: yearLevel,
+          yearLabel: safeFamilyValue(row.yearLabel),
+          created_at: safeFamilyValue(row.created_at ?? row.connectedAt) || null,
+          connectedAt: safeFamilyValue(row.connectedAt ?? row.created_at) || null,
+        };
+      })
+      .filter(Boolean) as LocalFamilyLearnerRow[];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalLearnerRows(rows: LocalFamilyLearnerRow[]) {
+  if (!canUseStorage()) return;
+
+  try {
+    window.localStorage.setItem(
+      FAMILY_CHILDREN_CACHE_KEY,
+      JSON.stringify(
+        rows.map((row) => ({
+          ...row,
+          label: safeFamilyValue(row.label || row.name || row.preferred_name || row.first_name),
+          name: safeFamilyValue(row.label || row.name || row.preferred_name || row.first_name),
+        })),
+      ),
+    );
+  } catch {
+    // local cache writes are best-effort
+  }
+}
+
 export function orderLearnerRowsByIds<T extends { id?: unknown }>(
   rows: T[],
   orderedIds: string[],
@@ -36,73 +121,48 @@ export function orderLearnerRowsByIds<T extends { id?: unknown }>(
     .filter((row): row is T => row !== null);
 }
 
-export async function loadLinkedFamilyStudentIds(): Promise<string[] | null> {
-  if (!hasSupabaseEnv) return null;
-
-  const userId = await getCurrentUserId();
-  if (!userId) return null;
-  const familyProfileId = await resolveCurrentFamilyProfileId(userId);
-  if (!familyProfileId) return [];
-
-  const studentsResp = await supabase
-    .from("students")
-    .select("id,created_at")
-    .eq("family_profile_id", familyProfileId)
-    .order("created_at", { ascending: true });
-
-  if (studentsResp.error) {
-    if (!isMissingLearnerRelationOrColumn(studentsResp.error)) {
-      throw studentsResp.error;
-    }
-    return null;
-  }
-
-  return ((studentsResp.data ?? []) as Array<{ id?: string | null }>)
+export async function loadLinkedFamilyLearnerIds(): Promise<string[] | null> {
+  return readLocalLearnerRows()
     .map((row) => safeFamilyValue(row.id))
     .filter(Boolean);
 }
 
-export async function loadFamilyStudentsWithVariants<T>(
+export async function loadFamilyLearnersWithVariants<T>(
   selectVariants: string[],
   options?: {
     orderedIds?: string[] | null;
     orderByCreatedAt?: boolean;
   },
 ): Promise<T[]> {
+  void selectVariants;
+  void options?.orderByCreatedAt;
+
+  const rows = readLocalLearnerRows();
   const orderedIds = options?.orderedIds ?? null;
-  const shouldOrderByCreatedAt = options?.orderByCreatedAt !== false;
 
-  if (Array.isArray(orderedIds) && orderedIds.length === 0) {
-    return [];
+  if (Array.isArray(orderedIds)) {
+    if (orderedIds.length === 0) return [];
+    return orderLearnerRowsByIds(rows as Array<{ id?: unknown }>, orderedIds) as T[];
   }
 
-  let lastError: unknown = null;
+  return rows as T[];
+}
 
-  for (const select of selectVariants) {
-    let query = supabase.from("students").select(select);
+export function patchLocalFamilyLearner(
+  learnerId: string,
+  patch: Partial<LocalFamilyLearnerRow>,
+) {
+  const cleanId = safeFamilyValue(learnerId);
+  if (!cleanId) return;
 
-    if (Array.isArray(orderedIds)) {
-      query = query.in("id", orderedIds);
-    }
-
-    if (shouldOrderByCreatedAt) {
-      query = query.order("created_at", { ascending: true });
-    }
-
-    const response = await query;
-    if (!response.error) {
-      const rows = ((response.data ?? []) as unknown) as T[];
-      return Array.isArray(orderedIds)
-        ? orderLearnerRowsByIds(rows as Array<{ id?: unknown }>, orderedIds) as T[]
-        : rows;
-    }
-
-    lastError = response.error;
-    if (!isMissingLearnerRelationOrColumn(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (lastError) throw lastError;
-  return [];
+  writeLocalLearnerRows(
+    readLocalLearnerRows().map((row) =>
+      row.id === cleanId
+        ? {
+            ...row,
+            ...patch,
+          }
+        : row,
+    ),
+  );
 }

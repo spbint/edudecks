@@ -7,8 +7,9 @@ import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
 import {
-  loadFamilyStudentsWithVariants,
-  loadLinkedFamilyStudentIds,
+  loadFamilyLearnersWithVariants,
+  loadLinkedFamilyLearnerIds,
+  patchLocalFamilyLearner,
 } from "@/lib/familyLearners";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
@@ -133,7 +134,7 @@ export default function ChildWorkspacePage() {
   const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
   async function loadChild() {
-    const rows = await loadFamilyStudentsWithVariants<ChildRow>(
+    const rows = await loadFamilyLearnersWithVariants<ChildRow>(
       [
         "id,first_name,preferred_name,surname,family_name,year_level,created_at,photo_url",
         "id,first_name,preferred_name,surname,year_level,created_at,photo_url",
@@ -170,7 +171,7 @@ export default function ChildWorkspacePage() {
         return;
       }
 
-      const linkedIds = await loadLinkedFamilyStudentIds();
+      const linkedIds = await loadLinkedFamilyLearnerIds();
 
       if (!Array.isArray(linkedIds)) {
         setErr("You must be signed in.");
@@ -227,12 +228,7 @@ export default function ChildWorkspacePage() {
       const { data: publicData } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       if (!publicData?.publicUrl) throw new Error("We couldn’t create a photo link.");
 
-      const { error: updateError } = await supabase
-        .from("students")
-        .update({ photo_url: publicData.publicUrl })
-        .eq("id", childId);
-      if (updateError) throw updateError;
-
+      patchLocalFamilyLearner(childId, { photo_url: publicData.publicUrl });
       setChild((prev) => (prev ? { ...prev, photo_url: publicData.publicUrl } : prev));
 
       if (typeof window !== "undefined") {

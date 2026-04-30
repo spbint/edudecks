@@ -341,42 +341,17 @@ async function loadAuthorizedReportExportContext(
     };
   }
 
-  const learnerResponse = await client
-    .from("students")
-    .select("id,preferred_name,first_name,surname,year_level,created_at,family_profile_id")
-    .eq("id", learnerId)
-    .maybeSingle();
-
-  if (learnerResponse.error) {
-    return {
-      ok: false as const,
-      status: 500,
-      code: "learner_load_failed",
-      error: "The learner context could not be loaded for export.",
-    };
-  }
-
-  if (!learnerResponse.data) {
-    return {
-      ok: false as const,
-      status: 403,
-      code: "forbidden",
-      error: "This report is not accessible from the current family workspace.",
-    };
-  }
-
   const profile = normalizeFamilyProfile(asObject(profileResponse.data));
-  const learner = normalizeFamilyLearner(asObject(learnerResponse.data));
-  const learnerFamilyId = safe(learnerResponse.data.family_profile_id);
-  const reportOwnerId = safe(reportRow.user_id);
-  if (learnerFamilyId && learnerFamilyId !== profile.id && reportOwnerId !== user.id) {
-    return {
-      ok: false as const,
-      status: 403,
-      code: "forbidden",
-      error: "This report is not accessible from the current family workspace.",
-    };
-  }
+  const learner = normalizeFamilyLearner({
+    id: learnerId,
+    preferred_name:
+      safe(reportRow.learner_name) ||
+      safe(reportRow.student_name) ||
+      safe(reportRow.child_name) ||
+      "Learner",
+    year_level: reportRow.year_level,
+    created_at: reportRow.created_at,
+  });
 
   return {
     ok: true as const,

@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { loadFamilyLearnersWithVariants } from "@/lib/familyLearners";
 
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
+const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
 
 export type ActiveStudentRow = {
   id: string;
@@ -14,16 +15,11 @@ export type ActiveStudentRow = {
   year_level?: number | null;
   is_ilp?: boolean | null;
   created_at?: string | null;
-  [k: string]: any;
+  [k: string]: unknown;
 };
 
-function safe(v: any) {
+function safe(v: unknown) {
   return String(v ?? "").trim();
-}
-
-function isMissingColumnError(err: any) {
-  const msg = String(err?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
 }
 
 export function activeStudentDisplayName(student: ActiveStudentRow | null | undefined) {
@@ -57,27 +53,13 @@ export function useActiveStudent() {
         return;
       }
 
-      const tries = [
-        "id,first_name,preferred_name,surname,family_name,year_level,is_ilp,created_at",
-        "id,first_name,preferred_name,surname,family_name,is_ilp,created_at",
-        "id,first_name,preferred_name,surname,is_ilp,created_at",
-        "id,first_name,preferred_name,family_name,is_ilp,created_at",
-        "id,first_name,preferred_name,is_ilp,created_at",
-      ];
-
-      for (const sel of tries) {
-        const r = await supabase.from("students").select(sel).eq("id", id).maybeSingle();
-        if (!r.error) {
-          setStudent((r.data as ActiveStudentRow | null) ?? null);
-          setBusy(false);
-          return;
-        }
-        if (!isMissingColumnError(r.error)) throw r.error;
-      }
-
-      setStudent(null);
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+      const rows = await loadFamilyLearnersWithVariants<ActiveStudentRow>(
+        [],
+        { orderedIds: [id], orderByCreatedAt: false },
+      );
+      setStudent(rows[0] ?? null);
+    } catch (e: unknown) {
+      setErr(String((e as { message?: unknown })?.message ?? e));
       setStudent(null);
     } finally {
       setBusy(false);
@@ -91,8 +73,16 @@ export function useActiveStudent() {
       if (e.key === ACTIVE_STUDENT_ID_KEY) load();
     }
 
+    function onActiveChildChanged() {
+      load();
+    }
+
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener(ACTIVE_CHILD_EVENT, onActiveChildChanged);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(ACTIVE_CHILD_EVENT, onActiveChildChanged);
+    };
   }, [load]);
 
   function updateActiveStudent(id: string) {

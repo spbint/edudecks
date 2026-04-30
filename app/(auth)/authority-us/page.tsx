@@ -5,7 +5,10 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { familyYearLevelLabelFromStored } from "@/lib/familyLearnerYearLevel";
-import { loadLinkedFamilyStudentIds } from "@/lib/familyLearners";
+import {
+  loadFamilyLearnersWithVariants,
+  loadLinkedFamilyLearnerIds,
+} from "@/lib/familyLearners";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
@@ -158,7 +161,7 @@ export default function AuthorityUsPage() {
     setErr("");
 
     try {
-      const ids = await loadLinkedFamilyStudentIds();
+      const ids = await loadLinkedFamilyLearnerIds();
       if (!Array.isArray(ids)) {
         setChildren([]);
         setEvidence([]);
@@ -172,24 +175,10 @@ export default function AuthorityUsPage() {
         return;
       }
 
-      const studentResponse = await supabase
-        .from("students")
-        .select("id,first_name,preferred_name,surname,year_level,created_at")
-        .in("id", ids);
-
-      if (studentResponse.error) {
-        throw studentResponse.error;
-      }
-
-      const students = ((studentResponse.data ?? []) as unknown) as ChildRow[];
-
-      const merged = ids
-        .map((id) => {
-          const student = students.find((s) => s.id === id);
-          if (!student) return null;
-          return student as ChildRow;
-        })
-        .filter(Boolean) as ChildRow[];
+      const merged = await loadFamilyLearnersWithVariants<ChildRow>(
+        [],
+        { orderedIds: ids, orderByCreatedAt: false },
+      );
 
       const evidenceTries = [
         "id,student_id,learning_area,evidence_type,occurred_on,created_at,title,summary,note,body,is_deleted",

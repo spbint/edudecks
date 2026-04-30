@@ -2,9 +2,11 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
-import { loadLinkedFamilyStudentIds } from "@/lib/familyLearners";
+import {
+  loadFamilyLearnersWithVariants,
+  loadLinkedFamilyLearnerIds,
+} from "@/lib/familyLearners";
 
 const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 
@@ -65,7 +67,7 @@ export default function AuthorityAuPage() {
     setErr("");
 
     try {
-      const ids = await loadLinkedFamilyStudentIds();
+      const ids = await loadLinkedFamilyLearnerIds();
       if (!Array.isArray(ids)) {
         setChildren([]);
         setEvidence([]);
@@ -79,26 +81,11 @@ export default function AuthorityAuPage() {
         return;
       }
 
-      let students: ChildRow[] = [];
-
-      const r = await supabase
-        .from("students")
-        .select("id,first_name,preferred_name,surname,year_level,created_at")
-        .in("id", ids);
-
-      if (!r.error) {
-        students = ids
-          .map((id) => {
-            const student = ((r.data ?? []) as ChildRow[]).find((row) => row.id === id);
-            if (!student) return null;
-            return student satisfies ChildRow;
-          })
-          .filter(Boolean) as ChildRow[];
-      } else {
-        throw r.error;
-      }
-
-      setChildren(students);
+      const learners = await loadFamilyLearnersWithVariants<ChildRow>(
+        [],
+        { orderedIds: ids, orderByCreatedAt: false },
+      );
+      setChildren(learners);
     } catch (e: any) {
       setErr(String(e?.message ?? e));
       setChildren([]);

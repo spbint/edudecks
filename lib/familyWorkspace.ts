@@ -10,16 +10,10 @@ import {
   type FamilySettings,
 } from "@/lib/familySettings";
 import {
-  createCanonicalFamilyLearner,
-  removeCanonicalFamilyLearner,
-  resolveCurrentFamilyProfileId,
-  updateCanonicalFamilyLearner,
-} from "@/lib/familyLearnerService";
-import {
   familyYearLevelLabelFromStored,
   familyYearLevelToStoredNumber,
 } from "@/lib/familyLearnerYearLevel";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { hasSupabaseEnv } from "@/lib/supabaseClient";
 
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 export const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
@@ -50,24 +44,8 @@ type LearnerIdentity = {
   id: string;
 };
 
-type QueryResponse<T> = {
-  data: T | null;
-  error: { message?: string | null } | null;
-};
-
 function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function isMissingColumnError(error: unknown) {
-  const message = String(
-    (error as { message?: unknown })?.message ?? "",
-  ).toLowerCase();
-  return (
-    message.includes("column") ||
-    message.includes("schema cache") ||
-    message.includes("could not find")
-  );
 }
 
 function isDatabaseFamilyProfileId(value: unknown) {
@@ -230,74 +208,9 @@ export async function loadLinkedLearners(
   userId: string,
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
-  const explicitFamilyProfileId = safe(familyProfileId);
-  if (explicitFamilyProfileId && !isDatabaseFamilyProfileId(explicitFamilyProfileId)) {
-    return [];
-  }
-
-  const resolvedFamilyProfileId =
-    explicitFamilyProfileId || (await resolveCurrentFamilyProfileId(userId));
-
-  if (!isDatabaseFamilyProfileId(resolvedFamilyProfileId)) {
-    return [];
-  }
-
-  const selectVariants = [
-    "id,preferred_name,first_name,surname,year_level,created_at",
-  ];
-
-  let studentResponse: QueryResponse<Array<Record<string, unknown>>> | null = null;
-
-  for (const select of selectVariants) {
-    const response = (await withTimeout(
-      supabase
-        .from("students")
-        .select(select)
-        .eq("family_profile_id", resolvedFamilyProfileId)
-        .order("created_at", { ascending: true }),
-      "load family learners",
-    )) as QueryResponse<Array<Record<string, unknown>>>;
-
-    if (!response.error) {
-      studentResponse = response;
-      break;
-    }
-
-    if (!isMissingColumnError(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (!studentResponse) return [];
-
-  const students = studentResponse.data ?? [];
-  if (!students.length) return [];
-
-  return students.map((student) => {
-    const id = safe(student.id);
-    const label =
-      safe(student.preferred_name) ||
-      [safe(student.first_name), safe(student.surname)]
-        .filter(Boolean)
-        .join(" ")
-        .trim() ||
-      "Unnamed learner";
-    const yearLevel = familyYearLevelToStoredNumber(
-      (student as { year_level?: string | number | null }).year_level,
-    );
-
-    return {
-      id,
-      label,
-      yearLabel: familyYearLevelLabelFromStored(yearLevel),
-      year_level: yearLevel,
-      year_band: safe(student.year_band) || null,
-      curriculum_framework_id: safe(student.curriculum_framework_id) || null,
-      curriculum_jurisdiction_id: safe(student.curriculum_jurisdiction_id) || null,
-      reporting_mode: safe(student.reporting_mode) || null,
-      connectedAt: safe(student.created_at) || null,
-    } satisfies FamilyLearner;
-  });
+  void userId;
+  void familyProfileId;
+  return [];
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
@@ -412,14 +325,19 @@ export async function createLinkedLearner(
     reportingMode?: string | null;
   },
 ): Promise<FamilyLearner> {
-  const createdLearner = await createCanonicalFamilyLearner(userId, {
-    learnerName,
-    yearLevel,
-    yearBand: options?.yearBand,
-    frameworkId: options?.frameworkId,
-    jurisdictionId: options?.jurisdictionId,
-    reportingMode: options?.reportingMode,
-  });
+  void userId;
+  const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
+  const createdLearner: FamilyLearner = {
+    id: `local-${Date.now()}`,
+    label: safe(learnerName) || "Learner",
+    yearLabel: familyYearLevelLabelFromStored(yearLevelNumber),
+    year_level: yearLevelNumber,
+    year_band: safe(options?.yearBand) || null,
+    curriculum_framework_id: safe(options?.frameworkId) || null,
+    curriculum_jurisdiction_id: safe(options?.jurisdictionId) || null,
+    reporting_mode: safe(options?.reportingMode) || null,
+    connectedAt: new Date().toISOString(),
+  };
 
   persistLearnersToLocalCache(
     mergeLearners([createdLearner], loadLearnersFromLocalCache()),
@@ -440,19 +358,33 @@ export async function updateLinkedLearner(
     reportingMode?: string | null;
   },
 ) {
-  await updateCanonicalFamilyLearner(userId, learnerId, {
-    learnerName,
-    yearLevel,
-    yearBand: options?.yearBand,
-    frameworkId: options?.frameworkId,
-    jurisdictionId: options?.jurisdictionId,
-    reportingMode: options?.reportingMode,
-  });
+  void userId;
+  const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
+  const nextLearners = loadLearnersFromLocalCache().map((learner) =>
+    learner.id === learnerId
+      ? {
+          ...learner,
+          label: safe(learnerName) || learner.label,
+          yearLabel: familyYearLevelLabelFromStored(yearLevelNumber),
+          year_level: yearLevelNumber,
+          year_band: safe(options?.yearBand) || null,
+          curriculum_framework_id: safe(options?.frameworkId) || null,
+          curriculum_jurisdiction_id: safe(options?.jurisdictionId) || null,
+          reporting_mode: safe(options?.reportingMode) || null,
+        }
+      : learner,
+  );
+  persistLearnersToLocalCache(nextLearners, { notify: false });
   dispatchFamilyWorkspaceEvent({ childId: learnerId });
 }
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
-  await removeCanonicalFamilyLearner(userId, learnerId);
+  void userId;
+  persistLearnersToLocalCache(
+    loadLearnersFromLocalCache().filter((learner) => learner.id !== learnerId),
+    { notify: false },
+  );
+  dispatchFamilyWorkspaceEvent();
 }
 
 export function getStoredActiveLearnerId() {

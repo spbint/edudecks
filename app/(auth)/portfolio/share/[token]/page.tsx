@@ -140,13 +140,7 @@ export default function SharedPortfolioView() {
 
         setShare(r.data);
 
-        const s = await supabase
-          .from("students")
-          .select("*")
-          .eq("id", r.data.student_id)
-          .maybeSingle();
-
-        if (!s.error) setStudent(s.data);
+        setStudent({ id: safe(r.data.student_id) });
 
         setBusy(false);
       } catch (e: any) {
