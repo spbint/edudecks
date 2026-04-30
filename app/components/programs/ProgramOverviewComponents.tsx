@@ -521,10 +521,24 @@ export function ProgramCalendarAssignmentPanel({
             Set up your weekly rhythm in My Calendar to begin generating plans.
           </div>
           <Link
-            href="/my-calendar"
+            href="/my-calendar?returnTo=/my-programs"
             className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             Open My Calendar
+          </Link>
+        </div>
+      ) : null}
+      {templates.length && !slots.length ? (
+        <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
+          <div className={H3}>This template needs at least one slot</div>
+          <div className={`mt-2 ${BODY}`}>
+            Add a slot in My Calendar, then return here to generate this program into My Plan.
+          </div>
+          <Link
+            href="/my-calendar?returnTo=/my-programs"
+            className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Create a slot to continue
           </Link>
         </div>
       ) : null}
@@ -599,7 +613,7 @@ export function ProgramCalendarAssignmentPanel({
         ) : !selectedTemplateId ? (
           <div className={META}>Choose where this program should land.</div>
         ) : !slots.length ? (
-          <div className={META}>Create a calendar slot first.</div>
+          <div className={META}>Create a slot in My Calendar to continue.</div>
         ) : !selectedSlotId ? (
           <div className={META}>Choose a slot to continue.</div>
         ) : !startDate ? (

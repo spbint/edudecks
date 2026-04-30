@@ -96,12 +96,12 @@ function ymd(date: Date) {
 
 function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "load") {
-    return "My Programs is still settling. Your sequence is safe, and you can try again in a moment.";
+    return "My Programs could not load right now. Your saved programs are safe—please try again.";
   }
   if (kind === "save") {
-    return "Your sequence could not be saved just yet. Keep shaping it here, then save again in a moment.";
+    return "Program save did not complete. Add the required setup details, then try saving again.";
   }
-  return "Generation is not ready just yet. Check the My Calendar slot and start date, then try again in a moment.";
+  return "Generation did not complete. Confirm learner, segment, calendar slot, and start date, then try again.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -211,6 +211,14 @@ export default function FamilyProgramsWorkspace() {
   const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const hasMapping = Boolean(
     selectedProgram?.scheduleMapping?.calendarTemplateSlotId && selectedProgram?.scheduleMapping?.startDate,
+  );
+  const saveReady = Boolean(
+    selectedProgram &&
+      hasCalendarTemplate &&
+      assignmentSlotId &&
+      assignmentStartDate &&
+      hasLearnerSelected &&
+      hasProgramSegments,
   );
   const isFirstRun = !hasGeneratedItems && (!hasCalendarTemplate || !hasPrograms);
   const generationReady = Boolean(
@@ -569,15 +577,30 @@ export default function FamilyProgramsWorkspace() {
                         ? "Choose a start date to complete the setup for generation."
                         : !hasLearnerSelected
                           ? "Choose a learner above to generate into My Plan."
-                          : !hasProgramSegments
+                        : !hasProgramSegments
                             ? "Add at least one segment before generating."
                             : "Ready. Generate this program into My Plan.")}
                 </div>
+                {!saveReady ? (
+                  <div className={`mt-2 ${META}`}>
+                    {!hasCalendarTemplate
+                      ? "Open My Calendar and create a weekly template before saving this program."
+                      : !assignmentSlotId
+                        ? "Create or choose a calendar slot before saving this program."
+                        : !assignmentStartDate
+                          ? "Choose a start date before saving this program."
+                          : !hasLearnerSelected
+                            ? "Choose a learner before saving this program."
+                            : !hasProgramSegments
+                              ? "Add at least one segment before saving this program."
+                              : "Finish setup steps before saving this program."}
+                  </div>
+                ) : null}
                 <div className="mt-4 flex gap-3">
                   <button
                     type="button"
                     onClick={() => void handleSaveProgram()}
-                    disabled={saving || !selectedProgram}
+                    disabled={saving || !saveReady}
                     className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {saving ? "Saving..." : "Save program"}
