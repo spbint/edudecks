@@ -243,7 +243,6 @@ export async function loadLinkedLearners(
   }
 
   const selectVariants = [
-    "id,preferred_name,first_name,surname,year_level,year_band,curriculum_framework_id,curriculum_jurisdiction_id,reporting_mode,created_at",
     "id,preferred_name,first_name,surname,year_level,created_at",
   ];
 

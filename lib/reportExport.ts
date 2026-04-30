@@ -272,28 +272,11 @@ async function loadAuthorizedReportExportContext(
     };
   }
 
-  let profileResponse = await client
+  const profileResponse = await client
     .from("family_profiles")
     .select("*")
-    .eq("owner_user_id", user.id)
+    .eq("user_id", user.id)
     .maybeSingle();
-
-  if (profileResponse.error) {
-    return {
-      ok: false as const,
-      status: 500,
-      code: "profile_load_failed",
-      error: "The family profile could not be loaded for export.",
-    };
-  }
-
-  if (!profileResponse.data) {
-    profileResponse = await client
-      .from("family_profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-  }
 
   if (profileResponse.error) {
     return {
@@ -360,7 +343,7 @@ async function loadAuthorizedReportExportContext(
 
   const learnerResponse = await client
     .from("students")
-    .select("id,preferred_name,first_name,surname,year_level,year_band,curriculum_framework_id,curriculum_jurisdiction_id,reporting_mode,created_at,family_profile_id")
+    .select("id,preferred_name,first_name,surname,year_level,created_at,family_profile_id")
     .eq("id", learnerId)
     .maybeSingle();
 
