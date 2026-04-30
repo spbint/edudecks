@@ -554,7 +554,7 @@ export default function FamilyPlanWorkspace() {
                 ? "Ready to shape"
                 : "Needs shaping"
             : hasActiveLearner
-              ? "Preview"
+              ? "Draft workspace"
               : "Choose learner",
       note:
         planState === "live"
@@ -573,7 +573,7 @@ export default function FamilyPlanWorkspace() {
           : planState === "live"
             ? String(totalWeekBlocks)
             : hasActiveLearner
-              ? "Preview"
+              ? "Draft workspace"
               : "0",
       note:
         planState === "live"
@@ -631,7 +631,7 @@ export default function FamilyPlanWorkspace() {
   const healthCards: PlanMetricCardProps[] = [
     {
       label: "Active blocks",
-      value: planState === "loading" ? "" : planState === "live" ? String(totalWeekBlocks) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(totalWeekBlocks) : hasActiveLearner ? "Draft workspace" : "0",
       note:
         planState === "live"
           ? `${totalWeekBlocks} block${totalWeekBlocks === 1 ? "" : "s"} across this week`
@@ -643,7 +643,7 @@ export default function FamilyPlanWorkspace() {
     },
     {
       label: "Ready now",
-      value: planState === "loading" ? "" : planState === "live" ? String(completedActions) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(completedActions) : hasActiveLearner ? "Draft workspace" : "0",
       note:
         planState === "live"
           ? `${completedActions} action${completedActions === 1 ? "" : "s"} already settled`
@@ -655,7 +655,7 @@ export default function FamilyPlanWorkspace() {
     },
     {
       label: "Needs shaping",
-      value: planState === "loading" ? "" : planState === "live" ? String(openDays) : hasActiveLearner ? "Preview" : "0",
+      value: planState === "loading" ? "" : planState === "live" ? String(openDays) : hasActiveLearner ? "Draft workspace" : "0",
       note:
         planState === "live"
           ? `${openDays} day${openDays === 1 ? "" : "s"} still open this week`

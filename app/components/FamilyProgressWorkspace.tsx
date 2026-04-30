@@ -339,7 +339,7 @@ export default function FamilyProgressWorkspace() {
     },
     {
       label: "Evidence available",
-      value: progressState === "loading" ? "" : progressState === "placeholder" ? "Preview" : String(evidenceCount),
+      value: progressState === "loading" ? "" : progressState === "placeholder" ? "Draft workspace" : String(evidenceCount),
       note:
         progressState === "live"
           ? `${evidenceCount} evidence item${evidenceCount === 1 ? "" : "s"} for ${activeLearnerName}`

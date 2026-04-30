@@ -87,7 +87,7 @@ export default function FamilyHomeWorkspace() {
       label: "My Plans",
       value: loading ? "" : hasActiveLearner ? "2" : "0",
       note: hasActiveLearner
-        ? `Preview while ${activeLearnerName}'s planning data matures`
+        ? `Draft workspace while ${activeLearnerName}'s planning data matures`
         : "Your first plan will appear here",
       state: hasActiveLearner ? "placeholder" : "empty",
     },
@@ -225,7 +225,7 @@ export default function FamilyHomeWorkspace() {
             />
             <MetricCard
               label="Evidence captured"
-              value={hasActiveLearner ? "Preview" : "0"}
+              value={hasActiveLearner ? "Draft workspace" : "0"}
               note={hasActiveLearner ? `Real capture counts for ${activeLearnerName} will appear here` : "Your first capture will appear here"}
               progress={evidencePercent}
               state={hasActiveLearner ? "placeholder" : "empty"}
@@ -239,7 +239,7 @@ export default function FamilyHomeWorkspace() {
             />
             <MetricCard
               label="Reports ready"
-              value={hasActiveLearner ? "Preview" : "0"}
+              value={hasActiveLearner ? "Draft workspace" : "0"}
               note={hasActiveLearner ? `Reporting readiness for ${activeLearnerName} will sharpen as data grows` : "Your first report will appear here"}
               progress={reportsPercent}
               state={hasActiveLearner ? "placeholder" : "empty"}
