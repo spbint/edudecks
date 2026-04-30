@@ -377,9 +377,9 @@ export function TodayLearningFlow({
   return (
     <section className="grid gap-4">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Today's learning flow</div>
+        <div className={LABEL}>Today</div>
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">
-          Today's blocks
+          Today’s Flow
         </h2>
       </div>
       {empty ?? <div className="grid gap-4">{blocks}</div>}
@@ -393,21 +393,24 @@ export function MyDayEmptyState() {
       <div className="grid gap-1.5">
         <div className={LABEL}>Today</div>
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">
-          Nothing is planned for today yet
+          No blocks planned yet
         </h2>
+        <p className="max-w-[42ch] text-[14px] leading-6 text-slate-600">
+          Add one block in My Plan or capture what already happened.
+        </p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
           href="/my-plan"
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today
+          Shape today in My Plan
         </Link>
         <Link
-          href="/my-calendar"
+          href="/capture"
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          My Calendar
+          Capture from today
         </Link>
       </div>
     </section>
@@ -493,17 +496,17 @@ export function MyDayQuickLinks() {
     {
       href: "/my-calendar",
       label: "My Calendar",
-      note: "Weekly rhythm",
+      note: "Rhythm",
     },
     {
       href: "/my-programs",
       label: "My Programs",
-      note: "Longer sequence",
+      note: "Sequence",
     },
     {
       href: "/my-plan",
       label: "My Plan",
-      note: "Live week",
+      note: "Plan",
     },
     {
       href: "/capture",
@@ -515,23 +518,29 @@ export function MyDayQuickLinks() {
   return (
     <section className="grid gap-4">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Where to start</div>
+        <div className={LABEL}>Workflow</div>
         <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">
-          Planning surfaces
+          Keep moving
         </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <Link
             key={item.href}
             href={item.href}
-            className="grid gap-2 rounded-[20px] border border-slate-200 bg-white/85 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-white"
+            className="grid gap-3 rounded-[20px] border border-slate-200 bg-white/85 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-white"
           >
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-[12px] font-bold text-white">
+              {index + 1}
+            </div>
             <div className={H3}>{item.label}</div>
             <div className={META}>{item.note}</div>
           </Link>
         ))}
       </div>
+      <p className="text-[13px] leading-6 text-slate-500">
+        Captured learning feeds curriculum, portfolio, reports, and progress over time.
+      </p>
     </section>
   );
 }

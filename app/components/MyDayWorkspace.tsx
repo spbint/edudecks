@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
@@ -10,7 +10,6 @@ import {
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
 import {
-  MyDayEmptyState,
   MyDayHeader,
   MyDayNextStep,
   MyDayNextUpCard,
@@ -53,16 +52,16 @@ function formatTodayLabel(date: Date) {
 function noLearnerStateText(hasLearners: boolean) {
   if (!hasLearners) {
     return {
-      title: "My Day is where today's learning becomes clear",
-      note: "Add your first learner first. Then My Day can show what is planned today, what comes next, and what is ready to capture.",
+      title: "Choose a learner for today",
+      note: "Add one learner to see today's blocks.",
       ctaLabel: "Add your first learner",
       ctaHref: "/family#learner-management",
     };
   }
 
   return {
-    title: "Choose the learner you want to run today for",
-    note: "My Day follows the learner in focus so today's blocks, capture actions, and next step all stay relevant.",
+    title: "Choose a learner for today",
+    note: "Blocks and capture follow the selected learner.",
     ctaLabel: "Open My Family",
     ctaHref: "/family",
   };
@@ -80,21 +79,10 @@ function learnerStatusText({
   isActiveLearner: boolean;
 }) {
   if (!active) return "Select to view today";
-
   if (!isActiveLearner) return "Ready to review";
-
-  if (blocksCount > 0 && evidenceCount > 0) {
-    return `${blocksCount} planned, ${evidenceCount} captured`;
-  }
-
-  if (blocksCount > 0) {
-    return `${blocksCount} planned today`;
-  }
-
-  if (evidenceCount > 0) {
-    return `${evidenceCount} captured today`;
-  }
-
+  if (blocksCount > 0 && evidenceCount > 0) return `${blocksCount} planned, ${evidenceCount} captured`;
+  if (blocksCount > 0) return `${blocksCount} planned today`;
+  if (evidenceCount > 0) return `${evidenceCount} captured today`;
   return "Ready to plan today";
 }
 
@@ -107,13 +95,6 @@ function TodayEmptyGuidance({
   quickCaptureHref: string;
   canCapture: boolean;
 }) {
-  const startPath = [
-    { label: "Rhythm", href: "/my-calendar" },
-    { label: "Program", href: "/my-programs" },
-    { label: "Plan", href: `/my-plan?date=${encodeURIComponent(todayYmd)}` },
-    { label: "Capture", href: quickCaptureHref },
-  ];
-
   return (
     <section className="grid gap-5 rounded-[26px] border border-dashed border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.92)_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)]">
       <div className="grid gap-2">
@@ -121,39 +102,11 @@ function TodayEmptyGuidance({
           Today
         </div>
         <div className="text-[22px] font-bold tracking-[-0.03em] text-slate-950">
-          No blocks yet
+          No blocks planned yet
         </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-4">
-        {startPath.map((item, index) => {
-          const disabled = item.label === "Capture" && !canCapture;
-          const tile = (
-            <div
-              className={[
-                "grid gap-2 rounded-[18px] border px-4 py-4",
-                disabled
-                  ? "border-slate-100 bg-slate-50 text-slate-400"
-                  : "border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50",
-              ].join(" ")}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-[13px] font-bold text-white">
-                {index + 1}
-              </div>
-              <div className="text-[14px] font-bold">{item.label}</div>
-            </div>
-          );
-
-          return disabled ? (
-            <div key={item.label} aria-disabled="true">
-              {tile}
-            </div>
-          ) : (
-            <Link key={item.label} href={item.href}>
-              {tile}
-            </Link>
-          );
-        })}
+        <p className="max-w-[42ch] text-[14px] leading-6 text-slate-600">
+          Add one block in My Plan or capture what already happened.
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3 pt-1">
@@ -161,14 +114,7 @@ function TodayEmptyGuidance({
           href={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today
-        </Link>
-
-        <Link
-          href="/my-calendar"
-          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-        >
-          My Calendar
+          Shape today in My Plan
         </Link>
 
         <Link
@@ -181,7 +127,7 @@ function TodayEmptyGuidance({
               : "pointer-events-none border-slate-100 bg-slate-50 text-slate-400",
           ].join(" ")}
         >
-          Capture
+          Capture from today
         </Link>
       </div>
     </section>
@@ -206,14 +152,11 @@ function TodayAtAGlancePanel({
   quickCaptureHref: string;
 }) {
   const loading = dayState === "loading";
-  const hasPlan = blocksCount > 0;
-  const hasEvidence = capturedCount > 0;
-
   const nextAction = loading
     ? "Checking today"
-    : hasPlan
+    : blocksCount > 0
       ? "Continue"
-      : hasEvidence
+      : capturedCount > 0
         ? "Review"
         : "Plan";
 
@@ -225,23 +168,21 @@ function TodayAtAGlancePanel({
 
       <div className="grid gap-3 text-[13px]">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">Selected learner</span>
+          <span className="text-slate-500">Learner</span>
           <span className="font-bold text-slate-950">{learnerName}</span>
         </div>
-
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">Planned blocks</span>
+          <span className="text-slate-500">Blocks</span>
           <span className="font-bold text-slate-950">{loading ? "..." : blocksCount}</span>
         </div>
-
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">Captured today</span>
+          <span className="text-slate-500">Captured</span>
           <span className="font-bold text-slate-950">{loading ? "..." : capturedCount}</span>
         </div>
 
         <div className="rounded-[16px] border border-slate-100 bg-slate-50 p-3">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Next
+            Next best action
           </div>
           <div className="mt-1 font-bold text-slate-950">{nextAction}</div>
         </div>
@@ -251,9 +192,8 @@ function TodayAtAGlancePanel({
             href={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-slate-800"
           >
-            Plan
+            Shape today in My Plan
           </Link>
-
           <Link
             href={quickCaptureHref}
             aria-disabled={!canCapture}
@@ -264,7 +204,7 @@ function TodayAtAGlancePanel({
                 : "pointer-events-none border-slate-100 bg-slate-50 text-slate-400",
             ].join(" ")}
           >
-            Capture
+            Quick capture
           </Link>
         </div>
       </div>
@@ -299,17 +239,7 @@ export default function MyDayWorkspace() {
     let mounted = true;
 
     async function hydrateDay() {
-      if (!hasActiveLearner) {
-        if (mounted) {
-          setBlocksToday([]);
-          setPrograms([]);
-          setEvidenceRows([]);
-          setLoadingDay(false);
-        }
-        return;
-      }
-
-      if (!canonicalReady || !activeLearner?.id || !workspace.profile?.id) {
+      if (!hasActiveLearner || !canonicalReady || !activeLearner?.id || !workspace.profile?.id) {
         if (mounted) {
           setBlocksToday([]);
           setPrograms([]);
@@ -322,14 +252,24 @@ export default function MyDayWorkspace() {
       try {
         setLoadingDay(true);
         const [window, allPrograms, evidence] = await Promise.all([
-          loadFamilyCalendarWindow({ familyProfileId: workspace.profile.id, studentId: activeLearner.id, dateFrom: todayYmd, dateTo: todayYmd }),
+          loadFamilyCalendarWindow({
+            familyProfileId: workspace.profile.id,
+            studentId: activeLearner.id,
+            dateFrom: todayYmd,
+            dateTo: todayYmd,
+          }),
           loadFamilyPrograms({ familyId: workspace.profile.id }).catch(() => []),
-          loadEvidenceEntriesWithVariants<MyDayEvidenceRow>(EVIDENCE_SELECTS, { studentId: activeLearner.id, limit: 40 }).catch(() => []),
+          loadEvidenceEntriesWithVariants<MyDayEvidenceRow>(EVIDENCE_SELECTS, {
+            studentId: activeLearner.id,
+            limit: 40,
+          }).catch(() => []),
         ]);
 
         if (!mounted) return;
         setBlocksToday(window.blocks[todayYmd] ?? []);
-        setPrograms(allPrograms.filter((program) => !program.learnerId || program.learnerId === activeLearner.id));
+        setPrograms(
+          allPrograms.filter((program) => !program.learnerId || program.learnerId === activeLearner.id),
+        );
         setEvidenceRows(evidence);
       } finally {
         if (mounted) setLoadingDay(false);
@@ -337,7 +277,9 @@ export default function MyDayWorkspace() {
     }
 
     void hydrateDay();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [activeLearner?.id, canonicalReady, hasActiveLearner, todayYmd, workspace.profile?.id]);
 
   const learnerSelectorState: HomeSurfaceState = workspaceLoading
@@ -395,24 +337,13 @@ export default function MyDayWorkspace() {
 
   const activeLearnerName = activeLearner?.label || "No learner selected";
   const canCapture = canonicalReady && Boolean(activeLearnerId);
-
   const quickCaptureHref = activeLearnerId
     ? `/capture?date=${encodeURIComponent(todayYmd)}`
     : "/capture";
-
-  const portfolioHref = "/my-portfolio";
-
-  const headerState: HomeSurfaceState = !hasActiveLearner
-    ? "empty"
-    : canonicalReady
-      ? "live"
-      : "placeholder";
-
   const noLearner = noLearnerStateText(hasLearners);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => {
     const isActiveLearner = learner.id === activeLearner?.id;
-
     return {
       id: learner.id,
       label: learner.label,
@@ -425,21 +356,17 @@ export default function MyDayWorkspace() {
     };
   });
 
-  const heroAsideText =
-    hasActiveLearner && !workspaceLoading
-      ? `${activeLearnerName}: ${blocksToday.length} planned block${
-          blocksToday.length === 1 ? "" : "s"
-        }, ${evidenceToday.length} captured learning moment${
-          evidenceToday.length === 1 ? "" : "s"
-        } today.`
-      : "Choose a learner to see today's blocks, capture entry points, and the next useful step.";
+  const headerState: HomeSurfaceState = !hasActiveLearner ? "empty" : canonicalReady ? "live" : "placeholder";
+  const heroAsideText = hasActiveLearner
+    ? `${blocksToday.length} blocks, ${evidenceToday.length} captured.`
+    : "Choose a learner.";
 
   return (
     <FamilyTopNavShell
       subtitle="My Day"
-      heroTitle="Today at a glance"
-      heroText="Blocks, next step, capture."
-      workflowHelperText="My Calendar sets rhythm. My Programs shapes sequence. My Plan edits the live week. My Day runs today."
+      heroTitle="My Day"
+      heroText="Run today's blocks."
+      workflowHelperText="Plan the block, run it, capture it."
       heroAsideTitle="Today at a glance"
       heroAsideText={heroAsideText}
     >
@@ -457,36 +384,42 @@ export default function MyDayWorkspace() {
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_360px]">
           <TodayLearningFlow
             blocks={
-              <>
+              <div className="grid gap-4">
                 {dayView?.blocks.map((block) => (
                   <TodayLearningBlockCard
                     key={block.id}
                     block={block}
                     planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
-                    captureHref={`/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(
-                      block.id,
-                    )}`}
+                    captureHref={`/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
                     canCapture={canCapture}
                     preset={preset}
                   />
                 ))}
-              </>
+              </div>
             }
             empty={
               !hasActiveLearner ? (
-                <section className="grid gap-3 rounded-[26px] border border-dashed border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.9)_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)]">
+                <section className="grid gap-3 rounded-[26px] border border-dashed border-slate-200/90 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)]">
                   <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
                     Today
                   </div>
                   <div className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">
                     {noLearner.title}
                   </div>
-                  <p className="max-w-[56ch] text-[14px] leading-6 text-slate-600">
-                    {noLearner.note}
-                  </p>
+                  <p className="max-w-[42ch] text-[14px] leading-6 text-slate-600">{noLearner.note}</p>
                   <div className="flex flex-wrap gap-3 pt-2">
-                    <Link href={noLearner.ctaHref} className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800">{noLearner.ctaLabel}</Link>
-                    <Link href="/my-plan" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">Open My Plan</Link>
+                    <Link
+                      href={noLearner.ctaHref}
+                      className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
+                    >
+                      {noLearner.ctaLabel}
+                    </Link>
+                    <Link
+                      href={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      Shape today in My Plan
+                    </Link>
                   </div>
                 </section>
               ) : dayState === "loading" ? (
@@ -504,9 +437,7 @@ export default function MyDayWorkspace() {
                   quickCaptureHref={quickCaptureHref}
                   canCapture={canCapture}
                 />
-              ) : (
-                <MyDayEmptyState />
-              )
+              ) : undefined
             }
           />
 
@@ -526,16 +457,12 @@ export default function MyDayWorkspace() {
               learnerName={activeLearnerName}
               planHref={
                 dayView?.nextUp
-                  ? `/my-plan?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(
-                      dayView.nextUp.id,
-                    )}`
+                  ? `/my-plan?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(dayView.nextUp.id)}`
                   : `/my-plan?date=${encodeURIComponent(todayYmd)}`
               }
               captureHref={
                 dayView?.nextUp
-                  ? `/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(
-                      dayView.nextUp.id,
-                    )}`
+                  ? `/capture?date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(dayView.nextUp.id)}`
                   : quickCaptureHref
               }
               canCapture={canCapture}
@@ -549,7 +476,7 @@ export default function MyDayWorkspace() {
           </div>
         </section>
 
-        {dayView ? <MyDayRecentlyCapturedStrip items={dayView.recentCaptures} portfolioHref={portfolioHref} /> : null}
+        {dayView ? <MyDayRecentlyCapturedStrip items={dayView.recentCaptures} portfolioHref="/my-portfolio" /> : null}
         {dayView ? <MyDayNextStep nextStep={dayView.nextStep} /> : null}
         {dayView ? <MyDaySummary summary={dayView.summary} /> : null}
         <MyDayQuickLinks />
@@ -557,4 +484,3 @@ export default function MyDayWorkspace() {
     </FamilyTopNavShell>
   );
 }
-

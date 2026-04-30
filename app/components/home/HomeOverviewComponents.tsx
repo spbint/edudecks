@@ -117,7 +117,7 @@ function stateMeta(state: HomeSurfaceState) {
     };
   }
   return {
-    label: "Preview",
+    label: "Draft workspace",
     className: "border-amber-200 bg-amber-50 text-amber-700",
   };
 }
