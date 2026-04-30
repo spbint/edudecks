@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
-  type HomeSurfaceState,
   type LearnerOption,
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
@@ -22,7 +20,7 @@ import { presetFromFrameworkSelection, type FrameworkPreset } from "@/lib/curric
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 import { buildMyDayView, type MyDayEvidenceRow, type MyDayView } from "@/lib/myDay";
 import type { Program } from "@/lib/familyPlanningTemplates";
-import type { FamilyCalendarBlockEntry, FamilyCalendarWindow } from "@/lib/familyPlanner";
+import type { FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
 
 const FAMILY_DAY_ID = "__family-day";
@@ -113,8 +111,8 @@ export default function MyDayWorkspace() {
                 }).catch(() => []),
               ]);
 
-              // ✅ FIX HERE
-              const blocksByDate = (window.blocks ?? {}) as Record<string, FamilyCalendarBlockEntry[]>;
+              const blocksByDate =
+                (window.blocks ?? {}) as Record<string, FamilyCalendarBlockEntry[]>;
 
               return {
                 learnerId,
@@ -167,6 +165,31 @@ export default function MyDayWorkspace() {
     };
   });
 
+  const canCapture =
+    Boolean(workspace.userId) &&
+    workspace.storageMode === "database" &&
+    Boolean(workspace.profile?.id) &&
+    workspace.profile.id !== "local";
+
+  const presetByLearnerId = useMemo<Record<string, FrameworkPreset>>(
+    () =>
+      Object.fromEntries(
+        workspace.learners.map((learner) => {
+          const config = resolveEffectiveLearnerLearningConfig(workspace.profile, learner);
+
+          return [
+            learner.id,
+            presetFromFrameworkSelection({
+              country: config.country,
+              frameworkId: config.frameworkId,
+              jurisdictionId: config.jurisdictionId,
+            }),
+          ];
+        }),
+      ),
+    [workspace.learners, workspace.profile],
+  );
+
   const learnerOptions: LearnerOption[] = hasLearners
     ? [
         { id: FAMILY_DAY_ID, label: "Family day", note: "Combined view" },
@@ -216,7 +239,14 @@ export default function MyDayWorkspace() {
                   <div key={row.learner.id}>
                     <h3 className="font-bold">{row.learner.label}</h3>
                     {row.view.blocks.map((block) => (
-                      <TodayLearningBlockCard key={block.id} block={block} />
+                      <TodayLearningBlockCard
+                        key={`${row.learner.id}-${block.id}`}
+                        block={block}
+                        planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(row.learner.id)}`}
+                        captureHref={`/capture?learner=${encodeURIComponent(row.learner.id)}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
+                        canCapture={canCapture}
+                        preset={presetByLearnerId[row.learner.id] ?? null}
+                      />
                     ))}
                   </div>
                 ))}
@@ -224,7 +254,14 @@ export default function MyDayWorkspace() {
             ) : (
               <div className="space-y-4">
                 {dayViewsByLearnerId[activeLearnerId]?.blocks.map((block) => (
-                  <TodayLearningBlockCard key={block.id} block={block} />
+                  <TodayLearningBlockCard
+                    key={block.id}
+                    block={block}
+                    planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(activeLearnerId)}`}
+                    captureHref={`/capture?learner=${encodeURIComponent(activeLearnerId)}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
+                    canCapture={canCapture && Boolean(activeLearnerId)}
+                    preset={activeLearnerId ? presetByLearnerId[activeLearnerId] ?? null : null}
+                  />
                 ))}
               </div>
             )
