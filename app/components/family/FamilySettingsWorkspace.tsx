@@ -185,11 +185,21 @@ export default function FamilySettingsWorkspace() {
         >
           <Link
             href="/settings/master-calendar"
-            className="grid gap-3 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-left transition hover:bg-white"
+            className="grid gap-4 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-left transition hover:bg-white"
           >
-            <div className="text-[15px] font-semibold text-slate-950">Master Calendar</div>
-            <div className="text-[13px] leading-5 text-slate-500">
-              Set reusable rotations, term structure, and planning defaults.
+            <div className="grid gap-1.5">
+              <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Planning setup
+              </div>
+              <div className="text-[17px] font-bold tracking-tight text-slate-950">
+                Master Calendar
+              </div>
+              <div className="text-[13px] leading-5 text-slate-600">
+                Set reusable rotations, term structure, and planning defaults.
+              </div>
+            </div>
+            <div className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700">
+              Open Master Calendar
             </div>
           </Link>
         </FamilyLearningSetupCard>
