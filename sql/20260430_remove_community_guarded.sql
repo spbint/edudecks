@@ -1,5 +1,5 @@
 -- Remove Community from the live product without dropping historical data.
--- This script preserves existing rows for future inspection and disables client writes.
+-- This script is guarded for databases where some Community tables never existed.
 
 begin;
 
