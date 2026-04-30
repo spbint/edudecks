@@ -20,6 +20,7 @@ import {
   ProgramEditor,
   ProgramList,
   ProgramSegmentCard,
+  type StandardProgramOption,
   type SuggestedProgramPathTerm,
   type SuggestedProgramPathTile,
   BODY,
@@ -39,30 +40,53 @@ import {
   type ProgramSegment,
 } from "@/lib/familyPlanningTemplates";
 import {
-  COUNTRY_OPTIONS,
   frameworkPreset,
-  jurisdictionOptionsForCountry,
-  presetFromFrameworkSelection,
 } from "@/lib/curriculumFrameworks";
 import { FAMILY_YEAR_LEVEL_OPTIONS } from "@/lib/familyLearnerYearLevel";
 
+type StandardProgramId = "maths" | "english" | "science" | "hass";
+
 type ProgramSetupDraft = {
-  country: string;
-  jurisdictionId: string;
   yearLevel: string;
-  subjectId: string;
-  strandId: string;
-  focusId: string;
+  programId: StandardProgramId;
 };
 
 const EMPTY_PROGRAM_SETUP_DRAFT: ProgramSetupDraft = {
-  country: "",
-  jurisdictionId: "",
   yearLevel: "",
-  subjectId: "",
-  strandId: "",
-  focusId: "",
+  programId: "maths",
 };
+
+const STANDARD_PROGRAMS: Array<{
+  id: StandardProgramId;
+  title: string;
+  subjectTitle: string;
+  description: string;
+}> = [
+  {
+    id: "maths",
+    title: "Maths",
+    subjectTitle: "Maths",
+    description: "Number, operations, patterns, fractions, money, and review.",
+  },
+  {
+    id: "english",
+    title: "English",
+    subjectTitle: "English",
+    description: "Reading, writing, speaking, vocabulary, and projects.",
+  },
+  {
+    id: "science",
+    title: "Science",
+    subjectTitle: "Science",
+    description: "Inquiry, living things, materials, forces, Earth, and design.",
+  },
+  {
+    id: "hass",
+    title: "HASS",
+    subjectTitle: "HASS",
+    description: "History, geography, community, civics, and inquiry.",
+  },
+];
 
 type MathsYearPathKey = "foundation" | 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -189,6 +213,10 @@ function setupYearLevel(value: unknown) {
   return yearLevel && yearLevel !== "Year band not set" ? yearLevel : "";
 }
 
+function defaultYearLevel(value: unknown) {
+  return setupYearLevel(value) || "3";
+}
+
 function yearLevelOptionLabel(value: string) {
   if (value === "Foundation") return "Foundation";
   if (/^\d+$/.test(value)) return `Year ${value}`;
@@ -220,16 +248,10 @@ function buildYearLevelOptions(prefillYearLevel: string) {
   }));
 }
 
-function prefilledProgramSetupDraft(input: {
-  country?: string | null;
-  jurisdictionId?: string | null;
-  yearBand?: string | null;
-}): ProgramSetupDraft {
+function prefilledProgramSetupDraft(yearBand?: string | null): ProgramSetupDraft {
   return {
     ...EMPTY_PROGRAM_SETUP_DRAFT,
-    country: clean(input.country),
-    jurisdictionId: clean(input.jurisdictionId),
-    yearLevel: setupYearLevel(input.yearBand),
+    yearLevel: defaultYearLevel(yearBand),
   };
 }
 
@@ -241,6 +263,7 @@ function slugify(value: string) {
 }
 
 function makePathTile(input: {
+  programId?: StandardProgramId;
   yearKey: MathsYearPathKey;
   term: number;
   week: number;
@@ -249,8 +272,9 @@ function makePathTile(input: {
   strandLabel?: string | null;
   curriculumCode?: string | null;
 }): SuggestedProgramPathTile {
+  const programId = input.programId || "maths";
   return {
-    id: `maths-${input.yearKey}-number-term-${input.term}-week-${input.week}-${slugify(input.title)}`,
+    id: `${programId}-${input.yearKey}-term-${input.term}-week-${input.week}-${slugify(input.title)}`,
     term: input.term,
     week: input.week,
     title: input.title,
@@ -656,41 +680,247 @@ function buildMathsNumberYearPath(input: {
   }));
 }
 
-function isNumberLearningArea(input: {
-  strandId?: string | null;
-  strandTitle?: string | null;
-}) {
-  const label = `${clean(input.strandId)} ${clean(input.strandTitle)}`.toLowerCase();
-  return (
-    label.includes("number") ||
-    label.includes("numeracy") ||
-    label.includes("operation") ||
-    label.includes("fraction") ||
-    label.includes("algebraic")
-  );
+const STANDARD_PROGRAM_TERM_THEMES: Record<Exclude<StandardProgramId, "maths">, Array<{
+  strandLabel: string;
+  focus: string;
+  weeks: string[];
+}>> = {
+  english: [
+    {
+      strandLabel: "Reading",
+      focus: "Build steady reading, comprehension, vocabulary, and discussion routines.",
+      weeks: [
+        "Reading routines",
+        "Choosing texts",
+        "Vocabulary in context",
+        "Main ideas",
+        "Character and setting",
+        "Sequencing events",
+        "Making predictions",
+        "Asking questions",
+        "Reading response",
+        "Term 1 reading review",
+      ],
+    },
+    {
+      strandLabel: "Writing",
+      focus: "Move from sentence control into planned paragraphs and short compositions.",
+      weeks: [
+        "Sentence craft",
+        "Planning ideas",
+        "Narrative structure",
+        "Description",
+        "Informative writing",
+        "Paragraph building",
+        "Editing routines",
+        "Publishing choices",
+        "Sharing writing",
+        "Term 2 writing review",
+      ],
+    },
+    {
+      strandLabel: "Text study",
+      focus: "Compare text types and connect reading evidence to written responses.",
+      weeks: [
+        "Text features",
+        "Author choices",
+        "Compare texts",
+        "Evidence in answers",
+        "Opinion writing",
+        "Research notes",
+        "Summarising",
+        "Presentation planning",
+        "Oral sharing",
+        "Term 3 text review",
+      ],
+    },
+    {
+      strandLabel: "Communication",
+      focus: "Consolidate reading, writing, editing, speaking, and reflection.",
+      weeks: [
+        "Independent reading",
+        "Writing project",
+        "Draft and revise",
+        "Conventions check",
+        "Audience and purpose",
+        "Presentation practice",
+        "Portfolio piece",
+        "Reading reflection",
+        "Year review",
+        "Next-year bridge",
+      ],
+    },
+  ],
+  science: [
+    {
+      strandLabel: "Inquiry",
+      focus: "Start with questions, observing closely, and recording what changes.",
+      weeks: [
+        "Science questions",
+        "Observation skills",
+        "Sorting and grouping",
+        "Simple tests",
+        "Recording results",
+        "Patterns in data",
+        "Drawing conclusions",
+        "Explaining evidence",
+        "Inquiry report",
+        "Term 1 inquiry review",
+      ],
+    },
+    {
+      strandLabel: "Living things",
+      focus: "Explore living things, needs, habitats, change, and relationships.",
+      weeks: [
+        "Living and non-living",
+        "Needs for life",
+        "Habitats",
+        "Life cycles",
+        "Adaptations",
+        "Food chains",
+        "Human impacts",
+        "Field observation",
+        "Living things project",
+        "Term 2 life review",
+      ],
+    },
+    {
+      strandLabel: "Materials and forces",
+      focus: "Investigate materials, movement, pushes, pulls, and design choices.",
+      weeks: [
+        "Material properties",
+        "Changing materials",
+        "Pushes and pulls",
+        "Movement",
+        "Friction",
+        "Simple machines",
+        "Design challenge",
+        "Test and improve",
+        "Explain a design",
+        "Term 3 physical review",
+      ],
+    },
+    {
+      strandLabel: "Earth and space",
+      focus: "Connect Earth, sky, weather, resources, and end-of-year inquiry.",
+      weeks: [
+        "Earth materials",
+        "Weather patterns",
+        "Day and night",
+        "Seasons",
+        "Water cycle",
+        "Natural resources",
+        "Sustainability",
+        "Science investigation",
+        "Year review",
+        "Next-year bridge",
+      ],
+    },
+  ],
+  hass: [
+    {
+      strandLabel: "People and place",
+      focus: "Begin with family, local places, maps, and community routines.",
+      weeks: [
+        "Family stories",
+        "Local places",
+        "Map skills",
+        "Directions and symbols",
+        "Community helpers",
+        "Needs and wants",
+        "Rules and fairness",
+        "Local inquiry",
+        "Community presentation",
+        "Term 1 review",
+      ],
+    },
+    {
+      strandLabel: "History",
+      focus: "Explore change, continuity, sources, and personal or local history.",
+      weeks: [
+        "Past and present",
+        "Timelines",
+        "Using sources",
+        "Family history",
+        "Local history",
+        "Significant people",
+        "Change over time",
+        "History questions",
+        "History project",
+        "Term 2 review",
+      ],
+    },
+    {
+      strandLabel: "Geography",
+      focus: "Study environments, places, resources, weather, and human choices.",
+      weeks: [
+        "Natural features",
+        "Built features",
+        "Weather and climate",
+        "Resources",
+        "Caring for places",
+        "Comparing places",
+        "Using data",
+        "Map project",
+        "Geography presentation",
+        "Term 3 review",
+      ],
+    },
+    {
+      strandLabel: "Civics and inquiry",
+      focus: "Connect decision making, community participation, evidence, and review.",
+      weeks: [
+        "Community decisions",
+        "Rights and responsibilities",
+        "Groups and roles",
+        "Simple economics",
+        "Inquiry planning",
+        "Collecting evidence",
+        "Explaining findings",
+        "Action project",
+        "Year review",
+        "Next-year bridge",
+      ],
+    },
+  ],
+};
+
+function buildGenericStandardYearPath(input: {
+  programId: Exclude<StandardProgramId, "maths">;
+  yearKey: MathsYearPathKey;
+}): SuggestedProgramPathTerm[] {
+  return STANDARD_PROGRAM_TERM_THEMES[input.programId].map((term, termIndex) => ({
+    id: `${input.programId}-${input.yearKey}-term-${termIndex + 1}`,
+    term: termIndex + 1,
+    label: `Term ${termIndex + 1}`,
+    tiles: term.weeks.map((title, weekIndex) =>
+      makePathTile({
+        programId: input.programId,
+        yearKey: input.yearKey,
+        term: termIndex + 1,
+        week: termIndex * 10 + weekIndex + 1,
+        title,
+        description: term.focus,
+        strandLabel: term.strandLabel,
+      }),
+    ),
+  }));
 }
 
-function buildSuggestedProgramPathTerms(input: {
+function buildStandardProgramPathTerms(input: {
   yearLevel: string;
-  subjectId?: string | null;
-  strandId?: string | null;
-  strandTitle?: string | null;
-  strandOutcomes: Array<{ code: string; label: string }>;
+  programId: StandardProgramId;
 }) {
   const yearKey = yearPathKeyFromLabel(input.yearLevel);
-  if (
-    yearKey &&
-    input.subjectId === "mathematics" &&
-    isNumberLearningArea({ strandId: input.strandId, strandTitle: input.strandTitle })
-  ) {
+  if (!yearKey) return [];
+  if (input.programId === "maths") {
     return buildMathsNumberYearPath({
       yearKey,
-      strandLabel: clean(input.strandTitle) || "Number",
-      strandOutcomes: input.strandOutcomes,
+      strandLabel: "Maths",
+      strandOutcomes: [],
     });
   }
-
-  return [];
+  return buildGenericStandardYearPath({ programId: input.programId, yearKey });
 }
 
 function buildDraftProgram(input: {
@@ -699,16 +929,11 @@ function buildDraftProgram(input: {
   frameworkId: string;
   jurisdictionId?: string | null;
   periodLabel: string;
-  subjectId: string;
+  programTitle: string;
   subjectTitle: string;
-  strandTitle: string;
   pathTiles: SuggestedProgramPathTile[];
 }): Program {
-  const subjectTitle = clean(input.subjectTitle) || clean(input.subjectId) || "General";
-  const strandTitle = clean(input.strandTitle);
-  const selectedOutcomeIds = Array.from(
-    new Set(input.pathTiles.map((tile) => clean(tile.curriculumCode)).filter(Boolean)),
-  );
+  const subjectTitle = clean(input.subjectTitle) || "General";
   const base = defaultProgram({
     familyId: input.familyId,
     learnerId: input.learnerId || null,
@@ -721,18 +946,18 @@ function buildDraftProgram(input: {
 
   return {
     ...base,
-    title: [subjectTitle, strandTitle].filter(Boolean).join(": ") || "New program",
+    title: clean(input.programTitle) || "New program",
     subjectId: subjectTitle,
     durationCount: Math.max(input.pathTiles.length, 1),
     segmentType: "sequence",
-    curriculumOutcomeIds: selectedOutcomeIds,
+    curriculumOutcomeIds: [],
     segments: input.pathTiles.map((tile, index) => ({
       id: `segment-${createdAt}-${index + 1}`,
       programId: base.id,
       order: index + 1,
       title: tile.title,
       notes: `Term ${tile.term}, week ${tile.week}: ${tile.description}`,
-      curriculumOutcomeIds: clean(tile.curriculumCode) ? [clean(tile.curriculumCode)] : [],
+      curriculumOutcomeIds: [],
       evidencePrompts: [],
       assessmentIntents: [],
       suggestedPlanBlocks: [],
@@ -835,58 +1060,31 @@ export default function FamilyProgramsWorkspace() {
       ? learningConfig.country
       : "au",
   );
-  const programSetupPreset = useMemo(
-    () =>
-      presetFromFrameworkSelection({
-        country: programSetupDraft.country || learningConfig.country,
-        frameworkId: learningConfig.frameworkId,
-        jurisdictionId: programSetupDraft.jurisdictionId || learningConfig.jurisdictionId,
-      }),
-    [
-      learningConfig.country,
-      learningConfig.frameworkId,
-      learningConfig.jurisdictionId,
-      programSetupDraft.country,
-      programSetupDraft.jurisdictionId,
-    ],
-  );
-  const programSetupCountryOptions = useMemo(
-    () => COUNTRY_OPTIONS.map((option) => ({ id: option.id, label: option.label })),
-    [],
-  );
-  const programSetupJurisdictionOptions = useMemo(
-    () =>
-      jurisdictionOptionsForCountry(programSetupDraft.country || learningConfig.country).map(
-        (option) => ({ id: option.id, label: option.label }),
-      ),
-    [learningConfig.country, programSetupDraft.country],
-  );
   const programSetupYearLevelOptions = useMemo(
     () => buildYearLevelOptions(learningConfig.yearBand),
     [learningConfig.yearBand],
   );
-  const selectedSetupSubject =
-    programSetupPreset.subjects.find((subject) => subject.id === programSetupDraft.subjectId) ??
-    null;
-  const selectedSetupStrand =
-    selectedSetupSubject?.strands.find((strand) => strand.id === programSetupDraft.strandId) ??
-    null;
+  const selectedStandardProgram =
+    STANDARD_PROGRAMS.find((program) => program.id === programSetupDraft.programId) ??
+    STANDARD_PROGRAMS[0]!;
+  const selectedProgramYearLabel = yearLevelOptionLabel(programSetupDraft.yearLevel);
+  const standardProgramOptions: StandardProgramOption[] = useMemo(
+    () =>
+      STANDARD_PROGRAMS.map((program) => ({
+        id: program.id,
+        title: program.title,
+        yearLabel: selectedProgramYearLabel,
+        description: program.description,
+      })),
+    [selectedProgramYearLabel],
+  );
   const programPathTerms = useMemo(
     () =>
-      selectedSetupStrand
-        ? buildSuggestedProgramPathTerms({
-            yearLevel: programSetupDraft.yearLevel,
-            subjectId: selectedSetupSubject?.id,
-            strandId: selectedSetupStrand.id,
-            strandTitle: selectedSetupStrand.title,
-            strandOutcomes: selectedSetupStrand.outcomes,
-          })
-        : [],
-    [
-      programSetupDraft.yearLevel,
-      selectedSetupStrand,
-      selectedSetupSubject?.id,
-    ],
+      buildStandardProgramPathTerms({
+        yearLevel: programSetupDraft.yearLevel,
+        programId: programSetupDraft.programId,
+      }),
+    [programSetupDraft.programId, programSetupDraft.yearLevel],
   );
   const programPathTiles = useMemo(
     () => programPathTerms.flatMap((term) => term.tiles),
@@ -900,34 +1098,19 @@ export default function FamilyProgramsWorkspace() {
     [programPathTiles, selectedProgramPathTileIds],
   );
   const canCreateProgramDraft = Boolean(
-    programSetupDraft.country &&
-      programSetupDraft.jurisdictionId &&
-      programSetupDraft.yearLevel &&
-      selectedSetupSubject &&
-      selectedSetupStrand &&
+    programSetupDraft.yearLevel &&
+      selectedStandardProgram &&
       selectedProgramPathTiles.length,
   );
-  const programSetupPrefillLabel =
-    programSetupDraft.country || programSetupDraft.jurisdictionId || programSetupDraft.yearLevel
-      ? "Prefilled from learner"
-      : "";
+  const programSetupPrefillLabel = setupYearLevel(learningConfig.yearBand)
+    ? "Prefilled from learner"
+    : "";
 
   useEffect(() => {
     if (showNewProgramGuide) return;
     setSelectedProgramPathTileIds([]);
-    setProgramSetupDraft(
-      prefilledProgramSetupDraft({
-        country: learningConfig.country,
-        jurisdictionId: learningConfig.jurisdictionId,
-        yearBand: learningConfig.yearBand,
-      }),
-    );
-  }, [
-    learningConfig.country,
-    learningConfig.jurisdictionId,
-    learningConfig.yearBand,
-    showNewProgramGuide,
-  ]);
+    setProgramSetupDraft(prefilledProgramSetupDraft(learningConfig.yearBand));
+  }, [learningConfig.yearBand, showNewProgramGuide]);
 
   useEffect(() => {
     const validIds = new Set(programPathTiles.map((tile) => tile.id));
@@ -1062,13 +1245,7 @@ export default function FamilyProgramsWorkspace() {
     setStatus("");
     setError("");
     setSelectedProgramPathTileIds([]);
-    setProgramSetupDraft(
-      prefilledProgramSetupDraft({
-        country: learningConfig.country,
-        jurisdictionId: learningConfig.jurisdictionId,
-        yearBand: learningConfig.yearBand,
-      }),
-    );
+    setProgramSetupDraft(prefilledProgramSetupDraft(learningConfig.yearBand));
   }
 
   function handleSelectProgram(programId: string) {
@@ -1077,98 +1254,31 @@ export default function FamilyProgramsWorkspace() {
     setError("");
   }
 
-  function updateProgramSetupDraft(field: keyof ProgramSetupDraft, value: string) {
-    if (field !== "focusId") {
-      setSelectedProgramPathTileIds([]);
-    } else {
-      const matchingTile = programPathTiles.find(
-        (tile) => clean(tile.curriculumCode) === value,
-      );
-      if (matchingTile) {
-        setSelectedProgramPathTileIds((current) =>
-          current.includes(matchingTile.id) ? current : [...current, matchingTile.id],
-        );
-      }
-    }
-
-    setProgramSetupDraft((current) => {
-      if (field === "country") {
-        return {
-          ...EMPTY_PROGRAM_SETUP_DRAFT,
-          country: value,
-        };
-      }
-      if (field === "jurisdictionId") {
-        return {
-          ...current,
-          jurisdictionId: value,
-          yearLevel: "",
-          subjectId: "",
-          strandId: "",
-          focusId: "",
-        };
-      }
-      if (field === "yearLevel") {
-        return {
-          ...current,
-          yearLevel: value,
-          subjectId: "",
-          strandId: "",
-          focusId: "",
-        };
-      }
-      if (field === "subjectId") {
-        return {
-          ...current,
-          subjectId: value,
-          strandId: "",
-          focusId: "",
-        };
-      }
-      if (field === "strandId") {
-        return {
-          ...current,
-          strandId: value,
-          focusId: "",
-        };
-      }
-      return {
-        ...current,
-        [field]: value,
-      };
-    });
+  function handleYearLevelChange(value: string) {
+    setSelectedProgramPathTileIds([]);
+    setProgramSetupDraft((current) => ({
+      ...current,
+      yearLevel: value,
+    }));
   }
 
-  function syncFocusFromSelectedPath(nextTileIds: string[]) {
-    const nextFirstCode =
-      nextTileIds
-        .map((currentTileId) =>
-          clean(programPathTiles.find((item) => item.id === currentTileId)?.curriculumCode),
-        )
-        .find(Boolean) || "";
-    setProgramSetupDraft((currentDraft) => ({
-      ...currentDraft,
-      focusId: nextFirstCode,
+  function handleSelectStandardProgram(programId: string) {
+    const nextProgramId = STANDARD_PROGRAMS.some((program) => program.id === programId)
+      ? (programId as StandardProgramId)
+      : "maths";
+    setSelectedProgramPathTileIds([]);
+    setProgramSetupDraft((current) => ({
+      ...current,
+      programId: nextProgramId,
     }));
   }
 
   function toggleProgramPathTile(tileId: string) {
-    const tile = programPathTiles.find((item) => item.id === tileId);
     const selected = selectedProgramPathTileIds.includes(tileId);
     const nextTileIds = selected
       ? selectedProgramPathTileIds.filter((currentTileId) => currentTileId !== tileId)
       : [...selectedProgramPathTileIds, tileId];
-    const tileCode = clean(tile?.curriculumCode);
-
     setSelectedProgramPathTileIds(nextTileIds);
-    if (!selected && tileCode) {
-      setProgramSetupDraft((currentDraft) => ({
-        ...currentDraft,
-        focusId: tileCode,
-      }));
-    } else if (selected && programSetupDraft.focusId === tileCode) {
-      syncFocusFromSelectedPath(nextTileIds);
-    }
   }
 
   function toggleProgramPathTerm(termId: string) {
@@ -1180,7 +1290,6 @@ export default function FamilyProgramsWorkspace() {
       ? selectedProgramPathTileIds.filter((tileId) => !termTileIds.includes(tileId))
       : Array.from(new Set([...selectedProgramPathTileIds, ...termTileIds]));
     setSelectedProgramPathTileIds(nextTileIds);
-    syncFocusFromSelectedPath(nextTileIds);
   }
 
   function toggleProgramPathYear() {
@@ -1188,11 +1297,10 @@ export default function FamilyProgramsWorkspace() {
     const allYearSelected = allTileIds.length > 0 && allTileIds.every((tileId) => selectedProgramPathTileIds.includes(tileId));
     const nextTileIds = allYearSelected ? [] : allTileIds;
     setSelectedProgramPathTileIds(nextTileIds);
-    syncFocusFromSelectedPath(nextTileIds);
   }
 
   function handleCreateProgram() {
-    if (!canCreateProgramDraft || !selectedSetupSubject || !selectedSetupStrand) {
+    if (!canCreateProgramDraft) {
       return;
     }
 
@@ -1200,18 +1308,17 @@ export default function FamilyProgramsWorkspace() {
       familyId: workspace.profile.id,
       learnerId: activeLearner?.id || null,
       frameworkId: learningConfig.frameworkId,
-      jurisdictionId: programSetupDraft.jurisdictionId || learningConfig.jurisdictionId,
+      jurisdictionId: learningConfig.jurisdictionId,
       periodLabel: learningConfig.academicStructureType === "semesters" ? "Semester 1" : "Term 1",
-      subjectId: selectedSetupSubject.id,
-      subjectTitle: selectedSetupSubject.title,
-      strandTitle: selectedSetupStrand.title,
+      programTitle: `${selectedStandardProgram.title} - ${selectedProgramYearLabel}`,
+      subjectTitle: selectedStandardProgram.subjectTitle,
       pathTiles: selectedProgramPathTiles,
     });
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
     setSelectedSegmentId(null);
     setShowNewProgramGuide(false);
-    setStatus("Draft workspace ready.");
+    setStatus("Next step: Place into My Calendar");
     setError("");
   }
 
@@ -1378,25 +1485,14 @@ export default function FamilyProgramsWorkspace() {
             {!selectedProgram ? (
               showNewProgramGuide ? (
                 <ProgramGuidedSetupPanel
-                  draft={programSetupDraft}
-                  countryOptions={programSetupCountryOptions}
-                  jurisdictionOptions={programSetupJurisdictionOptions}
                   yearLevelOptions={programSetupYearLevelOptions}
-                  subjectOptions={programSetupPreset.subjects.map((subject) => ({
-                    id: subject.id,
-                    label: subject.title,
-                  }))}
-                  strandOptions={(selectedSetupSubject?.strands || []).map((strand) => ({
-                    id: strand.id,
-                    label: strand.title,
-                  }))}
-                  focusOptions={(selectedSetupStrand?.outcomes || []).map((outcome) => ({
-                    id: outcome.code,
-                    label: `${outcome.code} - ${outcome.label}`,
-                  }))}
+                  selectedYearLevel={programSetupDraft.yearLevel}
+                  programOptions={standardProgramOptions}
+                  selectedProgramId={programSetupDraft.programId}
                   programPathTerms={programPathTerms}
                   selectedProgramPathTileIds={selectedProgramPathTileIds}
-                  onChange={updateProgramSetupDraft}
+                  onYearLevelChange={handleYearLevelChange}
+                  onSelectProgram={handleSelectStandardProgram}
                   onToggleProgramPathTile={toggleProgramPathTile}
                   onToggleProgramPathTerm={toggleProgramPathTerm}
                   onToggleProgramPathYear={toggleProgramPathYear}

@@ -194,18 +194,16 @@ export function ProgramList({
   );
 }
 
-type ProgramSetupDraft = {
-  country: string;
-  jurisdictionId: string;
-  yearLevel: string;
-  subjectId: string;
-  strandId: string;
-  focusId: string;
-};
-
 type ProgramSetupOption = {
   id: string;
   label: string;
+};
+
+export type StandardProgramOption = {
+  id: string;
+  title: string;
+  yearLabel: string;
+  description: string;
 };
 
 export type SuggestedProgramPathTile = {
@@ -292,7 +290,7 @@ function SuggestedProgramPath({
       </div>
 
       {terms.length ? (
-        <div className="grid gap-4">
+        <div className="grid gap-4 xl:grid-cols-4">
         {terms.map((term) => {
           const termTileIds = term.tiles.map((tile) => tile.id);
           const allTermSelected = termTileIds.length > 0 && termTileIds.every((tileId) => selectedTileIds.includes(tileId));
@@ -312,7 +310,7 @@ function SuggestedProgramPath({
                 </button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-2">
                 {term.tiles.map((tile) => {
                   const selected = selectedTileIds.includes(tile.id);
                   return (
@@ -321,7 +319,7 @@ function SuggestedProgramPath({
                       type="button"
                       onClick={() => onToggleTile(tile.id)}
                       aria-pressed={selected}
-                      className={`grid min-h-[150px] gap-3 rounded-[16px] border p-4 text-left transition ${
+                      className={`grid min-h-[150px] gap-3 rounded-[16px] border p-3 text-left transition ${
                         selected
                           ? "border-blue-300 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
                           : "border-slate-200 bg-slate-50 hover:bg-slate-100"
@@ -363,16 +361,14 @@ function SuggestedProgramPath({
 }
 
 export function ProgramGuidedSetupPanel({
-  draft,
-  countryOptions,
-  jurisdictionOptions,
   yearLevelOptions,
-  subjectOptions,
-  strandOptions,
-  focusOptions,
+  selectedYearLevel,
+  programOptions,
+  selectedProgramId,
   programPathTerms,
   selectedProgramPathTileIds,
-  onChange,
+  onYearLevelChange,
+  onSelectProgram,
   onToggleProgramPathTile,
   onToggleProgramPathTerm,
   onToggleProgramPathYear,
@@ -381,16 +377,14 @@ export function ProgramGuidedSetupPanel({
   canCreateDraft,
   prefillLabel,
 }: {
-  draft: ProgramSetupDraft;
-  countryOptions: ProgramSetupOption[];
-  jurisdictionOptions: ProgramSetupOption[];
   yearLevelOptions: ProgramSetupOption[];
-  subjectOptions: ProgramSetupOption[];
-  strandOptions: ProgramSetupOption[];
-  focusOptions: ProgramSetupOption[];
+  selectedYearLevel: string;
+  programOptions: StandardProgramOption[];
+  selectedProgramId: string;
   programPathTerms: SuggestedProgramPathTerm[];
   selectedProgramPathTileIds: string[];
-  onChange: (field: keyof ProgramSetupDraft, value: string) => void;
+  onYearLevelChange: (value: string) => void;
+  onSelectProgram: (programId: string) => void;
   onToggleProgramPathTile: (tileId: string) => void;
   onToggleProgramPathTerm: (termId: string) => void;
   onToggleProgramPathYear: () => void;
@@ -405,7 +399,7 @@ export function ProgramGuidedSetupPanel({
         <div className="grid gap-1.5">
           <div className={LABEL}>Draft setup</div>
           <h2 className={H2}>Build a new program</h2>
-          <p className={BODY}>Choose the curriculum path first.</p>
+          <p className={BODY}>Choose a standard year program, then select the weeks to include.</p>
         </div>
         {prefillLabel ? (
           <span className={`${CHIP_BASE} border-slate-200 bg-slate-50 text-slate-600`}>
@@ -414,74 +408,57 @@ export function ProgramGuidedSetupPanel({
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <ProgramSetupSelect
-          label="Country"
-          value={draft.country}
-          options={countryOptions}
-          placeholder="Choose country"
-          onChange={(value) => onChange("country", value)}
+          label="Year level"
+          value={selectedYearLevel}
+          options={yearLevelOptions}
+          placeholder="Choose year level"
+          onChange={onYearLevelChange}
         />
 
-        {draft.country ? (
-          <ProgramSetupSelect
-            label="State or curriculum"
-            value={draft.jurisdictionId}
-            options={jurisdictionOptions}
-            placeholder="Choose state or curriculum"
-            onChange={(value) => onChange("jurisdictionId", value)}
-          />
-        ) : null}
+        <section className="grid gap-3 rounded-[22px] border border-slate-200 bg-slate-50/70 p-4">
+          <div className="grid gap-1.5">
+            <div className={LABEL}>Program selection</div>
+            <h3 className={H2}>Standard year programs</h3>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {programOptions.map((program) => {
+              const active = program.id === selectedProgramId;
+              return (
+                <button
+                  key={program.id}
+                  type="button"
+                  onClick={() => onSelectProgram(program.id)}
+                  aria-pressed={active}
+                  className={`grid min-h-[124px] gap-3 rounded-[18px] border p-4 text-left transition ${
+                    active
+                      ? "border-blue-300 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                      : "border-slate-200 bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  <div className={H3}>
+                    {program.title} {"\u2014"} {program.yearLabel}
+                  </div>
+                  <div className={META}>{program.description}</div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
-        {draft.jurisdictionId ? (
-          <ProgramSetupSelect
-            label="Year level"
-            value={draft.yearLevel}
-            options={yearLevelOptions}
-            placeholder="Choose year level"
-            onChange={(value) => onChange("yearLevel", value)}
-          />
-        ) : null}
+        <SuggestedProgramPath
+          terms={programPathTerms}
+          selectedTileIds={selectedProgramPathTileIds}
+          onToggleTile={onToggleProgramPathTile}
+          onToggleTerm={onToggleProgramPathTerm}
+          onToggleYear={onToggleProgramPathYear}
+        />
 
-        {draft.yearLevel ? (
-          <ProgramSetupSelect
-            label="Subject"
-            value={draft.subjectId}
-            options={subjectOptions}
-            placeholder="Choose subject"
-            onChange={(value) => onChange("subjectId", value)}
-          />
-        ) : null}
-
-        {draft.subjectId ? (
-          <ProgramSetupSelect
-            label="Learning area"
-            value={draft.strandId}
-            options={strandOptions}
-            placeholder="Choose learning area"
-            onChange={(value) => onChange("strandId", value)}
-          />
-        ) : null}
-
-        {draft.strandId ? (
-          <SuggestedProgramPath
-            terms={programPathTerms}
-            selectedTileIds={selectedProgramPathTileIds}
-            onToggleTile={onToggleProgramPathTile}
-            onToggleTerm={onToggleProgramPathTerm}
-            onToggleYear={onToggleProgramPathYear}
-          />
-        ) : null}
-
-        {draft.strandId ? (
-          <ProgramSetupSelect
-            label="Focus"
-            value={draft.focusId}
-            options={focusOptions}
-            placeholder="Choose focus"
-            onChange={(value) => onChange("focusId", value)}
-          />
-        ) : null}
+        <section className="rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+          <div className={LABEL}>Curriculum mapping</div>
+          <h3 className={`mt-2 ${H3}`}>Map outcomes later</h3>
+        </section>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
@@ -491,7 +468,7 @@ export function ProgramGuidedSetupPanel({
           disabled={!canCreateDraft}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create draft program from selected weeks
+          Create program from selection
         </button>
         <button
           type="button"
