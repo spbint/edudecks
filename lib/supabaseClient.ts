@@ -1,25 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
 
-const bundledPublicSupabaseUrl = "https://jgllsqixpfypunnstinl.supabase.co";
-const bundledPublicSupabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGxzcWl4cGZ5cHVubnN0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MTc0MDYsImV4cCI6MjA4MjQ5MzQwNn0.YYKiRuxYye7_iDfQ4nZ6U4pFiTVtt1lIGSSwQa98CBE";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || bundledPublicSupabaseUrl;
-const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || bundledPublicSupabaseAnonKey;
-
-export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
-const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
-
-if (
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-) {
-  console.warn(
-    "Supabase public environment variables are missing. Using bundled public project auth configuration as a fallback.",
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. Set both environment variables for the active deployment environment.",
   );
 }
+
+export const hasSupabaseEnv = true;
+const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
+
+export function getSupabaseProjectRef(url: string) {
+  const match = url.match(/^https:\/\/([a-z0-9-]+)\.supabase\.co$/i);
+  return match?.[1] || "unknown";
+}
+
+export const supabaseProjectRef = getSupabaseProjectRef(supabaseUrl);
 
 async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -42,20 +40,16 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-    global: {
-      fetch: supabaseFetch,
-    },
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
   },
-);
+  global: {
+    fetch: supabaseFetch,
+  },
+});
 
 export function createServerSupabaseClient(accessToken: string) {
   return createClient(supabaseUrl, supabaseAnonKey, {
