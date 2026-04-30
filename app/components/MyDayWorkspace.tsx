@@ -242,7 +242,7 @@ export default function MyDayWorkspace() {
                       <TodayLearningBlockCard
                         key={`${row.learner.id}-${block.id}`}
                         block={block}
-                        planHref={`/my-calendar?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(row.learner.id)}`}
+                        planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(row.learner.id)}`}
                         captureHref={`/capture?learner=${encodeURIComponent(row.learner.id)}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
                         canCapture={canCapture}
                         preset={presetByLearnerId[row.learner.id] ?? null}
@@ -257,7 +257,7 @@ export default function MyDayWorkspace() {
                   <TodayLearningBlockCard
                     key={block.id}
                     block={block}
-                    planHref={`/my-calendar?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(activeLearnerId)}`}
+                    planHref={`/my-plan?date=${encodeURIComponent(todayYmd)}&learner=${encodeURIComponent(activeLearnerId)}`}
                     captureHref={`/capture?learner=${encodeURIComponent(activeLearnerId)}&date=${encodeURIComponent(todayYmd)}&block=${encodeURIComponent(block.id)}`}
                     canCapture={canCapture && Boolean(activeLearnerId)}
                     preset={activeLearnerId ? presetByLearnerId[activeLearnerId] ?? null : null}
