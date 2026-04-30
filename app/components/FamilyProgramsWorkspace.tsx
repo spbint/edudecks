@@ -14,6 +14,7 @@ import {
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import {
   ProgramGenerationSuccessBanner,
+  ProgramGuidedSetupPanel,
   ProgramsGuidedSetupBanner,
   ProgramCalendarAssignmentPanel,
   ProgramEditor,
@@ -35,53 +36,102 @@ import {
   type Program,
   type ProgramSegment,
 } from "@/lib/familyPlanningTemplates";
-import { frameworkPreset } from "@/lib/curriculumFrameworks";
+import {
+  COUNTRY_OPTIONS,
+  frameworkPreset,
+  jurisdictionOptionsForCountry,
+  presetFromFrameworkSelection,
+} from "@/lib/curriculumFrameworks";
+import { FAMILY_YEAR_LEVEL_OPTIONS } from "@/lib/familyLearnerYearLevel";
 
-function buildSeedProgram(input: {
+type ProgramSetupDraft = {
+  country: string;
+  jurisdictionId: string;
+  yearLevel: string;
+  subjectId: string;
+  strandId: string;
+  focusId: string;
+};
+
+const EMPTY_PROGRAM_SETUP_DRAFT: ProgramSetupDraft = {
+  country: "",
+  jurisdictionId: "",
+  yearLevel: "",
+  subjectId: "",
+  strandId: "",
+  focusId: "",
+};
+
+function clean(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function setupYearLevel(value: unknown) {
+  const yearLevel = clean(value);
+  return yearLevel && yearLevel !== "Year band not set" ? yearLevel : "";
+}
+
+function yearLevelOptionLabel(value: string) {
+  if (/^\d+$/.test(value)) return `Year ${value}`;
+  if (/^year\s+\d+$/i.test(value)) return value.replace(/^year/i, "Year");
+  if (value === "K") return "Kindergarten";
+  return value;
+}
+
+function buildYearLevelOptions(prefillYearLevel: string) {
+  const values = [
+    setupYearLevel(prefillYearLevel),
+    ...FAMILY_YEAR_LEVEL_OPTIONS,
+  ].filter(Boolean);
+  return Array.from(new Set(values)).map((value) => ({
+    id: value,
+    label: yearLevelOptionLabel(value),
+  }));
+}
+
+function prefilledProgramSetupDraft(input: {
+  country?: string | null;
+  jurisdictionId?: string | null;
+  yearBand?: string | null;
+}): ProgramSetupDraft {
+  return {
+    ...EMPTY_PROGRAM_SETUP_DRAFT,
+    country: clean(input.country),
+    jurisdictionId: clean(input.jurisdictionId),
+    yearLevel: setupYearLevel(input.yearBand),
+  };
+}
+
+function buildDraftProgram(input: {
   familyId: string;
   learnerId?: string | null;
   frameworkId: string;
   jurisdictionId?: string | null;
   periodLabel: string;
+  subjectId: string;
+  subjectTitle: string;
+  strandTitle: string;
+  focusId: string;
 }): Program {
+  const subjectTitle = clean(input.subjectTitle) || clean(input.subjectId) || "General";
+  const strandTitle = clean(input.strandTitle);
   const base = defaultProgram({
     familyId: input.familyId,
     learnerId: input.learnerId || null,
     frameworkId: input.frameworkId,
     jurisdictionId: input.jurisdictionId || null,
-    subjectId: "Mathematics",
+    subjectId: subjectTitle,
     periodLabel: input.periodLabel,
   });
 
-  const segments = [
-    {
-      title: "Number patterns and place value",
-      notes: "Number fluency and visible maths routines.",
-    },
-    {
-      title: "Addition and subtraction strategies",
-      notes: "Materials, models, and short practice blocks.",
-    },
-    {
-      title: "Fractions in everyday contexts",
-      notes: "Food, measuring, sharing, and comparison.",
-    },
-    {
-      title: "Measurement and time",
-      notes: "Time, length, and practical comparisons.",
-    },
-  ];
-
   return {
     ...base,
-    title: "Mathematics Term 1",
-    subjectId: "Mathematics",
-    durationCount: segments.length,
-    segments: base.segments.slice(0, segments.length).map((segment, index) => ({
-      ...segment,
-      title: segments[index]?.title || segment.title,
-      notes: segments[index]?.notes || "",
-    })),
+    title: [subjectTitle, strandTitle].filter(Boolean).join(": ") || "New program",
+    subjectId: subjectTitle,
+    durationCount: 1,
+    segmentType: "sequence",
+    curriculumOutcomeIds: clean(input.focusId) ? [input.focusId] : [],
+    segments: [],
   };
 }
 
@@ -163,6 +213,9 @@ export default function FamilyProgramsWorkspace() {
   const [error, setError] = useState("");
   const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
+  const [showNewProgramGuide, setShowNewProgramGuide] = useState(false);
+  const [programSetupDraft, setProgramSetupDraft] =
+    useState<ProgramSetupDraft>(EMPTY_PROGRAM_SETUP_DRAFT);
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -176,6 +229,73 @@ export default function FamilyProgramsWorkspace() {
       ? learningConfig.country
       : "au",
   );
+  const programSetupPreset = useMemo(
+    () =>
+      presetFromFrameworkSelection({
+        country: programSetupDraft.country || learningConfig.country,
+        frameworkId: learningConfig.frameworkId,
+        jurisdictionId: programSetupDraft.jurisdictionId || learningConfig.jurisdictionId,
+      }),
+    [
+      learningConfig.country,
+      learningConfig.frameworkId,
+      learningConfig.jurisdictionId,
+      programSetupDraft.country,
+      programSetupDraft.jurisdictionId,
+    ],
+  );
+  const programSetupCountryOptions = useMemo(
+    () => COUNTRY_OPTIONS.map((option) => ({ id: option.id, label: option.label })),
+    [],
+  );
+  const programSetupJurisdictionOptions = useMemo(
+    () =>
+      jurisdictionOptionsForCountry(programSetupDraft.country || learningConfig.country).map(
+        (option) => ({ id: option.id, label: option.label }),
+      ),
+    [learningConfig.country, programSetupDraft.country],
+  );
+  const programSetupYearLevelOptions = useMemo(
+    () => buildYearLevelOptions(learningConfig.yearBand),
+    [learningConfig.yearBand],
+  );
+  const selectedSetupSubject =
+    programSetupPreset.subjects.find((subject) => subject.id === programSetupDraft.subjectId) ??
+    null;
+  const selectedSetupStrand =
+    selectedSetupSubject?.strands.find((strand) => strand.id === programSetupDraft.strandId) ??
+    null;
+  const selectedSetupFocus =
+    selectedSetupStrand?.outcomes.find((outcome) => outcome.code === programSetupDraft.focusId) ??
+    null;
+  const programSetupComplete = Boolean(
+    programSetupDraft.country &&
+      programSetupDraft.jurisdictionId &&
+      programSetupDraft.yearLevel &&
+      selectedSetupSubject &&
+      selectedSetupStrand &&
+      selectedSetupFocus,
+  );
+  const programSetupPrefillLabel =
+    programSetupDraft.country || programSetupDraft.jurisdictionId || programSetupDraft.yearLevel
+      ? "Prefilled from learner"
+      : "";
+
+  useEffect(() => {
+    if (showNewProgramGuide) return;
+    setProgramSetupDraft(
+      prefilledProgramSetupDraft({
+        country: learningConfig.country,
+        jurisdictionId: learningConfig.jurisdictionId,
+        yearBand: learningConfig.yearBand,
+      }),
+    );
+  }, [
+    learningConfig.country,
+    learningConfig.jurisdictionId,
+    learningConfig.yearBand,
+    showNewProgramGuide,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -295,17 +415,103 @@ export default function FamilyProgramsWorkspace() {
     }
   }, [assignmentSlotId, assignmentTemplateId, templates]);
 
+  function openNewProgramGuide() {
+    setSelectedProgramId("");
+    setSelectedSegmentId(null);
+    setEditingCurriculumSegmentId(null);
+    setShowNewProgramGuide(true);
+    setStatus("");
+    setError("");
+    setProgramSetupDraft(
+      prefilledProgramSetupDraft({
+        country: learningConfig.country,
+        jurisdictionId: learningConfig.jurisdictionId,
+        yearBand: learningConfig.yearBand,
+      }),
+    );
+  }
+
+  function handleSelectProgram(programId: string) {
+    setSelectedProgramId(programId);
+    setShowNewProgramGuide(false);
+    setError("");
+  }
+
+  function updateProgramSetupDraft(field: keyof ProgramSetupDraft, value: string) {
+    setProgramSetupDraft((current) => {
+      if (field === "country") {
+        return {
+          ...EMPTY_PROGRAM_SETUP_DRAFT,
+          country: value,
+        };
+      }
+      if (field === "jurisdictionId") {
+        return {
+          ...current,
+          jurisdictionId: value,
+          yearLevel: "",
+          subjectId: "",
+          strandId: "",
+          focusId: "",
+        };
+      }
+      if (field === "yearLevel") {
+        return {
+          ...current,
+          yearLevel: value,
+          subjectId: "",
+          strandId: "",
+          focusId: "",
+        };
+      }
+      if (field === "subjectId") {
+        return {
+          ...current,
+          subjectId: value,
+          strandId: "",
+          focusId: "",
+        };
+      }
+      if (field === "strandId") {
+        return {
+          ...current,
+          strandId: value,
+          focusId: "",
+        };
+      }
+      return {
+        ...current,
+        [field]: value,
+      };
+    });
+  }
+
   function handleCreateProgram() {
-    const next = buildSeedProgram({
+    if (
+      !programSetupComplete ||
+      !selectedSetupSubject ||
+      !selectedSetupStrand ||
+      !selectedSetupFocus
+    ) {
+      return;
+    }
+
+    const next = buildDraftProgram({
       familyId: workspace.profile.id,
       learnerId: activeLearner?.id || null,
       frameworkId: learningConfig.frameworkId,
-      jurisdictionId: learningConfig.jurisdictionId,
+      jurisdictionId: programSetupDraft.jurisdictionId || learningConfig.jurisdictionId,
       periodLabel: learningConfig.academicStructureType === "semesters" ? "Semester 1" : "Term 1",
-      });
-      setPrograms((current) => [next, ...current]);
-      setSelectedProgramId(next.id);
-      setStatus("Draft workspace ready.");
+      subjectId: selectedSetupSubject.id,
+      subjectTitle: selectedSetupSubject.title,
+      strandTitle: selectedSetupStrand.title,
+      focusId: selectedSetupFocus.code,
+    });
+    setPrograms((current) => [next, ...current]);
+    setSelectedProgramId(next.id);
+    setSelectedSegmentId(null);
+    setShowNewProgramGuide(false);
+    setStatus("Draft workspace ready.");
     setError("");
   }
 
@@ -464,12 +670,50 @@ export default function FamilyProgramsWorkspace() {
               <ProgramList
                 programs={programs}
                 selectedProgramId={selectedProgram?.id}
-                onSelect={setSelectedProgramId}
-                onCreate={handleCreateProgram}
+                onSelect={handleSelectProgram}
+                onCreate={openNewProgramGuide}
               />
             </div>
 
-            <section className="grid gap-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
+            {!selectedProgram ? (
+              showNewProgramGuide ? (
+                <ProgramGuidedSetupPanel
+                  draft={programSetupDraft}
+                  countryOptions={programSetupCountryOptions}
+                  jurisdictionOptions={programSetupJurisdictionOptions}
+                  yearLevelOptions={programSetupYearLevelOptions}
+                  subjectOptions={programSetupPreset.subjects.map((subject) => ({
+                    id: subject.id,
+                    label: subject.title,
+                  }))}
+                  strandOptions={(selectedSetupSubject?.strands || []).map((strand) => ({
+                    id: strand.id,
+                    label: strand.title,
+                  }))}
+                  focusOptions={(selectedSetupStrand?.outcomes || []).map((outcome) => ({
+                    id: outcome.code,
+                    label: `${outcome.code} - ${outcome.label}`,
+                  }))}
+                  onChange={updateProgramSetupDraft}
+                  onCreateDraft={handleCreateProgram}
+                  onCancel={() => {
+                    setShowNewProgramGuide(false);
+                    setError("");
+                  }}
+                  canCreateDraft={programSetupComplete}
+                  prefillLabel={programSetupPrefillLabel}
+                />
+              ) : (
+                <section className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
+                  <div className={LABEL}>Selected program</div>
+                  <h2 className="mt-2 text-[24px] font-black leading-tight text-slate-950">
+                    No program selected
+                  </h2>
+                  <p className={`mt-2 ${BODY}`}>Create or select a program.</p>
+                </section>
+              )
+            ) : (
+              <section className="grid gap-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
               <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="grid gap-1.5">
                   <div className={LABEL}>Selected program</div>
@@ -613,7 +857,8 @@ export default function FamilyProgramsWorkspace() {
                   </section>
                 </div>
               </div>
-            </section>
+              </section>
+            )}
           </div>
         )}
       </div>

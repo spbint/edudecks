@@ -146,13 +146,6 @@ export function ProgramList({
         <div className="grid gap-3 rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
           <div className={H3}>No programs yet</div>
           <div className={BODY}>Start with one short sequence you can place into the week.</div>
-          <button
-            type="button"
-            onClick={onCreate}
-            className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
-          >
-            New program
-          </button>
         </div>
       ) : null}
 
@@ -196,6 +189,178 @@ export function ProgramList({
             </button>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+type ProgramSetupDraft = {
+  country: string;
+  jurisdictionId: string;
+  yearLevel: string;
+  subjectId: string;
+  strandId: string;
+  focusId: string;
+};
+
+type ProgramSetupOption = {
+  id: string;
+  label: string;
+};
+
+function ProgramSetupSelect({
+  label,
+  value,
+  options,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: ProgramSetupOption[];
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className={LABEL}>{label}</span>
+      <select
+        className={INPUT}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+export function ProgramGuidedSetupPanel({
+  draft,
+  countryOptions,
+  jurisdictionOptions,
+  yearLevelOptions,
+  subjectOptions,
+  strandOptions,
+  focusOptions,
+  onChange,
+  onCreateDraft,
+  onCancel,
+  canCreateDraft,
+  prefillLabel,
+}: {
+  draft: ProgramSetupDraft;
+  countryOptions: ProgramSetupOption[];
+  jurisdictionOptions: ProgramSetupOption[];
+  yearLevelOptions: ProgramSetupOption[];
+  subjectOptions: ProgramSetupOption[];
+  strandOptions: ProgramSetupOption[];
+  focusOptions: ProgramSetupOption[];
+  onChange: (field: keyof ProgramSetupDraft, value: string) => void;
+  onCreateDraft: () => void;
+  onCancel: () => void;
+  canCreateDraft: boolean;
+  prefillLabel: string;
+}) {
+  return (
+    <section className="grid gap-5 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="grid gap-1.5">
+          <div className={LABEL}>Draft setup</div>
+          <h2 className={H2}>Build a new program</h2>
+          <p className={BODY}>Choose the curriculum path first.</p>
+        </div>
+        {prefillLabel ? (
+          <span className={`${CHIP_BASE} border-slate-200 bg-slate-50 text-slate-600`}>
+            {prefillLabel}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <ProgramSetupSelect
+          label="Country"
+          value={draft.country}
+          options={countryOptions}
+          placeholder="Choose country"
+          onChange={(value) => onChange("country", value)}
+        />
+
+        {draft.country ? (
+          <ProgramSetupSelect
+            label="State or curriculum"
+            value={draft.jurisdictionId}
+            options={jurisdictionOptions}
+            placeholder="Choose state or curriculum"
+            onChange={(value) => onChange("jurisdictionId", value)}
+          />
+        ) : null}
+
+        {draft.jurisdictionId ? (
+          <ProgramSetupSelect
+            label="Year level"
+            value={draft.yearLevel}
+            options={yearLevelOptions}
+            placeholder="Choose year level"
+            onChange={(value) => onChange("yearLevel", value)}
+          />
+        ) : null}
+
+        {draft.yearLevel ? (
+          <ProgramSetupSelect
+            label="Subject"
+            value={draft.subjectId}
+            options={subjectOptions}
+            placeholder="Choose subject"
+            onChange={(value) => onChange("subjectId", value)}
+          />
+        ) : null}
+
+        {draft.subjectId ? (
+          <ProgramSetupSelect
+            label="Learning area"
+            value={draft.strandId}
+            options={strandOptions}
+            placeholder="Choose learning area"
+            onChange={(value) => onChange("strandId", value)}
+          />
+        ) : null}
+
+        {draft.strandId ? (
+          <ProgramSetupSelect
+            label="Focus"
+            value={draft.focusId}
+            options={focusOptions}
+            placeholder="Choose focus"
+            onChange={(value) => onChange("focusId", value)}
+          />
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+        <button
+          type="button"
+          onClick={onCreateDraft}
+          disabled={!canCreateDraft}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          Create draft program
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Cancel
+        </button>
+        <span className={META}>
+          {canCreateDraft ? "Creates a local draft only." : "Choose a focus to create a draft."}
+        </span>
       </div>
     </section>
   );
