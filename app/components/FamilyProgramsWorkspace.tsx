@@ -64,68 +64,119 @@ const EMPTY_PROGRAM_SETUP_DRAFT: ProgramSetupDraft = {
   focusId: "",
 };
 
-const AU_MATHS_NUMBER_YEAR_PROFILES: Record<number, {
+type MathsYearPathKey = "foundation" | 1 | 2 | 3 | 4 | 5 | 6;
+
+const MATHS_NUMBER_YEAR_PROFILES: Record<string, {
+  label: string;
   countRange: string;
+  representation: string;
   placeValue: string;
+  comparing: string;
   addition: string;
   subtraction: string;
   pattern: string;
   grouping: string;
   fractions: string;
+  money: string;
+  review: string;
 }> = {
+  foundation: {
+    label: "Foundation",
+    countRange: "small collections, oral counting, and numbers to 20",
+    representation: "objects, fingers, drawings, and simple marks",
+    placeValue: "teen numbers as ten and some more",
+    comparing: "more, less, same, before, and after",
+    addition: "joining small groups and counting all",
+    subtraction: "taking away from small groups",
+    pattern: "repeating patterns and counting by ones",
+    grouping: "sharing materials into equal groups",
+    fractions: "halves through folding, sharing, and everyday objects",
+    money: "coins as real objects to sort, count, and compare",
+    review: "counting, matching, comparing, and explaining number choices",
+  },
   1: {
+    label: "Year 1",
     countRange: "small collections and two-digit numbers",
+    representation: "objects, drawings, numerals, ten-frames, and number lines",
     placeValue: "ones, tens, and teen numbers",
+    comparing: "two-digit quantities with everyday language and symbols",
     addition: "combine small groups and make ten",
     subtraction: "take away from small collections",
     pattern: "twos, fives, tens, and simple repeats",
     grouping: "equal groups with hands-on materials",
     fractions: "halves, coins, and everyday sharing",
+    money: "coins, small totals, and simple shop contexts",
+    review: "two-digit number sense, facts, patterns, and sharing",
   },
   2: {
+    label: "Year 2",
     countRange: "two- and three-digit numbers",
+    representation: "bundles, base-ten materials, drawings, and number lines",
     placeValue: "hundreds, tens, and ones",
+    comparing: "three-digit numbers using place value and benchmarks",
     addition: "mental addition with place value",
     subtraction: "count back, bridge, and use difference",
     pattern: "skip counting and growing patterns",
     grouping: "arrays, equal groups, and sharing",
     fractions: "halves, quarters, money, and revision",
+    money: "coin collections, totals, change, and estimates",
+    review: "place value, mental strategies, equal groups, and fractions",
   },
   3: {
+    label: "Year 3",
     countRange: "numbers into the thousands",
+    representation: "expanded notation, number lines, models, and equations",
     placeValue: "thousands, hundreds, tens, and ones",
+    comparing: "larger numbers using place value and efficient benchmarks",
     addition: "efficient addition strategies",
     subtraction: "efficient subtraction strategies",
     pattern: "skip counting and number patterns",
     grouping: "grouping, sharing, and early multiplication",
     fractions: "simple fractions, money, and revision",
+    money: "totals, change, rounding, and practical decisions",
+    review: "number representation, operations, patterns, and fractions",
   },
   4: {
+    label: "Year 4",
     countRange: "larger whole numbers",
+    representation: "expanded form, equations, arrays, and number lines",
     placeValue: "expanded notation and flexible partitioning",
+    comparing: "large numbers and decimal-sized quantities",
     addition: "multi-step addition problems",
     subtraction: "multi-step subtraction problems",
     pattern: "multiplicative patterns and rules",
     grouping: "multiplication and division connections",
     fractions: "fractions, decimals, money, and revision",
+    money: "decimal notation, totals, change, and estimation",
+    review: "large numbers, operations, fractions, decimals, and reasoning",
   },
   5: {
+    label: "Year 5",
     countRange: "large whole numbers and decimals",
+    representation: "place-value charts, expanded decimals, models, and equations",
     placeValue: "place value across whole numbers and decimals",
+    comparing: "whole numbers, decimals, and benchmark fractions",
     addition: "addition with decimals and estimates",
     subtraction: "subtraction with decimals and estimates",
     pattern: "factors, multiples, and pattern rules",
     grouping: "multiplication, division, and remainders",
     fractions: "fractions, decimals, money, and revision",
+    money: "budgets, totals, discounts, change, and estimates",
+    review: "decimals, fractions, operations, and flexible strategy choice",
   },
   6: {
+    label: "Year 6",
     countRange: "whole numbers, decimals, and fractions",
+    representation: "equivalent forms, ratio-style models, number lines, and equations",
     placeValue: "renaming numbers across forms",
+    comparing: "fractions, decimals, percentages, and large numbers",
     addition: "efficient strategies across number types",
     subtraction: "efficient strategies across number types",
     pattern: "rules, multiples, and generalisations",
     grouping: "multiplication and division with larger numbers",
     fractions: "fractions, decimals, percentages, money, and revision",
+    money: "rates, totals, percentages, budgets, and estimates",
+    review: "whole-number, fraction, decimal, percentage, and problem-solving fluency",
   },
 };
 
@@ -139,21 +190,28 @@ function setupYearLevel(value: unknown) {
 }
 
 function yearLevelOptionLabel(value: string) {
+  if (value === "Foundation") return "Foundation";
   if (/^\d+$/.test(value)) return `Year ${value}`;
   if (/^year\s+\d+$/i.test(value)) return value.replace(/^year/i, "Year");
   if (value === "K") return "Kindergarten";
   return value;
 }
 
-function yearNumberFromLabel(value: string) {
+function yearPathKeyFromLabel(value: string): MathsYearPathKey | null {
   const label = clean(value).toLowerCase().replace(/^year\s+/, "");
+  if (["foundation", "prep", "k", "kindergarten", "pre-k"].includes(label)) {
+    return "foundation";
+  }
   const year = Number(label);
-  return Number.isInteger(year) && year >= 1 && year <= 6 ? year : null;
+  return Number.isInteger(year) && year >= 1 && year <= 6
+    ? (year as MathsYearPathKey)
+    : null;
 }
 
 function buildYearLevelOptions(prefillYearLevel: string) {
   const values = [
     setupYearLevel(prefillYearLevel),
+    "Foundation",
     ...FAMILY_YEAR_LEVEL_OPTIONS,
   ].filter(Boolean);
   return Array.from(new Set(values)).map((value) => ({
@@ -175,10 +233,6 @@ function prefilledProgramSetupDraft(input: {
   };
 }
 
-function parentFriendlyOutcomeTitle(label: string) {
-  return clean(label).replace(/\.$/, "") || "Curriculum focus";
-}
-
 function slugify(value: string) {
   return clean(value)
     .toLowerCase()
@@ -187,60 +241,129 @@ function slugify(value: string) {
 }
 
 function makePathTile(input: {
-  year: number;
+  yearKey: MathsYearPathKey;
   term: number;
   week: number;
   title: string;
   description: string;
+  strandLabel?: string | null;
   curriculumCode?: string | null;
 }): SuggestedProgramPathTile {
   return {
-    id: `au-year-${input.year}-number-term-${input.term}-week-${input.week}-${slugify(input.title)}`,
+    id: `maths-${input.yearKey}-number-term-${input.term}-week-${input.week}-${slugify(input.title)}`,
     term: input.term,
     week: input.week,
     title: input.title,
     description: input.description,
+    strandLabel: input.strandLabel || null,
     curriculumCode: input.curriculumCode || null,
   };
 }
 
-function buildAuMathsNumberYearPath(year: number): SuggestedProgramPathTerm[] {
-  const profile = AU_MATHS_NUMBER_YEAR_PROFILES[year] ?? AU_MATHS_NUMBER_YEAR_PROFILES[3];
+function codeAt(outcomes: Array<{ code: string; label: string }>, index: number) {
+  return clean(outcomes[index]?.code) || clean(outcomes[0]?.code) || null;
+}
+
+function buildMathsNumberYearPath(input: {
+  yearKey: MathsYearPathKey;
+  strandLabel: string;
+  strandOutcomes: Array<{ code: string; label: string }>;
+}): SuggestedProgramPathTerm[] {
+  const profile = MATHS_NUMBER_YEAR_PROFILES[input.yearKey] ?? MATHS_NUMBER_YEAR_PROFILES[3];
+  const strandLabel = input.strandLabel || "Number";
   const terms = [
     {
       term: 1,
       tiles: [
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 1,
           week: 1,
-          title: "Counting and representing numbers",
-          description: `Read, write, make, and explain ${profile.countRange}.`,
-          curriculumCode: "AC9M3N01",
+          title: "Number sense",
+          description: `Represent, count, and compare ${profile.countRange}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
+          term: 1,
+          week: 2,
+          title: "Counting routines",
+          description: `Build fluent forward, backward, and skip-counting routines for ${profile.label}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
           term: 1,
           week: 3,
+          title: "Representing quantities",
+          description: `Show numbers with ${profile.representation}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 1,
+          week: 4,
           title: "Place value",
           description: `Build confidence with ${profile.placeValue}.`,
-          curriculumCode: "AC9M3N01",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
+          term: 1,
+          week: 5,
+          title: "Comparing numbers",
+          description: `Compare ${profile.comparing}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
           term: 1,
           week: 6,
-          title: "Comparing and ordering",
-          description: "Use number lines, benchmarks, and language to compare quantities.",
-          curriculumCode: "AC9M3N01",
+          title: "Ordering numbers",
+          description: "Order values and explain the position of each number.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
+          term: 1,
+          week: 7,
+          title: "Number lines",
+          description: "Use open and marked number lines to locate and estimate values.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 1,
+          week: 8,
+          title: "Estimating quantities",
+          description: "Make sensible estimates and check them against real quantities.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
           term: 1,
           week: 9,
-          title: "Term 1 number review",
-          description: "Revisit counting, representation, place value, and ordering.",
-          curriculumCode: "AC9M3N01",
+          title: "Number stories",
+          description: "Use drawings, models, and words to explain number situations.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 1,
+          week: 10,
+          title: "Term 1 review",
+          description: `Read, write, make, and explain ${profile.countRange}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 0),
         }),
       ],
     },
@@ -248,36 +371,94 @@ function buildAuMathsNumberYearPath(year: number): SuggestedProgramPathTerm[] {
       term: 2,
       tiles: [
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 2,
-          week: 1,
+          week: 11,
           title: "Addition strategies",
           description: `Practise ways to ${profile.addition}.`,
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 2,
-          week: 3,
+          week: 12,
+          title: "Known facts",
+          description: "Build fast recall from doubles, near doubles, and friendly numbers.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 13,
+          title: "Bridging strategies",
+          description: "Bridge through useful benchmarks to make calculations easier.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 14,
+          title: "Flexible addition",
+          description: "Choose from counting on, partitioning, compensation, and known facts.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 15,
           title: "Subtraction strategies",
           description: `Model and explain how to ${profile.subtraction}.`,
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 2,
-          week: 6,
-          title: "Choosing an operation",
-          description: "Match number stories to addition, subtraction, or comparison.",
-          curriculumCode: "AC9M3N02",
+          week: 16,
+          title: "Finding the difference",
+          description: "Compare quantities by counting up, counting back, or using benchmarks.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 2,
-          week: 9,
-          title: "Term 2 strategy review",
+          week: 17,
+          title: "Inverse operations",
+          description: "Connect addition and subtraction as related strategies.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 18,
+          title: "Mixed operation choices",
+          description: "Decide whether a story needs addition, subtraction, or comparison.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 19,
+          title: "Problem-solving models",
+          description: "Represent number problems with diagrams, equations, and explanations.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 2,
+          week: 20,
+          title: "Term 2 review",
           description: "Consolidate facts, strategies, and written explanations.",
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
       ],
     },
@@ -285,36 +466,94 @@ function buildAuMathsNumberYearPath(year: number): SuggestedProgramPathTerm[] {
       term: 3,
       tiles: [
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 3,
-          week: 1,
+          week: 21,
           title: "Patterns and skip counting",
           description: `Work with ${profile.pattern}.`,
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 3,
-          week: 3,
+          week: 22,
+          title: "Pattern rules",
+          description: "Describe what changes, what repeats, and what comes next.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 23,
           title: "Grouping",
           description: `Represent ${profile.grouping}.`,
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 3,
-          week: 6,
+          week: 24,
+          title: "Arrays and models",
+          description: "Use rows, columns, diagrams, and materials to show equal groups.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 25,
           title: "Sharing",
           description: "Use fair shares and equal groups to explain division ideas.",
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 3,
-          week: 9,
-          title: "Term 3 pattern review",
+          week: 26,
+          title: "Grouping for division",
+          description: "Find how many groups can be made and explain the leftovers when needed.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 27,
+          title: "Multiplication language",
+          description: "Connect repeated addition, equal groups, and multiplication sentences.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 28,
+          title: "Division language",
+          description: "Connect sharing, grouping, and division sentences.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 29,
+          title: "Pattern problem solving",
+          description: "Use patterns and equal groups to solve and explain problems.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 3,
+          week: 30,
+          title: "Term 3 review",
           description: "Connect counting patterns with grouping and sharing.",
-          curriculumCode: "AC9M3N02",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 1),
         }),
       ],
     },
@@ -322,87 +561,136 @@ function buildAuMathsNumberYearPath(year: number): SuggestedProgramPathTerm[] {
       term: 4,
       tiles: [
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 4,
-          week: 1,
+          week: 31,
           title: "Fractions in context",
           description: `Represent ${profile.fractions}.`,
-          curriculumCode: "AC9M3N03",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 2),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 4,
-          week: 3,
+          week: 32,
+          title: "Fraction representations",
+          description: "Use parts of wholes, collections, drawings, and number lines where useful.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 2),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 33,
           title: "Money and number decisions",
-          description: "Use prices, totals, change, and estimates in practical contexts.",
-          curriculumCode: "AC9M3N03",
+          description: `Work with ${profile.money}.`,
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 2),
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 4,
-          week: 6,
+          week: 34,
+          title: "Estimating and checking",
+          description: "Estimate first, calculate, then check whether the result makes sense.",
+          strandLabel,
+          curriculumCode: codeAt(input.strandOutcomes, 2),
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 35,
           title: "Mixed number problems",
           description: "Choose useful strategies across the year pathway.",
+          strandLabel,
         }),
         makePathTile({
-          year,
+          yearKey: input.yearKey,
           term: 4,
-          week: 9,
-          title: "Year number review",
-          description: "Revisit key number skills and prepare the next program move.",
+          week: 36,
+          title: "Strategy choice",
+          description: "Compare methods and choose an efficient strategy for each problem.",
+          strandLabel,
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 37,
+          title: "Fluency practice",
+          description: "Strengthen accuracy and confidence with core number facts.",
+          strandLabel,
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 38,
+          title: "Real-world number project",
+          description: "Apply number skills in a practical investigation or family context.",
+          strandLabel,
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 39,
+          title: "Year consolidation",
+          description: `Review ${profile.review}.`,
+          strandLabel,
+        }),
+        makePathTile({
+          yearKey: input.yearKey,
+          term: 4,
+          week: 40,
+          title: "Next-year bridge",
+          description: "Identify secure skills, support needs, and the next learning move.",
+          strandLabel,
         }),
       ],
     },
   ];
 
   return terms.map((term) => ({
-    id: `au-year-${year}-number-term-${term.term}`,
+    id: `maths-${input.yearKey}-number-term-${term.term}`,
     term: term.term,
     label: `Term ${term.term}`,
     tiles: term.tiles,
   }));
 }
 
-function buildFallbackProgramPathTerms(
-  strandOutcomes: Array<{ code: string; label: string }>,
-): SuggestedProgramPathTerm[] {
-  const tiles = strandOutcomes.map((outcome, index) => ({
-    id: outcome.code,
-    term: Math.min(Math.floor(index / 4) + 1, 4),
-    week: (index % 4) * 2 + 1,
-    title: parentFriendlyOutcomeTitle(outcome.label),
-    description: "Use this as a focused step in the sequence.",
-    curriculumCode: outcome.code,
-  }));
-
-  return [1, 2, 3, 4]
-    .map((term) => ({
-      id: `fallback-term-${term}`,
-      term,
-      label: `Term ${term}`,
-      tiles: tiles.filter((tile) => tile.term === term),
-    }))
-    .filter((term) => term.tiles.length);
+function isNumberLearningArea(input: {
+  strandId?: string | null;
+  strandTitle?: string | null;
+}) {
+  const label = `${clean(input.strandId)} ${clean(input.strandTitle)}`.toLowerCase();
+  return (
+    label.includes("number") ||
+    label.includes("numeracy") ||
+    label.includes("operation") ||
+    label.includes("fraction") ||
+    label.includes("algebraic")
+  );
 }
 
 function buildSuggestedProgramPathTerms(input: {
-  country: string;
   yearLevel: string;
   subjectId?: string | null;
   strandId?: string | null;
+  strandTitle?: string | null;
   strandOutcomes: Array<{ code: string; label: string }>;
 }) {
-  const year = yearNumberFromLabel(input.yearLevel);
+  const yearKey = yearPathKeyFromLabel(input.yearLevel);
   if (
-    input.country === "au" &&
-    year &&
+    yearKey &&
     input.subjectId === "mathematics" &&
-    input.strandId === "number"
+    isNumberLearningArea({ strandId: input.strandId, strandTitle: input.strandTitle })
   ) {
-    return buildAuMathsNumberYearPath(year);
+    return buildMathsNumberYearPath({
+      yearKey,
+      strandLabel: clean(input.strandTitle) || "Number",
+      strandOutcomes: input.strandOutcomes,
+    });
   }
 
-  return buildFallbackProgramPathTerms(input.strandOutcomes);
+  return [];
 }
 
 function buildDraftProgram(input: {
@@ -587,16 +875,14 @@ export default function FamilyProgramsWorkspace() {
     () =>
       selectedSetupStrand
         ? buildSuggestedProgramPathTerms({
-            country: programSetupDraft.country || learningConfig.country,
             yearLevel: programSetupDraft.yearLevel,
             subjectId: selectedSetupSubject?.id,
             strandId: selectedSetupStrand.id,
+            strandTitle: selectedSetupStrand.title,
             strandOutcomes: selectedSetupStrand.outcomes,
           })
         : [],
     [
-      learningConfig.country,
-      programSetupDraft.country,
       programSetupDraft.yearLevel,
       selectedSetupStrand,
       selectedSetupSubject?.id,
