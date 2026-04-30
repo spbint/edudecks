@@ -434,7 +434,7 @@ export default function MyDayWorkspace() {
       subtitle="My Day"
       heroTitle="Move through today's learning with clarity"
       heroText="See what is planned for today, keep the next useful step close, and capture evidence without leaving the flow."
-      workflowHelperText="My Calendar sets the weekly rhythm. My Programs shapes the longer sequence. My Plan edits the live week. Capture runs the day. Outputs groups curriculum, portfolio, reports, and progress, while Community stays separate from the core workflow."
+      workflowHelperText="My Calendar sets the weekly rhythm. My Programs shapes the longer sequence. My Plan edits the live week. Capture runs the day. Outputs groups curriculum, portfolio, reports, and progress in one place."
       heroAsideTitle="Today at a glance"
       heroAsideText={heroAsideText}
     >

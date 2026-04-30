@@ -92,7 +92,6 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
-  if (pathname === "/community" || pathname.startsWith("/community/")) return "Community";
   return "MyLearna";
 }
 
@@ -126,9 +125,6 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-progress") {
     return "Notice what is moving well and what needs the next gentle step";
   }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
-    return "A place to ask, share, and encourage";
-  }
   return subtitle;
 }
 
@@ -156,9 +152,6 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/my-progress") {
     return "Readiness, coverage, and suggested improvements belong in one calm view so you can decide the next best move without overwhelm.";
-  }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
-    return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
   }
   return "Keep your learning system connected and ready for the next meaningful step.";
 }
@@ -284,7 +277,6 @@ export default function FamilyTopNavShell({
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
-  const communityActive = pathname === "/community" || pathname.startsWith("/community/");
   const workspaceIssue = error || workspace.syncIssue || "";
   const workspaceStatusLabel = loading
     ? "Syncing"
@@ -334,38 +326,6 @@ export default function FamilyTopNavShell({
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
-            <Link
-              href="/community"
-              aria-current={communityActive ? "page" : undefined}
-              className={cx(
-                "group min-w-0 rounded-[18px] px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2",
-                communityActive
-                  ? "bg-slate-100/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)]"
-                  : "hover:bg-slate-50",
-              )}
-            >
-              <div
-                className={cx(
-                  "truncate text-[14px] font-bold tracking-[-0.01em] transition duration-150",
-                  communityActive
-                    ? "text-slate-950"
-                    : "text-slate-900 group-hover:text-slate-950",
-                )}
-              >
-                Community
-              </div>
-              <div
-                className={cx(
-                  "truncate text-[13px] font-medium tracking-[-0.01em] transition duration-150",
-                  communityActive
-                    ? "text-slate-700"
-                    : "text-slate-500 group-hover:text-slate-700",
-                )}
-              >
-                Separate from the core workflow
-              </div>
-            </Link>
-
             <span
               aria-label="Workspace status"
               title={workspaceStatusTitle}

@@ -507,8 +507,7 @@ export function MyDayQuickLinks() {
       </div>
       <p className="text-[13px] leading-6 text-slate-500">
         Outputs in the top navigation groups My Curriculum, My Portfolio, My Reports, and My
-        Progress for reflection. Community stays separate in the header so planning and discussion
-        do not compete.
+        Progress for reflection, keeping planning and review in a clear daily flow.
       </p>
     </section>
   );
