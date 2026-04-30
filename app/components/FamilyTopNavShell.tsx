@@ -49,6 +49,7 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
+  { href: "/my-month", label: "My Month" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-plan", label: "My Plan" },
   { href: "/my-programs", label: "My Programs" },
@@ -73,6 +74,7 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/dashboard" || pathname === "/home" || pathname === "/my-day") {
     return "/my-day";
   }
+  if (pathname === "/my-month") return "/my-month";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-plan";
   if (pathname === "/my-programs") return "/my-programs";
@@ -81,6 +83,7 @@ function normalizeRoute(pathname: string) {
 
 function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
+  if (pathname === "/my-month") return "My Month";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
@@ -90,9 +93,9 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
   if (pathname === "/my-progress") return "My Progress";
   if (pathname === "/settings") return "My Settings";
+  if (pathname === "/settings/master-calendar") return "Master Calendar";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
-  if (pathname === "/community" || pathname.startsWith("/community/")) return "Community";
   return "MyLearna";
 }
 
@@ -104,6 +107,9 @@ function routeTitle(pathname: string) {
 function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
     return "Move through today's learning with clarity";
+  }
+  if (pathname === "/my-month") {
+    return "See the month ahead at a glance";
   }
   if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "See the week clearly before it fills up";
@@ -126,15 +132,16 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-progress") {
     return "Notice what is moving well and what needs the next gentle step";
   }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
-    return "A place to ask, share, and encourage";
-  }
+  if (pathname === "/settings/master-calendar") return "Set the reusable structure";
   return subtitle;
 }
 
 function routeHeroText(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") {
     return "See what is planned for today, keep the next useful step close, and capture evidence without leaving the flow.";
+  }
+  if (pathname === "/my-month") {
+    return "See the month ahead, active programs, and the next planning moves.";
   }
   if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
@@ -157,8 +164,8 @@ function routeHeroText(pathname: string) {
   if (pathname === "/my-progress") {
     return "Readiness, coverage, and suggested improvements belong in one calm view so you can decide the next best move without overwhelm.";
   }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
-    return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
+  if (pathname === "/settings/master-calendar") {
+    return "Set the reusable structure your month, week, programs, and day build from.";
   }
   return "Keep your learning system connected and ready for the next meaningful step.";
 }
@@ -284,7 +291,6 @@ export default function FamilyTopNavShell({
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
-  const communityActive = pathname === "/community" || pathname.startsWith("/community/");
 
   return (
     <div className={cx("w-full bg-slate-50", className)}>
@@ -321,38 +327,6 @@ export default function FamilyTopNavShell({
           </div>
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
-            <Link
-              href="/community"
-              aria-current={communityActive ? "page" : undefined}
-              className={cx(
-                "group min-w-0 rounded-[18px] px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2",
-                communityActive
-                  ? "bg-slate-100/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)]"
-                  : "hover:bg-slate-50",
-              )}
-            >
-              <div
-                className={cx(
-                  "truncate text-[14px] font-bold tracking-[-0.01em] transition duration-150",
-                  communityActive
-                    ? "text-slate-950"
-                    : "text-slate-900 group-hover:text-slate-950",
-                )}
-              >
-                Community
-              </div>
-              <div
-                className={cx(
-                  "truncate text-[13px] font-medium tracking-[-0.01em] transition duration-150",
-                  communityActive
-                    ? "text-slate-700"
-                    : "text-slate-500 group-hover:text-slate-700",
-                )}
-              >
-                Separate from the core workflow
-              </div>
-            </Link>
-
             <span
               aria-label="Workspace status"
               className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"

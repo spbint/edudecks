@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import {
@@ -180,25 +181,17 @@ export default function FamilySettingsWorkspace() {
 
         <FamilyLearningSetupCard
           title="Master Calendar"
-          note="Set reusable calendar template, rotations, and planning defaults."
+          note="Set reusable rotations, term structure, and planning defaults."
         >
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              "Timetable template",
-              "Subject rotations",
-              "Term structure",
-            ].map((item) => (
-              <div
-                key={item}
-                className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4"
-              >
-                <div className="text-[15px] font-semibold text-slate-950">{item}</div>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-[20px] border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] leading-5 text-slate-500">
-            Settings-only planning layer. My Calendar remains the weekly slice used in the daily workflow.
-          </div>
+          <Link
+            href="/settings/master-calendar"
+            className="grid gap-3 rounded-[20px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-left transition hover:bg-white"
+          >
+            <div className="text-[15px] font-semibold text-slate-950">Master Calendar</div>
+            <div className="text-[13px] leading-5 text-slate-500">
+              Set reusable rotations, term structure, and planning defaults.
+            </div>
+          </Link>
         </FamilyLearningSetupCard>
 
         <FamilyLearningSetupCard
