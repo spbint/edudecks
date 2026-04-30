@@ -10,11 +10,11 @@ export default function PlannerLayout({
 }) {
   return (
     <FamilyTopNavShell
-      subtitle="My Plan"
-      heroTitle="A calm, simple plan for the week"
+      subtitle="My Calendar"
+      heroTitle="A calm, simple calendar for the week"
       heroText="Keep this week light and purposeful. Choose a gentle focus, take a few meaningful steps, and let the story build naturally without losing the wider family workflow."
-      heroAsideTitle="Planning step"
-      heroAsideText="Planning stays connected to capture, portfolio, reports, output, and authority so the whole family journey remains visible."
+      heroAsideTitle="Calendar step"
+      heroAsideText="My Calendar stays connected to capture, portfolio, reports, output, and authority so the whole family journey remains visible."
     >
       {children}
     </FamilyTopNavShell>

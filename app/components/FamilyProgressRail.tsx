@@ -25,9 +25,9 @@ const STEPS: Step[] = [
   },
   {
     key: "calendar",
-    label: "My Plan",
-    hint: "Plan the week gently",
-    href: "/my-plan",
+    label: "My Calendar",
+    hint: "Shape the week gently",
+    href: "/my-calendar",
   },
   {
     key: "capture",

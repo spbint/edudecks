@@ -381,10 +381,10 @@ export function CurriculumMapEmptyState({
       </div>
       <div className="flex justify-center">
         <Link
-          href="/my-plan"
+          href="/my-calendar"
           className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800`}
         >
-          Open My Plan
+          Open My Calendar
         </Link>
       </div>
     </section>
@@ -433,4 +433,3 @@ export function CurriculumNextMoveCard({
     </section>
   );
 }
-

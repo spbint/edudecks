@@ -144,7 +144,7 @@ function generationGuidance(input: {
   if (!input.hasSegments) return "Add at least one segment";
   if (!input.hasCalendarTemplate || !input.hasSlot) return "Choose a calendar slot";
   if (!input.hasStartDate) return "Choose a start date";
-  return "Ready. Generate this program into My Plan.";
+  return "Ready. Generate this program into My Calendar.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -436,7 +436,7 @@ export default function FamilyProgramsWorkspace() {
       setGeneratedBlockCount((current) => current + generated.length);
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
-      setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} generated into My Plan.`);
+      setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} generated into My Calendar.`);
     } catch {
       setError(friendlyProgramsMessage("generate"));
     } finally {
@@ -456,7 +456,7 @@ export default function FamilyProgramsWorkspace() {
         {showGenerationSuccess ? (
           <ProgramGenerationSuccessBanner
             count={lastGeneratedCount}
-            onOpenPlan={() => router.push(`/my-plan?date=${encodeURIComponent(assignmentStartDate)}`)}
+            onOpenPlan={() => router.push(`/my-calendar?date=${encodeURIComponent(assignmentStartDate)}`)}
             onStayHere={() => setShowGenerationSuccess(false)}
           />
         ) : null}

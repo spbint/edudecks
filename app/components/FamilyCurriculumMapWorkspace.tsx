@@ -349,8 +349,8 @@ export default function FamilyCurriculumMapWorkspace() {
         ? {
             title: `Tag the first curriculum signal for ${activeLearner?.label || "this learner"}`,
             note: "Start by planning one tagged learning block or capturing one linked learning moment.",
-            href: "/my-plan",
-            cta: "Open My Plan",
+            href: "/my-calendar",
+            cta: "Open My Calendar",
             state: "empty" as HomeSurfaceState,
           }
         : {
@@ -359,8 +359,8 @@ export default function FamilyCurriculumMapWorkspace() {
               summaryCounts.needs_support > 0
                 ? `Add one more capture to support ${selectedSubject?.strands.find((strand) => strand.counts.needs_support > 0)?.title || "the next strand"}.`
                 : `Plan one learning block for ${selectedSubject?.strands.find((strand) => strand.counts.not_started > 0)?.title || "the next strand"} this week.`,
-            href: summaryCounts.needs_support > 0 ? "/capture" : "/my-plan",
-            cta: summaryCounts.needs_support > 0 ? "Capture Evidence" : "Open My Plan",
+            href: summaryCounts.needs_support > 0 ? "/capture" : "/my-calendar",
+            cta: summaryCounts.needs_support > 0 ? "Capture Evidence" : "Open My Calendar",
             state: mapState,
           };
 

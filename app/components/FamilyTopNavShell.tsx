@@ -49,8 +49,8 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
+  { href: "/my-month", label: "My Month" },
   { href: "/my-calendar", label: "My Calendar" },
-  { href: "/my-plan", label: "My Plan" },
   { href: "/my-programs", label: "My Programs" },
 ] as const;
 
@@ -73,18 +73,20 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/dashboard" || pathname === "/home" || pathname === "/my-day") {
     return "/my-day";
   }
+  if (pathname === "/my-month") return "/my-month";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
-  if (pathname === "/planner" || pathname === "/my-plan") return "/my-plan";
+  if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
   return "";
 }
 
 function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
+  if (pathname === "/my-month") return "My Month";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
-  if (pathname === "/planner" || pathname === "/my-plan") return "My Plan";
+  if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
@@ -108,6 +110,9 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "See the week clearly before it fills up";
   }
+  if (pathname === "/my-month") {
+    return "See the month ahead before the week fills up";
+  }
   if (pathname === "/my-programs") {
     return "Shape longer sequences before they land in the live week";
   }
@@ -115,7 +120,7 @@ function routeHeroTitle(pathname: string, subtitle: string) {
     return "Curate evidence while the learning is still fresh";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
-    return "Shape the next week with confidence";
+    return "See the week clearly before it fills up";
   }
   if (pathname === "/portfolio" || pathname === "/my-portfolio") {
     return "Keep a visible story of progress as it grows";
@@ -139,6 +144,9 @@ function routeHeroText(pathname: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
+  if (pathname === "/my-month") {
+    return "Review the month ahead, active programs, and the next planning moves before opening the weekly calendar.";
+  }
   if (pathname === "/my-programs") {
     return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
   }
@@ -146,7 +154,7 @@ function routeHeroText(pathname: string) {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
-    return "A light, clear weekly plan helps the whole family move forward with a visible next step.";
+    return "Place learning moments into the week so the family workflow stays practical and visible.";
   }
   if (pathname === "/portfolio" || pathname === "/my-portfolio") {
     return "Review the moments that matter and keep the story of progress easy to see and share.";
@@ -433,9 +441,9 @@ export function FamilyCommandLayer({
         href: "/capture",
       },
       {
-        title: "Open My Plan",
-        description: "See what is coming up and shape the next learning step.",
-        href: "/my-plan",
+        title: "Open My Calendar",
+        description: "See what is coming up and shape the next weekly block.",
+        href: "/my-calendar",
       },
       {
         title: "Open My Portfolio",

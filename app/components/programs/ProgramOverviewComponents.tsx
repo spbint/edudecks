@@ -107,7 +107,7 @@ export function ProgramsFirstRunCard({
       note: hasGeneratedItems
         ? "The live week already has generated program blocks."
         : generationReady
-          ? "Your sequence is ready to flow into My Plan."
+          ? "Your sequence is ready to flow into My Calendar."
           : "Choose the weekly slot and the first start date when you are ready.",
       stateLabel: hasGeneratedItems ? "Complete" : generationReady ? "Ready" : hasProgram ? "Upcoming" : "Later",
       stateTone: hasGeneratedItems
@@ -115,7 +115,7 @@ export function ProgramsFirstRunCard({
         : generationReady
           ? "border-violet-200 bg-violet-50 text-violet-700"
         : "border-slate-200 bg-slate-50 text-slate-600",
-      cta: hasGeneratedItems ? "Open My Plan" : generationReady ? "Generate into My Plan" : null,
+      cta: hasGeneratedItems ? "Open My Calendar" : generationReady ? "Generate into My Calendar" : null,
     },
   ] as const;
 
@@ -200,8 +200,8 @@ export function ProgramGenerationSuccessBanner({
         <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
           Generation complete
         </div>
-        <h2 className={H2}>{count} block{count === 1 ? "" : "s"} generated into My Plan</h2>
-        <p className={META}>Open My Plan to adjust the live week.</p>
+        <h2 className={H2}>{count} block{count === 1 ? "" : "s"} generated into My Calendar</h2>
+        <p className={META}>Open My Calendar to adjust the live week.</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <button
@@ -209,7 +209,7 @@ export function ProgramGenerationSuccessBanner({
           onClick={onOpenPlan}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Open My Plan
+          Open My Calendar
         </button>
         <button
           type="button"
@@ -545,7 +545,7 @@ export function ProgramCalendarAssignmentPanel({
               : state === "blocked_segments"
                 ? "Add at least one segment"
             : state === "ready_generate"
-              ? "Generate into My Plan"
+              ? "Generate into My Calendar"
               : "Choose where this program should land";
   const panelNote =
     state === "blocked_template"
@@ -561,7 +561,7 @@ export function ProgramCalendarAssignmentPanel({
             : state === "blocked_segments"
               ? "Add at least one segment"
             : state === "ready_generate"
-              ? "Generate blocks into My Plan."
+              ? "Generate blocks into My Calendar."
               : "Choose a calendar slot";
 
   return (
@@ -674,7 +674,7 @@ export function ProgramCalendarAssignmentPanel({
           disabled={generating || !generationReady}
           className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {generating ? "Generating..." : "Generate into My Plan"}
+          {generating ? "Generating..." : "Generate into My Calendar"}
         </button>
       </div>
     </section>

@@ -206,15 +206,15 @@ export function MyDayEmptyState() {
           No blocks planned yet
         </h2>
         <p className="max-w-[42ch] text-[14px] leading-6 text-slate-600">
-          Add one block in My Plan or capture what already happened.
+          Add one block in My Calendar or capture what already happened.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
-          href="/my-plan"
+          href="/my-calendar"
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today in My Plan
+          Shape today in My Calendar
         </Link>
         <Link
           href="/capture"
@@ -230,6 +230,11 @@ export function MyDayEmptyState() {
 export function MyDayQuickLinks() {
   const items = [
     {
+      href: "/my-month",
+      label: "My Month",
+      note: "Overview",
+    },
+    {
       href: "/my-calendar",
       label: "My Calendar",
       note: "Rhythm",
@@ -238,11 +243,6 @@ export function MyDayQuickLinks() {
       href: "/my-programs",
       label: "My Programs",
       note: "Sequence",
-    },
-    {
-      href: "/my-plan",
-      label: "My Plan",
-      note: "Plan",
     },
     {
       href: "/capture",

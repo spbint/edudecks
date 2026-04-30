@@ -397,8 +397,8 @@ export default function FamilyProgressWorkspace() {
           : {
               title: `Strengthen ${activeLearnerName}'s focus area`,
               note: `Capture or reflect on ${focusAreas[0] || "the next focus area"} to keep progress building steadily.`,
-              href: focusAreas[0] === "Weekly consistency" ? "/my-plan" : "/capture",
-              cta: focusAreas[0] === "Weekly consistency" ? "Open My Plan" : "Capture evidence",
+              href: focusAreas[0] === "Weekly consistency" ? "/my-calendar" : "/capture",
+              cta: focusAreas[0] === "Weekly consistency" ? "Open My Calendar" : "Capture evidence",
               state: hasActiveLearner ? progressState : "empty",
             };
 

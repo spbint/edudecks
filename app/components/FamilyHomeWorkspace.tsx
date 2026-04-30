@@ -84,11 +84,11 @@ export default function FamilyHomeWorkspace() {
       state: hasActiveLearner ? "placeholder" : "empty",
     },
     {
-      label: "My Plans",
+      label: "My Calendar",
       value: loading ? "" : hasActiveLearner ? "2" : "0",
       note: hasActiveLearner
         ? `Draft workspace while ${activeLearnerName}'s planning data matures`
-        : "Your first plan will appear here",
+        : "Your first weekly rhythm will appear here",
       state: hasActiveLearner ? "placeholder" : "empty",
     },
     {
@@ -183,10 +183,10 @@ export default function FamilyHomeWorkspace() {
           <HomeSectionHeader eyebrow="Quick actions" title="Start with one clear step" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <QuickActionCard
-              href="/my-plan"
-              icon="MP"
-              label="Continue My Plan"
-              note={hasActiveLearner ? `Plan next steps for ${activeLearnerName}` : "Start after learner setup"}
+              href="/my-calendar"
+              icon="MC"
+              label="Open My Calendar"
+              note={hasActiveLearner ? `Shape weekly blocks for ${activeLearnerName}` : "Start after learner setup"}
               cta="Continue"
             />
             <QuickActionCard
@@ -251,9 +251,9 @@ export default function FamilyHomeWorkspace() {
           <HomeSectionHeader eyebrow="Core spaces" title="Go straight to the right space" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <SpaceCard
-              title="My Plan"
+              title="My Calendar"
               note={hasActiveLearner ? `Weekly rhythm and next blocks for ${activeLearnerName}.` : "Weekly rhythm and the next planned blocks."}
-              href="/my-plan"
+              href="/my-calendar"
               cta="Open"
               state={hasActiveLearner ? "derived" : "empty"}
               pill={hasActiveLearner ? "Active" : "Setup"}

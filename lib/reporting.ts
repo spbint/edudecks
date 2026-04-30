@@ -1916,9 +1916,9 @@ export function nextReportCta(model: ReportsBuilderModel) {
           note: "This jurisdiction is documentation-led, so start by keeping the learning story visible in the portfolio.",
         }
       : {
-          label: "Update learning plan",
-          href: "/my-plan",
-          note: "This jurisdiction expects planning evidence, so begin by making the current learning plan visible.",
+          label: "Update My Calendar",
+          href: "/my-calendar",
+          note: "This jurisdiction expects planning evidence, so begin by making the current calendar rhythm visible.",
         };
   }
 

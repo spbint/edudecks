@@ -67,8 +67,8 @@ function secondaryCtaFor(readiness: ComplianceReadiness) {
     nextAction.includes("plan")
   ) {
     return {
-      label: "Update learning plan",
-      href: "/my-plan",
+      label: "Update My Calendar",
+      href: "/my-calendar",
     };
   }
 

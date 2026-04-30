@@ -182,7 +182,7 @@ function buildIssueAction(input: {
   if (artifactType.includes("plan") || artifactType.includes("subject") || lowerCode.includes("plan")) {
     return {
       actionType: "plan_page",
-      actionTarget: "/my-plan",
+      actionTarget: "/my-calendar",
       actionLabel: "Fix this",
     };
   }

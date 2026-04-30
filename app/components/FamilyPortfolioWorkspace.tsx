@@ -244,13 +244,13 @@ export default function FamilyPortfolioWorkspace() {
       cta: "Capture",
     },
     {
-      href: "/my-plan",
-      icon: "PL",
-      title: "Open My Plan",
+      href: "/my-calendar",
+      icon: "CL",
+      title: "Open My Calendar",
       note: hasActiveLearner
         ? `See what is active next for ${activeLearnerName}.`
         : "Planning stays visible once a learner is selected.",
-      cta: "Plan",
+      cta: "Calendar",
     },
     {
       href: "/my-reports",

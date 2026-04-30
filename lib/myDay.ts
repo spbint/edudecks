@@ -110,7 +110,7 @@ function timeSortValue(block: FamilyCalendarBlockEntry, index: number) {
 
 function sourceLabel(block: FamilyCalendarBlockEntry) {
   if (block.time) return block.sourceType === "generated" ? "Scheduled from template" : "Scheduled today";
-  return block.sourceType === "generated" ? "Generated from My Programs" : "Added in My Plan";
+  return block.sourceType === "generated" ? "Generated from My Programs" : "Added in My Calendar";
 }
 
 function latestEvidenceLabel(rows: MyDayEvidenceRow[]) {
@@ -238,7 +238,7 @@ export function buildMyDayView(input: {
     totalCount: blocks.length,
     note:
       !blocks.length
-        ? "Add the first live block in My Plan to give today some shape."
+        ? "Add the first live block in My Calendar to give today some shape."
         : overdueCount >= 2 && capturedCount === 0
           ? "A few blocks have already passed without capture. One learning moment will settle the day."
         : capturedCount === 0
@@ -264,10 +264,10 @@ export function buildMyDayView(input: {
   const nextUncaptured = nextUp ?? blocks.find((block) => block.evidenceCount === 0) ?? null;
   const nextStep: MyDayNextStep = !blocks.length
     ? {
-        title: "Shape today in My Plan",
+        title: "Shape today in My Calendar",
         note: "There is nothing scheduled yet, so the clearest next step is to add one live block for today.",
-        href: `/my-plan?date=${encodeURIComponent(input.date)}`,
-        cta: "Shape today in My Plan",
+        href: `/my-calendar?date=${encodeURIComponent(input.date)}`,
+        cta: "Shape today in My Calendar",
       }
     : capturedCount >= blocks.length && blocks.length > 0
     ? {
@@ -275,8 +275,8 @@ export function buildMyDayView(input: {
         note: "Everything scheduled for today has supporting evidence. You can review the story now or open the live plan for what comes next.",
         href: `/my-portfolio?learner=${encodeURIComponent(input.learnerId)}`,
         cta: "View My Portfolio",
-        secondaryHref: `/my-plan?date=${encodeURIComponent(input.date)}`,
-        secondaryCta: "Open My Plan",
+        secondaryHref: `/my-calendar?date=${encodeURIComponent(input.date)}`,
+        secondaryCta: "Open My Calendar",
       }
     : overdueCount >= 2 && capturedCount === 0
     ? {
@@ -296,14 +296,14 @@ export function buildMyDayView(input: {
       ? {
         title: `Keep going with ${nextUncaptured.title}`,
         note: "Part of today is already recorded. Continue with the next block or capture the next learning moment.",
-        href: `/my-plan?date=${encodeURIComponent(input.date)}`,
-        cta: "Continue in My Plan",
+        href: `/my-calendar?date=${encodeURIComponent(input.date)}`,
+        cta: "Continue in My Calendar",
       }
       : {
-          title: "Shape today in My Plan",
+          title: "Shape today in My Calendar",
           note: "There is nothing scheduled yet, so the clearest next step is to add one live block for today.",
-          href: `/my-plan?date=${encodeURIComponent(input.date)}`,
-          cta: "Shape today in My Plan",
+          href: `/my-calendar?date=${encodeURIComponent(input.date)}`,
+          cta: "Shape today in My Calendar",
         };
 
   return { blocks, summary, progress, nextUp, recentCaptures, nextStep };

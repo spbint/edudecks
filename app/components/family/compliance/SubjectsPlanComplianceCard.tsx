@@ -390,7 +390,7 @@ export function SubjectsPlanComplianceCard({
       </div>
 
       <div className="grid gap-3 rounded-[16px] border border-slate-200 bg-white/80 p-4 text-sm leading-6 text-slate-600">
-        <div className="font-semibold text-slate-950">Plan workflow</div>
+        <div className="font-semibold text-slate-950">Calendar workflow</div>
         <div>
           School year:{" "}
           <span className="font-semibold text-slate-950">{schoolYearLabel || "Not set"}</span>
@@ -400,8 +400,8 @@ export function SubjectsPlanComplianceCard({
           <span className="font-semibold text-slate-950">{planCount}</span>
         </div>
         <div>
-          Current plan route:{" "}
-          <span className="font-semibold text-slate-950">/my-plan</span>
+          Current calendar route:{" "}
+          <span className="font-semibold text-slate-950">/my-calendar</span>
         </div>
       </div>
 
@@ -420,18 +420,18 @@ export function SubjectsPlanComplianceCard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="text-sm leading-6 text-slate-600">
           {!userId
-            ? "Open the plan once sign-in is available"
+            ? "Open My Calendar once sign-in is available"
             : !hasJurisdiction
               ? "Set your jurisdiction first"
               : behaviorLabel(reportsModel)}
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            href="/my-plan"
+            href="/my-calendar"
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
             onClick={() => void handleRefreshAndOpenPlan()}
           >
-            Open My Plan
+            Open My Calendar
           </Link>
         </div>
       </div>

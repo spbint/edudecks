@@ -1,8 +1,5 @@
-"use client";
-
-import React from "react";
-import FamilyPlanWorkspace from "@/app/components/FamilyPlanWorkspace";
+import { redirect } from "next/navigation";
 
 export default function MyPlanPage() {
-  return <FamilyPlanWorkspace />;
+  redirect("/my-calendar");
 }
