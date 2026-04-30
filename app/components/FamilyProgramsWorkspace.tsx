@@ -20,6 +20,7 @@ import {
   ProgramEditor,
   ProgramList,
   ProgramSegmentCard,
+  type SuggestedProgressionTile,
   BODY,
   H2,
   LABEL,
@@ -62,6 +63,64 @@ const EMPTY_PROGRAM_SETUP_DRAFT: ProgramSetupDraft = {
   focusId: "",
 };
 
+const AU_MATHS_NUMBER_PROGRESSION: SuggestedProgressionTile[] = [
+  {
+    id: "au-maths-number-representation",
+    sequence: 1,
+    title: "Number recognition and representation",
+    description: "Start with quantities, number names, and representations.",
+    curriculumCode: "AC9M3N01",
+  },
+  {
+    id: "au-maths-place-value",
+    sequence: 2,
+    title: "Place value",
+    description: "Build tens, hundreds, and flexible partitioning.",
+    curriculumCode: "AC9M3N01",
+  },
+  {
+    id: "au-maths-comparing-ordering",
+    sequence: 3,
+    title: "Comparing and ordering",
+    description: "Use number lines and benchmarks to compare quantities.",
+    curriculumCode: "AC9M3N01",
+  },
+  {
+    id: "au-maths-addition-strategies",
+    sequence: 4,
+    title: "Addition strategies",
+    description: "Use known facts, doubles, bridging, and mental strategies.",
+    curriculumCode: "AC9M3N02",
+  },
+  {
+    id: "au-maths-subtraction-strategies",
+    sequence: 5,
+    title: "Subtraction strategies",
+    description: "Model take-away, difference, and compensation strategies.",
+    curriculumCode: "AC9M3N02",
+  },
+  {
+    id: "au-maths-patterns-skip-counting",
+    sequence: 6,
+    title: "Patterns and skip counting",
+    description: "Count in equal steps and describe repeating or growing patterns.",
+    curriculumCode: "AC9M3N02",
+  },
+  {
+    id: "au-maths-grouping-sharing",
+    sequence: 7,
+    title: "Grouping and sharing",
+    description: "Use equal groups to prepare for multiplication and division.",
+  },
+  {
+    id: "au-maths-fractions-money-revision",
+    sequence: 8,
+    title: "Fractions, money, and revision",
+    description: "Represent parts of wholes and connect number ideas in context.",
+    curriculumCode: "AC9M3N03",
+  },
+];
+
 function clean(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -102,6 +161,33 @@ function prefilledProgramSetupDraft(input: {
   };
 }
 
+function parentFriendlyOutcomeTitle(label: string) {
+  return clean(label).replace(/\.$/, "") || "Curriculum focus";
+}
+
+function buildSuggestedProgressionTiles(input: {
+  country: string;
+  subjectId?: string | null;
+  strandId?: string | null;
+  strandOutcomes: Array<{ code: string; label: string }>;
+}) {
+  if (
+    input.country === "au" &&
+    input.subjectId === "mathematics" &&
+    input.strandId === "number"
+  ) {
+    return AU_MATHS_NUMBER_PROGRESSION;
+  }
+
+  return input.strandOutcomes.map((outcome, index) => ({
+    id: outcome.code,
+    sequence: index + 1,
+    title: parentFriendlyOutcomeTitle(outcome.label),
+    description: "Use this as a focused step in the sequence.",
+    curriculumCode: outcome.code,
+  }));
+}
+
 function buildDraftProgram(input: {
   familyId: string;
   learnerId?: string | null;
@@ -111,10 +197,13 @@ function buildDraftProgram(input: {
   subjectId: string;
   subjectTitle: string;
   strandTitle: string;
-  focusId: string;
+  progressionTiles: SuggestedProgressionTile[];
 }): Program {
   const subjectTitle = clean(input.subjectTitle) || clean(input.subjectId) || "General";
   const strandTitle = clean(input.strandTitle);
+  const selectedOutcomeIds = Array.from(
+    new Set(input.progressionTiles.map((tile) => clean(tile.curriculumCode)).filter(Boolean)),
+  );
   const base = defaultProgram({
     familyId: input.familyId,
     learnerId: input.learnerId || null,
@@ -123,15 +212,26 @@ function buildDraftProgram(input: {
     subjectId: subjectTitle,
     periodLabel: input.periodLabel,
   });
+  const createdAt = Date.now();
 
   return {
     ...base,
     title: [subjectTitle, strandTitle].filter(Boolean).join(": ") || "New program",
     subjectId: subjectTitle,
-    durationCount: 1,
+    durationCount: Math.max(input.progressionTiles.length, 1),
     segmentType: "sequence",
-    curriculumOutcomeIds: clean(input.focusId) ? [input.focusId] : [],
-    segments: [],
+    curriculumOutcomeIds: selectedOutcomeIds,
+    segments: input.progressionTiles.map((tile, index) => ({
+      id: `segment-${createdAt}-${index + 1}`,
+      programId: base.id,
+      order: index + 1,
+      title: tile.title,
+      notes: tile.description,
+      curriculumOutcomeIds: clean(tile.curriculumCode) ? [clean(tile.curriculumCode)] : [],
+      evidencePrompts: [],
+      assessmentIntents: [],
+      suggestedPlanBlocks: [],
+    })),
   };
 }
 
@@ -214,6 +314,7 @@ export default function FamilyProgramsWorkspace() {
   const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
   const [showNewProgramGuide, setShowNewProgramGuide] = useState(false);
+  const [selectedProgressionTileIds, setSelectedProgressionTileIds] = useState<string[]>([]);
   const [programSetupDraft, setProgramSetupDraft] =
     useState<ProgramSetupDraft>(EMPTY_PROGRAM_SETUP_DRAFT);
 
@@ -265,16 +366,37 @@ export default function FamilyProgramsWorkspace() {
   const selectedSetupStrand =
     selectedSetupSubject?.strands.find((strand) => strand.id === programSetupDraft.strandId) ??
     null;
-  const selectedSetupFocus =
-    selectedSetupStrand?.outcomes.find((outcome) => outcome.code === programSetupDraft.focusId) ??
-    null;
-  const programSetupComplete = Boolean(
+  const programProgressionTiles = useMemo(
+    () =>
+      selectedSetupStrand
+        ? buildSuggestedProgressionTiles({
+            country: programSetupDraft.country || learningConfig.country,
+            subjectId: selectedSetupSubject?.id,
+            strandId: selectedSetupStrand.id,
+            strandOutcomes: selectedSetupStrand.outcomes,
+          })
+        : [],
+    [
+      learningConfig.country,
+      programSetupDraft.country,
+      selectedSetupStrand,
+      selectedSetupSubject?.id,
+    ],
+  );
+  const selectedProgressionTiles = useMemo(
+    () =>
+      programProgressionTiles.filter((tile) =>
+        selectedProgressionTileIds.includes(tile.id),
+      ),
+    [programProgressionTiles, selectedProgressionTileIds],
+  );
+  const canCreateProgramDraft = Boolean(
     programSetupDraft.country &&
       programSetupDraft.jurisdictionId &&
       programSetupDraft.yearLevel &&
       selectedSetupSubject &&
       selectedSetupStrand &&
-      selectedSetupFocus,
+      selectedProgressionTiles.length,
   );
   const programSetupPrefillLabel =
     programSetupDraft.country || programSetupDraft.jurisdictionId || programSetupDraft.yearLevel
@@ -283,6 +405,7 @@ export default function FamilyProgramsWorkspace() {
 
   useEffect(() => {
     if (showNewProgramGuide) return;
+    setSelectedProgressionTileIds([]);
     setProgramSetupDraft(
       prefilledProgramSetupDraft({
         country: learningConfig.country,
@@ -296,6 +419,13 @@ export default function FamilyProgramsWorkspace() {
     learningConfig.yearBand,
     showNewProgramGuide,
   ]);
+
+  useEffect(() => {
+    const validIds = new Set(programProgressionTiles.map((tile) => tile.id));
+    setSelectedProgressionTileIds((current) =>
+      current.filter((tileId) => validIds.has(tileId)),
+    );
+  }, [programProgressionTiles]);
 
   useEffect(() => {
     let mounted = true;
@@ -422,6 +552,7 @@ export default function FamilyProgramsWorkspace() {
     setShowNewProgramGuide(true);
     setStatus("");
     setError("");
+    setSelectedProgressionTileIds([]);
     setProgramSetupDraft(
       prefilledProgramSetupDraft({
         country: learningConfig.country,
@@ -438,6 +569,19 @@ export default function FamilyProgramsWorkspace() {
   }
 
   function updateProgramSetupDraft(field: keyof ProgramSetupDraft, value: string) {
+    if (field !== "focusId") {
+      setSelectedProgressionTileIds([]);
+    } else {
+      const matchingTile = programProgressionTiles.find(
+        (tile) => clean(tile.curriculumCode) === value,
+      );
+      if (matchingTile) {
+        setSelectedProgressionTileIds((current) =>
+          current.includes(matchingTile.id) ? current : [...current, matchingTile.id],
+        );
+      }
+    }
+
     setProgramSetupDraft((current) => {
       if (field === "country") {
         return {
@@ -486,13 +630,36 @@ export default function FamilyProgramsWorkspace() {
     });
   }
 
+  function toggleProgressionTile(tileId: string) {
+    const tile = programProgressionTiles.find((item) => item.id === tileId);
+    const selected = selectedProgressionTileIds.includes(tileId);
+    const nextTileIds = selected
+      ? selectedProgressionTileIds.filter((currentTileId) => currentTileId !== tileId)
+      : [...selectedProgressionTileIds, tileId];
+    const tileCode = clean(tile?.curriculumCode);
+    const nextFirstCode =
+      nextTileIds
+        .map((currentTileId) =>
+          clean(programProgressionTiles.find((item) => item.id === currentTileId)?.curriculumCode),
+        )
+        .find(Boolean) || "";
+
+    setSelectedProgressionTileIds(nextTileIds);
+    if (!selected && tileCode) {
+      setProgramSetupDraft((currentDraft) => ({
+        ...currentDraft,
+        focusId: tileCode,
+      }));
+    } else if (selected && programSetupDraft.focusId === tileCode) {
+      setProgramSetupDraft((currentDraft) => ({
+        ...currentDraft,
+        focusId: nextFirstCode,
+      }));
+    }
+  }
+
   function handleCreateProgram() {
-    if (
-      !programSetupComplete ||
-      !selectedSetupSubject ||
-      !selectedSetupStrand ||
-      !selectedSetupFocus
-    ) {
+    if (!canCreateProgramDraft || !selectedSetupSubject || !selectedSetupStrand) {
       return;
     }
 
@@ -505,7 +672,7 @@ export default function FamilyProgramsWorkspace() {
       subjectId: selectedSetupSubject.id,
       subjectTitle: selectedSetupSubject.title,
       strandTitle: selectedSetupStrand.title,
-      focusId: selectedSetupFocus.code,
+      progressionTiles: selectedProgressionTiles,
     });
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
@@ -694,13 +861,16 @@ export default function FamilyProgramsWorkspace() {
                     id: outcome.code,
                     label: `${outcome.code} - ${outcome.label}`,
                   }))}
+                  progressionTiles={programProgressionTiles}
+                  selectedProgressionTileIds={selectedProgressionTileIds}
                   onChange={updateProgramSetupDraft}
+                  onToggleProgressionTile={toggleProgressionTile}
                   onCreateDraft={handleCreateProgram}
                   onCancel={() => {
                     setShowNewProgramGuide(false);
                     setError("");
                   }}
-                  canCreateDraft={programSetupComplete}
+                  canCreateDraft={canCreateProgramDraft}
                   prefillLabel={programSetupPrefillLabel}
                 />
               ) : (

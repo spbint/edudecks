@@ -208,6 +208,14 @@ type ProgramSetupOption = {
   label: string;
 };
 
+export type SuggestedProgressionTile = {
+  id: string;
+  sequence: number;
+  title: string;
+  description: string;
+  curriculumCode?: string | null;
+};
+
 function ProgramSetupSelect({
   label,
   value,
@@ -240,6 +248,64 @@ function ProgramSetupSelect({
   );
 }
 
+function SuggestedProgressionTiles({
+  tiles,
+  selectedTileIds,
+  onToggleTile,
+}: {
+  tiles: SuggestedProgressionTile[];
+  selectedTileIds: string[];
+  onToggleTile: (tileId: string) => void;
+}) {
+  if (!tiles.length) return null;
+
+  return (
+    <section className="grid gap-4 rounded-[22px] border border-slate-200 bg-slate-50/70 p-4 md:col-span-2">
+      <div className="grid gap-1.5">
+        <h3 className={H2}>Suggested progression</h3>
+        <p className={BODY}>Follow the skills in order, or choose the tiles that fit this learner.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {tiles.map((tile) => {
+          const selected = selectedTileIds.includes(tile.id);
+          return (
+            <button
+              key={tile.id}
+              type="button"
+              onClick={() => onToggleTile(tile.id)}
+              aria-pressed={selected}
+              className={`grid min-h-[164px] gap-3 rounded-[18px] border p-4 text-left transition ${
+                selected
+                  ? "border-blue-300 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                  : "border-slate-200 bg-white hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-black ${
+                    selected ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {tile.sequence}
+                </span>
+                {tile.curriculumCode ? (
+                  <span className={`${CHIP_BASE} border-slate-200 bg-white text-slate-600`}>
+                    {tile.curriculumCode}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-1.5">
+                <div className={H3}>{tile.title}</div>
+                <div className={META}>{tile.description}</div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function ProgramGuidedSetupPanel({
   draft,
   countryOptions,
@@ -248,7 +314,10 @@ export function ProgramGuidedSetupPanel({
   subjectOptions,
   strandOptions,
   focusOptions,
+  progressionTiles,
+  selectedProgressionTileIds,
   onChange,
+  onToggleProgressionTile,
   onCreateDraft,
   onCancel,
   canCreateDraft,
@@ -261,7 +330,10 @@ export function ProgramGuidedSetupPanel({
   subjectOptions: ProgramSetupOption[];
   strandOptions: ProgramSetupOption[];
   focusOptions: ProgramSetupOption[];
+  progressionTiles: SuggestedProgressionTile[];
+  selectedProgressionTileIds: string[];
   onChange: (field: keyof ProgramSetupDraft, value: string) => void;
+  onToggleProgressionTile: (tileId: string) => void;
   onCreateDraft: () => void;
   onCancel: () => void;
   canCreateDraft: boolean;
@@ -332,6 +404,14 @@ export function ProgramGuidedSetupPanel({
         ) : null}
 
         {draft.strandId ? (
+          <SuggestedProgressionTiles
+            tiles={progressionTiles}
+            selectedTileIds={selectedProgressionTileIds}
+            onToggleTile={onToggleProgressionTile}
+          />
+        ) : null}
+
+        {draft.strandId ? (
           <ProgramSetupSelect
             label="Focus"
             value={draft.focusId}
@@ -349,7 +429,7 @@ export function ProgramGuidedSetupPanel({
           disabled={!canCreateDraft}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create draft program
+          Create draft program from selected tiles
         </button>
         <button
           type="button"
@@ -359,7 +439,7 @@ export function ProgramGuidedSetupPanel({
           Cancel
         </button>
         <span className={META}>
-          {canCreateDraft ? "Creates a local draft only." : "Choose a focus to create a draft."}
+          {canCreateDraft ? "Creates a local draft only." : "Select at least one progression tile."}
         </span>
       </div>
     </section>
