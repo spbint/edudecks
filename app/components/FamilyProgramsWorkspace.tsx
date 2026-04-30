@@ -20,7 +20,8 @@ import {
   ProgramEditor,
   ProgramList,
   ProgramSegmentCard,
-  type SuggestedProgressionTile,
+  type SuggestedProgramPathTerm,
+  type SuggestedProgramPathTile,
   BODY,
   H2,
   LABEL,
@@ -63,63 +64,70 @@ const EMPTY_PROGRAM_SETUP_DRAFT: ProgramSetupDraft = {
   focusId: "",
 };
 
-const AU_MATHS_NUMBER_PROGRESSION: SuggestedProgressionTile[] = [
-  {
-    id: "au-maths-number-representation",
-    sequence: 1,
-    title: "Number recognition and representation",
-    description: "Start with quantities, number names, and representations.",
-    curriculumCode: "AC9M3N01",
+const AU_MATHS_NUMBER_YEAR_PROFILES: Record<number, {
+  countRange: string;
+  placeValue: string;
+  addition: string;
+  subtraction: string;
+  pattern: string;
+  grouping: string;
+  fractions: string;
+}> = {
+  1: {
+    countRange: "small collections and two-digit numbers",
+    placeValue: "ones, tens, and teen numbers",
+    addition: "combine small groups and make ten",
+    subtraction: "take away from small collections",
+    pattern: "twos, fives, tens, and simple repeats",
+    grouping: "equal groups with hands-on materials",
+    fractions: "halves, coins, and everyday sharing",
   },
-  {
-    id: "au-maths-place-value",
-    sequence: 2,
-    title: "Place value",
-    description: "Build tens, hundreds, and flexible partitioning.",
-    curriculumCode: "AC9M3N01",
+  2: {
+    countRange: "two- and three-digit numbers",
+    placeValue: "hundreds, tens, and ones",
+    addition: "mental addition with place value",
+    subtraction: "count back, bridge, and use difference",
+    pattern: "skip counting and growing patterns",
+    grouping: "arrays, equal groups, and sharing",
+    fractions: "halves, quarters, money, and revision",
   },
-  {
-    id: "au-maths-comparing-ordering",
-    sequence: 3,
-    title: "Comparing and ordering",
-    description: "Use number lines and benchmarks to compare quantities.",
-    curriculumCode: "AC9M3N01",
+  3: {
+    countRange: "numbers into the thousands",
+    placeValue: "thousands, hundreds, tens, and ones",
+    addition: "efficient addition strategies",
+    subtraction: "efficient subtraction strategies",
+    pattern: "skip counting and number patterns",
+    grouping: "grouping, sharing, and early multiplication",
+    fractions: "simple fractions, money, and revision",
   },
-  {
-    id: "au-maths-addition-strategies",
-    sequence: 4,
-    title: "Addition strategies",
-    description: "Use known facts, doubles, bridging, and mental strategies.",
-    curriculumCode: "AC9M3N02",
+  4: {
+    countRange: "larger whole numbers",
+    placeValue: "expanded notation and flexible partitioning",
+    addition: "multi-step addition problems",
+    subtraction: "multi-step subtraction problems",
+    pattern: "multiplicative patterns and rules",
+    grouping: "multiplication and division connections",
+    fractions: "fractions, decimals, money, and revision",
   },
-  {
-    id: "au-maths-subtraction-strategies",
-    sequence: 5,
-    title: "Subtraction strategies",
-    description: "Model take-away, difference, and compensation strategies.",
-    curriculumCode: "AC9M3N02",
+  5: {
+    countRange: "large whole numbers and decimals",
+    placeValue: "place value across whole numbers and decimals",
+    addition: "addition with decimals and estimates",
+    subtraction: "subtraction with decimals and estimates",
+    pattern: "factors, multiples, and pattern rules",
+    grouping: "multiplication, division, and remainders",
+    fractions: "fractions, decimals, money, and revision",
   },
-  {
-    id: "au-maths-patterns-skip-counting",
-    sequence: 6,
-    title: "Patterns and skip counting",
-    description: "Count in equal steps and describe repeating or growing patterns.",
-    curriculumCode: "AC9M3N02",
+  6: {
+    countRange: "whole numbers, decimals, and fractions",
+    placeValue: "renaming numbers across forms",
+    addition: "efficient strategies across number types",
+    subtraction: "efficient strategies across number types",
+    pattern: "rules, multiples, and generalisations",
+    grouping: "multiplication and division with larger numbers",
+    fractions: "fractions, decimals, percentages, money, and revision",
   },
-  {
-    id: "au-maths-grouping-sharing",
-    sequence: 7,
-    title: "Grouping and sharing",
-    description: "Use equal groups to prepare for multiplication and division.",
-  },
-  {
-    id: "au-maths-fractions-money-revision",
-    sequence: 8,
-    title: "Fractions, money, and revision",
-    description: "Represent parts of wholes and connect number ideas in context.",
-    curriculumCode: "AC9M3N03",
-  },
-];
+};
 
 function clean(value: unknown) {
   return String(value ?? "").trim();
@@ -135,6 +143,12 @@ function yearLevelOptionLabel(value: string) {
   if (/^year\s+\d+$/i.test(value)) return value.replace(/^year/i, "Year");
   if (value === "K") return "Kindergarten";
   return value;
+}
+
+function yearNumberFromLabel(value: string) {
+  const label = clean(value).toLowerCase().replace(/^year\s+/, "");
+  const year = Number(label);
+  return Number.isInteger(year) && year >= 1 && year <= 6 ? year : null;
 }
 
 function buildYearLevelOptions(prefillYearLevel: string) {
@@ -165,27 +179,230 @@ function parentFriendlyOutcomeTitle(label: string) {
   return clean(label).replace(/\.$/, "") || "Curriculum focus";
 }
 
-function buildSuggestedProgressionTiles(input: {
-  country: string;
-  subjectId?: string | null;
-  strandId?: string | null;
-  strandOutcomes: Array<{ code: string; label: string }>;
-}) {
-  if (
-    input.country === "au" &&
-    input.subjectId === "mathematics" &&
-    input.strandId === "number"
-  ) {
-    return AU_MATHS_NUMBER_PROGRESSION;
-  }
+function slugify(value: string) {
+  return clean(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
-  return input.strandOutcomes.map((outcome, index) => ({
+function makePathTile(input: {
+  year: number;
+  term: number;
+  week: number;
+  title: string;
+  description: string;
+  curriculumCode?: string | null;
+}): SuggestedProgramPathTile {
+  return {
+    id: `au-year-${input.year}-number-term-${input.term}-week-${input.week}-${slugify(input.title)}`,
+    term: input.term,
+    week: input.week,
+    title: input.title,
+    description: input.description,
+    curriculumCode: input.curriculumCode || null,
+  };
+}
+
+function buildAuMathsNumberYearPath(year: number): SuggestedProgramPathTerm[] {
+  const profile = AU_MATHS_NUMBER_YEAR_PROFILES[year] ?? AU_MATHS_NUMBER_YEAR_PROFILES[3];
+  const terms = [
+    {
+      term: 1,
+      tiles: [
+        makePathTile({
+          year,
+          term: 1,
+          week: 1,
+          title: "Counting and representing numbers",
+          description: `Read, write, make, and explain ${profile.countRange}.`,
+          curriculumCode: "AC9M3N01",
+        }),
+        makePathTile({
+          year,
+          term: 1,
+          week: 3,
+          title: "Place value",
+          description: `Build confidence with ${profile.placeValue}.`,
+          curriculumCode: "AC9M3N01",
+        }),
+        makePathTile({
+          year,
+          term: 1,
+          week: 6,
+          title: "Comparing and ordering",
+          description: "Use number lines, benchmarks, and language to compare quantities.",
+          curriculumCode: "AC9M3N01",
+        }),
+        makePathTile({
+          year,
+          term: 1,
+          week: 9,
+          title: "Term 1 number review",
+          description: "Revisit counting, representation, place value, and ordering.",
+          curriculumCode: "AC9M3N01",
+        }),
+      ],
+    },
+    {
+      term: 2,
+      tiles: [
+        makePathTile({
+          year,
+          term: 2,
+          week: 1,
+          title: "Addition strategies",
+          description: `Practise ways to ${profile.addition}.`,
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 2,
+          week: 3,
+          title: "Subtraction strategies",
+          description: `Model and explain how to ${profile.subtraction}.`,
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 2,
+          week: 6,
+          title: "Choosing an operation",
+          description: "Match number stories to addition, subtraction, or comparison.",
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 2,
+          week: 9,
+          title: "Term 2 strategy review",
+          description: "Consolidate facts, strategies, and written explanations.",
+          curriculumCode: "AC9M3N02",
+        }),
+      ],
+    },
+    {
+      term: 3,
+      tiles: [
+        makePathTile({
+          year,
+          term: 3,
+          week: 1,
+          title: "Patterns and skip counting",
+          description: `Work with ${profile.pattern}.`,
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 3,
+          week: 3,
+          title: "Grouping",
+          description: `Represent ${profile.grouping}.`,
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 3,
+          week: 6,
+          title: "Sharing",
+          description: "Use fair shares and equal groups to explain division ideas.",
+          curriculumCode: "AC9M3N02",
+        }),
+        makePathTile({
+          year,
+          term: 3,
+          week: 9,
+          title: "Term 3 pattern review",
+          description: "Connect counting patterns with grouping and sharing.",
+          curriculumCode: "AC9M3N02",
+        }),
+      ],
+    },
+    {
+      term: 4,
+      tiles: [
+        makePathTile({
+          year,
+          term: 4,
+          week: 1,
+          title: "Fractions in context",
+          description: `Represent ${profile.fractions}.`,
+          curriculumCode: "AC9M3N03",
+        }),
+        makePathTile({
+          year,
+          term: 4,
+          week: 3,
+          title: "Money and number decisions",
+          description: "Use prices, totals, change, and estimates in practical contexts.",
+          curriculumCode: "AC9M3N03",
+        }),
+        makePathTile({
+          year,
+          term: 4,
+          week: 6,
+          title: "Mixed number problems",
+          description: "Choose useful strategies across the year pathway.",
+        }),
+        makePathTile({
+          year,
+          term: 4,
+          week: 9,
+          title: "Year number review",
+          description: "Revisit key number skills and prepare the next program move.",
+        }),
+      ],
+    },
+  ];
+
+  return terms.map((term) => ({
+    id: `au-year-${year}-number-term-${term.term}`,
+    term: term.term,
+    label: `Term ${term.term}`,
+    tiles: term.tiles,
+  }));
+}
+
+function buildFallbackProgramPathTerms(
+  strandOutcomes: Array<{ code: string; label: string }>,
+): SuggestedProgramPathTerm[] {
+  const tiles = strandOutcomes.map((outcome, index) => ({
     id: outcome.code,
-    sequence: index + 1,
+    term: Math.min(Math.floor(index / 4) + 1, 4),
+    week: (index % 4) * 2 + 1,
     title: parentFriendlyOutcomeTitle(outcome.label),
     description: "Use this as a focused step in the sequence.",
     curriculumCode: outcome.code,
   }));
+
+  return [1, 2, 3, 4]
+    .map((term) => ({
+      id: `fallback-term-${term}`,
+      term,
+      label: `Term ${term}`,
+      tiles: tiles.filter((tile) => tile.term === term),
+    }))
+    .filter((term) => term.tiles.length);
+}
+
+function buildSuggestedProgramPathTerms(input: {
+  country: string;
+  yearLevel: string;
+  subjectId?: string | null;
+  strandId?: string | null;
+  strandOutcomes: Array<{ code: string; label: string }>;
+}) {
+  const year = yearNumberFromLabel(input.yearLevel);
+  if (
+    input.country === "au" &&
+    year &&
+    input.subjectId === "mathematics" &&
+    input.strandId === "number"
+  ) {
+    return buildAuMathsNumberYearPath(year);
+  }
+
+  return buildFallbackProgramPathTerms(input.strandOutcomes);
 }
 
 function buildDraftProgram(input: {
@@ -197,12 +414,12 @@ function buildDraftProgram(input: {
   subjectId: string;
   subjectTitle: string;
   strandTitle: string;
-  progressionTiles: SuggestedProgressionTile[];
+  pathTiles: SuggestedProgramPathTile[];
 }): Program {
   const subjectTitle = clean(input.subjectTitle) || clean(input.subjectId) || "General";
   const strandTitle = clean(input.strandTitle);
   const selectedOutcomeIds = Array.from(
-    new Set(input.progressionTiles.map((tile) => clean(tile.curriculumCode)).filter(Boolean)),
+    new Set(input.pathTiles.map((tile) => clean(tile.curriculumCode)).filter(Boolean)),
   );
   const base = defaultProgram({
     familyId: input.familyId,
@@ -218,15 +435,15 @@ function buildDraftProgram(input: {
     ...base,
     title: [subjectTitle, strandTitle].filter(Boolean).join(": ") || "New program",
     subjectId: subjectTitle,
-    durationCount: Math.max(input.progressionTiles.length, 1),
+    durationCount: Math.max(input.pathTiles.length, 1),
     segmentType: "sequence",
     curriculumOutcomeIds: selectedOutcomeIds,
-    segments: input.progressionTiles.map((tile, index) => ({
+    segments: input.pathTiles.map((tile, index) => ({
       id: `segment-${createdAt}-${index + 1}`,
       programId: base.id,
       order: index + 1,
       title: tile.title,
-      notes: tile.description,
+      notes: `Term ${tile.term}, week ${tile.week}: ${tile.description}`,
       curriculumOutcomeIds: clean(tile.curriculumCode) ? [clean(tile.curriculumCode)] : [],
       evidencePrompts: [],
       assessmentIntents: [],
@@ -314,7 +531,7 @@ export default function FamilyProgramsWorkspace() {
   const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
   const [showGenerationSuccess, setShowGenerationSuccess] = useState(false);
   const [showNewProgramGuide, setShowNewProgramGuide] = useState(false);
-  const [selectedProgressionTileIds, setSelectedProgressionTileIds] = useState<string[]>([]);
+  const [selectedProgramPathTileIds, setSelectedProgramPathTileIds] = useState<string[]>([]);
   const [programSetupDraft, setProgramSetupDraft] =
     useState<ProgramSetupDraft>(EMPTY_PROGRAM_SETUP_DRAFT);
 
@@ -366,11 +583,12 @@ export default function FamilyProgramsWorkspace() {
   const selectedSetupStrand =
     selectedSetupSubject?.strands.find((strand) => strand.id === programSetupDraft.strandId) ??
     null;
-  const programProgressionTiles = useMemo(
+  const programPathTerms = useMemo(
     () =>
       selectedSetupStrand
-        ? buildSuggestedProgressionTiles({
+        ? buildSuggestedProgramPathTerms({
             country: programSetupDraft.country || learningConfig.country,
+            yearLevel: programSetupDraft.yearLevel,
             subjectId: selectedSetupSubject?.id,
             strandId: selectedSetupStrand.id,
             strandOutcomes: selectedSetupStrand.outcomes,
@@ -379,16 +597,21 @@ export default function FamilyProgramsWorkspace() {
     [
       learningConfig.country,
       programSetupDraft.country,
+      programSetupDraft.yearLevel,
       selectedSetupStrand,
       selectedSetupSubject?.id,
     ],
   );
-  const selectedProgressionTiles = useMemo(
+  const programPathTiles = useMemo(
+    () => programPathTerms.flatMap((term) => term.tiles),
+    [programPathTerms],
+  );
+  const selectedProgramPathTiles = useMemo(
     () =>
-      programProgressionTiles.filter((tile) =>
-        selectedProgressionTileIds.includes(tile.id),
+      programPathTiles.filter((tile) =>
+        selectedProgramPathTileIds.includes(tile.id),
       ),
-    [programProgressionTiles, selectedProgressionTileIds],
+    [programPathTiles, selectedProgramPathTileIds],
   );
   const canCreateProgramDraft = Boolean(
     programSetupDraft.country &&
@@ -396,7 +619,7 @@ export default function FamilyProgramsWorkspace() {
       programSetupDraft.yearLevel &&
       selectedSetupSubject &&
       selectedSetupStrand &&
-      selectedProgressionTiles.length,
+      selectedProgramPathTiles.length,
   );
   const programSetupPrefillLabel =
     programSetupDraft.country || programSetupDraft.jurisdictionId || programSetupDraft.yearLevel
@@ -405,7 +628,7 @@ export default function FamilyProgramsWorkspace() {
 
   useEffect(() => {
     if (showNewProgramGuide) return;
-    setSelectedProgressionTileIds([]);
+    setSelectedProgramPathTileIds([]);
     setProgramSetupDraft(
       prefilledProgramSetupDraft({
         country: learningConfig.country,
@@ -421,11 +644,11 @@ export default function FamilyProgramsWorkspace() {
   ]);
 
   useEffect(() => {
-    const validIds = new Set(programProgressionTiles.map((tile) => tile.id));
-    setSelectedProgressionTileIds((current) =>
+    const validIds = new Set(programPathTiles.map((tile) => tile.id));
+    setSelectedProgramPathTileIds((current) =>
       current.filter((tileId) => validIds.has(tileId)),
     );
-  }, [programProgressionTiles]);
+  }, [programPathTiles]);
 
   useEffect(() => {
     let mounted = true;
@@ -552,7 +775,7 @@ export default function FamilyProgramsWorkspace() {
     setShowNewProgramGuide(true);
     setStatus("");
     setError("");
-    setSelectedProgressionTileIds([]);
+    setSelectedProgramPathTileIds([]);
     setProgramSetupDraft(
       prefilledProgramSetupDraft({
         country: learningConfig.country,
@@ -570,13 +793,13 @@ export default function FamilyProgramsWorkspace() {
 
   function updateProgramSetupDraft(field: keyof ProgramSetupDraft, value: string) {
     if (field !== "focusId") {
-      setSelectedProgressionTileIds([]);
+      setSelectedProgramPathTileIds([]);
     } else {
-      const matchingTile = programProgressionTiles.find(
+      const matchingTile = programPathTiles.find(
         (tile) => clean(tile.curriculumCode) === value,
       );
       if (matchingTile) {
-        setSelectedProgressionTileIds((current) =>
+        setSelectedProgramPathTileIds((current) =>
           current.includes(matchingTile.id) ? current : [...current, matchingTile.id],
         );
       }
@@ -630,32 +853,56 @@ export default function FamilyProgramsWorkspace() {
     });
   }
 
-  function toggleProgressionTile(tileId: string) {
-    const tile = programProgressionTiles.find((item) => item.id === tileId);
-    const selected = selectedProgressionTileIds.includes(tileId);
-    const nextTileIds = selected
-      ? selectedProgressionTileIds.filter((currentTileId) => currentTileId !== tileId)
-      : [...selectedProgressionTileIds, tileId];
-    const tileCode = clean(tile?.curriculumCode);
+  function syncFocusFromSelectedPath(nextTileIds: string[]) {
     const nextFirstCode =
       nextTileIds
         .map((currentTileId) =>
-          clean(programProgressionTiles.find((item) => item.id === currentTileId)?.curriculumCode),
+          clean(programPathTiles.find((item) => item.id === currentTileId)?.curriculumCode),
         )
         .find(Boolean) || "";
+    setProgramSetupDraft((currentDraft) => ({
+      ...currentDraft,
+      focusId: nextFirstCode,
+    }));
+  }
 
-    setSelectedProgressionTileIds(nextTileIds);
+  function toggleProgramPathTile(tileId: string) {
+    const tile = programPathTiles.find((item) => item.id === tileId);
+    const selected = selectedProgramPathTileIds.includes(tileId);
+    const nextTileIds = selected
+      ? selectedProgramPathTileIds.filter((currentTileId) => currentTileId !== tileId)
+      : [...selectedProgramPathTileIds, tileId];
+    const tileCode = clean(tile?.curriculumCode);
+
+    setSelectedProgramPathTileIds(nextTileIds);
     if (!selected && tileCode) {
       setProgramSetupDraft((currentDraft) => ({
         ...currentDraft,
         focusId: tileCode,
       }));
     } else if (selected && programSetupDraft.focusId === tileCode) {
-      setProgramSetupDraft((currentDraft) => ({
-        ...currentDraft,
-        focusId: nextFirstCode,
-      }));
+      syncFocusFromSelectedPath(nextTileIds);
     }
+  }
+
+  function toggleProgramPathTerm(termId: string) {
+    const term = programPathTerms.find((item) => item.id === termId);
+    if (!term) return;
+    const termTileIds = term.tiles.map((tile) => tile.id);
+    const allTermSelected = termTileIds.every((tileId) => selectedProgramPathTileIds.includes(tileId));
+    const nextTileIds = allTermSelected
+      ? selectedProgramPathTileIds.filter((tileId) => !termTileIds.includes(tileId))
+      : Array.from(new Set([...selectedProgramPathTileIds, ...termTileIds]));
+    setSelectedProgramPathTileIds(nextTileIds);
+    syncFocusFromSelectedPath(nextTileIds);
+  }
+
+  function toggleProgramPathYear() {
+    const allTileIds = programPathTiles.map((tile) => tile.id);
+    const allYearSelected = allTileIds.length > 0 && allTileIds.every((tileId) => selectedProgramPathTileIds.includes(tileId));
+    const nextTileIds = allYearSelected ? [] : allTileIds;
+    setSelectedProgramPathTileIds(nextTileIds);
+    syncFocusFromSelectedPath(nextTileIds);
   }
 
   function handleCreateProgram() {
@@ -672,7 +919,7 @@ export default function FamilyProgramsWorkspace() {
       subjectId: selectedSetupSubject.id,
       subjectTitle: selectedSetupSubject.title,
       strandTitle: selectedSetupStrand.title,
-      progressionTiles: selectedProgressionTiles,
+      pathTiles: selectedProgramPathTiles,
     });
     setPrograms((current) => [next, ...current]);
     setSelectedProgramId(next.id);
@@ -861,10 +1108,12 @@ export default function FamilyProgramsWorkspace() {
                     id: outcome.code,
                     label: `${outcome.code} - ${outcome.label}`,
                   }))}
-                  progressionTiles={programProgressionTiles}
-                  selectedProgressionTileIds={selectedProgressionTileIds}
+                  programPathTerms={programPathTerms}
+                  selectedProgramPathTileIds={selectedProgramPathTileIds}
                   onChange={updateProgramSetupDraft}
-                  onToggleProgressionTile={toggleProgressionTile}
+                  onToggleProgramPathTile={toggleProgramPathTile}
+                  onToggleProgramPathTerm={toggleProgramPathTerm}
+                  onToggleProgramPathYear={toggleProgramPathYear}
                   onCreateDraft={handleCreateProgram}
                   onCancel={() => {
                     setShowNewProgramGuide(false);

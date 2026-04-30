@@ -208,12 +208,20 @@ type ProgramSetupOption = {
   label: string;
 };
 
-export type SuggestedProgressionTile = {
+export type SuggestedProgramPathTile = {
   id: string;
-  sequence: number;
+  term: number;
+  week: number;
   title: string;
   description: string;
   curriculumCode?: string | null;
+};
+
+export type SuggestedProgramPathTerm = {
+  id: string;
+  term: number;
+  label: string;
+  tiles: SuggestedProgramPathTile[];
 };
 
 function ProgramSetupSelect({
@@ -248,57 +256,98 @@ function ProgramSetupSelect({
   );
 }
 
-function SuggestedProgressionTiles({
-  tiles,
+function SuggestedProgramPath({
+  terms,
   selectedTileIds,
   onToggleTile,
+  onToggleTerm,
+  onToggleYear,
 }: {
-  tiles: SuggestedProgressionTile[];
+  terms: SuggestedProgramPathTerm[];
   selectedTileIds: string[];
   onToggleTile: (tileId: string) => void;
+  onToggleTerm: (termId: string) => void;
+  onToggleYear: () => void;
 }) {
-  if (!tiles.length) return null;
+  const allTileIds = terms.flatMap((term) => term.tiles.map((tile) => tile.id));
+  const allYearSelected = allTileIds.length > 0 && allTileIds.every((tileId) => selectedTileIds.includes(tileId));
+
+  if (!terms.length) return null;
 
   return (
     <section className="grid gap-4 rounded-[22px] border border-slate-200 bg-slate-50/70 p-4 md:col-span-2">
-      <div className="grid gap-1.5">
-        <h3 className={H2}>Suggested progression</h3>
-        <p className={BODY}>Follow the skills in order, or choose the tiles that fit this learner.</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="grid gap-1.5">
+          <h3 className={H2}>Suggested program path</h3>
+          <p className={BODY}>Choose a term, a stretch of weeks, or the whole year.</p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggleYear}
+          className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          {allYearSelected ? "Clear year" : "Select entire year"}
+        </button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {tiles.map((tile) => {
-          const selected = selectedTileIds.includes(tile.id);
+
+      <div className="grid gap-4">
+        {terms.map((term) => {
+          const termTileIds = term.tiles.map((tile) => tile.id);
+          const allTermSelected = termTileIds.length > 0 && termTileIds.every((tileId) => selectedTileIds.includes(tileId));
           return (
-            <button
-              key={tile.id}
-              type="button"
-              onClick={() => onToggleTile(tile.id)}
-              aria-pressed={selected}
-              className={`grid min-h-[164px] gap-3 rounded-[18px] border p-4 text-left transition ${
-                selected
-                  ? "border-blue-300 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
-                  : "border-slate-200 bg-white hover:bg-slate-50"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span
-                  className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-black ${
-                    selected ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-700"
-                  }`}
+            <section key={term.id} className="grid gap-3 rounded-[18px] border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="grid gap-1">
+                  <div className={LABEL}>{term.label}</div>
+                  <div className={META}>{term.tiles.length} pathway tile{term.tiles.length === 1 ? "" : "s"}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onToggleTerm(term.id)}
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
                 >
-                  {tile.sequence}
-                </span>
-                {tile.curriculumCode ? (
-                  <span className={`${CHIP_BASE} border-slate-200 bg-white text-slate-600`}>
-                    {tile.curriculumCode}
-                  </span>
-                ) : null}
+                  {allTermSelected ? "Clear term" : "Select term"}
+                </button>
               </div>
-              <div className="grid gap-1.5">
-                <div className={H3}>{tile.title}</div>
-                <div className={META}>{tile.description}</div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {term.tiles.map((tile) => {
+                  const selected = selectedTileIds.includes(tile.id);
+                  return (
+                    <button
+                      key={tile.id}
+                      type="button"
+                      onClick={() => onToggleTile(tile.id)}
+                      aria-pressed={selected}
+                      className={`grid min-h-[150px] gap-3 rounded-[16px] border p-4 text-left transition ${
+                        selected
+                          ? "border-blue-300 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${
+                            selected ? "bg-slate-950 text-white" : "bg-white text-slate-700"
+                          }`}
+                        >
+                          Week {tile.week}
+                        </span>
+                        {tile.curriculumCode ? (
+                          <span className={`${CHIP_BASE} border-slate-200 bg-white text-slate-600`}>
+                            {tile.curriculumCode}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="grid gap-1.5">
+                        <div className={H3}>{tile.title}</div>
+                        <div className={META}>{tile.description}</div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            </button>
+            </section>
           );
         })}
       </div>
@@ -314,10 +363,12 @@ export function ProgramGuidedSetupPanel({
   subjectOptions,
   strandOptions,
   focusOptions,
-  progressionTiles,
-  selectedProgressionTileIds,
+  programPathTerms,
+  selectedProgramPathTileIds,
   onChange,
-  onToggleProgressionTile,
+  onToggleProgramPathTile,
+  onToggleProgramPathTerm,
+  onToggleProgramPathYear,
   onCreateDraft,
   onCancel,
   canCreateDraft,
@@ -330,10 +381,12 @@ export function ProgramGuidedSetupPanel({
   subjectOptions: ProgramSetupOption[];
   strandOptions: ProgramSetupOption[];
   focusOptions: ProgramSetupOption[];
-  progressionTiles: SuggestedProgressionTile[];
-  selectedProgressionTileIds: string[];
+  programPathTerms: SuggestedProgramPathTerm[];
+  selectedProgramPathTileIds: string[];
   onChange: (field: keyof ProgramSetupDraft, value: string) => void;
-  onToggleProgressionTile: (tileId: string) => void;
+  onToggleProgramPathTile: (tileId: string) => void;
+  onToggleProgramPathTerm: (termId: string) => void;
+  onToggleProgramPathYear: () => void;
   onCreateDraft: () => void;
   onCancel: () => void;
   canCreateDraft: boolean;
@@ -404,10 +457,12 @@ export function ProgramGuidedSetupPanel({
         ) : null}
 
         {draft.strandId ? (
-          <SuggestedProgressionTiles
-            tiles={progressionTiles}
-            selectedTileIds={selectedProgressionTileIds}
-            onToggleTile={onToggleProgressionTile}
+          <SuggestedProgramPath
+            terms={programPathTerms}
+            selectedTileIds={selectedProgramPathTileIds}
+            onToggleTile={onToggleProgramPathTile}
+            onToggleTerm={onToggleProgramPathTerm}
+            onToggleYear={onToggleProgramPathYear}
           />
         ) : null}
 
@@ -429,7 +484,7 @@ export function ProgramGuidedSetupPanel({
           disabled={!canCreateDraft}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          Create draft program from selected tiles
+          Create program from selected tiles
         </button>
         <button
           type="button"
@@ -439,7 +494,7 @@ export function ProgramGuidedSetupPanel({
           Cancel
         </button>
         <span className={META}>
-          {canCreateDraft ? "Creates a local draft only." : "Select at least one progression tile."}
+          {canCreateDraft ? "Creates a local draft only." : "Select at least one pathway tile."}
         </span>
       </div>
     </section>
