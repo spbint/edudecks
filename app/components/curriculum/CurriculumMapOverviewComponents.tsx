@@ -36,7 +36,9 @@ export type OutcomeCoverageView = {
   status: CoverageStatus;
   evidenceCount: number;
   lastTouchedAt?: string | null;
-  viewHref: string;
+  viewHref?: string;
+  canView: boolean;
+  viewUnavailableReason?: string;
 };
 
 export type StrandCoverageView = {
@@ -77,7 +79,7 @@ function coverageTone(status: CoverageStatus) {
     };
   }
   return {
-    label: "Not yet",
+    label: "Getting started",
     chip: "border-slate-200 bg-slate-50 text-slate-600",
     fill: "bg-slate-200",
   };
@@ -153,6 +155,19 @@ export function CoverageSummaryCards({
   );
 }
 
+function subjectProgressSummary(subject: SubjectCoverageTabData) {
+  if (!subject.counts.understood && !subject.counts.in_progress) {
+    return "No outcomes marked yet · Ready to begin";
+  }
+  const understoodLabel = subject.counts.understood
+    ? `${subject.counts.understood} understood`
+    : "No outcomes marked yet";
+  const inProgressLabel = subject.counts.in_progress
+    ? `${subject.counts.in_progress} in progress`
+    : "Ready to begin";
+  return `${understoodLabel} / ${inProgressLabel}`;
+}
+
 export function SubjectCoverageTabs({
   subjects,
   selectedSubjectId,
@@ -194,9 +209,7 @@ export function SubjectCoverageTabs({
                 )}
               >
                 <span className={CARD_TITLE}>{subject.title}</span>
-                <span className={META_TEXT}>
-                  {subject.counts.understood} understood / {subject.counts.in_progress} in progress
-                </span>
+                <span className={META_TEXT}>{subjectProgressSummary(subject)}</span>
               </button>
             );
           })}
@@ -273,15 +286,23 @@ export function OutcomeCoverageRow({
         {outcome.evidenceCount} evidence
       </div>
       <div className="flex items-center justify-between gap-3 lg:justify-end">
-        <div className={META_TEXT}>
-          {outcome.lastTouchedAt || "Not yet"}
-        </div>
-        <Link
-          href={outcome.viewHref}
-          className={`inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 ${CTA_TEXT} text-slate-900 transition hover:bg-slate-50`}
-        >
-          View
-        </Link>
+        <div className={META_TEXT}>{outcome.lastTouchedAt || "Getting started"}</div>
+        {outcome.canView && outcome.viewHref ? (
+          <Link
+            href={outcome.viewHref}
+            className={`inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-2 ${CTA_TEXT} text-slate-900 transition hover:bg-slate-50`}
+          >
+            View
+          </Link>
+        ) : (
+          <span
+            className={`inline-flex cursor-not-allowed items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-3 py-2 ${CTA_TEXT} text-slate-500`}
+            title={outcome.viewUnavailableReason || "Add a capture to unlock this view."}
+            aria-disabled="true"
+          >
+            View
+          </span>
+        )}
       </div>
     </div>
   );
@@ -374,17 +395,17 @@ export function CurriculumMapEmptyState({
         *
       </div>
       <div className="grid gap-2">
-        <h2 className={SECTION_TITLE}>No curriculum signals yet for {learnerName}</h2>
+        <h2 className={SECTION_TITLE}>Start capturing learning moments to build curriculum coverage.</h2>
         <p className={`mx-auto max-w-[520px] ${BODY_TEXT}`}>
-          Tag a few learning blocks or captures to begin seeing coverage.
+          Add the first tagged moment for {learnerName} to start a calm, visible coverage trail.
         </p>
       </div>
       <div className="flex justify-center">
         <Link
-          href="/my-plan"
+          href="/capture"
           className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800`}
         >
-          Open My Plan
+          Capture your first learning moment
         </Link>
       </div>
     </section>
@@ -433,4 +454,3 @@ export function CurriculumNextMoveCard({
     </section>
   );
 }
-
