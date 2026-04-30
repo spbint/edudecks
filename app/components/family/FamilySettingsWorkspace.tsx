@@ -179,6 +179,29 @@ export default function FamilySettingsWorkspace() {
         </FamilyLearningSetupCard>
 
         <FamilyLearningSetupCard
+          title="Master Calendar"
+          note="Set reusable calendar template, rotations, and planning defaults."
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              "Timetable template",
+              "Subject rotations",
+              "Term structure",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4"
+              >
+                <div className="text-[15px] font-semibold text-slate-950">{item}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[20px] border border-dashed border-slate-200 bg-white px-4 py-4 text-[13px] leading-5 text-slate-500">
+            Settings-only planning layer. My Calendar remains the weekly slice used in the daily workflow.
+          </div>
+        </FamilyLearningSetupCard>
+
+        <FamilyLearningSetupCard
           title="Advanced Curriculum Options"
           note="Keep this tucked away unless your family is using a custom or alternative framework."
         >

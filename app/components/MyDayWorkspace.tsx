@@ -99,16 +99,21 @@ function learnerStatusText({
 }
 
 function TodayEmptyGuidance({
-  learnerName,
   todayYmd,
   quickCaptureHref,
   canCapture,
 }: {
-  learnerName: string;
   todayYmd: string;
   quickCaptureHref: string;
   canCapture: boolean;
 }) {
+  const startPath = [
+    { label: "Rhythm", href: "/my-calendar" },
+    { label: "Program", href: "/my-programs" },
+    { label: "Plan", href: `/my-plan?date=${encodeURIComponent(todayYmd)}` },
+    { label: "Capture", href: quickCaptureHref },
+  ];
+
   return (
     <section className="grid gap-5 rounded-[26px] border border-dashed border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.92)_100%)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)]">
       <div className="grid gap-2">
@@ -116,34 +121,39 @@ function TodayEmptyGuidance({
           Today
         </div>
         <div className="text-[22px] font-bold tracking-[-0.03em] text-slate-950">
-          Nothing is planned for today yet
+          No blocks yet
         </div>
-        <p className="max-w-[64ch] text-[14px] leading-6 text-slate-600">
-          Nothing is broken. My Day will fill in once you add a learning block, pull in your
-          calendar rhythm, or capture something that already happened today for {learnerName}.
-        </p>
       </div>
 
-      <div className="grid gap-3 rounded-[20px] border border-slate-200 bg-white/85 p-4">
-        <div className="text-[13px] font-bold text-slate-950">Recommended start</div>
-        <div className="grid gap-2 text-[13px] leading-5 text-slate-600">
-          <div>
-            <span className="font-semibold text-slate-900">1.</span> Use My Calendar to shape the
-            weekly rhythm behind the day.
-          </div>
-          <div>
-            <span className="font-semibold text-slate-900">2.</span> Build the longer sequence in
-            My Programs before it lands in the live week.
-          </div>
-          <div>
-            <span className="font-semibold text-slate-900">3.</span> Shape one clear live block in
-            My Plan.
-          </div>
-          <div>
-            <span className="font-semibold text-slate-900">4.</span> Capture a real learning moment
-            if today has already started.
-          </div>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-4">
+        {startPath.map((item, index) => {
+          const disabled = item.label === "Capture" && !canCapture;
+          const tile = (
+            <div
+              className={[
+                "grid gap-2 rounded-[18px] border px-4 py-4",
+                disabled
+                  ? "border-slate-100 bg-slate-50 text-slate-400"
+                  : "border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50",
+              ].join(" ")}
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-[13px] font-bold text-white">
+                {index + 1}
+              </div>
+              <div className="text-[14px] font-bold">{item.label}</div>
+            </div>
+          );
+
+          return disabled ? (
+            <div key={item.label} aria-disabled="true">
+              {tile}
+            </div>
+          ) : (
+            <Link key={item.label} href={item.href}>
+              {tile}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="flex flex-wrap gap-3 pt-1">
@@ -151,14 +161,14 @@ function TodayEmptyGuidance({
           href={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today in My Plan
+          Shape today
         </Link>
 
         <Link
           href="/my-calendar"
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          Review My Calendar rhythm
+          My Calendar
         </Link>
 
         <Link
@@ -171,14 +181,9 @@ function TodayEmptyGuidance({
               : "pointer-events-none border-slate-100 bg-slate-50 text-slate-400",
           ].join(" ")}
         >
-          Capture from today
+          Capture
         </Link>
       </div>
-
-      <p className="text-[12px] leading-5 text-slate-500">
-        You do not need a perfect plan to begin. One planned block or one captured learning moment
-        is enough to make today visible.
-      </p>
     </section>
   );
 }
@@ -205,12 +210,12 @@ function TodayAtAGlancePanel({
   const hasEvidence = capturedCount > 0;
 
   const nextAction = loading
-    ? "Checking today's learning flow"
+    ? "Checking today"
     : hasPlan
-      ? "Capture or continue the next block"
+      ? "Continue"
       : hasEvidence
-        ? "Review captured evidence"
-        : "Shape today in My Plan";
+        ? "Review"
+        : "Plan";
 
   return (
     <div className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_10px_26px_rgba(15,23,42,0.045)]">
@@ -236,7 +241,7 @@ function TodayAtAGlancePanel({
 
         <div className="rounded-[16px] border border-slate-100 bg-slate-50 p-3">
           <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Next best action
+            Next
           </div>
           <div className="mt-1 font-bold text-slate-950">{nextAction}</div>
         </div>
@@ -246,7 +251,7 @@ function TodayAtAGlancePanel({
             href={`/my-plan?date=${encodeURIComponent(todayYmd)}`}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[12px] font-semibold text-white transition hover:bg-slate-800"
           >
-            Open My Plan
+            Plan
           </Link>
 
           <Link
@@ -259,7 +264,7 @@ function TodayAtAGlancePanel({
                 : "pointer-events-none border-slate-100 bg-slate-50 text-slate-400",
             ].join(" ")}
           >
-            Quick capture
+            Capture
           </Link>
         </div>
       </div>
@@ -432,9 +437,9 @@ export default function MyDayWorkspace() {
   return (
     <FamilyTopNavShell
       subtitle="My Day"
-      heroTitle="Move through today's learning with clarity"
-      heroText="See what is planned for today, keep the next useful step close, and capture evidence without leaving the flow."
-      workflowHelperText="My Calendar sets the weekly rhythm. My Programs shapes the longer sequence. My Plan edits the live week. Capture runs the day. Outputs groups curriculum, portfolio, reports, and progress in one place."
+      heroTitle="Today at a glance"
+      heroText="Blocks, next step, capture."
+      workflowHelperText="My Calendar sets rhythm. My Programs shapes sequence. My Plan edits the live week. My Day runs today."
       heroAsideTitle="Today at a glance"
       heroAsideText={heroAsideText}
     >
@@ -481,7 +486,7 @@ export default function MyDayWorkspace() {
                   </p>
                   <div className="flex flex-wrap gap-3 pt-2">
                     <Link href={noLearner.ctaHref} className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800">{noLearner.ctaLabel}</Link>
-                    <Link href="/my-plan" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">See how My Plan works</Link>
+                    <Link href="/my-plan" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">Open My Plan</Link>
                   </div>
                 </section>
               ) : dayState === "loading" ? (
@@ -495,7 +500,6 @@ export default function MyDayWorkspace() {
                 </div>
               ) : blocksToday.length === 0 ? (
                 <TodayEmptyGuidance
-                  learnerName={activeLearnerName}
                   todayYmd={todayYmd}
                   quickCaptureHref={quickCaptureHref}
                   canCapture={canCapture}
@@ -540,7 +544,7 @@ export default function MyDayWorkspace() {
             <MyDayQuickCaptureCard
               href={quickCaptureHref}
               disabled={!canCapture}
-              note={canCapture ? `Capture a learning moment for ${activeLearnerName} without losing today's context.` : hasActiveLearner ? "Capture becomes available once the synced learner workspace is ready." : "Choose a learner first to start capturing from today's flow."}
+              note={canCapture ? activeLearnerName : hasActiveLearner ? "Syncing learner" : "Choose learner"}
             />
           </div>
         </section>

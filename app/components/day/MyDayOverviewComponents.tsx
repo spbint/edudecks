@@ -40,6 +40,18 @@ function statusTone(status: MyDayBlockItem["status"]) {
   return "border-slate-200 bg-slate-100 text-slate-600";
 }
 
+function blockAccentStyle(block: MyDayBlockItem): React.CSSProperties {
+  const key = `${block.subject || ""} ${block.title || ""}`.toLowerCase();
+  if (key.includes("math")) return { background: "#2563eb" };
+  if (key.includes("literacy") || key.includes("reading") || key.includes("english")) {
+    return { background: "#db2777" };
+  }
+  if (key.includes("science")) return { background: "#059669" };
+  if (key.includes("art") || key.includes("creative")) return { background: "#7c3aed" };
+  if (key.includes("history") || key.includes("humanities")) return { background: "#d97706" };
+  return { background: "#0f766e" };
+}
+
 export function MyDayHeader({
   dateLabel,
   learnerName,
@@ -49,15 +61,27 @@ export function MyDayHeader({
   learnerName: string;
   state: HomeSurfaceState;
 }) {
+  const chips = ["Blocks", "Capture", "Review"];
+
   return (
     <section className={`grid gap-5 p-6 ${CARD}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-2">
           <div className={LABEL}>My Day</div>
           <h2 className="text-[21px] font-bold tracking-[-0.02em] text-slate-950">{dateLabel}</h2>
-          <p className="max-w-[54ch] text-[14px] leading-6 text-slate-600">
-            See what is planned for today, what comes next, and what is ready to capture.
-          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {chips.map((chip, index) => (
+              <span
+                key={chip}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-950 text-[11px] text-white">
+                  {index + 1}
+                </span>
+                {chip}
+              </span>
+            ))}
+          </div>
         </div>
         <span
           className={`inline-flex items-center rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${badgeTone(state)}`}
@@ -121,67 +145,72 @@ export function TodayLearningBlockCard({
       : CARD;
 
   return (
-    <article className={`grid gap-4 p-5 ${cardTone}`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={LABEL}>{block.time || block.sourceLabel}</span>
-            <span
-              className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusTone(block.status)}`}
+    <article className={`overflow-hidden ${cardTone}`}>
+      <div className="grid md:grid-cols-[12px_minmax(0,1fr)]">
+        <div className="min-h-2 md:min-h-full" style={blockAccentStyle(block)} />
+
+        <div className="grid gap-4 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="grid gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-1 text-[12px] font-semibold text-slate-700">
+                  {block.time || block.sourceLabel}
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusTone(block.status)}`}
+                >
+                  {statusLabel(block.status)}
+                </span>
+              </div>
+              <div className="text-[19px] font-bold tracking-[-0.02em] text-slate-950">
+                {block.title}
+              </div>
+              <div className={META}>
+                {[block.subject, block.programTitle].filter(Boolean).join(" - ") || block.sourceLabel}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-2.5">
+            {block.note ? (
+              <div className="text-[14px] leading-6 text-slate-600">{block.note}</div>
+            ) : null}
+            {block.programSegmentTitle ? (
+              <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[12px] font-medium text-slate-600">
+                {block.programSegmentTitle}
+              </div>
+            ) : null}
+            {preset && block.curriculumOutcomeIds.length ? (
+              <CurriculumTagPills preset={preset} outcomeIds={block.curriculumOutcomeIds} />
+            ) : null}
+            <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50/90 px-3 py-1 text-[12px] font-medium text-slate-600">
+              {block.evidenceCount > 0
+                ? `${block.evidenceCount} captured${block.latestEvidenceLabel ? ` - ${block.latestEvidenceLabel}` : ""}`
+                : "Awaiting capture"}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <Link
+              href={planHref}
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800"
             >
-              {statusLabel(block.status)}
-            </span>
-          </div>
-          <div className="text-[17px] font-semibold tracking-[-0.01em] text-slate-950">
-            {block.title}
-          </div>
-          <div className={META}>
-            {[block.subject, block.time].filter(Boolean).join(" - ") || block.sourceLabel}
+              Focus
+            </Link>
+            {canCapture ? (
+              <Link
+                href={captureHref}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4.5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Capture
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4.5 py-2.5 text-[13px] font-semibold text-slate-500">
+                Capture
+              </span>
+            )}
           </div>
         </div>
-      </div>
-
-      <div className="grid gap-2.5">
-        <div className="text-[14px] leading-6 text-slate-600">
-          {block.note ||
-            "Plan detail has not been expanded yet. You can still continue in My Plan or capture evidence from the scheduled block."}
-        </div>
-        {block.programTitle || block.programSegmentTitle ? (
-          <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[12px] font-medium text-slate-600">
-            {[block.programTitle, block.programSegmentTitle].filter(Boolean).join(" - ")}
-          </div>
-        ) : null}
-        {preset && block.curriculumOutcomeIds.length ? (
-          <CurriculumTagPills preset={preset} outcomeIds={block.curriculumOutcomeIds} />
-        ) : null}
-        <div className="inline-flex w-fit items-center rounded-full border border-slate-200 bg-slate-50/90 px-3 py-1 text-[12px] font-medium text-slate-600">
-          {block.evidenceCount > 0
-            ? `${block.evidenceCount} evidence item${block.evidenceCount === 1 ? "" : "s"} linked${block.latestEvidenceLabel ? ` - last captured ${block.latestEvidenceLabel}` : ""}`
-            : block.status === "overdue"
-              ? "No evidence linked yet - this block has already passed"
-              : "No evidence linked yet"}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2.5 pt-1">
-        <Link
-          href={planHref}
-          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800"
-        >
-          Focus this block
-        </Link>
-        {canCapture ? (
-          <Link
-            href={captureHref}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4.5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Capture now
-          </Link>
-        ) : (
-          <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-4.5 py-2.5 text-[13px] font-semibold text-slate-500">
-            Capture now
-          </span>
-        )}
       </div>
     </article>
   );
@@ -205,65 +234,67 @@ export function MyDayNextUpCard({
       <section className={`border-dashed p-6 ${CARD}`}>
         <div className={LABEL}>Next up</div>
         <div className="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-slate-950">
-          Nothing is lined up just yet
-        </div>
-        <div className="mt-1 text-[13px] leading-5 text-slate-500">
-          Shape one live block in My Plan so today has a clear next step.
+          No block queued
         </div>
         <Link
           href="/my-plan"
           className="mt-5 inline-flex items-center justify-center rounded-full bg-slate-950 px-4.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today in My Plan
+          Shape today
         </Link>
       </section>
     );
   }
 
   return (
-    <section className={`p-6 ${CARD}`}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="grid gap-1.5">
-          <div className={LABEL}>Next up</div>
-          <div className="text-[19px] font-semibold tracking-[-0.02em] text-slate-950">
-            {block.title}
+    <section className={`overflow-hidden p-0 ${CARD}`}>
+      <div className="grid grid-cols-[10px_minmax(0,1fr)]">
+        <div style={blockAccentStyle(block)} />
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="grid gap-1.5">
+              <div className={LABEL}>Next up</div>
+              <div className="text-[19px] font-semibold tracking-[-0.02em] text-slate-950">
+                {block.title}
+              </div>
+              <div className={META}>
+                {[block.time || "Next block", learnerName].filter(Boolean).join(" - ")}
+              </div>
+            </div>
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusTone(block.status)}`}
+            >
+              {statusLabel(block.status)}
+            </span>
           </div>
-          <div className={META}>
-            {[block.time || "Next block", learnerName].filter(Boolean).join(" - ")}
+
+          {block.programTitle ? (
+            <div className="mt-4 inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[12px] font-medium text-slate-600">
+              {block.programTitle}
+            </div>
+          ) : null}
+
+          <div className="mt-5 flex flex-wrap gap-2.5">
+            <Link
+              href={planHref}
+              className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800"
+            >
+              Focus
+            </Link>
+            {canCapture ? (
+              <Link
+                href={captureHref}
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Capture
+              </Link>
+            ) : (
+              <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-5 py-2.5 text-[13px] font-semibold text-slate-500">
+                Capture
+              </span>
+            )}
           </div>
         </div>
-        <span
-          className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] ${statusTone(block.status)}`}
-        >
-          {statusLabel(block.status)}
-        </span>
-      </div>
-
-      {block.programTitle ? (
-        <div className="mt-4 inline-flex w-fit items-center rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-[12px] font-medium text-slate-600">
-          {block.programTitle}
-        </div>
-      ) : null}
-
-      <div className="mt-5 flex flex-wrap gap-2.5">
-        <Link
-          href={planHref}
-          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-slate-800"
-        >
-          Focus this block
-        </Link>
-        {canCapture ? (
-          <Link
-            href={captureHref}
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Capture now
-          </Link>
-        ) : (
-          <span className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-100 px-5 py-2.5 text-[13px] font-semibold text-slate-500">
-            Capture now
-          </span>
-        )}
       </div>
     </section>
   );
@@ -348,7 +379,7 @@ export function TodayLearningFlow({
       <div className="grid gap-1.5">
         <div className={LABEL}>Today's learning flow</div>
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">
-          What is planned for today
+          Today's blocks
         </h2>
       </div>
       {empty ?? <div className="grid gap-4">{blocks}</div>}
@@ -364,23 +395,19 @@ export function MyDayEmptyState() {
         <h2 className="text-[20px] font-bold tracking-[-0.02em] text-slate-950">
           Nothing is planned for today yet
         </h2>
-        <p className="max-w-[56ch] text-[14px] leading-6 text-slate-600">
-          Start with My Calendar when the weekly rhythm needs shape, use My Programs for the longer
-          sequence, and use My Plan to shape the live week into one clear next step.
-        </p>
       </div>
       <div className="flex flex-wrap gap-3">
         <Link
           href="/my-plan"
           className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-slate-800"
         >
-          Shape today in My Plan
+          Shape today
         </Link>
         <Link
           href="/my-calendar"
           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
         >
-          Review My Calendar rhythm
+          My Calendar
         </Link>
       </div>
     </section>
@@ -466,22 +493,22 @@ export function MyDayQuickLinks() {
     {
       href: "/my-calendar",
       label: "My Calendar",
-      note: "Start here to set the weekly rhythm that My Programs and My Plan use.",
+      note: "Weekly rhythm",
     },
     {
       href: "/my-programs",
       label: "My Programs",
-      note: "Build the longer sequence, then place it into that calendar rhythm.",
+      note: "Longer sequence",
     },
     {
       href: "/my-plan",
       label: "My Plan",
-      note: "Edit the live week so today has one clear next block.",
+      note: "Live week",
     },
     {
       href: "/capture",
       label: "Capture",
-      note: "Run the day and capture evidence while learning is still fresh.",
+      note: "Evidence",
     },
   ];
 
@@ -490,7 +517,7 @@ export function MyDayQuickLinks() {
       <div className="grid gap-1.5">
         <div className={LABEL}>Where to start</div>
         <h2 className="text-[18px] font-bold tracking-[-0.02em] text-slate-950">
-          Follow the core workflow in order
+          Planning surfaces
         </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -498,17 +525,13 @@ export function MyDayQuickLinks() {
           <Link
             key={item.href}
             href={item.href}
-            className="rounded-[20px] border border-slate-200 bg-white/85 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-white"
+            className="grid gap-2 rounded-[20px] border border-slate-200 bg-white/85 px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.03)] transition hover:bg-white"
           >
             <div className={H3}>{item.label}</div>
-            <div className={`mt-2 ${META}`}>{item.note}</div>
+            <div className={META}>{item.note}</div>
           </Link>
         ))}
       </div>
-      <p className="text-[13px] leading-6 text-slate-500">
-        Outputs in the top navigation groups My Curriculum, My Portfolio, My Reports, and My
-        Progress for reflection, keeping planning and review in a clear daily flow.
-      </p>
     </section>
   );
 }

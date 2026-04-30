@@ -195,10 +195,10 @@ export function ProgramList({
   onCreate: () => void;
   firstRun?: boolean;
 }) {
-  const heading = firstRun ? "Your first program is ready to shape" : "Shape the longer sequence before it reaches the live week";
+  const heading = firstRun ? "First program" : "Program list";
   const support = firstRun
-    ? "Start with the sample, rename it, then map it to one slot."
-    : "Shape your sequence here, then generate it into My Plan.";
+    ? "Rename, segment, place."
+    : "Choose a sequence to shape.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -221,7 +221,7 @@ export function ProgramList({
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-3">
         {programs.map((program) => {
           const active = program.id === selectedProgramId;
           return (
@@ -229,7 +229,7 @@ export function ProgramList({
               key={program.id}
               type="button"
               onClick={() => onSelect(program.id)}
-              className={`grid gap-1 rounded-[18px] border px-4 py-4 text-left transition ${
+              className={`grid gap-3 rounded-[18px] border px-4 py-4 text-left transition ${
                 active
                   ? firstRun
                     ? "border-amber-200 bg-amber-50 shadow-[0_0_0_4px_rgba(251,191,36,0.12)]"
@@ -237,14 +237,24 @@ export function ProgramList({
                   : "border-slate-200 bg-slate-50 hover:bg-slate-100"
               }`}
             >
-              <span className={LABEL}>{firstRun ? "Your first program" : "Program"}</span>
-              <span className={H3}>{program.title}</span>
+              <div className="flex items-start justify-between gap-3">
+                <span className={H3}>{program.title}</span>
+                <span className="inline-flex min-w-8 justify-center rounded-full border border-slate-200 bg-white px-2 py-1 text-[12px] font-semibold text-slate-600">
+                  {program.segments.length}
+                </span>
+              </div>
               <span className={META}>
                 {[program.subjectId, program.periodLabel].filter(Boolean).join(" • ")}
               </span>
               <span className={META}>
                 {program.segments.length} segment{program.segments.length === 1 ? "" : "s"}
               </span>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-slate-950"
+                  style={{ width: `${Math.min(100, Math.max(12, program.segments.length * 16))}%` }}
+                />
+              </div>
             </button>
           );
         })}
@@ -300,9 +310,8 @@ export function ProgramEditor({
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Your first program</div>
-        <h2 className={H2}>Shape this program</h2>
-        <p className={BODY}>Rename the program, then shape the segments.</p>
+        <div className={LABEL}>Program frame</div>
+        <h2 className={H2}>Name, subject, span</h2>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -389,37 +398,50 @@ export function ProgramSegmentCard({
   onAttachCurriculum: (segmentId: string) => void;
 }) {
   return (
-    <article className="grid gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.03)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="grid gap-1">
-          <div className={LABEL}>Segment {segment.order}</div>
-          <div className={H3}>{segment.title}</div>
+    <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.03)]">
+      <div className="grid md:grid-cols-[74px_minmax(0,1fr)]">
+        <div className="flex items-start justify-center bg-slate-950 px-4 py-5 text-white">
+          <div className="grid gap-1 text-center">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-300">
+              Seg
+            </span>
+            <span className="text-[22px] font-bold">{segment.order}</span>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onAttachCurriculum(segment.id)}
-          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
-        >
-          {segment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
-        </button>
-      </div>
 
-      <input
-        className={INPUT}
-        value={segment.title}
-        onChange={(event) => onChange({ ...segment, title: event.target.value })}
-        placeholder="Segment title"
-      />
-      <textarea
-        className={`${INPUT} min-h-[88px] py-3`}
-        value={segment.notes || ""}
-        onChange={(event) => onChange({ ...segment, notes: event.target.value })}
-        placeholder="What is the main focus of this part of the program?"
-      />
-      <div className={META}>
-        {segment.curriculumOutcomeIds.length
-          ? `${segment.curriculumOutcomeIds.length} linked outcome${segment.curriculumOutcomeIds.length === 1 ? "" : "s"}`
-          : "No linked outcomes yet"}
+        <div className="grid gap-4 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="grid gap-1">
+              <div className={LABEL}>Sequence row</div>
+              <div className={H3}>{segment.title}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onAttachCurriculum(segment.id)}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
+            >
+              {segment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
+            </button>
+          </div>
+
+          <input
+            className={INPUT}
+            value={segment.title}
+            onChange={(event) => onChange({ ...segment, title: event.target.value })}
+            placeholder="Segment title"
+          />
+          <textarea
+            className={`${INPUT} min-h-[78px] py-3`}
+            value={segment.notes || ""}
+            onChange={(event) => onChange({ ...segment, notes: event.target.value })}
+            placeholder="Focus for this segment"
+          />
+          <div className={META}>
+            {segment.curriculumOutcomeIds.length
+              ? `${segment.curriculumOutcomeIds.length} linked outcome${segment.curriculumOutcomeIds.length === 1 ? "" : "s"}`
+              : "No linked outcomes yet"}
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -491,20 +513,20 @@ export function ProgramCalendarAssignmentPanel({
               : "Choose where this program should land";
   const panelNote =
     state === "blocked_template"
-      ? "Use My Calendar first, then return here to place this sequence into one reusable weekly slot."
+      ? "Set the reusable week first."
       : state === "blocked_slots"
-        ? "This template exists, but it still needs at least one reusable slot before generation can begin."
+        ? "Add one reusable slot."
         : state === "ready_choose_slot"
-        ? "Pick the slot that best matches where this program should usually land in the week."
+        ? "Pick the weekly slot."
         : state === "ready_choose_date"
-          ? "Choose the first week this program should begin, then generation will become available."
+          ? "Choose the first week."
           : state === "blocked_learner"
-            ? "Generation needs a learner so blocks can be placed into the right plan."
+            ? "Choose a learner."
             : state === "blocked_segments"
-              ? "This program needs at least one segment before it can generate."
+              ? "Add one segment."
             : state === "ready_generate"
-              ? "This will place each segment into the next matching week and open those generated blocks in My Plan for live adjustment."
-              : "Assign this program to a reusable calendar slot, then choose when to start.";
+              ? "Generate blocks into My Plan."
+              : "Choose slot and start date.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -518,7 +540,7 @@ export function ProgramCalendarAssignmentPanel({
         <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
           <div className={H3}>My Calendar rhythm not set yet</div>
           <div className={`mt-2 ${BODY}`}>
-            Set up your weekly rhythm in My Calendar to begin generating plans.
+            Set the weekly rhythm in My Calendar first.
           </div>
           <Link
             href="/my-calendar"
@@ -585,9 +607,7 @@ export function ProgramCalendarAssignmentPanel({
             .join(" • ") || "Choose a slot to continue"}
         </div>
         <div className={`mt-3 ${BODY}`}>
-          {generationReady
-            ? "Generation will place each program segment into the next matching week for this slot, then open those blocks in My Plan for live adjustment."
-            : "Generation becomes available as soon as the template, slot, and start date are all in place."}
+          {generationReady ? "Ready to generate into My Plan." : "Choose template, slot, and start date."}
         </div>
       </div>
 
@@ -610,7 +630,7 @@ export function ProgramCalendarAssignmentPanel({
           <div className={META}>Add at least one segment to continue.</div>
         ) : (
           <div className={META}>
-            The first segment will land in the first matching week, then the rest will flow forward one week at a time.
+            Segments will flow forward one week at a time.
           </div>
         )}
         <button

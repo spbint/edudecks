@@ -383,9 +383,9 @@ export default function FamilyProgramsWorkspace() {
     <FamilyTopNavShell
       subtitle="My Programs"
       heroTitle="My Programs"
-      heroText="Build the longer sequence here, let it land in My Calendar, then generate it into My Plan."
+      heroText="Build longer sequences and place them into the weekly rhythm."
       heroAsideTitle="Program templates"
-      heroAsideText="Programs hold the longer story. My Calendar decides where that story lands, and My Plan turns it into the live week."
+      heroAsideText="Left: program list. Right: sequence, curriculum, and calendar placement."
     >
       <div className="grid gap-5 pb-14">
         {showGenerationSuccess ? (
@@ -453,55 +453,57 @@ export default function FamilyProgramsWorkspace() {
           />
         ) : null}
 
-        <ProgramList
-          programs={programs}
-          selectedProgramId={selectedProgram?.id}
-          onSelect={setSelectedProgramId}
-          onCreate={handleCreateProgram}
-          firstRun={isFirstRun}
-        />
-
         {loading ? (
           <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div className={BODY}>Loading programs...</div>
           </section>
         ) : (
-          <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-            <div className="grid gap-5">
-              <ProgramEditor program={selectedProgram} onChange={updateProgram} />
-
-              <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="grid gap-1.5">
-                    <div className={LABEL}>Segments</div>
-                    <h2 className={H2}>Build the sequence</h2>
-                    <p className={BODY}>Add segments in order so the next step is clear.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addSegment}
-                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
-                  >
-                    Add segment
-                  </button>
-                </div>
-
-                <div className="grid gap-4">
-                  {(selectedProgram?.segments || []).map((segment) => (
-                    <ProgramSegmentCard
-                      key={segment.id}
-                      segment={segment}
-                      onChange={updateSegment}
-                      onAttachCurriculum={setEditingCurriculumSegmentId}
-                    />
-                  ))}
-                </div>
-              </section>
+          <div id="programs-workspace" className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="xl:sticky xl:top-4 xl:self-start">
+              <ProgramList
+                programs={programs}
+                selectedProgramId={selectedProgram?.id}
+                onSelect={setSelectedProgramId}
+                onCreate={handleCreateProgram}
+                firstRun={isFirstRun}
+              />
             </div>
 
-            <div className="grid gap-5">
-              {selectedSegment ? (
+            <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+              <div className="grid gap-5">
+                <ProgramEditor program={selectedProgram} onChange={updateProgram} />
+
                 <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="grid gap-1.5">
+                      <div className={LABEL}>Segments</div>
+                      <h2 className={H2}>Sequence rows</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addSegment}
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
+                    >
+                      Add segment
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4">
+                    {(selectedProgram?.segments || []).map((segment) => (
+                      <ProgramSegmentCard
+                        key={segment.id}
+                        segment={segment}
+                        onChange={updateSegment}
+                        onAttachCurriculum={setEditingCurriculumSegmentId}
+                      />
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="grid gap-5">
+                {selectedSegment ? (
+                  <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                   <div className="grid gap-1.5">
                     <div className={LABEL}>Curriculum</div>
                     <h2 className={H2}>Linked outcomes for this segment</h2>
@@ -531,31 +533,31 @@ export default function FamilyProgramsWorkspace() {
                       {selectedSegment.curriculumOutcomeIds.length ? "Edit curriculum" : "Add curriculum"}
                     </button>
                   )}
-                </section>
-              ) : (
-                <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
+                  </section>
+                ) : (
+                  <section className="rounded-[24px] border border-dashed border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
                   <div className={LABEL}>Curriculum</div>
                   <h2 className={`mt-2 ${H2}`}>Select a segment to attach curriculum</h2>
                   <p className={`mt-2 ${BODY}`}>Program curriculum stays quieter if it lives on the segment that will later generate the real live block.</p>
-                </section>
-              )}
+                  </section>
+                )}
 
-              <ProgramCalendarAssignmentPanel
-                templates={templates}
-                selectedTemplateId={assignmentTemplateId}
-                selectedSlotId={assignmentSlotId}
-                startDate={assignmentStartDate}
-                onTemplateChange={setAssignmentTemplateId}
-                onSlotChange={setAssignmentSlotId}
-                onStartDateChange={setAssignmentStartDate}
-                onGenerate={() => void handleGenerate()}
-                generating={generating}
-                generationReady={generationReady}
-                hasLearner={hasLearnerSelected}
-                hasSegments={hasProgramSegments}
-              />
+                <ProgramCalendarAssignmentPanel
+                  templates={templates}
+                  selectedTemplateId={assignmentTemplateId}
+                  selectedSlotId={assignmentSlotId}
+                  startDate={assignmentStartDate}
+                  onTemplateChange={setAssignmentTemplateId}
+                  onSlotChange={setAssignmentSlotId}
+                  onStartDateChange={setAssignmentStartDate}
+                  onGenerate={() => void handleGenerate()}
+                  generating={generating}
+                  generationReady={generationReady}
+                  hasLearner={hasLearnerSelected}
+                  hasSegments={hasProgramSegments}
+                />
 
-              <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                 <div className={LABEL}>Status</div>
                 <div className={`mt-2 ${H2}`}>Publish to the live week when ready</div>
                 <div className={`mt-2 ${error ? "text-[14px] text-rose-600" : META}`}>
@@ -583,7 +585,8 @@ export default function FamilyProgramsWorkspace() {
                     {saving ? "Saving..." : "Save program"}
                   </button>
                 </div>
-              </section>
+                </section>
+              </div>
             </div>
           </div>
         )}

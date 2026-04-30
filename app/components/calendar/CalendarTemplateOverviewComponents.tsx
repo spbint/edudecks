@@ -19,6 +19,30 @@ export const WEEKDAY_OPTIONS = [
   { value: 5, label: "Friday" },
 ];
 
+function slotAccentStyle(slot: TemplateSlot): React.CSSProperties {
+  const key = `${slot.subjectId || ""} ${slot.label || ""}`.toLowerCase();
+  if (key.includes("math")) return { background: "#2563eb" };
+  if (key.includes("literacy") || key.includes("reading") || key.includes("english")) {
+    return { background: "#db2777" };
+  }
+  if (key.includes("science")) return { background: "#059669" };
+  if (key.includes("art") || key.includes("creative")) return { background: "#7c3aed" };
+  if (key.includes("history") || key.includes("humanities")) return { background: "#d97706" };
+  return { background: "#0f766e" };
+}
+
+function formatSlotTime(slot: TemplateSlot) {
+  return [slot.startTime, slot.endTime].filter(Boolean).join(" - ") || "Open time";
+}
+
+function sortSlots(slots: TemplateSlot[]) {
+  return [...slots].sort((a, b) => {
+    const aTime = a.startTime || "99:99";
+    const bTime = b.startTime || "99:99";
+    return aTime.localeCompare(bTime);
+  });
+}
+
 export function CalendarTemplateSelector({
   templates,
   selectedTemplateId,
@@ -35,8 +59,7 @@ export function CalendarTemplateSelector({
       <div className="flex items-start justify-between gap-4">
         <div className="grid gap-1.5">
           <div className={LABEL}>My Calendar Template</div>
-          <h2 className={H2}>Choose the weekly rhythm you want to reuse</h2>
-          <p className={BODY}>My Calendar sets the repeating weekly rhythm. My Programs later place longer sequences into those slots, and My Plan turns them into the live week.</p>
+          <h2 className={H2}>Reusable weekly rhythm</h2>
         </div>
         <button
           type="button"
@@ -63,7 +86,7 @@ export function CalendarTemplateSelector({
             >
               <span className={H3}>{template.title}</span>
               <span className={META}>
-                {template.slots.length} slot{template.slots.length === 1 ? "" : "s"} • {template.academicStructureType || "Weekly"}
+                {template.slots.length} slot{template.slots.length === 1 ? "" : "s"} - {template.academicStructureType || "Weekly"}
               </span>
             </button>
           );
@@ -83,61 +106,85 @@ export function CalendarTemplateGrid({
   onSelectSlot: (slotId: string) => void;
 }) {
   const hasSlots = slots.length > 0;
+  const dayColumns = WEEKDAY_OPTIONS.map((day) => ({
+    ...day,
+    slots: sortSlots(slots.filter((slot) => slot.dayOfWeek === day.value)),
+  }));
+  const rowCount = Math.max(1, ...dayColumns.map((day) => day.slots.length));
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Weekly rhythm</div>
+        <div className={LABEL}>Timetable view</div>
         <h2 className={H2}>Template week</h2>
-        <p className={BODY}>
-          {hasSlots
-            ? "Choose a slot to refine it, or add another slot to complete the reusable weekly rhythm."
-            : "Add at least one slot first so My Programs has a calm, reusable place to land later."}
-        </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        {WEEKDAY_OPTIONS.map((day) => {
-          const daySlots = slots.filter((slot) => slot.dayOfWeek === day.value);
-          return (
-            <article key={day.value} className="grid gap-3 rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
-              <div className="grid gap-0.5">
-                <div className={H3}>{day.label}</div>
-                <div className={META}>{daySlots.length ? `${daySlots.length} slot${daySlots.length === 1 ? "" : "s"}` : "No slots yet"}</div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[760px] overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50/80">
+          <div className="grid grid-cols-[96px_repeat(5,minmax(120px,1fr))] border-b border-slate-200 bg-white">
+            <div className={`${LABEL} px-3 py-3`}>Slot</div>
+            {dayColumns.map((day) => (
+              <div key={day.value} className="border-l border-slate-200 px-3 py-3">
+                <div className={H3}>{day.label.slice(0, 3)}</div>
+                <div className={META}>
+                  {day.slots.length ? `${day.slots.length} block${day.slots.length === 1 ? "" : "s"}` : "Open"}
+                </div>
               </div>
-              <div className="grid gap-2">
-                {daySlots.length ? (
-                  daySlots.map((slot) => {
-                    const active = slot.id === selectedSlotId;
+            ))}
+          </div>
+
+          <div className="grid">
+            {Array.from({ length: rowCount }).map((_, rowIndex) => (
+              <div
+                key={rowIndex}
+                className="grid min-h-[118px] grid-cols-[96px_repeat(5,minmax(120px,1fr))] border-b border-slate-200 last:border-b-0"
+              >
+                <div className="flex items-start px-3 py-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  {rowIndex === 0 ? "First" : `Slot ${rowIndex + 1}`}
+                </div>
+                {dayColumns.map((day) => {
+                  const slot = day.slots[rowIndex] ?? null;
+
+                  if (!slot) {
                     return (
+                      <div key={day.value} className="border-l border-slate-200 p-2">
+                        <div className="flex h-full min-h-[92px] items-center justify-center rounded-[16px] border border-dashed border-slate-200 bg-white/70 text-[12px] font-semibold text-slate-400">
+                          {hasSlots ? "Open" : "Add slot"}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const active = slot.id === selectedSlotId;
+                  return (
+                    <div key={day.value} className="border-l border-slate-200 p-2">
                       <button
-                        key={slot.id}
                         type="button"
                         onClick={() => onSelectSlot(slot.id)}
-                        className={`grid gap-1 rounded-[16px] border px-3 py-3 text-left transition ${
+                        className={`grid h-full min-h-[92px] overflow-hidden rounded-[16px] border text-left transition ${
                           active
-                            ? "border-blue-200 bg-blue-50"
+                            ? "border-blue-200 bg-blue-50 shadow-[0_0_0_4px_rgba(59,130,246,0.08)]"
                             : "border-slate-200 bg-white hover:bg-slate-50"
                         }`}
                       >
-                        <div className={H3}>{slot.label}</div>
-                        <div className={META}>
-                          {[slot.subjectId, [slot.startTime, slot.endTime].filter(Boolean).join(" - ")]
-                            .filter(Boolean)
-                            .join(" • ") || "Open slot"}
+                        <div className="h-2" style={slotAccentStyle(slot)} />
+                        <div className="grid gap-1 p-3">
+                          <div className={H3}>{slot.label}</div>
+                          <div className={META}>{formatSlotTime(slot)}</div>
+                          {slot.subjectId ? (
+                            <div className="inline-flex w-fit rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                              {slot.subjectId}
+                            </div>
+                          ) : null}
                         </div>
                       </button>
-                    );
-                  })
-                ) : (
-                  <div className="rounded-[16px] border border-dashed border-slate-200 bg-white px-3 py-5 text-center text-[13px] font-medium text-slate-500">
-                    Add the first slot
-                  </div>
-                )}
+                    </div>
+                  );
+                })}
               </div>
-            </article>
-          );
-        })}
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -158,8 +205,7 @@ export function CalendarTemplateSlotEditor({
     return (
       <section className="grid gap-3 rounded-[24px] border border-dashed border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
         <div className={LABEL}>Slot editor</div>
-        <h2 className={H2}>Add the first slot to begin</h2>
-        <p className={BODY}>Start with one reusable weekly slot. Once that exists, My Programs can map a longer sequence into it and My Plan can open the live week.</p>
+        <h2 className={H2}>Add the first slot</h2>
         <button
           type="button"
           onClick={onAddNew}
@@ -176,7 +222,7 @@ export function CalendarTemplateSlotEditor({
       <div className="flex items-start justify-between gap-3">
         <div className="grid gap-1.5">
           <div className={LABEL}>Slot editor</div>
-          <h2 className={H2}>Shape this weekly slot</h2>
+          <h2 className={H2}>Shape this slot</h2>
         </div>
         <div className="flex gap-2">
           <button
@@ -258,7 +304,7 @@ export function CalendarTemplateSlotEditor({
           className={`${INPUT} min-h-[92px] py-3`}
           value={slot.notes || ""}
           onChange={(event) => onChange({ ...slot, notes: event.target.value })}
-          placeholder="A gentle note about how this slot usually works..."
+          placeholder="How this slot usually works"
         />
       </label>
     </section>
