@@ -709,49 +709,44 @@ export function ProgramCalendarAssignmentPanel({
   hasLearner: boolean;
   hasSegments: boolean;
 }) {
+  const usableTemplates = templates.filter((template) => template.slots.length > 0);
   const selectedTemplate =
-    templates.find((template) => template.id === selectedTemplateId) ?? null;
+    usableTemplates.find((template) => template.id === selectedTemplateId) ?? null;
   const slots = selectedTemplate?.slots || [];
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId) ?? null;
-  const state = !templates.length
+  const state = !usableTemplates.length
     ? "blocked_template"
-    : !selectedTemplateId
+    : !selectedTemplate
       ? "ready_choose_template"
-      : !slots.length
-        ? "blocked_slots"
-        : !selectedSlotId
-          ? "ready_choose_slot"
-          : !startDate
-            ? "ready_choose_date"
-            : !hasLearner
-              ? "blocked_learner"
-              : !hasSegments
-                ? "blocked_segments"
-            : generationReady
-              ? "ready_generate"
-              : "partial";
+      : !selectedSlot
+        ? "ready_choose_slot"
+        : !startDate
+          ? "ready_choose_date"
+          : !hasLearner
+            ? "blocked_learner"
+            : !hasSegments
+              ? "blocked_segments"
+              : generationReady
+                ? "ready_generate"
+                : "partial";
   const panelTitle =
     state === "blocked_template"
       ? "Create a calendar slot first"
-      : state === "blocked_slots"
-        ? "Create a calendar slot first"
-        : state === "ready_choose_slot"
-          ? "Choose a slot to continue"
-          : state === "ready_choose_date"
-            ? "Choose when this sequence should begin"
-            : state === "blocked_learner"
-              ? "Choose a learner to place"
-              : state === "blocked_segments"
-                ? "Add at least one segment"
-            : state === "ready_generate"
-              ? "Place into My Calendar"
-              : "Choose where this program should land";
+      : state === "ready_choose_slot"
+        ? "Choose a slot to continue"
+        : state === "ready_choose_date"
+          ? "Choose when this sequence should begin"
+          : state === "blocked_learner"
+            ? "Choose a learner to place"
+            : state === "blocked_segments"
+              ? "Add at least one segment"
+              : state === "ready_generate"
+                ? "Place into My Calendar"
+                : "Choose where this program should land";
   const placementMessage =
     state === "blocked_template"
       ? "Calendar placement is not ready yet. Choose or create a calendar slot first."
-      : state === "blocked_slots"
-        ? "Calendar placement is not ready yet. Choose or create a calendar slot first."
-        : state === "ready_choose_slot"
+      : state === "ready_choose_slot"
         ? "Calendar placement is not ready yet. Choose a calendar slot first."
         : state === "ready_choose_date"
           ? "Calendar placement is not ready yet. Choose a start date first."
@@ -763,6 +758,24 @@ export function ProgramCalendarAssignmentPanel({
               ? "Ready to create scheduled blocks in My Calendar."
               : "Calendar placement is not ready yet. Check learner, slot, segments, and start date.";
 
+  if (!usableTemplates.length) {
+    return (
+      <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+        <div className="grid gap-1.5">
+          <div className={LABEL}>My Calendar placement</div>
+          <h2 className={H2}>Create a calendar slot first</h2>
+          <p className={BODY}>Set your weekly rhythm in My Calendar, then return here to place this program.</p>
+        </div>
+        <Link
+          href="/my-calendar"
+          className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          Open My Calendar
+        </Link>
+      </section>
+    );
+  }
+
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
@@ -771,29 +784,16 @@ export function ProgramCalendarAssignmentPanel({
         <p className={BODY}>Choose where this draft program belongs in the week.</p>
       </div>
 
-      {!templates.length ? (
-        <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className={H3}>My Calendar rhythm not set yet</div>
-          <Link
-            href="/my-calendar"
-            className="mt-4 inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Open My Calendar
-          </Link>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 md:grid-cols-3">
         <label className="grid gap-2">
           <span className={LABEL}>Calendar template</span>
           <select
             className={INPUT}
-            value={selectedTemplateId}
+            value={selectedTemplate ? selectedTemplateId : ""}
             onChange={(event) => onTemplateChange(event.target.value)}
-            disabled={!templates.length}
           >
-            {!templates.length ? <option value="">Open My Calendar first</option> : null}
-            {templates.map((template) => (
+            {!selectedTemplate ? <option value="">Choose a template</option> : null}
+            {usableTemplates.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.title}
               </option>
@@ -804,11 +804,11 @@ export function ProgramCalendarAssignmentPanel({
           <span className={LABEL}>Calendar slot</span>
           <select
             className={INPUT}
-            value={selectedSlotId}
+            value={selectedSlot ? selectedSlotId : ""}
             onChange={(event) => onSlotChange(event.target.value)}
-            disabled={!slots.length}
+            disabled={!selectedTemplate}
           >
-            {!slots.length ? <option value="">Create a slot to continue</option> : null}
+            {!selectedTemplate || !selectedSlot ? <option value="">Choose a slot</option> : null}
             {slots.map((slot) => (
               <option key={slot.id} value={slot.id}>
                 {slot.label}
@@ -823,7 +823,7 @@ export function ProgramCalendarAssignmentPanel({
             type="date"
             value={startDate}
             onChange={(event) => onStartDateChange(event.target.value)}
-            disabled={!selectedTemplateId || !slots.length}
+            disabled={!selectedTemplate || !selectedSlot}
           />
         </label>
       </div>
@@ -842,21 +842,9 @@ export function ProgramCalendarAssignmentPanel({
       </div>
 
       <div className="grid gap-3">
-        {!templates.length ? (
+        {!selectedTemplate ? (
           <div className={META}>{placementMessage}</div>
-        ) : !selectedTemplateId ? (
-          <div className={META}>{placementMessage}</div>
-        ) : !slots.length ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <div className={META}>{placementMessage}</div>
-            <Link
-              href="/my-calendar"
-              className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Open My Calendar
-            </Link>
-          </div>
-        ) : !selectedSlotId ? (
+        ) : !selectedSlot ? (
           <div className={META}>{placementMessage}</div>
         ) : !startDate ? (
           <div className={META}>{placementMessage}</div>

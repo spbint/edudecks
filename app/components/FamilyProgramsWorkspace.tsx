@@ -1223,12 +1223,9 @@ function ymd(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
-function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
+function friendlyProgramsMessage(kind: "load" | "generate") {
   if (kind === "load") {
     return "My Programs could not load. You can keep shaping a draft here.";
-  }
-  if (kind === "save") {
-    return "Your program could not be saved just yet. Keep editing, then save again.";
   }
   return "Calendar placement is not ready yet. Check learner, slot, segment, and start date.";
 }
@@ -1262,20 +1259,6 @@ function detailStatus(input: {
   return { label: "Draft workspace", tone: "border-slate-200 bg-slate-50 text-slate-600" };
 }
 
-function generationGuidance(input: {
-  hasLearner: boolean;
-  hasSegments: boolean;
-  hasCalendarTemplate: boolean;
-  hasSlot: boolean;
-  hasStartDate: boolean;
-}) {
-  if (!input.hasLearner) return "Choose a learner";
-  if (!input.hasSegments) return "Add at least one segment";
-  if (!input.hasCalendarTemplate || !input.hasSlot) return "Choose a calendar slot";
-  if (!input.hasStartDate) return "Choose a start date";
-  return "Ready. Place this program into My Calendar.";
-}
-
 export default function FamilyProgramsWorkspace() {
   const router = useRouter();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
@@ -1288,7 +1271,6 @@ export default function FamilyProgramsWorkspace() {
   const [assignmentSlotId, setAssignmentSlotId] = useState("");
   const [assignmentStartDate, setAssignmentStartDate] = useState(ymd(new Date()));
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -1394,7 +1376,7 @@ export default function FamilyProgramsWorkspace() {
         setPrograms(filteredPrograms);
         setTemplates(nextTemplates);
         setSelectedProgramId(filteredPrograms[0]?.id || "");
-        setAssignmentTemplateId(nextTemplates[0]?.id || "");
+        setAssignmentTemplateId(nextTemplates.find((template) => template.slots.length > 0)?.id || "");
       } catch {
         if (!mounted) return;
         setError(friendlyProgramsMessage("load"));
@@ -1420,7 +1402,11 @@ export default function FamilyProgramsWorkspace() {
     [programs, selectedProgramId],
   );
   const selectedTemplate = useMemo(
-    () => templates.find((template) => template.id === assignmentTemplateId) ?? null,
+    () =>
+      templates.find(
+        (template) =>
+          template.id === assignmentTemplateId && template.slots.length > 0,
+      ) ?? null,
     [assignmentTemplateId, templates],
   );
   const selectedSlot = selectedTemplate?.slots.find((slot) => slot.id === assignmentSlotId) ?? null;
@@ -1435,6 +1421,7 @@ export default function FamilyProgramsWorkspace() {
       assignmentSlotId &&
       assignmentStartDate &&
       hasCalendarTemplate &&
+      hasCalendarSlot &&
       hasLearnerSelected &&
       hasProgramSegments,
   );
@@ -1449,20 +1436,14 @@ export default function FamilyProgramsWorkspace() {
     hasStartDate,
     generationReady,
   });
-  const currentGuidance = generationGuidance({
-    hasLearner: hasLearnerSelected,
-    hasSegments: hasProgramSegments,
-    hasCalendarTemplate,
-    hasSlot: hasCalendarSlot,
-    hasStartDate,
-  });
-  const saveStateLabel = saving
-    ? "Saving"
-    : workspace.storageMode === "local"
-      ? "Saved locally"
-      : status
-        ? "Saved"
-        : "Draft workspace";
+  const draftStateTitle = status.startsWith("Draft program created")
+    ? "Draft program created"
+    : "Saved locally";
+  const draftStateMessage = error
+    ? error
+    : status.startsWith("Draft program created")
+      ? "Next: Create a calendar slot in My Calendar, then place this program."
+      : status || "Local draft only. Saving to account is not available yet.";
 
   useEffect(() => {
     if (!selectedProgram) {
@@ -1481,8 +1462,25 @@ export default function FamilyProgramsWorkspace() {
   }, [selectedProgram, selectedSegmentId]);
 
   useEffect(() => {
-    const template = templates.find((item) => item.id === assignmentTemplateId) ?? null;
-    if (!template) return;
+    const template =
+      templates.find(
+        (item) => item.id === assignmentTemplateId && item.slots.length > 0,
+      ) ??
+      templates.find((item) => item.slots.length > 0) ??
+      null;
+
+    if (!template) {
+      if (assignmentTemplateId) setAssignmentTemplateId("");
+      if (assignmentSlotId) setAssignmentSlotId("");
+      return;
+    }
+
+    if (template.id !== assignmentTemplateId) {
+      setAssignmentTemplateId(template.id);
+      setAssignmentSlotId(template.slots[0]?.id || "");
+      return;
+    }
+
     if (!assignmentSlotId || !template.slots.some((slot) => slot.id === assignmentSlotId)) {
       setAssignmentSlotId(template.slots[0]?.id || "");
     }
@@ -1610,42 +1608,11 @@ export default function FamilyProgramsWorkspace() {
     setSelectedSegmentId(nextSegment.id);
   }
 
-  async function handleSaveProgram() {
-    if (!selectedProgram) return;
-    setSaving(true);
-    setStatus("");
-    setError("");
-    try {
-      const nextProgram: Program = {
-        ...selectedProgram,
-        learnerId: activeLearner?.id || selectedProgram.learnerId || null,
-        frameworkId: learningConfig.frameworkId,
-        jurisdictionId: learningConfig.jurisdictionId,
-        scheduleMapping:
-          assignmentTemplateId && assignmentSlotId && assignmentStartDate
-            ? {
-                id: selectedProgram.scheduleMapping?.id || `mapping-${Date.now()}`,
-                programId: selectedProgram.id,
-                calendarTemplateSlotId: assignmentSlotId,
-                placementMode: "sequential",
-                startDate: assignmentStartDate,
-              }
-            : null,
-      };
-      const saved = await saveFamilyProgram(nextProgram);
-      updateProgram(saved);
-      setStatus("Program saved.");
-    } catch {
-      setError(friendlyProgramsMessage("save"));
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function handleGenerate() {
     if (!selectedProgram || !activeLearner?.id || !workspace.userId) return;
     const template = templates.find((item) => item.id === assignmentTemplateId) ?? null;
-    if (!template || !assignmentSlotId || !assignmentStartDate) return;
+    const slot = template?.slots.find((item) => item.id === assignmentSlotId) ?? null;
+    if (!template || !slot || !assignmentStartDate) return;
 
     setGenerating(true);
     setStatus("");
@@ -1889,25 +1856,15 @@ export default function FamilyProgramsWorkspace() {
                   <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <div className={LABEL}>Save state</div>
-                        <div className={`mt-2 ${H2}`}>Place when ready</div>
+                        <div className={LABEL}>Draft state</div>
+                        <div className={`mt-2 ${H2}`}>{draftStateTitle}</div>
                       </div>
                       <span className={`${DETAIL_CHIP} border-slate-200 bg-slate-50 text-slate-600`}>
-                        {saveStateLabel}
+                        Saved locally
                       </span>
                     </div>
                     <div className={`mt-3 ${error ? "text-[14px] text-rose-600" : META}`}>
-                      {error || status || currentGuidance}
-                    </div>
-                    <div className="mt-4 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => void handleSaveProgram()}
-                        disabled={saving || !selectedProgram}
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {saving ? "Saving..." : "Save program"}
-                      </button>
+                      {draftStateMessage}
                     </div>
                   </section>
                 </div>
