@@ -90,9 +90,9 @@ export function ProgramGenerationSuccessBanner({
     <section className="grid gap-4 rounded-[24px] border border-emerald-200 bg-emerald-50/90 p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
         <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-          Generation complete
+          Placement complete
         </div>
-        <h2 className={H2}>{count} block{count === 1 ? "" : "s"} generated into My Calendar</h2>
+        <h2 className={H2}>{count} block{count === 1 ? "" : "s"} placed into My Calendar</h2>
         <p className={META}>Open My Calendar to adjust the live week.</p>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -416,6 +416,11 @@ export function ProgramGuidedSetupPanel({
     selectedProgramId === "maths"
       ? `Standard maths pathway \u00b7 ${selectedProgram?.yearLabel || "Year X"}`
       : `${selectedProgram?.title || "Subject"} pathway`;
+  const createDraftHelper = !programPathTerms.length
+    ? "Suggested pathway coming soon for this subject."
+    : canCreateDraft
+      ? "Creates a local draft only. Next: place this program into My Calendar."
+      : "Select at least one week.";
 
   return (
     <section className="grid gap-5 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
@@ -504,7 +509,7 @@ export function ProgramGuidedSetupPanel({
           Cancel
         </button>
         <span className={META}>
-          {canCreateDraft ? "Creates a local draft only. Next: place this program into My Calendar." : "Select at least one week."}
+          {createDraftHelper}
         </span>
       </div>
     </section>
@@ -727,43 +732,43 @@ export function ProgramCalendarAssignmentPanel({
               : "partial";
   const panelTitle =
     state === "blocked_template"
-      ? "Choose a calendar slot"
+      ? "Create a calendar slot first"
       : state === "blocked_slots"
-        ? "Create a slot to continue"
+        ? "Create a calendar slot first"
         : state === "ready_choose_slot"
           ? "Choose a slot to continue"
           : state === "ready_choose_date"
             ? "Choose when this sequence should begin"
             : state === "blocked_learner"
-              ? "Choose a learner to generate"
+              ? "Choose a learner to place"
               : state === "blocked_segments"
                 ? "Add at least one segment"
             : state === "ready_generate"
-              ? "Generate into My Calendar"
+              ? "Place into My Calendar"
               : "Choose where this program should land";
-  const panelNote =
+  const placementMessage =
     state === "blocked_template"
-      ? "Choose a calendar slot"
+      ? "Calendar placement is not ready yet. Choose or create a calendar slot first."
       : state === "blocked_slots"
-        ? "Choose a calendar slot"
+        ? "Calendar placement is not ready yet. Choose or create a calendar slot first."
         : state === "ready_choose_slot"
-        ? "Choose a calendar slot"
+        ? "Calendar placement is not ready yet. Choose a calendar slot first."
         : state === "ready_choose_date"
-          ? "Choose a start date"
+          ? "Calendar placement is not ready yet. Choose a start date first."
           : state === "blocked_learner"
-            ? "Choose a learner"
+            ? "Calendar placement is not ready yet. Choose a learner first."
             : state === "blocked_segments"
-              ? "Add at least one segment"
+              ? "Calendar placement is not ready yet. Add at least one segment first."
             : state === "ready_generate"
-              ? "Generate blocks into My Calendar."
-              : "Choose a calendar slot";
+              ? "Ready to create scheduled blocks in My Calendar."
+              : "Calendar placement is not ready yet. Check learner, slot, segments, and start date.";
 
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
-        <div className={LABEL}>Calendar slot</div>
+        <div className={LABEL}>My Calendar placement</div>
         <h2 className={H2}>{panelTitle}</h2>
-        <p className={BODY}>Choose where this program belongs in the week.</p>
+        <p className={BODY}>Choose where this draft program belongs in the week.</p>
       </div>
 
       {!templates.length ? (
@@ -838,12 +843,12 @@ export function ProgramCalendarAssignmentPanel({
 
       <div className="grid gap-3">
         {!templates.length ? (
-          <div className={META}>Choose a calendar slot</div>
+          <div className={META}>{placementMessage}</div>
         ) : !selectedTemplateId ? (
-          <div className={META}>Choose a calendar slot</div>
+          <div className={META}>{placementMessage}</div>
         ) : !slots.length ? (
           <div className="flex flex-wrap items-center gap-3">
-            <div className={META}>Choose a calendar slot</div>
+            <div className={META}>{placementMessage}</div>
             <Link
               href="/my-calendar"
               className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
@@ -852,15 +857,15 @@ export function ProgramCalendarAssignmentPanel({
             </Link>
           </div>
         ) : !selectedSlotId ? (
-          <div className={META}>Choose a calendar slot</div>
+          <div className={META}>{placementMessage}</div>
         ) : !startDate ? (
-          <div className={META}>Choose a start date</div>
+          <div className={META}>{placementMessage}</div>
         ) : !hasLearner ? (
-          <div className={META}>Choose a learner</div>
+          <div className={META}>{placementMessage}</div>
         ) : !hasSegments ? (
-          <div className={META}>Add at least one segment</div>
+          <div className={META}>{placementMessage}</div>
         ) : (
-          <div className={META}>{panelNote}</div>
+          <div className={META}>{placementMessage}</div>
         )}
         <button
           type="button"
@@ -868,7 +873,7 @@ export function ProgramCalendarAssignmentPanel({
           disabled={generating || !generationReady}
           className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {generating ? "Generating..." : "Generate into My Calendar"}
+          {generating ? "Placing..." : "Place into My Calendar"}
         </button>
       </div>
     </section>

@@ -1230,7 +1230,7 @@ function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "save") {
     return "Your program could not be saved just yet. Keep editing, then save again.";
   }
-  return "Generation is not ready yet. Check learner, slot, segment, and start date.";
+  return "Calendar placement is not ready yet. Check learner, slot, segment, and start date.";
 }
 
 const DETAIL_CHIP =
@@ -1273,7 +1273,7 @@ function generationGuidance(input: {
   if (!input.hasSegments) return "Add at least one segment";
   if (!input.hasCalendarTemplate || !input.hasSlot) return "Choose a calendar slot";
   if (!input.hasStartDate) return "Choose a start date";
-  return "Ready. Generate this program into My Calendar.";
+  return "Ready. Place this program into My Calendar.";
 }
 
 export default function FamilyProgramsWorkspace() {
@@ -1569,7 +1569,7 @@ export default function FamilyProgramsWorkspace() {
     setSelectedProgramId(next.id);
     setSelectedSegmentId(null);
     setShowNewProgramGuide(false);
-    setStatus("Next: place this program into My Calendar.");
+    setStatus("Draft program created. Next: place this program into My Calendar.");
     setError("");
   }
 
@@ -1678,7 +1678,7 @@ export default function FamilyProgramsWorkspace() {
       });
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
-      setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} generated into My Calendar.`);
+      setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} placed into My Calendar.`);
     } catch {
       setError(friendlyProgramsMessage("generate"));
     } finally {
@@ -1714,7 +1714,7 @@ export default function FamilyProgramsWorkspace() {
         {!workspaceLoading && !activeLearner ? (
           <ProgramsGuidedSetupBanner
             title="Choose a learner"
-            note="Generation unlocks after a learner is selected."
+            note="Calendar placement unlocks after a learner is selected."
           />
         ) : null}
 
