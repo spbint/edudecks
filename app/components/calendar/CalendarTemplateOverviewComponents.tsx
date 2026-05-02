@@ -30,12 +30,19 @@ type DaypartId = (typeof DAYPARTS)[number]["id"];
 function slotAccentStyle(slot: TemplateSlot): React.CSSProperties {
   const key = `${slot.subjectId || ""} ${slot.label || ""}`.toLowerCase();
   if (key.includes("math")) return { background: "#2563eb" };
+  if (key.includes("numeracy")) return { background: "#0ea5e9" };
   if (key.includes("literacy") || key.includes("reading") || key.includes("english")) {
     return { background: "#db2777" };
   }
+  if (key.includes("writing") || key.includes("spelling") || key.includes("handwriting")) {
+    return { background: "#9333ea" };
+  }
   if (key.includes("science")) return { background: "#059669" };
   if (key.includes("art") || key.includes("creative")) return { background: "#7c3aed" };
-  if (key.includes("history") || key.includes("humanities")) return { background: "#d97706" };
+  if (key.includes("history") || key.includes("hass") || key.includes("humanities")) return { background: "#d97706" };
+  if (key.includes("life") || key.includes("community")) return { background: "#0f766e" };
+  if (key.includes("nature")) return { background: "#16a34a" };
+  if (key.includes("sport") || key.includes("movement")) return { background: "#ea580c" };
   return { background: "#0f766e" };
 }
 
@@ -258,6 +265,54 @@ export function CalendarTemplateSlotEditor({
   onDelete: (slotId: string) => void;
   onAddNew: () => void;
 }) {
+  const [paletteMessage, setPaletteMessage] = React.useState("");
+  const [showCustomBlock, setShowCustomBlock] = React.useState(false);
+  const [customTitle, setCustomTitle] = React.useState("");
+  const [customCategory, setCustomCategory] = React.useState("");
+
+  function applyPaletteBlock(block: LearningBlockPaletteItem) {
+    if (block.id === "custom") {
+      setShowCustomBlock((current) => !current);
+      setPaletteMessage("");
+      return;
+    }
+
+    if (!slot) {
+      setPaletteMessage("Choose a day and time band first.");
+      return;
+    }
+
+    onChange({
+      ...slot,
+      label: block.label,
+      subjectId: block.category,
+      notes: slot.notes?.trim() ? slot.notes : block.notes,
+    });
+    setPaletteMessage(`${block.label} applied to the selected slot.`);
+  }
+
+  function applyCustomBlock() {
+    const label = customTitle.trim();
+    const category = customCategory.trim() || "Custom";
+
+    if (!label) {
+      setPaletteMessage("Add a custom block title first.");
+      return;
+    }
+
+    if (!slot) {
+      setPaletteMessage("Choose a day and time band first.");
+      return;
+    }
+
+    onChange({
+      ...slot,
+      label,
+      subjectId: category,
+    });
+    setPaletteMessage(`${label} applied to the selected slot.`);
+  }
+
   if (!slot) {
     return (
       <section className="grid gap-3 rounded-[24px] border border-dashed border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.03)]">
@@ -270,6 +325,16 @@ export function CalendarTemplateSlotEditor({
         >
           Add slot
         </button>
+        <LearningBlockPalette
+          message={paletteMessage}
+          showCustomBlock={showCustomBlock}
+          customTitle={customTitle}
+          customCategory={customCategory}
+          onSelectBlock={applyPaletteBlock}
+          onCustomTitleChange={setCustomTitle}
+          onCustomCategoryChange={setCustomCategory}
+          onApplyCustom={applyCustomBlock}
+        />
       </section>
     );
   }
@@ -364,6 +429,157 @@ export function CalendarTemplateSlotEditor({
           placeholder="How this slot usually works"
         />
       </label>
+
+      <LearningBlockPalette
+        message={paletteMessage}
+        showCustomBlock={showCustomBlock}
+        customTitle={customTitle}
+        customCategory={customCategory}
+        onSelectBlock={applyPaletteBlock}
+        onCustomTitleChange={setCustomTitle}
+        onCustomCategoryChange={setCustomCategory}
+        onApplyCustom={applyCustomBlock}
+      />
+    </section>
+  );
+}
+
+type LearningBlockPaletteItem = {
+  id: string;
+  label: string;
+  category: string;
+  notes: string;
+  accentClass: string;
+};
+
+type LearningBlockPaletteGroup = {
+  title: string;
+  items: LearningBlockPaletteItem[];
+};
+
+const LEARNING_BLOCK_PALETTE: LearningBlockPaletteGroup[] = [
+  {
+    title: "Core academics",
+    items: [
+      { id: "maths", label: "Maths", category: "Maths", notes: "Core maths learning block.", accentClass: "bg-blue-600" },
+      { id: "numeracy", label: "Numeracy", category: "Numeracy", notes: "Number practice and applied maths.", accentClass: "bg-sky-500" },
+      { id: "reading", label: "Reading", category: "Literacy", notes: "Reading lesson or shared reading block.", accentClass: "bg-pink-600" },
+      { id: "writing", label: "Writing", category: "Literacy", notes: "Writing, composition, or journaling block.", accentClass: "bg-violet-600" },
+      { id: "spelling", label: "Spelling", category: "Literacy", notes: "Spelling and word study practice.", accentClass: "bg-purple-600" },
+      { id: "science", label: "Science", category: "Science", notes: "Science inquiry or investigation block.", accentClass: "bg-emerald-600" },
+      { id: "hass-history", label: "HASS / History", category: "HASS", notes: "History, geography, civics, or inquiry block.", accentClass: "bg-amber-600" },
+    ],
+  },
+  {
+    title: "Skill work",
+    items: [
+      { id: "independent-reading", label: "Independent reading", category: "Reading", notes: "Independent reading and response time.", accentClass: "bg-pink-500" },
+      { id: "handwriting", label: "Handwriting", category: "Literacy", notes: "Handwriting, copywork, or fine-motor writing practice.", accentClass: "bg-violet-500" },
+      { id: "practice-review", label: "Practice / review", category: "Practice", notes: "Short practice, revision, or consolidation block.", accentClass: "bg-slate-600" },
+      { id: "online-learning", label: "Online learning", category: "Online learning", notes: "Online lesson, app practice, or digital learning block.", accentClass: "bg-cyan-600" },
+    ],
+  },
+  {
+    title: "Real-life learning",
+    items: [
+      { id: "life-skills", label: "Life skills", category: "Life skills", notes: "Cooking, chores, money, planning, or practical life learning.", accentClass: "bg-teal-700" },
+      { id: "nature-study", label: "Nature study", category: "Nature study", notes: "Outdoor observation, nature journaling, or field learning.", accentClass: "bg-green-600" },
+      { id: "project-work", label: "Project work", category: "Project work", notes: "Longer project, build, research, or making block.", accentClass: "bg-indigo-600" },
+      { id: "art-music", label: "Art / music", category: "Creative arts", notes: "Art, music, performance, or creative practice.", accentClass: "bg-fuchsia-600" },
+      { id: "sport-movement", label: "Sport / movement", category: "Movement", notes: "Movement, sport, health, or active learning.", accentClass: "bg-orange-600" },
+      { id: "community", label: "Community", category: "Community", notes: "Community visit, service, library, group, or local learning.", accentClass: "bg-teal-600" },
+    ],
+  },
+  {
+    title: "Custom",
+    items: [
+      { id: "custom", label: "Custom block", category: "Custom", notes: "", accentClass: "bg-slate-900" },
+    ],
+  },
+];
+
+function LearningBlockPalette({
+  message,
+  showCustomBlock,
+  customTitle,
+  customCategory,
+  onSelectBlock,
+  onCustomTitleChange,
+  onCustomCategoryChange,
+  onApplyCustom,
+}: {
+  message: string;
+  showCustomBlock: boolean;
+  customTitle: string;
+  customCategory: string;
+  onSelectBlock: (block: LearningBlockPaletteItem) => void;
+  onCustomTitleChange: (value: string) => void;
+  onCustomCategoryChange: (value: string) => void;
+  onApplyCustom: () => void;
+}) {
+  return (
+    <section className="grid gap-4 rounded-[20px] border border-slate-200 bg-slate-50/70 p-4">
+      <div className="grid gap-1.5">
+        <h3 className={H3}>Learning block palette</h3>
+        <p className={META}>Choose a block type, then place it into the weekly rhythm.</p>
+      </div>
+
+      <div className="grid gap-4">
+        {LEARNING_BLOCK_PALETTE.map((group) => (
+          <div key={group.title} className="grid gap-2">
+            <div className={LABEL}>{group.title}</div>
+            <div className="flex flex-wrap gap-2">
+              {group.items.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectBlock(item)}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[13px] font-semibold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${item.accentClass}`} />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {showCustomBlock ? (
+        <div className="grid gap-3 rounded-[16px] border border-slate-200 bg-white p-3">
+          <label className="grid gap-2">
+            <span className={LABEL}>Title</span>
+            <input
+              className={INPUT}
+              value={customTitle}
+              onChange={(event) => onCustomTitleChange(event.target.value)}
+              placeholder="Custom learning block"
+            />
+          </label>
+          <label className="grid gap-2">
+            <span className={LABEL}>Category</span>
+            <input
+              className={INPUT}
+              value={customCategory}
+              onChange={(event) => onCustomCategoryChange(event.target.value)}
+              placeholder="Custom"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={onApplyCustom}
+            className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+          >
+            Apply custom block
+          </button>
+        </div>
+      ) : null}
+
+      {message ? (
+        <div className="rounded-[14px] border border-blue-100 bg-blue-50 px-3 py-2 text-[13px] font-semibold text-blue-800">
+          {message}
+        </div>
+      ) : null}
     </section>
   );
 }
