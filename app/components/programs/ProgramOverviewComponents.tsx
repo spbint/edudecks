@@ -695,6 +695,7 @@ export function ProgramCalendarAssignmentPanel({
   generationReady,
   hasLearner,
   hasSegments,
+  placementUnavailableMessage,
 }: {
   templates: CalendarTemplate[];
   selectedTemplateId: string;
@@ -708,6 +709,7 @@ export function ProgramCalendarAssignmentPanel({
   generationReady: boolean;
   hasLearner: boolean;
   hasSegments: boolean;
+  placementUnavailableMessage?: string;
 }) {
   const usableTemplates = templates.filter((template) => template.slots.length > 0);
   const selectedTemplate =
@@ -769,6 +771,24 @@ export function ProgramCalendarAssignmentPanel({
         <Link
           href="/my-calendar"
           className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800"
+        >
+          Open My Calendar
+        </Link>
+      </section>
+    );
+  }
+
+  if (placementUnavailableMessage) {
+    return (
+      <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+        <div className="grid gap-1.5">
+          <div className={LABEL}>My Calendar placement</div>
+          <h2 className={H2}>Saved locally only</h2>
+          <p className={BODY}>{placementUnavailableMessage}</p>
+        </div>
+        <Link
+          href="/my-calendar"
+          className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[14px] font-semibold text-slate-700 transition hover:bg-slate-100"
         >
           Open My Calendar
         </Link>

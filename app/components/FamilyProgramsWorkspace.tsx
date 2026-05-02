@@ -1415,6 +1415,12 @@ export default function FamilyProgramsWorkspace() {
   const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const hasCalendarSlot = Boolean(selectedSlot);
   const hasStartDate = Boolean(assignmentStartDate);
+  const hasDatabasePlacementContext = Boolean(
+    workspace.storageMode === "database" &&
+      workspace.userId &&
+      activeLearner?.id &&
+      !activeLearner.id.startsWith("local-"),
+  );
   const generationReady = Boolean(
     selectedProgram &&
       assignmentTemplateId &&
@@ -1422,6 +1428,7 @@ export default function FamilyProgramsWorkspace() {
       assignmentStartDate &&
       hasCalendarTemplate &&
       hasCalendarSlot &&
+      hasDatabasePlacementContext &&
       hasLearnerSelected &&
       hasProgramSegments,
   );
@@ -1444,6 +1451,10 @@ export default function FamilyProgramsWorkspace() {
     : status.startsWith("Draft program created")
       ? "Next: Create a calendar slot in My Calendar, then place this program."
       : status || "Local draft only. Saving to account is not available yet.";
+  const placementUnavailableMessage =
+    workspace.storageMode !== "database" || !workspace.userId || activeLearner?.id?.startsWith("local-")
+      ? "This program is saved locally only. Account-backed placement into My Calendar is not available for this workspace yet."
+      : "";
 
   useEffect(() => {
     if (!selectedProgram) {
@@ -1609,7 +1620,7 @@ export default function FamilyProgramsWorkspace() {
   }
 
   async function handleGenerate() {
-    if (!selectedProgram || !activeLearner?.id || !workspace.userId) return;
+    if (!selectedProgram || !activeLearner?.id || !workspace.userId || !hasDatabasePlacementContext) return;
     const template = templates.find((item) => item.id === assignmentTemplateId) ?? null;
     const slot = template?.slots.find((item) => item.id === assignmentSlotId) ?? null;
     if (!template || !slot || !assignmentStartDate) return;
@@ -1851,6 +1862,7 @@ export default function FamilyProgramsWorkspace() {
                     generationReady={generationReady}
                     hasLearner={hasLearnerSelected}
                     hasSegments={hasProgramSegments}
+                    placementUnavailableMessage={placementUnavailableMessage}
                   />
 
                   <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">

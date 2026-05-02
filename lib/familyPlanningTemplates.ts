@@ -118,6 +118,23 @@ function makeId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function isDatabaseBackedId(value: unknown) {
+  const id = safe(value);
+  return !!id && id !== "local" && !id.startsWith("local-");
+}
+
+async function hasAuthenticatedSupabaseSession() {
+  if (!hasSupabaseEnv) return false;
+
+  const response = await supabase.auth.getSession().catch(() => null);
+  const session = response?.data?.session;
+  return Boolean(session?.access_token && session.user?.id);
+}
+
+async function canWritePlanningRows(familyId: string) {
+  return isDatabaseBackedId(familyId) && (await hasAuthenticatedSupabaseSession());
+}
+
 function normalizeOutcomeIds(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.map((item) => safe(item)).filter(Boolean);
@@ -270,7 +287,7 @@ export async function loadFamilyCalendarTemplates(input: {
   familyId: string;
 }): Promise<CalendarTemplate[]> {
   const local = templatesFromLocal(input.familyId).map(normalizeTemplate);
-  if (!hasSupabaseEnv || !input.familyId) return local;
+  if (!hasSupabaseEnv || !isDatabaseBackedId(input.familyId) || !(await hasAuthenticatedSupabaseSession())) return local;
 
   const response = await withTimeout(
     supabase
@@ -306,7 +323,7 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
   const normalized = normalizeTemplate({ ...template, updatedAt: nowIso() });
   persistTemplateLocal(normalized);
 
-  if (!hasSupabaseEnv || !normalized.familyId) return normalized;
+  if (!(await canWritePlanningRows(normalized.familyId))) return normalized;
 
   const response = await withTimeout(
     supabase.from("family_calendar_templates").upsert({
@@ -330,7 +347,7 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
 
 export async function loadFamilyPrograms(input: { familyId: string }): Promise<Program[]> {
   const local = programsFromLocal(input.familyId).map(normalizeProgram);
-  if (!hasSupabaseEnv || !input.familyId) return local;
+  if (!hasSupabaseEnv || !isDatabaseBackedId(input.familyId) || !(await hasAuthenticatedSupabaseSession())) return local;
 
   const response = await withTimeout(
     supabase
@@ -379,7 +396,7 @@ export async function saveFamilyProgram(program: Program): Promise<Program> {
   const normalized = normalizeProgram({ ...program, updatedAt: nowIso() });
   persistProgramLocal(normalized);
 
-  if (!hasSupabaseEnv || !normalized.familyId) return normalized;
+  if (!(await canWritePlanningRows(normalized.familyId))) return normalized;
 
   const response = await withTimeout(
     supabase.from("family_programs").upsert({
