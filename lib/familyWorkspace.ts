@@ -230,6 +230,12 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
 
   try {
     profile = await withTimeout(loadFamilyProfile(), "load family profile");
+    if (!isDatabaseFamilyProfileId(profile.id)) {
+      profile = await withTimeout(
+        upsertFamilyProfile(profile),
+        "create family profile",
+      );
+    }
   } catch (error) {
     console.error("loadFamilyProfile fallback", error);
     syncIssue = "Family profile is using the local fallback.";
@@ -265,15 +271,13 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     persistSettingsToLocalStorage(mergedProfile);
     persistLearnersToLocalCache(learners, { notify: false });
 
+    const databaseProfileReady = isDatabaseFamilyProfileId(mergedProfile.id);
+
     return {
       profile: mergedProfile,
       learners,
       userId,
-      storageMode:
-        learners.some((learner) => learner.id.startsWith("local-")) ||
-        dbLearners.length === 0
-          ? "local"
-          : "database",
+      storageMode: databaseProfileReady ? "database" : "local",
       syncIssue: syncIssue || undefined,
     };
   } catch (error) {

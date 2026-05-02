@@ -1223,11 +1223,25 @@ function ymd(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
-function friendlyProgramsMessage(kind: "load" | "generate") {
+function friendlyProgramsMessage(kind: "load" | "save" | "generate") {
   if (kind === "load") {
     return "My Programs could not load. You can keep shaping a draft here.";
   }
+  if (kind === "save") {
+    return "My Programs could not save. Check your account connection and try again.";
+  }
   return "Calendar placement is not ready yet. Check learner, slot, segment, and start date.";
+}
+
+function isDatabaseProfileId(value: unknown) {
+  const id = clean(value);
+  return !!id && id !== "local" && !id.startsWith("local-");
+}
+
+function describeSaveError(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+  const row = error as { message?: unknown; details?: unknown; hint?: unknown };
+  return clean(row.message) || clean(row.details) || clean(row.hint) || fallback;
 }
 
 const DETAIL_CHIP =
@@ -1272,6 +1286,7 @@ export default function FamilyProgramsWorkspace() {
   const [assignmentStartDate, setAssignmentStartDate] = useState(ymd(new Date()));
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [savingProgram, setSavingProgram] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [lastGeneratedCount, setLastGeneratedCount] = useState(0);
@@ -1415,11 +1430,14 @@ export default function FamilyProgramsWorkspace() {
   const hasProgramSegments = Boolean(selectedProgram?.segments.length);
   const hasCalendarSlot = Boolean(selectedSlot);
   const hasStartDate = Boolean(assignmentStartDate);
-  const hasDatabasePlacementContext = Boolean(
+  const hasDatabaseWorkspace = Boolean(
     workspace.storageMode === "database" &&
       workspace.userId &&
-      activeLearner?.id &&
-      !activeLearner.id.startsWith("local-"),
+      isDatabaseProfileId(workspace.profile.id),
+  );
+  const hasDatabasePlacementContext = Boolean(
+    hasDatabaseWorkspace &&
+      activeLearner?.id,
   );
   const generationReady = Boolean(
     selectedProgram &&
@@ -1443,17 +1461,24 @@ export default function FamilyProgramsWorkspace() {
     hasStartDate,
     generationReady,
   });
-  const draftStateTitle = status.startsWith("Draft program created")
+  const draftStateTitle = status.includes("saved") || status.includes("Saved")
+    ? "Program saved"
+    : status.startsWith("Draft program created")
     ? "Draft program created"
-    : "Saved locally";
+    : "Draft state";
   const draftStateMessage = error
     ? error
-    : status.startsWith("Draft program created")
-      ? "Next: Create a calendar slot in My Calendar, then place this program."
-      : status || "Local draft only. Saving to account is not available yet.";
+    : status || (hasDatabaseWorkspace
+      ? "Save this draft to your account before placing it into My Calendar."
+      : "Sign in and connect a family profile before saving My Programs.");
+  const saveProgramDisabledReason = !hasDatabaseWorkspace
+    ? "Sign in and connect a family profile before saving My Programs."
+    : !selectedProgram
+      ? "Create or select a program before saving."
+      : "";
   const placementUnavailableMessage =
-    workspace.storageMode !== "database" || !workspace.userId || activeLearner?.id?.startsWith("local-")
-      ? "This program is saved locally only. Account-backed placement into My Calendar is not available for this workspace yet."
+    !hasDatabaseWorkspace
+      ? "This program needs a synced family profile before it can be placed into My Calendar."
       : "";
 
   useEffect(() => {
@@ -1559,12 +1584,12 @@ export default function FamilyProgramsWorkspace() {
     setSelectedProgramPathTileIds(nextTileIds);
   }
 
-  function handleCreateProgram() {
+  async function handleCreateProgram() {
     if (!canCreateProgramDraft) {
       return;
     }
 
-    const next = buildDraftProgram({
+    const nextProgram = buildDraftProgram({
       familyId: workspace.profile.id,
       learnerId: activeLearner?.id || null,
       frameworkId: learningConfig.frameworkId,
@@ -1574,12 +1599,28 @@ export default function FamilyProgramsWorkspace() {
       subjectTitle: selectedStandardProgram.subjectTitle,
       pathTiles: selectedProgramPathTiles,
     });
-    setPrograms((current) => [next, ...current]);
-    setSelectedProgramId(next.id);
+    setPrograms((current) => [nextProgram, ...current]);
+    setSelectedProgramId(nextProgram.id);
     setSelectedSegmentId(null);
     setShowNewProgramGuide(false);
-    setStatus("Draft program created. Next: place this program into My Calendar.");
     setError("");
+
+    if (!hasDatabaseWorkspace) {
+      setStatus("");
+      setError("Draft program created, but it needs a synced family profile before it can save to your account.");
+      return;
+    }
+
+    try {
+      setSavingProgram(true);
+      const saved = await saveFamilyProgram(nextProgram);
+      updateProgram(saved);
+      setStatus("Draft program saved. Next: place this program into My Calendar.");
+    } catch (saveError) {
+      setError(describeSaveError(saveError, friendlyProgramsMessage("save")));
+    } finally {
+      setSavingProgram(false);
+    }
   }
 
   function updateProgram(nextProgram: Program) {
@@ -1596,6 +1637,30 @@ export default function FamilyProgramsWorkspace() {
         segment.id === nextSegment.id ? nextSegment : segment,
       ),
     });
+  }
+
+  async function handleSaveProgram() {
+    if (!selectedProgram || !hasDatabaseWorkspace) return;
+
+    setSavingProgram(true);
+    setStatus("");
+    setError("");
+
+    try {
+      const saved = await saveFamilyProgram({
+        ...selectedProgram,
+        learnerId: activeLearner?.id || selectedProgram.learnerId || null,
+        frameworkId: learningConfig.frameworkId,
+        jurisdictionId: learningConfig.jurisdictionId,
+      });
+      updateProgram(saved);
+      setSelectedProgramId(saved.id);
+      setStatus("Program saved.");
+    } catch (saveError) {
+      setError(describeSaveError(saveError, friendlyProgramsMessage("save")));
+    } finally {
+      setSavingProgram(false);
+    }
   }
 
   function addSegment() {
@@ -1657,8 +1722,8 @@ export default function FamilyProgramsWorkspace() {
       setLastGeneratedCount(generated.length);
       setShowGenerationSuccess(true);
       setStatus(`${generated.length} block${generated.length === 1 ? "" : "s"} placed into My Calendar.`);
-    } catch {
-      setError(friendlyProgramsMessage("generate"));
+    } catch (generateError) {
+      setError(describeSaveError(generateError, friendlyProgramsMessage("generate")));
     } finally {
       setGenerating(false);
     }
@@ -1872,11 +1937,25 @@ export default function FamilyProgramsWorkspace() {
                         <div className={`mt-2 ${H2}`}>{draftStateTitle}</div>
                       </div>
                       <span className={`${DETAIL_CHIP} border-slate-200 bg-slate-50 text-slate-600`}>
-                        Saved locally
+                        {hasDatabaseWorkspace ? "Synced workspace" : "Needs synced workspace"}
                       </span>
                     </div>
                     <div className={`mt-3 ${error ? "text-[14px] text-rose-600" : META}`}>
                       {draftStateMessage}
+                    </div>
+                    <div className="mt-4 grid gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveProgram()}
+                        disabled={savingProgram || !selectedProgram || !hasDatabaseWorkspace}
+                        title={saveProgramDisabledReason || undefined}
+                        className="inline-flex w-fit items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      >
+                        {savingProgram ? "Saving..." : "Save program"}
+                      </button>
+                      {saveProgramDisabledReason ? (
+                        <div className={META}>{saveProgramDisabledReason}</div>
+                      ) : null}
                     </div>
                   </section>
                 </div>

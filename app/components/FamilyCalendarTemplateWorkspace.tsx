@@ -58,7 +58,22 @@ function friendlyCalendarMessage(kind: "load" | "save") {
   if (kind === "load") {
     return "My Calendar could not load. You can still shape a local template.";
   }
-  return "My Calendar could not save just yet. Keep editing here, then save again.";
+  return "My Calendar could not save. Check your account connection and try again.";
+}
+
+function clean(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function isDatabaseProfileId(value: unknown) {
+  const id = clean(value);
+  return !!id && id !== "local" && !id.startsWith("local-");
+}
+
+function describeSaveError(error: unknown, fallback: string) {
+  if (!error || typeof error !== "object") return fallback;
+  const row = error as { message?: unknown; details?: unknown; hint?: unknown };
+  return clean(row.message) || clean(row.details) || clean(row.hint) || fallback;
 }
 
 export default function FamilyCalendarTemplateWorkspace() {
@@ -218,15 +233,23 @@ export default function FamilyCalendarTemplateWorkspace() {
       const saved = await saveFamilyCalendarTemplate(selectedTemplate);
       replaceTemplate(saved);
       setSelectedTemplateId(saved.id);
-      setStatus(workspace.storageMode === "local" ? "Saved locally." : "Calendar saved.");
-    } catch {
-      setError(friendlyCalendarMessage("save"));
+      setStatus("Calendar saved.");
+    } catch (saveError) {
+      setError(describeSaveError(saveError, friendlyCalendarMessage("save")));
     } finally {
       setSaving(false);
     }
   }
 
-  const workspaceStateLabel = workspace.storageMode === "local" ? "Saved locally" : "Synced workspace";
+  const canSaveToAccount = Boolean(
+    workspace.storageMode === "database" &&
+      workspace.userId &&
+      isDatabaseProfileId(workspace.profile.id),
+  );
+  const saveDisabledReason = canSaveToAccount
+    ? ""
+    : "Sign in and connect a family profile before saving My Calendar.";
+  const workspaceStateLabel = canSaveToAccount ? "Synced workspace" : "Needs synced workspace";
 
   return (
     <FamilyTopNavShell subtitle="My Calendar" hideHero>
@@ -299,12 +322,18 @@ export default function FamilyCalendarTemplateWorkspace() {
             <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-600">
               {workspaceStateLabel}
             </span>
+            {!canSaveToAccount ? (
+              <span className="text-[12px] font-semibold text-slate-500">
+                {saveDisabledReason}
+              </span>
+            ) : null}
           </div>
 
           <button
             type="button"
             onClick={() => void handleSaveTemplate()}
-            disabled={saving || !selectedTemplate}
+            disabled={saving || !selectedTemplate || !canSaveToAccount}
+            title={!canSaveToAccount ? saveDisabledReason : undefined}
             className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {saving ? "Saving..." : "Save calendar"}

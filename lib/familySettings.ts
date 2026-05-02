@@ -101,8 +101,16 @@ type FamilySettingsSource = Partial<
 const FAMILY_PROFILE_SELECT_COLUMNS = [
   "id",
   "user_id",
+  "owner_user_id",
   "family_display_name",
   "preferred_market",
+  "country",
+  "curriculum_framework_id",
+  "curriculum_jurisdiction_id",
+  "reporting_mode",
+  "academic_structure_type",
+  "cycle_count",
+  "weeks_per_cycle",
   "experience_mode",
   "default_child_id",
   "default_child_landing",
@@ -369,8 +377,21 @@ function toFamilyProfilePayload(settings: FamilySettings, userId: string, existi
   return {
     ...(safeString(existingId) ? { id: safeString(existingId) } : {}),
     user_id: userId,
+    owner_user_id: userId,
     family_display_name: safeString(settings.family_display_name) || DEFAULT_FAMILY_SETTINGS.family_display_name,
     preferred_market: asMarketKey(settings.preferred_market),
+    country: asFamilyCountry(settings.country) || DEFAULT_FAMILY_SETTINGS.country,
+    curriculum_framework_id:
+      safeString(settings.curriculum_framework_id) ||
+      defaultFrameworkIdForCountry(settings.country) ||
+      DEFAULT_FAMILY_SETTINGS.curriculum_framework_id,
+    curriculum_jurisdiction_id:
+      safeString(settings.curriculum_jurisdiction_id) ||
+      DEFAULT_FAMILY_SETTINGS.curriculum_jurisdiction_id,
+    reporting_mode: asReportingMode(settings.reporting_mode),
+    academic_structure_type: asAcademicStructureType(settings.academic_structure_type),
+    cycle_count: asNullableNumber(settings.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
+    weeks_per_cycle: asNullableNumber(settings.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
     experience_mode: asExperienceMode(settings.experience_mode),
     default_child_id: safeString(settings.default_child_id) || null,
     default_child_landing: asDefaultChildLanding(settings.default_child_landing),
@@ -661,87 +682,84 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
 
   const userId = await getCurrentUserId();
   if (!userId) throw new Error("A signed-in Supabase session is required to save family settings.");
+  const authenticatedUserId = userId;
 
-  const existingProfile = await selectFamilyProfileRow(userId).catch(() => null);
-  const payload = toFamilyProfilePayload(settings, userId, existingProfile?.id);
+  const existingProfile = await selectFamilyProfileRow(authenticatedUserId).catch(() => null);
+  const payload = toFamilyProfilePayload(settings, authenticatedUserId, existingProfile?.id);
 
-  const saveVariants: Array<{
-    run: () => Promise<{ data: unknown; error: unknown }>;
-  }> = existingProfile
-    ? [
-        {
-          run: async () => {
-            const response = await supabase.from("family_profiles").update(payload).eq("user_id", userId);
-            return { data: response.data, error: response.error };
-          },
-        },
-      ]
-    : [
-        {
-          run: async () => {
-            const response = await supabase.from("family_profiles").insert(payload);
-            return { data: response.data, error: response.error };
-          },
-        },
-      ];
+  async function buildSavedProfile(row: unknown): Promise<FamilyProfileRow> {
+    const rowRecord =
+      row && typeof row === "object" ? (row as Partial<FamilyProfileRow>) : null;
+    const selectedProfile = safeString(rowRecord?.id)
+      ? rowRecord
+      : await selectFamilyProfileRow(authenticatedUserId);
+
+    const savedProfile: FamilyProfileRow = {
+      ...DEFAULT_FAMILY_PROFILE,
+      ...(existingProfile ?? {}),
+      ...settings,
+      ...(selectedProfile ?? {}),
+      ...payload,
+      id:
+        safeString(selectedProfile?.id) ||
+        safeString(existingProfile?.id) ||
+        safeString(payload.id) ||
+        DEFAULT_FAMILY_PROFILE.id,
+      user_id: safeString(selectedProfile?.user_id) || authenticatedUserId,
+      owner_user_id: safeString(selectedProfile?.owner_user_id) || authenticatedUserId,
+    };
+
+    const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
+
+    return {
+      ...savedProfile,
+      ...rowToSettings(savedProfile, {
+        defaultJurisdiction: true,
+        canonicalJurisdiction,
+      }),
+    };
+  }
 
   let lastError: unknown = null;
 
-  for (const variant of saveVariants) {
-    const writeResponse = await withTimeout(variant.run(), "upsertFamilyProfile write");
-    if (!writeResponse.error) {
-      const savedProfile = {
-        ...DEFAULT_FAMILY_PROFILE,
-        ...(existingProfile ?? {}),
-        ...settings,
-        ...payload,
-        id: safeString(existingProfile?.id) || safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
-        user_id: userId,
-        owner_user_id: userId,
-      };
+  const writeResponse = await withTimeout(
+    existingProfile
+      ? supabase
+          .from("family_profiles")
+          .update(payload)
+          .eq("user_id", authenticatedUserId)
+          .select(FAMILY_PROFILE_SELECT_COLUMNS)
+          .maybeSingle()
+      : supabase
+          .from("family_profiles")
+          .insert(payload)
+          .select(FAMILY_PROFILE_SELECT_COLUMNS)
+          .single(),
+    "upsertFamilyProfile write",
+  );
 
-      const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
+  if (!writeResponse.error) {
+    return buildSavedProfile(writeResponse.data);
+  }
 
-      return {
-        ...savedProfile,
-        ...rowToSettings(savedProfile, {
-          defaultJurisdiction: true,
-          canonicalJurisdiction,
-        }),
-      };
+  lastError = writeResponse.error;
+  const message = describeSupabaseError(writeResponse.error).toLowerCase();
+  if (!existingProfile && message.includes("duplicate")) {
+    const retryResponse = await withTimeout(
+      supabase
+          .from("family_profiles")
+          .update(payload)
+        .eq("user_id", authenticatedUserId)
+        .select(FAMILY_PROFILE_SELECT_COLUMNS)
+        .maybeSingle(),
+      "upsertFamilyProfile duplicate insert retry",
+    );
+
+    if (!retryResponse.error) {
+      return buildSavedProfile(retryResponse.data);
     }
 
-    lastError = writeResponse.error;
-    const message = describeSupabaseError(writeResponse.error).toLowerCase();
-    if (!existingProfile && message.includes("duplicate")) {
-      const retryResponse = await withTimeout(
-        supabase.from("family_profiles").update(payload).eq("user_id", userId),
-        "upsertFamilyProfile duplicate insert retry",
-      );
-
-      if (!retryResponse.error) {
-        const savedProfile = {
-          ...DEFAULT_FAMILY_PROFILE,
-          ...settings,
-          ...payload,
-          id: safeString(payload.id) || DEFAULT_FAMILY_PROFILE.id,
-          user_id: userId,
-          owner_user_id: userId,
-        };
-
-        const canonicalJurisdiction = await upsertCanonicalFamilyJurisdiction(savedProfile.id, settings);
-
-        return {
-          ...savedProfile,
-          ...rowToSettings(savedProfile, {
-            defaultJurisdiction: true,
-            canonicalJurisdiction,
-          }),
-        };
-      }
-
-      lastError = retryResponse.error;
-    }
+    lastError = retryResponse.error;
   }
 
   throw new Error(describeSupabaseError(lastError));

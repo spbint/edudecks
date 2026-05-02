@@ -146,6 +146,16 @@ function isMissingSchemaError(error: unknown) {
     .includes("does not exist");
 }
 
+function requirePlanningWriteReady(familyId: string, label: string, ready: boolean) {
+  if (ready) return;
+
+  if (!isDatabaseBackedId(familyId)) {
+    throw new Error(`${label} needs a synced family profile before it can save to your account.`);
+  }
+
+  throw new Error(`${label} needs an active Supabase session before it can save to your account.`);
+}
+
 function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms = 12000) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
@@ -323,7 +333,11 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
   const normalized = normalizeTemplate({ ...template, updatedAt: nowIso() });
   persistTemplateLocal(normalized);
 
-  if (!(await canWritePlanningRows(normalized.familyId))) return normalized;
+  requirePlanningWriteReady(
+    normalized.familyId,
+    "My Calendar",
+    await canWritePlanningRows(normalized.familyId),
+  );
 
   const response = await withTimeout(
     supabase.from("family_calendar_templates").upsert({
@@ -338,7 +352,7 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
     }),
   ).catch((error) => ({ error }));
 
-  if ((response as any).error && !isMissingSchemaError((response as any).error)) {
+  if ((response as any).error) {
     throw (response as any).error;
   }
 
@@ -396,7 +410,11 @@ export async function saveFamilyProgram(program: Program): Promise<Program> {
   const normalized = normalizeProgram({ ...program, updatedAt: nowIso() });
   persistProgramLocal(normalized);
 
-  if (!(await canWritePlanningRows(normalized.familyId))) return normalized;
+  requirePlanningWriteReady(
+    normalized.familyId,
+    "My Programs",
+    await canWritePlanningRows(normalized.familyId),
+  );
 
   const response = await withTimeout(
     supabase.from("family_programs").upsert({
@@ -421,7 +439,7 @@ export async function saveFamilyProgram(program: Program): Promise<Program> {
     }),
   ).catch((error) => ({ error }));
 
-  if ((response as any).error && !isMissingSchemaError((response as any).error)) {
+  if ((response as any).error) {
     throw (response as any).error;
   }
 
