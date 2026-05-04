@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import {
@@ -13,9 +14,21 @@ import {
   META,
 } from "@/app/components/calendar/CalendarTemplateOverviewComponents";
 import {
+  CalendarViewSwitcher,
+  CalendarWeekView,
+  type CalendarSurfaceView,
+  type CalendarWeekDay,
+} from "@/app/components/calendar/CalendarWeekOverviewComponents";
+import {
+  loadFamilyCalendarWindow,
+  type FamilyCalendarBlockEntry,
+} from "@/lib/familyPlanner";
+import {
   loadFamilyCalendarTemplates,
+  loadFamilyPrograms,
   saveFamilyCalendarTemplate,
   type CalendarTemplate,
+  type Program,
   type TemplateSlot,
 } from "@/lib/familyPlanningTemplates";
 
@@ -61,6 +74,10 @@ function friendlyCalendarMessage(kind: "load" | "save") {
   return "My Calendar could not save. Check your account connection and try again.";
 }
 
+function friendlyWeekMessage() {
+  return "Live calendar blocks could not load. Showing the saved template rhythm only.";
+}
+
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -76,15 +93,100 @@ function describeSaveError(error: unknown, fallback: string) {
   return clean(row.message) || clean(row.details) || clean(row.hint) || fallback;
 }
 
+function ymd(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function startOfWeek(date: Date) {
+  const copy = new Date(date);
+  const day = copy.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  copy.setDate(copy.getDate() + diff);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function getBusinessWeek(anchor: Date) {
+  const monday = startOfWeek(anchor);
+  return Array.from({ length: 5 }, (_, index) => addDays(monday, index));
+}
+
+function formatDayLabel(date: Date) {
+  return date.toLocaleDateString("en-AU", { weekday: "long" });
+}
+
+function formatDayDateLabel(date: Date) {
+  return date.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+}
+
+function formatWeekRange(weekDays: CalendarWeekDay[]) {
+  if (!weekDays.length) return "Week of this week";
+
+  const firstDay = new Date(`${weekDays[0].key}T00:00:00`);
+  const lastDay = new Date(`${weekDays[weekDays.length - 1].key}T00:00:00`);
+  const firstMonth = firstDay.toLocaleDateString("en-AU", { month: "short" });
+  const lastMonth = lastDay.toLocaleDateString("en-AU", { month: "short" });
+  const year = lastDay.getFullYear();
+
+  return `Week of ${firstDay.getDate()} ${firstMonth} - ${lastDay.getDate()} ${lastMonth} ${year}`;
+}
+
+function buildWeekDays(anchor: Date): CalendarWeekDay[] {
+  const todayKey = ymd(new Date());
+
+  return getBusinessWeek(anchor).map((date, index) => {
+    const key = ymd(date);
+    return {
+      key,
+      label: formatDayLabel(date),
+      dateLabel: formatDayDateLabel(date),
+      weekdayValue: index + 1,
+      isToday: key === todayKey,
+    };
+  });
+}
+
 export default function FamilyCalendarTemplateWorkspace() {
-  const { workspace, loading: workspaceLoading } = useFamilyWorkspace();
+  const searchParams = useSearchParams();
+  const {
+    workspace,
+    activeLearner,
+    loading: workspaceLoading,
+  } = useFamilyWorkspace();
+
   const [templates, setTemplates] = useState<CalendarTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<CalendarSurfaceView>("template");
+  const [resolvedInitialView, setResolvedInitialView] = useState(false);
+  const [selectedWeekAnchor, setSelectedWeekAnchor] = useState<Date>(new Date());
+  const [weekBlocks, setWeekBlocks] = useState<Record<string, FamilyCalendarBlockEntry[]>>({});
+  const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingWeek, setLoadingWeek] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [weekError, setWeekError] = useState("");
+
+  const requestedDate = searchParams.get("date");
+
+  useEffect(() => {
+    if (!requestedDate) return;
+    const parsed = new Date(`${requestedDate}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return;
+    setSelectedWeekAnchor(parsed);
+  }, [requestedDate]);
 
   useEffect(() => {
     let mounted = true;
@@ -107,7 +209,7 @@ export default function FamilyCalendarTemplateWorkspace() {
         setTemplates(nextTemplates);
         setSelectedTemplateId((current) => {
           if (nextTemplates.some((template) => template.id === current)) return current;
-          return nextTemplates[0]?.id || "";
+          return nextTemplates.find((template) => template.slots.length > 0)?.id || nextTemplates[0]?.id || "";
         });
       } catch {
         if (!mounted) return;
@@ -153,11 +255,99 @@ export default function FamilyCalendarTemplateWorkspace() {
     setSelectedSlotId(selectedTemplate.slots[0]?.id || null);
   }, [selectedSlotId, selectedTemplate]);
 
+  const weekDays = useMemo(() => buildWeekDays(selectedWeekAnchor), [selectedWeekAnchor]);
+  const weekLabel = useMemo(() => formatWeekRange(weekDays), [weekDays]);
+  const weekStart = weekDays[0]?.key || "";
+  const weekEnd = weekDays[weekDays.length - 1]?.key || "";
+  const hasAnyTemplateSlots = templates.some((template) => template.slots.length > 0);
+  const liveWeekBlockCount = useMemo(
+    () => Object.values(weekBlocks).reduce((count, items) => count + items.length, 0),
+    [weekBlocks],
+  );
+  const hasCalendarData = hasAnyTemplateSlots || liveWeekBlockCount > 0;
+
+  const canLoadLiveCalendar = Boolean(
+    workspace.storageMode === "database" &&
+      workspace.userId &&
+      isDatabaseProfileId(workspace.profile.id) &&
+      activeLearner?.id,
+  );
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function hydrateWeek() {
+      if (!workspace.profile.id) {
+        if (!mounted) return;
+        setPrograms([]);
+        setWeekBlocks({});
+        setWeekError("");
+        setLoadingWeek(false);
+        return;
+      }
+
+      setLoadingWeek(true);
+      setWeekError("");
+
+      const programPromise = loadFamilyPrograms({
+        familyId: workspace.profile.id,
+      });
+      const liveCalendarPromise =
+        canLoadLiveCalendar && activeLearner?.id
+          ? loadFamilyCalendarWindow({
+              familyProfileId: workspace.profile.id,
+              studentId: activeLearner.id,
+              dateFrom: weekStart,
+              dateTo: weekEnd,
+            })
+          : Promise.resolve({ dayNotes: {}, blocks: {} });
+
+      const [programResult, calendarResult] = await Promise.allSettled([
+        programPromise,
+        liveCalendarPromise,
+      ]);
+
+      if (!mounted) return;
+
+      setPrograms(programResult.status === "fulfilled" ? programResult.value : []);
+
+      if (calendarResult.status === "fulfilled") {
+        setWeekBlocks(calendarResult.value.blocks ?? {});
+        setWeekError("");
+      } else {
+        setWeekBlocks({});
+        setWeekError(friendlyWeekMessage());
+      }
+
+      setLoadingWeek(false);
+    }
+
+    void hydrateWeek();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    activeLearner?.id,
+    canLoadLiveCalendar,
+    weekEnd,
+    weekStart,
+    workspace.profile.id,
+  ]);
+
+  useEffect(() => {
+    if (resolvedInitialView || loading || loadingWeek || workspaceLoading) return;
+    setViewMode(hasCalendarData ? "week" : "template");
+    setResolvedInitialView(true);
+  }, [hasCalendarData, loading, loadingWeek, resolvedInitialView, workspaceLoading]);
+
   function replaceTemplate(nextTemplate: CalendarTemplate) {
     setTemplates((current) => {
       const exists = current.some((template) => template.id === nextTemplate.id);
       if (!exists) return [nextTemplate, ...current];
-      return current.map((template) => (template.id === nextTemplate.id ? nextTemplate : template));
+      return current.map((template) =>
+        template.id === nextTemplate.id ? nextTemplate : template,
+      );
     });
   }
 
@@ -241,6 +431,23 @@ export default function FamilyCalendarTemplateWorkspace() {
     }
   }
 
+  function handleChangeView(nextView: CalendarSurfaceView) {
+    setViewMode(nextView);
+    setResolvedInitialView(true);
+  }
+
+  function goPreviousWeek() {
+    setSelectedWeekAnchor((current) => addDays(current, -7));
+  }
+
+  function goNextWeek() {
+    setSelectedWeekAnchor((current) => addDays(current, 7));
+  }
+
+  function goToday() {
+    setSelectedWeekAnchor(new Date());
+  }
+
   const canSaveToAccount = Boolean(
     workspace.storageMode === "database" &&
       workspace.userId &&
@@ -261,14 +468,16 @@ export default function FamilyCalendarTemplateWorkspace() {
               My Calendar
             </h1>
             <p className="mt-2 text-[15px] leading-6 text-slate-600">
-              Shape the weekly rhythm your plans and programs use.
+              Shape the weekly rhythm and see the live week it creates.
             </p>
           </div>
 
           <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-4">
-            <div className={LABEL}>Master Calendar</div>
+            <div className={LABEL}>Template + week</div>
             <div className={`mt-2 ${H2}`}>Planning defaults</div>
-            <p className={`mt-1 ${META}`}>Set reusable rotations and planning defaults</p>
+            <p className={`mt-1 ${META}`}>
+              Set reusable slots, then move week to week without losing the live plan.
+            </p>
           </div>
         </section>
 
@@ -284,34 +493,55 @@ export default function FamilyCalendarTemplateWorkspace() {
           </section>
         ) : null}
 
-        <CalendarTemplateSelector
-          templates={templates}
-          selectedTemplateId={selectedTemplateId}
-          onSelect={setSelectedTemplateId}
-          onCreate={handleCreateTemplate}
-        />
+        <CalendarViewSwitcher value={viewMode} onChange={handleChangeView} />
 
-        {loading || workspaceLoading ? (
-          <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-            <div className={BODY}>Loading calendar...</div>
-          </section>
+        {viewMode === "week" ? (
+          <CalendarWeekView
+            template={selectedTemplate}
+            weekLabel={weekLabel}
+            weekDays={weekDays}
+            weekBlocks={weekBlocks}
+            programs={programs}
+            activeLearnerName={activeLearner?.label || ""}
+            loading={loadingWeek || workspaceLoading}
+            errorMessage={weekError}
+            onPreviousWeek={goPreviousWeek}
+            onToday={goToday}
+            onNextWeek={goNextWeek}
+            onOpenTemplate={() => handleChangeView("template")}
+          />
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-            <CalendarTemplateGrid
-              slots={selectedTemplate?.slots || []}
-              selectedSlotId={selectedSlotId}
-              onSelectSlot={setSelectedSlotId}
+          <>
+            <CalendarTemplateSelector
+              templates={templates}
+              selectedTemplateId={selectedTemplateId}
+              onSelect={setSelectedTemplateId}
+              onCreate={handleCreateTemplate}
             />
 
-            <div className="xl:sticky xl:top-4 xl:self-start">
-              <CalendarTemplateSlotEditor
-                slot={selectedSlot}
-                onChange={handleChangeSlot}
-                onDelete={handleDeleteSlot}
-                onAddNew={handleAddSlot}
-              />
-            </div>
-          </div>
+            {loading || workspaceLoading ? (
+              <section className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+                <div className={BODY}>Loading calendar...</div>
+              </section>
+            ) : (
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+                <CalendarTemplateGrid
+                  slots={selectedTemplate?.slots || []}
+                  selectedSlotId={selectedSlotId}
+                  onSelectSlot={setSelectedSlotId}
+                />
+
+                <div className="xl:sticky xl:top-4 xl:self-start">
+                  <CalendarTemplateSlotEditor
+                    slot={selectedSlot}
+                    onChange={handleChangeSlot}
+                    onDelete={handleDeleteSlot}
+                    onAddNew={handleAddSlot}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <section className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200 bg-white/95 px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.14)] backdrop-blur md:flex-row md:items-center md:justify-between">
