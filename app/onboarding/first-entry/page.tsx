@@ -297,7 +297,7 @@ const evidenceTypeOptions = [
   "General evidence",
 ];
 
-function safe(v: any) {
+function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
@@ -315,8 +315,13 @@ async function createStudentRecord(child: ChildForm) {
 }
 
 async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
-  const payloadVariants: Array<Record<string, any>> = [
+  const authResp = await supabase.auth.getUser();
+  const user = authResp.data.user;
+  if (!user) throw new Error("You must be signed in.");
+
+  const payloadVariants: Array<Record<string, unknown>> = [
     {
+      user_id: user.id,
       student_id: studentId,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
@@ -328,6 +333,7 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
       visibility: "private",
     },
     {
+      user_id: user.id,
       student_id: studentId,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
@@ -338,6 +344,7 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
       visibility: "private",
     },
     {
+      user_id: user.id,
       student_id: studentId,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
@@ -346,6 +353,7 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
       is_deleted: false,
     },
     {
+      user_id: user.id,
       student_id: studentId,
       title: safe(form.title) || "First learning entry",
       summary: safe(form.summary),
@@ -461,8 +469,8 @@ export default function OnboardingFirstEntryPage() {
 
       setMsg("Your child profile and first evidence entry have been created.");
       router.push("/welcome");
-    } catch (e: any) {
-      setErr(String(e?.message ?? e));
+    } catch (e: unknown) {
+      setErr(String((e as { message?: unknown })?.message ?? e));
     } finally {
       setSaving(false);
     }
