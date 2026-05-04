@@ -30,6 +30,10 @@ import {
 import {
   buildPortfolioContentModel,
   classifyPortfolioSection,
+  formatPortfolioHighlightDate,
+  loadPortfolioCalendarHighlights,
+  portfolioCalendarItemTypeLabel,
+  type PortfolioCalendarHighlight,
 } from "@/lib/portfolioContent";
 import { reportIntentHeading } from "@/lib/reportTemplates";
 
@@ -60,6 +64,7 @@ export type ReportExportModel = {
   totalSectionCount: number;
   completedArtifactCount: number;
   totalArtifactCount: number;
+  portfolioCalendarHighlights: PortfolioCalendarHighlight[];
   sections: ReportExportSection[];
   packItems: Array<{
     label: string;
@@ -81,6 +86,7 @@ type BuildReportExportModelInput = {
   mapping: ReportEvidenceMapping;
   autofill: ReportSectionAutofillModel;
   validation: ReportCompletionValidation;
+  portfolioCalendarHighlights?: PortfolioCalendarHighlight[];
 };
 
 function safe(value: unknown) {
@@ -498,12 +504,28 @@ export async function buildServerValidatedReportExportPayload(input: {
     };
   }
 
+  let portfolioCalendarHighlights: PortfolioCalendarHighlight[] = [];
+  if (model.reportIntent === "portfolio") {
+    try {
+      portfolioCalendarHighlights = await loadPortfolioCalendarHighlights({
+        learnerId: context.learner.id,
+        familyProfileId: context.profile.id,
+        dateFrom: model.reportingPeriod?.startDate || null,
+        dateTo: model.reportingPeriod?.endDate || null,
+        client: context.client,
+      });
+    } catch {
+      portfolioCalendarHighlights = [];
+    }
+  }
+
   const exportModel = buildReportExportModel({
     model,
     assembly,
     mapping,
     autofill,
     validation,
+    portfolioCalendarHighlights,
   });
   return {
     ok: true,
@@ -615,6 +637,7 @@ export function buildReportExportModel(
     totalSectionCount: input.validation.totalSectionCount,
     completedArtifactCount: input.validation.completedArtifactCount,
     totalArtifactCount: input.validation.totalArtifactCount,
+    portfolioCalendarHighlights: input.portfolioCalendarHighlights || [],
     sections: input.assembly.sections.map((section) => ({
       sectionKey: normalizeSectionKey(section.title),
       title: section.title,
@@ -1188,6 +1211,29 @@ function buildPortfolioSectionHtml(section: ReportExportSection) {
   `;
 }
 
+function buildPortfolioHighlightMetaHtml(
+  item: {
+    date?: string | null;
+    itemType?: string | null;
+    learningArea?: string | null;
+    origin?: "section" | "calendar";
+  },
+  localeCode: string,
+) {
+  const chips = [
+    item.origin === "calendar" ? "Calendar highlight" : "",
+    formatPortfolioHighlightDate(item.date, localeCode),
+    item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
+    safe(item.learningArea),
+  ].filter(Boolean);
+
+  if (!chips.length) return "";
+
+  return `<div class="portfolio-chip-list">${chips
+    .map((label) => `<span class="portfolio-chip">${escapeHtml(label)}</span>`)
+    .join("")}</div>`;
+}
+
 function generatePortfolioPrintableHtml(model: ReportExportModel) {
   const generatedAtLabel = formatGeneratedAt(model.generatedAt, model.localeCode);
   const skillsLabel = localizedPortfolioTerm(model, {
@@ -1219,6 +1265,7 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
       reportDocumentId: model.reportDocumentId,
     })),
     localeCode: model.localeCode,
+    calendarHighlights: model.portfolioCalendarHighlights,
   });
   const reflectionSections = model.sections.filter(
     (section) =>
@@ -1335,6 +1382,40 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
                   }
                   <div class="portfolio-section-body">
                     <p>${escapeHtml(item.description || "Saved work sample from the portfolio record.")}</p>
+                  </div>
+                </article>
+              `,
+            )
+            .join("")}
+        </div>
+      </section>
+    `
+    : "";
+
+  const highlightPanel = portfolioContent.highlights.length
+    ? `
+      <section class="portfolio-panel portfolio-panel-break">
+        <div class="portfolio-panel-head">
+          <div>
+            <div class="portfolio-panel-kicker">Portfolio records</div>
+            <h2>Learning Highlights</h2>
+          </div>
+          <div class="portfolio-count-pill">${portfolioContent.highlights.length} saved highlight${portfolioContent.highlights.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="portfolio-panel-grid">
+          ${portfolioContent.highlights
+            .map(
+              (item) => `
+                <article class="portfolio-section portfolio-section-highlight">
+                  <div class="portfolio-section-head">
+                    <div>
+                      <div class="portfolio-section-kicker">${escapeHtml(item.origin === "calendar" ? "Calendar highlight" : "Saved highlight")}</div>
+                      <h2>${escapeHtml(item.title)}</h2>
+                    </div>
+                  </div>
+                  ${buildPortfolioHighlightMetaHtml(item, model.localeCode)}
+                  <div class="portfolio-section-body">
+                    <p>${escapeHtml(item.description || "Saved learning highlight from the portfolio record.")}</p>
                   </div>
                 </article>
               `,
@@ -1724,6 +1805,7 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
         : ""
     }
 
+    ${highlightPanel}
     ${workSamplePanel}
     ${skillsPanel}
     ${reflectionPanel}

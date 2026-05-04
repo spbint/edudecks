@@ -1,6 +1,10 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
-import { buildPortfolioContentModel } from "@/lib/portfolioContent";
+import {
+  buildPortfolioContentModel,
+  formatPortfolioHighlightDate,
+  portfolioCalendarItemTypeLabel,
+} from "@/lib/portfolioContent";
 import type { ReportExportModel } from "@/lib/reportExport";
 
 function safe(value: unknown) {
@@ -100,6 +104,25 @@ function createComposer(
   };
 }
 
+function portfolioHighlightMetaText(
+  item: {
+    date?: string | null;
+    itemType?: string | null;
+    learningArea?: string | null;
+    origin?: "section" | "calendar";
+  },
+  localeCode: string,
+) {
+  return [
+    item.origin === "calendar" ? "Calendar highlight" : "",
+    formatPortfolioHighlightDate(item.date, localeCode),
+    item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
+    safe(item.learningArea),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function ensureSpace(composer: PdfComposer, needed: number) {
   if (composer.y - needed > composer.margin) {
     return composer;
@@ -141,7 +164,7 @@ function drawTextBlock(
   const spacingAfter = options?.spacingAfter ?? 10;
   const maxWidth = composer.width - composer.margin * 2;
   const lines = wrapText(text, font, fontSize, maxWidth);
-  let next = ensureSpace(composer, lines.length * lineHeight + spacingAfter);
+  const next = ensureSpace(composer, lines.length * lineHeight + spacingAfter);
 
   lines.forEach((line) => {
     if (!line) {
@@ -169,7 +192,7 @@ function drawHeading(
 ) {
   const fontSize = level === 1 ? 20 : level === 2 ? 15 : 12;
   const spacingBefore = level === 1 ? 18 : 14;
-  let next = ensureSpace(composer, fontSize + spacingBefore + 18);
+  const next = ensureSpace(composer, fontSize + spacingBefore + 18);
   next.y -= spacingBefore;
   next.page.drawText(text, {
     x: next.margin,
@@ -274,6 +297,7 @@ async function buildPortfolioPdf(model: ReportExportModel) {
       reportDocumentId: model.reportDocumentId,
     })),
     localeCode: model.localeCode,
+    calendarHighlights: model.portfolioCalendarHighlights,
   });
 
   composer = drawHeading(composer, "Learning Portfolio", 1);
@@ -303,6 +327,10 @@ async function buildPortfolioPdf(model: ReportExportModel) {
     composer = drawHeading(composer, "Learning Highlights", 2);
     portfolioContent.highlights.forEach((item) => {
       composer = drawHeading(composer, item.title, 3);
+      const meta = portfolioHighlightMetaText(item, model.localeCode);
+      if (meta) {
+        composer = drawMetaRow(composer, "Details", meta);
+      }
       composer = drawTextBlock(composer, item.description || "Saved learning highlight.");
     });
   }

@@ -9,7 +9,11 @@ import {
   type IParagraphOptions,
 } from "docx";
 
-import { buildPortfolioContentModel } from "@/lib/portfolioContent";
+import {
+  buildPortfolioContentModel,
+  formatPortfolioHighlightDate,
+  portfolioCalendarItemTypeLabel,
+} from "@/lib/portfolioContent";
 import type { ReportExportModel } from "@/lib/reportExport";
 
 function safe(value: unknown) {
@@ -102,6 +106,25 @@ function cardTitle(text: string) {
     },
     indent: { left: 120, right: 120 },
   });
+}
+
+function portfolioHighlightMetaText(
+  item: {
+    date?: string | null;
+    itemType?: string | null;
+    learningArea?: string | null;
+    origin?: "section" | "calendar";
+  },
+  localeCode: string,
+) {
+  return [
+    item.origin === "calendar" ? "Calendar highlight" : "",
+    formatPortfolioHighlightDate(item.date, localeCode),
+    item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
+    safe(item.learningArea),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function plainTextToDocxParagraphs(content: string, options?: IParagraphOptions) {
@@ -236,6 +259,7 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
       reportDocumentId: model.reportDocumentId,
     })),
     localeCode: model.localeCode,
+    calendarHighlights: model.portfolioCalendarHighlights,
   });
 
   const children: Paragraph[] = [
@@ -279,6 +303,10 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
     children.push(sectionHeading("Learning Highlights"));
     portfolioContent.highlights.forEach((item) => {
       children.push(cardTitle(item.title));
+      const meta = portfolioHighlightMetaText(item, model.localeCode);
+      if (meta) {
+        children.push(metadataParagraph("Details", meta));
+      }
       children.push(
         ...plainTextToDocxParagraphs(item.description || "Saved learning highlight."),
       );

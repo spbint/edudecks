@@ -39,9 +39,13 @@ import {
   type ReportValidationIssue,
 } from "@/lib/reportCompletionGate";
 import {
-  buildReportExportFilename,
-} from "@/lib/reportExport";
-import { buildPortfolioContentModel } from "@/lib/portfolioContent";
+  buildPortfolioContentModel,
+  formatPortfolioHighlightDate,
+  loadPortfolioCalendarHighlights,
+  portfolioCalendarItemTypeLabel,
+  type PortfolioCalendarHighlight,
+  type PortfolioHighlight,
+} from "@/lib/portfolioContent";
 import {
   loadReportExportHistory,
   summarizeReportExportHistoryEntry,
@@ -167,6 +171,15 @@ function shortHash(value: string | null) {
   if (!clean) return "Not captured";
   if (clean.length <= 16) return clean;
   return `${clean.slice(0, 10)}...${clean.slice(-8)}`;
+}
+
+function fallbackExportFilename(title: string, format: "html" | "docx" | "pdf") {
+  const clean = String(title ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${clean || "report-export"}.${format}`;
 }
 
 function historyLabels(entry: ReportExportHistoryEntry) {
@@ -299,6 +312,20 @@ function complianceSummaryLabel(model: ReportsBuilderModel, validation: ReportCo
       : "Plan tracking is optional",
     behavior: complianceModeSentence(validation),
   };
+}
+
+function portfolioHighlightMetaSummary(
+  item: PortfolioHighlight,
+  localeCode: string,
+) {
+  return [
+    item.origin === "calendar" ? "Calendar highlight" : "",
+    formatPortfolioHighlightDate(item.date, localeCode),
+    item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
+    String(item.learningArea ?? "").trim(),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function ComplianceContextPanel({
@@ -828,12 +855,20 @@ function PortfolioContentPanel({
   workSamplesCount,
   skillsCount,
   reflectionPromptCount,
+  highlights,
+  localeCode,
+  highlightError,
 }: {
   highlightsCount: number;
   workSamplesCount: number;
   skillsCount: number;
   reflectionPromptCount: number;
+  highlights: PortfolioHighlight[];
+  localeCode: string;
+  highlightError: string;
 }) {
+  const highlightPreview = highlights.slice(0, 4);
+
   return (
     <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
@@ -875,6 +910,42 @@ function PortfolioContentPanel({
       <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
         Portfolio mode can surface saved highlights, work samples, skill signals, and reflection prompts without changing the persisted report sections themselves.
       </div>
+
+      {highlightError ? (
+        <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
+          {highlightError}
+        </div>
+      ) : null}
+
+      {highlightPreview.length ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {highlightPreview.map((item) => {
+            const meta = portfolioHighlightMetaSummary(item, localeCode);
+
+            return (
+              <article
+                key={item.id}
+                className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
+                    {item.origin === "calendar" ? "Calendar highlight" : "Saved highlight"}
+                  </span>
+                </div>
+                <div className="text-[16px] font-bold text-slate-950">{item.title}</div>
+                {meta ? (
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    {meta}
+                  </div>
+                ) : null}
+                <div className="text-sm leading-6 text-slate-600">
+                  {item.description || "Saved learning highlight from the portfolio record."}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1138,6 +1209,8 @@ export default function ReportsOutputPage() {
   const [intentSaving, setIntentSaving] = useState<ReportIntent | "">("");
   const [intentMessage, setIntentMessage] = useState("");
   const [intentError, setIntentError] = useState("");
+  const [portfolioCalendarHighlights, setPortfolioCalendarHighlights] = useState<PortfolioCalendarHighlight[]>([]);
+  const [portfolioCalendarHighlightsError, setPortfolioCalendarHighlightsError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -1160,6 +1233,8 @@ export default function ReportsOutputPage() {
           setDismissedSections({});
           setSectionPending({});
           setSectionErrors({});
+          setPortfolioCalendarHighlights([]);
+          setPortfolioCalendarHighlightsError("");
         }
         return;
       }
@@ -1197,6 +1272,24 @@ export default function ReportsOutputPage() {
           mapping: mappingResult,
           autofill: autofillResult,
         });
+        let calendarHighlightsResult: PortfolioCalendarHighlight[] = [];
+        let calendarHighlightsError = "";
+        if (next.reportIntent === "portfolio") {
+          try {
+            calendarHighlightsResult = await loadPortfolioCalendarHighlights({
+              learnerId: activeLearner.id,
+              familyProfileId: workspace.profile.id,
+              dateFrom: next.reportingPeriod?.startDate || null,
+              dateTo: next.reportingPeriod?.endDate || null,
+              client: supabase,
+            });
+          } catch (error) {
+            calendarHighlightsError =
+              error instanceof Error
+                ? error.message
+                : "Calendar highlights could not be loaded right now.";
+          }
+        }
         let historyResult: ReportExportHistoryEntry[] = [];
         if (next.reportDocument?.id) {
           try {
@@ -1230,6 +1323,8 @@ export default function ReportsOutputPage() {
           setDismissedSections({});
           setSectionPending({});
           setSectionErrors({});
+          setPortfolioCalendarHighlights(calendarHighlightsResult);
+          setPortfolioCalendarHighlightsError(calendarHighlightsError);
         }
       } catch (error) {
         if (mounted) {
@@ -1238,6 +1333,8 @@ export default function ReportsOutputPage() {
               ? error.message
               : "The report workspace could not be loaded right now.",
           );
+          setPortfolioCalendarHighlights([]);
+          setPortfolioCalendarHighlightsError("");
         }
       } finally {
         if (mounted) {
@@ -1306,6 +1403,11 @@ export default function ReportsOutputPage() {
 
   const reportDocumentId = validation?.reportDocumentId || model.reportDocument?.id || "";
   const canExport = validation?.status === "ready_for_export" && Boolean(reportDocumentId);
+  const portfolioLocaleCode =
+    model.reportDocument?.localeCode ||
+    model.ruleSet?.localeCode ||
+    model.effectiveJurisdiction?.localeCode ||
+    "en-AU";
   const portfolioContent =
     model.reportIntent === "portfolio"
       ? buildPortfolioContentModel({
@@ -1324,11 +1426,8 @@ export default function ReportsOutputPage() {
             learnerId: activeLearner.id,
             reportDocumentId: model.reportDocument?.id || null,
           })),
-          localeCode:
-            model.reportDocument?.localeCode ||
-            model.ruleSet?.localeCode ||
-            model.effectiveJurisdiction?.localeCode ||
-            "en-AU",
+          localeCode: portfolioLocaleCode,
+          calendarHighlights: portfolioCalendarHighlights,
         })
       : null;
 
@@ -1423,9 +1522,7 @@ export default function ReportsOutputPage() {
 
     const filename =
       response.headers.get("x-report-export-filename") ||
-      buildReportExportFilename({
-        reportTitle: fallbackExportTitle,
-      } as any, input.format);
+      fallbackExportFilename(fallbackExportTitle, input.format);
 
     return {
       body:
@@ -1684,6 +1781,9 @@ export default function ReportsOutputPage() {
           workSamplesCount={portfolioContent.workSamples.length}
           skillsCount={portfolioContent.skills.length}
           reflectionPromptCount={portfolioContent.reflections.length}
+          highlights={portfolioContent.highlights}
+          localeCode={portfolioLocaleCode}
+          highlightError={portfolioCalendarHighlightsError}
         />
       ) : null}
 

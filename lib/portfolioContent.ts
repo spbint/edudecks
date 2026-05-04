@@ -1,3 +1,7 @@
+import { supabase } from "@/lib/supabaseClient";
+
+type QueryClient = Pick<typeof supabase, "from">;
+
 export type PortfolioSectionType =
   | "overview"
   | "highlight"
@@ -14,6 +18,11 @@ export type PortfolioHighlight = {
   id: string;
   title: string;
   description: string | null;
+  date?: string | null;
+  itemType?: string | null;
+  learningArea?: string | null;
+  learnerId?: string | null;
+  origin?: "section" | "calendar";
 };
 
 export type PortfolioWorkSample = {
@@ -33,6 +42,16 @@ export type PortfolioSkillSummary = {
   count: number;
 };
 
+export type PortfolioCalendarHighlight = {
+  id: string;
+  title: string;
+  description: string | null;
+  date: string | null;
+  itemType: string | null;
+  learningArea: string | null;
+  learnerId: string | null;
+};
+
 export type PortfolioContentModel = {
   learnerId: string;
   reportDocumentId: string | null;
@@ -45,6 +64,11 @@ export type PortfolioContentModel = {
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function asObject(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
 function normalizeKey(value: unknown) {
@@ -138,6 +162,146 @@ function reflectionPromptDefaults() {
     { prompt: "What would you like to remember from this learning period?" },
     { prompt: "What should we keep working on next?" },
   ];
+}
+
+function normalizeCalendarItemType(value: unknown) {
+  const normalized = safe(value).toLowerCase();
+  if (
+    normalized === "learning_block" ||
+    normalized === "task" ||
+    normalized === "appointment" ||
+    normalized === "playdate" ||
+    normalized === "reminder" ||
+    normalized === "custom"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function stringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((entry) => safe(entry)).filter(Boolean);
+}
+
+function parsePortfolioCalendarPayload(value: unknown) {
+  const raw = safe(value);
+  if (!raw) {
+    return {
+      note: "",
+      itemType: null as string | null,
+      learnerIds: [] as string[],
+      isPortfolioHighlight: false,
+    };
+  }
+
+  try {
+    const parsed = asObject(JSON.parse(raw));
+    return {
+      note: safe(parsed?.note),
+      itemType: normalizeCalendarItemType(parsed?.itemType),
+      learnerIds: stringArray(parsed?.learnerIds),
+      isPortfolioHighlight: parsed?.isPortfolioHighlight === true,
+    };
+  } catch {
+    return {
+      note: raw,
+      itemType: null,
+      learnerIds: [],
+      isPortfolioHighlight: false,
+    };
+  }
+}
+
+function parsePortfolioCalendarLearningArea(source: unknown, itemType: string | null) {
+  if (itemType !== "learning_block") return null;
+  const parsed = safe(source).replace("planner_calendar_block:", "");
+  return parsed || null;
+}
+
+export function portfolioCalendarItemTypeLabel(itemType: string | null | undefined) {
+  const normalized = normalizeCalendarItemType(itemType);
+  if (normalized === "task") return "Task";
+  if (normalized === "appointment") return "Appointment";
+  if (normalized === "playdate") return "Playdate";
+  if (normalized === "reminder") return "Reminder";
+  if (normalized === "custom") return "Custom";
+  return "Learning block";
+}
+
+export function formatPortfolioHighlightDate(
+  dateValue: string | null | undefined,
+  localeCode?: string | null,
+) {
+  const raw = safe(dateValue);
+  if (!raw) return "";
+  const parsed = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toLocaleDateString(safe(localeCode) || "en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+export async function loadPortfolioCalendarHighlights(input: {
+  learnerId: string;
+  familyProfileId?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  client?: QueryClient;
+}): Promise<PortfolioCalendarHighlight[]> {
+  const learnerId = safe(input.learnerId);
+  if (!learnerId) return [];
+
+  const db = input.client || supabase;
+  const familyProfileId = safe(input.familyProfileId);
+  const dateFrom = safe(input.dateFrom);
+  const dateTo = safe(input.dateTo);
+
+  let query = db
+    .from("learning_plan_items")
+    .select("id,title,description,planned_date,source,student_id");
+
+  if (familyProfileId) {
+    query = query.eq("family_profile_id", familyProfileId);
+  } else {
+    query = query.eq("student_id", learnerId);
+  }
+
+  if (dateFrom) query = query.gte("planned_date", dateFrom);
+  if (dateTo) query = query.lte("planned_date", dateTo);
+
+  const response = await query.order("planned_date", { ascending: false });
+  if (response.error) throw response.error;
+
+  return uniqueBy(
+    ((response.data ?? []) as Array<Record<string, unknown>>)
+      .map((row, index) => {
+        const parsed = parsePortfolioCalendarPayload(row.description);
+        if (!parsed.isPortfolioHighlight) return null;
+
+        const primaryLearnerId = safe(row.student_id);
+        const learnerIds = parsed.learnerIds.length
+          ? parsed.learnerIds
+          : [primaryLearnerId].filter(Boolean);
+        if (learnerIds.length && !learnerIds.includes(learnerId) && primaryLearnerId !== learnerId) {
+          return null;
+        }
+
+        return {
+          id: safe(row.id) || `calendar-highlight-${index + 1}`,
+          title: safe(row.title) || "Calendar highlight",
+          description: parsed.note || null,
+          date: safe(row.planned_date) || null,
+          itemType: parsed.itemType,
+          learningArea: parsePortfolioCalendarLearningArea(row.source, parsed.itemType),
+          learnerId: primaryLearnerId || learnerId || null,
+        } satisfies PortfolioCalendarHighlight;
+      })
+      .filter(Boolean) as PortfolioCalendarHighlight[],
+    (item) => item.id,
+  );
 }
 
 export function classifyPortfolioSection(section: {
@@ -239,12 +403,16 @@ export function classifyPortfolioSection(section: {
 }
 
 export function buildPortfolioContentModel(params: {
-  sections: any[];
-  packItems?: any[];
+  sections: unknown[];
+  packItems?: unknown[];
   localeCode?: string;
+  calendarHighlights?: PortfolioCalendarHighlight[];
 }): PortfolioContentModel {
   const sections = Array.isArray(params.sections) ? params.sections : [];
   const packItems = Array.isArray(params.packItems) ? params.packItems : [];
+  const calendarHighlights = Array.isArray(params.calendarHighlights)
+    ? params.calendarHighlights
+    : [];
   const firstSection = (sections[0] ?? {}) as Record<string, unknown>;
   const firstPackItem = (packItems[0] ?? {}) as Record<string, unknown>;
 
@@ -260,24 +428,42 @@ export function buildPortfolioContentModel(params: {
     safe(firstPackItem.report_document_id) ||
     null;
 
-  const highlights = uniqueBy(
-    sections
-      .map((rawSection, index) => {
-        const section = rawSection as Record<string, unknown>;
-        const sectionType = classifyPortfolioSection({
-          section_key: safe(section.section_key) || safe(section.sectionKey),
-          title: safe(section.title),
-        });
-        if (sectionType !== "highlight") return null;
+  const sectionHighlights = sections
+    .map((rawSection, index) => {
+      const section = rawSection as Record<string, unknown>;
+      const sectionType = classifyPortfolioSection({
+        section_key: safe(section.section_key) || safe(section.sectionKey),
+        title: safe(section.title),
+      });
+      if (sectionType !== "highlight") return null;
 
-        return {
-          id: sectionIdFor(section, `highlight-${index + 1}`),
-          title: sectionTitleFor(section),
-          description: sectionBodyFor(section) || null,
-        } satisfies PortfolioHighlight;
-      })
-      .filter(Boolean) as PortfolioHighlight[],
-    (item) => `${item.id}:${normalizeKey(item.title)}`,
+      return {
+        id: sectionIdFor(section, `highlight-${index + 1}`),
+        title: sectionTitleFor(section),
+        description: sectionBodyFor(section) || null,
+        date: null,
+        itemType: null,
+        learningArea: null,
+        learnerId: learnerId || null,
+        origin: "section",
+      } satisfies PortfolioHighlight;
+    })
+    .filter(Boolean) as PortfolioHighlight[];
+
+  const calendarPortfolioHighlights = calendarHighlights.map((item, index) => ({
+    id: safe(item.id) || `calendar-highlight-${index + 1}`,
+    title: safe(item.title) || "Calendar highlight",
+    description: safe(item.description) || null,
+    date: safe(item.date) || null,
+    itemType: safe(item.itemType) || null,
+    learningArea: safe(item.learningArea) || null,
+    learnerId: safe(item.learnerId) || learnerId || null,
+    origin: "calendar" as const,
+  }));
+
+  const highlights = uniqueBy(
+    [...calendarPortfolioHighlights, ...sectionHighlights],
+    (item) => `${item.id}:${normalizeKey(item.title)}:${safe(item.date)}`,
   );
 
   const sectionWorkSamples = sections
