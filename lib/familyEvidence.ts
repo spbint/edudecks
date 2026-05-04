@@ -3,6 +3,9 @@ import { isMissingLearnerRelationOrColumn } from "@/lib/familyLearners";
 
 type QueryClient = Pick<typeof supabase, "from">;
 
+// This follows the app's current storage pattern of saving public URLs in Postgres.
+// Revisit this before production hardening if child evidence needs private bucket
+// access with signed URLs instead of public links.
 export const FAMILY_EVIDENCE_STORAGE_BUCKET = "evidence";
 
 export type CreateFamilyEvidenceInput = {
@@ -128,6 +131,13 @@ function attachmentKindFromFile(file: Pick<File, "type" | "name">): FamilyEviden
 
 function sanitizeAttachmentFilename(filename: string) {
   return safe(filename).replace(/[^a-zA-Z0-9._-]/g, "-") || "attachment";
+}
+
+function uniqueAttachmentToken() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function evidenceDescriptionFor(row: Record<string, unknown>) {
@@ -316,12 +326,14 @@ export async function createFamilyEvidenceEntry(
 
 export async function updateFamilyEvidenceEntryAttachments(input: {
   evidenceId: string;
+  studentId?: string | null;
   attachmentUrls?: string[] | null;
   imageUrl?: string | null;
   audioUrl?: string | null;
   fileUrl?: string | null;
 }) {
   const evidenceId = safe(input.evidenceId);
+  const studentId = safe(input.studentId);
   if (!evidenceId) {
     throw new Error("Evidence ID is required before attachments can be updated.");
   }
@@ -332,7 +344,7 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
       : [],
   );
 
-  const response = await supabase
+  let query = supabase
     .from("evidence_entries")
     .update({
       attachment_urls: attachmentUrls.length ? attachmentUrls : null,
@@ -340,9 +352,13 @@ export async function updateFamilyEvidenceEntryAttachments(input: {
       audio_url: safe(input.audioUrl) || null,
       file_url: safe(input.fileUrl) || null,
     })
-    .eq("id", evidenceId)
-    .select("id")
-    .single();
+    .eq("id", evidenceId);
+
+  if (studentId) {
+    query = query.eq("student_id", studentId);
+  }
+
+  const response = await query.select("id").single();
 
   if (response.error) throw response.error;
   return { id: safe(response.data?.id) || evidenceId };
@@ -368,7 +384,7 @@ export async function uploadFamilyEvidenceFiles(input: {
 
   for (const file of files) {
     const safeName = sanitizeAttachmentFilename(file.name);
-    const objectPath = `family/${familyProfileId}/learner/${studentId}/evidence/${evidenceId}/${Date.now()}-${safeName}`;
+    const objectPath = `family/${familyProfileId}/learner/${studentId}/evidence/${evidenceId}/${uniqueAttachmentToken()}-${safeName}`;
     const { error: uploadError } = await supabase.storage
       .from(FAMILY_EVIDENCE_STORAGE_BUCKET)
       .upload(objectPath, file, {

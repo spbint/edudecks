@@ -399,6 +399,7 @@ export default function FamilyCaptureWorkspace() {
 
           await updateFamilyEvidenceEntryAttachments({
             evidenceId: created.id,
+            studentId: activeLearner.id,
             attachmentUrls: uploadResult.uploaded.map((item) => item.url),
             imageUrl,
             audioUrl,
@@ -637,7 +638,7 @@ export default function FamilyCaptureWorkspace() {
                 disabled={submitting || !hasActiveLearner || !canonicalReady}
                 className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
               >
-                {submitting ? "Saving..." : "Capture Evidence"}
+                {submitting ? "Saving evidence..." : "Capture Evidence"}
               </button>
               </div>
             </div>
