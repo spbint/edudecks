@@ -47,6 +47,7 @@ export type TemplateSlot = {
   itemType?: CalendarItemType | null;
   learnerIds?: string[];
   timeBlock?: CalendarTimeBlock | null;
+  isPortfolioHighlight?: boolean;
 };
 
 export type CalendarTemplate = {
@@ -223,6 +224,10 @@ function normalizeCalendarTimeBlock(
   return inferTimeBlockFromStartTime(fallbackStartTime ?? null) ?? "morning";
 }
 
+function asBoolean(value: unknown) {
+  return value === true;
+}
+
 function isMissingSchemaError(error: unknown) {
   return safe((error as { message?: unknown })?.message)
     .toLowerCase()
@@ -274,6 +279,9 @@ function normalizeTemplate(raw: Partial<CalendarTemplate>): CalendarTemplate {
           timeBlock: normalizeCalendarTimeBlock(
             (slot as { timeBlock?: unknown }).timeBlock,
             safe(slot.startTime) || null,
+          ),
+          isPortfolioHighlight: asBoolean(
+            (slot as { isPortfolioHighlight?: unknown }).isPortfolioHighlight,
           ),
         }))
       : [],
@@ -553,6 +561,7 @@ export function defaultCalendarTemplate(input: {
       itemType: "learning_block",
       learnerIds: [],
       timeBlock: "morning",
+      isPortfolioHighlight: false,
     },
     {
       id: makeId("slot"),
@@ -566,6 +575,7 @@ export function defaultCalendarTemplate(input: {
       itemType: "learning_block",
       learnerIds: [],
       timeBlock: "morning",
+      isPortfolioHighlight: false,
     },
     {
       id: makeId("slot"),
@@ -579,6 +589,7 @@ export function defaultCalendarTemplate(input: {
       itemType: "learning_block",
       learnerIds: [],
       timeBlock: "afternoon",
+      isPortfolioHighlight: false,
     },
   ];
 
@@ -702,6 +713,7 @@ export async function generateProgramIntoCalendar(input: {
       timeBlock: normalizeCalendarTimeBlock(slot.timeBlock, slot.startTime ?? null),
       startTime: safe(slot.startTime) || null,
       endTime: safe(slot.endTime) || null,
+      isPortfolioHighlight: slot.isPortfolioHighlight === true,
     });
 
     generated.push(created);

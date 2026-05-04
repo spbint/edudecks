@@ -78,8 +78,27 @@ function buildBlankSlot(
     itemType: defaults?.itemType ?? "learning_block",
     learnerIds: defaults?.learnerIds ?? [],
     timeBlock: defaults?.timeBlock ?? "morning",
+    isPortfolioHighlight: defaults?.isPortfolioHighlight ?? false,
   };
 }
+
+const CALENDAR_QUICK_ADD_PREFERENCES_KEY = "mylearna_calendar_quick_add_preferences_v1";
+const DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES: {
+  itemType: CalendarItemType;
+  learningArea: string;
+} = {
+  itemType: "learning_block",
+  learningArea: "",
+};
+type CalendarQuickAddPreferences = typeof DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES;
+const DEFAULT_TIME_RANGE_BY_BLOCK: Record<
+  CalendarTimeBlock,
+  { startTime: string; endTime: string }
+> = {
+  morning: { startTime: "09:00", endTime: "10:30" },
+  midday: { startTime: "12:00", endTime: "13:00" },
+  afternoon: { startTime: "14:00", endTime: "15:30" },
+};
 
 function friendlyCalendarMessage(kind: "load" | "save") {
   if (kind === "load") {
@@ -111,6 +130,46 @@ function describeSaveError(error: unknown, fallback: string) {
   if (!error || typeof error !== "object") return fallback;
   const row = error as { message?: unknown; details?: unknown; hint?: unknown };
   return clean(row.message) || clean(row.details) || clean(row.hint) || fallback;
+}
+
+function readQuickAddPreferences(): CalendarQuickAddPreferences {
+  if (typeof window === "undefined") return DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES;
+
+  try {
+    const raw = window.localStorage.getItem(CALENDAR_QUICK_ADD_PREFERENCES_KEY);
+    if (!raw) return DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES;
+    const parsed = JSON.parse(raw) as {
+      itemType?: unknown;
+      learningArea?: unknown;
+    };
+
+    return {
+      itemType:
+        parsed?.itemType === "task" ||
+        parsed?.itemType === "appointment" ||
+        parsed?.itemType === "playdate" ||
+        parsed?.itemType === "reminder" ||
+        parsed?.itemType === "custom"
+          ? parsed.itemType
+          : "learning_block",
+      learningArea: clean(parsed?.learningArea),
+    };
+  } catch {
+    return DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES;
+  }
+}
+
+function writeQuickAddPreferences(value: CalendarQuickAddPreferences) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      CALENDAR_QUICK_ADD_PREFERENCES_KEY,
+      JSON.stringify(value),
+    );
+  } catch {
+    // ignore
+  }
 }
 
 function ymd(date: Date) {
@@ -243,12 +302,15 @@ export default function FamilyCalendarTemplateWorkspace() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [weekError, setWeekError] = useState("");
+  const [weekFeedbackMessage, setWeekFeedbackMessage] = useState("");
   const [editorMode, setEditorMode] = useState<CalendarWeekEditorMode>(null);
   const [editorDraft, setEditorDraft] = useState<CalendarWeekEditorDraft | null>(null);
   const [editorErrorMessage, setEditorErrorMessage] = useState("");
-  const [editorStatusMessage, setEditorStatusMessage] = useState("");
   const [savingEditor, setSavingEditor] = useState(false);
   const [deletingEditor, setDeletingEditor] = useState(false);
+  const [quickAddPreferences, setQuickAddPreferences] = useState(
+    DEFAULT_CALENDAR_QUICK_ADD_PREFERENCES,
+  );
 
   const requestedDate = searchParams.get("date");
   const learnerIds = useMemo(
@@ -268,6 +330,20 @@ export default function FamilyCalendarTemplateWorkspace() {
     if (Number.isNaN(parsed.getTime())) return;
     setSelectedWeekAnchor(parsed);
   }, [requestedDate]);
+
+  useEffect(() => {
+    setQuickAddPreferences(readQuickAddPreferences());
+  }, []);
+
+  useEffect(() => {
+    writeQuickAddPreferences(quickAddPreferences);
+  }, [quickAddPreferences]);
+
+  useEffect(() => {
+    if (!weekFeedbackMessage) return;
+    const timer = window.setTimeout(() => setWeekFeedbackMessage(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [weekFeedbackMessage]);
 
   useEffect(() => {
     let mounted = true;
@@ -453,7 +529,6 @@ export default function FamilyCalendarTemplateWorkspace() {
     setEditorMode(null);
     setEditorDraft(null);
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
   }, [viewMode]);
 
   function replaceTemplate(nextTemplate: CalendarTemplate) {
@@ -567,11 +642,11 @@ export default function FamilyCalendarTemplateWorkspace() {
     setEditorMode(null);
     setEditorDraft(null);
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
   }
 
   function resolveDefaultLearnerIds() {
     if (activeLearner?.id) return [activeLearner.id];
+    if (visibleLearnerIds.length) return [visibleLearnerIds[0]];
     if (learnerIds.length === 1) return [learnerIds[0]];
     return [];
   }
@@ -584,27 +659,54 @@ export default function FamilyCalendarTemplateWorkspace() {
     return nextLearnerIds[0] || null;
   }
 
+  function resolveDefaultTimeRange(timeBlock: CalendarTimeBlock) {
+    const matchingTemplateSlot = [...(selectedTemplate?.slots ?? [])]
+      .filter((slot) => daypartFromTemplateSlot(slot) === timeBlock)
+      .sort((a, b) => clean(a.startTime).localeCompare(clean(b.startTime)))[0];
+
+    if (matchingTemplateSlot && (clean(matchingTemplateSlot.startTime) || clean(matchingTemplateSlot.endTime))) {
+      return {
+        startTime: clean(matchingTemplateSlot.startTime),
+        endTime: clean(matchingTemplateSlot.endTime),
+      };
+    }
+
+    return DEFAULT_TIME_RANGE_BY_BLOCK[timeBlock];
+  }
+
+  function rememberQuickAddPreferencesFromDraft(draft: CalendarWeekEditorDraft) {
+    setQuickAddPreferences((current) => ({
+      itemType: draft.itemType,
+      learningArea:
+        draft.itemType === "learning_block"
+          ? clean(draft.learningArea)
+          : current.learningArea,
+    }));
+  }
+
   function buildLiveDraftFromCell(day: CalendarWeekDay, timeBlock: CalendarTimeBlock): CalendarWeekEditorDraft {
     const defaultLearnerIds = resolveDefaultLearnerIds();
+    const timeRange = resolveDefaultTimeRange(timeBlock);
     return {
       id: null,
       kind: "live",
       title: "",
-      itemType: "learning_block",
+      itemType: quickAddPreferences.itemType,
       learnerIds: defaultLearnerIds,
       date: day.key,
       dayOfWeek: day.weekdayValue,
       timeBlock,
-      startTime: "",
-      endTime: "",
+      startTime: timeRange.startTime,
+      endTime: timeRange.endTime,
       notes: "",
-      learningArea: "",
+      learningArea: quickAddPreferences.learningArea,
       curriculumOutcomeIds: [],
       sourceType: "manual",
       programId: null,
       programSegmentId: null,
       calendarTemplateSlotId: null,
       primaryLearnerId: resolvePrimaryLearnerId(defaultLearnerIds, activeLearner?.id || null),
+      isPortfolioHighlight: false,
     };
   }
 
@@ -635,6 +737,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       calendarTemplateSlotId: block.calendarTemplateSlotId ?? null,
       primaryLearnerId:
         clean(block.primaryLearnerId) || resolvePrimaryLearnerId(learnerSelection, activeLearner?.id || null),
+      isPortfolioHighlight: block.isPortfolioHighlight === true,
     };
   }
 
@@ -659,6 +762,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       programSegmentId: null,
       calendarTemplateSlotId: slot.id,
       primaryLearnerId: null,
+      isPortfolioHighlight: slot.isPortfolioHighlight === true,
     };
   }
 
@@ -671,6 +775,14 @@ export default function FamilyCalendarTemplateWorkspace() {
 
   function buildTitleFromDraft(draft: CalendarWeekEditorDraft) {
     return clean(draft.title) || defaultTitleForItemType(draft.itemType);
+  }
+
+  function successFeedbackLabel(
+    draft: CalendarWeekEditorDraft,
+    fallback: "Saved" | "Updated",
+  ) {
+    if (draft.isPortfolioHighlight) return "Highlight saved";
+    return fallback;
   }
 
   function buildLiveBlockFromDraft(draft: CalendarWeekEditorDraft): FamilyCalendarBlockEntry {
@@ -695,6 +807,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       timeBlock: draft.timeBlock,
       startTime: clean(draft.startTime) || null,
       endTime: clean(draft.endTime) || null,
+      isPortfolioHighlight: draft.isPortfolioHighlight === true,
     };
   }
 
@@ -743,14 +856,14 @@ export default function FamilyCalendarTemplateWorkspace() {
     setEditorMode("create-live");
     setEditorDraft(buildLiveDraftFromCell(day, timeBlock));
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
+    setWeekFeedbackMessage("");
   }
 
   function openLiveBlock(block: FamilyCalendarBlockEntry) {
     setEditorMode("edit-live");
     setEditorDraft(buildLiveDraftFromBlock(block));
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
+    setWeekFeedbackMessage("");
   }
 
   function openTemplateSlot(slot: TemplateSlot) {
@@ -758,13 +871,12 @@ export default function FamilyCalendarTemplateWorkspace() {
     setEditorMode("edit-template");
     setEditorDraft(buildTemplateDraft(slot));
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
+    setWeekFeedbackMessage("");
   }
 
   function changeEditorDraft(nextDraft: CalendarWeekEditorDraft) {
     setEditorDraft(nextDraft);
     setEditorErrorMessage("");
-    setEditorStatusMessage("");
   }
 
   function validateEditorDraft(draft: CalendarWeekEditorDraft) {
@@ -816,6 +928,7 @@ export default function FamilyCalendarTemplateWorkspace() {
         itemType: editorDraft.itemType,
         learnerIds: editorDraft.learnerIds.filter((learnerId) => learnerIds.includes(learnerId)),
         timeBlock: editorDraft.timeBlock,
+        isPortfolioHighlight: editorDraft.isPortfolioHighlight === true,
       };
 
       replaceTemplate({
@@ -827,8 +940,14 @@ export default function FamilyCalendarTemplateWorkspace() {
       });
       setSelectedTemplateId(template.id);
       setSelectedSlotId(nextSlot.id);
+      rememberQuickAddPreferencesFromDraft(editorDraft);
+      setStatus("");
+      setWeekFeedbackMessage(
+        editorDraft.isPortfolioHighlight
+          ? "Template highlight saved. Save calendar below to sync it."
+          : "Template updated. Save calendar below to sync it.",
+      );
       closeWeekEditor();
-      setStatus("Template slot updated. Save calendar below to sync it.");
       return;
     }
 
@@ -870,11 +989,14 @@ export default function FamilyCalendarTemplateWorkspace() {
           timeBlock: nextDraft.timeBlock,
           startTime: clean(nextDraft.startTime) || null,
           endTime: clean(nextDraft.endTime) || null,
+          isPortfolioHighlight: nextDraft.isPortfolioHighlight === true,
         });
 
         replaceWeekBlock(saved);
+        rememberQuickAddPreferencesFromDraft(nextDraft);
+        setStatus("");
+        setWeekFeedbackMessage(successFeedbackLabel(nextDraft, "Saved"));
         closeWeekEditor();
-        setStatus("Calendar item saved.");
       } else {
         await updateFamilyCalendarBlock({
           blockId: nextDraft.id || "",
@@ -890,12 +1012,15 @@ export default function FamilyCalendarTemplateWorkspace() {
           timeBlock: nextDraft.timeBlock,
           startTime: clean(nextDraft.startTime) || null,
           endTime: clean(nextDraft.endTime) || null,
+          isPortfolioHighlight: nextDraft.isPortfolioHighlight === true,
         });
 
         const nextBlock = buildLiveBlockFromDraft(nextDraft);
         replaceWeekBlock(nextBlock);
+        rememberQuickAddPreferencesFromDraft(nextDraft);
+        setStatus("");
+        setWeekFeedbackMessage(successFeedbackLabel(nextDraft, "Updated"));
         closeWeekEditor();
-        setStatus("Calendar item updated.");
       }
     } catch (saveError) {
       setEditorErrorMessage(describeSaveError(saveError, friendlyWeekMessage("save")));
@@ -910,9 +1035,9 @@ export default function FamilyCalendarTemplateWorkspace() {
     if (editorDraft.kind === "template") {
       if (!selectedTemplate || !editorDraft.id) return;
       handleDeleteSlot(editorDraft.id);
-      setEditorStatusMessage("");
       closeWeekEditor();
-      setStatus("Template slot removed. Save calendar below to sync it.");
+      setStatus("");
+      setWeekFeedbackMessage("Template deleted. Save calendar below to sync it.");
       return;
     }
 
@@ -923,8 +1048,9 @@ export default function FamilyCalendarTemplateWorkspace() {
       setEditorErrorMessage("");
       await removeFamilyCalendarBlock({ blockId: editorDraft.id });
       removeWeekBlock(editorDraft.id);
+      setStatus("");
+      setWeekFeedbackMessage("Deleted");
       closeWeekEditor();
-      setStatus("Calendar item removed.");
     } catch (deleteError) {
       setEditorErrorMessage(describeSaveError(deleteError, friendlyWeekMessage("delete")));
     } finally {
@@ -996,10 +1122,10 @@ export default function FamilyCalendarTemplateWorkspace() {
             activeLearnerName={activeLearner?.label || ""}
             loading={loadingWeek || workspaceLoading}
             errorMessage={weekError}
+            feedbackMessage={weekFeedbackMessage}
             editorMode={editorMode}
             editorDraft={editorDraft}
             editorErrorMessage={editorErrorMessage}
-            editorStatusMessage={editorStatusMessage}
             savingEditor={savingEditor}
             deletingEditor={deletingEditor}
             canPersistLiveItems={canPersistLiveItems}

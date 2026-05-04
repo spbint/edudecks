@@ -47,6 +47,7 @@ export type FamilyCalendarBlockEntry = {
   timeBlock?: CalendarTimeBlock | null;
   startTime?: string | null;
   endTime?: string | null;
+  isPortfolioHighlight?: boolean;
 };
 
 export type FamilyCalendarWindow = {
@@ -101,6 +102,10 @@ function safe(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function asBoolean(value: unknown) {
+  return value === true;
+}
+
 function getWeekKeyFromDate(dateValue: string): string {
   const date = new Date(`${dateValue}T00:00:00`);
   const year = date.getFullYear();
@@ -123,6 +128,7 @@ function parseCalendarPayload(value: string): {
   timeBlock: CalendarTimeBlock | null;
   startTime: string | null;
   endTime: string | null;
+  isPortfolioHighlight: boolean;
 } {
   const raw = safe(value);
   if (!raw) {
@@ -139,6 +145,7 @@ function parseCalendarPayload(value: string): {
       timeBlock: null,
       startTime: null,
       endTime: null,
+      isPortfolioHighlight: false,
     };
   }
 
@@ -156,6 +163,7 @@ function parseCalendarPayload(value: string): {
       timeBlock?: unknown;
       startTime?: unknown;
       endTime?: unknown;
+      isPortfolioHighlight?: unknown;
     };
     const startTime = safe(parsed?.startTime) || inferStartTimeFromTime(safe(parsed?.time));
     const endTime = safe(parsed?.endTime) || inferEndTimeFromTime(safe(parsed?.time));
@@ -179,6 +187,7 @@ function parseCalendarPayload(value: string): {
       timeBlock: normalizeCalendarTimeBlock(parsed?.timeBlock, startTime, endTime),
       startTime: startTime || null,
       endTime: endTime || null,
+      isPortfolioHighlight: asBoolean(parsed?.isPortfolioHighlight),
     };
   } catch {
     return {
@@ -194,6 +203,7 @@ function parseCalendarPayload(value: string): {
       timeBlock: null,
       startTime: null,
       endTime: null,
+      isPortfolioHighlight: false,
     };
   }
 }
@@ -287,6 +297,7 @@ function buildCalendarPayload(input: {
   timeBlock?: CalendarTimeBlock | null;
   startTime?: string | null;
   endTime?: string | null;
+  isPortfolioHighlight?: boolean;
 }) {
   return JSON.stringify({
     note: safe(input.note),
@@ -306,6 +317,7 @@ function buildCalendarPayload(input: {
     timeBlock: input.timeBlock ?? null,
     startTime: safe(input.startTime) || null,
     endTime: safe(input.endTime) || null,
+    isPortfolioHighlight: input.isPortfolioHighlight === true,
   });
 }
 
@@ -576,6 +588,7 @@ export async function loadFamilyCalendarWindow(input: {
         timeBlock: payload.timeBlock,
         startTime: payload.startTime,
         endTime: payload.endTime,
+        isPortfolioHighlight: payload.isPortfolioHighlight,
       };
 
       result.blocks[plannedDate] = [...(result.blocks[plannedDate] ?? []), entry];
@@ -604,6 +617,7 @@ export async function addFamilyCalendarBlock(input: {
   timeBlock?: CalendarTimeBlock | null;
   startTime?: string | null;
   endTime?: string | null;
+  isPortfolioHighlight?: boolean;
 }): Promise<FamilyCalendarBlockEntry> {
   const payload = {
     family_profile_id: input.familyProfileId,
@@ -622,6 +636,7 @@ export async function addFamilyCalendarBlock(input: {
       timeBlock: input.timeBlock ?? null,
       startTime: input.startTime ?? null,
       endTime: input.endTime ?? null,
+      isPortfolioHighlight: input.isPortfolioHighlight === true,
     }),
     planned_date: input.date,
     week_key: getWeekKeyFromDate(input.date),
@@ -675,6 +690,7 @@ export async function addFamilyCalendarBlock(input: {
     timeBlock: parsedPayload.timeBlock,
     startTime: parsedPayload.startTime,
     endTime: parsedPayload.endTime,
+    isPortfolioHighlight: parsedPayload.isPortfolioHighlight,
   };
 }
 
@@ -707,6 +723,7 @@ export async function updateFamilyCalendarBlockCurriculum(input: {
     timeBlock: currentPayload.timeBlock,
     startTime: currentPayload.startTime,
     endTime: currentPayload.endTime,
+    isPortfolioHighlight: currentPayload.isPortfolioHighlight,
   });
 
   let updateResponse = await supabase
@@ -743,6 +760,7 @@ export async function updateFamilyCalendarBlock(input: {
   timeBlock?: CalendarTimeBlock | null;
   startTime?: string | null;
   endTime?: string | null;
+  isPortfolioHighlight?: boolean;
 }): Promise<void> {
   const existingResponse = await supabase
     .from("learning_plan_items")
@@ -778,6 +796,10 @@ export async function updateFamilyCalendarBlock(input: {
     startTime:
       input.startTime === undefined ? currentPayload.startTime : input.startTime,
     endTime: input.endTime === undefined ? currentPayload.endTime : input.endTime,
+    isPortfolioHighlight:
+      input.isPortfolioHighlight === undefined
+        ? currentPayload.isPortfolioHighlight
+        : input.isPortfolioHighlight,
   });
 
   let updateResponse = await supabase

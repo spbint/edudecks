@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useMemo, useRef } from "react";
 import type { FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
@@ -54,6 +55,7 @@ export type CalendarWeekEditorDraft = {
   programSegmentId: string | null;
   calendarTemplateSlotId: string | null;
   primaryLearnerId: string | null;
+  isPortfolioHighlight: boolean;
 };
 
 const DAYPARTS = [
@@ -160,29 +162,13 @@ function learnerNames(learnerIds: string[], learners: FamilyLearner[]) {
 function itemTypeTone(itemType: CalendarItemType) {
   if (itemType === "task") {
     return {
-      accent: "#0f766e",
-      badge: "border-teal-200 bg-teal-50 text-teal-700",
+      accent: "#475569",
+      badge: "border-slate-200 bg-slate-100 text-slate-700",
       surface:
-        "bg-[linear-gradient(180deg,rgba(240,253,250,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+        "bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   if (itemType === "appointment") {
-    return {
-      accent: "#2563eb",
-      badge: "border-blue-200 bg-blue-50 text-blue-700",
-      surface:
-        "bg-[linear-gradient(180deg,rgba(239,246,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
-    };
-  }
-  if (itemType === "playdate") {
-    return {
-      accent: "#d97706",
-      badge: "border-amber-200 bg-amber-50 text-amber-700",
-      surface:
-        "bg-[linear-gradient(180deg,rgba(255,251,235,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
-    };
-  }
-  if (itemType === "reminder") {
     return {
       accent: "#7c3aed",
       badge: "border-violet-200 bg-violet-50 text-violet-700",
@@ -190,55 +176,44 @@ function itemTypeTone(itemType: CalendarItemType) {
         "bg-[linear-gradient(180deg,rgba(245,243,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
+  if (itemType === "playdate") {
+    return {
+      accent: "#16a34a",
+      badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(240,253,244,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+    };
+  }
+  if (itemType === "reminder") {
+    return {
+      accent: "#d97706",
+      badge: "border-amber-200 bg-amber-50 text-amber-700",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(255,251,235,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+    };
+  }
   if (itemType === "custom") {
     return {
-      accent: "#475569",
+      accent: "#64748b",
       badge: "border-slate-200 bg-slate-100 text-slate-700",
       surface:
         "bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   return {
-    accent: "#0f766e",
-    badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    accent: "#2563eb",
+    badge: "border-blue-200 bg-blue-50 text-blue-700",
     surface:
-      "bg-[linear-gradient(180deg,rgba(240,253,244,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+      "bg-[linear-gradient(180deg,rgba(239,246,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
   };
 }
 
-function subjectAccent(subject: string) {
-  const key = safe(subject).toLowerCase();
-  if (key.includes("math")) return "#2563eb";
-  if (key.includes("numeracy")) return "#0ea5e9";
-  if (key.includes("literacy") || key.includes("reading") || key.includes("english")) {
-    return "#db2777";
-  }
-  if (key.includes("writing") || key.includes("spelling") || key.includes("handwriting")) {
-    return "#9333ea";
-  }
-  if (key.includes("science")) return "#059669";
-  if (key.includes("art") || key.includes("creative")) return "#7c3aed";
-  if (key.includes("history") || key.includes("hass") || key.includes("humanities")) {
-    return "#d97706";
-  }
-  if (key.includes("life") || key.includes("community")) return "#0f766e";
-  if (key.includes("nature")) return "#16a34a";
-  if (key.includes("sport") || key.includes("movement")) return "#ea580c";
-  return "#0f766e";
-}
-
 function slotAccentStyle(slot: TemplateSlot): React.CSSProperties {
-  if (slot.itemType && slot.itemType !== "learning_block") {
-    return { background: itemTypeTone(slot.itemType).accent };
-  }
-  return { background: subjectAccent(slot.subjectId || slot.label) };
+  return { background: itemTypeTone(slot.itemType || "learning_block").accent };
 }
 
 function blockAccentStyle(block: FamilyCalendarBlockEntry): React.CSSProperties {
-  if (block.itemType && block.itemType !== "learning_block") {
-    return { background: itemTypeTone(block.itemType).accent };
-  }
-  return { background: subjectAccent(block.subject || block.title) };
+  return { background: itemTypeTone(block.itemType || "learning_block").accent };
 }
 
 function slotTimeLabel(slot: TemplateSlot) {
@@ -278,6 +253,88 @@ function matchesLearnerFilter(
 function isAllLearnersSelected(learners: FamilyLearner[], visibleLearnerIds: string[]) {
   if (!learners.length) return false;
   return learners.every((learner) => visibleLearnerIds.includes(learner.id));
+}
+
+function learnerInitials(label: string) {
+  const parts = safe(label).split(/\s+/).filter(Boolean);
+  if (!parts.length) return "LR";
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+}
+
+function learnerShortLabel(label: string) {
+  const parts = safe(label).split(/\s+/).filter(Boolean);
+  if (!parts.length) return "Learner";
+  return parts[0];
+}
+
+type LearnerChipDisplay = {
+  summaryLabel: string;
+  chips: Array<{
+    key: string;
+    initials: string;
+    label: string;
+  }>;
+  overflow: number;
+};
+
+function learnerChipData(
+  learnerIds: string[] | undefined,
+  learners: FamilyLearner[],
+): LearnerChipDisplay {
+  const normalizedIds = Array.from(new Set((learnerIds ?? []).map((learnerId) => safe(learnerId)).filter(Boolean)));
+  const learnerRows = normalizedIds
+    .map((learnerId) => learners.find((learner) => learner.id === learnerId) ?? null)
+    .filter(Boolean) as FamilyLearner[];
+
+  if (!learners.length || !normalizedIds.length) {
+    return {
+      summaryLabel: "Family",
+      chips: [
+        {
+          key: "family",
+          initials: "FM",
+          label: "Family",
+        },
+      ],
+      overflow: 0,
+    };
+  }
+
+  if (learners.length > 1 && learnerRows.length >= learners.length) {
+    return {
+      summaryLabel: "All learners",
+      chips: [
+        {
+          key: "all",
+          initials: "AL",
+          label: "All learners",
+        },
+      ],
+      overflow: 0,
+    };
+  }
+
+  return {
+    summaryLabel: learnerRows.map((learner) => learner.label).join(", "),
+    chips: learnerRows.slice(0, 2).map((learner) => ({
+      key: learner.id,
+      initials: learnerInitials(learner.label),
+      label: learnerShortLabel(learner.label),
+      })),
+    overflow: learnerRows.length > 2 ? learnerRows.length - 2 : 0,
+  } satisfies LearnerChipDisplay;
+}
+
+function buildCaptureHref(draft: CalendarWeekEditorDraft) {
+  const params = new URLSearchParams();
+  if (safe(draft.date)) params.set("date", safe(draft.date));
+  if (safe(draft.primaryLearnerId)) params.set("learner", safe(draft.primaryLearnerId));
+  if (safe(draft.id)) params.set("block", safe(draft.id));
+  const query = params.toString();
+  return query ? `/capture?${query}` : "/capture";
 }
 
 function createCellSelectionKey(date: string, timeBlock: CalendarTimeBlock) {
@@ -425,7 +482,6 @@ function CalendarInlinePopoverEditor({
   weekDays,
   learners,
   errorMessage,
-  statusMessage,
   saving,
   deleting,
   canPersistLiveItems,
@@ -440,7 +496,6 @@ function CalendarInlinePopoverEditor({
   weekDays: CalendarWeekDay[];
   learners: FamilyLearner[];
   errorMessage: string;
-  statusMessage: string;
   saving: boolean;
   deleting: boolean;
   canPersistLiveItems: boolean;
@@ -509,6 +564,13 @@ function CalendarInlinePopoverEditor({
   const curriculumCount = draft.curriculumOutcomeIds.length;
   const selectedLearnerNames = learnerNames(draft.learnerIds, learners);
   const canToggleLearners = learners.length > 1;
+  const canAddEvidence = mode === "edit-live" && draft.kind === "live" && Boolean(safe(draft.id));
+  const evidenceHref = buildCaptureHref(draft);
+  const evidenceHelperText = canAddEvidence
+    ? "Open Capture with this calendar context attached."
+    : draft.kind === "template"
+      ? "Evidence attaches to saved week items, not template slots."
+      : "Save this item before adding evidence.";
 
   return (
     <div
@@ -550,12 +612,6 @@ function CalendarInlinePopoverEditor({
         {errorMessage ? (
           <div className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
             {errorMessage}
-          </div>
-        ) : null}
-
-        {statusMessage ? (
-          <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700">
-            {statusMessage}
           </div>
         ) : null}
 
@@ -686,6 +742,30 @@ function CalendarInlinePopoverEditor({
           </label>
         ) : null}
 
+        <label className="grid gap-2 rounded-[16px] border border-amber-200 bg-amber-50/70 px-3 py-3">
+          <span className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={draft.isPortfolioHighlight}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  isPortfolioHighlight: event.target.checked,
+                })
+              }
+              className="mt-1 h-4 w-4 rounded border-amber-300 text-slate-950 focus:ring-amber-200"
+            />
+            <span className="grid gap-1">
+              <span className="text-[13px] font-semibold text-slate-950">
+                Mark as portfolio highlight
+              </span>
+              <span className="text-[11px] leading-5 text-slate-500">
+                Highlights can appear in portfolio records and exports.
+              </span>
+            </span>
+          </span>
+        </label>
+
         <section className="grid gap-2 rounded-[16px] border border-slate-200 bg-slate-50/80 p-3">
           <div className="grid gap-1">
             <div className={LABEL}>Learners</div>
@@ -778,7 +858,33 @@ function CalendarInlinePopoverEditor({
                 ? `${curriculumCount} curriculum link${curriculumCount === 1 ? "" : "s"}`
                 : "No curriculum links"}
             </span>
+            {draft.isPortfolioHighlight ? (
+              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                * Highlight
+              </span>
+            ) : null}
           </div>
+        </div>
+
+        <div className="grid gap-2 rounded-[16px] border border-slate-200 bg-slate-50/70 px-3 py-3">
+          <div className={LABEL}>Evidence</div>
+          <div className="text-[12px] leading-5 text-slate-500">{evidenceHelperText}</div>
+          {canAddEvidence ? (
+            <Link
+              href={evidenceHref}
+              className="inline-flex w-fit items-center justify-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-[13px] font-semibold text-blue-700 transition hover:bg-blue-100"
+            >
+              Add evidence
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-400"
+            >
+              Add evidence
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -831,10 +937,10 @@ export function CalendarWeekView({
   activeLearnerName,
   loading,
   errorMessage,
+  feedbackMessage,
   editorMode,
   editorDraft,
   editorErrorMessage,
-  editorStatusMessage,
   savingEditor,
   deletingEditor,
   canPersistLiveItems,
@@ -863,10 +969,10 @@ export function CalendarWeekView({
   activeLearnerName: string;
   loading: boolean;
   errorMessage: string;
+  feedbackMessage: string;
   editorMode: CalendarWeekEditorMode;
   editorDraft: CalendarWeekEditorDraft | null;
   editorErrorMessage: string;
-  editorStatusMessage: string;
   savingEditor: boolean;
   deletingEditor: boolean;
   canPersistLiveItems: boolean;
@@ -1006,6 +1112,12 @@ export function CalendarWeekView({
           </div>
         ) : null}
 
+        {feedbackMessage ? (
+          <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-semibold text-emerald-700">
+            {feedbackMessage}
+          </div>
+        ) : null}
+
         {!hasTemplateSlots ? (
           <div className="flex flex-col gap-3 rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 md:flex-row md:items-center md:justify-between">
             <div className="grid gap-1">
@@ -1121,7 +1233,7 @@ export function CalendarWeekView({
                                   const linkedProgram = safe(block.programId)
                                     ? programMap.get(safe(block.programId)) ?? null
                                     : null;
-                                  const learnerLabels = learnerNames(block.learnerIds ?? [], learners);
+                                  const learnerDisplay = learnerChipData(block.learnerIds, learners);
                                   const tone = itemTypeTone(block.itemType || "learning_block");
                                   const selected = selectedCalendarItemKey === `live:${block.id}`;
 
@@ -1154,6 +1266,11 @@ export function CalendarWeekView({
                                             <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                                               {liveBlockTimeLabel(block)}
                                             </span>
+                                            {block.isPortfolioHighlight ? (
+                                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                                                * Highlight
+                                              </span>
+                                            ) : null}
                                           </div>
 
                                           <div className="text-[14px] font-bold leading-5 text-slate-950">
@@ -1166,19 +1283,22 @@ export function CalendarWeekView({
                                               .join(" - ") || "Live calendar item"}
                                           </div>
 
-                                          {learnerLabels.length ? (
+                                          {learnerDisplay.chips.length ? (
                                             <div className="flex flex-wrap gap-1.5">
-                                              {learnerLabels.slice(0, 2).map((label) => (
+                                              {learnerDisplay.chips.map((chip) => (
                                                 <span
-                                                  key={label}
-                                                  className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                                                  key={chip.key}
+                                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-600"
                                                 >
-                                                  {label}
+                                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">
+                                                    {chip.initials}
+                                                  </span>
+                                                  <span>{chip.label}</span>
                                                 </span>
                                               ))}
-                                              {learnerLabels.length > 2 ? (
+                                              {learnerDisplay.overflow ? (
                                                 <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                                  +{learnerLabels.length - 2} more
+                                                  +{learnerDisplay.overflow} more
                                                 </span>
                                               ) : null}
                                             </div>
@@ -1199,7 +1319,6 @@ export function CalendarWeekView({
                                           weekDays={weekDays}
                                           learners={learners}
                                           errorMessage={editorErrorMessage}
-                                          statusMessage={editorStatusMessage}
                                           saving={savingEditor}
                                           deleting={deletingEditor}
                                           canPersistLiveItems={canPersistLiveItems}
@@ -1215,7 +1334,7 @@ export function CalendarWeekView({
                                 })}
 
                                 {templateSlotsForCell.map((slot) => {
-                                  const learnerLabels = learnerNames(slot.learnerIds ?? [], learners);
+                                  const learnerDisplay = learnerChipData(slot.learnerIds, learners);
                                   const tone = itemTypeTone(slot.itemType || "learning_block");
                                   const selected = selectedCalendarItemKey === `template:${slot.id}`;
 
@@ -1248,6 +1367,11 @@ export function CalendarWeekView({
                                             >
                                               {itemTypeLabel(slot.itemType || "learning_block")}
                                             </span>
+                                            {slot.isPortfolioHighlight ? (
+                                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                                                * Highlight
+                                              </span>
+                                            ) : null}
                                           </div>
 
                                           <div className="text-[14px] font-bold leading-5 text-slate-950">
@@ -1260,19 +1384,22 @@ export function CalendarWeekView({
                                               .join(" - ") || "Template slot"}
                                           </div>
 
-                                          {learnerLabels.length ? (
+                                          {learnerDisplay.chips.length ? (
                                             <div className="flex flex-wrap gap-1.5">
-                                              {learnerLabels.slice(0, 2).map((label) => (
+                                              {learnerDisplay.chips.map((chip) => (
                                                 <span
-                                                  key={label}
-                                                  className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                                                  key={chip.key}
+                                                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-2 py-1 text-[11px] font-semibold text-slate-600"
                                                 >
-                                                  {label}
+                                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">
+                                                    {chip.initials}
+                                                  </span>
+                                                  <span>{chip.label}</span>
                                                 </span>
                                               ))}
-                                              {learnerLabels.length > 2 ? (
+                                              {learnerDisplay.overflow ? (
                                                 <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                                  +{learnerLabels.length - 2} more
+                                                  +{learnerDisplay.overflow} more
                                                 </span>
                                               ) : null}
                                             </div>
@@ -1293,7 +1420,6 @@ export function CalendarWeekView({
                                           weekDays={weekDays}
                                           learners={learners}
                                           errorMessage={editorErrorMessage}
-                                          statusMessage={editorStatusMessage}
                                           saving={savingEditor}
                                           deleting={deletingEditor}
                                           canPersistLiveItems={canPersistLiveItems}
@@ -1337,7 +1463,6 @@ export function CalendarWeekView({
                                     weekDays={weekDays}
                                     learners={learners}
                                     errorMessage={editorErrorMessage}
-                                    statusMessage={editorStatusMessage}
                                     saving={savingEditor}
                                     deleting={deletingEditor}
                                     canPersistLiveItems={canPersistLiveItems}
