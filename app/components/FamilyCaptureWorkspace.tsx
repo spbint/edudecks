@@ -59,7 +59,7 @@ type LinkedBlockOption = FamilyCalendarBlockEntry & {
 
 function friendlyCaptureMessage(kind: "load" | "save" | "setup") {
   if (kind === "load") {
-    return "Linked plan blocks are still getting ready. You can keep the capture focused on the learning moment.";
+    return "We could not load linked plan blocks just now. You can still capture this learning moment and try again shortly.";
   }
   if (kind === "setup") {
     return "Choose a synced learner workspace before capturing evidence.";
@@ -95,6 +95,7 @@ export default function FamilyCaptureWorkspace() {
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [linkedBlocksError, setLinkedBlocksError] = useState("");
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
@@ -126,6 +127,7 @@ export default function FamilyCaptureWorkspace() {
         if (mounted) {
           setLinkedBlocks([]);
           setLoadingBlocks(false);
+          setLinkedBlocksError("");
         }
         return;
       }
@@ -158,9 +160,10 @@ export default function FamilyCaptureWorkspace() {
           .sort((a, b) => a.date.localeCompare(b.date));
 
         setLinkedBlocks(options);
+        setLinkedBlocksError("");
       } catch {
         if (!mounted) return;
-        setErrorMessage(friendlyCaptureMessage("load"));
+        setLinkedBlocksError(friendlyCaptureMessage("load"));
       } finally {
         if (mounted) setLoadingBlocks(false);
       }
@@ -338,6 +341,19 @@ export default function FamilyCaptureWorkspace() {
                   ))}
                 </CaptureSelect>
                 <div className={META_TEXT}>{primaryLinkedSummary}</div>
+                {loadingBlocks ? (
+                  <div className={META_TEXT}>Loading linked plan blocks…</div>
+                ) : null}
+                {!loadingBlocks && !linkedBlocksError && canonicalReady && hasActiveLearner && linkedBlocks.length === 0 ? (
+                  <div className="rounded-[14px] border border-blue-200 bg-blue-50 px-3 py-2 text-[13px] leading-5 text-blue-700">
+                    No linked plan blocks yet. You can still capture this learning moment now.
+                  </div>
+                ) : null}
+                {linkedBlocksError ? (
+                  <div className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-[13px] leading-5 text-rose-700">
+                    {linkedBlocksError}
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid gap-2">
