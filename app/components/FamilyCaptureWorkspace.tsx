@@ -381,29 +381,30 @@ export default function FamilyCaptureWorkspace() {
         });
 
         uploadedAttachments = uploadResult.uploaded.map((item) => ({
-          url: item.url,
+          url: null,
           label: item.label,
           kind: item.kind,
+          path: item.path,
+          mimeType: item.mimeType,
+          size: item.size,
+          isLegacyPublicUrl: false,
         }));
         failedUploads = uploadResult.failed.length;
 
         if (uploadResult.uploaded.length) {
-          const imageUrl =
-            uploadResult.uploaded.find((item) => item.kind === "image")?.url || null;
-          const audioUrl =
-            uploadResult.uploaded.find((item) => item.kind === "audio")?.url || null;
-          const fileUrl =
-            uploadResult.uploaded.find((item) => item.kind === "file")?.url ||
-            audioUrl ||
-            null;
-
           await updateFamilyEvidenceEntryAttachments({
             evidenceId: created.id,
             studentId: activeLearner.id,
-            attachmentUrls: uploadResult.uploaded.map((item) => item.url),
-            imageUrl,
-            audioUrl,
-            fileUrl,
+            attachmentUrls: uploadResult.uploaded.map((item) => ({
+              path: item.path,
+              name: item.label,
+              mimeType: item.mimeType,
+              size: item.size,
+              kind: item.kind,
+            })),
+            imageUrl: null,
+            audioUrl: null,
+            fileUrl: null,
           });
         }
       }
@@ -542,7 +543,7 @@ export default function FamilyCaptureWorkspace() {
               <div className="grid gap-1">
                 <div className={SECTION_LABEL}>Attach photo or file</div>
                 <div className={BODY_TEXT}>
-                  Add a real piece of evidence to this learning moment. Images stay visible in portfolio cards. Other files are saved as safe references for report and export use.
+                  Add a real piece of evidence to this learning moment. Images stay visible in portfolio cards when available. Other files are saved as private references for report and export use.
                 </div>
               </div>
 
@@ -600,15 +601,12 @@ export default function FamilyCaptureWorkspace() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {savedAttachments.map((attachment) => (
-                      <a
-                        key={attachment.url}
-                        href={attachment.url}
-                        target="_blank"
-                        rel="noreferrer"
+                      <div
+                        key={`${attachment.path || attachment.label}-${attachment.kind}`}
                         className="inline-flex rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
                       >
                         {attachment.label}
-                      </a>
+                      </div>
                     ))}
                   </div>
                 </div>

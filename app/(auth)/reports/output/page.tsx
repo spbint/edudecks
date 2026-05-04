@@ -999,7 +999,7 @@ function PortfolioContentPanel({
                   <div className="flex flex-wrap gap-2">
                     {item.attachments.map((attachment) => (
                       <span
-                        key={`${item.id}-${attachment.url}`}
+                        key={`${item.id}-${attachment.path || attachment.url || attachment.label}`}
                         className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
                       >
                         {attachment.label}

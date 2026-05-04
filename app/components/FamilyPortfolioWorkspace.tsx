@@ -11,7 +11,7 @@ import {
 import {
   attachmentCountLabel,
   loadEvidenceEntriesWithVariants,
-  summarizeFamilyEvidenceAttachments,
+  resolveFamilyEvidenceAttachmentSummary,
 } from "@/lib/familyEvidence";
 import {
   PortfolioActionsRow,
@@ -20,6 +20,7 @@ import {
   type PortfolioActionItem,
   type PortfolioCardItem,
 } from "@/app/components/portfolio/PortfolioOverviewComponents";
+import { supabase } from "@/lib/supabaseClient";
 
 type EvidenceRow = {
   id: string;
@@ -31,12 +32,13 @@ type EvidenceRow = {
   evidence_type?: string | null;
   image_url?: string | null;
   file_url?: string | null;
+  audio_url?: string | null;
   attachment_urls?: string[] | string | null;
   created_at?: string | null;
 };
 
 const EVIDENCE_SELECTS = [
-  "id,title,summary,note,occurred_on,learning_area,evidence_type,image_url,file_url,attachment_urls,created_at",
+  "id,title,summary,note,occurred_on,learning_area,evidence_type,image_url,file_url,audio_url,attachment_urls,created_at",
 ];
 
 const PLACEHOLDER_ITEMS: PortfolioCardItem[] = [
@@ -136,11 +138,14 @@ function portfolioType(value?: string | null): PortfolioCardItem["type"] {
   return "Evidence";
 }
 
-function mapEvidenceToCard(row: EvidenceRow): PortfolioCardItem {
+async function mapEvidenceToCard(row: EvidenceRow): Promise<PortfolioCardItem> {
   const type = portfolioType(row.evidence_type);
   const tag = safe(row.learning_area) || "Learning";
   const dateLabel = formatPortfolioDate(row.occurred_on || row.created_at);
-  const attachmentSummary = summarizeFamilyEvidenceAttachments(row);
+  const attachmentSummary = await resolveFamilyEvidenceAttachmentSummary(row, {
+    includeSignedImageUrls: true,
+    storageClient: supabase,
+  });
 
   return {
     id: row.id,
@@ -210,7 +215,9 @@ export default function FamilyPortfolioWorkspace() {
         });
 
         if (!mounted) return;
-        setItems(rows.map(mapEvidenceToCard));
+        const nextItems = await Promise.all(rows.map((row) => mapEvidenceToCard(row)));
+        if (!mounted) return;
+        setItems(nextItems);
       } catch {
         if (!mounted) return;
         setItems(PLACEHOLDER_ITEMS);

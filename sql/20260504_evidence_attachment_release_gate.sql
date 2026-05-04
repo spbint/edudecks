@@ -1,12 +1,18 @@
 -- Evidence Attachments release gate for EduDecks / MyLearna.
 --
 -- IMPORTANT:
--- 1. The current app stores public URLs from Supabase Storage via getPublicUrl(...).
--- 2. To preserve that behaviour, this draft keeps the `evidence` bucket public.
--- 3. Public evidence URLs are acceptable for development or tightly controlled
---    private beta only. They are not a production-grade privacy posture for
---    child evidence.
--- 4. Before applying the `evidence_entries` RLS policies below, confirm that
+-- 1. Evidence attachments are child and compliance sensitive.
+-- 2. The `evidence` bucket must stay private. New evidence records store
+--    private storage paths in metadata, not public URLs.
+-- 3. Signed URLs must be generated only at render time for authenticated
+--    portfolio or capture contexts.
+-- 4. HTML, DOCX, and PDF exports intentionally include attachment names and
+--    counts only. They must never include storage paths, public URLs, or
+--    signed URLs.
+-- 5. Legacy public URL evidence records remain temporarily supported in app
+--    code for compatibility and should be migrated to private storage paths
+--    later where feasible.
+-- 6. Before applying the `evidence_entries` RLS policies below, confirm that
 --    live evidence rows have `user_id` populated. Older rows with null
 --    `user_id` will be hidden by strict ownership policies.
 --
@@ -33,7 +39,7 @@ insert into storage.buckets (
 values (
   'evidence',
   'evidence',
-  true,
+  false,
   10485760,
   array[
     'image/jpeg',
