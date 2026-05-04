@@ -12,6 +12,7 @@ import {
   attachmentCountLabel,
   loadEvidenceEntriesWithVariants,
   resolveFamilyEvidenceAttachmentSummary,
+  type FamilyEvidenceAttachmentSummary,
 } from "@/lib/familyEvidence";
 import {
   PortfolioActionsRow,
@@ -45,19 +46,26 @@ const PLACEHOLDER_ITEMS: PortfolioCardItem[] = [
   {
     id: "placeholder-1",
     title: "Science experiment",
-    meta: "12 Apr • Exploration",
+    meta: "12 Apr - Evidence",
     tag: "Science",
     type: "Evidence",
+    eyebrow: "Photo evidence",
+    dateLabel: "12 Apr",
+    description: "A quick snapshot and note can turn everyday curiosity into a strong portfolio moment.",
     thumbnailLabel: "Observation",
+    attachmentLabel: "Photo evidence",
     thumbnailTone:
       "bg-[linear-gradient(135deg,rgba(219,234,254,0.98)_0%,rgba(191,219,254,0.94)_55%,rgba(224,242,254,0.9)_100%)]",
   },
   {
     id: "placeholder-2",
     title: "Nature journal",
-    meta: "11 Apr • Reflection",
+    meta: "11 Apr - Reflection",
     tag: "Inquiry",
     type: "Reflection",
+    eyebrow: "Reflection note",
+    dateLabel: "11 Apr",
+    description: "Short reflections help the portfolio feel like a story, not just a checklist.",
     thumbnailLabel: "Journal",
     thumbnailTone:
       "bg-[linear-gradient(135deg,rgba(233,213,255,0.98)_0%,rgba(221,214,254,0.94)_50%,rgba(243,232,255,0.92)_100%)]",
@@ -65,9 +73,12 @@ const PLACEHOLDER_ITEMS: PortfolioCardItem[] = [
   {
     id: "placeholder-3",
     title: "Reading milestone",
-    meta: "9 Apr • Achievement",
+    meta: "9 Apr - Achievement",
     tag: "Literacy",
     type: "Achievement",
+    eyebrow: "Achievement",
+    dateLabel: "9 Apr",
+    description: "Milestones and small wins sit comfortably beside richer evidence and reflections.",
     thumbnailLabel: "Milestone",
     thumbnailTone:
       "bg-[linear-gradient(135deg,rgba(220,252,231,0.98)_0%,rgba(187,247,208,0.94)_50%,rgba(254,249,195,0.9)_100%)]",
@@ -75,41 +86,57 @@ const PLACEHOLDER_ITEMS: PortfolioCardItem[] = [
   {
     id: "placeholder-4",
     title: "Maths pattern work",
-    meta: "8 Apr • Practice",
+    meta: "8 Apr - Evidence",
     tag: "Numeracy",
     type: "Evidence",
+    eyebrow: "Evidence attached",
+    dateLabel: "8 Apr",
+    description: "Worksheets, photos, and quick notes can sit together as one calm learning moment.",
     thumbnailLabel: "Practice",
+    attachmentLabel: "2 files saved",
   },
   {
     id: "placeholder-5",
     title: "Creative writing",
-    meta: "6 Apr • Reflection",
+    meta: "6 Apr - Reflection",
     tag: "Creative",
     type: "Reflection",
+    eyebrow: "Reflection note",
+    dateLabel: "6 Apr",
+    description: "Drafts and reflections help families keep the shape of learning over time.",
     thumbnailLabel: "Draft",
   },
   {
     id: "placeholder-6",
     title: "Family presentation",
-    meta: "4 Apr • Achievement",
+    meta: "4 Apr - Achievement",
     tag: "Communication",
     type: "Achievement",
+    eyebrow: "Achievement",
+    dateLabel: "4 Apr",
+    description: "Achievements can still feel warm and personal without becoming formal report language.",
     thumbnailLabel: "Share",
   },
   {
     id: "placeholder-7",
     title: "Bible memory work",
-    meta: "2 Apr • Reflection",
+    meta: "2 Apr - Reflection",
     tag: "Bible",
     type: "Reflection",
+    eyebrow: "Reflection note",
+    dateLabel: "2 Apr",
+    description: "A simple note can preserve the context behind a learning moment that mattered.",
     thumbnailLabel: "Memory",
   },
   {
     id: "placeholder-8",
     title: "Sketchbook study",
-    meta: "31 Mar • Evidence",
+    meta: "31 Mar - Evidence",
     tag: "Arts",
     type: "Evidence",
+    eyebrow: "Learning moment",
+    dateLabel: "31 Mar",
+    description: "Creative work sits neatly alongside photos, milestones, and everyday evidence.",
     thumbnailLabel: "Studio",
   },
 ];
@@ -127,6 +154,13 @@ function formatPortfolioDate(value?: string | null) {
   return parsed.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 }
 
+function excerptText(value?: string | null, maxLength = 168) {
+  const clean = safe(value).replace(/\s+/g, " ").trim();
+  if (!clean) return "";
+  if (clean.length <= maxLength) return clean;
+  return `${clean.slice(0, maxLength).trim()}...`;
+}
+
 function portfolioType(value?: string | null): PortfolioCardItem["type"] {
   const normalized = safe(value).toLowerCase();
   if (normalized.includes("reflect") || normalized.includes("journal") || normalized.includes("voice")) {
@@ -138,6 +172,36 @@ function portfolioType(value?: string | null): PortfolioCardItem["type"] {
   return "Evidence";
 }
 
+function portfolioEyebrow(
+  type: PortfolioCardItem["type"],
+  attachmentSummary: FamilyEvidenceAttachmentSummary,
+) {
+  if (attachmentSummary.imageUrl) return "Photo evidence";
+  if (type === "Reflection") return "Reflection note";
+  if (type === "Achievement") return "Achievement";
+  if (attachmentSummary.attachmentCount > 0) return "Evidence attached";
+  return "Learning moment";
+}
+
+function attachmentNamesForCard(summary: FamilyEvidenceAttachmentSummary) {
+  const fileNames = summary.attachments
+    .filter((attachment) => attachment.kind !== "image")
+    .map((attachment) => attachment.label);
+
+  return {
+    names: fileNames.slice(0, 2),
+    overflowCount: Math.max(0, fileNames.length - 2),
+  };
+}
+
+function attachmentLabelForCard(summary: FamilyEvidenceAttachmentSummary) {
+  if (!summary.attachmentCount) return null;
+  if (summary.imageUrl && summary.attachmentCount === 1) return "Photo evidence";
+  if (summary.imageUrl) return `${attachmentCountLabel(summary.attachmentCount)} saved`;
+  if (summary.attachmentCount === 1) return "Evidence attached";
+  return attachmentCountLabel(summary.attachmentCount);
+}
+
 async function mapEvidenceToCard(row: EvidenceRow): Promise<PortfolioCardItem> {
   const type = portfolioType(row.evidence_type);
   const tag = safe(row.learning_area) || "Learning";
@@ -146,23 +210,29 @@ async function mapEvidenceToCard(row: EvidenceRow): Promise<PortfolioCardItem> {
     includeSignedImageUrls: true,
     storageClient: supabase,
   });
+  const attachmentNames = attachmentNamesForCard(attachmentSummary);
 
   return {
     id: row.id,
     title: safe(row.title) || safe(row.summary) || "Learning moment",
-    meta: `${dateLabel} • ${type}`,
+    meta: `${dateLabel} - ${type}`,
     tag,
     type,
+    eyebrow: portfolioEyebrow(type, attachmentSummary),
+    dateLabel,
+    description:
+      excerptText(row.note) ||
+      excerptText(row.summary) ||
+      "A saved learning moment ready to support portfolio and reporting.",
     imageUrl: attachmentSummary.imageUrl,
     thumbnailLabel:
       attachmentSummary.attachmentCount > 0
         ? attachmentCountLabel(attachmentSummary.attachmentCount)
         : tag,
     attachmentCount: attachmentSummary.attachmentCount,
-    attachmentLabel:
-      attachmentSummary.attachmentCount > 0
-        ? attachmentCountLabel(attachmentSummary.attachmentCount)
-        : null,
+    attachmentLabel: attachmentLabelForCard(attachmentSummary),
+    attachmentNames: attachmentNames.names,
+    attachmentOverflowCount: attachmentNames.overflowCount,
   };
 }
 
@@ -298,7 +368,7 @@ export default function FamilyPortfolioWorkspace() {
     <FamilyTopNavShell
       subtitle="My Portfolio"
       heroTitle="My Portfolio"
-      heroText="A visual record of learning over time."
+      heroText="A calm record of learning moments, evidence, and milestones over time."
       hideHeroAside={true}
     >
       <div className="grid gap-5 pb-14">

@@ -329,7 +329,7 @@ function portfolioHighlightMetaSummary(
     String(item.learningArea ?? "").trim(),
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" - ");
 }
 
 function portfolioAttachmentMetaSummary(
@@ -343,7 +343,7 @@ function portfolioAttachmentMetaSummary(
     attachmentCountLabel(item.attachmentCount),
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" - ");
 }
 
 function ComplianceContextPanel({
@@ -885,51 +885,59 @@ function PortfolioContentPanel({
   const attachmentPreview = attachmentEvidence.slice(0, 4);
 
   return (
-    <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
-      <div className="grid gap-1.5">
+    <section className="grid gap-5 rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.99)_0%,rgba(248,250,252,0.97)_100%)] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+      <div className="grid gap-2">
         <div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-500">
           Portfolio content
         </div>
         <h2 className="text-[24px] font-black tracking-tight text-slate-950">
-          Saved enrichment signals
+          Curated learning moments
         </h2>
+        <p className="max-w-[820px] text-sm leading-7 text-slate-600">
+          Portfolio mode gathers saved highlights, work samples, reflections, and attached evidence into a calmer view that still stays suitable for report review and export.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+        <div className="rounded-[20px] border border-blue-100 bg-blue-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-blue-700">
             Highlights
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{highlightsCount}</div>
+          <div className="mt-1 text-[12px] text-slate-600">Saved learning moments</div>
         </div>
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+        <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-4">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
             Work samples
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{workSamplesCount}</div>
+          <div className="mt-1 text-[12px] text-slate-600">Practical evidence on hand</div>
         </div>
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+        <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-4">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
             Skills
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{skillsCount}</div>
+          <div className="mt-1 text-[12px] text-slate-600">Observed strengths and growth</div>
         </div>
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+        <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-4">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
             Reflection prompts
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{reflectionPromptCount}</div>
+          <div className="mt-1 text-[12px] text-slate-600">Useful writing starters</div>
         </div>
-        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
-            Attachments
+        <div className="rounded-[20px] border border-emerald-100 bg-emerald-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-emerald-700">
+            Evidence files
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{attachmentEvidenceCount}</div>
+          <div className="mt-1 text-[12px] text-slate-600">Attached photos and files</div>
         </div>
       </div>
 
-      <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
-        Portfolio mode can surface saved highlights, work samples, skill signals, and reflection prompts without changing the persisted report sections themselves.
+      <div className="rounded-[20px] border border-slate-200 bg-white/88 px-4 py-4 text-sm leading-7 text-slate-600">
+        These saved portfolio signals enrich the report workspace without changing the underlying report sections or exposing private attachment links.
       </div>
 
       {highlightError ? (
@@ -945,74 +953,107 @@ function PortfolioContentPanel({
       ) : null}
 
       {highlightPreview.length ? (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {highlightPreview.map((item) => {
-            const meta = portfolioHighlightMetaSummary(item, localeCode);
+        <div className="grid gap-3">
+          <div className="grid gap-1">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Portfolio highlights
+            </div>
+            <div className="text-sm leading-7 text-slate-600">
+              Strong moments worth carrying into the family record and later report writing.
+            </div>
+          </div>
 
-            return (
-              <article
-                key={item.id}
-                className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
-                    {item.origin === "calendar" ? "From calendar" : "Saved highlight"}
-                  </span>
-                </div>
-                <div className="text-[16px] font-bold text-slate-950">{item.title}</div>
-                {meta ? (
-                  <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    {meta}
+          <div className="grid gap-3 lg:grid-cols-2">
+            {highlightPreview.map((item) => {
+              const meta = portfolioHighlightMetaSummary(item, localeCode);
+
+              return (
+                <article
+                  key={item.id}
+                  className="grid gap-3 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(239,246,255,0.92)_100%)] px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
+                      Portfolio highlight
+                    </span>
+                    {item.origin === "calendar" ? (
+                      <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-600">
+                        From calendar
+                      </span>
+                    ) : null}
                   </div>
-                ) : null}
-                <div className="text-sm leading-6 text-slate-600">
-                  {item.description || "Saved learning highlight from the portfolio record."}
-                </div>
-              </article>
-            );
-          })}
+                  <div className="text-[17px] font-black leading-tight text-slate-950">{item.title}</div>
+                  {meta ? (
+                    <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      {meta}
+                    </div>
+                  ) : null}
+                  <div className="text-sm leading-6 text-slate-600">
+                    {item.description || "Saved learning highlight from the portfolio record."}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       ) : null}
 
       {attachmentPreview.length ? (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {attachmentPreview.map((item) => {
-            const meta = portfolioAttachmentMetaSummary(item, localeCode);
+        <div className="grid gap-3">
+          <div className="grid gap-1">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+              Attached evidence
+            </div>
+            <div className="text-sm leading-7 text-slate-600">
+              Photos and files stay visible here as gentle references without turning the report workspace into a gallery.
+            </div>
+          </div>
 
-            return (
-              <article
-                key={item.id}
-                className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
-                    Evidence attached
-                  </span>
-                </div>
-                <div className="text-[16px] font-bold text-slate-950">{item.title}</div>
-                {meta ? (
-                  <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    {meta}
-                  </div>
-                ) : null}
-                {item.attachments.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {item.attachments.map((attachment) => (
-                      <span
-                        key={`${item.id}-${attachment.path || attachment.url || attachment.label}`}
-                        className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                      >
-                        {attachment.label}
+          <div className="grid gap-3 lg:grid-cols-2">
+            {attachmentPreview.map((item) => {
+              const meta = portfolioAttachmentMetaSummary(item, localeCode);
+              const hasPhotoEvidence = item.attachments.some((attachment) => attachment.kind === "image");
+
+              return (
+                <article
+                  key={item.id}
+                  className="grid gap-3 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(240,253,244,0.9)_100%)] px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                      Evidence attached
+                    </span>
+                    {hasPhotoEvidence ? (
+                      <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-amber-700">
+                        Photo evidence
                       </span>
-                    ))}
+                    ) : null}
                   </div>
-                ) : null}
-                <div className="text-sm leading-6 text-slate-600">
-                  {item.description || "Supporting evidence with attached files or photos."}
-                </div>
-              </article>
-            );
-          })}
+                  <div className="text-[17px] font-black leading-tight text-slate-950">{item.title}</div>
+                  {meta ? (
+                    <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      {meta}
+                    </div>
+                  ) : null}
+                  {item.attachments.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {item.attachments.map((attachment) => (
+                        <span
+                          key={`${item.id}-${attachment.path || attachment.url || attachment.label}`}
+                          className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                        >
+                          {attachment.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="text-sm leading-6 text-slate-600">
+                    {item.description || "Supporting evidence with attached files or photos."}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </div>
       ) : null}
     </section>
