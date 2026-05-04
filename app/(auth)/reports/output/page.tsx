@@ -319,7 +319,6 @@ function portfolioHighlightMetaSummary(
   localeCode: string,
 ) {
   return [
-    item.origin === "calendar" ? "Calendar highlight" : "",
     formatPortfolioHighlightDate(item.date, localeCode),
     item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
     String(item.learningArea ?? "").trim(),
@@ -929,7 +928,7 @@ function PortfolioContentPanel({
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-blue-700">
-                    {item.origin === "calendar" ? "Calendar highlight" : "Saved highlight"}
+                    {item.origin === "calendar" ? "From calendar" : "Saved highlight"}
                   </span>
                 </div>
                 <div className="text-[16px] font-bold text-slate-950">{item.title}</div>

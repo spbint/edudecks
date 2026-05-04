@@ -781,7 +781,7 @@ export default function FamilyCalendarTemplateWorkspace() {
     draft: CalendarWeekEditorDraft,
     fallback: "Saved" | "Updated",
   ) {
-    if (draft.isPortfolioHighlight) return "Highlight saved";
+    if (draft.isPortfolioHighlight) return "Added to portfolio highlights";
     return fallback;
   }
 
@@ -944,7 +944,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       setStatus("");
       setWeekFeedbackMessage(
         editorDraft.isPortfolioHighlight
-          ? "Template highlight saved. Save calendar below to sync it."
+          ? "Added to portfolio highlights. Save calendar below to sync it."
           : "Template updated. Save calendar below to sync it.",
       );
       closeWeekEditor();

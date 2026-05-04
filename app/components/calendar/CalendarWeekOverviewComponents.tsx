@@ -341,6 +341,10 @@ function createCellSelectionKey(date: string, timeBlock: CalendarTimeBlock) {
   return `create:${date}:${timeBlock}`;
 }
 
+function portfolioHighlightBadgeLabel() {
+  return "⭐ Portfolio";
+}
+
 export function CalendarViewSwitcher({
   value,
   onChange,
@@ -760,7 +764,7 @@ function CalendarInlinePopoverEditor({
                 Mark as portfolio highlight
               </span>
               <span className="text-[11px] leading-5 text-slate-500">
-                Highlights can appear in portfolio records and exports.
+                Appears in portfolio records and exports.
               </span>
             </span>
           </span>
@@ -860,7 +864,7 @@ function CalendarInlinePopoverEditor({
             </span>
             {draft.isPortfolioHighlight ? (
               <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                * Highlight
+                {portfolioHighlightBadgeLabel()}
               </span>
             ) : null}
           </div>
@@ -1268,7 +1272,7 @@ export function CalendarWeekView({
                                             </span>
                                             {block.isPortfolioHighlight ? (
                                               <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                                * Highlight
+                                                {portfolioHighlightBadgeLabel()}
                                               </span>
                                             ) : null}
                                           </div>
@@ -1369,7 +1373,7 @@ export function CalendarWeekView({
                                             </span>
                                             {slot.isPortfolioHighlight ? (
                                               <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-                                                * Highlight
+                                                {portfolioHighlightBadgeLabel()}
                                               </span>
                                             ) : null}
                                           </div>
