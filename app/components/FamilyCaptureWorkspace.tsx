@@ -26,10 +26,40 @@ import {
   CurriculumTagPills,
   InheritedCurriculumPanel,
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
-import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
+import {
+  type FamilyEvidenceAttachmentLink,
+  createFamilyEvidenceEntry,
+  updateFamilyEvidenceEntryAttachments,
+  uploadFamilyEvidenceFiles,
+} from "@/lib/familyEvidence";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
+
+const MAX_EVIDENCE_FILE_SIZE = 10 * 1024 * 1024;
+const ACCEPTED_EVIDENCE_FILE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "text/csv",
+];
+const ACCEPTED_EVIDENCE_FILE_EXTENSIONS = [
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".txt",
+  ".csv",
+];
 
 function ymd(date: Date) {
   const y = date.getFullYear();
@@ -67,6 +97,44 @@ function friendlyCaptureMessage(kind: "load" | "save" | "setup") {
   return "This learning evidence could not be saved just yet. Try again in a moment.";
 }
 
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isSupportedEvidenceFile(file: File) {
+  const fileType = String(file.type || "").toLowerCase();
+  if (fileType && ACCEPTED_EVIDENCE_FILE_TYPES.includes(fileType)) return true;
+  const lowerName = file.name.toLowerCase();
+  return ACCEPTED_EVIDENCE_FILE_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
+}
+
+function dedupeFiles(files: File[]) {
+  const seen = new Set<string>();
+  return files.filter((file) => {
+    const key = `${file.name}:${file.size}:${file.lastModified}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function evidenceTypeFromFiles(files: File[]) {
+  if (!files.length) return "note";
+  const hasImage = files.some((file) =>
+    String(file.type || "").toLowerCase().startsWith("image/"),
+  );
+  const hasNonImage = files.some(
+    (file) => !String(file.type || "").toLowerCase().startsWith("image/"),
+  );
+
+  if (hasImage && hasNonImage) return "work_sample";
+  if (hasImage) return "photo";
+  return "document";
+}
+
 export default function FamilyCaptureWorkspace() {
   const searchParams = useSearchParams();
   const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
@@ -92,9 +160,13 @@ export default function FamilyCaptureWorkspace() {
   const [note, setNote] = useState("");
   const [occurredOn, setOccurredOn] = useState(dateParam);
   const [learningArea, setLearningArea] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [savedAttachments, setSavedAttachments] = useState<FamilyEvidenceAttachmentLink[]>([]);
+  const [savedAttachmentNote, setSavedAttachmentNote] = useState("");
+  const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
@@ -210,7 +282,7 @@ export default function FamilyCaptureWorkspace() {
         (linkedBlock.curriculumOutcomeIds ?? []).map((outcomeId) => [outcomeId, "in_progress" as const]),
       ),
     );
-  }, [linkedBlock?.id]);
+  }, [linkedBlock]);
 
   const pageState: HomeSurfaceState = workspaceLoading || loadingBlocks
     ? "loading"
@@ -232,6 +304,42 @@ export default function FamilyCaptureWorkspace() {
     ? `${linkedBlock.title} · ${linkedBlock.dateLabel}`
     : "No linked learning block";
 
+  const attachmentSelectionLabel =
+    selectedFiles.length === 1 ? "1 file selected" : `${selectedFiles.length} files selected`;
+
+  function resetCaptureFields() {
+    setTitle("");
+    setSummary("");
+    setNote("");
+    setSelectedFiles([]);
+    setFileInputResetKey((current) => current + 1);
+  }
+
+  function onFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextFiles = dedupeFiles(Array.from(event.target.files ?? []));
+    if (!nextFiles.length) {
+      setSelectedFiles([]);
+      return;
+    }
+
+    const unsupported = nextFiles.find((file) => !isSupportedEvidenceFile(file));
+    if (unsupported) {
+      setErrorMessage("Attach a photo, PDF, Word file, text file, or CSV.");
+      event.target.value = "";
+      return;
+    }
+
+    const oversized = nextFiles.find((file) => file.size > MAX_EVIDENCE_FILE_SIZE);
+    if (oversized) {
+      setErrorMessage(`${oversized.name} is too large. Keep each file under 10 MB.`);
+      event.target.value = "";
+      return;
+    }
+
+    setErrorMessage("");
+    setSelectedFiles(nextFiles);
+  }
+
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -244,7 +352,10 @@ export default function FamilyCaptureWorkspace() {
       setSubmitting(true);
       setErrorMessage("");
       setStatusMessage("");
-      await createFamilyEvidenceEntry({
+      setSavedAttachments([]);
+      setSavedAttachmentNote("");
+
+      const created = await createFamilyEvidenceEntry({
         studentId: activeLearner.id,
         userId: workspace.userId,
         title: title.trim() || "Learning moment",
@@ -252,17 +363,83 @@ export default function FamilyCaptureWorkspace() {
         note,
         occurredOn,
         learningArea: learningArea || linkedBlock?.subject || null,
-        evidenceType: "note",
+        evidenceType: evidenceTypeFromFiles(selectedFiles),
         linkedLearningBlockId: linkedBlock?.id || null,
         curriculumOutcomeIds,
         outcomeStatusById,
       });
-      setStatusMessage("Learning evidence saved.");
-      setTitle("");
-      setSummary("");
-      setNote("");
-    } catch {
-      setErrorMessage(friendlyCaptureMessage("save"));
+
+      let uploadedAttachments: FamilyEvidenceAttachmentLink[] = [];
+      let failedUploads = 0;
+
+      if (selectedFiles.length) {
+        const uploadResult = await uploadFamilyEvidenceFiles({
+          familyProfileId: workspace.profile.id,
+          studentId: activeLearner.id,
+          evidenceId: created.id,
+          files: selectedFiles,
+        });
+
+        uploadedAttachments = uploadResult.uploaded.map((item) => ({
+          url: item.url,
+          label: item.label,
+          kind: item.kind,
+        }));
+        failedUploads = uploadResult.failed.length;
+
+        if (uploadResult.uploaded.length) {
+          const imageUrl =
+            uploadResult.uploaded.find((item) => item.kind === "image")?.url || null;
+          const audioUrl =
+            uploadResult.uploaded.find((item) => item.kind === "audio")?.url || null;
+          const fileUrl =
+            uploadResult.uploaded.find((item) => item.kind === "file")?.url ||
+            audioUrl ||
+            null;
+
+          await updateFamilyEvidenceEntryAttachments({
+            evidenceId: created.id,
+            attachmentUrls: uploadResult.uploaded.map((item) => item.url),
+            imageUrl,
+            audioUrl,
+            fileUrl,
+          });
+        }
+      }
+
+      if (!selectedFiles.length) {
+        setStatusMessage("Learning evidence saved.");
+      } else if (uploadedAttachments.length && failedUploads === 0) {
+        setStatusMessage(
+          `Learning evidence saved with ${uploadedAttachments.length} attachment${uploadedAttachments.length === 1 ? "" : "s"}.`,
+        );
+      } else if (uploadedAttachments.length) {
+        setStatusMessage(
+          `Learning evidence saved with ${uploadedAttachments.length} attachment${uploadedAttachments.length === 1 ? "" : "s"}.`,
+        );
+        setErrorMessage(
+          `${failedUploads} attachment${failedUploads === 1 ? "" : "s"} could not be uploaded.`,
+        );
+      } else {
+        setStatusMessage("Learning evidence saved.");
+        setErrorMessage("The learning note was saved, but the attachment upload did not complete.");
+      }
+
+      setSavedAttachments(uploadedAttachments);
+      setSavedAttachmentNote(
+        uploadedAttachments.length
+          ? "Evidence attached"
+          : selectedFiles.length
+            ? "Evidence saved without attachment links"
+            : "",
+      );
+      resetCaptureFields();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : friendlyCaptureMessage("save"),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -358,6 +535,83 @@ export default function FamilyCaptureWorkspace() {
                 placeholder="What showed growth, confidence, or the next useful step?"
                 className="min-h-[96px]"
               />
+            </div>
+
+            <div className="grid gap-3 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+              <div className="grid gap-1">
+                <div className={SECTION_LABEL}>Attach photo or file</div>
+                <div className={BODY_TEXT}>
+                  Add a real piece of evidence to this learning moment. Images stay visible in portfolio cards. Other files are saved as safe references for report and export use.
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">
+                  Choose files
+                  <input
+                    key={fileInputResetKey}
+                    type="file"
+                    multiple
+                    accept={ACCEPTED_EVIDENCE_FILE_EXTENSIONS.join(",")}
+                    onChange={onFilesSelected}
+                    className="hidden"
+                  />
+                </label>
+                <div className={META_TEXT}>Up to 10 MB each</div>
+                {selectedFiles.length ? (
+                  <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[12px] font-semibold text-blue-700">
+                    {attachmentSelectionLabel}
+                  </div>
+                ) : null}
+              </div>
+
+              {selectedFiles.length ? (
+                <div className="grid gap-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-3"
+                    >
+                      <div className="grid gap-0.5">
+                        <div className="text-[13px] font-semibold text-slate-950">{file.name}</div>
+                        <div className="text-[12px] text-slate-500">{formatFileSize(file.size)}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedFiles((current) =>
+                            current.filter((_, fileIndex) => fileIndex !== index),
+                          )
+                        }
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {savedAttachments.length ? (
+                <div className="grid gap-2 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-3">
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                    {savedAttachmentNote || "Evidence attached"}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {savedAttachments.map((attachment) => (
+                      <a
+                        key={attachment.url}
+                        href={attachment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                      >
+                        {attachment.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {statusMessage ? (

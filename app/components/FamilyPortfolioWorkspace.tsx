@@ -8,7 +8,11 @@ import {
   type LearnerOption,
   LearnerSelector,
 } from "@/app/components/home/HomeOverviewComponents";
-import { loadEvidenceEntriesWithVariants } from "@/lib/familyEvidence";
+import {
+  attachmentCountLabel,
+  loadEvidenceEntriesWithVariants,
+  summarizeFamilyEvidenceAttachments,
+} from "@/lib/familyEvidence";
 import {
   PortfolioActionsRow,
   PortfolioEmptyState,
@@ -26,11 +30,13 @@ type EvidenceRow = {
   learning_area?: string | null;
   evidence_type?: string | null;
   image_url?: string | null;
+  file_url?: string | null;
+  attachment_urls?: string[] | string | null;
   created_at?: string | null;
 };
 
 const EVIDENCE_SELECTS = [
-  "id,title,summary,note,occurred_on,learning_area,evidence_type,image_url,created_at",
+  "id,title,summary,note,occurred_on,learning_area,evidence_type,image_url,file_url,attachment_urls,created_at",
 ];
 
 const PLACEHOLDER_ITEMS: PortfolioCardItem[] = [
@@ -134,6 +140,7 @@ function mapEvidenceToCard(row: EvidenceRow): PortfolioCardItem {
   const type = portfolioType(row.evidence_type);
   const tag = safe(row.learning_area) || "Learning";
   const dateLabel = formatPortfolioDate(row.occurred_on || row.created_at);
+  const attachmentSummary = summarizeFamilyEvidenceAttachments(row);
 
   return {
     id: row.id,
@@ -141,8 +148,16 @@ function mapEvidenceToCard(row: EvidenceRow): PortfolioCardItem {
     meta: `${dateLabel} • ${type}`,
     tag,
     type,
-    imageUrl: safe(row.image_url) || null,
-    thumbnailLabel: tag,
+    imageUrl: attachmentSummary.imageUrl,
+    thumbnailLabel:
+      attachmentSummary.attachmentCount > 0
+        ? attachmentCountLabel(attachmentSummary.attachmentCount)
+        : tag,
+    attachmentCount: attachmentSummary.attachmentCount,
+    attachmentLabel:
+      attachmentSummary.attachmentCount > 0
+        ? attachmentCountLabel(attachmentSummary.attachmentCount)
+        : null,
   };
 }
 

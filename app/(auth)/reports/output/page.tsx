@@ -47,6 +47,11 @@ import {
   type PortfolioHighlight,
 } from "@/lib/portfolioContent";
 import {
+  attachmentCountLabel,
+  loadEvidenceAttachmentRecords,
+  type FamilyEvidenceAttachmentRecord,
+} from "@/lib/familyEvidence";
+import {
   loadReportExportHistory,
   summarizeReportExportHistoryEntry,
   type ReportExportHistoryEntry,
@@ -327,6 +332,20 @@ function portfolioHighlightMetaSummary(
     .join(" · ");
 }
 
+function portfolioAttachmentMetaSummary(
+  item: FamilyEvidenceAttachmentRecord,
+  localeCode: string,
+) {
+  return [
+    formatPortfolioHighlightDate(item.date, localeCode),
+    String(item.learningArea ?? "").trim(),
+    String(item.evidenceType ?? "").trim(),
+    attachmentCountLabel(item.attachmentCount),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function ComplianceContextPanel({
   model,
   readiness,
@@ -337,16 +356,6 @@ function ComplianceContextPanel({
   validation: ReportCompletionValidation;
 }) {
   const summary = complianceSummaryLabel(model, validation);
-  const notificationSubmitted =
-    model.notificationSummary.submitted > 0 ||
-    ["submitted", "acknowledged", "not_required", "waived"].includes(
-      String(model.notificationSummary.latestStatus ?? "").toLowerCase(),
-    );
-  const attendanceStarted =
-    model.attendanceSummary.records > 0 ||
-    model.attendanceSummary.days > 0 ||
-    model.attendanceSummary.hours > 0;
-  const planCoverage = model.planCount > 0 || model.subjectLogCount > 0;
   const readyTone = readiness.status === "ready";
   const attentionTone =
     readiness.status === "warning" || validation.status === "blocked" || validation.blockers.length > 0;
@@ -854,19 +863,26 @@ function PortfolioContentPanel({
   workSamplesCount,
   skillsCount,
   reflectionPromptCount,
+  attachmentEvidenceCount,
   highlights,
+  attachmentEvidence,
   localeCode,
   highlightError,
+  attachmentError,
 }: {
   highlightsCount: number;
   workSamplesCount: number;
   skillsCount: number;
   reflectionPromptCount: number;
+  attachmentEvidenceCount: number;
   highlights: PortfolioHighlight[];
+  attachmentEvidence: FamilyEvidenceAttachmentRecord[];
   localeCode: string;
   highlightError: string;
+  attachmentError: string;
 }) {
   const highlightPreview = highlights.slice(0, 4);
+  const attachmentPreview = attachmentEvidence.slice(0, 4);
 
   return (
     <section className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
@@ -879,7 +895,7 @@ function PortfolioContentPanel({
         </h2>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
             Highlights
@@ -904,6 +920,12 @@ function PortfolioContentPanel({
           </div>
           <div className="mt-2 text-[24px] font-black text-slate-950">{reflectionPromptCount}</div>
         </div>
+        <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">
+            Attachments
+          </div>
+          <div className="mt-2 text-[24px] font-black text-slate-950">{attachmentEvidenceCount}</div>
+        </div>
       </div>
 
       <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4 text-sm leading-7 text-slate-600">
@@ -913,6 +935,12 @@ function PortfolioContentPanel({
       {highlightError ? (
         <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
           {highlightError}
+        </div>
+      ) : null}
+
+      {attachmentError ? (
+        <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-7 text-amber-800">
+          {attachmentError}
         </div>
       ) : null}
 
@@ -939,6 +967,48 @@ function PortfolioContentPanel({
                 ) : null}
                 <div className="text-sm leading-6 text-slate-600">
                   {item.description || "Saved learning highlight from the portfolio record."}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {attachmentPreview.length ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {attachmentPreview.map((item) => {
+            const meta = portfolioAttachmentMetaSummary(item, localeCode);
+
+            return (
+              <article
+                key={item.id}
+                className="grid gap-2 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+                    Evidence attached
+                  </span>
+                </div>
+                <div className="text-[16px] font-bold text-slate-950">{item.title}</div>
+                {meta ? (
+                  <div className="text-[12px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    {meta}
+                  </div>
+                ) : null}
+                {item.attachments.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {item.attachments.map((attachment) => (
+                      <span
+                        key={`${item.id}-${attachment.url}`}
+                        className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                      >
+                        {attachment.label}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="text-sm leading-6 text-slate-600">
+                  {item.description || "Supporting evidence with attached files or photos."}
                 </div>
               </article>
             );
@@ -1210,6 +1280,8 @@ export default function ReportsOutputPage() {
   const [intentError, setIntentError] = useState("");
   const [portfolioCalendarHighlights, setPortfolioCalendarHighlights] = useState<PortfolioCalendarHighlight[]>([]);
   const [portfolioCalendarHighlightsError, setPortfolioCalendarHighlightsError] = useState("");
+  const [portfolioAttachmentEvidence, setPortfolioAttachmentEvidence] = useState<FamilyEvidenceAttachmentRecord[]>([]);
+  const [portfolioAttachmentEvidenceError, setPortfolioAttachmentEvidenceError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -1234,6 +1306,8 @@ export default function ReportsOutputPage() {
           setSectionErrors({});
           setPortfolioCalendarHighlights([]);
           setPortfolioCalendarHighlightsError("");
+          setPortfolioAttachmentEvidence([]);
+          setPortfolioAttachmentEvidenceError("");
         }
         return;
       }
@@ -1273,6 +1347,8 @@ export default function ReportsOutputPage() {
         });
         let calendarHighlightsResult: PortfolioCalendarHighlight[] = [];
         let calendarHighlightsError = "";
+        let attachmentEvidenceResult: FamilyEvidenceAttachmentRecord[] = [];
+        let attachmentEvidenceError = "";
         if (next.reportIntent === "portfolio") {
           try {
             calendarHighlightsResult = await loadPortfolioCalendarHighlights({
@@ -1287,6 +1363,21 @@ export default function ReportsOutputPage() {
               error instanceof Error
                 ? error.message
                 : "Calendar highlights could not be loaded right now.";
+          }
+
+          try {
+            attachmentEvidenceResult = await loadEvidenceAttachmentRecords({
+              studentId: activeLearner.id,
+              dateFrom: next.reportingPeriod?.startDate || null,
+              dateTo: next.reportingPeriod?.endDate || null,
+              limit: 16,
+              client: supabase,
+            });
+          } catch (error) {
+            attachmentEvidenceError =
+              error instanceof Error
+                ? error.message
+                : "Evidence attachments could not be loaded right now.";
           }
         }
         let historyResult: ReportExportHistoryEntry[] = [];
@@ -1324,6 +1415,8 @@ export default function ReportsOutputPage() {
           setSectionErrors({});
           setPortfolioCalendarHighlights(calendarHighlightsResult);
           setPortfolioCalendarHighlightsError(calendarHighlightsError);
+          setPortfolioAttachmentEvidence(attachmentEvidenceResult);
+          setPortfolioAttachmentEvidenceError(attachmentEvidenceError);
         }
       } catch (error) {
         if (mounted) {
@@ -1334,6 +1427,8 @@ export default function ReportsOutputPage() {
           );
           setPortfolioCalendarHighlights([]);
           setPortfolioCalendarHighlightsError("");
+          setPortfolioAttachmentEvidence([]);
+          setPortfolioAttachmentEvidenceError("");
         }
       } finally {
         if (mounted) {
@@ -1780,9 +1875,12 @@ export default function ReportsOutputPage() {
           workSamplesCount={portfolioContent.workSamples.length}
           skillsCount={portfolioContent.skills.length}
           reflectionPromptCount={portfolioContent.reflections.length}
+          attachmentEvidenceCount={portfolioAttachmentEvidence.length}
           highlights={portfolioContent.highlights}
+          attachmentEvidence={portfolioAttachmentEvidence}
           localeCode={portfolioLocaleCode}
           highlightError={portfolioCalendarHighlightsError}
+          attachmentError={portfolioAttachmentEvidenceError}
         />
       ) : null}
 

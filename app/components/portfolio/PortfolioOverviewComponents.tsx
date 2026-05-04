@@ -24,6 +24,8 @@ export type PortfolioCardItem = {
   imageUrl?: string | null;
   thumbnailTone?: string;
   thumbnailLabel?: string;
+  attachmentCount?: number;
+  attachmentLabel?: string | null;
 };
 
 export type PortfolioActionItem = {
@@ -141,8 +143,15 @@ export function PortfolioGrid({
                   </span>
                 </div>
                 <div className={META_TEXT}>{item.meta}</div>
-                <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-600">
-                  {item.tag}
+                <div className="flex flex-wrap gap-2">
+                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[13px] font-medium text-slate-600">
+                    {item.tag}
+                  </div>
+                  {item.attachmentCount ? (
+                    <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[13px] font-medium text-emerald-700">
+                      {item.attachmentLabel || `${item.attachmentCount} attachments`}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </article>

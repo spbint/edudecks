@@ -35,6 +35,11 @@ import {
   portfolioCalendarItemTypeLabel,
   type PortfolioCalendarHighlight,
 } from "@/lib/portfolioContent";
+import {
+  attachmentCountLabel,
+  loadEvidenceAttachmentRecords,
+  type FamilyEvidenceAttachmentRecord,
+} from "@/lib/familyEvidence";
 import { reportIntentHeading } from "@/lib/reportTemplates";
 
 export type ReportExportSection = {
@@ -65,6 +70,7 @@ export type ReportExportModel = {
   completedArtifactCount: number;
   totalArtifactCount: number;
   portfolioCalendarHighlights: PortfolioCalendarHighlight[];
+  portfolioEvidenceAttachments: FamilyEvidenceAttachmentRecord[];
   sections: ReportExportSection[];
   packItems: Array<{
     label: string;
@@ -87,6 +93,7 @@ type BuildReportExportModelInput = {
   autofill: ReportSectionAutofillModel;
   validation: ReportCompletionValidation;
   portfolioCalendarHighlights?: PortfolioCalendarHighlight[];
+  portfolioEvidenceAttachments?: FamilyEvidenceAttachmentRecord[];
 };
 
 function safe(value: unknown) {
@@ -177,14 +184,6 @@ function sectionStatusClass(status: ReportExportSection["status"]) {
   if (status === "complete") return "complete";
   if (status === "in_progress") return "in_progress";
   return "missing";
-}
-
-function buildExportFilename(title: string) {
-  const clean = safe(title)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `${clean || "report-export"}.html`;
 }
 
 function asObject(value: unknown): Record<string, unknown> {
@@ -505,6 +504,7 @@ export async function buildServerValidatedReportExportPayload(input: {
   }
 
   let portfolioCalendarHighlights: PortfolioCalendarHighlight[] = [];
+  let portfolioEvidenceAttachments: FamilyEvidenceAttachmentRecord[] = [];
   if (model.reportIntent === "portfolio") {
     try {
       portfolioCalendarHighlights = await loadPortfolioCalendarHighlights({
@@ -517,6 +517,18 @@ export async function buildServerValidatedReportExportPayload(input: {
     } catch {
       portfolioCalendarHighlights = [];
     }
+
+    try {
+      portfolioEvidenceAttachments = await loadEvidenceAttachmentRecords({
+        studentId: context.learner.id,
+        dateFrom: model.reportingPeriod?.startDate || null,
+        dateTo: model.reportingPeriod?.endDate || null,
+        limit: 16,
+        client: context.client,
+      });
+    } catch {
+      portfolioEvidenceAttachments = [];
+    }
   }
 
   const exportModel = buildReportExportModel({
@@ -526,6 +538,7 @@ export async function buildServerValidatedReportExportPayload(input: {
     autofill,
     validation,
     portfolioCalendarHighlights,
+    portfolioEvidenceAttachments,
   });
   return {
     ok: true,
@@ -569,28 +582,6 @@ export async function recordValidatedReportExportEvent(input: {
     contentHash: input.contentHash,
     sectionCount: input.payload.exportModel.sections.length,
   });
-}
-
-function buildSectionHtml(section: ReportExportSection) {
-  return `
-    <section class="section">
-      <div class="section-header">
-        <div>
-          <div class="section-kicker">Section</div>
-          <h2>${escapeHtml(section.title)}</h2>
-        </div>
-        <span class="section-status ${section.status}">${reportSectionStatusLabel(section.status)}</span>
-      </div>
-      <div class="section-body">
-        ${section.contentHtml}
-      </div>
-      ${
-        section.notes.length
-          ? `<div class="section-notes">${section.notes.map((note) => `<div>${escapeHtml(note)}</div>`).join("")}</div>`
-          : ""
-      }
-    </section>
-  `;
 }
 
 export function buildReportExportModel(
@@ -638,6 +629,7 @@ export function buildReportExportModel(
     completedArtifactCount: input.validation.completedArtifactCount,
     totalArtifactCount: input.validation.totalArtifactCount,
     portfolioCalendarHighlights: input.portfolioCalendarHighlights || [],
+    portfolioEvidenceAttachments: input.portfolioEvidenceAttachments || [],
     sections: input.assembly.sections.map((section) => ({
       sectionKey: normalizeSectionKey(section.title),
       title: section.title,
@@ -1234,6 +1226,32 @@ function buildPortfolioHighlightMetaHtml(
     .join("")}</div>`;
 }
 
+function buildPortfolioAttachmentMetaHtml(
+  item: FamilyEvidenceAttachmentRecord,
+  localeCode: string,
+) {
+  const chips = [
+    formatPortfolioHighlightDate(item.date, localeCode),
+    safe(item.learningArea),
+    safe(item.evidenceType),
+    attachmentCountLabel(item.attachmentCount),
+  ].filter(Boolean);
+
+  if (!chips.length) return "";
+
+  return `<div class="portfolio-chip-list">${chips
+    .map((label) => `<span class="portfolio-chip">${escapeHtml(label)}</span>`)
+    .join("")}</div>`;
+}
+
+function buildPortfolioAttachmentNamesHtml(item: FamilyEvidenceAttachmentRecord) {
+  if (!item.attachments.length) return "";
+
+  return `<div class="portfolio-chip-list">${item.attachments
+    .map((attachment) => `<span class="portfolio-chip">${escapeHtml(attachment.label)}</span>`)
+    .join("")}</div>`;
+}
+
 function generatePortfolioPrintableHtml(model: ReportExportModel) {
   const generatedAtLabel = formatGeneratedAt(model.generatedAt, model.localeCode);
   const skillsLabel = localizedPortfolioTerm(model, {
@@ -1292,6 +1310,19 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
           portfolioContent.highlights[0]?.description ||
           "Saved highlights from this reporting period appear here.",
         eyebrow: favouriteLabel,
+      }),
+    );
+  }
+
+  if (model.portfolioEvidenceAttachments.length) {
+    const attachmentTitles = model.portfolioEvidenceAttachments
+      .slice(0, 3)
+      .map((item) => item.title)
+      .filter(Boolean);
+    summaryCards.push(
+      buildPortfolioSummaryCard({
+        title: "Evidence Attached",
+        body: `${model.portfolioEvidenceAttachments.length} evidence record${model.portfolioEvidenceAttachments.length === 1 ? "" : "s"} include file attachments${attachmentTitles.length ? `, including ${attachmentTitles.join(", ")}` : ""}.`,
       }),
     );
   }
@@ -1416,6 +1447,41 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
                   ${buildPortfolioHighlightMetaHtml(item, model.localeCode)}
                   <div class="portfolio-section-body">
                     <p>${escapeHtml(item.description || "Saved learning highlight from the portfolio record.")}</p>
+                  </div>
+                </article>
+              `,
+            )
+            .join("")}
+        </div>
+      </section>
+    `
+    : "";
+
+  const attachmentPanel = model.portfolioEvidenceAttachments.length
+    ? `
+      <section class="portfolio-panel">
+        <div class="portfolio-panel-head">
+          <div>
+            <div class="portfolio-panel-kicker">Evidence records</div>
+            <h2>Attached Evidence</h2>
+          </div>
+          <div class="portfolio-count-pill">${model.portfolioEvidenceAttachments.length} saved record${model.portfolioEvidenceAttachments.length === 1 ? "" : "s"}</div>
+        </div>
+        <div class="portfolio-panel-grid">
+          ${model.portfolioEvidenceAttachments
+            .map(
+              (item) => `
+                <article class="portfolio-section">
+                  <div class="portfolio-section-head">
+                    <div>
+                      <div class="portfolio-section-kicker">Evidence attached</div>
+                      <h2>${escapeHtml(item.title)}</h2>
+                    </div>
+                  </div>
+                  ${buildPortfolioAttachmentMetaHtml(item, model.localeCode)}
+                  ${buildPortfolioAttachmentNamesHtml(item)}
+                  <div class="portfolio-section-body">
+                    <p>${escapeHtml(item.description || "Supporting evidence with attached files or photos.")}</p>
                   </div>
                 </article>
               `,
@@ -1806,6 +1872,7 @@ function generatePortfolioPrintableHtml(model: ReportExportModel) {
     }
 
     ${highlightPanel}
+    ${attachmentPanel}
     ${workSamplePanel}
     ${skillsPanel}
     ${reflectionPanel}

@@ -14,6 +14,7 @@ import {
   formatPortfolioHighlightDate,
   portfolioCalendarItemTypeLabel,
 } from "@/lib/portfolioContent";
+import { attachmentCountLabel, type FamilyEvidenceAttachmentRecord } from "@/lib/familyEvidence";
 import type { ReportExportModel } from "@/lib/reportExport";
 
 function safe(value: unknown) {
@@ -122,6 +123,20 @@ function portfolioHighlightMetaText(
     formatPortfolioHighlightDate(item.date, localeCode),
     item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
     safe(item.learningArea),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function portfolioAttachmentMetaText(
+  item: FamilyEvidenceAttachmentRecord,
+  localeCode: string,
+) {
+  return [
+    formatPortfolioHighlightDate(item.date, localeCode),
+    safe(item.learningArea),
+    safe(item.evidenceType),
+    attachmentCountLabel(item.attachmentCount),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -309,6 +324,31 @@ export function buildPortfolioDocxDocument(model: ReportExportModel) {
       }
       children.push(
         ...plainTextToDocxParagraphs(item.description || "Saved learning highlight."),
+      );
+      children.push(spacer(40));
+    });
+  }
+
+  if (model.portfolioEvidenceAttachments.length) {
+    children.push(sectionHeading("Attached Evidence"));
+    model.portfolioEvidenceAttachments.forEach((item) => {
+      children.push(cardTitle(item.title));
+      const meta = portfolioAttachmentMetaText(item, model.localeCode);
+      if (meta) {
+        children.push(metadataParagraph("Details", meta));
+      }
+      if (item.attachments.length) {
+        children.push(
+          metadataParagraph(
+            "Files",
+            item.attachments.map((attachment) => attachment.label).join(", "),
+          ),
+        );
+      }
+      children.push(
+        ...plainTextToDocxParagraphs(
+          item.description || "Supporting evidence with attached files or photos.",
+        ),
       );
       children.push(spacer(40));
     });

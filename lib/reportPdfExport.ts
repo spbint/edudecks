@@ -5,6 +5,7 @@ import {
   formatPortfolioHighlightDate,
   portfolioCalendarItemTypeLabel,
 } from "@/lib/portfolioContent";
+import { attachmentCountLabel, type FamilyEvidenceAttachmentRecord } from "@/lib/familyEvidence";
 import type { ReportExportModel } from "@/lib/reportExport";
 
 function safe(value: unknown) {
@@ -118,6 +119,20 @@ function portfolioHighlightMetaText(
     formatPortfolioHighlightDate(item.date, localeCode),
     item.itemType ? portfolioCalendarItemTypeLabel(item.itemType) : "",
     safe(item.learningArea),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function portfolioAttachmentMetaText(
+  item: FamilyEvidenceAttachmentRecord,
+  localeCode: string,
+) {
+  return [
+    formatPortfolioHighlightDate(item.date, localeCode),
+    safe(item.learningArea),
+    safe(item.evidenceType),
+    attachmentCountLabel(item.attachmentCount),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -332,6 +347,28 @@ async function buildPortfolioPdf(model: ReportExportModel) {
         composer = drawMetaRow(composer, "Details", meta);
       }
       composer = drawTextBlock(composer, item.description || "Saved learning highlight.");
+    });
+  }
+
+  if (model.portfolioEvidenceAttachments.length) {
+    composer = drawHeading(composer, "Attached Evidence", 2);
+    model.portfolioEvidenceAttachments.forEach((item) => {
+      composer = drawHeading(composer, item.title, 3);
+      const meta = portfolioAttachmentMetaText(item, model.localeCode);
+      if (meta) {
+        composer = drawMetaRow(composer, "Details", meta);
+      }
+      if (item.attachments.length) {
+        composer = drawMetaRow(
+          composer,
+          "Files",
+          item.attachments.map((attachment) => attachment.label).join(", "),
+        );
+      }
+      composer = drawTextBlock(
+        composer,
+        item.description || "Supporting evidence with attached files or photos.",
+      );
     });
   }
 
