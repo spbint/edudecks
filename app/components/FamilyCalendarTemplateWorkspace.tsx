@@ -18,16 +18,24 @@ import {
   CalendarWeekView,
   type CalendarSurfaceView,
   type CalendarWeekDay,
+  type CalendarWeekEditorDraft,
+  type CalendarWeekEditorMode,
 } from "@/app/components/calendar/CalendarWeekOverviewComponents";
 import {
+  addFamilyCalendarBlock,
   loadFamilyCalendarWindow,
+  removeFamilyCalendarBlock,
+  updateFamilyCalendarBlock,
   type FamilyCalendarBlockEntry,
 } from "@/lib/familyPlanner";
 import {
+  CALENDAR_ITEM_TYPE_OPTIONS,
   loadFamilyCalendarTemplates,
   loadFamilyPrograms,
   saveFamilyCalendarTemplate,
+  type CalendarItemType,
   type CalendarTemplate,
+  type CalendarTimeBlock,
   type Program,
   type TemplateSlot,
 } from "@/lib/familyPlanningTemplates";
@@ -54,16 +62,22 @@ function buildEmptyTemplate(input: {
   };
 }
 
-function buildBlankSlot(templateId: string): TemplateSlot {
+function buildBlankSlot(
+  templateId: string,
+  defaults?: Partial<TemplateSlot>,
+): TemplateSlot {
   return {
     id: makeLocalId("slot"),
     templateId,
-    dayOfWeek: 1,
-    startTime: null,
-    endTime: null,
-    subjectId: null,
-    label: "Learning block",
-    notes: "",
+    dayOfWeek: defaults?.dayOfWeek ?? 1,
+    startTime: defaults?.startTime ?? null,
+    endTime: defaults?.endTime ?? null,
+    subjectId: defaults?.subjectId ?? null,
+    label: defaults?.label ?? "Learning block",
+    notes: defaults?.notes ?? "",
+    itemType: defaults?.itemType ?? "learning_block",
+    learnerIds: defaults?.learnerIds ?? [],
+    timeBlock: defaults?.timeBlock ?? "morning",
   };
 }
 
@@ -74,8 +88,14 @@ function friendlyCalendarMessage(kind: "load" | "save") {
   return "My Calendar could not save. Check your account connection and try again.";
 }
 
-function friendlyWeekMessage() {
-  return "Live calendar blocks could not load. Showing the saved template rhythm only.";
+function friendlyWeekMessage(kind: "load" | "save" | "delete") {
+  if (kind === "load") {
+    return "Some live calendar items could not load. Showing the saved template rhythm where available.";
+  }
+  if (kind === "delete") {
+    return "This calendar item could not be removed just yet. Try again in a moment.";
+  }
+  return "This calendar item could not be saved just yet. Try again in a moment.";
 }
 
 function clean(value: unknown) {
@@ -156,13 +176,57 @@ function buildWeekDays(anchor: Date): CalendarWeekDay[] {
   });
 }
 
+function itemTypeLabel(itemType: CalendarItemType) {
+  return (
+    CALENDAR_ITEM_TYPE_OPTIONS.find((option) => option.value === itemType)?.label ||
+    "Learning block"
+  );
+}
+
+function defaultTitleForItemType(itemType: CalendarItemType) {
+  if (itemType === "custom") return "Custom item";
+  return itemTypeLabel(itemType);
+}
+
+function draftTimeLabel(draft: Pick<CalendarWeekEditorDraft, "startTime" | "endTime" | "timeBlock">) {
+  const startTime = clean(draft.startTime);
+  const endTime = clean(draft.endTime);
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  if (startTime) return startTime;
+  if (draft.timeBlock === "morning") return "Morning session";
+  if (draft.timeBlock === "midday") return "Midday session";
+  return "Afternoon session";
+}
+
+function daypartFromTemplateSlot(slot: TemplateSlot): CalendarTimeBlock {
+  if (slot.timeBlock === "morning" || slot.timeBlock === "midday" || slot.timeBlock === "afternoon") {
+    return slot.timeBlock;
+  }
+
+  const hour = Number(clean(slot.startTime).split(":")[0]);
+  if (Number.isFinite(hour)) {
+    if (hour < 12) return "morning";
+    if (hour < 14) return "midday";
+  }
+  return "afternoon";
+}
+
+function daypartFromLiveBlock(block: FamilyCalendarBlockEntry): CalendarTimeBlock {
+  if (block.timeBlock === "morning" || block.timeBlock === "midday" || block.timeBlock === "afternoon") {
+    return block.timeBlock;
+  }
+
+  const hour = Number((clean(block.startTime) || clean(block.time)).split(":")[0]);
+  if (Number.isFinite(hour)) {
+    if (hour < 12) return "morning";
+    if (hour < 14) return "midday";
+  }
+  return "afternoon";
+}
+
 export default function FamilyCalendarTemplateWorkspace() {
   const searchParams = useSearchParams();
-  const {
-    workspace,
-    activeLearner,
-    loading: workspaceLoading,
-  } = useFamilyWorkspace();
+  const { workspace, activeLearner, loading: workspaceLoading } = useFamilyWorkspace();
 
   const [templates, setTemplates] = useState<CalendarTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -172,14 +236,31 @@ export default function FamilyCalendarTemplateWorkspace() {
   const [selectedWeekAnchor, setSelectedWeekAnchor] = useState<Date>(new Date());
   const [weekBlocks, setWeekBlocks] = useState<Record<string, FamilyCalendarBlockEntry[]>>({});
   const [programs, setPrograms] = useState<Program[]>([]);
+  const [visibleLearnerIds, setVisibleLearnerIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingWeek, setLoadingWeek] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [weekError, setWeekError] = useState("");
+  const [editorMode, setEditorMode] = useState<CalendarWeekEditorMode>(null);
+  const [editorDraft, setEditorDraft] = useState<CalendarWeekEditorDraft | null>(null);
+  const [editorErrorMessage, setEditorErrorMessage] = useState("");
+  const [editorStatusMessage, setEditorStatusMessage] = useState("");
+  const [savingEditor, setSavingEditor] = useState(false);
+  const [deletingEditor, setDeletingEditor] = useState(false);
 
   const requestedDate = searchParams.get("date");
+  const learnerIds = useMemo(
+    () => workspace.learners.map((learner) => learner.id).filter(Boolean),
+    [workspace.learners],
+  );
+  const learnerIdsKey = learnerIds.join("|");
+  const canPersistLiveItems = Boolean(
+    workspace.storageMode === "database" &&
+      workspace.userId &&
+      isDatabaseProfileId(workspace.profile.id),
+  );
 
   useEffect(() => {
     if (!requestedDate) return;
@@ -191,7 +272,7 @@ export default function FamilyCalendarTemplateWorkspace() {
   useEffect(() => {
     let mounted = true;
 
-    async function hydrate() {
+    async function hydrateTemplates() {
       if (!workspace.profile.id) {
         if (mounted) setLoading(false);
         return;
@@ -209,7 +290,11 @@ export default function FamilyCalendarTemplateWorkspace() {
         setTemplates(nextTemplates);
         setSelectedTemplateId((current) => {
           if (nextTemplates.some((template) => template.id === current)) return current;
-          return nextTemplates.find((template) => template.slots.length > 0)?.id || nextTemplates[0]?.id || "";
+          return (
+            nextTemplates.find((template) => template.slots.length > 0)?.id ||
+            nextTemplates[0]?.id ||
+            ""
+          );
         });
       } catch {
         if (!mounted) return;
@@ -222,7 +307,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       }
     }
 
-    void hydrate();
+    void hydrateTemplates();
 
     return () => {
       mounted = false;
@@ -245,10 +330,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       return;
     }
 
-    if (
-      selectedSlotId &&
-      selectedTemplate.slots.some((slot) => slot.id === selectedSlotId)
-    ) {
+    if (selectedSlotId && selectedTemplate.slots.some((slot) => slot.id === selectedSlotId)) {
       return;
     }
 
@@ -266,12 +348,28 @@ export default function FamilyCalendarTemplateWorkspace() {
   );
   const hasCalendarData = hasAnyTemplateSlots || liveWeekBlockCount > 0;
 
-  const canLoadLiveCalendar = Boolean(
-    workspace.storageMode === "database" &&
-      workspace.userId &&
-      isDatabaseProfileId(workspace.profile.id) &&
-      activeLearner?.id,
-  );
+  useEffect(() => {
+    setVisibleLearnerIds((current) => {
+      const validCurrent = current.filter((learnerId) => learnerIds.includes(learnerId));
+
+      if (!learnerIds.length) return [];
+      if (learnerIds.length === 1) return [learnerIds[0]];
+      if (!validCurrent.length) {
+        if (activeLearner?.id && learnerIds.includes(activeLearner.id)) {
+          return [activeLearner.id];
+        }
+        return learnerIds;
+      }
+      if (
+        activeLearner?.id &&
+        learnerIds.includes(activeLearner.id) &&
+        !validCurrent.includes(activeLearner.id)
+      ) {
+        return [...validCurrent, activeLearner.id];
+      }
+      return validCurrent;
+    });
+  }, [activeLearner?.id, learnerIds, learnerIdsKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -292,33 +390,48 @@ export default function FamilyCalendarTemplateWorkspace() {
       const programPromise = loadFamilyPrograms({
         familyId: workspace.profile.id,
       });
-      const liveCalendarPromise =
-        canLoadLiveCalendar && activeLearner?.id
-          ? loadFamilyCalendarWindow({
-              familyProfileId: workspace.profile.id,
-              studentId: activeLearner.id,
-              dateFrom: weekStart,
-              dateTo: weekEnd,
-            })
-          : Promise.resolve({ dayNotes: {}, blocks: {} });
+      const livePromises =
+        canPersistLiveItems && learnerIds.length
+          ? learnerIds.map((learnerId) =>
+              loadFamilyCalendarWindow({
+                familyProfileId: workspace.profile.id,
+                studentId: learnerId,
+                dateFrom: weekStart,
+                dateTo: weekEnd,
+              }),
+            )
+          : [];
 
-      const [programResult, calendarResult] = await Promise.allSettled([
-        programPromise,
-        liveCalendarPromise,
+      const [programResult, liveResults] = await Promise.all([
+        programPromise.catch(() => []),
+        Promise.allSettled(livePromises),
       ]);
 
       if (!mounted) return;
 
-      setPrograms(programResult.status === "fulfilled" ? programResult.value : []);
+      setPrograms(programResult);
 
-      if (calendarResult.status === "fulfilled") {
-        setWeekBlocks(calendarResult.value.blocks ?? {});
-        setWeekError("");
-      } else {
-        setWeekBlocks({});
-        setWeekError(friendlyWeekMessage());
-      }
+      const nextBlocks: Record<string, FamilyCalendarBlockEntry[]> = {};
+      const seenBlockIds = new Set<string>();
+      let hadLiveLoadFailure = false;
 
+      liveResults.forEach((result) => {
+        if (result.status !== "fulfilled") {
+          hadLiveLoadFailure = true;
+          return;
+        }
+
+        Object.entries(result.value.blocks ?? {}).forEach(([date, items]) => {
+          items.forEach((item) => {
+            if (seenBlockIds.has(item.id)) return;
+            seenBlockIds.add(item.id);
+            nextBlocks[date] = [...(nextBlocks[date] ?? []), item];
+          });
+        });
+      });
+
+      setWeekBlocks(nextBlocks);
+      setWeekError(hadLiveLoadFailure ? friendlyWeekMessage("load") : "");
       setLoadingWeek(false);
     }
 
@@ -327,19 +440,21 @@ export default function FamilyCalendarTemplateWorkspace() {
     return () => {
       mounted = false;
     };
-  }, [
-    activeLearner?.id,
-    canLoadLiveCalendar,
-    weekEnd,
-    weekStart,
-    workspace.profile.id,
-  ]);
+  }, [canPersistLiveItems, learnerIds, workspace.profile.id, weekEnd, weekStart]);
 
   useEffect(() => {
     if (resolvedInitialView || loading || loadingWeek || workspaceLoading) return;
     setViewMode(hasCalendarData ? "week" : "template");
     setResolvedInitialView(true);
   }, [hasCalendarData, loading, loadingWeek, resolvedInitialView, workspaceLoading]);
+
+  useEffect(() => {
+    if (viewMode === "week") return;
+    setEditorMode(null);
+    setEditorDraft(null);
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }, [viewMode]);
 
   function replaceTemplate(nextTemplate: CalendarTemplate) {
     setTemplates((current) => {
@@ -376,9 +491,9 @@ export default function FamilyCalendarTemplateWorkspace() {
     return nextTemplate;
   }
 
-  function handleAddSlot() {
+  function handleAddSlot(defaults?: Partial<TemplateSlot>) {
     const template = ensureTemplateForEdit();
-    const nextSlot = buildBlankSlot(template.id);
+    const nextSlot = buildBlankSlot(template.id, defaults);
     replaceTemplate({
       ...template,
       slots: [...template.slots, nextSlot],
@@ -448,6 +563,383 @@ export default function FamilyCalendarTemplateWorkspace() {
     setSelectedWeekAnchor(new Date());
   }
 
+  function closeWeekEditor() {
+    setEditorMode(null);
+    setEditorDraft(null);
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }
+
+  function resolveDefaultLearnerIds() {
+    if (activeLearner?.id) return [activeLearner.id];
+    if (learnerIds.length === 1) return [learnerIds[0]];
+    return [];
+  }
+
+  function resolvePrimaryLearnerId(nextLearnerIds: string[], currentPrimaryLearnerId?: string | null) {
+    if (currentPrimaryLearnerId && nextLearnerIds.includes(currentPrimaryLearnerId)) {
+      return currentPrimaryLearnerId;
+    }
+    if (activeLearner?.id && nextLearnerIds.includes(activeLearner.id)) return activeLearner.id;
+    return nextLearnerIds[0] || null;
+  }
+
+  function buildLiveDraftFromCell(day: CalendarWeekDay, timeBlock: CalendarTimeBlock): CalendarWeekEditorDraft {
+    const defaultLearnerIds = resolveDefaultLearnerIds();
+    return {
+      id: null,
+      kind: "live",
+      title: "",
+      itemType: "learning_block",
+      learnerIds: defaultLearnerIds,
+      date: day.key,
+      dayOfWeek: day.weekdayValue,
+      timeBlock,
+      startTime: "",
+      endTime: "",
+      notes: "",
+      learningArea: "",
+      curriculumOutcomeIds: [],
+      sourceType: "manual",
+      programId: null,
+      programSegmentId: null,
+      calendarTemplateSlotId: null,
+      primaryLearnerId: resolvePrimaryLearnerId(defaultLearnerIds, activeLearner?.id || null),
+    };
+  }
+
+  function buildLiveDraftFromBlock(block: FamilyCalendarBlockEntry): CalendarWeekEditorDraft {
+    const day = weekDays.find((item) => item.key === block.date) || weekDays[0];
+    const learnerSelection =
+      block.learnerIds?.length
+        ? block.learnerIds.filter((learnerId) => learnerIds.includes(learnerId))
+        : [clean(block.primaryLearnerId)].filter(Boolean);
+
+    return {
+      id: block.id,
+      kind: "live",
+      title: clean(block.title),
+      itemType: block.itemType || "learning_block",
+      learnerIds: learnerSelection,
+      date: block.date,
+      dayOfWeek: day?.weekdayValue || 1,
+      timeBlock: daypartFromLiveBlock(block),
+      startTime: clean(block.startTime),
+      endTime: clean(block.endTime),
+      notes: clean(block.note),
+      learningArea: block.itemType === "learning_block" ? clean(block.subject) : "",
+      curriculumOutcomeIds: block.curriculumOutcomeIds ?? [],
+      sourceType: block.sourceType === "generated" ? "generated" : "manual",
+      programId: block.programId ?? null,
+      programSegmentId: block.programSegmentId ?? null,
+      calendarTemplateSlotId: block.calendarTemplateSlotId ?? null,
+      primaryLearnerId:
+        clean(block.primaryLearnerId) || resolvePrimaryLearnerId(learnerSelection, activeLearner?.id || null),
+    };
+  }
+
+  function buildTemplateDraft(slot: TemplateSlot): CalendarWeekEditorDraft {
+    const matchingDay = weekDays.find((day) => day.weekdayValue === slot.dayOfWeek) || weekDays[0];
+    return {
+      id: slot.id,
+      kind: "template",
+      title: clean(slot.label),
+      itemType: slot.itemType || "learning_block",
+      learnerIds: slot.learnerIds?.filter((learnerId) => learnerIds.includes(learnerId)) ?? [],
+      date: matchingDay?.key || weekStart,
+      dayOfWeek: slot.dayOfWeek,
+      timeBlock: daypartFromTemplateSlot(slot),
+      startTime: clean(slot.startTime),
+      endTime: clean(slot.endTime),
+      notes: clean(slot.notes),
+      learningArea: slot.itemType === "learning_block" ? clean(slot.subjectId) : "",
+      curriculumOutcomeIds: [],
+      sourceType: "manual",
+      programId: null,
+      programSegmentId: null,
+      calendarTemplateSlotId: slot.id,
+      primaryLearnerId: null,
+    };
+  }
+
+  function buildSubjectFromDraft(draft: CalendarWeekEditorDraft) {
+    if (draft.itemType === "learning_block") {
+      return clean(draft.learningArea) || "Learning";
+    }
+    return itemTypeLabel(draft.itemType);
+  }
+
+  function buildTitleFromDraft(draft: CalendarWeekEditorDraft) {
+    return clean(draft.title) || defaultTitleForItemType(draft.itemType);
+  }
+
+  function buildLiveBlockFromDraft(draft: CalendarWeekEditorDraft): FamilyCalendarBlockEntry {
+    const nextLearnerIds = draft.learnerIds.filter((learnerId) => learnerIds.includes(learnerId));
+    const primaryLearnerId = resolvePrimaryLearnerId(nextLearnerIds, draft.primaryLearnerId);
+
+    return {
+      id: draft.id || makeLocalId("calendar-block"),
+      date: draft.date,
+      title: buildTitleFromDraft(draft),
+      subject: buildSubjectFromDraft(draft),
+      note: clean(draft.notes),
+      time: draftTimeLabel(draft),
+      curriculumOutcomeIds: draft.curriculumOutcomeIds ?? [],
+      sourceType: draft.sourceType,
+      programId: draft.programId ?? null,
+      programSegmentId: draft.programSegmentId ?? null,
+      calendarTemplateSlotId: draft.calendarTemplateSlotId ?? null,
+      itemType: draft.itemType,
+      learnerIds: nextLearnerIds,
+      primaryLearnerId,
+      timeBlock: draft.timeBlock,
+      startTime: clean(draft.startTime) || null,
+      endTime: clean(draft.endTime) || null,
+    };
+  }
+
+  function replaceWeekBlock(nextBlock: FamilyCalendarBlockEntry) {
+    setWeekBlocks((current) => {
+      const nextEntries = Object.fromEntries(
+        Object.entries(current).map(([date, items]) => [
+          date,
+          items.filter((item) => item.id !== nextBlock.id),
+        ]),
+      ) as Record<string, FamilyCalendarBlockEntry[]>;
+
+      nextEntries[nextBlock.date] = [...(nextEntries[nextBlock.date] ?? []), nextBlock];
+
+      return Object.fromEntries(
+        Object.entries(nextEntries).filter(([, items]) => items.length > 0),
+      ) as Record<string, FamilyCalendarBlockEntry[]>;
+    });
+  }
+
+  function removeWeekBlock(blockId: string) {
+    setWeekBlocks((current) =>
+      Object.fromEntries(
+        Object.entries(current)
+          .map(([date, items]) => [date, items.filter((item) => item.id !== blockId)])
+          .filter(([, items]) => items.length > 0),
+      ) as Record<string, FamilyCalendarBlockEntry[]>,
+    );
+  }
+
+  function handleToggleAllLearners() {
+    setVisibleLearnerIds((current) =>
+      current.length === learnerIds.length ? [] : learnerIds,
+    );
+  }
+
+  function handleToggleLearner(learnerId: string) {
+    setVisibleLearnerIds((current) =>
+      current.includes(learnerId)
+        ? current.filter((item) => item !== learnerId)
+        : [...current, learnerId],
+    );
+  }
+
+  function openCreateItem(day: CalendarWeekDay, timeBlock: CalendarTimeBlock) {
+    setEditorMode("create-live");
+    setEditorDraft(buildLiveDraftFromCell(day, timeBlock));
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }
+
+  function openLiveBlock(block: FamilyCalendarBlockEntry) {
+    setEditorMode("edit-live");
+    setEditorDraft(buildLiveDraftFromBlock(block));
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }
+
+  function openTemplateSlot(slot: TemplateSlot) {
+    setSelectedSlotId(slot.id);
+    setEditorMode("edit-template");
+    setEditorDraft(buildTemplateDraft(slot));
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }
+
+  function changeEditorDraft(nextDraft: CalendarWeekEditorDraft) {
+    setEditorDraft(nextDraft);
+    setEditorErrorMessage("");
+    setEditorStatusMessage("");
+  }
+
+  function validateEditorDraft(draft: CalendarWeekEditorDraft) {
+    const startTime = clean(draft.startTime);
+    const endTime = clean(draft.endTime);
+
+    if (startTime && endTime && endTime <= startTime) {
+      return "End time needs to fall after the start time.";
+    }
+
+    if (draft.kind === "live" && !canPersistLiveItems) {
+      return "This live calendar needs a synced workspace before it can save.";
+    }
+
+    if (draft.kind === "live" && !draft.learnerIds.length) {
+      return "Choose at least one learner for this live calendar item.";
+    }
+
+    if (draft.kind === "template" && !selectedTemplate) {
+      return "Choose a template before updating this slot.";
+    }
+
+    return "";
+  }
+
+  async function saveEditor() {
+    if (!editorDraft) return;
+
+    const validationMessage = validateEditorDraft(editorDraft);
+    if (validationMessage) {
+      setEditorErrorMessage(validationMessage);
+      return;
+    }
+
+    if (editorDraft.kind === "template") {
+      const template = ensureTemplateForEdit();
+      const nextSlot: TemplateSlot = {
+        id: editorDraft.id || makeLocalId("slot"),
+        templateId: template.id,
+        dayOfWeek: editorDraft.dayOfWeek,
+        startTime: clean(editorDraft.startTime) || null,
+        endTime: clean(editorDraft.endTime) || null,
+        subjectId:
+          editorDraft.itemType === "learning_block"
+            ? clean(editorDraft.learningArea) || null
+            : itemTypeLabel(editorDraft.itemType),
+        label: buildTitleFromDraft(editorDraft),
+        notes: clean(editorDraft.notes) || null,
+        itemType: editorDraft.itemType,
+        learnerIds: editorDraft.learnerIds.filter((learnerId) => learnerIds.includes(learnerId)),
+        timeBlock: editorDraft.timeBlock,
+      };
+
+      replaceTemplate({
+        ...template,
+        slots: template.slots.some((slot) => slot.id === nextSlot.id)
+          ? template.slots.map((slot) => (slot.id === nextSlot.id ? nextSlot : slot))
+          : [...template.slots, nextSlot],
+        updatedAt: new Date().toISOString(),
+      });
+      setSelectedTemplateId(template.id);
+      setSelectedSlotId(nextSlot.id);
+      setEditorDraft(buildTemplateDraft(nextSlot));
+      setEditorStatusMessage("Template slot updated. Save calendar below to sync it.");
+      setStatus("Template slot updated. Save calendar below to sync it.");
+      return;
+    }
+
+    const nextLearnerIds = editorDraft.learnerIds.filter((learnerId) => learnerIds.includes(learnerId));
+    const primaryLearnerId = resolvePrimaryLearnerId(nextLearnerIds, editorDraft.primaryLearnerId);
+
+    if (!primaryLearnerId || !workspace.userId || !workspace.profile.id) {
+      setEditorErrorMessage("Choose a learner and synced workspace before saving this live item.");
+      return;
+    }
+
+    const nextDraft = {
+      ...editorDraft,
+      learnerIds: nextLearnerIds,
+      primaryLearnerId,
+    };
+
+    try {
+      setSavingEditor(true);
+      setEditorErrorMessage("");
+
+      if (editorMode === "create-live") {
+        const saved = await addFamilyCalendarBlock({
+          familyProfileId: workspace.profile.id,
+          studentId: primaryLearnerId,
+          createdByUserId: workspace.userId,
+          date: nextDraft.date,
+          title: buildTitleFromDraft(nextDraft),
+          subject: buildSubjectFromDraft(nextDraft),
+          note: clean(nextDraft.notes),
+          time: draftTimeLabel(nextDraft),
+          curriculumOutcomeIds: nextDraft.curriculumOutcomeIds,
+          sourceType: "manual",
+          programId: nextDraft.programId,
+          programSegmentId: nextDraft.programSegmentId,
+          calendarTemplateSlotId: nextDraft.calendarTemplateSlotId,
+          itemType: nextDraft.itemType,
+          learnerIds: nextLearnerIds,
+          timeBlock: nextDraft.timeBlock,
+          startTime: clean(nextDraft.startTime) || null,
+          endTime: clean(nextDraft.endTime) || null,
+        });
+
+        replaceWeekBlock(saved);
+        setEditorMode("edit-live");
+        setEditorDraft(buildLiveDraftFromBlock(saved));
+        setEditorStatusMessage("Calendar item saved.");
+        setStatus("Calendar item saved.");
+      } else {
+        await updateFamilyCalendarBlock({
+          blockId: nextDraft.id || "",
+          title: buildTitleFromDraft(nextDraft),
+          subject: buildSubjectFromDraft(nextDraft),
+          note: clean(nextDraft.notes),
+          time: draftTimeLabel(nextDraft),
+          curriculumOutcomeIds: nextDraft.curriculumOutcomeIds,
+          date: nextDraft.date,
+          studentId: primaryLearnerId,
+          itemType: nextDraft.itemType,
+          learnerIds: nextLearnerIds,
+          timeBlock: nextDraft.timeBlock,
+          startTime: clean(nextDraft.startTime) || null,
+          endTime: clean(nextDraft.endTime) || null,
+        });
+
+        const nextBlock = buildLiveBlockFromDraft(nextDraft);
+        replaceWeekBlock(nextBlock);
+        setEditorDraft(buildLiveDraftFromBlock(nextBlock));
+        setEditorStatusMessage("Calendar item updated.");
+        setStatus("Calendar item updated.");
+      }
+    } catch (saveError) {
+      setEditorErrorMessage(describeSaveError(saveError, friendlyWeekMessage("save")));
+    } finally {
+      setSavingEditor(false);
+    }
+  }
+
+  async function deleteEditorItem() {
+    if (!editorDraft) return;
+
+    if (editorDraft.kind === "template") {
+      if (!selectedTemplate || !editorDraft.id) return;
+      handleDeleteSlot(editorDraft.id);
+      setEditorStatusMessage("");
+      closeWeekEditor();
+      setStatus("Template slot removed. Save calendar below to sync it.");
+      return;
+    }
+
+    if (!editorDraft.id) return;
+
+    try {
+      setDeletingEditor(true);
+      setEditorErrorMessage("");
+      await removeFamilyCalendarBlock({ blockId: editorDraft.id });
+      removeWeekBlock(editorDraft.id);
+      closeWeekEditor();
+      setStatus("Calendar item removed.");
+    } catch (deleteError) {
+      setEditorErrorMessage(describeSaveError(deleteError, friendlyWeekMessage("delete")));
+    } finally {
+      setDeletingEditor(false);
+    }
+  }
+
+  const selectedCalendarItemKey = editorDraft?.id
+    ? `${editorDraft.kind}:${editorDraft.id}`
+    : "";
+
   const canSaveToAccount = Boolean(
     workspace.storageMode === "database" &&
       workspace.userId &&
@@ -468,7 +960,7 @@ export default function FamilyCalendarTemplateWorkspace() {
               My Calendar
             </h1>
             <p className="mt-2 text-[15px] leading-6 text-slate-600">
-              Shape the weekly rhythm and see the live week it creates.
+              Shape the weekly rhythm and open the live family calendar like a working week.
             </p>
           </div>
 
@@ -476,7 +968,7 @@ export default function FamilyCalendarTemplateWorkspace() {
             <div className={LABEL}>Template + week</div>
             <div className={`mt-2 ${H2}`}>Planning defaults</div>
             <p className={`mt-1 ${META}`}>
-              Set reusable slots, then move week to week without losing the live plan.
+              Keep reusable slots in Template mode, then quick-add and edit real week items in Week mode.
             </p>
           </div>
         </section>
@@ -502,13 +994,32 @@ export default function FamilyCalendarTemplateWorkspace() {
             weekDays={weekDays}
             weekBlocks={weekBlocks}
             programs={programs}
+            learners={workspace.learners}
+            visibleLearnerIds={visibleLearnerIds}
+            selectedCalendarItemKey={selectedCalendarItemKey}
             activeLearnerName={activeLearner?.label || ""}
             loading={loadingWeek || workspaceLoading}
             errorMessage={weekError}
+            editorMode={editorMode}
+            editorDraft={editorDraft}
+            editorErrorMessage={editorErrorMessage}
+            editorStatusMessage={editorStatusMessage}
+            savingEditor={savingEditor}
+            deletingEditor={deletingEditor}
+            canPersistLiveItems={canPersistLiveItems}
             onPreviousWeek={goPreviousWeek}
             onToday={goToday}
             onNextWeek={goNextWeek}
             onOpenTemplate={() => handleChangeView("template")}
+            onToggleAllLearners={handleToggleAllLearners}
+            onToggleLearner={handleToggleLearner}
+            onOpenCreateItem={openCreateItem}
+            onOpenLiveBlock={openLiveBlock}
+            onOpenTemplateSlot={openTemplateSlot}
+            onCloseEditor={closeWeekEditor}
+            onChangeEditorDraft={changeEditorDraft}
+            onSaveEditor={saveEditor}
+            onDeleteEditor={deleteEditorItem}
           />
         ) : (
           <>
@@ -536,7 +1047,7 @@ export default function FamilyCalendarTemplateWorkspace() {
                     slot={selectedSlot}
                     onChange={handleChangeSlot}
                     onDelete={handleDeleteSlot}
-                    onAddNew={handleAddSlot}
+                    onAddNew={() => handleAddSlot()}
                   />
                 </div>
               </div>

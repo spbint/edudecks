@@ -5,6 +5,35 @@ export type CalendarCycleType = "weekly" | "custom";
 export type ProgramPeriodType = "term" | "semester" | "season" | "custom";
 export type ProgramSegmentType = "week" | "sequence" | "focus" | "custom";
 export type ProgramPlacementMode = "sequential" | "weekly" | "custom";
+export type CalendarItemType =
+  | "learning_block"
+  | "task"
+  | "appointment"
+  | "playdate"
+  | "reminder"
+  | "custom";
+export type CalendarTimeBlock = "morning" | "midday" | "afternoon";
+
+export const CALENDAR_ITEM_TYPE_OPTIONS: Array<{
+  value: CalendarItemType;
+  label: string;
+}> = [
+  { value: "learning_block", label: "Learning block" },
+  { value: "task", label: "Task" },
+  { value: "appointment", label: "Appointment" },
+  { value: "playdate", label: "Playdate" },
+  { value: "reminder", label: "Reminder" },
+  { value: "custom", label: "Custom" },
+];
+
+export const CALENDAR_TIME_BLOCK_OPTIONS: Array<{
+  value: CalendarTimeBlock;
+  label: string;
+}> = [
+  { value: "morning", label: "Morning" },
+  { value: "midday", label: "Midday" },
+  { value: "afternoon", label: "Afternoon" },
+];
 
 export type TemplateSlot = {
   id: string;
@@ -15,6 +44,9 @@ export type TemplateSlot = {
   subjectId?: string | null;
   label: string;
   notes?: string | null;
+  itemType?: CalendarItemType | null;
+  learnerIds?: string[];
+  timeBlock?: CalendarTimeBlock | null;
 };
 
 export type CalendarTemplate = {
@@ -83,6 +115,15 @@ const STORAGE_KEYS = {
   programs: "mylearna_programs_v1",
 };
 
+type TemplateRowsResult = {
+  data: Array<Record<string, unknown>> | null;
+  error: unknown;
+};
+
+type UpsertResult = {
+  error: unknown;
+};
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -140,6 +181,48 @@ function normalizeOutcomeIds(value: unknown) {
   return value.map((item) => safe(item)).filter(Boolean);
 }
 
+function normalizeLearnerIds(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(value.map((item) => safe(item)).filter(Boolean)));
+}
+
+function normalizeCalendarItemType(value: unknown): CalendarItemType {
+  const itemType = safe(value);
+  if (
+    itemType === "task" ||
+    itemType === "appointment" ||
+    itemType === "playdate" ||
+    itemType === "reminder" ||
+    itemType === "custom"
+  ) {
+    return itemType;
+  }
+  return "learning_block";
+}
+
+function inferTimeBlockFromStartTime(startTime: string | null) {
+  const raw = safe(startTime);
+  const match = raw.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+
+  const hour = Number(match[1]);
+  if (!Number.isFinite(hour)) return null;
+  if (hour < 12) return "morning" as const;
+  if (hour < 14) return "midday" as const;
+  return "afternoon" as const;
+}
+
+function normalizeCalendarTimeBlock(
+  value: unknown,
+  fallbackStartTime?: string | null,
+): CalendarTimeBlock {
+  const timeBlock = safe(value);
+  if (timeBlock === "morning" || timeBlock === "midday" || timeBlock === "afternoon") {
+    return timeBlock;
+  }
+  return inferTimeBlockFromStartTime(fallbackStartTime ?? null) ?? "morning";
+}
+
 function isMissingSchemaError(error: unknown) {
   return safe((error as { message?: unknown })?.message)
     .toLowerCase()
@@ -186,6 +269,12 @@ function normalizeTemplate(raw: Partial<CalendarTemplate>): CalendarTemplate {
           subjectId: safe(slot.subjectId) || null,
           label: safe(slot.label) || "Learning block",
           notes: safe(slot.notes) || null,
+          itemType: normalizeCalendarItemType((slot as { itemType?: unknown }).itemType),
+          learnerIds: normalizeLearnerIds((slot as { learnerIds?: unknown }).learnerIds),
+          timeBlock: normalizeCalendarTimeBlock(
+            (slot as { timeBlock?: unknown }).timeBlock,
+            safe(slot.startTime) || null,
+          ),
         }))
       : [],
     updatedAt: safe(raw.updatedAt) || nowIso(),
@@ -299,20 +388,20 @@ export async function loadFamilyCalendarTemplates(input: {
   const local = templatesFromLocal(input.familyId).map(normalizeTemplate);
   if (!hasSupabaseEnv || !isDatabaseBackedId(input.familyId) || !(await hasAuthenticatedSupabaseSession())) return local;
 
-  const response = await withTimeout(
+  const response = (await withTimeout(
     supabase
       .from("family_calendar_templates")
       .select("id,family_profile_id,title,cycle_type,cycle_length,academic_structure_type,slots_json,updated_at")
       .eq("family_profile_id", input.familyId)
       .order("updated_at", { ascending: false }),
-  ).catch((error) => ({ data: null, error }));
+  ).catch((error) => ({ data: null, error }))) as TemplateRowsResult;
 
-  if ((response as any).error) {
-    if (!isMissingSchemaError((response as any).error)) throw (response as any).error;
+  if (response.error) {
+    if (!isMissingSchemaError(response.error)) throw response.error;
     return local;
   }
 
-  const rows = (((response as any).data ?? []) as Array<Record<string, unknown>>).map((row) =>
+  const rows = (response.data ?? []).map((row) =>
     normalizeTemplate({
       id: safe(row.id),
       familyId: safe(row.family_profile_id),
@@ -339,7 +428,7 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
     await canWritePlanningRows(normalized.familyId),
   );
 
-  const response = await withTimeout(
+  const response = (await withTimeout(
     supabase.from("family_calendar_templates").upsert({
       id: normalized.id,
       family_profile_id: normalized.familyId,
@@ -350,10 +439,10 @@ export async function saveFamilyCalendarTemplate(template: CalendarTemplate): Pr
       slots_json: normalized.slots,
       updated_at: normalized.updatedAt,
     }),
-  ).catch((error) => ({ error }));
+  ).catch((error) => ({ error }))) as UpsertResult;
 
-  if ((response as any).error) {
-    throw (response as any).error;
+  if (response.error) {
+    throw response.error;
   }
 
   return normalized;
@@ -363,20 +452,20 @@ export async function loadFamilyPrograms(input: { familyId: string }): Promise<P
   const local = programsFromLocal(input.familyId).map(normalizeProgram);
   if (!hasSupabaseEnv || !isDatabaseBackedId(input.familyId) || !(await hasAuthenticatedSupabaseSession())) return local;
 
-  const response = await withTimeout(
+  const response = (await withTimeout(
     supabase
       .from("family_programs")
       .select("id,family_profile_id,learner_id,title,subject_id,framework_id,jurisdiction_id,period_type,period_label,duration_count,segment_type,start_date,end_date,calendar_template_slot_id,curriculum_outcome_ids,segments_json,schedule_mapping_json,updated_at")
       .eq("family_profile_id", input.familyId)
       .order("updated_at", { ascending: false }),
-  ).catch((error) => ({ data: null, error }));
+  ).catch((error) => ({ data: null, error }))) as TemplateRowsResult;
 
-  if ((response as any).error) {
-    if (!isMissingSchemaError((response as any).error)) throw (response as any).error;
+  if (response.error) {
+    if (!isMissingSchemaError(response.error)) throw response.error;
     return local;
   }
 
-  const rows = (((response as any).data ?? []) as Array<Record<string, unknown>>).map((row) =>
+  const rows = (response.data ?? []).map((row) =>
     normalizeProgram({
       id: safe(row.id),
       familyId: safe(row.family_profile_id),
@@ -416,7 +505,7 @@ export async function saveFamilyProgram(program: Program): Promise<Program> {
     await canWritePlanningRows(normalized.familyId),
   );
 
-  const response = await withTimeout(
+  const response = (await withTimeout(
     supabase.from("family_programs").upsert({
       id: normalized.id,
       family_profile_id: normalized.familyId,
@@ -437,10 +526,10 @@ export async function saveFamilyProgram(program: Program): Promise<Program> {
       schedule_mapping_json: normalized.scheduleMapping,
       updated_at: normalized.updatedAt,
     }),
-  ).catch((error) => ({ error }));
+  ).catch((error) => ({ error }))) as UpsertResult;
 
-  if ((response as any).error) {
-    throw (response as any).error;
+  if (response.error) {
+    throw response.error;
   }
 
   return normalized;
@@ -452,9 +541,45 @@ export function defaultCalendarTemplate(input: {
 }) {
   const id = makeId("calendar-template");
   const slots: TemplateSlot[] = [
-    { id: makeId("slot"), templateId: id, dayOfWeek: 1, startTime: "09:00", endTime: "10:00", subjectId: "Literacy", label: "Literacy block", notes: "" },
-    { id: makeId("slot"), templateId: id, dayOfWeek: 2, startTime: "10:00", endTime: "11:00", subjectId: "Numeracy", label: "Maths block", notes: "" },
-    { id: makeId("slot"), templateId: id, dayOfWeek: 3, startTime: "13:00", endTime: "14:30", subjectId: "Inquiry", label: "Inquiry block", notes: "" },
+    {
+      id: makeId("slot"),
+      templateId: id,
+      dayOfWeek: 1,
+      startTime: "09:00",
+      endTime: "10:00",
+      subjectId: "Literacy",
+      label: "Literacy block",
+      notes: "",
+      itemType: "learning_block",
+      learnerIds: [],
+      timeBlock: "morning",
+    },
+    {
+      id: makeId("slot"),
+      templateId: id,
+      dayOfWeek: 2,
+      startTime: "10:00",
+      endTime: "11:00",
+      subjectId: "Numeracy",
+      label: "Maths block",
+      notes: "",
+      itemType: "learning_block",
+      learnerIds: [],
+      timeBlock: "morning",
+    },
+    {
+      id: makeId("slot"),
+      templateId: id,
+      dayOfWeek: 3,
+      startTime: "13:00",
+      endTime: "14:30",
+      subjectId: "Inquiry",
+      label: "Inquiry block",
+      notes: "",
+      itemType: "learning_block",
+      learnerIds: [],
+      timeBlock: "afternoon",
+    },
   ];
 
   return normalizeTemplate({
@@ -550,7 +675,7 @@ export async function generateProgramIntoCalendar(input: {
     const subject = safe(primaryBlock?.learningArea) || safe(slot.subjectId) || safe(input.program.subjectId) || "General";
     const note = [safe(slot.notes), safe(segment.notes), safe(primaryBlock?.notes)]
       .filter(Boolean)
-      .join(" • ");
+      .join(" - ");
     const time = [safe(slot.startTime), safe(slot.endTime)].filter(Boolean).join(" - ");
     const curriculumOutcomeIds = [
       ...input.program.curriculumOutcomeIds,
@@ -572,6 +697,11 @@ export async function generateProgramIntoCalendar(input: {
       programId: input.program.id,
       programSegmentId: segment.id,
       calendarTemplateSlotId: slot.id,
+      itemType: "learning_block",
+      learnerIds: [input.learnerId],
+      timeBlock: normalizeCalendarTimeBlock(slot.timeBlock, slot.startTime ?? null),
+      startTime: safe(slot.startTime) || null,
+      endTime: safe(slot.endTime) || null,
     });
 
     generated.push(created);
