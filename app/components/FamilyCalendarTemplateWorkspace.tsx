@@ -827,8 +827,7 @@ export default function FamilyCalendarTemplateWorkspace() {
       });
       setSelectedTemplateId(template.id);
       setSelectedSlotId(nextSlot.id);
-      setEditorDraft(buildTemplateDraft(nextSlot));
-      setEditorStatusMessage("Template slot updated. Save calendar below to sync it.");
+      closeWeekEditor();
       setStatus("Template slot updated. Save calendar below to sync it.");
       return;
     }
@@ -874,9 +873,7 @@ export default function FamilyCalendarTemplateWorkspace() {
         });
 
         replaceWeekBlock(saved);
-        setEditorMode("edit-live");
-        setEditorDraft(buildLiveDraftFromBlock(saved));
-        setEditorStatusMessage("Calendar item saved.");
+        closeWeekEditor();
         setStatus("Calendar item saved.");
       } else {
         await updateFamilyCalendarBlock({
@@ -897,8 +894,7 @@ export default function FamilyCalendarTemplateWorkspace() {
 
         const nextBlock = buildLiveBlockFromDraft(nextDraft);
         replaceWeekBlock(nextBlock);
-        setEditorDraft(buildLiveDraftFromBlock(nextBlock));
-        setEditorStatusMessage("Calendar item updated.");
+        closeWeekEditor();
         setStatus("Calendar item updated.");
       }
     } catch (saveError) {

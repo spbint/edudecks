@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import type { FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import type { FamilyLearner } from "@/lib/familyWorkspace";
 import type {
@@ -94,7 +94,11 @@ function fallbackDaypart(index: number): DaypartId {
 }
 
 function slotDaypart(slot: TemplateSlot, fallbackIndex: number): DaypartId {
-  if (slot.timeBlock === "morning" || slot.timeBlock === "midday" || slot.timeBlock === "afternoon") {
+  if (
+    slot.timeBlock === "morning" ||
+    slot.timeBlock === "midday" ||
+    slot.timeBlock === "afternoon"
+  ) {
     return slot.timeBlock;
   }
 
@@ -158,41 +162,47 @@ function itemTypeTone(itemType: CalendarItemType) {
     return {
       accent: "#0f766e",
       badge: "border-teal-200 bg-teal-50 text-teal-700",
-      surface: "bg-[linear-gradient(180deg,rgba(240,253,250,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(240,253,250,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   if (itemType === "appointment") {
     return {
       accent: "#2563eb",
       badge: "border-blue-200 bg-blue-50 text-blue-700",
-      surface: "bg-[linear-gradient(180deg,rgba(239,246,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(239,246,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   if (itemType === "playdate") {
     return {
       accent: "#d97706",
       badge: "border-amber-200 bg-amber-50 text-amber-700",
-      surface: "bg-[linear-gradient(180deg,rgba(255,251,235,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(255,251,235,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   if (itemType === "reminder") {
     return {
       accent: "#7c3aed",
       badge: "border-violet-200 bg-violet-50 text-violet-700",
-      surface: "bg-[linear-gradient(180deg,rgba(245,243,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(245,243,255,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   if (itemType === "custom") {
     return {
       accent: "#475569",
       badge: "border-slate-200 bg-slate-100 text-slate-700",
-      surface: "bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(255,255,255,0.98)_100%)]",
+      surface:
+        "bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(255,255,255,0.98)_100%)]",
     };
   }
   return {
     accent: "#0f766e",
     badge: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    surface: "bg-[linear-gradient(180deg,rgba(240,253,244,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
+    surface:
+      "bg-[linear-gradient(180deg,rgba(240,253,244,0.95)_0%,rgba(255,255,255,0.98)_100%)]",
   };
 }
 
@@ -232,7 +242,9 @@ function blockAccentStyle(block: FamilyCalendarBlockEntry): React.CSSProperties 
 }
 
 function slotTimeLabel(slot: TemplateSlot) {
-  if (safe(slot.startTime) && safe(slot.endTime)) return `${safe(slot.startTime)} - ${safe(slot.endTime)}`;
+  if (safe(slot.startTime) && safe(slot.endTime)) {
+    return `${safe(slot.startTime)} - ${safe(slot.endTime)}`;
+  }
   if (safe(slot.startTime)) return safe(slot.startTime);
   if (slot.timeBlock === "morning") return "Morning session";
   if (slot.timeBlock === "midday") return "Midday session";
@@ -266,6 +278,10 @@ function matchesLearnerFilter(
 function isAllLearnersSelected(learners: FamilyLearner[], visibleLearnerIds: string[]) {
   if (!learners.length) return false;
   return learners.every((learner) => visibleLearnerIds.includes(learner.id));
+}
+
+function createCellSelectionKey(date: string, timeBlock: CalendarTimeBlock) {
+  return `create:${date}:${timeBlock}`;
 }
 
 export function CalendarViewSwitcher({
@@ -322,12 +338,13 @@ function LearnerVisibilitySidebar({
 }) {
   if (!learners.length) {
     return (
-      <aside className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <aside className="grid gap-3 rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="grid gap-1.5">
           <div className={LABEL}>Learners</div>
           <h2 className={H2}>No learners yet</h2>
           <p className={BODY}>
-            Add a learner first to save live calendar items. Template slots can still shape the weekly rhythm.
+            Add a learner first to save live calendar items. Template slots can still shape the
+            weekly rhythm.
           </p>
         </div>
       </aside>
@@ -336,7 +353,7 @@ function LearnerVisibilitySidebar({
 
   if (learners.length === 1) {
     return (
-      <aside className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+      <aside className="grid gap-3 rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="grid gap-1.5">
           <div className={LABEL}>Learner</div>
           <h2 className={H2}>Calendar visibility</h2>
@@ -352,14 +369,14 @@ function LearnerVisibilitySidebar({
   const allSelected = isAllLearnersSelected(learners, visibleLearnerIds);
 
   return (
-    <aside className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+    <aside className="grid gap-3 rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
       <div className="grid gap-1.5">
         <div className={LABEL}>Learner calendars</div>
         <h2 className={H2}>Visibility</h2>
         <p className={META}>Show or hide learners without changing the global active learner.</p>
       </div>
 
-      <label className="flex items-start gap-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
+      <label className="flex items-start gap-3 rounded-[16px] border border-slate-200 bg-slate-50 px-3.5 py-3">
         <input
           type="checkbox"
           checked={allSelected}
@@ -368,9 +385,7 @@ function LearnerVisibilitySidebar({
         />
         <span className="grid gap-1">
           <span className="text-[14px] font-semibold text-slate-950">All learners</span>
-          <span className="text-[12px] leading-5 text-slate-500">
-            Toggle the whole family calendar on or off.
-          </span>
+          <span className="text-[12px] leading-5 text-slate-500">Toggle the whole week at once.</span>
         </span>
       </label>
 
@@ -380,10 +395,8 @@ function LearnerVisibilitySidebar({
           return (
             <label
               key={learner.id}
-              className={`flex items-start gap-3 rounded-[18px] border px-4 py-3 transition ${
-                checked
-                  ? "border-blue-200 bg-blue-50"
-                  : "border-slate-200 bg-white"
+              className={`flex items-start gap-3 rounded-[16px] border px-3.5 py-3 transition ${
+                checked ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
               }`}
             >
               <input
@@ -406,7 +419,7 @@ function LearnerVisibilitySidebar({
   );
 }
 
-function CalendarWeekEditorPanel({
+function CalendarInlinePopoverEditor({
   mode,
   draft,
   weekDays,
@@ -416,6 +429,7 @@ function CalendarWeekEditorPanel({
   saving,
   deleting,
   canPersistLiveItems,
+  alignRight,
   onClose,
   onChangeDraft,
   onSave,
@@ -430,47 +444,60 @@ function CalendarWeekEditorPanel({
   saving: boolean;
   deleting: boolean;
   canPersistLiveItems: boolean;
+  alignRight: boolean;
   onClose: () => void;
   onChangeDraft: (nextDraft: CalendarWeekEditorDraft) => void;
   onSave: () => void;
   onDelete: () => void;
 }) {
-  if (!draft || !mode) {
-    return (
-      <aside className="grid gap-3 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
-        <div className={LABEL}>Calendar editor</div>
-        <h2 className={H2}>Open a calendar item</h2>
-        <p className={BODY}>
-          Click an existing card to edit it, or click an empty week cell to quick-add a new item.
-        </p>
-      </aside>
-    );
-  }
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!draft || !mode) return;
+    titleInputRef.current?.focus();
+  }, [draft, mode]);
+
+  useEffect(() => {
+    if (!draft || !mode) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      onClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [draft, mode, onClose]);
+
+  if (!draft || !mode) return null;
 
   const modeMeta =
     mode === "create-live"
       ? {
           eyebrow: "Quick add",
-          title: "Create a live calendar item",
+          title: "Create item",
           note: canPersistLiveItems
-            ? "This saves directly into the live family calendar."
+            ? "Save directly into the live family calendar."
             : "A synced workspace and learner are required before a live item can be saved.",
-          saveLabel: "Save item",
+          saveLabel: "Save",
           showDelete: false,
         }
       : mode === "edit-live"
         ? {
             eyebrow: "Calendar item",
-            title: "Edit this live item",
-            note: "This updates the live family calendar entry.",
+            title: "Edit item",
+            note: "Update the live family calendar entry in place.",
             saveLabel: "Save changes",
             showDelete: true,
           }
         : {
             eyebrow: "Template slot",
-            title: "Edit this weekly rhythm slot",
+            title: "Edit slot",
             note: "This updates the reusable template only. Use Save calendar below to sync it.",
-            saveLabel: "Update template slot",
+            saveLabel: "Update slot",
             showDelete: true,
           };
 
@@ -484,275 +511,311 @@ function CalendarWeekEditorPanel({
   const canToggleLearners = learners.length > 1;
 
   return (
-    <aside className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)] xl:sticky xl:top-4 xl:self-start">
-      <div className="flex items-start justify-between gap-3">
-        <div className="grid gap-1.5">
-          <div className={LABEL}>{modeMeta.eyebrow}</div>
-          <h2 className={H2}>{modeMeta.title}</h2>
-          <p className={META}>{modeMeta.note}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-100"
-        >
-          Close
-        </button>
-      </div>
-
-      {errorMessage ? (
-        <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-semibold text-rose-700">
-          {errorMessage}
-        </div>
-      ) : null}
-
-      {statusMessage ? (
-        <div className="rounded-[16px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[13px] font-semibold text-emerald-700">
-          {statusMessage}
-        </div>
-      ) : null}
-
-      <label className="grid gap-2">
-        <span className={LABEL}>Title</span>
-        <input
-          className={INPUT}
-          value={draft.title}
-          onChange={(event) => onChangeDraft({ ...draft, title: event.target.value })}
-          placeholder="Add a title"
-        />
-      </label>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-        <label className="grid gap-2">
-          <span className={LABEL}>Type</span>
-          <select
-            className={INPUT}
-            value={draft.itemType}
-            onChange={(event) =>
-              onChangeDraft({
-                ...draft,
-                itemType: event.target.value as CalendarItemType,
-                learningArea:
-                  event.target.value === "learning_block" ? draft.learningArea : "",
-              })
-            }
-          >
-            {CALENDAR_ITEM_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="grid gap-2">
-          <span className={LABEL}>Day</span>
-          <select
-            className={INPUT}
-            value={activeDayOption?.key || ""}
-            onChange={(event) => {
-              const nextDay = weekDays.find((day) => day.key === event.target.value) || null;
-              if (!nextDay) return;
-              onChangeDraft({
-                ...draft,
-                date: nextDay.key,
-                dayOfWeek: nextDay.weekdayValue,
-              });
-            }}
-          >
-            {weekDays.map((day) => (
-              <option key={day.key} value={day.key}>
-                {day.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-1">
-        <label className="grid gap-2">
-          <span className={LABEL}>Session</span>
-          <select
-            className={INPUT}
-            value={draft.timeBlock}
-            onChange={(event) =>
-              onChangeDraft({
-                ...draft,
-                timeBlock: event.target.value as CalendarTimeBlock,
-              })
-            }
-          >
-            {CALENDAR_TIME_BLOCK_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="grid gap-2">
-          <span className={LABEL}>Start time</span>
-          <input
-            className={INPUT}
-            type="time"
-            value={draft.startTime}
-            onChange={(event) =>
-              onChangeDraft({
-                ...draft,
-                startTime: event.target.value,
-              })
-            }
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <span className={LABEL}>End time</span>
-          <input
-            className={INPUT}
-            type="time"
-            value={draft.endTime}
-            onChange={(event) =>
-              onChangeDraft({
-                ...draft,
-                endTime: event.target.value,
-              })
-            }
-          />
-        </label>
-      </div>
-
-      {draft.itemType === "learning_block" ? (
-        <label className="grid gap-2">
-          <span className={LABEL}>Learning area</span>
-          <input
-            className={INPUT}
-            value={draft.learningArea}
-            onChange={(event) =>
-              onChangeDraft({
-                ...draft,
-                learningArea: event.target.value,
-              })
-            }
-            placeholder="Literacy"
-          />
-        </label>
-      ) : null}
-
-      <section className="grid gap-3 rounded-[18px] border border-slate-200 bg-slate-50/80 p-4">
-        <div className="grid gap-1">
-          <div className={LABEL}>Learners</div>
-          <div className={META}>
-            {draft.kind === "live"
-              ? "The first checked learner becomes the primary learner for current persistence."
-              : "Template slots can stay broad or be assigned to specific learners."}
-          </div>
-        </div>
-
-        {!learners.length ? (
-          <div className="rounded-[14px] border border-dashed border-slate-200 bg-white px-3 py-3 text-[13px] font-semibold text-slate-500">
-            No learners are available yet.
-          </div>
-        ) : canToggleLearners ? (
-          <div className="grid gap-2">
-            {learners.map((learner) => {
-              const checked = draft.learnerIds.includes(learner.id);
-              return (
-                <label
-                  key={learner.id}
-                  className={`flex items-start gap-3 rounded-[14px] border px-3 py-2.5 ${
-                    checked ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => {
-                      const nextLearnerIds = checked
-                        ? draft.learnerIds.filter((learnerId) => learnerId !== learner.id)
-                        : [...draft.learnerIds, learner.id];
-                      onChangeDraft({
-                        ...draft,
-                        learnerIds: nextLearnerIds,
-                        primaryLearnerId: nextLearnerIds[0] || null,
-                      });
-                    }}
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
-                  />
-                  <span className="grid gap-0.5">
-                    <span className="text-[13px] font-semibold text-slate-950">{learner.label}</span>
-                    <span className="text-[12px] text-slate-500">
-                      {checked ? "Visible on this item" : "Hidden from this item"}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-[14px] border border-slate-200 bg-white px-3 py-3">
-            <div className="text-[13px] font-semibold text-slate-950">
-              {selectedLearnerNames[0] || learners[0]?.label || "Learner"}
+    <div
+      role="dialog"
+      aria-label={modeMeta.title}
+      onClick={(event) => event.stopPropagation()}
+      className={`relative z-30 mt-2 rounded-[20px] border border-slate-200 bg-white p-4 shadow-[0_24px_48px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 sm:absolute sm:top-full sm:mt-2 ${
+        alignRight ? "sm:right-0" : "sm:left-0"
+      }`}
+      style={{
+        width: "min(340px, calc(100vw - 3rem))",
+        maxHeight: "min(72vh, 620px)",
+        overflowY: "auto",
+      }}
+    >
+      <div className="grid gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="grid gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                Editing
+              </span>
+              <span className={LABEL}>{modeMeta.eyebrow}</span>
             </div>
-            <div className="mt-1 text-[12px] text-slate-500">
-              This is the only learner in the current family workspace.
-            </div>
+            <h3 className="text-[18px] font-black leading-tight text-slate-950">{modeMeta.title}</h3>
+            <p className="text-[12px] leading-5 text-slate-500">{modeMeta.note}</p>
           </div>
-        )}
-      </section>
 
-      <label className="grid gap-2">
-        <span className={LABEL}>Notes</span>
-        <textarea
-          className={`${INPUT} min-h-[96px] py-3`}
-          value={draft.notes}
-          onChange={(event) => onChangeDraft({ ...draft, notes: event.target.value })}
-          placeholder="Add context, next steps, or a reminder"
-        />
-      </label>
-
-      <div className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-        <div className={LABEL}>Details</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {itemTypeLabel(draft.itemType)}
-          </span>
-          <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {activeDayOption?.label || "Day"}
-          </span>
-          <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {CALENDAR_TIME_BLOCK_OPTIONS.find((option) => option.value === draft.timeBlock)?.label ||
-              "Session"}
-          </span>
-          <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-            {curriculumCount
-              ? `${curriculumCount} curriculum link${curriculumCount === 1 ? "" : "s"}`
-              : "No curriculum links"}
-          </span>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving || deleting}
-          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-2.5 text-[14px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {saving ? "Saving..." : modeMeta.saveLabel}
-        </button>
-
-        {modeMeta.showDelete ? (
           <button
             type="button"
-            onClick={onDelete}
-            disabled={saving || deleting}
-            className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 py-2.5 text-[14px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Close editor"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-[12px] font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            {deleting ? "Removing..." : "Remove"}
+            Close
           </button>
+        </div>
+
+        {errorMessage ? (
+          <div className="rounded-[14px] border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] font-semibold text-rose-700">
+            {errorMessage}
+          </div>
         ) : null}
+
+        {statusMessage ? (
+          <div className="rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] font-semibold text-emerald-700">
+            {statusMessage}
+          </div>
+        ) : null}
+
+        <label className="grid gap-1.5">
+          <span className={LABEL}>Title</span>
+          <input
+            ref={titleInputRef}
+            className={INPUT}
+            value={draft.title}
+            onChange={(event) => onChangeDraft({ ...draft, title: event.target.value })}
+            placeholder="Add a title"
+          />
+        </label>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1.5">
+            <span className={LABEL}>Type</span>
+            <select
+              className={INPUT}
+              value={draft.itemType}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  itemType: event.target.value as CalendarItemType,
+                  learningArea:
+                    event.target.value === "learning_block" ? draft.learningArea : "",
+                })
+              }
+            >
+              {CALENDAR_ITEM_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1.5">
+            <span className={LABEL}>Day</span>
+            <select
+              className={INPUT}
+              value={activeDayOption?.key || ""}
+              onChange={(event) => {
+                const nextDay = weekDays.find((day) => day.key === event.target.value) || null;
+                if (!nextDay) return;
+                onChangeDraft({
+                  ...draft,
+                  date: nextDay.key,
+                  dayOfWeek: nextDay.weekdayValue,
+                });
+              }}
+            >
+              {weekDays.map((day) => (
+                <option key={day.key} value={day.key}>
+                  {day.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="grid gap-1.5">
+            <span className={LABEL}>Session</span>
+            <select
+              className={INPUT}
+              value={draft.timeBlock}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  timeBlock: event.target.value as CalendarTimeBlock,
+                })
+              }
+            >
+              {CALENDAR_TIME_BLOCK_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1.5">
+            <span className={LABEL}>Start</span>
+            <input
+              className={INPUT}
+              type="time"
+              value={draft.startTime}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  startTime: event.target.value,
+                })
+              }
+            />
+          </label>
+
+          <label className="grid gap-1.5">
+            <span className={LABEL}>End</span>
+            <input
+              className={INPUT}
+              type="time"
+              value={draft.endTime}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  endTime: event.target.value,
+                })
+              }
+            />
+          </label>
+        </div>
+
+        {draft.itemType === "learning_block" ? (
+          <label className="grid gap-1.5">
+            <span className={LABEL}>Learning area</span>
+            <input
+              className={INPUT}
+              value={draft.learningArea}
+              onChange={(event) =>
+                onChangeDraft({
+                  ...draft,
+                  learningArea: event.target.value,
+                })
+              }
+              placeholder="Literacy"
+            />
+          </label>
+        ) : null}
+
+        <section className="grid gap-2 rounded-[16px] border border-slate-200 bg-slate-50/80 p-3">
+          <div className="grid gap-1">
+            <div className={LABEL}>Learners</div>
+            <div className={META}>
+              {draft.kind === "live"
+                ? "The first checked learner becomes the primary learner for current persistence."
+                : "Template slots can stay broad or be assigned to specific learners."}
+            </div>
+          </div>
+
+          {!learners.length ? (
+            <div className="rounded-[12px] border border-dashed border-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-slate-500">
+              No learners are available yet.
+            </div>
+          ) : canToggleLearners ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {learners.map((learner) => {
+                const checked = draft.learnerIds.includes(learner.id);
+                return (
+                  <label
+                    key={learner.id}
+                    className={`flex items-start gap-2.5 rounded-[12px] border px-3 py-2.5 ${
+                      checked ? "border-blue-200 bg-blue-50" : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const nextLearnerIds = checked
+                          ? draft.learnerIds.filter((learnerId) => learnerId !== learner.id)
+                          : [...draft.learnerIds, learner.id];
+                        onChangeDraft({
+                          ...draft,
+                          learnerIds: nextLearnerIds,
+                          primaryLearnerId: nextLearnerIds[0] || null,
+                        });
+                      }}
+                      className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-950 focus:ring-slate-300"
+                    />
+                    <span className="grid gap-0.5">
+                      <span className="text-[12px] font-semibold text-slate-950">
+                        {learner.label}
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        {checked ? "Visible on this item" : "Hidden from this item"}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-[12px] border border-slate-200 bg-white px-3 py-2.5">
+              <div className="text-[12px] font-semibold text-slate-950">
+                {selectedLearnerNames[0] || learners[0]?.label || "Learner"}
+              </div>
+              <div className="mt-1 text-[11px] text-slate-500">
+                This is the only learner in the current family workspace.
+              </div>
+            </div>
+          )}
+        </section>
+
+        <label className="grid gap-1.5">
+          <span className={LABEL}>Notes</span>
+          <textarea
+            className={`${INPUT} min-h-[84px] py-3`}
+            value={draft.notes}
+            onChange={(event) => onChangeDraft({ ...draft, notes: event.target.value })}
+            placeholder="Add context, next steps, or a reminder"
+          />
+        </label>
+
+        <div className="rounded-[16px] border border-slate-200 bg-slate-50/70 px-3 py-3">
+          <div className={LABEL}>Details</div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              {itemTypeLabel(draft.itemType)}
+            </span>
+            <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              {activeDayOption?.label || "Day"}
+            </span>
+            <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              {CALENDAR_TIME_BLOCK_OPTIONS.find((option) => option.value === draft.timeBlock)
+                ?.label || "Session"}
+            </span>
+            <span className="inline-flex rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+              {curriculumCount
+                ? `${curriculumCount} curriculum link${curriculumCount === 1 ? "" : "s"}`
+                : "No curriculum links"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-label={modeMeta.saveLabel}
+            onClick={onSave}
+            disabled={saving || deleting}
+            className="inline-flex items-center justify-center rounded-full bg-slate-950 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? "Saving..." : modeMeta.saveLabel}
+          </button>
+
+          <button
+            type="button"
+            aria-label="Cancel editing"
+            onClick={onClose}
+            disabled={saving || deleting}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+
+          {modeMeta.showDelete ? (
+            <button
+              type="button"
+              aria-label="Remove item"
+              onClick={onDelete}
+              disabled={saving || deleting}
+              className="inline-flex items-center justify-center rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-[13px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {deleting ? "Removing..." : "Remove"}
+            </button>
+          ) : null}
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -822,14 +885,12 @@ export function CalendarWeekView({
   onDeleteEditor: () => void;
 }) {
   const templateSlots = useMemo(() => template?.slots ?? [], [template]);
-  const slotMap = useMemo(
-    () => new Map(templateSlots.map((slot) => [slot.id, slot])),
-    [templateSlots],
-  );
-  const programMap = useMemo(
-    () => new Map(programs.map((program) => [program.id, program])),
-    [programs],
-  );
+  const slotMap = useMemo(() => new Map(templateSlots.map((slot) => [slot.id, slot])), [templateSlots]);
+  const programMap = useMemo(() => new Map(programs.map((program) => [program.id, program])), [programs]);
+  const selectedCreateCellKey =
+    editorMode === "create-live" && editorDraft
+      ? createCellSelectionKey(editorDraft.date, editorDraft.timeBlock)
+      : "";
 
   const dayColumns = useMemo(
     () =>
@@ -950,7 +1011,8 @@ export function CalendarWeekView({
             <div className="grid gap-1">
               <div className={H3}>Set your weekly rhythm first</div>
               <div className={META}>
-                Week view stays honest about live items. Add template slots first so the rhythm is visible.
+                Week view stays honest about live items. Add template slots first so the rhythm is
+                visible.
               </div>
             </div>
             <button
@@ -970,24 +1032,26 @@ export function CalendarWeekView({
         ) : null}
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_360px]">
-        <LearnerVisibilitySidebar
-          learners={learners}
-          visibleLearnerIds={visibleLearnerIds}
-          onToggleAllLearners={onToggleAllLearners}
-          onToggleLearner={onToggleLearner}
-        />
+      <div className="grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="xl:sticky xl:top-4 xl:self-start">
+          <LearnerVisibilitySidebar
+            learners={learners}
+            visibleLearnerIds={visibleLearnerIds}
+            onToggleAllLearners={onToggleAllLearners}
+            onToggleLearner={onToggleLearner}
+          />
+        </div>
 
         {!showSetupState ? (
-          <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.04)] md:p-5">
             <div className="grid gap-1.5">
               <div className={LABEL}>Live planner</div>
               <h2 className={H2}>Weekly grid</h2>
             </div>
 
-            <div className="overflow-x-auto">
-              <div className="min-w-[900px] overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50/80">
-                <div className="grid grid-cols-[116px_repeat(5,minmax(152px,1fr))] border-b border-slate-200 bg-white">
+            <div className="overflow-x-auto overflow-y-visible pb-6">
+              <div className="min-w-[840px] rounded-[22px] border border-slate-200 bg-slate-50/80">
+                <div className="grid grid-cols-[88px_repeat(5,minmax(140px,1fr))] border-b border-slate-200 bg-white">
                   <div className={`${LABEL} px-3 py-3`}>Time</div>
                   {dayColumns.map((day) => (
                     <div
@@ -1013,13 +1077,14 @@ export function CalendarWeekView({
                   {DAYPARTS.map((daypart) => (
                     <div
                       key={daypart.id}
-                      className="grid min-h-[188px] grid-cols-[116px_repeat(5,minmax(152px,1fr))] border-b border-slate-200 last:border-b-0"
+                      className="grid min-h-[188px] grid-cols-[88px_repeat(5,minmax(140px,1fr))] border-b border-slate-200 last:border-b-0"
                     >
                       <div className="flex items-start px-3 py-4 text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-500">
                         {daypart.label}
                       </div>
 
                       {dayColumns.map((day) => {
+                        const alignRight = day.weekdayValue >= 4;
                         const liveBlocks = day.liveBlocksByDaypart[daypart.id];
                         const occupiedTemplateSlotIds = new Set(
                           liveBlocks
@@ -1030,9 +1095,26 @@ export function CalendarWeekView({
                           (slot) => !occupiedTemplateSlotIds.has(slot.id),
                         );
                         const hasContent = liveBlocks.length > 0 || templateSlotsForCell.length > 0;
+                        const cellSelectionKey = createCellSelectionKey(day.key, daypart.id);
+                        const cellHasCreateEditor = selectedCreateCellKey === cellSelectionKey;
+                        const cellHasSelectedLiveBlock = liveBlocks.some(
+                          (block) => selectedCalendarItemKey === `live:${block.id}`,
+                        );
+                        const cellHasSelectedTemplateSlot = templateSlotsForCell.some(
+                          (slot) => selectedCalendarItemKey === `template:${slot.id}`,
+                        );
+                        const cellIsActive =
+                          cellHasCreateEditor || cellHasSelectedLiveBlock || cellHasSelectedTemplateSlot;
 
                         return (
-                          <div key={`${day.key}-${daypart.id}`} className="border-l border-slate-200 p-2">
+                          <div
+                            key={`${day.key}-${daypart.id}`}
+                            className={`relative border-l border-slate-200 p-2 transition ${
+                              cellIsActive
+                                ? "z-20 bg-blue-50/55 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]"
+                                : ""
+                            }`}
+                          >
                             {hasContent ? (
                               <div className="grid gap-2">
                                 {liveBlocks.map((block) => {
@@ -1044,66 +1126,91 @@ export function CalendarWeekView({
                                   const selected = selectedCalendarItemKey === `live:${block.id}`;
 
                                   return (
-                                    <button
-                                      key={block.id}
-                                      type="button"
-                                      onClick={() => onOpenLiveBlock(block)}
-                                      className={`grid overflow-hidden rounded-[18px] border text-left shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] ${
-                                        tone.surface
-                                      } ${
-                                        selected
-                                          ? "border-blue-300 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
-                                          : "border-slate-200 hover:border-slate-300"
-                                      }`}
-                                    >
-                                      <div className="h-2" style={blockAccentStyle(block)} />
-                                      <div className="grid gap-2 p-3">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span
-                                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${tone.badge}`}
-                                          >
-                                            {itemTypeLabel(block.itemType || "learning_block")}
-                                          </span>
-                                          <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                            {liveBlockTimeLabel(block)}
-                                          </span>
-                                        </div>
-
-                                        <div className="text-[14px] font-bold leading-5 text-slate-950">
-                                          {safe(block.title) || "Learning block"}
-                                        </div>
-
-                                        <div className={META}>
-                                          {[safe(block.subject), safe(linkedProgram?.title)]
-                                            .filter(Boolean)
-                                            .join(" - ") || "Live calendar item"}
-                                        </div>
-
-                                        {learnerLabels.length ? (
-                                          <div className="flex flex-wrap gap-1.5">
-                                            {learnerLabels.slice(0, 2).map((label) => (
-                                              <span
-                                                key={label}
-                                                className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                                              >
-                                                {label}
-                                              </span>
-                                            ))}
-                                            {learnerLabels.length > 2 ? (
-                                              <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                                +{learnerLabels.length - 2} more
+                                    <div key={block.id} className={`relative ${selected ? "z-20" : ""}`}>
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenLiveBlock(block)}
+                                        className={`grid w-full overflow-hidden rounded-[18px] border text-left shadow-[0_10px_24px_rgba(15,23,42,0.06)] transition hover:-translate-y-[1px] ${
+                                          tone.surface
+                                        } ${
+                                          selected
+                                            ? "border-blue-300 bg-blue-50/60 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                                            : "border-slate-200 hover:border-slate-300"
+                                        }`}
+                                      >
+                                        <div className="h-2" style={blockAccentStyle(block)} />
+                                        <div className="grid gap-2 p-3">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            {selected ? (
+                                              <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                                                Editing
                                               </span>
                                             ) : null}
+                                            <span
+                                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${tone.badge}`}
+                                            >
+                                              {itemTypeLabel(block.itemType || "learning_block")}
+                                            </span>
+                                            <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                              {liveBlockTimeLabel(block)}
+                                            </span>
                                           </div>
-                                        ) : null}
 
-                                        {safe(block.note) ? (
-                                          <div className="text-[12px] leading-5 text-slate-500">
-                                            {safe(block.note)}
+                                          <div className="text-[14px] font-bold leading-5 text-slate-950">
+                                            {safe(block.title) || "Learning block"}
                                           </div>
-                                        ) : null}
-                                      </div>
-                                    </button>
+
+                                          <div className={META}>
+                                            {[safe(block.subject), safe(linkedProgram?.title)]
+                                              .filter(Boolean)
+                                              .join(" - ") || "Live calendar item"}
+                                          </div>
+
+                                          {learnerLabels.length ? (
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {learnerLabels.slice(0, 2).map((label) => (
+                                                <span
+                                                  key={label}
+                                                  className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                                                >
+                                                  {label}
+                                                </span>
+                                              ))}
+                                              {learnerLabels.length > 2 ? (
+                                                <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                                  +{learnerLabels.length - 2} more
+                                                </span>
+                                              ) : null}
+                                            </div>
+                                          ) : null}
+
+                                          {safe(block.note) ? (
+                                            <div className="text-[12px] leading-5 text-slate-500">
+                                              {safe(block.note)}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      </button>
+
+                                      {selected && editorMode === "edit-live" && editorDraft?.id === block.id ? (
+                                        <CalendarInlinePopoverEditor
+                                          mode={editorMode}
+                                          draft={editorDraft}
+                                          weekDays={weekDays}
+                                          learners={learners}
+                                          errorMessage={editorErrorMessage}
+                                          statusMessage={editorStatusMessage}
+                                          saving={savingEditor}
+                                          deleting={deletingEditor}
+                                          canPersistLiveItems={canPersistLiveItems}
+                                          alignRight={alignRight}
+                                          onClose={onCloseEditor}
+                                          onChangeDraft={onChangeEditorDraft}
+                                          onSave={onSaveEditor}
+                                          onDelete={onDeleteEditor}
+                                        />
+                                      ) : null}
+                                    </div>
                                   );
                                 })}
 
@@ -1113,80 +1220,135 @@ export function CalendarWeekView({
                                   const selected = selectedCalendarItemKey === `template:${slot.id}`;
 
                                   return (
-                                    <button
-                                      key={slot.id}
-                                      type="button"
-                                      onClick={() => onOpenTemplateSlot(slot)}
-                                      className={`grid overflow-hidden rounded-[18px] border border-dashed text-left shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:-translate-y-[1px] ${
-                                        tone.surface
-                                      } ${
-                                        selected
-                                          ? "border-blue-300 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
-                                          : "border-slate-200 hover:border-slate-300"
-                                      }`}
-                                    >
-                                      <div className="h-2" style={slotAccentStyle(slot)} />
-                                      <div className="grid gap-2 p-3">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                          <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                            Template
-                                          </span>
-                                          <span
-                                            className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${tone.badge}`}
-                                          >
-                                            {itemTypeLabel(slot.itemType || "learning_block")}
-                                          </span>
-                                        </div>
-
-                                        <div className="text-[14px] font-bold leading-5 text-slate-950">
-                                          {safe(slot.label) || "Learning block"}
-                                        </div>
-
-                                        <div className={META}>
-                                          {[safe(slot.subjectId), slotTimeLabel(slot)]
-                                            .filter(Boolean)
-                                            .join(" - ") || "Template slot"}
-                                        </div>
-
-                                        {learnerLabels.length ? (
-                                          <div className="flex flex-wrap gap-1.5">
-                                            {learnerLabels.slice(0, 2).map((label) => (
-                                              <span
-                                                key={label}
-                                                className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
-                                              >
-                                                {label}
-                                              </span>
-                                            ))}
-                                            {learnerLabels.length > 2 ? (
-                                              <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-                                                +{learnerLabels.length - 2} more
+                                    <div key={slot.id} className={`relative ${selected ? "z-20" : ""}`}>
+                                      <button
+                                        type="button"
+                                        onClick={() => onOpenTemplateSlot(slot)}
+                                        className={`grid w-full overflow-hidden rounded-[18px] border border-dashed text-left shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition hover:-translate-y-[1px] ${
+                                          tone.surface
+                                        } ${
+                                          selected
+                                            ? "border-blue-300 bg-blue-50/55 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                                            : "border-slate-200 hover:border-slate-300"
+                                        }`}
+                                      >
+                                        <div className="h-2" style={slotAccentStyle(slot)} />
+                                        <div className="grid gap-2 p-3">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            {selected ? (
+                                              <span className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                                                Editing
                                               </span>
                                             ) : null}
+                                            <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                              Template
+                                            </span>
+                                            <span
+                                              className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${tone.badge}`}
+                                            >
+                                              {itemTypeLabel(slot.itemType || "learning_block")}
+                                            </span>
                                           </div>
-                                        ) : null}
 
-                                        {safe(slot.notes) ? (
-                                          <div className="text-[12px] leading-5 text-slate-500">
-                                            {safe(slot.notes)}
+                                          <div className="text-[14px] font-bold leading-5 text-slate-950">
+                                            {safe(slot.label) || "Learning block"}
                                           </div>
-                                        ) : null}
-                                      </div>
-                                    </button>
+
+                                          <div className={META}>
+                                            {[safe(slot.subjectId), slotTimeLabel(slot)]
+                                              .filter(Boolean)
+                                              .join(" - ") || "Template slot"}
+                                          </div>
+
+                                          {learnerLabels.length ? (
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {learnerLabels.slice(0, 2).map((label) => (
+                                                <span
+                                                  key={label}
+                                                  className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600"
+                                                >
+                                                  {label}
+                                                </span>
+                                              ))}
+                                              {learnerLabels.length > 2 ? (
+                                                <span className="inline-flex rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                                                  +{learnerLabels.length - 2} more
+                                                </span>
+                                              ) : null}
+                                            </div>
+                                          ) : null}
+
+                                          {safe(slot.notes) ? (
+                                            <div className="text-[12px] leading-5 text-slate-500">
+                                              {safe(slot.notes)}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      </button>
+
+                                      {selected && editorMode === "edit-template" && editorDraft?.id === slot.id ? (
+                                        <CalendarInlinePopoverEditor
+                                          mode={editorMode}
+                                          draft={editorDraft}
+                                          weekDays={weekDays}
+                                          learners={learners}
+                                          errorMessage={editorErrorMessage}
+                                          statusMessage={editorStatusMessage}
+                                          saving={savingEditor}
+                                          deleting={deletingEditor}
+                                          canPersistLiveItems={canPersistLiveItems}
+                                          alignRight={alignRight}
+                                          onClose={onCloseEditor}
+                                          onChangeDraft={onChangeEditorDraft}
+                                          onSave={onSaveEditor}
+                                          onDelete={onDeleteEditor}
+                                        />
+                                      ) : null}
+                                    </div>
                                   );
                                 })}
                               </div>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => onOpenCreateItem(day, daypart.id)}
-                                className="flex h-full min-h-[154px] w-full flex-col items-center justify-center rounded-[16px] border border-dashed border-slate-200 bg-white/80 px-3 text-center transition hover:border-slate-300 hover:bg-white"
-                              >
-                                <span className="text-[13px] font-semibold text-slate-700">+ Add slot</span>
-                                <span className="mt-1 text-[11px] font-medium text-slate-400">
-                                  No blocks yet
-                                </span>
-                              </button>
+                              <div className={`relative ${cellHasCreateEditor ? "z-20" : ""}`}>
+                                <button
+                                  type="button"
+                                  onClick={() => onOpenCreateItem(day, daypart.id)}
+                                  className={`flex h-full min-h-[154px] w-full flex-col items-center justify-center rounded-[16px] border px-3 text-center transition ${
+                                    cellHasCreateEditor
+                                      ? "border-blue-300 bg-blue-50/70 shadow-[0_0_0_4px_rgba(59,130,246,0.10)]"
+                                      : "border-dashed border-slate-200 bg-white/80 hover:border-slate-300 hover:bg-white"
+                                  }`}
+                                >
+                                  {cellHasCreateEditor ? (
+                                    <span className="mb-2 inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                                      Editing
+                                    </span>
+                                  ) : null}
+                                  <span className="text-[13px] font-semibold text-slate-700">+ Add slot</span>
+                                  <span className="mt-1 text-[11px] font-medium text-slate-400">
+                                    No blocks yet
+                                  </span>
+                                </button>
+
+                                {cellHasCreateEditor ? (
+                                  <CalendarInlinePopoverEditor
+                                    mode={editorMode}
+                                    draft={editorDraft}
+                                    weekDays={weekDays}
+                                    learners={learners}
+                                    errorMessage={editorErrorMessage}
+                                    statusMessage={editorStatusMessage}
+                                    saving={savingEditor}
+                                    deleting={deletingEditor}
+                                    canPersistLiveItems={canPersistLiveItems}
+                                    alignRight={alignRight}
+                                    onClose={onCloseEditor}
+                                    onChangeDraft={onChangeEditorDraft}
+                                    onSave={onSaveEditor}
+                                    onDelete={onDeleteEditor}
+                                  />
+                                ) : null}
+                              </div>
                             )}
                           </div>
                         );
@@ -1204,22 +1366,6 @@ export function CalendarWeekView({
             <p className={BODY}>Add template slots first, then return here to shape the live family week.</p>
           </section>
         )}
-
-        <CalendarWeekEditorPanel
-          mode={editorMode}
-          draft={editorDraft}
-          weekDays={weekDays}
-          learners={learners}
-          errorMessage={editorErrorMessage}
-          statusMessage={editorStatusMessage}
-          saving={savingEditor}
-          deleting={deletingEditor}
-          canPersistLiveItems={canPersistLiveItems}
-          onClose={onCloseEditor}
-          onChangeDraft={onChangeEditorDraft}
-          onSave={onSaveEditor}
-          onDelete={onDeleteEditor}
-        />
       </div>
     </section>
   );
