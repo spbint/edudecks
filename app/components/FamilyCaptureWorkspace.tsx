@@ -28,6 +28,7 @@ import {
   InheritedCurriculumPanel,
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
 import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
+import { ensureEvidenceCompatibleLearner } from "@/lib/familyWorkspace";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
@@ -286,9 +287,18 @@ export default function FamilyCaptureWorkspace() {
       setSubmitting(true);
       setErrorMessage("");
       setStatusMessage("");
+      const evidenceLearner = await ensureEvidenceCompatibleLearner(
+        workspace.userId || "",
+        activeLearner,
+        workspace.profile?.id || null,
+      );
+
+      if (evidenceLearner.id !== activeLearner.id) {
+        setActiveLearner(evidenceLearner.id);
+      }
 
       await createFamilyEvidenceEntry({
-        studentId: activeLearner.id,
+        studentId: evidenceLearner.id,
         userId: workspace.userId,
         title: title.trim() || "Learning moment",
         summary: summary.trim() || note.trim() || "Captured learning moment",

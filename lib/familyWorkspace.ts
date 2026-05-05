@@ -32,6 +32,7 @@ export type FamilyLearner = {
   reporting_mode?: string | null;
   connectedAt?: string | null;
   family_profile_child_id?: string | null;
+  legacy_learner_id?: string | null;
 };
 
 export type FamilyWorkspaceState = {
@@ -45,12 +46,20 @@ export type FamilyWorkspaceState = {
 type LearnerIdentity = {
   id: string;
   family_profile_child_id?: string | null;
+  legacy_learner_id?: string | null;
 };
 
 type FamilyProfileChildLinkRow = {
   id: string;
   family_profile_id?: string | null;
   child_id?: string | null;
+  created_at?: string | null;
+};
+
+type ParentStudentLinkRow = {
+  id: string;
+  parent_user_id?: string | null;
+  student_id?: string | null;
   created_at?: string | null;
 };
 
@@ -63,6 +72,17 @@ type StudentRow = {
   last_name?: string | null;
   year_level?: number | string | null;
   created_at?: string | null;
+};
+
+type LegacyLearnerRow = {
+  id: string;
+  family_id?: string | null;
+  first_name?: string | null;
+  preferred_name?: string | null;
+  last_name?: string | null;
+  year_level?: number | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 function safe(value: unknown) {
@@ -132,7 +152,8 @@ function learnerMatchesCandidate(
   if (!clean) return false;
   return (
     learner.id === clean ||
-    safe(learner.family_profile_child_id) === clean
+    safe(learner.family_profile_child_id) === clean ||
+    safe(learner.legacy_learner_id) === clean
   );
 }
 
@@ -165,11 +186,32 @@ function splitLearnerName(value: string) {
   };
 }
 
+function normalizedLearnerKey(label: string, yearLevel: string | number | null | undefined) {
+  const cleanLabel = safe(label).toLowerCase().replace(/\s+/g, " ").trim();
+  const cleanYearLevel = familyYearLevelToStoredNumber(yearLevel);
+  return `${cleanLabel}::${cleanYearLevel ?? ""}`;
+}
+
+function learnerMatchKey(learner: Pick<FamilyLearner, "label" | "year_level" | "yearLabel">) {
+  return normalizedLearnerKey(
+    safe(learner.label),
+    learner.year_level ?? learner.yearLabel ?? null,
+  );
+}
+
 function normalizeStudentLabel(student: StudentRow) {
   const preferred = safe(student.preferred_name);
   const firstName = safe(student.first_name);
   const surname = safe(student.surname || student.last_name);
   const name = [preferred || firstName, surname].filter(Boolean).join(" ").trim();
+  return name || preferred || firstName || "Learner";
+}
+
+function normalizeLegacyLearnerLabel(learner: LegacyLearnerRow) {
+  const preferred = safe(learner.preferred_name);
+  const firstName = safe(learner.first_name);
+  const lastName = safe(learner.last_name);
+  const name = [preferred || firstName, lastName].filter(Boolean).join(" ").trim();
   return name || preferred || firstName || "Learner";
 }
 
@@ -205,6 +247,19 @@ async function loadFamilyProfileChildLinks(familyProfileId: string) {
   return (response.data ?? []) as FamilyProfileChildLinkRow[];
 }
 
+async function loadParentStudentLinks(userId: string) {
+  if (!userId) return [];
+
+  const response = await supabase
+    .from("parent_student_links")
+    .select("id,parent_user_id,student_id,created_at")
+    .eq("parent_user_id", userId)
+    .order("created_at", { ascending: true });
+
+  if (response.error) throw response.error;
+  return (response.data ?? []) as ParentStudentLinkRow[];
+}
+
 async function loadStudentRowsByIds(studentIds: string[]) {
   if (!studentIds.length) return [];
 
@@ -236,6 +291,37 @@ async function loadStudentRowsByIds(studentIds: string[]) {
   return [];
 }
 
+async function loadLegacyLearnerRows(familyProfileId: string) {
+  if (!familyProfileId) return [];
+
+  const selectVariants = [
+    "id,family_id,first_name,preferred_name,last_name,year_level,created_at,updated_at",
+    "id,family_id,first_name,preferred_name,year_level,created_at,updated_at",
+  ];
+
+  let lastError: unknown = null;
+
+  for (const select of selectVariants) {
+    const response = await supabase
+      .from("learners")
+      .select(select)
+      .eq("family_id", familyProfileId)
+      .order("created_at", { ascending: true });
+
+    if (!response.error) {
+      return ((response.data ?? []) as unknown) as LegacyLearnerRow[];
+    }
+
+    lastError = response.error;
+    if (!isMissingLearnerColumnError(response.error)) {
+      throw response.error;
+    }
+  }
+
+  if (lastError) throw lastError;
+  return [];
+}
+
 function mapStudentRowToLearner(
   student: StudentRow,
   link: FamilyProfileChildLinkRow | null,
@@ -249,7 +335,109 @@ function mapStudentRowToLearner(
     year_level: yearLevel,
     connectedAt: safe(link?.created_at) || safe(student.created_at) || null,
     family_profile_child_id: safe(link?.id) || null,
+    legacy_learner_id: null,
   };
+}
+
+function mapLegacyRowToLearner(learner: LegacyLearnerRow): FamilyLearner {
+  const yearLevel = familyYearLevelToStoredNumber(learner.year_level);
+  return {
+    id: safe(learner.id),
+    label: normalizeLegacyLearnerLabel(learner),
+    yearLabel: familyYearLevelLabelFromStored(yearLevel),
+    year_level: yearLevel,
+    connectedAt: safe(learner.created_at) || safe(learner.updated_at) || null,
+    family_profile_child_id: null,
+    legacy_learner_id: safe(learner.id) || null,
+  };
+}
+
+function sortLearners(learners: FamilyLearner[]) {
+  return [...learners].sort((left, right) => {
+    const leftConnected = safe(left.connectedAt);
+    const rightConnected = safe(right.connectedAt);
+
+    if (leftConnected && rightConnected && leftConnected !== rightConnected) {
+      return leftConnected.localeCompare(rightConnected);
+    }
+
+    return left.label.localeCompare(right.label, undefined, { sensitivity: "base" });
+  });
+}
+
+function mergeRemoteLearnerSources(
+  studentLearners: FamilyLearner[],
+  legacyLearners: FamilyLearner[],
+) {
+  const merged = new Map<string, FamilyLearner>();
+  const studentByKey = new Map<string, FamilyLearner>();
+
+  for (const learner of studentLearners) {
+    merged.set(learner.id, learner);
+    studentByKey.set(learnerMatchKey(learner), learner);
+  }
+
+  for (const learner of legacyLearners) {
+    const key = learnerMatchKey(learner);
+    const matchedStudent = studentByKey.get(key);
+
+    if (matchedStudent) {
+      merged.set(matchedStudent.id, {
+        ...learner,
+        ...matchedStudent,
+        legacy_learner_id: learner.legacy_learner_id || matchedStudent.legacy_learner_id || null,
+      });
+      continue;
+    }
+
+    merged.set(learner.id, learner);
+  }
+
+  return sortLearners(Array.from(merged.values()));
+}
+
+function mergeDatabaseAndLocalLearners(
+  remoteLearners: FamilyLearner[],
+  localLearners: FamilyLearner[],
+) {
+  if (!remoteLearners.length) {
+    return sortLearners(localLearners);
+  }
+
+  const merged = [...remoteLearners];
+
+  for (const localLearner of localLearners) {
+    const localKey = learnerMatchKey(localLearner);
+    const matchIndex = merged.findIndex(
+      (remoteLearner) =>
+        learnerMatchesCandidate(remoteLearner, localLearner.id) ||
+        learnerMatchesCandidate(remoteLearner, localLearner.family_profile_child_id) ||
+        learnerMatchKey(remoteLearner) === localKey,
+    );
+
+    if (matchIndex >= 0) {
+      const remoteLearner = merged[matchIndex];
+      merged[matchIndex] = {
+        ...localLearner,
+        ...remoteLearner,
+        family_profile_child_id:
+          safe(remoteLearner.family_profile_child_id) || localLearner.family_profile_child_id || null,
+        legacy_learner_id:
+          safe(remoteLearner.legacy_learner_id) || localLearner.legacy_learner_id || null,
+      };
+      continue;
+    }
+
+    if (
+      looksLikeUuid(localLearner.id) ||
+      safe(localLearner.family_profile_child_id) ||
+      safe(localLearner.legacy_learner_id)
+    ) {
+      merged.push(localLearner);
+    }
+  }
+
+  return sortLearners(merged);
 }
 
 async function resolveFamilyProfileChildLinkId(
@@ -331,6 +519,7 @@ export function persistLearnersToLocalCache(
           reporting_mode: learner.reporting_mode ?? "",
           connectedAt: learner.connectedAt ?? null,
           family_profile_child_id: learner.family_profile_child_id ?? null,
+          legacy_learner_id: learner.legacy_learner_id ?? null,
         })),
       ),
     );
@@ -367,6 +556,8 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
       family_profile_child_id:
         safe((child as { family_profile_child_id?: string | null }).family_profile_child_id) ||
         null,
+      legacy_learner_id:
+        safe((child as { legacy_learner_id?: string | null }).legacy_learner_id) || null,
     };
   });
 }
@@ -379,31 +570,44 @@ export async function loadLinkedLearners(
   userId: string,
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
-  void userId;
   const cleanFamilyProfileId = safe(familyProfileId);
   if (!cleanFamilyProfileId) return [];
 
-  const links = await loadFamilyProfileChildLinks(cleanFamilyProfileId);
+  const [links, parentLinks] = await Promise.all([
+    loadFamilyProfileChildLinks(cleanFamilyProfileId),
+    loadParentStudentLinks(safe(userId)),
+  ]);
   const childIds = Array.from(
-    new Set(links.map((link) => safe(link.child_id)).filter(Boolean)),
+    new Set([
+      ...links.map((link) => safe(link.child_id)).filter(Boolean),
+      ...parentLinks.map((link) => safe(link.student_id)).filter(Boolean),
+    ]),
   );
-
-  if (!childIds.length) return [];
-
-  const students = await loadStudentRowsByIds(childIds);
+  const [students, legacyRows] = await Promise.all([
+    loadStudentRowsByIds(childIds),
+    loadLegacyLearnerRows(cleanFamilyProfileId),
+  ]);
   const studentById = new Map(
     students.map((student) => [safe(student.id), student] as const),
   );
-  const rows: FamilyLearner[] = [];
+  const linkByStudentId = new Map(
+    links.map((link) => [safe(link.child_id), link] as const),
+  );
+  const studentLearners: FamilyLearner[] = [];
+  const seenStudentIds = new Set<string>();
 
-  for (const link of links) {
-    const childId = safe(link.child_id);
+  for (const childId of childIds) {
     const student = studentById.get(childId);
     if (!student) continue;
-    rows.push(mapStudentRowToLearner(student, link));
+    if (seenStudentIds.has(childId)) continue;
+    seenStudentIds.add(childId);
+    studentLearners.push(mapStudentRowToLearner(student, linkByStudentId.get(childId) ?? null));
   }
 
-  return rows;
+  return mergeRemoteLearnerSources(
+    studentLearners,
+    legacyRows.map(mapLegacyRowToLearner),
+  );
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
@@ -450,13 +654,8 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
 
   try {
     const databaseProfileReady = isDatabaseFamilyProfileId(profile.id);
-    const cachedDatabaseLearners = localLearners.filter(
-      (learner) =>
-        looksLikeUuid(learner.id) &&
-        dbLearners.some((dbLearner) => dbLearner.id === learner.id),
-    );
     const learners = databaseProfileReady
-      ? mergeLearners(dbLearners, cachedDatabaseLearners)
+      ? mergeDatabaseAndLocalLearners(dbLearners, localLearners)
       : mergeLearners(dbLearners, localLearners);
     const defaultChildLinkId = safe(profile.default_child_id) || null;
 
@@ -548,69 +747,41 @@ export async function setDefaultLearner(
   };
 }
 
-export async function createLinkedLearner(
-  userId: string,
-  learnerName: string,
-  yearLevel: string,
+async function createStudentLinkedLearnerRecord(input: {
+  userId: string;
+  profile: FamilyProfileRow;
+  learnerName: string;
+  yearLevelNumber: number | null;
   options?: {
     yearBand?: string | null;
     frameworkId?: string | null;
     jurisdictionId?: string | null;
     reportingMode?: string | null;
-  },
-): Promise<FamilyLearner> {
-  const authenticatedUserId = safe(userId);
-  if (!authenticatedUserId) {
-    throw new Error("A signed-in user is required before adding learners.");
-  }
-
-  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
-  const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
-  const nextLabel = safe(learnerName) || "Learner";
-  const existingLearners = await loadLinkedLearners(authenticatedUserId, profile.id);
-  const duplicate = existingLearners.find((learner) => {
-    const sameName = safe(learner.label).toLowerCase() === nextLabel.toLowerCase();
-    const sameYear =
-      familyYearLevelToStoredNumber(learner.year_level) === yearLevelNumber;
-    return sameName && sameYear;
-  });
-
-  if (duplicate) {
-    if (!safe(profile.default_child_id) && safe(duplicate.family_profile_child_id)) {
-      await supabase
-        .from("family_profiles")
-        .update({ default_child_id: duplicate.family_profile_child_id })
-        .eq("id", profile.id);
-    }
-    persistLearnersToLocalCache(
-      mergeLearners([duplicate], loadLearnersFromLocalCache()),
-    );
-    dispatchFamilyWorkspaceEvent({ childId: duplicate.id });
-    return duplicate;
-  }
-
-  const nameParts = splitLearnerName(nextLabel);
+  };
+  legacyLearnerId?: string | null;
+}) {
+  const nameParts = splitLearnerName(input.learnerName);
   const studentPayloadVariants = [
     {
-      user_id: authenticatedUserId,
+      user_id: input.userId,
       first_name: nameParts.firstName,
       preferred_name: nameParts.preferredName,
       surname: nameParts.surname,
       last_name: nameParts.lastName,
-      year_level: yearLevelNumber,
+      year_level: input.yearLevelNumber,
     },
     {
-      user_id: authenticatedUserId,
+      user_id: input.userId,
       first_name: nameParts.firstName,
       preferred_name: nameParts.preferredName,
       last_name: nameParts.lastName,
-      year_level: yearLevelNumber,
+      year_level: input.yearLevelNumber,
     },
     {
-      user_id: authenticatedUserId,
+      user_id: input.userId,
       first_name: nameParts.firstName,
       preferred_name: nameParts.preferredName,
-      year_level: yearLevelNumber,
+      year_level: input.yearLevelNumber,
     },
   ];
 
@@ -642,7 +813,7 @@ export async function createLinkedLearner(
   const linkResponse = await supabase
     .from("family_profile_children")
     .insert({
-      family_profile_id: profile.id,
+      family_profile_id: input.profile.id,
       child_id: createdStudent.id,
     })
     .select("id,family_profile_id,child_id,created_at")
@@ -653,11 +824,11 @@ export async function createLinkedLearner(
     throw linkResponse.error;
   }
 
-  if (!safe(profile.default_child_id)) {
+  if (!safe(input.profile.default_child_id)) {
     await supabase
       .from("family_profiles")
       .update({ default_child_id: safe(linkResponse.data?.id) || null })
-      .eq("id", profile.id);
+      .eq("id", input.profile.id);
   }
 
   const createdLearner: FamilyLearner = {
@@ -665,12 +836,13 @@ export async function createLinkedLearner(
       createdStudent,
       linkResponse.data as FamilyProfileChildLinkRow,
     ),
-    yearLabel: familyYearLevelLabelFromStored(yearLevelNumber),
-    year_level: yearLevelNumber,
-    year_band: safe(options?.yearBand) || null,
-    curriculum_framework_id: safe(options?.frameworkId) || null,
-    curriculum_jurisdiction_id: safe(options?.jurisdictionId) || null,
-    reporting_mode: safe(options?.reportingMode) || null,
+    yearLabel: familyYearLevelLabelFromStored(input.yearLevelNumber),
+    year_level: input.yearLevelNumber,
+    year_band: safe(input.options?.yearBand) || null,
+    curriculum_framework_id: safe(input.options?.frameworkId) || null,
+    curriculum_jurisdiction_id: safe(input.options?.jurisdictionId) || null,
+    reporting_mode: safe(input.options?.reportingMode) || null,
+    legacy_learner_id: safe(input.legacyLearnerId) || null,
   };
 
   persistLearnersToLocalCache(
@@ -678,6 +850,166 @@ export async function createLinkedLearner(
   );
   dispatchFamilyWorkspaceEvent({ childId: createdLearner.id });
   return createdLearner;
+}
+
+async function linkExistingStudentToFamilyProfile(
+  familyProfileId: string,
+  studentId: string,
+) {
+  const response = await supabase
+    .from("family_profile_children")
+    .insert({
+      family_profile_id: familyProfileId,
+      child_id: studentId,
+    })
+    .select("id,family_profile_id,child_id,created_at")
+    .single();
+
+  if (response.error) throw response.error;
+  return response.data as FamilyProfileChildLinkRow;
+}
+
+export async function ensureEvidenceCompatibleLearner(
+  userId: string,
+  learner: FamilyLearner,
+  familyProfileId?: string | null,
+): Promise<FamilyLearner> {
+  const authenticatedUserId = safe(userId);
+  const cleanLearnerId = safe(learner.id);
+  if (!authenticatedUserId || !cleanLearnerId) {
+    throw new Error("Choose a learner before saving.");
+  }
+
+  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
+  const resolvedFamilyProfileId = safe(familyProfileId) || profile.id;
+
+  if (safe(learner.family_profile_child_id)) {
+    return learner;
+  }
+
+  const existingLinkId = await resolveFamilyProfileChildLinkId(
+    resolvedFamilyProfileId,
+    cleanLearnerId,
+  );
+  if (existingLinkId) {
+    return {
+      ...learner,
+      family_profile_child_id: existingLinkId,
+    };
+  }
+
+  const existingStudentRows = await loadStudentRowsByIds([cleanLearnerId]);
+  if (existingStudentRows[0]) {
+    const linkedRow = await linkExistingStudentToFamilyProfile(
+      resolvedFamilyProfileId,
+      cleanLearnerId,
+    );
+    const bridgedLearner: FamilyLearner = {
+      ...learner,
+      ...mapStudentRowToLearner(existingStudentRows[0], linkedRow),
+      legacy_learner_id:
+        safe(learner.legacy_learner_id) || null,
+    };
+    persistLearnersToLocalCache(
+      mergeLearners([bridgedLearner], loadLearnersFromLocalCache()),
+    );
+    dispatchFamilyWorkspaceEvent({ childId: bridgedLearner.id });
+    return bridgedLearner;
+  }
+
+  const existingLearners = await loadLinkedLearners(
+    authenticatedUserId,
+    resolvedFamilyProfileId,
+  );
+  const matchedLearner =
+    existingLearners.find(
+      (candidate) =>
+        safe(candidate.family_profile_child_id) &&
+        learnerMatchKey(candidate) === learnerMatchKey(learner),
+    ) ?? null;
+
+  if (matchedLearner) {
+    const bridgedLearner: FamilyLearner = {
+      ...learner,
+      ...matchedLearner,
+      legacy_learner_id:
+        safe(learner.legacy_learner_id) || cleanLearnerId || matchedLearner.legacy_learner_id || null,
+    };
+    persistLearnersToLocalCache(
+      mergeLearners([bridgedLearner], loadLearnersFromLocalCache()),
+    );
+    dispatchFamilyWorkspaceEvent({ childId: bridgedLearner.id });
+    return bridgedLearner;
+  }
+
+  return createStudentLinkedLearnerRecord({
+    userId: authenticatedUserId,
+    profile,
+    learnerName: learner.label,
+    yearLevelNumber: familyYearLevelToStoredNumber(
+      learner.year_level ?? learner.yearLabel ?? null,
+    ),
+    options: {
+      yearBand: learner.year_band ?? null,
+      frameworkId: learner.curriculum_framework_id ?? null,
+      jurisdictionId: learner.curriculum_jurisdiction_id ?? null,
+      reportingMode: learner.reporting_mode ?? null,
+    },
+    legacyLearnerId: safe(learner.legacy_learner_id) || cleanLearnerId,
+  });
+}
+
+export async function createLinkedLearner(
+  userId: string,
+  learnerName: string,
+  yearLevel: string,
+  options?: {
+    yearBand?: string | null;
+    frameworkId?: string | null;
+    jurisdictionId?: string | null;
+    reportingMode?: string | null;
+  },
+): Promise<FamilyLearner> {
+  const authenticatedUserId = safe(userId);
+  if (!authenticatedUserId) {
+    throw new Error("A signed-in user is required before adding learners.");
+  }
+
+  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
+  const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
+  const nextLabel = safe(learnerName) || "Learner";
+  const existingLearners = await loadLinkedLearners(authenticatedUserId, profile.id);
+  const duplicate = existingLearners.find((learner) => {
+    const sameName = safe(learner.label).toLowerCase() === nextLabel.toLowerCase();
+    const sameYear =
+      familyYearLevelToStoredNumber(learner.year_level) === yearLevelNumber;
+    return sameName && sameYear;
+  });
+
+  if (duplicate) {
+    if (!safe(duplicate.family_profile_child_id)) {
+      return ensureEvidenceCompatibleLearner(authenticatedUserId, duplicate, profile.id);
+    }
+    if (!safe(profile.default_child_id) && safe(duplicate.family_profile_child_id)) {
+      await supabase
+        .from("family_profiles")
+        .update({ default_child_id: duplicate.family_profile_child_id })
+        .eq("id", profile.id);
+    }
+    persistLearnersToLocalCache(
+      mergeLearners([duplicate], loadLearnersFromLocalCache()),
+    );
+    dispatchFamilyWorkspaceEvent({ childId: duplicate.id });
+    return duplicate;
+  }
+
+  return createStudentLinkedLearnerRecord({
+    userId: authenticatedUserId,
+    profile,
+    learnerName: nextLabel,
+    yearLevelNumber,
+    options,
+  });
 }
 
 export async function updateLinkedLearner(
@@ -852,8 +1184,11 @@ export function resolveCanonicalActiveLearnerId(
   ...candidates: Array<string | null | undefined>
 ) {
   for (const candidate of candidates) {
-    if (isValidActiveLearnerId(learners, candidate)) {
-      return safe(candidate);
+    const matchedLearner = learners.find((learner) =>
+      learnerMatchesCandidate(learner, candidate),
+    );
+    if (matchedLearner) {
+      return matchedLearner.id;
     }
   }
 
