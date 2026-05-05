@@ -33,6 +33,7 @@ import {
   uploadFamilyEvidenceFiles,
 } from "@/lib/familyEvidence";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
+import { ensureEvidenceCompatibleLearner } from "@/lib/familyWorkspace";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
@@ -355,8 +356,14 @@ export default function FamilyCaptureWorkspace() {
       setSavedAttachments([]);
       setSavedAttachmentNote("");
 
+      const evidenceLearner = await ensureEvidenceCompatibleLearner(
+        workspace.userId || "",
+        activeLearner,
+        workspace.profile.id,
+      );
+
       const created = await createFamilyEvidenceEntry({
-        studentId: activeLearner.id,
+        studentId: evidenceLearner.id,
         userId: workspace.userId,
         title: title.trim() || "Learning moment",
         summary: summary.trim() || note.trim() || "Captured learning moment",
@@ -375,7 +382,7 @@ export default function FamilyCaptureWorkspace() {
       if (selectedFiles.length) {
         const uploadResult = await uploadFamilyEvidenceFiles({
           familyProfileId: workspace.profile.id,
-          studentId: activeLearner.id,
+          studentId: evidenceLearner.id,
           evidenceId: created.id,
           files: selectedFiles,
         });
@@ -394,7 +401,7 @@ export default function FamilyCaptureWorkspace() {
         if (uploadResult.uploaded.length) {
           await updateFamilyEvidenceEntryAttachments({
             evidenceId: created.id,
-            studentId: activeLearner.id,
+            studentId: evidenceLearner.id,
             attachmentUrls: uploadResult.uploaded.map((item) => ({
               path: item.path,
               name: item.label,

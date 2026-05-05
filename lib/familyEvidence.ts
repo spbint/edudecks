@@ -89,6 +89,16 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function todayYmd() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function visibilityForEvidenceInsert(value: unknown) {
+  const clean = safe(value).toLowerCase();
+  if (clean === "teacher") return "teacher";
+  return null;
+}
+
 function unique(values: string[]) {
   return Array.from(new Set(values.filter(Boolean)));
 }
@@ -530,33 +540,43 @@ export async function createFamilyEvidenceEntry(
 ): Promise<{ id: string }> {
   const note = safe(input.note) || safe(input.summary);
   const attachmentUrls = serializeAttachmentValues(input.attachmentUrls);
+  const occurredOn = safe(input.occurredOn) || todayYmd();
+  const visibility = visibilityForEvidenceInsert(input.visibility);
 
   const curriculumOutcomeIds = Array.isArray(input.curriculumOutcomeIds)
     ? input.curriculumOutcomeIds.map((value) => safe(value)).filter(Boolean)
     : [];
 
+  const basePayload = {
+    student_id: input.studentId,
+    user_id: safe(input.userId) || null,
+    title: input.title,
+    summary: input.summary,
+    body: input.summary,
+    note,
+    evidence_type: input.evidenceType ?? "note",
+    occurred_on: occurredOn,
+    learning_area: safe(input.learningArea) || null,
+    attachment_urls: attachmentUrls.length ? attachmentUrls : null,
+    image_url: safe(input.imageUrl) || null,
+    audio_url: safe(input.audioUrl) || null,
+    file_url: safe(input.fileUrl) || null,
+    linked_learning_plan_item_id: safe(input.linkedLearningBlockId) || null,
+    curriculum_outcome_ids: curriculumOutcomeIds.length ? curriculumOutcomeIds : [],
+    outcome_status_by_id: input.outcomeStatusById ?? {},
+    is_deleted: false,
+  };
+
+  const primaryPayload = visibility
+    ? {
+        ...basePayload,
+        visibility,
+      }
+    : basePayload;
+
   const response = await supabase
     .from("evidence_entries")
-    .insert({
-      student_id: input.studentId,
-      user_id: safe(input.userId) || null,
-      title: input.title,
-      summary: input.summary,
-      body: input.summary,
-      note,
-      evidence_type: input.evidenceType ?? "note",
-      occurred_on: input.occurredOn ?? null,
-      learning_area: safe(input.learningArea) || null,
-      visibility: input.visibility ?? "private",
-      attachment_urls: attachmentUrls.length ? attachmentUrls : null,
-      image_url: safe(input.imageUrl) || null,
-      audio_url: safe(input.audioUrl) || null,
-      file_url: safe(input.fileUrl) || null,
-      linked_learning_plan_item_id: safe(input.linkedLearningBlockId) || null,
-      curriculum_outcome_ids: curriculumOutcomeIds.length ? curriculumOutcomeIds : [],
-      outcome_status_by_id: input.outcomeStatusById ?? {},
-      is_deleted: false,
-    })
+    .insert(primaryPayload)
     .select("id")
     .single();
 
@@ -576,9 +596,8 @@ export async function createFamilyEvidenceEntry(
       body: input.summary,
       note,
       evidence_type: input.evidenceType ?? "note",
-      occurred_on: input.occurredOn ?? null,
+      occurred_on: occurredOn,
       learning_area: safe(input.learningArea) || null,
-      visibility: input.visibility ?? "private",
       attachment_urls: attachmentUrls.length ? attachmentUrls : null,
       image_url: safe(input.imageUrl) || null,
       audio_url: safe(input.audioUrl) || null,

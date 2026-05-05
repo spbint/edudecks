@@ -250,15 +250,19 @@ export default function FamilyProfilePage() {
           ? { ...profile, default_child_id: createdLearner.id }
           : profile;
         let defaultWarning = "";
+        const createdLearnerIsLocal = createdLearner.id.startsWith("local-");
+        const createdLearnerCanPersistDefault = Boolean(
+          !createdLearnerIsLocal && safe(createdLearner.family_profile_child_id),
+        );
 
         setWorkspacePatch({
           learners: nextLearners,
           profile: nextProfile,
-          storageMode: "database",
+          storageMode: createdLearnerIsLocal ? workspace.storageMode : "database",
         });
         setActiveLearner(createdLearner.id);
 
-        if (shouldAssignDefault) {
+        if (shouldAssignDefault && createdLearnerCanPersistDefault) {
           try {
             const saved = await setDefaultLearner(profile, createdLearner.id);
             nextProfile = saved;
@@ -270,13 +274,15 @@ export default function FamilyProfilePage() {
           }
         }
 
-        await reloadWorkspace();
-        setWorkspacePatch({
-          learners: nextLearners,
-          profile: nextProfile,
-          storageMode: "database",
-        });
-        setActiveLearner(createdLearner.id);
+        if (!createdLearnerIsLocal) {
+          await reloadWorkspace();
+          setWorkspacePatch({
+            learners: nextLearners,
+            profile: nextProfile,
+            storageMode: "database",
+          });
+          setActiveLearner(createdLearner.id);
+        }
 
         setWarning(defaultWarning);
       }

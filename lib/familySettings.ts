@@ -33,6 +33,8 @@ export type ChildOption = {
   curriculum_jurisdiction_id?: string | null;
   reporting_mode?: string | null;
   connectedAt?: string | null;
+  family_profile_child_id?: string | null;
+  legacy_learner_id?: string | null;
 };
 
 export type FamilySettings = {
@@ -67,6 +69,7 @@ export type FamilyProfileRow = FamilySettings & {
   id: string;
   user_id?: string | null;
   owner_user_id?: string | null;
+  default_child_link_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -374,6 +377,11 @@ function asNullableNumber(value: unknown, fallback: number | null): number | nul
 }
 
 function toFamilyProfilePayload(settings: FamilySettings, userId: string, existingId?: string | null): FamilyProfileWritePayload {
+  const defaultChildLinkId = safeString(
+    (settings as FamilySettings & { default_child_link_id?: string | null })
+      .default_child_link_id,
+  );
+
   return {
     ...(safeString(existingId) ? { id: safeString(existingId) } : {}),
     user_id: userId,
@@ -393,7 +401,7 @@ function toFamilyProfilePayload(settings: FamilySettings, userId: string, existi
     cycle_count: asNullableNumber(settings.cycle_count, DEFAULT_FAMILY_SETTINGS.cycle_count),
     weeks_per_cycle: asNullableNumber(settings.weeks_per_cycle, DEFAULT_FAMILY_SETTINGS.weeks_per_cycle),
     experience_mode: asExperienceMode(settings.experience_mode),
-    default_child_id: safeString(settings.default_child_id) || null,
+    default_child_id: defaultChildLinkId || null,
     default_child_landing: asDefaultChildLanding(settings.default_child_landing),
     week_start: asWeekStart(settings.week_start),
     compact_mode: Boolean(settings.compact_mode),
@@ -476,6 +484,10 @@ function normalizeChildOption(value: unknown): ChildOption | null {
     reporting_mode:
       safeString(row.reporting_mode ?? row.reportingMode) || null,
     connectedAt: safeString(row.connectedAt ?? row.connected_at) || null,
+    family_profile_child_id:
+      safeString(row.family_profile_child_id ?? row.familyProfileChildId) || null,
+    legacy_learner_id:
+      safeString(row.legacy_learner_id ?? row.legacyLearnerId) || null,
   };
 }
 

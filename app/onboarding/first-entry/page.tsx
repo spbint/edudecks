@@ -2,7 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
+import {
+  createLinkedLearner,
+  ensureEvidenceCompatibleLearner,
+  setActiveLearnerId,
+} from "@/lib/familyWorkspace";
+import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import { supabase } from "@/lib/supabaseClient";
 
 type ChildForm = {
@@ -301,74 +306,29 @@ function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
-function isMissingColumnError(err: unknown) {
-  const msg = String((err as { message?: unknown })?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
-}
-
 async function createStudentRecord(child: ChildForm) {
   const authResp = await supabase.auth.getUser();
   const user = authResp.data.user;
   if (!user) throw new Error("You must be signed in.");
   const learner = await createLinkedLearner(user.id, child.childName, child.yearLevel);
-  return learner.id;
+  const ensuredLearner = await ensureEvidenceCompatibleLearner(user.id, learner);
+  return ensuredLearner.id;
 }
 
 async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
   const authResp = await supabase.auth.getUser();
   const user = authResp.data.user;
   if (!user) throw new Error("You must be signed in.");
-
-  const payloadVariants: Array<Record<string, unknown>> = [
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      body: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      evidence_type: safe(form.evidenceType) || "General evidence",
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-      visibility: "private",
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      evidence_type: safe(form.evidenceType) || "General evidence",
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-      visibility: "private",
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      occurred_on: safe(form.occurredOn) || null,
-    },
-  ];
-
-  for (const payload of payloadVariants) {
-    const r = await supabase.from("evidence_entries").insert(payload).select("id").single();
-    if (!r.error && r.data?.id) return r.data.id as string;
-    if (!isMissingColumnError(r.error)) throw r.error;
-  }
-
-  throw new Error("Could not create first evidence entry.");
+  const created = await createFamilyEvidenceEntry({
+    studentId,
+    userId: user.id,
+    title: safe(form.title) || "First learning entry",
+    summary: safe(form.summary),
+    learningArea: safe(form.learningArea) || null,
+    evidenceType: safe(form.evidenceType) || "General evidence",
+    occurredOn: safe(form.occurredOn) || null,
+  });
+  return created.id;
 }
 
 export default function OnboardingFirstEntryPage() {
