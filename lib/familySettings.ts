@@ -101,6 +101,10 @@ type FamilySettingsSource = Partial<
   curriculum_jurisdiction_id?: string | null;
 };
 
+type StoredFamilySettingsSnapshot = Partial<FamilyProfileRow> & {
+  [key: string]: unknown;
+};
+
 const FAMILY_PROFILE_SELECT_COLUMNS = [
   "id",
   "user_id",
@@ -184,6 +188,11 @@ function canUseBrowserStorage() {
 
 function safeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isDatabaseFamilyProfileId(value: unknown) {
+  const id = safeString(value);
+  return !!id && id !== "local" && !id.startsWith("local-");
 }
 
 async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, label: string, ms = 25000): Promise<T> {
@@ -432,6 +441,13 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+function loadStoredFamilySettingsSnapshot(): StoredFamilySettingsSnapshot | null {
+  const raw = readJson<unknown>(STORAGE_KEYS.SETTINGS, null);
+  return raw && typeof raw === "object"
+    ? (raw as StoredFamilySettingsSnapshot)
+    : null;
+}
+
 function writeJson<T>(key: string, value: T) {
   if (!canUseBrowserStorage()) return;
   try {
@@ -555,7 +571,7 @@ export function rowToSettings(
 }
 
 export function loadSettingsFromLocalStorage(): FamilySettings {
-  const raw = readJson<Partial<FamilySettings> | null>(STORAGE_KEYS.SETTINGS, null);
+  const raw = loadStoredFamilySettingsSnapshot();
   return rowToSettings(raw ?? undefined, {
     defaultJurisdiction: raw == null,
   });
@@ -633,9 +649,14 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 
   const userId = await getCurrentUserId();
   if (!userId) return { ...DEFAULT_FAMILY_PROFILE };
+  const storedSnapshot = loadStoredFamilySettingsSnapshot();
+  const storedProfileId = safeString(storedSnapshot?.id);
+  const localSettings = rowToSettings(storedSnapshot ?? undefined, {
+    defaultJurisdiction: storedSnapshot == null,
+  });
 
   try {
-    const profile = await selectFamilyProfileRow(userId);
+    const profile = await selectFamilyProfileRow(userId, storedProfileId);
     if (profile) {
       const canonicalJurisdiction = await selectCanonicalFamilyJurisdiction(safeString(profile.id)).catch(
         () => null,
@@ -660,34 +681,102 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 
   return {
     ...DEFAULT_FAMILY_PROFILE,
+    ...localSettings,
     user_id: userId,
     owner_user_id: userId,
   };
 }
 
-async function selectFamilyProfileRow(userId: string): Promise<Partial<FamilyProfileRow> | null> {
+function normalizeFamilyProfileRow(
+  row: Partial<FamilyProfileRow>,
+  userId: string,
+): Partial<FamilyProfileRow> {
+  return {
+    ...row,
+    id: safeString(row.id) || DEFAULT_FAMILY_PROFILE.id,
+    user_id: safeString(row.user_id) || userId,
+    owner_user_id: safeString(row.owner_user_id) || userId,
+    created_at: safeString(row.created_at) || undefined,
+    updated_at: safeString(row.updated_at) || undefined,
+  };
+}
+
+function compareProfileTimestampDesc(
+  left: string | undefined,
+  right: string | undefined,
+) {
+  const cleanLeft = safeString(left);
+  const cleanRight = safeString(right);
+
+  if (cleanLeft && cleanRight && cleanLeft !== cleanRight) {
+    return cleanRight.localeCompare(cleanLeft);
+  }
+
+  if (cleanLeft) return -1;
+  if (cleanRight) return 1;
+  return 0;
+}
+
+function sortFamilyProfilesByRecency(
+  profiles: Partial<FamilyProfileRow>[],
+) {
+  return [...profiles].sort((left, right) => {
+    const updatedAtOrder = compareProfileTimestampDesc(left.updated_at, right.updated_at);
+    if (updatedAtOrder !== 0) return updatedAtOrder;
+
+    const createdAtOrder = compareProfileTimestampDesc(left.created_at, right.created_at);
+    if (createdAtOrder !== 0) return createdAtOrder;
+
+    return safeString(left.id).localeCompare(safeString(right.id));
+  });
+}
+
+async function selectOwnedFamilyProfiles(userId: string): Promise<Partial<FamilyProfileRow>[]> {
   const response = await withTimeout(
     supabase
       .from("family_profiles")
       .select(FAMILY_PROFILE_SELECT_COLUMNS)
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle(),
-    "family_profiles select by user_id",
+      .or(`user_id.eq.${userId},owner_user_id.eq.${userId}`),
+    "family_profiles select by owner/user",
     12000,
   );
 
   if (response.error) throw response.error;
 
-  if (!response || !response.data) return null;
+  const rows = Array.isArray(response.data)
+    ? response.data
+    : response.data
+      ? [response.data]
+      : [];
 
-  const data = response.data as unknown as Partial<FamilyProfileRow>;
-  return {
-    ...data,
-    id: safeString(data.id) || DEFAULT_FAMILY_PROFILE.id,
-    user_id: safeString(data.user_id) || userId,
-    owner_user_id: safeString(data.owner_user_id) || userId,
-  };
+  if (!rows.length) return [];
+
+  const dedupedRows = new Map<string, Partial<FamilyProfileRow>>();
+  for (const row of rows as Partial<FamilyProfileRow>[]) {
+    const normalizedRow = normalizeFamilyProfileRow(row, userId);
+    const id = safeString(normalizedRow.id);
+    if (!id) continue;
+    dedupedRows.set(id, normalizedRow);
+  }
+
+  return sortFamilyProfilesByRecency(Array.from(dedupedRows.values()));
+}
+
+async function selectFamilyProfileRow(
+  userId: string,
+  preferredProfileId?: string | null,
+): Promise<Partial<FamilyProfileRow> | null> {
+  const profiles = await selectOwnedFamilyProfiles(userId);
+  if (!profiles.length) return null;
+
+  const cleanPreferredProfileId = safeString(preferredProfileId);
+  if (isDatabaseFamilyProfileId(cleanPreferredProfileId)) {
+    const preferredProfile =
+      profiles.find((profile) => safeString(profile.id) === cleanPreferredProfileId) ?? null;
+    if (preferredProfile) return preferredProfile;
+  }
+
+  return profiles[0] ?? null;
 }
 
 export async function upsertFamilyProfile(settings: FamilySettings): Promise<FamilyProfileRow> {
@@ -697,7 +786,11 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
   if (!userId) throw new Error("A signed-in Supabase session is required to save family settings.");
   const authenticatedUserId = userId;
 
-  const existingProfile = await selectFamilyProfileRow(authenticatedUserId).catch(() => null);
+  const storedProfileId = safeString(loadStoredFamilySettingsSnapshot()?.id);
+  const existingProfile = await selectFamilyProfileRow(
+    authenticatedUserId,
+    storedProfileId,
+  ).catch(() => null);
   const payload = toFamilyProfilePayload(settings, authenticatedUserId, existingProfile?.id);
 
   async function buildSavedProfile(row: unknown): Promise<FamilyProfileRow> {
@@ -705,7 +798,7 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
       row && typeof row === "object" ? (row as Partial<FamilyProfileRow>) : null;
     const selectedProfile = safeString(rowRecord?.id)
       ? rowRecord
-      : await selectFamilyProfileRow(authenticatedUserId);
+      : await selectFamilyProfileRow(authenticatedUserId, storedProfileId);
 
     const savedProfile: FamilyProfileRow = {
       ...DEFAULT_FAMILY_PROFILE,
@@ -740,7 +833,7 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
       ? supabase
           .from("family_profiles")
           .update(payload)
-          .eq("user_id", authenticatedUserId)
+          .eq("id", safeString(existingProfile.id))
           .select(FAMILY_PROFILE_SELECT_COLUMNS)
           .maybeSingle()
       : supabase
@@ -758,21 +851,33 @@ export async function upsertFamilyProfile(settings: FamilySettings): Promise<Fam
   lastError = writeResponse.error;
   const message = describeSupabaseError(writeResponse.error).toLowerCase();
   if (!existingProfile && message.includes("duplicate")) {
-    const retryResponse = await withTimeout(
-      supabase
+    const duplicateProfile = await selectFamilyProfileRow(
+      authenticatedUserId,
+      storedProfileId,
+    ).catch(() => null);
+
+    if (duplicateProfile) {
+      const retryPayload = toFamilyProfilePayload(
+        settings,
+        authenticatedUserId,
+        duplicateProfile.id,
+      );
+      const retryResponse = await withTimeout(
+        supabase
           .from("family_profiles")
-          .update(payload)
-        .eq("user_id", authenticatedUserId)
-        .select(FAMILY_PROFILE_SELECT_COLUMNS)
-        .maybeSingle(),
-      "upsertFamilyProfile duplicate insert retry",
-    );
+          .update(retryPayload)
+          .eq("id", safeString(duplicateProfile.id))
+          .select(FAMILY_PROFILE_SELECT_COLUMNS)
+          .maybeSingle(),
+        "upsertFamilyProfile duplicate insert retry",
+      );
 
-    if (!retryResponse.error) {
-      return buildSavedProfile(retryResponse.data);
+      if (!retryResponse.error) {
+        return buildSavedProfile(retryResponse.data);
+      }
+
+      lastError = retryResponse.error;
     }
-
-    lastError = retryResponse.error;
   }
 
   throw new Error(describeSupabaseError(lastError));

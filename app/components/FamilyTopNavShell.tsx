@@ -292,9 +292,22 @@ export default function FamilyTopNavShell({
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
   const communityActive = pathname === "/community" || pathname.startsWith("/community/");
+  const workspaceStatusLabel = workspace.syncIssue
+    ? "Sync issue"
+    : workspace.storageMode === "database"
+      ? "In sync"
+      : "Local only";
+  const workspaceStatusClassName = workspace.syncIssue
+    ? "border-amber-200 bg-amber-50 text-amber-700"
+    : workspace.storageMode === "database"
+      ? "border-slate-200 bg-white text-slate-500"
+      : "border-slate-200 bg-slate-100 text-slate-600";
 
   return (
-    <div className={cx("w-full bg-slate-50", className)}>
+    <div
+      className={cx("w-full bg-slate-50", className)}
+      data-route-title={resolvedTitle || undefined}
+    >
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/92 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-6 py-3.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-center gap-7">
@@ -362,9 +375,13 @@ export default function FamilyTopNavShell({
 
             <span
               aria-label="Workspace status"
-              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+              title={workspace.syncIssue || workspaceStatusLabel}
+              className={cx(
+                "inline-flex items-center rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] shadow-[0_8px_20px_rgba(15,23,42,0.04)]",
+                workspaceStatusClassName,
+              )}
             >
-              In sync
+              {workspaceStatusLabel}
             </span>
 
             <FamilyProfileMenu

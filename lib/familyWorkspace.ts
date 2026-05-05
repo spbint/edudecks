@@ -365,6 +365,15 @@ async function loadParentStudentLinks(userId: string) {
   return (response.data ?? []) as ParentStudentLinkRow[];
 }
 
+async function loadOptionalParentStudentLinks(userId: string) {
+  try {
+    return await loadParentStudentLinks(userId);
+  } catch (error) {
+    console.warn("loadParentStudentLinks skipped", error);
+    return [] as ParentStudentLinkRow[];
+  }
+}
+
 async function loadStudentRowsByIds(studentIds: string[]) {
   if (!studentIds.length) return [];
 
@@ -422,6 +431,15 @@ async function loadLegacyLearnerRows(familyProfileId: string) {
 
   if (lastError) throw lastError;
   return [];
+}
+
+async function loadOptionalLegacyLearnerRows(familyProfileId: string) {
+  try {
+    return await loadLegacyLearnerRows(familyProfileId);
+  } catch (error) {
+    console.warn("loadLegacyLearnerRows skipped", error);
+    return [] as LegacyLearnerRow[];
+  }
 }
 
 function mapStudentRowToLearner(
@@ -574,9 +592,14 @@ export async function loadLinkedLearners(
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
   const cleanFamilyProfileId = safe(familyProfileId);
-  const [links, parentLinks] = await Promise.all([
-    cleanFamilyProfileId ? loadFamilyProfileChildLinks(cleanFamilyProfileId) : Promise.resolve([]),
-    loadParentStudentLinks(safe(userId)),
+  const links = cleanFamilyProfileId
+    ? await loadFamilyProfileChildLinks(cleanFamilyProfileId)
+    : [];
+  const [parentLinks, legacyRows] = await Promise.all([
+    loadOptionalParentStudentLinks(safe(userId)),
+    cleanFamilyProfileId
+      ? loadOptionalLegacyLearnerRows(cleanFamilyProfileId)
+      : Promise.resolve([]),
   ]);
   const childIds = Array.from(
     new Set([
@@ -584,10 +607,7 @@ export async function loadLinkedLearners(
       ...parentLinks.map((link) => safe(link.student_id)).filter(Boolean),
     ]),
   );
-  const [students, legacyRows] = await Promise.all([
-    childIds.length ? loadStudentRowsByIds(childIds) : Promise.resolve([]),
-    cleanFamilyProfileId ? loadLegacyLearnerRows(cleanFamilyProfileId) : Promise.resolve([]),
-  ]);
+  const students = childIds.length ? await loadStudentRowsByIds(childIds) : [];
 
   const studentById = new Map(
     students.map((student) => [safe(student.id), student] as const),
@@ -628,22 +648,17 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   let profile = localProfile;
   let dbLearners: FamilyLearner[] = [];
   let syncIssue = "";
+  let learnerLoadFailed = false;
 
   try {
     profile = await withTimeout(loadFamilyProfile(), "load family profile");
-    if (!isDatabaseFamilyProfileId(profile.id)) {
-      profile = await withTimeout(
-        upsertFamilyProfile(profile),
-        "create family profile",
-      );
-    }
   } catch (error) {
     console.error("loadFamilyProfile fallback", error);
-    syncIssue = "Family profile is using the local fallback.";
+    syncIssue = "Family profile could not be loaded from the synced workspace.";
   }
 
   if (!isDatabaseFamilyProfileId(profile.id)) {
-    syncIssue ||= "Family profile is using the local fallback.";
+    syncIssue ||= "No synced family profile was found for this account.";
   } else {
     try {
       dbLearners = await withTimeout(
@@ -652,15 +667,17 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
       );
     } catch (error) {
       console.error("loadLinkedLearners fallback", error);
-      syncIssue = "Learners are using the local fallback.";
+      learnerLoadFailed = true;
+      syncIssue = "Learners could not be loaded from the synced family profile.";
     }
   }
 
   try {
     const databaseProfileReady = isDatabaseFamilyProfileId(profile.id);
-    const learners = databaseProfileReady
+    const databaseLearnersReady = databaseProfileReady && !learnerLoadFailed;
+    const learners = databaseLearnersReady
       ? mergeDatabaseAndLocalLearners(dbLearners, localLearners)
-      : mergeLearners(dbLearners, localLearners);
+      : localLearners;
 
     const mergedProfile: FamilyProfileRow = {
       ...localProfile,
@@ -673,13 +690,15 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     };
 
     persistSettingsToLocalStorage(mergedProfile);
-    persistLearnersToLocalCache(learners, { notify: false });
+    if (databaseLearnersReady) {
+      persistLearnersToLocalCache(learners, { notify: false });
+    }
 
     return {
       profile: mergedProfile,
       learners,
       userId,
-      storageMode: databaseProfileReady ? "database" : "local",
+      storageMode: databaseLearnersReady ? "database" : "local",
       syncIssue: syncIssue || undefined,
     };
   } catch (error) {
