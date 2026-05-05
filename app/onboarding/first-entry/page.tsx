@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import { createLinkedLearner, setActiveLearnerId } from "@/lib/familyWorkspace";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -301,9 +302,10 @@ function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
-function isMissingColumnError(err: unknown) {
-  const msg = String((err as { message?: unknown })?.message ?? "").toLowerCase();
-  return msg.includes("does not exist") && msg.includes("column");
+function looksLikeUuid(value: unknown) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    safe(value),
+  );
 }
 
 async function createStudentRecord(child: ChildForm) {
@@ -319,56 +321,17 @@ async function createEvidenceRecord(studentId: string, form: FirstEntryForm) {
   const user = authResp.data.user;
   if (!user) throw new Error("You must be signed in.");
 
-  const payloadVariants: Array<Record<string, unknown>> = [
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      body: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      evidence_type: safe(form.evidenceType) || "General evidence",
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-      visibility: "private",
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      evidence_type: safe(form.evidenceType) || "General evidence",
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-      visibility: "private",
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      occurred_on: safe(form.occurredOn) || null,
-      is_deleted: false,
-    },
-    {
-      user_id: user.id,
-      student_id: studentId,
-      title: safe(form.title) || "First learning entry",
-      summary: safe(form.summary),
-      learning_area: safe(form.learningArea) || null,
-      occurred_on: safe(form.occurredOn) || null,
-    },
-  ];
+  const created = await createFamilyEvidenceEntry({
+    studentId,
+    userId: user.id,
+    title: safe(form.title) || "First learning entry",
+    summary: safe(form.summary) || "First learning entry",
+    occurredOn: safe(form.occurredOn) || new Date().toISOString().slice(0, 10),
+    learningArea: safe(form.learningArea) || null,
+    evidenceType: safe(form.evidenceType) || "General evidence",
+  });
 
-  for (const payload of payloadVariants) {
-    const r = await supabase.from("evidence_entries").insert(payload).select("id").single();
-    if (!r.error && r.data?.id) return r.data.id as string;
-    if (!isMissingColumnError(r.error)) throw r.error;
-  }
-
-  throw new Error("Could not create first evidence entry.");
+  return created.id;
 }
 
 export default function OnboardingFirstEntryPage() {
@@ -444,14 +407,14 @@ export default function OnboardingFirstEntryPage() {
       window.localStorage.setItem(ENTRY_STORAGE_KEY, JSON.stringify(form));
 
       let studentId = window.localStorage.getItem(STUDENT_ID_KEY);
-      if (!safe(studentId)) {
+      if (!looksLikeUuid(studentId)) {
         studentId = await createStudentRecord(child);
         window.localStorage.setItem(STUDENT_ID_KEY, studentId);
       }
       setActiveLearnerId(studentId);
 
       let firstEntryId = window.localStorage.getItem(FIRST_ENTRY_ID_KEY);
-      if (!safe(firstEntryId)) {
+      if (!looksLikeUuid(firstEntryId)) {
         firstEntryId = await createEvidenceRecord(studentId!, form);
         window.localStorage.setItem(FIRST_ENTRY_ID_KEY, firstEntryId);
       }

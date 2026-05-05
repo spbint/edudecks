@@ -3,6 +3,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  type FamilySettings,
+} from "@/lib/familySettings";
+import {
+  createLinkedLearner,
+  setActiveLearnerId,
+} from "@/lib/familyWorkspace";
+import { saveFamilyWorkspaceSettings } from "@/lib/familyWorkspace";
 import { supabase } from "@/lib/supabaseClient";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 
@@ -169,6 +178,22 @@ function buildChildSeed(name: string, yearLabel: string): ChildSeed {
   };
 }
 
+function defaultFrameworkForMarket(
+  market: FormState["preferredMarket"],
+): FamilySettings["curriculum_framework_id"] {
+  if (market === "us") return "us-common-core";
+  if (market === "uk") return "uk-national";
+  return "au-v9";
+}
+
+function defaultJurisdictionForMarket(
+  market: FormState["preferredMarket"],
+): FamilySettings["curriculum_jurisdiction_id"] {
+  if (market === "us") return "ca";
+  if (market === "uk") return "england";
+  return "tas";
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
 
@@ -319,25 +344,61 @@ export default function OnboardingPage() {
       setSaveState("saving");
       setMessage("");
 
-      const children = stagedChildren;
+      const authResponse = await supabase.auth.getUser();
+      const user = authResponse.data.user;
+      if (!user?.id) {
+        throw new Error("Please sign in before finishing the family setup.");
+      }
+
+      const savedProfile = await saveFamilyWorkspaceSettings({
+        ...DEFAULT_FAMILY_SETTINGS,
+        family_display_name: safe(form.familyDisplayName) || DEFAULT_FAMILY_SETTINGS.family_display_name,
+        preferred_market: form.preferredMarket,
+        country: form.preferredMarket,
+        curriculum_framework_id: defaultFrameworkForMarket(form.preferredMarket),
+        curriculum_jurisdiction_id: defaultJurisdictionForMarket(form.preferredMarket),
+      });
+
+      const createdLearners: Array<
+        Awaited<ReturnType<typeof createLinkedLearner>>
+      > = [];
+      for (const child of stagedChildren) {
+        createdLearners.push(
+          await createLinkedLearner(user.id, child.name, child.yearLabel),
+        );
+      }
 
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(CHILDREN_KEY, JSON.stringify(children));
-        window.localStorage.setItem(ACTIVE_STUDENT_ID_KEY, children[0]?.id || "");
-
+        window.localStorage.setItem(
+          CHILDREN_KEY,
+          JSON.stringify(
+            createdLearners.map((learner) => ({
+              id: learner.id,
+              name: learner.label,
+              label: learner.label,
+              yearLabel: learner.yearLabel || "",
+              year_level: learner.year_level ?? "",
+              connectedAt: learner.connectedAt ?? null,
+              family_profile_child_id: learner.family_profile_child_id ?? null,
+            })),
+          ),
+        );
+        window.localStorage.setItem(
+          ACTIVE_STUDENT_ID_KEY,
+          createdLearners[0]?.id || "",
+        );
         window.localStorage.setItem(
           SETTINGS_KEY,
           JSON.stringify({
-            defaultChildId: children[0]?.id || "",
-            autoOpenLastChild: true,
-            showAuthorityGuidance: true,
-            familyDisplayName: safe(form.familyDisplayName),
-            preferredMarket: form.preferredMarket,
-            onboardingComplete: true,
-            parentName: safe(form.parentName),
-          })
+            ...savedProfile,
+            default_child_id: createdLearners[0]?.id || null,
+            default_child_link_id:
+              createdLearners[0]?.family_profile_child_id || null,
+          }),
         );
       }
+
+      setActiveLearnerId(createdLearners[0]?.id || null);
 
       await persistProfile();
 
