@@ -574,10 +574,8 @@ export async function loadLinkedLearners(
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
   const cleanFamilyProfileId = safe(familyProfileId);
-  if (!cleanFamilyProfileId) return [];
-
   const [links, parentLinks] = await Promise.all([
-    loadFamilyProfileChildLinks(cleanFamilyProfileId),
+    cleanFamilyProfileId ? loadFamilyProfileChildLinks(cleanFamilyProfileId) : Promise.resolve([]),
     loadParentStudentLinks(safe(userId)),
   ]);
   const childIds = Array.from(
@@ -587,8 +585,8 @@ export async function loadLinkedLearners(
     ]),
   );
   const [students, legacyRows] = await Promise.all([
-    loadStudentRowsByIds(childIds),
-    loadLegacyLearnerRows(cleanFamilyProfileId),
+    childIds.length ? loadStudentRowsByIds(childIds) : Promise.resolve([]),
+    cleanFamilyProfileId ? loadLegacyLearnerRows(cleanFamilyProfileId) : Promise.resolve([]),
   ]);
 
   const studentById = new Map(

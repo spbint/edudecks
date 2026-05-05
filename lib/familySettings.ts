@@ -326,6 +326,7 @@ async function upsertCanonicalFamilyJurisdiction(
 }
 
 function asExperienceMode(value: unknown): ExperienceMode {
+  void value;
   return "family";
 }
 
