@@ -69,6 +69,17 @@ type NextBestMoveCardProps = {
   state: HomeSurfaceState;
 };
 
+type OnboardingConfidenceCardProps = {
+  title: string;
+  note: string;
+  bullets: string[];
+  primaryHref: string;
+  primaryLabel: string;
+  secondaryHref?: string;
+  secondaryLabel?: string;
+  state: HomeSurfaceState;
+};
+
 type FamilySummaryPanelProps = {
   familyName: string;
   learners: LearnerOption[];
@@ -117,7 +128,7 @@ function stateMeta(state: HomeSurfaceState) {
     };
   }
   return {
-    label: "Draft workspace",
+    label: "Setting up",
     className: "border-amber-200 bg-amber-50 text-amber-700",
   };
 }
@@ -254,9 +265,9 @@ export function FamilySummaryPanel({
         </div>
       ) : (
         <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className="text-sm font-black text-slate-950">Add your first learner to get started</div>
+          <div className="text-sm font-black text-slate-950">Add your first learner to begin gently</div>
           <div className="mt-1 text-sm leading-6 text-slate-500">
-            Your family overview becomes more useful once a learner is linked.
+            One learner is enough to make the family workflow start feeling real.
           </div>
         </div>
       )}
@@ -334,9 +345,9 @@ export function LearnerSelector({
         </div>
       ) : (
         <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className="text-[15px] font-semibold text-slate-950">Add your first learner to get started</div>
+          <div className="text-[15px] font-semibold text-slate-950">Add your first learner to begin gently</div>
           <div className="mt-1 text-[14px] leading-6 text-slate-500">
-            Your family overview becomes more useful once a learner is linked.
+            One learner is enough to make the family workflow start feeling real.
           </div>
         </div>
       )}
@@ -551,5 +562,58 @@ export function NextBestMoveCard({
         {cta}
       </Link>
     </aside>
+  );
+}
+
+export function OnboardingConfidenceCard({
+  title,
+  note,
+  bullets,
+  primaryHref,
+  primaryLabel,
+  secondaryHref,
+  secondaryLabel,
+  state,
+}: OnboardingConfidenceCardProps) {
+  return (
+    <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.99)_0%,rgba(255,247,237,0.92)_52%,rgba(239,246,255,0.94)_100%)] p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+      <div className="flex items-start justify-between gap-3">
+        <HomeSectionHeader eyebrow="Start gently" title={title} />
+        <StateBadge state={state} />
+      </div>
+
+      <div className="text-sm leading-7 text-slate-600">{note}</div>
+
+      <div className="grid gap-3">
+        {bullets.map((item, index) => (
+          <div
+            key={item}
+            className="grid grid-cols-[32px_minmax(0,1fr)] items-start gap-3 rounded-[18px] border border-white/80 bg-white/82 px-4 py-3"
+          >
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-[12px] font-black text-blue-700">
+              {index + 1}
+            </span>
+            <div className="text-sm font-semibold leading-6 text-slate-700">{item}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href={primaryHref}
+          className="inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+        >
+          {primaryLabel}
+        </Link>
+        {secondaryHref && secondaryLabel ? (
+          <Link
+            href={secondaryHref}
+            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+          >
+            {secondaryLabel}
+          </Link>
+        ) : null}
+      </div>
+    </section>
   );
 }

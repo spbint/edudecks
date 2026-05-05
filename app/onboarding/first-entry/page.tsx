@@ -467,7 +467,7 @@ export default function OnboardingFirstEntryPage() {
         })
       );
 
-      setMsg("Your child profile and first evidence entry have been created.");
+      setMsg("Your learner profile and first evidence entry are ready.");
       router.push("/welcome");
     } catch (e: unknown) {
       setErr(String((e as { message?: unknown })?.message ?? e));
@@ -487,7 +487,7 @@ export default function OnboardingFirstEntryPage() {
           <div style={S.subtle}>Step 3 of 3</div>
           <h1 style={S.h1}>Add your first learning entry</h1>
           <div style={S.lead}>
-            This is the moment EduDecks becomes useful. Start with one real thing{" "}
+            This is where EduDecks starts feeling real. Begin with one genuine thing{" "}
             {previewName} has learned, created, practised, discussed, or explored.
           </div>
 
@@ -521,7 +521,7 @@ export default function OnboardingFirstEntryPage() {
                   placeholder={`Example: ${previewName} completed a hands-on science activity exploring chemical reactions. They mixed safe ingredients, observed bubbling and change, and explained what they noticed in their own words.`}
                 />
                 <div style={S.helper}>
-                  Write naturally. You do not need formal teacher language.
+                  Write naturally. You do not need formal teacher language or a perfect summary.
                 </div>
               </div>
 
@@ -664,11 +664,11 @@ export default function OnboardingFirstEntryPage() {
 
               <div style={S.box}>
                 You are not trying to prove everything today. You are simply
-                starting a clear and trustworthy learning record.
+                starting a clear, calm, and trustworthy learning record.
               </div>
 
               <div style={S.preview}>
-                <div style={S.previewTitle}>Live preview</div>
+                <div style={S.previewTitle}>Your first record preview</div>
                 <div style={S.previewText}>
                   <strong>{form.title || "Your entry title will appear here"}</strong>
                 </div>
@@ -692,7 +692,7 @@ export default function OnboardingFirstEntryPage() {
               Back
             </button>
             <button style={S.btnPrimary} onClick={finishOnboarding} disabled={saving}>
-              {saving ? "Creating your record…" : "Finish onboarding"}
+              {saving ? "Creating your record..." : "Create first record"}
             </button>
           </div>
         </div>

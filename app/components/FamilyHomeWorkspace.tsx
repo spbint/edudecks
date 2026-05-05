@@ -12,6 +12,7 @@ import {
   LearnerSummaryRow,
   MetricCard,
   NextBestMoveCard,
+  OnboardingConfidenceCard,
   QuickActionCard,
   RecentActivityList,
   SpaceCard,
@@ -37,7 +38,8 @@ export default function FamilyHomeWorkspace() {
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
-  const activeLearnerName = activeLearner?.label || "No learner selected";
+  const activeLearnerName = activeLearner?.label || "your learner";
+  const syncedWorkspace = workspace.storageMode === "database";
 
   const readinessState: HomeSurfaceState = loading
     ? "loading"
@@ -48,7 +50,7 @@ export default function FamilyHomeWorkspace() {
   const workspaceState: HomeSurfaceState = loading
     ? "loading"
     : hasLearners
-      ? workspace.storageMode === "database"
+      ? syncedWorkspace
         ? "derived"
         : "placeholder"
       : "empty";
@@ -56,7 +58,7 @@ export default function FamilyHomeWorkspace() {
   const progressPercent = loading
     ? 32
     : hasActiveLearner
-      ? workspace.storageMode === "database"
+      ? syncedWorkspace
         ? 72
         : 58
       : 16;
@@ -73,28 +75,34 @@ export default function FamilyHomeWorkspace() {
   const heroStats: CompactStat[] = [
     {
       label: "Readiness",
-      value: loading ? "" : hasActiveLearner ? "On track" : "Getting started",
-      note: hasActiveLearner ? `${activeLearnerName} is ready for the next move` : "Choose a learner",
+      value: loading ? "" : hasActiveLearner ? "Ready for one small step" : "Choose a learner",
+      note: hasActiveLearner
+        ? `${activeLearnerName} is in focus and ready for the next useful move`
+        : "A single learner is enough to begin",
       state: readinessState,
     },
     {
-      label: "Last Capture",
-      value: loading ? "" : hasActiveLearner ? "Awaiting sync" : "No activity yet",
-      note: hasActiveLearner ? `${activeLearnerName} has no recent capture yet` : "Start with one moment",
-      state: hasActiveLearner ? "placeholder" : "empty",
-    },
-    {
-      label: "My Calendar",
-      value: loading ? "" : hasActiveLearner ? "2" : "0",
+      label: "Evidence",
+      value: loading ? "" : hasActiveLearner ? "Capture the next moment" : "Start gently",
       note: hasActiveLearner
-        ? `Draft workspace while ${activeLearnerName}'s planning data matures`
-        : "Your first weekly rhythm will appear here",
+        ? `One short record is enough to keep ${activeLearnerName}'s story moving`
+        : "You do not need a full record on day one",
+      state: hasActiveLearner ? "derived" : "empty",
+    },
+    {
+      label: "Weekly rhythm",
+      value: loading ? "" : hasActiveLearner ? "Ready to shape" : "Later is fine",
+      note: hasActiveLearner
+        ? `Plan lightly around what matters most for ${activeLearnerName}`
+        : "The calendar can wait until a learner is linked",
       state: hasActiveLearner ? "placeholder" : "empty",
     },
     {
-      label: "Next Step",
-      value: loading ? "" : hasActiveLearner ? "Add evidence" : "Set learner",
-      note: hasActiveLearner ? `Capture a fresh moment for ${activeLearnerName}` : "Choose who you're reviewing",
+      label: "Next step",
+      value: loading ? "" : hasActiveLearner ? "Add evidence" : "Add learner",
+      note: hasActiveLearner
+        ? `Capture one useful moment for ${activeLearnerName}`
+        : "Set the first learner and let the rest grow later",
       state: hasActiveLearner ? "derived" : "empty",
     },
   ];
@@ -109,10 +117,9 @@ export default function FamilyHomeWorkspace() {
             time: "Now",
           },
           {
-            label:
-              workspace.storageMode === "database"
-                ? `${activeLearnerName} is in your synced workspace`
-                : `${activeLearnerName} is in your local snapshot`,
+            label: syncedWorkspace
+              ? `${activeLearnerName} is in your synced family workspace`
+              : `${activeLearnerName} is in your local family setup`,
             tag: "Learner",
             time: "Today",
           },
@@ -140,32 +147,92 @@ export default function FamilyHomeWorkspace() {
       ? {
           state: "empty" as HomeSurfaceState,
           title: "Add your first learner",
-          note: "Set learner context first so planning, capture, and reports have somewhere to begin.",
+          note: "One learner is enough to make planning, capture, portfolio, and reports feel connected.",
           href: "/children/new",
           cta: "Add learner",
         }
-      : workspace.storageMode !== "database"
+      : !syncedWorkspace
         ? {
             state: "placeholder" as HomeSurfaceState,
-            title: "Review your family setup",
-            note: "A synced workspace will make planning, evidence, and reporting easier to keep together.",
+            title: "Finish the family setup gently",
+            note: "A synced workspace will make the evidence, portfolio, and report loop easier to trust.",
             href: "/settings",
-            cta: "Open My Settings",
+            cta: "Open settings",
           }
         : {
             state: "derived" as HomeSurfaceState,
             title: `Add a fresh learning moment for ${activeLearnerName}`,
-            note: "Capture one recent piece of learning while it is still easy to describe.",
+            note: "Capture one recent piece of learning while it is still easy to describe in natural family language.",
             href: "/capture",
             cta: "Add learning evidence",
+          };
+
+  const confidenceCard = loading
+    ? {
+        title: "Preparing your family view",
+        note: "Loading the gentlest next path through planning, evidence, portfolio, and reports.",
+        bullets: [
+          "Start with one learner.",
+          "Capture one simple learning moment.",
+          "Let the record grow from there.",
+        ],
+        primaryHref: "/family",
+        primaryLabel: "Loading...",
+        secondaryHref: "/start",
+        secondaryLabel: "Guided start",
+        state: "loading" as HomeSurfaceState,
+      }
+    : !hasLearners
+      ? {
+          title: "Set one learner and keep the rest light",
+          note: "You do not need the whole system today. One learner is enough to make the family workflow start feeling real.",
+          bullets: [
+            "Add one learner profile.",
+            "Capture one simple learning moment.",
+            "Review the portfolio only after a few real moments exist.",
+          ],
+          primaryHref: "/children/new",
+          primaryLabel: "Add first learner",
+          secondaryHref: "/start",
+          secondaryLabel: "See guided start",
+          state: "empty" as HomeSurfaceState,
+        }
+      : !syncedWorkspace
+        ? {
+            title: "Your family space is taking shape",
+            note: "You can still explore, but syncing the workspace will make the planning, evidence, and report loop easier to trust.",
+            bullets: [
+              "Review the family setup and preferred market.",
+              "Choose a gentle weekly rhythm when ready.",
+              "Add one piece of evidence before expecting a full report.",
+            ],
+            primaryHref: "/settings",
+            primaryLabel: "Review setup",
+            secondaryHref: "/capture",
+            secondaryLabel: "Add evidence",
+            state: "placeholder" as HomeSurfaceState,
+          }
+        : {
+            title: "Keep the learning story moving",
+            note: "You already have enough to keep the loop calm: plan lightly, capture naturally, and review the strongest moments before reporting.",
+            bullets: [
+              "Shape the next week in My Calendar.",
+              "Capture one useful moment while it is fresh.",
+              "Review highlights in Portfolio before Reports.",
+            ],
+            primaryHref: "/capture",
+            primaryLabel: "Add evidence",
+            secondaryHref: "/my-portfolio",
+            secondaryLabel: "Open My Portfolio",
+            state: "derived" as HomeSurfaceState,
           };
 
   return (
     <FamilyTopNavShell
       title="MyLearna"
       subtitle="My Day"
-      heroTitle="My Day Overview"
-      heroText="A calm overview of what’s active, ready, and next."
+      heroTitle="My Family Overview"
+      heroText="A calm overview of what matters now, what can wait, and the next useful family step."
       hideHeroAside={true}
     >
       <div className="grid gap-5 pb-14">
@@ -179,6 +246,26 @@ export default function FamilyHomeWorkspace() {
 
         <LearnerSummaryRow stats={heroStats} state={workspaceState} />
 
+        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_420px]">
+          <OnboardingConfidenceCard
+            title={confidenceCard.title}
+            note={confidenceCard.note}
+            bullets={confidenceCard.bullets}
+            primaryHref={confidenceCard.primaryHref}
+            primaryLabel={confidenceCard.primaryLabel}
+            secondaryHref={confidenceCard.secondaryHref}
+            secondaryLabel={confidenceCard.secondaryLabel}
+            state={confidenceCard.state}
+          />
+          <NextBestMoveCard
+            title={nextMove.title}
+            note={nextMove.note}
+            href={nextMove.href}
+            cta={nextMove.cta}
+            state={nextMove.state}
+          />
+        </section>
+
         <section className="grid gap-4">
           <HomeSectionHeader eyebrow="Quick actions" title="Start with one clear step" />
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -186,28 +273,28 @@ export default function FamilyHomeWorkspace() {
               href="/my-calendar"
               icon="MC"
               label="Open My Calendar"
-              note={hasActiveLearner ? `Shape weekly blocks for ${activeLearnerName}` : "Start after learner setup"}
+              note={hasActiveLearner ? `Shape a simple weekly rhythm for ${activeLearnerName}` : "Open this once the first learner is set"}
               cta="Continue"
             />
             <QuickActionCard
               href="/capture"
-              icon="MC"
+              icon="EV"
               label="Add learning evidence"
-              note={hasActiveLearner ? `Capture a fresh moment for ${activeLearnerName}` : "Ready when your learner is set"}
+              note={hasActiveLearner ? `Capture one fresh moment for ${activeLearnerName}` : "Ready as soon as a learner is linked"}
               cta="Add"
             />
             <QuickActionCard
               href="/my-portfolio"
               icon="PO"
               label="Review My Portfolio"
-              note={hasActiveLearner ? `Review ${activeLearnerName}'s learning story` : "Keep the story visible"}
+              note={hasActiveLearner ? `Keep ${activeLearnerName}'s learning story visible` : "Portfolio becomes useful after the first few moments"}
               cta="Review"
             />
             <QuickActionCard
               href="/my-reports"
-              icon="MR"
+              icon="RP"
               label="Build report"
-              note={hasActiveLearner ? `Turn ${activeLearnerName}'s evidence into output` : "Turn evidence into output"}
+              note={hasActiveLearner ? `Turn ${activeLearnerName}'s strongest moments into output` : "Reports can wait until the record feels real"}
               cta="Build"
             />
           </div>
@@ -219,28 +306,28 @@ export default function FamilyHomeWorkspace() {
             <MetricCard
               label="Progress"
               value={hasActiveLearner ? `${progressPercent}%` : "Start"}
-              note={hasActiveLearner ? `${activeLearnerName}'s readiness is building steadily` : "Add a learner to begin"}
+              note={hasActiveLearner ? `${activeLearnerName}'s confidence is building steadily` : "Add one learner to begin"}
               progress={progressPercent}
               state={readinessState}
             />
             <MetricCard
               label="Evidence captured"
-              value={hasActiveLearner ? "Draft workspace" : "0"}
-              note={hasActiveLearner ? `Real capture counts for ${activeLearnerName} will appear here` : "Your first capture will appear here"}
+              value={hasActiveLearner ? "Building" : "Start"}
+              note={hasActiveLearner ? `One or two real moments are enough to begin ${activeLearnerName}'s record` : "Your first capture will appear here"}
               progress={evidencePercent}
               state={hasActiveLearner ? "placeholder" : "empty"}
             />
             <MetricCard
               label="Active plans"
-              value={hasActiveLearner ? "2" : "0"}
-              note={hasActiveLearner ? `Derived from ${activeLearnerName}'s current rhythm` : "No plans yet"}
+              value={hasActiveLearner ? "Taking shape" : "Later"}
+              note={hasActiveLearner ? `Weekly rhythm can stay light while ${activeLearnerName}'s record grows` : "Planning can wait until the learner is linked"}
               progress={plansPercent}
               state={hasActiveLearner ? "derived" : "empty"}
             />
             <MetricCard
               label="Reports ready"
-              value={hasActiveLearner ? "Draft workspace" : "0"}
-              note={hasActiveLearner ? `Reporting readiness for ${activeLearnerName} will sharpen as data grows` : "Your first report will appear here"}
+              value={hasActiveLearner ? "Growing" : "Later"}
+              note={hasActiveLearner ? `Reporting readiness will sharpen as the evidence body grows` : "Reports become useful after a few real entries"}
               progress={reportsPercent}
               state={hasActiveLearner ? "placeholder" : "empty"}
             />
@@ -260,11 +347,11 @@ export default function FamilyHomeWorkspace() {
             />
             <SpaceCard
               title="My Portfolio"
-              note={hasActiveLearner ? `Review ${activeLearnerName}'s evidence and learning story.` : "Review evidence and keep the learning story visible."}
+              note={hasActiveLearner ? `Review ${activeLearnerName}'s learning story and strongest moments.` : "Review evidence and keep the learning story visible."}
               href="/my-portfolio"
               cta="Review"
               state={hasActiveLearner ? "placeholder" : "empty"}
-              pill="Ready"
+              pill="Story"
             />
             <SpaceCard
               title="My Reports"
@@ -285,21 +372,12 @@ export default function FamilyHomeWorkspace() {
           </div>
         </section>
 
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_420px]">
-          <RecentActivityList
-            items={recentActivity}
-            state={loading ? "loading" : hasLearners ? "derived" : "empty"}
-            emptyTitle="No activity yet"
-            emptyNote="Add your first learner to start building a visible family record."
-          />
-          <NextBestMoveCard
-            title={nextMove.title}
-            note={nextMove.note}
-            href={nextMove.href}
-            cta={nextMove.cta}
-            state={nextMove.state}
-          />
-        </section>
+        <RecentActivityList
+          items={recentActivity}
+          state={loading ? "loading" : hasLearners ? "derived" : "empty"}
+          emptyTitle="No activity yet"
+          emptyNote="Add one learner to start building a calm family record."
+        />
       </div>
     </FamilyTopNavShell>
   );

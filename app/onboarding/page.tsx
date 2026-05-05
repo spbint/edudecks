@@ -342,16 +342,16 @@ export default function OnboardingPage() {
       await persistProfile();
 
       setSaveState("success");
-      setMessage("Your EduDecks family space is ready. Taking you to your dashboard now…");
+      setMessage("Your EduDecks family space is ready. Taking you to your family home now...");
 
       window.setTimeout(() => {
         router.push("/family");
       }, 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSaveState("error");
       setMessage(
         String(
-          err?.message ||
+          (err as { message?: unknown })?.message ||
             err ||
             "We couldn’t finish your setup just yet — please try again."
         )
@@ -362,15 +362,16 @@ export default function OnboardingPage() {
   return (
     <PublicSiteShell
       eyebrow="Onboarding"
-      heroTitle="Let’s set up your family space"
-      heroText="You only need a few details to begin. Add your family name, your first child, and a rough registration market — the rest can grow later."
+      heroTitle="Let's set up your family space"
+      heroText="You only need a few details to begin. Add your family name, your first child, and a rough registration market. The rest can grow later."
       heroBadges={["Family-first", "Simple setup", "Start small", "Grow later"]}
-      primaryCta={{ label: "Back to sign in", href: "/login" }}
-      secondaryCta={{ label: "Start free", href: "/start-free" }}
+      primaryCta={{ label: "Continue setup", href: "#family-setup" }}
+      secondaryCta={{ label: "Back to sign in", href: "/login" }}
       asideTitle="This does not need to be perfect"
       asideText="Most families begin with one child and a rough year level. You can refine everything else later as the real learning record grows."
     >
       <section
+        id="family-setup"
         style={{
           display: "grid",
           gridTemplateColumns: "minmax(0,1.05fr) minmax(320px,0.95fr)",
@@ -439,7 +440,7 @@ export default function OnboardingPage() {
             }}
           >
             This first setup is intentionally light. It is enough to get you into
-            your dashboard and ready to capture your first real learning moment.
+            your family home and ready to capture your first real learning moment.
           </div>
 
           <form onSubmit={handleFinish} style={{ display: "grid", gap: 18 }}>
@@ -564,7 +565,7 @@ export default function OnboardingPage() {
                   <input
                     value={form.childName}
                     onChange={(e) => updateField("childName", e.target.value)}
-                    placeholder="Enter your child’s name"
+                    placeholder="Enter your child's name"
                     style={inputStyle()}
                     disabled={saveState === "saving"}
                     onFocus={() => setStep(2)}
@@ -673,7 +674,7 @@ export default function OnboardingPage() {
                     lineHeight: 1.6,
                   }}
                 >
-                  You can add another child or continue once youâ€™ve saved everyone you want to include right now.
+                  You can add another child or continue once you&apos;ve saved everyone you want to include right now.
                 </div>
               </div>
             )}

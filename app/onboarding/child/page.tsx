@@ -18,7 +18,7 @@ type YearBand =
 
 type SetupState = "idle" | "saving" | "error";
 
-function safe(v: any) {
+function safe(v: unknown) {
   return String(v ?? "").trim();
 }
 
@@ -75,7 +75,7 @@ export default function OnboardingChildPage() {
   async function handleContinue() {
     if (!canContinue) {
       setSetupState("error");
-      setFeedback("Please enter the child’s name to continue.");
+      setFeedback("Please enter the child's name to continue.");
       return;
     }
 
@@ -98,9 +98,15 @@ export default function OnboardingChildPage() {
       }
 
       router.push("/family");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setSetupState("error");
-      setFeedback(String(err?.message || err || "Something went wrong while saving this setup step."));
+      setFeedback(
+        String(
+          (err as { message?: unknown })?.message ||
+            err ||
+            "Something went wrong while saving this setup step.",
+        ),
+      );
     }
   }
 
@@ -117,8 +123,8 @@ export default function OnboardingChildPage() {
       ]}
       primaryCta={{ label: "Save and continue", href: "#child-setup" }}
       secondaryCta={{ label: "Back to onboarding start", href: "/onboarding" }}
-      asideTitle="What this step does"
-      asideText="This creates a simple starting profile so the workflow can begin around a real child instead of abstract settings. You can add more detail later."
+      asideTitle="What this step unlocks"
+      asideText="This creates a simple starting profile so planning, capture, portfolio, and reports can begin around a real learner instead of abstract settings. You can add more detail later."
     >
       <section
         id="child-setup"
@@ -151,12 +157,12 @@ export default function OnboardingChildPage() {
               maxWidth: 780,
             }}
           >
-            Add just enough to begin. The strongest first move is to create a simple learner profile and then move into the family workspace.
+            Add just enough to begin. The strongest first move is to create a simple learner profile and then let the family workflow grow around that real child.
           </div>
 
           <div style={{ display: "grid", gap: 16 }}>
             <div>
-              <label style={labelStyle()}>Child’s name</label>
+              <label style={labelStyle()}>Child&apos;s name</label>
               <input
                 value={childName}
                 onChange={(e) => setChildName(e.target.value)}
@@ -332,14 +338,14 @@ export default function OnboardingChildPage() {
                 marginBottom: 14,
               }}
             >
-              After saving this step, the family workspace can start shaping itself around a real learner. From there, most families should simply begin capturing learning and let the record grow.
+              After saving this step, the family workspace can start shaping itself around a real learner. From there, most families should simply begin capturing learning and let the record grow steadily.
             </div>
 
             <div style={{ display: "grid", gap: 10 }}>
               {[
-                "Open the family hub",
-                "Capture one learning moment",
-                "Let evidence build before expecting a finished report",
+                "Open the family home",
+                "Capture one real learning moment",
+                "Let the evidence body grow before expecting a finished report",
               ].map((item, index) => (
                 <div
                   key={item}
