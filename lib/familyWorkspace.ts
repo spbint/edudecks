@@ -9,12 +9,11 @@ import {
   type FamilyProfileRow,
   type FamilySettings,
 } from "@/lib/familySettings";
-import { isMissingLearnerColumnError } from "@/lib/familyLearners";
 import {
   familyYearLevelLabelFromStored,
   familyYearLevelToStoredNumber,
 } from "@/lib/familyLearnerYearLevel";
-import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
+import { hasSupabaseEnv } from "@/lib/supabaseClient";
 
 export const ACTIVE_STUDENT_ID_KEY = "edudecks_active_student_id";
 export const ACTIVE_CHILD_EVENT = "edudecksActiveChildChanged";
@@ -31,8 +30,6 @@ export type FamilyLearner = {
   curriculum_jurisdiction_id?: string | null;
   reporting_mode?: string | null;
   connectedAt?: string | null;
-  family_profile_child_id?: string | null;
-  legacy_learner_id?: string | null;
 };
 
 export type FamilyWorkspaceState = {
@@ -45,44 +42,6 @@ export type FamilyWorkspaceState = {
 
 type LearnerIdentity = {
   id: string;
-  family_profile_child_id?: string | null;
-  legacy_learner_id?: string | null;
-};
-
-type FamilyProfileChildLinkRow = {
-  id: string;
-  family_profile_id?: string | null;
-  child_id?: string | null;
-  created_at?: string | null;
-};
-
-type ParentStudentLinkRow = {
-  id: string;
-  parent_user_id?: string | null;
-  student_id?: string | null;
-  created_at?: string | null;
-};
-
-type StudentRow = {
-  id: string;
-  user_id?: string | null;
-  first_name?: string | null;
-  preferred_name?: string | null;
-  surname?: string | null;
-  last_name?: string | null;
-  year_level?: number | string | null;
-  created_at?: string | null;
-};
-
-type LegacyLearnerRow = {
-  id: string;
-  family_id?: string | null;
-  first_name?: string | null;
-  preferred_name?: string | null;
-  last_name?: string | null;
-  year_level?: number | string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
 };
 
 function safe(value: unknown) {
@@ -92,12 +51,6 @@ function safe(value: unknown) {
 function isDatabaseFamilyProfileId(value: unknown) {
   const id = safe(value);
   return !!id && id !== "local" && !id.startsWith("local-");
-}
-
-function looksLikeUuid(value: unknown) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    safe(value),
-  );
 }
 
 async function withTimeout<T>(
@@ -128,33 +81,14 @@ function mergeLearners(
   const map = new Map<string, FamilyLearner>();
 
   for (const learner of secondary) {
-    map.set(learner.id, {
-      ...(map.get(learner.id) ?? {}),
-      ...learner,
-    });
+    map.set(learner.id, learner);
   }
 
   for (const learner of primary) {
-    map.set(learner.id, {
-      ...(map.get(learner.id) ?? {}),
-      ...learner,
-    });
+    map.set(learner.id, learner);
   }
 
   return Array.from(map.values());
-}
-
-function learnerMatchesCandidate(
-  learner: LearnerIdentity,
-  candidate: string | null | undefined,
-) {
-  const clean = safe(candidate);
-  if (!clean) return false;
-  return (
-    learner.id === clean ||
-    safe(learner.family_profile_child_id) === clean ||
-    safe(learner.legacy_learner_id) === clean
-  );
 }
 
 function resolveWorkspaceDefaultLearnerId(
@@ -163,301 +97,12 @@ function resolveWorkspaceDefaultLearnerId(
 ) {
   for (const candidate of candidates) {
     const clean = safe(candidate);
-    const matchedLearner = clean
-      ? learners.find((learner) => learnerMatchesCandidate(learner, clean)) ?? null
-      : null;
-    if (matchedLearner) {
-      return matchedLearner.id;
+    if (clean && learners.some((learner) => learner.id === clean)) {
+      return clean;
     }
   }
 
   return learners[0]?.id || null;
-}
-
-function splitLearnerName(value: string) {
-  const parts = safe(value).split(/\s+/).filter(Boolean);
-  const firstName = parts.shift() || "Learner";
-  const surname = parts.join(" ").trim() || null;
-  return {
-    firstName,
-    preferredName: firstName,
-    surname,
-    lastName: surname,
-  };
-}
-
-function normalizedLearnerKey(label: string, yearLevel: string | number | null | undefined) {
-  const cleanLabel = safe(label).toLowerCase().replace(/\s+/g, " ").trim();
-  const cleanYearLevel = familyYearLevelToStoredNumber(yearLevel);
-  return `${cleanLabel}::${cleanYearLevel ?? ""}`;
-}
-
-function learnerMatchKey(learner: Pick<FamilyLearner, "label" | "year_level" | "yearLabel">) {
-  return normalizedLearnerKey(
-    safe(learner.label),
-    learner.year_level ?? learner.yearLabel ?? null,
-  );
-}
-
-function normalizeStudentLabel(student: StudentRow) {
-  const preferred = safe(student.preferred_name);
-  const firstName = safe(student.first_name);
-  const surname = safe(student.surname || student.last_name);
-  const name = [preferred || firstName, surname].filter(Boolean).join(" ").trim();
-  return name || preferred || firstName || "Learner";
-}
-
-function normalizeLegacyLearnerLabel(learner: LegacyLearnerRow) {
-  const preferred = safe(learner.preferred_name);
-  const firstName = safe(learner.first_name);
-  const lastName = safe(learner.last_name);
-  const name = [preferred || firstName, lastName].filter(Boolean).join(" ").trim();
-  return name || preferred || firstName || "Learner";
-}
-
-async function ensureDatabaseFamilyProfile(userId: string) {
-  let profile = await withTimeout(loadFamilyProfile(), "load family profile");
-
-  if (!isDatabaseFamilyProfileId(profile.id)) {
-    profile = await withTimeout(
-      upsertFamilyProfile(profile),
-      "create family profile",
-    );
-  }
-
-  if (!isDatabaseFamilyProfileId(profile.id)) {
-    throw new Error("A synced family profile is required before adding learners.");
-  }
-
-  return {
-    ...profile,
-    user_id: safe(profile.user_id) || userId,
-    owner_user_id: safe(profile.owner_user_id) || userId,
-  };
-}
-
-async function loadFamilyProfileChildLinks(familyProfileId: string) {
-  const response = await supabase
-    .from("family_profile_children")
-    .select("id,family_profile_id,child_id,created_at")
-    .eq("family_profile_id", familyProfileId)
-    .order("created_at", { ascending: true });
-
-  if (response.error) throw response.error;
-  return (response.data ?? []) as FamilyProfileChildLinkRow[];
-}
-
-async function loadParentStudentLinks(userId: string) {
-  if (!userId) return [];
-
-  const response = await supabase
-    .from("parent_student_links")
-    .select("id,parent_user_id,student_id,created_at")
-    .eq("parent_user_id", userId)
-    .order("created_at", { ascending: true });
-
-  if (response.error) throw response.error;
-  return (response.data ?? []) as ParentStudentLinkRow[];
-}
-
-async function loadStudentRowsByIds(studentIds: string[]) {
-  if (!studentIds.length) return [];
-
-  const selectVariants = [
-    "id,user_id,first_name,preferred_name,surname,last_name,year_level,created_at",
-    "id,user_id,first_name,preferred_name,last_name,year_level,created_at",
-    "id,user_id,first_name,preferred_name,year_level,created_at",
-  ];
-
-  let lastError: unknown = null;
-
-  for (const select of selectVariants) {
-    const response = await supabase
-      .from("students")
-      .select(select)
-      .in("id", studentIds);
-
-    if (!response.error) {
-      return ((response.data ?? []) as unknown) as StudentRow[];
-    }
-
-    lastError = response.error;
-    if (!isMissingLearnerColumnError(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (lastError) throw lastError;
-  return [];
-}
-
-async function loadLegacyLearnerRows(familyProfileId: string) {
-  if (!familyProfileId) return [];
-
-  const selectVariants = [
-    "id,family_id,first_name,preferred_name,last_name,year_level,created_at,updated_at",
-    "id,family_id,first_name,preferred_name,year_level,created_at,updated_at",
-  ];
-
-  let lastError: unknown = null;
-
-  for (const select of selectVariants) {
-    const response = await supabase
-      .from("learners")
-      .select(select)
-      .eq("family_id", familyProfileId)
-      .order("created_at", { ascending: true });
-
-    if (!response.error) {
-      return ((response.data ?? []) as unknown) as LegacyLearnerRow[];
-    }
-
-    lastError = response.error;
-    if (!isMissingLearnerColumnError(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (lastError) throw lastError;
-  return [];
-}
-
-function mapStudentRowToLearner(
-  student: StudentRow,
-  link: FamilyProfileChildLinkRow | null,
-): FamilyLearner {
-  const yearLevel = familyYearLevelToStoredNumber(student.year_level);
-
-  return {
-    id: safe(student.id),
-    label: normalizeStudentLabel(student),
-    yearLabel: familyYearLevelLabelFromStored(yearLevel),
-    year_level: yearLevel,
-    connectedAt: safe(link?.created_at) || safe(student.created_at) || null,
-    family_profile_child_id: safe(link?.id) || null,
-    legacy_learner_id: null,
-  };
-}
-
-function mapLegacyRowToLearner(learner: LegacyLearnerRow): FamilyLearner {
-  const yearLevel = familyYearLevelToStoredNumber(learner.year_level);
-  return {
-    id: safe(learner.id),
-    label: normalizeLegacyLearnerLabel(learner),
-    yearLabel: familyYearLevelLabelFromStored(yearLevel),
-    year_level: yearLevel,
-    connectedAt: safe(learner.created_at) || safe(learner.updated_at) || null,
-    family_profile_child_id: null,
-    legacy_learner_id: safe(learner.id) || null,
-  };
-}
-
-function sortLearners(learners: FamilyLearner[]) {
-  return [...learners].sort((left, right) => {
-    const leftConnected = safe(left.connectedAt);
-    const rightConnected = safe(right.connectedAt);
-
-    if (leftConnected && rightConnected && leftConnected !== rightConnected) {
-      return leftConnected.localeCompare(rightConnected);
-    }
-
-    return left.label.localeCompare(right.label, undefined, { sensitivity: "base" });
-  });
-}
-
-function mergeRemoteLearnerSources(
-  studentLearners: FamilyLearner[],
-  legacyLearners: FamilyLearner[],
-) {
-  const merged = new Map<string, FamilyLearner>();
-  const studentByKey = new Map<string, FamilyLearner>();
-
-  for (const learner of studentLearners) {
-    merged.set(learner.id, learner);
-    studentByKey.set(learnerMatchKey(learner), learner);
-  }
-
-  for (const learner of legacyLearners) {
-    const key = learnerMatchKey(learner);
-    const matchedStudent = studentByKey.get(key);
-
-    if (matchedStudent) {
-      merged.set(matchedStudent.id, {
-        ...learner,
-        ...matchedStudent,
-        legacy_learner_id: learner.legacy_learner_id || matchedStudent.legacy_learner_id || null,
-      });
-      continue;
-    }
-
-    merged.set(learner.id, learner);
-  }
-
-  return sortLearners(Array.from(merged.values()));
-}
-
-function mergeDatabaseAndLocalLearners(
-  remoteLearners: FamilyLearner[],
-  localLearners: FamilyLearner[],
-) {
-  if (!remoteLearners.length) {
-    return sortLearners(localLearners);
-  }
-
-  const merged = [...remoteLearners];
-
-  for (const localLearner of localLearners) {
-    const localKey = learnerMatchKey(localLearner);
-    const matchIndex = merged.findIndex(
-      (remoteLearner) =>
-        learnerMatchesCandidate(remoteLearner, localLearner.id) ||
-        learnerMatchesCandidate(remoteLearner, localLearner.family_profile_child_id) ||
-        learnerMatchKey(remoteLearner) === localKey,
-    );
-
-    if (matchIndex >= 0) {
-      const remoteLearner = merged[matchIndex];
-      merged[matchIndex] = {
-        ...localLearner,
-        ...remoteLearner,
-        family_profile_child_id:
-          safe(remoteLearner.family_profile_child_id) || localLearner.family_profile_child_id || null,
-        legacy_learner_id:
-          safe(remoteLearner.legacy_learner_id) || localLearner.legacy_learner_id || null,
-      };
-      continue;
-    }
-
-    if (
-      looksLikeUuid(localLearner.id) ||
-      safe(localLearner.family_profile_child_id) ||
-      safe(localLearner.legacy_learner_id)
-    ) {
-      merged.push(localLearner);
-    }
-  }
-
-  return sortLearners(merged);
-}
-
-async function resolveFamilyProfileChildLinkId(
-  familyProfileId: string,
-  learnerId: string,
-): Promise<string | null> {
-  const cleanFamilyProfileId = safe(familyProfileId);
-  const cleanLearnerId = safe(learnerId);
-  if (!cleanFamilyProfileId || !cleanLearnerId) return null;
-
-  const response = await supabase
-    .from("family_profile_children")
-    .select("id")
-    .eq("family_profile_id", cleanFamilyProfileId)
-    .eq("child_id", cleanLearnerId)
-    .limit(1)
-    .maybeSingle();
-
-  if (response.error) throw response.error;
-  return safe(response.data?.id) || null;
 }
 
 function dispatchFamilyWorkspaceEvent(detail?: {
@@ -518,8 +163,6 @@ export function persistLearnersToLocalCache(
           curriculum_jurisdiction_id: learner.curriculum_jurisdiction_id ?? "",
           reporting_mode: learner.reporting_mode ?? "",
           connectedAt: learner.connectedAt ?? null,
-          family_profile_child_id: learner.family_profile_child_id ?? null,
-          legacy_learner_id: learner.legacy_learner_id ?? null,
         })),
       ),
     );
@@ -553,11 +196,6 @@ export function loadLearnersFromLocalCache(): FamilyLearner[] {
         safe((child as { reporting_mode?: string | null }).reporting_mode) || null,
       connectedAt:
         safe((child as { connectedAt?: string | null }).connectedAt) || null,
-      family_profile_child_id:
-        safe((child as { family_profile_child_id?: string | null }).family_profile_child_id) ||
-        null,
-      legacy_learner_id:
-        safe((child as { legacy_learner_id?: string | null }).legacy_learner_id) || null,
     };
   });
 }
@@ -570,44 +208,9 @@ export async function loadLinkedLearners(
   userId: string,
   familyProfileId?: string | null,
 ): Promise<FamilyLearner[]> {
-  const cleanFamilyProfileId = safe(familyProfileId);
-  if (!cleanFamilyProfileId) return [];
-
-  const [links, parentLinks] = await Promise.all([
-    loadFamilyProfileChildLinks(cleanFamilyProfileId),
-    loadParentStudentLinks(safe(userId)),
-  ]);
-  const childIds = Array.from(
-    new Set([
-      ...links.map((link) => safe(link.child_id)).filter(Boolean),
-      ...parentLinks.map((link) => safe(link.student_id)).filter(Boolean),
-    ]),
-  );
-  const [students, legacyRows] = await Promise.all([
-    loadStudentRowsByIds(childIds),
-    loadLegacyLearnerRows(cleanFamilyProfileId),
-  ]);
-  const studentById = new Map(
-    students.map((student) => [safe(student.id), student] as const),
-  );
-  const linkByStudentId = new Map(
-    links.map((link) => [safe(link.child_id), link] as const),
-  );
-  const studentLearners: FamilyLearner[] = [];
-  const seenStudentIds = new Set<string>();
-
-  for (const childId of childIds) {
-    const student = studentById.get(childId);
-    if (!student) continue;
-    if (seenStudentIds.has(childId)) continue;
-    seenStudentIds.add(childId);
-    studentLearners.push(mapStudentRowToLearner(student, linkByStudentId.get(childId) ?? null));
-  }
-
-  return mergeRemoteLearnerSources(
-    studentLearners,
-    legacyRows.map(mapLegacyRowToLearner),
-  );
+  void userId;
+  void familyProfileId;
+  return [];
 }
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
@@ -653,25 +256,22 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   }
 
   try {
-    const databaseProfileReady = isDatabaseFamilyProfileId(profile.id);
-    const learners = databaseProfileReady
-      ? mergeDatabaseAndLocalLearners(dbLearners, localLearners)
-      : mergeLearners(dbLearners, localLearners);
-    const defaultChildLinkId = safe(profile.default_child_id) || null;
+    const learners = mergeLearners(dbLearners, localLearners);
 
     const mergedProfile: FamilyProfileRow = {
       ...localProfile,
       ...profile,
-      default_child_link_id: defaultChildLinkId,
       default_child_id: resolveWorkspaceDefaultLearnerId(
         learners,
-        defaultChildLinkId,
+        profile.default_child_id,
         localProfile.default_child_id,
       ),
     };
 
     persistSettingsToLocalStorage(mergedProfile);
     persistLearnersToLocalCache(learners, { notify: false });
+
+    const databaseProfileReady = isDatabaseFamilyProfileId(mergedProfile.id);
 
     return {
       profile: mergedProfile,
@@ -697,22 +297,9 @@ export async function saveFamilyWorkspaceSettings(
 
   try {
     const saved = await upsertFamilyProfile(settings);
-    const uiDefaultChildId = safe(settings.default_child_id) || null;
-    const rawDefaultChildLinkId =
-      safe(saved.default_child_id) ||
-      safe(
-        (settings as FamilySettings & { default_child_link_id?: string | null })
-          .default_child_link_id,
-      ) ||
-      null;
-    const normalizedSaved: FamilyProfileRow = {
-      ...saved,
-      default_child_link_id: rawDefaultChildLinkId,
-      default_child_id: uiDefaultChildId,
-    };
-    persistSettingsToLocalStorage(normalizedSaved);
+    persistSettingsToLocalStorage(saved);
     dispatchFamilyWorkspaceEvent();
-    return normalizedSaved;
+    return saved;
   } catch (error) {
     throw error;
   }
@@ -722,241 +309,13 @@ export async function setDefaultLearner(
   profile: FamilySettings,
   learnerId: string | null,
 ): Promise<FamilyProfileRow> {
-  const cleanLearnerId = safe(learnerId) || null;
-  const familyProfileId = safe((profile as FamilyProfileRow).id);
-  const defaultChildLinkId =
-    cleanLearnerId && isDatabaseFamilyProfileId(familyProfileId)
-      ? await resolveFamilyProfileChildLinkId(familyProfileId, cleanLearnerId)
-      : null;
-
-  if (cleanLearnerId && isDatabaseFamilyProfileId(familyProfileId) && !defaultChildLinkId) {
-    throw new Error("This learner is not linked to the current family profile.");
-  }
-
   const saved = await saveFamilyWorkspaceSettings({
     ...profile,
-    default_child_id: cleanLearnerId,
-    default_child_link_id: defaultChildLinkId,
-  } as FamilySettings & { default_child_link_id?: string | null });
-
-  setActiveLearnerId(cleanLearnerId);
-  return {
-    ...saved,
-    default_child_id: cleanLearnerId,
-    default_child_link_id: defaultChildLinkId,
-  };
-}
-
-async function createStudentLinkedLearnerRecord(input: {
-  userId: string;
-  profile: FamilyProfileRow;
-  learnerName: string;
-  yearLevelNumber: number | null;
-  options?: {
-    yearBand?: string | null;
-    frameworkId?: string | null;
-    jurisdictionId?: string | null;
-    reportingMode?: string | null;
-  };
-  legacyLearnerId?: string | null;
-}) {
-  const nameParts = splitLearnerName(input.learnerName);
-  const studentPayloadVariants = [
-    {
-      user_id: input.userId,
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      surname: nameParts.surname,
-      last_name: nameParts.lastName,
-      year_level: input.yearLevelNumber,
-    },
-    {
-      user_id: input.userId,
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      last_name: nameParts.lastName,
-      year_level: input.yearLevelNumber,
-    },
-    {
-      user_id: input.userId,
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      year_level: input.yearLevelNumber,
-    },
-  ];
-
-  let createdStudent: StudentRow | null = null;
-  let lastError: unknown = null;
-
-  for (const payload of studentPayloadVariants) {
-    const response = await supabase
-      .from("students")
-      .insert(payload)
-      .select("id,user_id,first_name,preferred_name,surname,last_name,year_level,created_at")
-      .single();
-
-    if (!response.error) {
-      createdStudent = response.data as StudentRow;
-      break;
-    }
-
-    lastError = response.error;
-    if (!isMissingLearnerColumnError(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (!createdStudent) {
-    throw lastError instanceof Error ? lastError : new Error("This learner could not be created.");
-  }
-
-  const linkResponse = await supabase
-    .from("family_profile_children")
-    .insert({
-      family_profile_id: input.profile.id,
-      child_id: createdStudent.id,
-    })
-    .select("id,family_profile_id,child_id,created_at")
-    .single();
-
-  if (linkResponse.error) {
-    await supabase.from("students").delete().eq("id", createdStudent.id);
-    throw linkResponse.error;
-  }
-
-  if (!safe(input.profile.default_child_id)) {
-    await supabase
-      .from("family_profiles")
-      .update({ default_child_id: safe(linkResponse.data?.id) || null })
-      .eq("id", input.profile.id);
-  }
-
-  const createdLearner: FamilyLearner = {
-    ...mapStudentRowToLearner(
-      createdStudent,
-      linkResponse.data as FamilyProfileChildLinkRow,
-    ),
-    yearLabel: familyYearLevelLabelFromStored(input.yearLevelNumber),
-    year_level: input.yearLevelNumber,
-    year_band: safe(input.options?.yearBand) || null,
-    curriculum_framework_id: safe(input.options?.frameworkId) || null,
-    curriculum_jurisdiction_id: safe(input.options?.jurisdictionId) || null,
-    reporting_mode: safe(input.options?.reportingMode) || null,
-    legacy_learner_id: safe(input.legacyLearnerId) || null,
-  };
-
-  persistLearnersToLocalCache(
-    mergeLearners([createdLearner], loadLearnersFromLocalCache()),
-  );
-  dispatchFamilyWorkspaceEvent({ childId: createdLearner.id });
-  return createdLearner;
-}
-
-async function linkExistingStudentToFamilyProfile(
-  familyProfileId: string,
-  studentId: string,
-) {
-  const response = await supabase
-    .from("family_profile_children")
-    .insert({
-      family_profile_id: familyProfileId,
-      child_id: studentId,
-    })
-    .select("id,family_profile_id,child_id,created_at")
-    .single();
-
-  if (response.error) throw response.error;
-  return response.data as FamilyProfileChildLinkRow;
-}
-
-export async function ensureEvidenceCompatibleLearner(
-  userId: string,
-  learner: FamilyLearner,
-  familyProfileId?: string | null,
-): Promise<FamilyLearner> {
-  const authenticatedUserId = safe(userId);
-  const cleanLearnerId = safe(learner.id);
-  if (!authenticatedUserId || !cleanLearnerId) {
-    throw new Error("Choose a learner before saving.");
-  }
-
-  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
-  const resolvedFamilyProfileId = safe(familyProfileId) || profile.id;
-
-  if (safe(learner.family_profile_child_id)) {
-    return learner;
-  }
-
-  const existingLinkId = await resolveFamilyProfileChildLinkId(
-    resolvedFamilyProfileId,
-    cleanLearnerId,
-  );
-  if (existingLinkId) {
-    return {
-      ...learner,
-      family_profile_child_id: existingLinkId,
-    };
-  }
-
-  const existingStudentRows = await loadStudentRowsByIds([cleanLearnerId]);
-  if (existingStudentRows[0]) {
-    const linkedRow = await linkExistingStudentToFamilyProfile(
-      resolvedFamilyProfileId,
-      cleanLearnerId,
-    );
-    const bridgedLearner: FamilyLearner = {
-      ...learner,
-      ...mapStudentRowToLearner(existingStudentRows[0], linkedRow),
-      legacy_learner_id:
-        safe(learner.legacy_learner_id) || null,
-    };
-    persistLearnersToLocalCache(
-      mergeLearners([bridgedLearner], loadLearnersFromLocalCache()),
-    );
-    dispatchFamilyWorkspaceEvent({ childId: bridgedLearner.id });
-    return bridgedLearner;
-  }
-
-  const existingLearners = await loadLinkedLearners(
-    authenticatedUserId,
-    resolvedFamilyProfileId,
-  );
-  const matchedLearner =
-    existingLearners.find(
-      (candidate) =>
-        safe(candidate.family_profile_child_id) &&
-        learnerMatchKey(candidate) === learnerMatchKey(learner),
-    ) ?? null;
-
-  if (matchedLearner) {
-    const bridgedLearner: FamilyLearner = {
-      ...learner,
-      ...matchedLearner,
-      legacy_learner_id:
-        safe(learner.legacy_learner_id) || cleanLearnerId || matchedLearner.legacy_learner_id || null,
-    };
-    persistLearnersToLocalCache(
-      mergeLearners([bridgedLearner], loadLearnersFromLocalCache()),
-    );
-    dispatchFamilyWorkspaceEvent({ childId: bridgedLearner.id });
-    return bridgedLearner;
-  }
-
-  return createStudentLinkedLearnerRecord({
-    userId: authenticatedUserId,
-    profile,
-    learnerName: learner.label,
-    yearLevelNumber: familyYearLevelToStoredNumber(
-      learner.year_level ?? learner.yearLabel ?? null,
-    ),
-    options: {
-      yearBand: learner.year_band ?? null,
-      frameworkId: learner.curriculum_framework_id ?? null,
-      jurisdictionId: learner.curriculum_jurisdiction_id ?? null,
-      reportingMode: learner.reporting_mode ?? null,
-    },
-    legacyLearnerId: safe(learner.legacy_learner_id) || cleanLearnerId,
+    default_child_id: learnerId,
   });
+
+  setActiveLearnerId(learnerId);
+  return saved;
 }
 
 export async function createLinkedLearner(
@@ -970,46 +329,25 @@ export async function createLinkedLearner(
     reportingMode?: string | null;
   },
 ): Promise<FamilyLearner> {
-  const authenticatedUserId = safe(userId);
-  if (!authenticatedUserId) {
-    throw new Error("A signed-in user is required before adding learners.");
-  }
-
-  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
+  void userId;
   const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
-  const nextLabel = safe(learnerName) || "Learner";
-  const existingLearners = await loadLinkedLearners(authenticatedUserId, profile.id);
-  const duplicate = existingLearners.find((learner) => {
-    const sameName = safe(learner.label).toLowerCase() === nextLabel.toLowerCase();
-    const sameYear =
-      familyYearLevelToStoredNumber(learner.year_level) === yearLevelNumber;
-    return sameName && sameYear;
-  });
+  const createdLearner: FamilyLearner = {
+    id: `local-${Date.now()}`,
+    label: safe(learnerName) || "Learner",
+    yearLabel: familyYearLevelLabelFromStored(yearLevelNumber),
+    year_level: yearLevelNumber,
+    year_band: safe(options?.yearBand) || null,
+    curriculum_framework_id: safe(options?.frameworkId) || null,
+    curriculum_jurisdiction_id: safe(options?.jurisdictionId) || null,
+    reporting_mode: safe(options?.reportingMode) || null,
+    connectedAt: new Date().toISOString(),
+  };
 
-  if (duplicate) {
-    if (!safe(duplicate.family_profile_child_id)) {
-      return ensureEvidenceCompatibleLearner(authenticatedUserId, duplicate, profile.id);
-    }
-    if (!safe(profile.default_child_id) && safe(duplicate.family_profile_child_id)) {
-      await supabase
-        .from("family_profiles")
-        .update({ default_child_id: duplicate.family_profile_child_id })
-        .eq("id", profile.id);
-    }
-    persistLearnersToLocalCache(
-      mergeLearners([duplicate], loadLearnersFromLocalCache()),
-    );
-    dispatchFamilyWorkspaceEvent({ childId: duplicate.id });
-    return duplicate;
-  }
-
-  return createStudentLinkedLearnerRecord({
-    userId: authenticatedUserId,
-    profile,
-    learnerName: nextLabel,
-    yearLevelNumber,
-    options,
-  });
+  persistLearnersToLocalCache(
+    mergeLearners([createdLearner], loadLearnersFromLocalCache()),
+  );
+  dispatchFamilyWorkspaceEvent({ childId: createdLearner.id });
+  return createdLearner;
 }
 
 export async function updateLinkedLearner(
@@ -1024,109 +362,30 @@ export async function updateLinkedLearner(
     reportingMode?: string | null;
   },
 ) {
-  const authenticatedUserId = safe(userId);
-  const cleanLearnerId = safe(learnerId);
-  if (!authenticatedUserId || !cleanLearnerId) {
-    throw new Error("A synced learner is required before saving.");
-  }
-
+  void userId;
   const yearLevelNumber = familyYearLevelToStoredNumber(yearLevel);
-  const nextLabel = safe(learnerName) || "Learner";
-  const nameParts = splitLearnerName(nextLabel);
-  const payloadVariants = [
-    {
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      surname: nameParts.surname,
-      last_name: nameParts.lastName,
-      year_level: yearLevelNumber,
-    },
-    {
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      last_name: nameParts.lastName,
-      year_level: yearLevelNumber,
-    },
-    {
-      first_name: nameParts.firstName,
-      preferred_name: nameParts.preferredName,
-      year_level: yearLevelNumber,
-    },
-  ];
-
-  let lastError: unknown = null;
-
-  for (const payload of payloadVariants) {
-    const response = await supabase
-      .from("students")
-      .update(payload)
-      .eq("id", cleanLearnerId)
-      .eq("user_id", authenticatedUserId)
-      .select("id")
-      .single();
-
-    if (!response.error) {
-      lastError = null;
-      break;
-    }
-
-    lastError = response.error;
-    if (!isMissingLearnerColumnError(response.error)) {
-      throw response.error;
-    }
-  }
-
-  if (lastError) {
-    throw lastError instanceof Error ? lastError : new Error("This learner could not be updated.");
-  }
-
   const nextLearners = loadLearnersFromLocalCache().map((learner) =>
-    learner.id === cleanLearnerId
+    learner.id === learnerId
       ? {
           ...learner,
-          label: nextLabel,
+          label: safe(learnerName) || learner.label,
           yearLabel: familyYearLevelLabelFromStored(yearLevelNumber),
           year_level: yearLevelNumber,
-          year_band:
-            options?.yearBand === undefined ? learner.year_band ?? null : safe(options?.yearBand) || null,
-          curriculum_framework_id:
-            options?.frameworkId === undefined
-              ? learner.curriculum_framework_id ?? null
-              : safe(options?.frameworkId) || null,
-          curriculum_jurisdiction_id:
-            options?.jurisdictionId === undefined
-              ? learner.curriculum_jurisdiction_id ?? null
-              : safe(options?.jurisdictionId) || null,
-          reporting_mode:
-            options?.reportingMode === undefined
-              ? learner.reporting_mode ?? null
-              : safe(options?.reportingMode) || null,
+          year_band: safe(options?.yearBand) || null,
+          curriculum_framework_id: safe(options?.frameworkId) || null,
+          curriculum_jurisdiction_id: safe(options?.jurisdictionId) || null,
+          reporting_mode: safe(options?.reportingMode) || null,
         }
       : learner,
   );
   persistLearnersToLocalCache(nextLearners, { notify: false });
-  dispatchFamilyWorkspaceEvent({ childId: cleanLearnerId });
+  dispatchFamilyWorkspaceEvent({ childId: learnerId });
 }
 
 export async function removeLinkedLearner(userId: string, learnerId: string) {
-  const authenticatedUserId = safe(userId);
-  const cleanLearnerId = safe(learnerId);
-  if (!authenticatedUserId || !cleanLearnerId) {
-    throw new Error("A synced learner is required before removing.");
-  }
-
-  const profile = await ensureDatabaseFamilyProfile(authenticatedUserId);
-  const deleteLinks = await supabase
-    .from("family_profile_children")
-    .delete()
-    .eq("family_profile_id", profile.id)
-    .eq("child_id", cleanLearnerId)
-    .select("id");
-
-  if (deleteLinks.error) throw deleteLinks.error;
-
+  void userId;
   persistLearnersToLocalCache(
-    loadLearnersFromLocalCache().filter((learner) => learner.id !== cleanLearnerId),
+    loadLearnersFromLocalCache().filter((learner) => learner.id !== learnerId),
     { notify: false },
   );
   dispatchFamilyWorkspaceEvent();
@@ -1170,8 +429,8 @@ export function resolveEffectiveActiveLearnerId(
   const stored = getStoredActiveLearnerId();
 
   return (
-    learners.find((learner) => learnerMatchesCandidate(learner, stored))?.id ||
-    learners.find((learner) => learnerMatchesCandidate(learner, safe(profile?.default_child_id)))
+    learners.find((learner) => learner.id === stored)?.id ||
+    learners.find((learner) => learner.id === safe(profile?.default_child_id))
       ?.id ||
     learners[0]?.id ||
     ""
@@ -1184,11 +443,8 @@ export function resolveCanonicalActiveLearnerId(
   ...candidates: Array<string | null | undefined>
 ) {
   for (const candidate of candidates) {
-    const matchedLearner = learners.find((learner) =>
-      learnerMatchesCandidate(learner, candidate),
-    );
-    if (matchedLearner) {
-      return matchedLearner.id;
+    if (isValidActiveLearnerId(learners, candidate)) {
+      return safe(candidate);
     }
   }
 

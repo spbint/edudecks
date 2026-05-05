@@ -367,8 +367,6 @@ function GuidedStartPageContent() {
     if (!shouldPersist) return;
     pendingPersistRef.current = true;
     void handlePersistToWorkspace(authUserId);
-    // This resume hook only needs to react to auth handoff, not every form edit.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authUserId]);
 
   function selectPlan(option: PlanOption) {
@@ -490,7 +488,7 @@ function GuidedStartPageContent() {
       const learner = await createStudentRecord(childName, safe(session.child.yearLevel));
       const childId = learner.id;
 
-      const seedChildren = parseJson<Array<{ id?: unknown }>>(
+      const seedChildren = parseJson<any[]>(
         typeof window !== "undefined" ? window.localStorage.getItem(CHILDREN_KEY) : null,
         []
       );
@@ -501,8 +499,6 @@ function GuidedStartPageContent() {
           label: learner.label,
           yearLabel: learner.yearLabel || null,
           year_level: learner.year_level,
-          family_profile_child_id: learner.family_profile_child_id || null,
-          connectedAt: learner.connectedAt || null,
         },
         ...seedChildren.filter((row) => safe(row?.id) !== childId),
       ];
@@ -532,7 +528,7 @@ function GuidedStartPageContent() {
 
       await supabase.from("planner_blocks").insert(plannerBlock);
 
-      const localBlocks = parseJson<Array<Record<string, unknown>>>(
+      const localBlocks = parseJson<any[]>(
         typeof window !== "undefined"
           ? window.localStorage.getItem(CALENDAR_BLOCKS_KEY)
           : null,
@@ -543,7 +539,7 @@ function GuidedStartPageContent() {
         window.localStorage.setItem(CALENDAR_BLOCKS_KEY, JSON.stringify(localBlocks));
       }
 
-      const evidencePayloadVariants: Array<Record<string, unknown>> = [
+      const evidencePayloadVariants: Array<Record<string, any>> = [
         {
           user_id: userId,
           student_id: childId,
@@ -565,7 +561,7 @@ function GuidedStartPageContent() {
       ];
 
       let insertedEvidenceId = "";
-      let lastEvidenceError: unknown = null;
+      let lastEvidenceError: any = null;
 
       for (const payload of evidencePayloadVariants) {
         const response = await supabase

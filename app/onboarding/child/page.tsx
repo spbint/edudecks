@@ -17,7 +17,6 @@ type YearBand =
   | "Not sure yet";
 
 type SetupState = "idle" | "saving" | "error";
-const CHILD_STORAGE_KEY = "edudecks_onboarding_child";
 
 function safe(v: unknown) {
   return String(v ?? "").trim();
@@ -85,16 +84,6 @@ export default function OnboardingChildPage() {
       setFeedback("");
 
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(
-          CHILD_STORAGE_KEY,
-          JSON.stringify({
-            childName: safe(childName),
-            age: "",
-            yearLevel: yearBand,
-            location: "",
-            startDate: "",
-          }),
-        );
         localStorage.setItem(
           "edudecks.onboarding.childProfileDraft",
           JSON.stringify({
@@ -108,7 +97,7 @@ export default function OnboardingChildPage() {
         );
       }
 
-      router.push("/onboarding/first-entry");
+      router.push("/family");
     } catch (err: unknown) {
       setSetupState("error");
       setFeedback(
