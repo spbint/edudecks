@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FamilyTopNavShell from "@/app/components/FamilyTopNavShell";
@@ -26,40 +27,14 @@ import {
   CurriculumTagPills,
   InheritedCurriculumPanel,
 } from "@/app/components/curriculum/CurriculumTaggingComponents";
-import {
-  type FamilyEvidenceAttachmentLink,
-  createFamilyEvidenceEntry,
-  updateFamilyEvidenceEntryAttachments,
-  uploadFamilyEvidenceFiles,
-} from "@/lib/familyEvidence";
+import { createFamilyEvidenceEntry } from "@/lib/familyEvidence";
 import { frameworkPreset } from "@/lib/curriculumFrameworks";
 import { loadFamilyCalendarWindow, type FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
 import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
-const MAX_EVIDENCE_FILE_SIZE = 10 * 1024 * 1024;
-const ACCEPTED_EVIDENCE_FILE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain",
-  "text/csv",
-];
-const ACCEPTED_EVIDENCE_FILE_EXTENSIONS = [
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".webp",
-  ".gif",
-  ".pdf",
-  ".doc",
-  ".docx",
-  ".txt",
-  ".csv",
-];
+type LinkedBlockOption = FamilyCalendarBlockEntry & {
+  dateLabel: string;
+};
 
 function ymd(date: Date) {
   const y = date.getFullYear();
@@ -83,61 +58,39 @@ function startOfWeek(date: Date) {
   return copy;
 }
 
-type LinkedBlockOption = FamilyCalendarBlockEntry & {
-  dateLabel: string;
-};
-
 function friendlyCaptureMessage(kind: "load" | "save" | "setup") {
   if (kind === "load") {
-    return "Linked plan blocks are still getting ready. You can keep the capture focused on the learning moment.";
+    return "Linked plan blocks are still getting ready. You can keep the note focused on the learning moment.";
   }
   if (kind === "setup") {
-    return "Choose a synced learner workspace before capturing evidence.";
+    return "Choose who this learning moment belongs to before you save the note.";
   }
-  return "This learning evidence could not be saved just yet. Try again in a moment.";
+  return "This learning note could not be saved just yet. Try again in a moment.";
 }
 
-function formatFileSize(bytes: number) {
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function isSupportedEvidenceFile(file: File) {
-  const fileType = String(file.type || "").toLowerCase();
-  if (fileType && ACCEPTED_EVIDENCE_FILE_TYPES.includes(fileType)) return true;
-  const lowerName = file.name.toLowerCase();
-  return ACCEPTED_EVIDENCE_FILE_EXTENSIONS.some((extension) => lowerName.endsWith(extension));
-}
-
-function dedupeFiles(files: File[]) {
-  const seen = new Set<string>();
-  return files.filter((file) => {
-    const key = `${file.name}:${file.size}:${file.lastModified}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function evidenceTypeFromFiles(files: File[]) {
-  if (!files.length) return "note";
-  const hasImage = files.some((file) =>
-    String(file.type || "").toLowerCase().startsWith("image/"),
-  );
-  const hasNonImage = files.some(
-    (file) => !String(file.type || "").toLowerCase().startsWith("image/"),
-  );
-
-  if (hasImage && hasNonImage) return "work_sample";
-  if (hasImage) return "photo";
-  return "document";
-}
+const PREMIUM_CAPTURE_CARDS = [
+  {
+    title: "Photo or file evidence",
+    body: "Photos and files are coming soon with MyLearna Premium.",
+  },
+  {
+    title: "Audio note",
+    body: "Audio notes will be available with Premium.",
+  },
+  {
+    title: "Richer evidence tools",
+    body: "You can save the learning note now and attach stronger evidence later.",
+  },
+] as const;
 
 export default function FamilyCaptureWorkspace() {
   const searchParams = useSearchParams();
-  const { workspace, activeLearner, loading: workspaceLoading, setActiveLearner } = useFamilyWorkspace();
+  const {
+    workspace,
+    activeLearner,
+    loading: workspaceLoading,
+    setActiveLearner,
+  } = useFamilyWorkspace();
 
   const learnerOptions: LearnerOption[] = workspace.learners.map((learner) => ({
     id: learner.id,
@@ -153,20 +106,18 @@ export default function FamilyCaptureWorkspace() {
   const [linkedBlocks, setLinkedBlocks] = useState<LinkedBlockOption[]>([]);
   const [linkedLearningBlockId, setLinkedLearningBlockId] = useState("");
   const [curriculumOutcomeIds, setCurriculumOutcomeIds] = useState<string[]>([]);
-  const [outcomeStatusById, setOutcomeStatusById] = useState<Record<string, "understood" | "in_progress" | "needs_support">>({});
+  const [outcomeStatusById, setOutcomeStatusById] = useState<
+    Record<string, "understood" | "in_progress" | "needs_support">
+  >({});
   const [editingCurriculum, setEditingCurriculum] = useState(false);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [note, setNote] = useState("");
   const [occurredOn, setOccurredOn] = useState(dateParam);
   const [learningArea, setLearningArea] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [savedAttachments, setSavedAttachments] = useState<FamilyEvidenceAttachmentLink[]>([]);
-  const [savedAttachmentNote, setSavedAttachmentNote] = useState("");
-  const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
   const hasLearners = workspace.learners.length > 0;
   const hasActiveLearner = Boolean(activeLearner);
@@ -279,18 +230,22 @@ export default function FamilyCaptureWorkspace() {
     setCurriculumOutcomeIds(linkedBlock.curriculumOutcomeIds ?? []);
     setOutcomeStatusById(
       Object.fromEntries(
-        (linkedBlock.curriculumOutcomeIds ?? []).map((outcomeId) => [outcomeId, "in_progress" as const]),
+        (linkedBlock.curriculumOutcomeIds ?? []).map((outcomeId) => [
+          outcomeId,
+          "in_progress" as const,
+        ]),
       ),
     );
   }, [linkedBlock]);
 
-  const pageState: HomeSurfaceState = workspaceLoading || loadingBlocks
-    ? "loading"
-    : !hasLearners || !hasActiveLearner
-      ? "empty"
-      : canonicalReady
-        ? "live"
-        : "placeholder";
+  const pageState: HomeSurfaceState =
+    workspaceLoading || loadingBlocks
+      ? "loading"
+      : !hasLearners || !hasActiveLearner
+        ? "empty"
+        : canonicalReady
+          ? "live"
+          : "placeholder";
 
   const learnerSelectorState: HomeSurfaceState = workspaceLoading
     ? "loading"
@@ -301,43 +256,22 @@ export default function FamilyCaptureWorkspace() {
       : "empty";
 
   const primaryLinkedSummary = linkedBlock
-    ? `${linkedBlock.title} · ${linkedBlock.dateLabel}`
-    : "No linked learning block";
+    ? `${linkedBlock.title} - ${linkedBlock.dateLabel}`
+    : "Link this note to a learning block if it helps.";
 
-  const attachmentSelectionLabel =
-    selectedFiles.length === 1 ? "1 file selected" : `${selectedFiles.length} files selected`;
+  const canSaveNote = Boolean(hasActiveLearner && canonicalReady);
+  const saveDisabledReason = !hasLearners
+    ? "Add your first learner to start capturing evidence."
+    : !hasActiveLearner
+      ? "No learner selected yet. Choose who this learning moment belongs to."
+      : !canonicalReady
+        ? "This learner needs a synced family workspace before notes can be saved."
+        : "";
 
   function resetCaptureFields() {
     setTitle("");
     setSummary("");
     setNote("");
-    setSelectedFiles([]);
-    setFileInputResetKey((current) => current + 1);
-  }
-
-  function onFilesSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const nextFiles = dedupeFiles(Array.from(event.target.files ?? []));
-    if (!nextFiles.length) {
-      setSelectedFiles([]);
-      return;
-    }
-
-    const unsupported = nextFiles.find((file) => !isSupportedEvidenceFile(file));
-    if (unsupported) {
-      setErrorMessage("Attach a photo, PDF, Word file, text file, or CSV.");
-      event.target.value = "";
-      return;
-    }
-
-    const oversized = nextFiles.find((file) => file.size > MAX_EVIDENCE_FILE_SIZE);
-    if (oversized) {
-      setErrorMessage(`${oversized.name} is too large. Keep each file under 10 MB.`);
-      event.target.value = "";
-      return;
-    }
-
-    setErrorMessage("");
-    setSelectedFiles(nextFiles);
   }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -352,10 +286,8 @@ export default function FamilyCaptureWorkspace() {
       setSubmitting(true);
       setErrorMessage("");
       setStatusMessage("");
-      setSavedAttachments([]);
-      setSavedAttachmentNote("");
 
-      const created = await createFamilyEvidenceEntry({
+      await createFamilyEvidenceEntry({
         studentId: activeLearner.id,
         userId: workspace.userId,
         title: title.trim() || "Learning moment",
@@ -363,78 +295,13 @@ export default function FamilyCaptureWorkspace() {
         note,
         occurredOn,
         learningArea: learningArea || linkedBlock?.subject || null,
-        evidenceType: evidenceTypeFromFiles(selectedFiles),
+        evidenceType: "note",
         linkedLearningBlockId: linkedBlock?.id || null,
         curriculumOutcomeIds,
         outcomeStatusById,
       });
 
-      let uploadedAttachments: FamilyEvidenceAttachmentLink[] = [];
-      let failedUploads = 0;
-
-      if (selectedFiles.length) {
-        const uploadResult = await uploadFamilyEvidenceFiles({
-          familyProfileId: workspace.profile.id,
-          studentId: activeLearner.id,
-          evidenceId: created.id,
-          files: selectedFiles,
-        });
-
-        uploadedAttachments = uploadResult.uploaded.map((item) => ({
-          url: null,
-          label: item.label,
-          kind: item.kind,
-          path: item.path,
-          mimeType: item.mimeType,
-          size: item.size,
-          isLegacyPublicUrl: false,
-        }));
-        failedUploads = uploadResult.failed.length;
-
-        if (uploadResult.uploaded.length) {
-          await updateFamilyEvidenceEntryAttachments({
-            evidenceId: created.id,
-            studentId: activeLearner.id,
-            attachmentUrls: uploadResult.uploaded.map((item) => ({
-              path: item.path,
-              name: item.label,
-              mimeType: item.mimeType,
-              size: item.size,
-              kind: item.kind,
-            })),
-            imageUrl: null,
-            audioUrl: null,
-            fileUrl: null,
-          });
-        }
-      }
-
-      if (!selectedFiles.length) {
-        setStatusMessage("Learning evidence saved.");
-      } else if (uploadedAttachments.length && failedUploads === 0) {
-        setStatusMessage(
-          `Learning evidence saved with ${uploadedAttachments.length} attachment${uploadedAttachments.length === 1 ? "" : "s"}.`,
-        );
-      } else if (uploadedAttachments.length) {
-        setStatusMessage(
-          `Learning evidence saved with ${uploadedAttachments.length} attachment${uploadedAttachments.length === 1 ? "" : "s"}.`,
-        );
-        setErrorMessage(
-          `${failedUploads} attachment${failedUploads === 1 ? "" : "s"} could not be uploaded.`,
-        );
-      } else {
-        setStatusMessage("Learning evidence saved.");
-        setErrorMessage("The learning note was saved, but the attachment upload did not complete.");
-      }
-
-      setSavedAttachments(uploadedAttachments);
-      setSavedAttachmentNote(
-        uploadedAttachments.length
-          ? "Evidence attached"
-          : selectedFiles.length
-            ? "Evidence saved without attachment links"
-            : "",
-      );
+      setStatusMessage("Learning note saved.");
       resetCaptureFields();
     } catch (error) {
       setErrorMessage(
@@ -452,8 +319,8 @@ export default function FamilyCaptureWorkspace() {
       subtitle="My Capture"
       heroTitle="My Capture"
       heroText="Capture a learning moment while it is still fresh."
-      heroAsideTitle="Linked context"
-      heroAsideText="Capture inherits the plan context quietly, so curriculum can stay visible without cluttering the moment."
+      heroAsideTitle="Free now"
+      heroAsideText="Text learning notes are ready today. Photos, files, and audio will arrive later as richer Premium evidence tools."
     >
       <div className="grid gap-5 pb-14">
         <LearnerSelector
@@ -464,23 +331,53 @@ export default function FamilyCaptureWorkspace() {
           state={learnerSelectorState}
         />
 
+        {!hasLearners ? (
+          <CaptureSurface>
+            <div className="grid gap-2">
+              <div className={SECTION_LABEL}>Get started</div>
+              <h2 className={SECTION_TITLE}>Add your first learner to start capturing evidence</h2>
+              <p className={BODY_TEXT}>
+                My Capture saves notes against a real learner, so portfolio and reporting stay connected from the start.
+              </p>
+              <div className="pt-1">
+                <Link
+                  href="/children/new"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Add first learner
+                </Link>
+              </div>
+            </div>
+          </CaptureSurface>
+        ) : !hasActiveLearner ? (
+          <CaptureSurface>
+            <div className="grid gap-2">
+              <div className={SECTION_LABEL}>Choose learner</div>
+              <h2 className={SECTION_TITLE}>No learner selected yet</h2>
+              <p className={BODY_TEXT}>
+                Choose who this learning moment belongs to. Save stays off until a learner is selected.
+              </p>
+            </div>
+          </CaptureSurface>
+        ) : null}
+
         <CaptureSurface>
           <div className="grid gap-1.5">
-            <div className={SECTION_LABEL}>Capture</div>
-            <h2 className={SECTION_TITLE}>Add a learning moment</h2>
+            <div className={SECTION_LABEL}>Free now</div>
+            <h2 className={SECTION_TITLE}>Add a learning note</h2>
             <p className={BODY_TEXT}>
-              Capture the important part now, then refine the curriculum links quietly underneath.
+              Save the important part now, then refine the curriculum links quietly underneath.
             </p>
           </div>
 
-          <form className="grid gap-4" onSubmit={onSubmit}>
+          <form id="capture-note-form" className="grid gap-4" onSubmit={onSubmit}>
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="grid gap-2">
-                <label className={SECTION_LABEL}>Title</label>
+                <label className={SECTION_LABEL}>Learning note title</label>
                 <CaptureTextInput
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="What happened?"
+                  placeholder="Add a learning note"
                 />
               </div>
               <div className="grid gap-2">
@@ -494,11 +391,11 @@ export default function FamilyCaptureWorkspace() {
             </div>
 
             <div className="grid gap-2">
-              <label className={SECTION_LABEL}>Summary</label>
+              <label className={SECTION_LABEL}>What happened?</label>
               <CaptureTextArea
                 value={summary}
                 onChange={(event) => setSummary(event.target.value)}
-                placeholder="Keep it short and true to the learning moment."
+                placeholder="Keep it short, true, and easy to revisit later."
               />
             </div>
 
@@ -508,15 +405,17 @@ export default function FamilyCaptureWorkspace() {
                 <CaptureSelect
                   value={linkedLearningBlockId}
                   onChange={(event) => setLinkedLearningBlockId(event.target.value)}
+                  disabled={!hasActiveLearner}
                 >
                   <option value="">No linked learning block</option>
                   {linkedBlocks.map((block) => (
                     <option key={block.id} value={block.id}>
-                      {block.dateLabel} · {block.title}
+                      {block.dateLabel} - {block.title}
                     </option>
                   ))}
                 </CaptureSelect>
                 <div className={META_TEXT}>{primaryLinkedSummary}</div>
+                <div className={META_TEXT}>You can link this note to a learning block if it helps.</div>
               </div>
 
               <div className="grid gap-2">
@@ -524,121 +423,20 @@ export default function FamilyCaptureWorkspace() {
                 <CaptureTextInput
                   value={learningArea}
                   onChange={(event) => setLearningArea(event.target.value)}
-                  placeholder="Mathematics, English, Science…"
+                  placeholder="Mathematics, English, Science..."
                 />
+                <div className={META_TEXT}>You can refine curriculum links later.</div>
               </div>
             </div>
 
             <div className="grid gap-2">
-              <label className={SECTION_LABEL}>Reflection note</label>
+              <label className={SECTION_LABEL}>What did you notice?</label>
               <CaptureTextArea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 placeholder="What showed growth, confidence, or the next useful step?"
                 className="min-h-[96px]"
               />
-            </div>
-
-            <div className="grid gap-3 rounded-[18px] border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div className="grid gap-1">
-                <div className={SECTION_LABEL}>Attach photo or file</div>
-                <div className={BODY_TEXT}>
-                  Add a real piece of evidence to this learning moment. Images stay visible in portfolio cards when available. Other files are saved as private references for report and export use.
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50">
-                  Choose files
-                  <input
-                    key={fileInputResetKey}
-                    type="file"
-                    multiple
-                    accept={ACCEPTED_EVIDENCE_FILE_EXTENSIONS.join(",")}
-                    onChange={onFilesSelected}
-                    className="hidden"
-                  />
-                </label>
-                <div className={META_TEXT}>Up to 10 MB each</div>
-                {selectedFiles.length ? (
-                  <div className="inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[12px] font-semibold text-blue-700">
-                    {attachmentSelectionLabel}
-                  </div>
-                ) : null}
-              </div>
-
-              {selectedFiles.length ? (
-                <div className="grid gap-2">
-                  {selectedFiles.map((file, index) => (
-                    <div
-                      key={`${file.name}-${file.size}-${file.lastModified}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-slate-200 bg-white px-3 py-3"
-                    >
-                      <div className="grid gap-0.5">
-                        <div className="text-[13px] font-semibold text-slate-950">{file.name}</div>
-                        <div className="text-[12px] text-slate-500">{formatFileSize(file.size)}</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setSelectedFiles((current) =>
-                            current.filter((_, fileIndex) => fileIndex !== index),
-                          )
-                        }
-                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-600 transition hover:bg-slate-50"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {savedAttachments.length ? (
-                <div className="grid gap-2 rounded-[14px] border border-emerald-200 bg-emerald-50 px-3 py-3">
-                  <div className="text-[12px] font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                    {savedAttachmentNote || "Evidence attached"}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {savedAttachments.map((attachment) => (
-                      <div
-                        key={`${attachment.path || attachment.label}-${attachment.kind}`}
-                        className="inline-flex rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-[12px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                      >
-                        {attachment.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            {statusMessage ? (
-              <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium text-emerald-700">
-                {statusMessage}
-              </div>
-            ) : null}
-            {errorMessage ? (
-              <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] font-medium text-rose-700">
-                {errorMessage}
-              </div>
-            ) : null}
-
-            <div className="flex justify-end">
-              <div className="grid gap-2 justify-items-end">
-                {!canonicalReady && hasActiveLearner ? (
-                  <div className={META_TEXT}>
-                    Capture saves once this learner is connected to the synced family workspace.
-                  </div>
-                ) : null}
-                <button
-                type="submit"
-                disabled={submitting || !hasActiveLearner || !canonicalReady}
-                className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
-              >
-                {submitting ? "Saving evidence..." : "Capture Evidence"}
-              </button>
-              </div>
             </div>
           </form>
         </CaptureSurface>
@@ -678,18 +476,94 @@ export default function FamilyCaptureWorkspace() {
               <div className={SECTION_LABEL}>Linked from plan</div>
               <div className={CARD_TITLE}>{linkedBlock.title}</div>
               <div className={META_TEXT}>
-                {linkedBlock.dateLabel} · {linkedBlock.subject || "General"}
+                {linkedBlock.dateLabel} - {linkedBlock.subject || "General"}
               </div>
               {preset && linkedBlock.curriculumOutcomeIds?.length ? (
                 <CurriculumTagPills preset={preset} outcomeIds={linkedBlock.curriculumOutcomeIds} />
               ) : (
-                <div className={BODY_TEXT}>
-                  This block does not have linked curriculum yet.
-                </div>
+                <div className={BODY_TEXT}>This block does not have linked curriculum yet.</div>
               )}
             </div>
           </CaptureSurface>
         ) : null}
+
+        <CaptureSurface>
+          <div className="grid gap-1.5">
+            <div className={SECTION_LABEL}>Premium - Coming Soon</div>
+            <h2 className={SECTION_TITLE}>Richer evidence will arrive later</h2>
+            <p className={BODY_TEXT}>
+              You can save the learning note now and attach richer evidence later.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {PREMIUM_CAPTURE_CARDS.map((card) => (
+              <div
+                key={card.title}
+                className="grid gap-3 rounded-[22px] border border-slate-200 bg-slate-50/80 px-4 py-4"
+              >
+                <div className="inline-flex w-fit rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700">
+                  Premium - Coming soon
+                </div>
+                <div className={CARD_TITLE}>{card.title}</div>
+                <div className={BODY_TEXT}>{card.body}</div>
+                <button
+                  type="button"
+                  disabled
+                  className="inline-flex w-fit items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-400"
+                >
+                  Coming soon
+                </button>
+              </div>
+            ))}
+          </div>
+        </CaptureSurface>
+
+        {statusMessage ? (
+          <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-[14px] font-medium text-emerald-700">
+            {statusMessage}
+          </div>
+        ) : null}
+
+        {errorMessage ? (
+          <div className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-[14px] font-medium text-rose-700">
+            {errorMessage}
+          </div>
+        ) : null}
+
+        <section className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200 bg-white/95 px-4 py-4 shadow-[0_18px_48px_rgba(15,23,42,0.14)] backdrop-blur md:flex-row md:items-center md:justify-between">
+          <div className="grid gap-1">
+            <div className={SECTION_LABEL}>Save note</div>
+            <div className="text-[14px] font-semibold text-slate-950">
+              {activeLearner?.label
+                ? `Saving for ${activeLearner.label}`
+                : "Choose who this learning moment belongs to."}
+            </div>
+            <div className={META_TEXT}>
+              {saveDisabledReason ||
+                "Text learning notes are available now. Richer evidence can be attached later."}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {!hasLearners ? (
+              <Link
+                href="/children/new"
+                className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-[13px] font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Add learner
+              </Link>
+            ) : null}
+            <button
+              type="submit"
+              form="capture-note-form"
+              disabled={submitting || !canSaveNote}
+              className={`inline-flex items-center justify-center rounded-full bg-slate-950 px-5 py-3 ${CTA_TEXT} text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300`}
+            >
+              {submitting ? "Saving note..." : "Save note"}
+            </button>
+          </div>
+        </section>
       </div>
     </FamilyTopNavShell>
   );

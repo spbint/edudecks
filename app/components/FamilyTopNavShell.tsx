@@ -51,6 +51,7 @@ const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-programs", label: "My Programs" },
+  { href: "/my-capture", label: "My Capture" },
 ] as const;
 
 const SECONDARY_NAV = [
@@ -76,6 +77,7 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
+  if (pathname === "/capture" || pathname === "/my-capture") return "/my-capture";
   return "";
 }
 
@@ -83,7 +85,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
   if (pathname === "/my-month") return "My Calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
-  if (pathname === "/capture") return "My Capture";
+  if (pathname === "/capture" || pathname === "/my-capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
@@ -115,7 +117,7 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-programs") {
     return "Shape longer sequences before they land in the live week";
   }
-  if (pathname === "/capture") {
+  if (pathname === "/capture" || pathname === "/my-capture") {
     return "Curate evidence while the learning is still fresh";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
@@ -149,7 +151,7 @@ function routeHeroText(pathname: string) {
   if (pathname === "/my-programs") {
     return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
   }
-  if (pathname === "/capture") {
+  if (pathname === "/capture" || pathname === "/my-capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
@@ -220,7 +222,7 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
         aria-expanded={open}
         aria-controls="outputs-navigation-menu"
       >
-        Outputs
+        My Outputs
         <span aria-hidden="true" className="text-[11px] leading-none">
           ▾
         </span>
@@ -285,6 +287,7 @@ export default function FamilyTopNavShell({
   const resolvedSubtitle = subtitle ?? routeSubtitle(pathname);
   const resolvedHeroTitle = heroTitle ?? routeHeroTitle(pathname, resolvedSubtitle);
   const resolvedHeroText = heroText ?? routeHeroText(pathname);
+  void resolvedTitle;
   const resolvedFamilyName =
     familyName || workspace.profile.family_display_name || "MyLearna Family";
   const resolvedEmail = email || user?.email || "Signed-in family workspace";
@@ -437,7 +440,7 @@ export function FamilyCommandLayer({
       {
         title: "Capture Evidence",
         description: "Save a learning moment while it is still fresh.",
-        href: "/capture",
+        href: "/my-capture",
       },
       {
         title: "Open My Calendar",
