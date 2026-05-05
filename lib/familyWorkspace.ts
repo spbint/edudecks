@@ -1,4 +1,5 @@
 import {
+  DEFAULT_FAMILY_PROFILE,
   DEFAULT_FAMILY_SETTINGS,
   getCurrentUserId,
   loadChildrenFromLocalStorage,
@@ -92,12 +93,6 @@ function safe(value: unknown) {
 function isDatabaseFamilyProfileId(value: unknown) {
   const id = safe(value);
   return !!id && id !== "local" && !id.startsWith("local-");
-}
-
-function looksLikeUuid(value: unknown) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    safe(value),
-  );
 }
 
 async function withTimeout<T>(
@@ -520,18 +515,17 @@ function mergeDatabaseAndLocalLearners(
   localLearners: FamilyLearner[],
 ) {
   if (!remoteLearners.length) {
-    return sortLearners(localLearners);
+    return [];
   }
 
   const merged = [...remoteLearners];
 
   for (const localLearner of localLearners) {
-    const localKey = learnerMatchKey(localLearner);
     const matchIndex = merged.findIndex(
       (remoteLearner) =>
         learnerMatchesCandidate(remoteLearner, localLearner.id) ||
         learnerMatchesCandidate(remoteLearner, localLearner.family_profile_child_id) ||
-        learnerMatchKey(remoteLearner) === localKey,
+        learnerMatchesCandidate(remoteLearner, localLearner.legacy_learner_id),
     );
 
     if (matchIndex >= 0) {
@@ -548,15 +542,6 @@ function mergeDatabaseAndLocalLearners(
           localLearner.legacy_learner_id ||
           null,
       };
-      continue;
-    }
-
-    if (
-      looksLikeUuid(localLearner.id) ||
-      safe(localLearner.family_profile_child_id) ||
-      safe(localLearner.legacy_learner_id)
-    ) {
-      merged.push(localLearner);
     }
   }
 
@@ -636,8 +621,6 @@ export async function loadLinkedLearners(
 
 export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
   const localSnapshot = buildLocalFamilyWorkspaceSnapshot();
-  const localLearners = localSnapshot.learners;
-  const localProfile = localSnapshot.profile;
 
   const userId = await getCurrentFamilyUserId();
 
@@ -645,7 +628,15 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     return localSnapshot;
   }
 
-  let profile = localProfile;
+  const localLearners = loadLearnersFromLocalCache();
+  const authenticatedFallbackProfile: FamilyProfileRow = {
+    ...DEFAULT_FAMILY_SETTINGS,
+    ...DEFAULT_FAMILY_PROFILE,
+    user_id: userId,
+    owner_user_id: userId,
+  };
+
+  let profile = authenticatedFallbackProfile;
   let dbLearners: FamilyLearner[] = [];
   let syncIssue = "";
   let learnerLoadFailed = false;
@@ -677,35 +668,40 @@ export async function loadFamilyWorkspace(): Promise<FamilyWorkspaceState> {
     const databaseLearnersReady = databaseProfileReady && !learnerLoadFailed;
     const learners = databaseLearnersReady
       ? mergeDatabaseAndLocalLearners(dbLearners, localLearners)
-      : localLearners;
+      : [];
 
     const mergedProfile: FamilyProfileRow = {
-      ...localProfile,
+      ...authenticatedFallbackProfile,
       ...profile,
       default_child_id: resolveWorkspaceDefaultLearnerId(
         learners,
         profile.default_child_id,
-        localProfile.default_child_id,
       ),
     };
 
-    persistSettingsToLocalStorage(mergedProfile);
-    if (databaseLearnersReady) {
+    if (databaseProfileReady) {
+      persistSettingsToLocalStorage(mergedProfile);
+    }
+    if (databaseLearnersReady && learners.length) {
       persistLearnersToLocalCache(learners, { notify: false });
     }
 
-    return {
+    const nextWorkspace: FamilyWorkspaceState = {
       profile: mergedProfile,
       learners,
       userId,
-      storageMode: databaseLearnersReady ? "database" : "local",
+      storageMode: databaseProfileReady ? "database" : "local",
       syncIssue: syncIssue || undefined,
     };
+
+    return nextWorkspace;
   } catch (error) {
     console.error("loadFamilyWorkspace fallback", error);
     return {
-      ...localSnapshot,
+      profile: authenticatedFallbackProfile,
+      learners: [],
       userId,
+      storageMode: "local",
       syncIssue: "Family workspace is using the local fallback.",
     };
   }

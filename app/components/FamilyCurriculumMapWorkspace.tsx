@@ -206,7 +206,9 @@ export default function FamilyCurriculumMapWorkspace() {
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
-      : "empty";
+      : workspace.syncIssue
+        ? "placeholder"
+        : "empty";
 
   const fallbackPlannerBlocks = useMemo(
     () =>
@@ -239,7 +241,7 @@ export default function FamilyCurriculumMapWorkspace() {
           needs_support: 0,
         };
 
-        const outcomes: OutcomeCoverageView[] = strand.outcomes.map((outcome, index) => {
+        const outcomes: OutcomeCoverageView[] = strand.outcomes.map((outcome) => {
           const signal = outcomeSignals.get(outcome.code);
           const status = signal?.status ?? "not_started";
           counts[status] += 1;

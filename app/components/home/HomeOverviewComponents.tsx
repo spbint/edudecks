@@ -133,6 +133,20 @@ function stateMeta(state: HomeSurfaceState) {
   };
 }
 
+function emptyStateCopy(state: HomeSurfaceState) {
+  if (state === "placeholder") {
+    return {
+      title: "Family data is still syncing",
+      note: "We could not confirm learners from the synced family workspace yet. Try again in a moment.",
+    };
+  }
+
+  return {
+    title: "Add your first learner to begin gently",
+    note: "One learner is enough to make the family workflow start feeling real.",
+  };
+}
+
 function StateBadge({ state }: { state: HomeSurfaceState }) {
   const meta = stateMeta(state);
 
@@ -221,6 +235,8 @@ export function FamilySummaryPanel({
   stats,
   state,
 }: FamilySummaryPanelProps) {
+  const emptyCopy = emptyStateCopy(state);
+
   return (
     <aside className="grid gap-4 rounded-[26px] border border-slate-200 bg-white p-5 shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
@@ -265,9 +281,9 @@ export function FamilySummaryPanel({
         </div>
       ) : (
         <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className="text-sm font-black text-slate-950">Add your first learner to begin gently</div>
+          <div className="text-sm font-black text-slate-950">{emptyCopy.title}</div>
           <div className="mt-1 text-sm leading-6 text-slate-500">
-            One learner is enough to make the family workflow start feeling real.
+            {emptyCopy.note}
           </div>
         </div>
       )}
@@ -301,6 +317,8 @@ export function LearnerSelector({
   onSelectLearner,
   state,
 }: LearnerSelectorProps) {
+  const emptyCopy = emptyStateCopy(state);
+
   return (
     <section className="grid gap-4 rounded-[24px] border border-slate-200 bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
       <div className="flex items-start justify-between gap-3">
@@ -345,9 +363,9 @@ export function LearnerSelector({
         </div>
       ) : (
         <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50 px-4 py-5">
-          <div className="text-[15px] font-semibold text-slate-950">Add your first learner to begin gently</div>
+          <div className="text-[15px] font-semibold text-slate-950">{emptyCopy.title}</div>
           <div className="mt-1 text-[14px] leading-6 text-slate-500">
-            One learner is enough to make the family workflow start feeling real.
+            {emptyCopy.note}
           </div>
         </div>
       )}

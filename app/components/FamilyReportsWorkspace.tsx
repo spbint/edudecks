@@ -250,7 +250,9 @@ export default function FamilyReportsWorkspace({
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
-      : "empty";
+      : workspace.syncIssue
+        ? "placeholder"
+        : "empty";
 
   const cta = useMemo(
     () =>
@@ -601,7 +603,7 @@ export default function FamilyReportsWorkspace({
                   </div>
                 </div>
                 <p className="text-sm leading-7 text-slate-600">
-                  These checks are intentionally simple for this first phase. They show whether the main planning, evidence, and reporting ingredients are visible for the current cycle, and they adapt to the jurisdiction's compliance posture without claiming full certainty yet.
+                  These checks are intentionally simple for this first phase. They show whether the main planning, evidence, and reporting ingredients are visible for the current cycle, and they adapt to the jurisdiction&apos;s compliance posture without claiming full certainty yet.
                 </p>
               </DetailCard>
 

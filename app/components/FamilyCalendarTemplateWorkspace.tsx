@@ -1121,7 +1121,9 @@ export default function FamilyCalendarTemplateWorkspace() {
             selectedCalendarItemKey={selectedCalendarItemKey}
             activeLearnerName={activeLearner?.label || ""}
             loading={loadingWeek || workspaceLoading}
-            errorMessage={weekError}
+            errorMessage={
+              weekError || (workspace.syncIssue && !workspace.learners.length ? workspace.syncIssue : "")
+            }
             feedbackMessage={weekFeedbackMessage}
             editorMode={editorMode}
             editorDraft={editorDraft}

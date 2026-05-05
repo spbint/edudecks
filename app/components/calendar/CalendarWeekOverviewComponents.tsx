@@ -391,21 +391,23 @@ function LearnerVisibilitySidebar({
   visibleLearnerIds,
   onToggleAllLearners,
   onToggleLearner,
+  emptyMessage,
 }: {
   learners: FamilyLearner[];
   visibleLearnerIds: string[];
   onToggleAllLearners: () => void;
   onToggleLearner: (learnerId: string) => void;
+  emptyMessage?: string;
 }) {
   if (!learners.length) {
     return (
       <aside className="grid gap-3 rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
         <div className="grid gap-1.5">
           <div className={LABEL}>Learners</div>
-          <h2 className={H2}>No learners yet</h2>
+          <h2 className={H2}>{emptyMessage ? "Learners unavailable" : "No learners yet"}</h2>
           <p className={BODY}>
-            Add a learner first to save live calendar items. Template slots can still shape the
-            weekly rhythm.
+            {emptyMessage ||
+              "Add a learner first to save live calendar items. Template slots can still shape the weekly rhythm."}
           </p>
         </div>
       </aside>
@@ -1155,6 +1157,7 @@ export function CalendarWeekView({
             visibleLearnerIds={visibleLearnerIds}
             onToggleAllLearners={onToggleAllLearners}
             onToggleLearner={onToggleLearner}
+            emptyMessage={errorMessage || undefined}
           />
         </div>
 

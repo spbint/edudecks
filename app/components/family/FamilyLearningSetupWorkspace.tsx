@@ -39,7 +39,6 @@ import {
 import {
   persistLearnersToLocalCache,
   saveFamilyWorkspaceSettings,
-  updateLinkedLearner,
   type FamilyLearner,
 } from "@/lib/familyWorkspace";
 
@@ -113,10 +112,40 @@ function learnerSelectorState(
   loading: boolean,
   learners: FamilyLearner[],
   storageMode: string,
+  syncIssue?: string,
 ): HomeSurfaceState {
   if (loading) return "loading";
+  if (syncIssue && !learners.length) return "placeholder";
   if (!learners.length) return "empty";
   return storageMode === "database" ? "derived" : "placeholder";
+}
+
+function learnerOverridesDiffer(
+  left: FamilyLearner,
+  right: FamilyLearner | undefined,
+) {
+  if (!right) return false;
+
+  return (
+    safe(left.year_band) !== safe(right.year_band) ||
+    safe(left.curriculum_framework_id) !== safe(right.curriculum_framework_id) ||
+    safe(left.curriculum_jurisdiction_id) !== safe(right.curriculum_jurisdiction_id) ||
+    safe(left.reporting_mode) !== safe(right.reporting_mode)
+  );
+}
+
+function hasSyncedLearnerOverrideChanges(
+  learnersDraft: FamilyLearner[],
+  baselineLearners: FamilyLearner[],
+) {
+  const baselineById = new Map(
+    baselineLearners.map((learner) => [learner.id, learner] as const),
+  );
+
+  return learnersDraft.some((learner) => {
+    if (safe(learner.id).startsWith("local-")) return false;
+    return learnerOverridesDiffer(learner, baselineById.get(learner.id));
+  });
 }
 
 function ComplianceCommandCard({
@@ -426,32 +455,22 @@ export default function FamilyLearningSetupWorkspace() {
       setWorkspacePatch({ profile: savedProfile });
 
       if (workspace.userId && workspace.storageMode === "database") {
-        await Promise.all(
-          learnersDraft
-            .filter((learner) => !safe(learner.id).startsWith("local-"))
-            .map((learner) =>
-              updateLinkedLearner(
-                workspace.userId as string,
-                learner.id,
-                learner.label,
-                learner.year_level != null ? String(learner.year_level) : "",
-                {
-                  yearBand: learner.year_band ?? null,
-                  frameworkId: learner.curriculum_framework_id ?? null,
-                  jurisdictionId: learner.curriculum_jurisdiction_id ?? null,
-                  reportingMode: learner.reporting_mode ?? null,
-                },
-              ),
-            ),
+        const hadSyncedLearnerOverrideChanges = hasSyncedLearnerOverrideChanges(
+          learnersDraft,
+          workspace.learners,
         );
         await reloadWorkspace();
+        setStatus(
+          hadSyncedLearnerOverrideChanges
+            ? "Family defaults saved. Learner-specific synced overrides stay read-only until learner editing is fully connected."
+            : "Family learning setup saved.",
+        );
       } else {
         persistSettingsToLocalStorage(draft);
         persistLearnersToLocalCache(learnersDraft);
         setWorkspacePatch({ profile: draft, learners: learnersDraft, storageMode: "local" });
+        setStatus("Family learning setup saved.");
       }
-
-      setStatus("Family learning setup saved.");
     } catch (saveError) {
       setError(describeFamilySetupError(saveError));
     } finally {
@@ -486,6 +505,7 @@ export default function FamilyLearningSetupWorkspace() {
               workspaceLoading,
               workspace.learners,
               workspace.storageMode,
+              workspace.syncIssue,
             )}
           />
         </div>

@@ -299,7 +299,9 @@ export default function FamilyCaptureWorkspace() {
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
-      : "empty";
+      : workspace.syncIssue
+        ? "placeholder"
+        : "empty";
 
   const primaryLinkedSummary = linkedBlock
     ? `${linkedBlock.title} · ${linkedBlock.dateLabel}`

@@ -282,7 +282,9 @@ export default function FamilyProgressWorkspace() {
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
-      : "empty";
+      : workspace.syncIssue
+        ? "placeholder"
+        : "empty";
 
   const activeLearnerName = activeLearner?.label || "your learner";
   const evidenceCount = snapshot?.total_evidence ?? evidenceRows.length;

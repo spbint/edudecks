@@ -288,6 +288,7 @@ function codeAt(outcomes: Array<{ code: string; label: string }>, index: number)
   return clean(outcomes[index]?.code) || clean(outcomes[0]?.code) || null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildMathsNumberYearPath(input: {
   yearKey: MathsYearPathKey;
   strandLabel: string;
@@ -831,7 +832,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Money and practical number",
         strandLabel: "Number",
-        describe: (profile) => `Use number sense and operations in practical money, estimating, and checking contexts.`,
+        describe: () => "Use number sense and operations in practical money, estimating, and checking contexts.",
       },
       {
         title: "Angles and transformations",
@@ -871,7 +872,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Chance and data decisions",
         strandLabel: "Data",
-        describe: (profile) => `Use data and chance language to compare outcomes and justify decisions.`,
+        describe: () => "Use data and chance language to compare outcomes and justify decisions.",
       },
       {
         title: "Multi-step operations",
@@ -896,7 +897,7 @@ const MATHS_YEAR_PATH_TERMS: Array<{
       {
         title: "Applied maths project",
         strandLabel: "Review",
-        describe: (profile) => `Apply number, operations, measurement, data, space, and fractions in one project.`,
+        describe: () => "Apply number, operations, measurement, data, space, and fractions in one project.",
       },
       {
         title: "Year consolidation",
@@ -1140,6 +1141,7 @@ const STANDARD_PROGRAM_TERM_THEMES: Record<Exclude<StandardProgramId, "maths">, 
   ],
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function buildGenericStandardYearPath(input: {
   programId: Exclude<StandardProgramId, "maths">;
   yearKey: MathsYearPathKey;
@@ -1751,7 +1753,17 @@ export default function FamilyProgramsWorkspace() {
           learners={learnerOptions}
           activeLearnerId={activeLearner?.id}
           onSelectLearner={setActiveLearner}
-          state={workspaceLoading ? "loading" : activeLearner ? "live" : "empty"}
+          state={
+            workspaceLoading
+              ? "loading"
+              : workspace.learners.length
+                ? activeLearner
+                  ? "live"
+                  : "derived"
+                : workspace.syncIssue
+                  ? "placeholder"
+                  : "empty"
+          }
         />
 
         {!workspaceLoading && !activeLearner ? (

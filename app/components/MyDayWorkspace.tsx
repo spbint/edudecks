@@ -21,21 +21,12 @@ import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfi
 import { buildMyDayView, type MyDayEvidenceRow, type MyDayView } from "@/lib/myDay";
 import type { Program } from "@/lib/familyPlanningTemplates";
 import type { FamilyCalendarBlockEntry } from "@/lib/familyPlanner";
-import type { FamilyLearner } from "@/lib/familyWorkspace";
 
 const FAMILY_DAY_ID = "__family-day";
 
 const EVIDENCE_SELECTS = [
   "id,title,summary,occurred_on,created_at,evidence_type,linked_learning_plan_item_id",
 ];
-
-type LearnerDayRow = {
-  learner: FamilyLearner;
-  view: MyDayView;
-  blocksCount: number;
-  capturedCount: number;
-  nextStepLabel: string;
-};
 
 function ymd(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -152,7 +143,7 @@ export default function MyDayWorkspace() {
     });
 
     return map;
-  }, [blocksByLearnerId, evidenceRowsByLearnerId, programs, todayYmd, workspace.learners]);
+  }, [blocksByLearnerId, evidenceRowsByLearnerId, programs, today, todayYmd, workspace.learners]);
 
   const familyRows = workspace.learners.map((learner) => {
     const view = dayViewsByLearnerId[learner.id];
@@ -203,6 +194,14 @@ export default function MyDayWorkspace() {
         })),
       ]
     : [];
+  const learnerSelectorState =
+    workspaceLoading || loadingDay
+      ? "loading"
+      : workspace.syncIssue && !hasLearners
+        ? "placeholder"
+        : hasLearners
+          ? "derived"
+          : "empty";
 
   const handleSelectLearner = (id: string) => {
     if (id === FAMILY_DAY_ID) {
@@ -226,7 +225,7 @@ export default function MyDayWorkspace() {
           learners={learnerOptions}
           activeLearnerId={isFamilyDay ? FAMILY_DAY_ID : activeLearnerId}
           onSelectLearner={handleSelectLearner}
-          state={workspaceLoading ? "loading" : "derived"}
+          state={learnerSelectorState}
         />
 
         <MyDayHeader dateLabel={todayLabel} learnerName={isFamilyDay ? "Family day" : activeLearner?.label || ""} state="live" />

@@ -233,6 +233,25 @@ export function FamilyWorkspaceProvider({
     setActiveLearnerIdState(applyActiveLearner(workspace));
   }, [workspace, activeLearnerId]);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || loading) return;
+
+    console.debug("[family-workspace]", {
+      userId: workspace.userId,
+      profileId: workspace.profile.id,
+      storageMode: workspace.storageMode,
+      learnerCount: workspace.learners.length,
+      syncIssue: workspace.syncIssue ?? null,
+    });
+  }, [
+    loading,
+    workspace.learners.length,
+    workspace.profile.id,
+    workspace.storageMode,
+    workspace.syncIssue,
+    workspace.userId,
+  ]);
+
   const activeLearner =
     workspace.learners.find((learner) => learner.id === activeLearnerId) ?? null;
 

@@ -319,7 +319,9 @@ export default function FamilyPortfolioWorkspace() {
       ? workspace.storageMode === "database"
         ? "derived"
         : "placeholder"
-      : "empty";
+      : workspace.syncIssue
+        ? "placeholder"
+        : "empty";
 
   const activeLearnerName = activeLearner?.label || "your learner";
   const showEmptyState = portfolioState === "empty" && hasActiveLearner;

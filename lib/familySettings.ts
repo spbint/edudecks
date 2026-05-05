@@ -651,9 +651,6 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
   if (!userId) return { ...DEFAULT_FAMILY_PROFILE };
   const storedSnapshot = loadStoredFamilySettingsSnapshot();
   const storedProfileId = safeString(storedSnapshot?.id);
-  const localSettings = rowToSettings(storedSnapshot ?? undefined, {
-    defaultJurisdiction: storedSnapshot == null,
-  });
 
   try {
     const profile = await selectFamilyProfileRow(userId, storedProfileId);
@@ -681,7 +678,6 @@ export async function loadFamilyProfile(): Promise<FamilyProfileRow> {
 
   return {
     ...DEFAULT_FAMILY_PROFILE,
-    ...localSettings,
     user_id: userId,
     owner_user_id: userId,
   };
