@@ -6,6 +6,7 @@ import {
 import type {
   CleanCalendarItem,
   CleanCalendarItemInput,
+  CleanCalendarItemSourceType,
   CleanCalendarItemsOptions,
   CleanCalendarItemUpdate,
 } from "@/lib/clean/calendar/types";
@@ -15,11 +16,18 @@ type CalendarItemRow = {
   family_id: string;
   learner_id?: string | null;
   program_id?: string | null;
+  program_segment_id?: string | null;
   title: string;
   description?: string | null;
   starts_at?: string | null;
   ends_at?: string | null;
   planned_date: string;
+  learning_area?: string | null;
+  session_label?: string | null;
+  source_type?: string | null;
+  source_template_block_id?: string | null;
+  source_program_segment_id?: string | null;
+  generation_run_id?: string | null;
   is_highlighted?: boolean | null;
   created_by_user_id: string;
   created_at?: string | null;
@@ -39,6 +47,12 @@ function normalizeBoolean(value: unknown) {
   return value === true;
 }
 
+function normalizeSourceType(value: unknown): CleanCalendarItemSourceType {
+  const sourceType = safe(value);
+  if (sourceType === "generated" || sourceType === "template") return sourceType;
+  return "manual";
+}
+
 function sanitizeDate(value: unknown) {
   return safe(value);
 }
@@ -49,11 +63,18 @@ function toCleanCalendarItem(row: CalendarItemRow): CleanCalendarItem {
     familyId: safe(row.family_id),
     learnerId: normalizeNullString(row.learner_id),
     programId: normalizeNullString(row.program_id),
+    programSegmentId: normalizeNullString(row.program_segment_id),
     title: safe(row.title),
     description: normalizeNullString(row.description),
     startsAt: normalizeNullString(row.starts_at),
     endsAt: normalizeNullString(row.ends_at),
     plannedDate: sanitizeDate(row.planned_date),
+    learningArea: normalizeNullString(row.learning_area),
+    sessionLabel: normalizeNullString(row.session_label),
+    sourceType: normalizeSourceType(row.source_type),
+    sourceTemplateBlockId: normalizeNullString(row.source_template_block_id),
+    sourceProgramSegmentId: normalizeNullString(row.source_program_segment_id),
+    generationRunId: normalizeNullString(row.generation_run_id),
     isHighlighted: normalizeBoolean(row.is_highlighted),
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
@@ -87,6 +108,10 @@ function sanitizeCalendarItemInput(
       "learnerId" in input ? normalizeNullString(input.learnerId) : undefined,
     program_id:
       "programId" in input ? normalizeNullString(input.programId) : undefined,
+    program_segment_id:
+      "programSegmentId" in input
+        ? normalizeNullString(input.programSegmentId)
+        : undefined,
     title: "title" in input && input.title !== undefined ? safe(input.title) || null : undefined,
     description:
       "description" in input
@@ -98,6 +123,26 @@ function sanitizeCalendarItemInput(
     planned_date:
       "plannedDate" in input && input.plannedDate !== undefined
         ? sanitizeDate(input.plannedDate) || null
+        : undefined,
+    learning_area:
+      "learningArea" in input ? normalizeNullString(input.learningArea) : undefined,
+    session_label:
+      "sessionLabel" in input ? normalizeNullString(input.sessionLabel) : undefined,
+    source_type:
+      "sourceType" in input && input.sourceType !== undefined
+        ? normalizeSourceType(input.sourceType)
+        : undefined,
+    source_template_block_id:
+      "sourceTemplateBlockId" in input
+        ? normalizeNullString(input.sourceTemplateBlockId)
+        : undefined,
+    source_program_segment_id:
+      "sourceProgramSegmentId" in input
+        ? normalizeNullString(input.sourceProgramSegmentId)
+        : undefined,
+    generation_run_id:
+      "generationRunId" in input
+        ? normalizeNullString(input.generationRunId)
         : undefined,
     is_highlighted:
       "isHighlighted" in input && input.isHighlighted !== undefined
@@ -113,7 +158,7 @@ export async function listCleanCalendarItems(
   let query = supabase
     .from("calendar_items")
     .select(
-      "id,family_id,learner_id,program_id,title,description,starts_at,ends_at,planned_date,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
     )
     .eq("family_id", familyId)
     .order("planned_date", { ascending: true })
@@ -179,16 +224,23 @@ export async function createCleanCalendarItem(
       family_id: familyId,
       learner_id: payload.learner_id ?? null,
       program_id: payload.program_id ?? null,
+      program_segment_id: payload.program_segment_id ?? null,
       title: payload.title,
       description: payload.description ?? null,
       starts_at: payload.starts_at ?? null,
       ends_at: payload.ends_at ?? null,
       planned_date: payload.planned_date,
+      learning_area: payload.learning_area ?? null,
+      session_label: payload.session_label ?? null,
+      source_type: payload.source_type ?? "manual",
+      source_template_block_id: payload.source_template_block_id ?? null,
+      source_program_segment_id: payload.source_program_segment_id ?? null,
+      generation_run_id: payload.generation_run_id ?? null,
       is_highlighted: payload.is_highlighted ?? false,
       created_by_user_id: currentUserId,
     })
     .select(
-      "id,family_id,learner_id,program_id,title,description,starts_at,ends_at,planned_date,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
@@ -227,7 +279,7 @@ export async function updateCleanCalendarItem(
     .eq("family_id", familyId)
     .eq("id", calendarItemId)
     .select(
-      "id,family_id,learner_id,program_id,title,description,starts_at,ends_at,planned_date,is_highlighted,created_by_user_id,created_at,updated_at",
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
     )
     .maybeSingle();
 
