@@ -17,8 +17,6 @@ import {
   type FamilySettings,
 } from "@/lib/familySettings";
 import { hasSupabaseEnv, supabase } from "@/lib/supabaseClient";
-import Link from "next/link";
-import { resolveEffectiveLearnerLearningConfig } from "@/lib/familyLearningConfig";
 
 type EvidenceRow = {
   id: string;
@@ -70,6 +68,7 @@ export default function FamilyProfilePage() {
   const {
     workspace,
     activeLearnerId,
+    loading: workspaceLoading,
     error: workspaceError,
     reloadWorkspace,
     setWorkspacePatch,
@@ -173,11 +172,6 @@ export default function FamilyProfilePage() {
   );
 
   const currentLearnerId = activeLearnerId || profile.default_child_id || null;
-  const effectiveLearningConfig = useMemo(
-    () => resolveEffectiveLearnerLearningConfig(workspace.profile, activeLearner),
-    [activeLearner, workspace.profile],
-  );
-
   async function handleSwitchLearner(childId: string) {
     setBusyChildId(childId);
     setStatus("");
@@ -460,6 +454,58 @@ export default function FamilyProfilePage() {
         <section style={S.section}>
           <div style={S.sectionHeader}>
             <div>
+              <div style={S.eyebrow}>Shared workspace</div>
+              <h2 style={S.sectionTitle}>Learners in this family</h2>
+              <div style={S.helperText}>
+                This list comes from the same shared family workspace used by My Day and My Calendar.
+              </div>
+            </div>
+          </div>
+
+          {children.length ? (
+            <div style={S.learnerGrid}>
+              {children.map((child) => (
+                <div key={child.id} style={S.learnerCard}>
+                  <div style={S.learningRowText}>
+                    <div style={S.cardTitle}>{learnerName(child)}</div>
+                    <div style={S.helperText}>
+                      {safe(child.yearLabel) || "Year level not set"}
+                    </div>
+                    <div style={S.tagRow}>
+                      {currentLearnerId === child.id ? (
+                        <span style={S.tag}>Currently viewing</span>
+                      ) : null}
+                      <span style={S.subtleValue}>
+                        {workspace.storageMode === "database" ? "Synced learner" : "Local learner"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={S.alertCard}>
+              <div style={S.cardTitle}>
+                {workspaceLoading
+                  ? "Loading family data..."
+                  : error
+                    ? "We could not sync your family data just now."
+                    : "No learners yet"}
+              </div>
+              <div style={S.helperText}>
+                {workspaceLoading
+                  ? "Checking the shared family workspace now."
+                  : error
+                    ? "Refresh or try again. The shared workspace did not confirm learner data yet."
+                    : "Add a learner in the family setup to see them here, in My Day, and in My Calendar."}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section style={S.section}>
+          <div style={S.sectionHeader}>
+            <div>
               <div style={S.eyebrow}>Learning record</div>
               <h2 style={S.sectionTitle}>Recent learning</h2>
               <div style={S.helperText}>
@@ -507,13 +553,19 @@ const S: Record<string, React.CSSProperties> = {
   eyebrow: { fontSize: 11, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#64748b" },
   sectionTitle: { margin: 0, fontSize: 22, fontWeight: 900, color: "#0f172a" },
   helperText: { fontSize: 13, lineHeight: 1.5, color: "#64748b" },
+  subtleValue: { fontSize: 12, fontWeight: 700, color: "#475569" },
   summaryLabel: { fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.6 },
   summaryValue: { fontSize: 16, fontWeight: 900, color: "#0f172a" },
   cardTitle: { fontSize: 16, fontWeight: 900, color: "#0f172a" },
   sectionHeaderSpacer: { minHeight: 1 },
   activityGridSingle: { display: "grid", gap: 12 },
+  learnerGrid: { display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" },
+  learnerCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 16, display: "grid", gap: 8 },
+  tagRow: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+  tag: { display: "inline-flex", alignItems: "center", borderRadius: 999, background: "#e2e8f0", color: "#0f172a", padding: "4px 10px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5 },
   learningRow: { border: "1px solid #e5e7eb", borderRadius: 14, background: "#f8fafc", padding: 14, display: "grid", gap: 8 },
   learningRowText: { display: "grid", gap: 4 },
   activityRow: { fontSize: 14, lineHeight: 1.55, color: "#334155" },
+  alertCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#f8fafc", padding: 18, display: "grid", gap: 8 },
   emptyCard: { border: "1px solid #e5e7eb", borderRadius: 18, background: "#ffffff", padding: 18, display: "grid", gap: 8 },
 };

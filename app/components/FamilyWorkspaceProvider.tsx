@@ -236,16 +236,30 @@ export function FamilyWorkspaceProvider({
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || loading) return;
 
-    console.debug("[family-workspace]", {
-      userId: workspace.userId,
+    const debugPayload = {
+      hasAuthenticatedUser: Boolean(user?.id),
       profileId: workspace.profile.id,
       storageMode: workspace.storageMode,
-      learnerCount: workspace.learners.length,
       syncIssue: workspace.syncIssue ?? null,
+      learnerCount: workspace.learners.length,
+      learnerLabels: workspace.learners.map((learner) => learner.label).filter(Boolean),
+    };
+
+    (
+      window as Window & {
+        __MYLEARNA_FAMILY_WORKSPACE__?: typeof debugPayload;
+      }
+    ).__MYLEARNA_FAMILY_WORKSPACE__ = debugPayload;
+
+    console.debug("[family-workspace]", {
+      ...debugPayload,
+      userId: workspace.userId,
     });
   }, [
     loading,
+    user?.id,
     workspace.learners.length,
+    workspace.learners,
     workspace.profile.id,
     workspace.storageMode,
     workspace.syncIssue,
