@@ -290,30 +290,7 @@ export async function createCleanFamilyProfile(
     throw profileResp.error ?? new Error("Unable to create the clean family profile.");
   }
 
-  const createdProfile = toFamilyProfile(profileResp.data as FamilyProfileRow);
-
-  const memberResp = await supabase
-    .from("family_members")
-    .insert({
-      family_id: createdProfile.id,
-      user_id: currentUserId,
-      role: "owner",
-      created_by_user_id: currentUserId,
-    })
-    .select("id")
-    .maybeSingle();
-
-  if (memberResp.error) {
-    await supabase
-      .from("family_profiles")
-      .delete()
-      .eq("id", createdProfile.id)
-      .eq("created_by_user_id", currentUserId);
-
-    throw memberResp.error;
-  }
-
-  return createdProfile;
+  return toFamilyProfile(profileResp.data as FamilyProfileRow);
 }
 
 export async function updateCleanFamilyProfile(
