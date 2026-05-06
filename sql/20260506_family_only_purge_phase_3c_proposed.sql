@@ -5,36 +5,38 @@
 -- Do not replace ROLLBACK with COMMIT until dependency counts and keep/quarantine
 -- decisions have been reviewed and explicitly approved.
 -- Views (including v_*) are never deleted from directly by this script.
+-- Temp tables intentionally do not use ON COMMIT DROP because some SQL runners
+-- segment statements in ways that can drop temp tables too early.
 
 begin;
 
 create temp table tmp_family_students_to_keep (
   student_id text primary key
-) on commit drop;
+);
 
 create temp table tmp_unlinked_students_all (
   student_id text primary key
-) on commit drop;
+);
 
 create temp table tmp_students_to_quarantine (
   student_id text primary key,
   reason text not null default ''
-) on commit drop;
+);
 
 create temp table tmp_students_delete_candidates (
   student_id text primary key
-) on commit drop;
+);
 
 create temp table tmp_delete_audit (
   table_name text primary key,
   rows_deleted bigint not null default 0
-) on commit drop;
+);
 
 create temp table tmp_inventory_before (
   total_students_before bigint not null,
   family_linked_keep_count bigint not null,
   unlinked_total_count bigint not null
-) on commit drop;
+);
 
 create or replace function pg_temp.base_table_exists(p_schema text, p_table text)
 returns boolean
