@@ -23,7 +23,7 @@ const STEPS = [
     title: "Curate a simple portfolio",
     text:
       "Choose the learning moments that best represent progress so the record starts becoming clearer, stronger, and easier to work with later.",
-    href: "/portfolio",
+    href: "/my-portfolio",
     cta: "Open Portfolio",
     tone: { bg: "#f5f3ff", bd: "#ddd6fe", fg: "#6d28d9" },
   },
@@ -32,8 +32,8 @@ const STEPS = [
     title: "Plan your next week",
     text:
       "Use what you are noticing to shape a gentler weekly rhythm with a clearer sense of what to focus on next.",
-    href: "/planner",
-    cta: "Open Planner",
+    href: "/my-calendar",
+    cta: "Open My Calendar",
     tone: { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" },
   },
   {
@@ -41,17 +41,17 @@ const STEPS = [
     title: "Build your first report view",
     text:
       "Open the report builder once your evidence base has started to grow, so you can see how the record is coming together over time.",
-    href: "/reports",
-    cta: "Open Reports",
+    href: "/my-reports",
+    cta: "Open My Reports",
     tone: { bg: "#fff7ed", bd: "#fed7aa", fg: "#9a3412" },
   },
   {
     step: "Step 5",
-    title: "Add goals and deeper direction",
+    title: "Shape your longer programs",
     text:
-      "When the basics are working, add goals and longer-term direction so the system becomes even more intentional without becoming overwhelming.",
-    href: "/goals",
-    cta: "Open Goals",
+      "When the basics are working, shape the longer program flow so the next weeks stay clearer without becoming overwhelming.",
+    href: "/my-programs",
+    cta: "Open My Programs",
     tone: { bg: "#f8fafc", bd: "#e5e7eb", fg: "#334155" },
   },
 ];
@@ -193,7 +193,7 @@ export default function GetStartedPage() {
             {[
               "Capture 2 to 3 real learning moments from your week.",
               "Choose 1 or 2 that best show progress and keep them in your portfolio.",
-              "Sketch a gentle weekly rhythm in the planner.",
+              "Sketch a gentle weekly rhythm in My Calendar.",
               "Open the reports area only to see how the evidence flows forward.",
             ].map((item, index) => (
               <div

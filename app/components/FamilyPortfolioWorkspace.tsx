@@ -356,13 +356,13 @@ export default function FamilyPortfolioWorkspace() {
       cta: "Report",
     },
     {
-      href: "/my-progress",
-      icon: "PG",
-      title: "Check My Progress",
+      href: "/family",
+      icon: "FM",
+      title: "Open My Family",
       note: hasActiveLearner
-        ? `Review progress signals for ${activeLearnerName}.`
-        : "Progress follows the learner in focus.",
-      cta: "Progress",
+        ? `Review learner setup and family details for ${activeLearnerName}.`
+        : "Open family details and learner setup.",
+      cta: "Family",
     },
   ];
 

@@ -39,7 +39,7 @@ const BENEFITS = [
   "Be ready for reporting when needed",
 ];
 
-const AUDIENCES = ["Families", "Homeschool", "Schools"];
+const AUDIENCES = ["Families", "Homeschool", "Flexible rhythms"];
 
 function sectionHeader(title: string, text?: string) {
   return (
@@ -87,10 +87,10 @@ export default function HomePage() {
       asideText=""
       asideItems={[]}
       heroAsideVisible={false}
-      primaryCta={{ label: "Start a family", href: "/start" }}
+      primaryCta={{ label: "Start a family", href: "/my-day" }}
       secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       headerAction={{ label: "Sign in", href: "/login" }}
-      footerPrimaryCta={{ label: "Start a family", href: "/start" }}
+      footerPrimaryCta={{ label: "Start a family", href: "/my-day" }}
       footerSecondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       showWorkflowStrip={false}
     >
@@ -213,7 +213,7 @@ export default function HomePage() {
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link
-            href="/start"
+            href="/my-day"
             style={{
               ...publicButtonStyle(true),
               background: "#ffffff",
@@ -287,8 +287,8 @@ export default function HomePage() {
         }}
       >
         {sectionHeader(
-          "Built for families. Ready for schools.",
-          "Start with your family's learning. Expand into structured reporting when needed."
+          "Built for families. Ready for real homeschool life.",
+          "Start with your family's learning and keep the record calm, practical, and ready when reporting is needed."
         )}
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -301,7 +301,7 @@ export default function HomePage() {
             const tone = tones[index] ?? tones[0];
             return (
               <div key={item} style={publicPill(tone[0], tone[1])}>
-                {item === "Schools" ? "Schools (future-ready)" : item}
+                {item}
               </div>
             );
           })}

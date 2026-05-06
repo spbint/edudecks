@@ -171,7 +171,7 @@ export default function PostAuthWelcomePage() {
           </div>
 
           <div style={{ display: "grid", gap: 10, width: "100%", maxWidth: 420, marginTop: 6 }}>
-            <Link href="/start" style={primaryLinkStyle()}>
+            <Link href="/capture" style={primaryLinkStyle()}>
               Start your first learning moment
             </Link>
             <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
@@ -284,7 +284,7 @@ export default function PostAuthWelcomePage() {
 
             <div style={{ paddingTop: 4, display: "flex", justifyContent: "start" }}>
               <Link
-                href="/start"
+                href="/capture"
                 style={{
                   color: "#1d4ed8",
                   textDecoration: "none",
@@ -390,14 +390,14 @@ export default function PostAuthWelcomePage() {
                 <Link href="/family" style={secondaryLinkStyle()}>
                   Family home
                 </Link>
-                <Link href="/portfolio" style={secondaryLinkStyle()}>
+                <Link href="/my-portfolio" style={secondaryLinkStyle()}>
                   Portfolio
                 </Link>
-                <Link href="/reports" style={secondaryLinkStyle()}>
+                <Link href="/my-reports" style={secondaryLinkStyle()}>
                   Reports
                 </Link>
-                <Link href="/authority/readiness" style={secondaryLinkStyle()}>
-                  Readiness
+                <Link href="/my-calendar" style={secondaryLinkStyle()}>
+                  Calendar
                 </Link>
               </div>
             </section>

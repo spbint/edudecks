@@ -154,10 +154,7 @@ export function resolveFamilyWorkflowStage(pathname: string): FamilyWorkflowStag
     pathname.startsWith("/reports") ||
     pathname.startsWith("/my-reports") ||
     pathname.startsWith("/portfolio") ||
-    pathname.startsWith("/my-portfolio") ||
-    pathname.startsWith("/my-progress") ||
-    pathname.startsWith("/exports") ||
-    pathname.startsWith("/authority")
+    pathname.startsWith("/my-portfolio")
   ) {
     return "reports";
   }

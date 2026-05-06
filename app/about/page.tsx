@@ -200,9 +200,9 @@ export default function AboutPage() {
                 color: "#475569",
               }}
             >
-              The family workflow comes first, but the same evidence-led foundation can
-              later support richer planning, schools, hybrid models, and broader
-              learning systems without losing the calmer core.
+              The family workflow comes first, and the same evidence-led foundation can
+              support richer family planning and broader homeschool reporting needs
+              without losing the calmer core.
             </div>
           </section>
         </div>

@@ -57,14 +57,12 @@ const SECONDARY_NAV = [
   { href: "/curriculum", label: "My Curriculum" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-reports", label: "My Reports" },
-  { href: "/my-progress", label: "My Progress" },
 ] as const;
 
 function normalizeOutputRoute(pathname: string) {
   if (pathname === "/curriculum" || pathname === "/curriculum-map") return "/curriculum";
   if (pathname === "/my-portfolio" || pathname === "/portfolio") return "/my-portfolio";
   if (pathname === "/my-reports" || pathname.startsWith("/reports")) return "/my-reports";
-  if (pathname === "/my-progress") return "/my-progress";
   return "";
 }
 
@@ -89,7 +87,6 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
-  if (pathname === "/my-progress") return "My Progress";
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
@@ -127,9 +124,6 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/reports" || pathname === "/my-reports") {
     return "Build clear family reports from real learning";
   }
-  if (pathname === "/my-progress") {
-    return "Notice what is moving well and what needs the next gentle step";
-  }
   if (pathname === "/community" || pathname.startsWith("/community/")) {
     return "A place to ask, share, and encourage";
   }
@@ -160,9 +154,6 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/reports" || pathname === "/my-reports") {
     return "Bring together evidence, reflection, and structure so reporting is clearer and more trustworthy.";
-  }
-  if (pathname === "/my-progress") {
-    return "Readiness, coverage, and suggested improvements belong in one calm view so you can decide the next best move without overwhelm.";
   }
   if (pathname === "/community" || pathname.startsWith("/community/")) {
     return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
@@ -441,12 +432,11 @@ export function FamilyShellSurface({ children }: { children: React.ReactNode }) 
 
 export function FamilyCommandLayer({
   eyebrow = "MyLearna Command Layer",
-  title = "Move from plan to portfolio, reports, and progress without losing the thread.",
+  title = "Move from plan to portfolio and reports without losing the thread.",
   primaryActionLabel = "Open My Day",
   primaryActionHref = "/my-day",
   items,
   className,
-  pathname,
 }: FamilyCommandLayerProps) {
   const resolvedItems: FamilyCommandItem[] =
     items ??
@@ -472,9 +462,9 @@ export function FamilyCommandLayer({
         href: "/my-reports",
       },
       {
-        title: "Check My Progress",
-        description: "Confirm what is ready for authority review and export.",
-        href: pathname?.startsWith("/authority") ? pathname : "/my-progress",
+        title: "Open My Family",
+        description: "Review your learner list, family settings, and the current workspace.",
+        href: "/family",
       },
     ];
 

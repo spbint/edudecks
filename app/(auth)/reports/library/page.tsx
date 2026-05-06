@@ -214,6 +214,12 @@ function statusActionSet(status?: string | null) {
   };
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  const text = String(error ?? "").trim();
+  return text || fallback;
+}
+
 export default function ReportsLibraryPage() {
   const [rows, setRows] = useState<ReportDraftRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -231,8 +237,8 @@ export default function ReportsLibraryPage() {
       setError("");
       const data = await listReportDrafts();
       setRows(sortDrafts(data));
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to load report drafts."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to load report drafts."));
     } finally {
       setLoading(false);
     }
@@ -291,8 +297,8 @@ export default function ReportsLibraryPage() {
       await hydrate();
 
       setMessage(`Draft duplicated: ${titleForRow(copy)}.`);
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to duplicate draft."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to duplicate draft."));
     } finally {
       setBusyId("");
     }
@@ -312,8 +318,8 @@ export default function ReportsLibraryPage() {
       await deleteReportDraft(row.id);
       setRows((prev) => prev.filter((x) => x.id !== row.id));
       setMessage(`Draft deleted: ${titleForRow(row)}.`);
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to delete draft."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to delete draft."));
     } finally {
       setBusyId("");
     }
@@ -328,8 +334,8 @@ export default function ReportsLibraryPage() {
       await finalizeReportDraft(row.id);
       await hydrate();
       setMessage(`Draft finalized: ${titleForRow(row)}.`);
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to finalize draft."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to finalize draft."));
     } finally {
       setBusyId("");
     }
@@ -344,8 +350,8 @@ export default function ReportsLibraryPage() {
       await submitReportDraft(row.id);
       await hydrate();
       setMessage(`Draft submitted: ${titleForRow(row)}.`);
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to submit draft."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to submit draft."));
     } finally {
       setBusyId("");
     }
@@ -360,8 +366,8 @@ export default function ReportsLibraryPage() {
       await archiveReportDraft(row.id);
       await hydrate();
       setMessage(`Draft archived: ${titleForRow(row)}.`);
-    } catch (err: any) {
-      setError(String(err?.message || err || "Failed to archive draft."));
+    } catch (err: unknown) {
+      setError(errorMessage(err, "Failed to archive draft."));
     } finally {
       setBusyId("");
     }
@@ -410,8 +416,8 @@ export default function ReportsLibraryPage() {
             <Link href="/my-reports" style={S.button(false)}>
               New report
             </Link>
-            <Link href="/authority/history" style={S.button(false)}>
-              Authority history
+            <Link href="/my-reports" style={S.button(false)}>
+              Reports home
             </Link>
           </div>
         </div>
@@ -705,10 +711,10 @@ export default function ReportsLibraryPage() {
 
                       {actions.canAuthority ? (
                         <Link
-                          href={`/authority/pack-builder?draftId=${row.id}`}
+                          href={`/reports/output?draftId=${row.id}`}
                           style={S.button(false)}
                         >
-                          Authority pack
+                          Open output
                         </Link>
                       ) : null}
 

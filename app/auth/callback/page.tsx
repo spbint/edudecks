@@ -220,7 +220,7 @@ function AuthCallbackPageContent() {
         });
 
         setMessage(
-          resolvedNextPath === "/start"
+          resolvedNextPath === "/my-day"
             ? "You're signed in. Returning you to your learning record..."
             : resolvedNextPath === "/welcome"
               ? "You're signed in. Getting your first step ready..."
@@ -325,7 +325,7 @@ function AuthCallbackPageContent() {
           >
             {error
               ? "We hit a problem while completing sign-in. No new login link has been sent."
-              : requestedNextPath === "/start"
+              : requestedNextPath === "/my-day"
                 ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
                 : "You'll be returned to the right MyLearna page automatically."}
           </div>

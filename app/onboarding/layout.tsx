@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function AddChildPage() {
+export default function RetiredOnboardingLayout() {
   redirect("/profile");
 }
