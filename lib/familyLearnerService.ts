@@ -1,3 +1,5 @@
+// Deprecated legacy local-only learner helper.
+// Do not import this module into active family product routes.
 import {
   familyYearLevelLabelFromStored,
   familyYearLevelOptionFromStored,

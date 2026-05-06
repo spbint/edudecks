@@ -1,5 +1,8 @@
 "use client";
 
+// Deprecated legacy helper.
+// Do not import this into active family product routes.
+// Family-safe surfaces must use the shared family workspace instead.
 import { useCallback, useEffect, useState } from "react";
 import { loadFamilyLearnersWithVariants } from "@/lib/familyLearners";
 

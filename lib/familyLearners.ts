@@ -1,3 +1,6 @@
+// Deprecated legacy compatibility helper.
+// Do not use this module as the source of truth for active family product routes.
+// Shared family surfaces must resolve learners through family_profiles -> family_profile_children -> students.
 import { familyYearLevelToStoredNumber } from "@/lib/familyLearnerYearLevel";
 
 const FAMILY_CHILDREN_CACHE_KEY = "edudecks_children_seed_v1";

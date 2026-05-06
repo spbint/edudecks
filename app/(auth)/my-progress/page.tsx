@@ -1,8 +1,5 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import React from "react";
-import FamilyProgressWorkspace from "@/app/components/FamilyProgressWorkspace";
-
-export default function MyProgressPage() {
-  return <FamilyProgressWorkspace />;
+export default function MyProgressRedirectPage() {
+  redirect("/my-day");
 }
