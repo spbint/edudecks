@@ -152,6 +152,7 @@ export default function CleanCalendarPopover({
         <label style={labelStyle}>
           What are you planning?
           <input
+            autoFocus
             value={title}
             onChange={(event) => onChangeTitle(event.target.value)}
             placeholder="Read-aloud, maths, nature walk"

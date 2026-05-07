@@ -124,6 +124,36 @@ const secondaryTextStyle: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
+function getInteractiveZoneStyle(isActive: boolean): React.CSSProperties {
+  return {
+    width: "100%",
+    border: `1px ${isActive ? "solid" : "dashed"} ${isActive ? "#60a5fa" : "#93c5fd"}`,
+    borderRadius: 14,
+    background: isActive ? "#eff6ff" : "#f8fbff",
+    padding: "16px 14px",
+    display: "grid",
+    gap: 4,
+    textAlign: "left",
+    cursor: "pointer",
+    transition: "border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease",
+    boxShadow: isActive ? "0 0 0 3px rgba(59,130,246,0.14)" : "none",
+  };
+}
+
+function getClickableCardStyle(isActive: boolean): React.CSSProperties {
+  return {
+    border: `1px solid ${isActive ? "#60a5fa" : "#dbeafe"}`,
+    borderRadius: 14,
+    background: isActive ? "#f8fbff" : "#ffffff",
+    padding: 12,
+    display: "grid",
+    gap: 6,
+    cursor: "pointer",
+    transition: "border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease",
+    boxShadow: isActive ? "0 0 0 3px rgba(59,130,246,0.14)" : "none",
+  };
+}
+
 const AUSTRALIAN_LEARNING_AREAS = [
   "English",
   "Mathematics",
@@ -420,6 +450,7 @@ function CleanRhythmBlockPopover({
         >
           What usually happens here?
           <input
+            autoFocus
             value={title}
             onChange={(event) => onChangeTitle(event.target.value)}
             placeholder="Morning maths, read-aloud, science walk"
@@ -708,6 +739,7 @@ function CleanCalendarWorkspaceBody() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null);
 
   const learnerOptions = useMemo(
     () =>
@@ -2028,7 +2060,7 @@ function CleanCalendarWorkspaceBody() {
                             <strong style={{ color: "#0f172a" }}>{selectedTemplate.title}</strong>
                             <p style={secondaryTextStyle}>
                               {selectedTemplate.description ||
-                                "Click a day to shape the usual flow of your week."}
+                                "Click inside a day to shape the usual flow of your week."}
                             </p>
                           </div>
                           <div
@@ -2061,6 +2093,7 @@ function CleanCalendarWorkspaceBody() {
                           >
                             {WEEKDAY_OPTIONS.map((day) => {
                               const dayBlocks = templateBlocksByWeekday.get(day.value) ?? [];
+                              const emptyZoneSurfaceId = `master-empty-${day.value}`;
 
                               return (
                                 <div
@@ -2086,7 +2119,10 @@ function CleanCalendarWorkspaceBody() {
                                     <button
                                       type="button"
                                       style={{ ...buttonStyle, padding: "8px 10px" }}
-                                      onClick={() => openCreateRhythmPopover(day.value)}
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        openCreateRhythmPopover(day.value);
+                                      }}
                                     >
                                       Add block
                                     </button>
@@ -2099,21 +2135,30 @@ function CleanCalendarWorkspaceBody() {
                                           learnerOptions.find(
                                             (option) => option.value === block.learnerId,
                                           )?.label || "Whole family";
+                                        const blockSurfaceId = `master-block-${block.id}`;
 
                                         return (
                                           <button
                                             key={block.id}
                                             type="button"
                                             style={{
-                                              border: "1px solid #dbeafe",
-                                              borderRadius: 14,
-                                              background: "#f8fbff",
-                                              padding: 12,
-                                              display: "grid",
-                                              gap: 6,
+                                              ...getClickableCardStyle(
+                                                activeSurfaceId === blockSurfaceId,
+                                              ),
                                               textAlign: "left",
-                                              cursor: "pointer",
                                             }}
+                                            onMouseEnter={() => setActiveSurfaceId(blockSurfaceId)}
+                                            onMouseLeave={() =>
+                                              setActiveSurfaceId((current) =>
+                                                current === blockSurfaceId ? null : current,
+                                              )
+                                            }
+                                            onFocus={() => setActiveSurfaceId(blockSurfaceId)}
+                                            onBlur={() =>
+                                              setActiveSurfaceId((current) =>
+                                                current === blockSurfaceId ? null : current,
+                                              )
+                                            }
                                             onClick={() => openEditRhythmPopover(block)}
                                           >
                                             <strong style={{ color: "#0f172a" }}>{block.title}</strong>
@@ -2132,12 +2177,65 @@ function CleanCalendarWorkspaceBody() {
                                           </button>
                                         );
                                       })}
+
+                                      <button
+                                        type="button"
+                                        style={getInteractiveZoneStyle(
+                                          activeSurfaceId === emptyZoneSurfaceId,
+                                        )}
+                                        onMouseEnter={() =>
+                                          setActiveSurfaceId(emptyZoneSurfaceId)
+                                        }
+                                        onMouseLeave={() =>
+                                          setActiveSurfaceId((current) =>
+                                            current === emptyZoneSurfaceId ? null : current,
+                                          )
+                                        }
+                                        onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                        onBlur={() =>
+                                          setActiveSurfaceId((current) =>
+                                            current === emptyZoneSurfaceId ? null : current,
+                                          )
+                                        }
+                                        onClick={() => openCreateRhythmPopover(day.value)}
+                                      >
+                                        <strong style={{ color: "#0f172a" }}>
+                                          Click to add a learning block
+                                        </strong>
+                                        <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                          Sketch this day
+                                        </span>
+                                      </button>
                                     </div>
                                   ) : (
-                                    <p style={secondaryTextStyle}>
-                                      No blocks yet. Click Add block to sketch the shape of this
-                                      day.
-                                    </p>
+                                    <button
+                                      type="button"
+                                      style={getInteractiveZoneStyle(
+                                        activeSurfaceId === emptyZoneSurfaceId,
+                                      )}
+                                      onMouseEnter={() =>
+                                        setActiveSurfaceId(emptyZoneSurfaceId)
+                                      }
+                                      onMouseLeave={() =>
+                                        setActiveSurfaceId((current) =>
+                                          current === emptyZoneSurfaceId ? null : current,
+                                        )
+                                      }
+                                      onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                      onBlur={() =>
+                                        setActiveSurfaceId((current) =>
+                                          current === emptyZoneSurfaceId ? null : current,
+                                        )
+                                      }
+                                      onClick={() => openCreateRhythmPopover(day.value)}
+                                    >
+                                      <strong style={{ color: "#0f172a" }}>
+                                        Click to add a learning block
+                                      </strong>
+                                      <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                        Sketch this day
+                                      </span>
+                                    </button>
                                   )}
                                 </div>
                               );
@@ -2364,8 +2462,8 @@ function CleanCalendarWorkspaceBody() {
                         <div>
                           <strong style={{ color: "#0f172a" }}>Live week</strong>
                           <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
-                            Click a day to add something, or click an existing block to adjust
-                            the real week.
+                            Click inside a day to add something, or open an existing block to
+                            adjust the real week.
                           </p>
                         </div>
                       </div>
@@ -2389,6 +2487,7 @@ function CleanCalendarWorkspaceBody() {
                       >
                         {weekDates.map((dateValue) => {
                           const dayItems = itemsByDate.get(dateValue) ?? [];
+                          const emptyZoneSurfaceId = `week-empty-${dateValue}`;
 
                           return (
                             <div
@@ -2418,7 +2517,10 @@ function CleanCalendarWorkspaceBody() {
                                 <button
                                   type="button"
                                   style={{ ...buttonStyle, padding: "8px 10px" }}
-                                  onClick={() => openCreatePopover(dateValue)}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openCreatePopover(dateValue);
+                                  }}
                                 >
                                   Add block
                                 </button>
@@ -2431,18 +2533,33 @@ function CleanCalendarWorkspaceBody() {
                                       learnerOptions.find(
                                         (option) => option.value === item.learnerId,
                                       )?.label || "Whole family";
+                                    const blockSurfaceId = `week-block-${item.id}`;
 
                                     return (
                                       <div
                                         key={item.id}
-                                        style={{
-                                          border: "1px solid #bfdbfe",
-                                          borderRadius: 14,
-                                          background: "#ffffff",
-                                          padding: 12,
-                                          display: "grid",
-                                          gap: 6,
-                                          cursor: "pointer",
+                                        role="button"
+                                        tabIndex={0}
+                                        style={getClickableCardStyle(
+                                          activeSurfaceId === blockSurfaceId,
+                                        )}
+                                        onMouseEnter={() => setActiveSurfaceId(blockSurfaceId)}
+                                        onMouseLeave={() =>
+                                          setActiveSurfaceId((current) =>
+                                            current === blockSurfaceId ? null : current,
+                                          )
+                                        }
+                                        onFocus={() => setActiveSurfaceId(blockSurfaceId)}
+                                        onBlur={() =>
+                                          setActiveSurfaceId((current) =>
+                                            current === blockSurfaceId ? null : current,
+                                          )
+                                        }
+                                        onKeyDown={(event) => {
+                                          if (event.key === "Enter" || event.key === " ") {
+                                            event.preventDefault();
+                                            openEditPopover(item);
+                                          }
                                         }}
                                         onClick={() => openEditPopover(item)}
                                       >
@@ -2509,11 +2626,61 @@ function CleanCalendarWorkspaceBody() {
                                       </div>
                                     );
                                   })}
+
+                                  <button
+                                    type="button"
+                                    style={getInteractiveZoneStyle(
+                                      activeSurfaceId === emptyZoneSurfaceId,
+                                    )}
+                                    onMouseEnter={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                    onMouseLeave={() =>
+                                      setActiveSurfaceId((current) =>
+                                        current === emptyZoneSurfaceId ? null : current,
+                                      )
+                                    }
+                                    onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                    onBlur={() =>
+                                      setActiveSurfaceId((current) =>
+                                        current === emptyZoneSurfaceId ? null : current,
+                                      )
+                                    }
+                                    onClick={() => openCreatePopover(dateValue)}
+                                  >
+                                    <strong style={{ color: "#0f172a" }}>
+                                      Click to add a learning block
+                                    </strong>
+                                    <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                      Add something small
+                                    </span>
+                                  </button>
                                 </div>
                               ) : (
-                                <p style={secondaryTextStyle}>
-                                  No blocks yet. Click Add block to shape this day.
-                                </p>
+                                <button
+                                  type="button"
+                                  style={getInteractiveZoneStyle(
+                                    activeSurfaceId === emptyZoneSurfaceId,
+                                  )}
+                                  onMouseEnter={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                  onMouseLeave={() =>
+                                    setActiveSurfaceId((current) =>
+                                      current === emptyZoneSurfaceId ? null : current,
+                                    )
+                                  }
+                                  onFocus={() => setActiveSurfaceId(emptyZoneSurfaceId)}
+                                  onBlur={() =>
+                                    setActiveSurfaceId((current) =>
+                                      current === emptyZoneSurfaceId ? null : current,
+                                    )
+                                  }
+                                  onClick={() => openCreatePopover(dateValue)}
+                                >
+                                  <strong style={{ color: "#0f172a" }}>
+                                    Click to add a learning block
+                                  </strong>
+                                  <span style={{ color: "#475569", lineHeight: 1.5 }}>
+                                    Sketch this day
+                                  </span>
+                                </button>
                               )}
                             </div>
                           );
