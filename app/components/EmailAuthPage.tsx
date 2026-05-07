@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
 import { supabase } from "@/lib/supabaseClient";
+import { normalizeAuthNextPath } from "@/lib/authRedirect";
 
 type SaveState = "idle" | "saving" | "success" | "error";
 
@@ -14,13 +15,6 @@ function safe(value: unknown) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe(value));
-}
-
-function normalizeNextPath(value: string | null | undefined) {
-  const clean = safe(value);
-  if (!clean.startsWith("/")) return "/my-day";
-  if (clean.startsWith("//")) return "/my-day";
-  return clean || "/my-day";
 }
 
 function passwordErrorMessage(error: unknown) {
@@ -142,7 +136,7 @@ function EmailAuthPageContent() {
   const [message, setMessage] = useState("");
 
   const nextPath = useMemo(
-    () => normalizeNextPath(searchParams.get("next")),
+    () => normalizeAuthNextPath(searchParams.get("next"), "/my-day"),
     [searchParams],
   );
   const emailValid = useMemo(() => isValidEmail(email), [email]);
@@ -170,11 +164,13 @@ function EmailAuthPageContent() {
 
   useEffect(() => {
     let active = true;
+    let redirectStarted = false;
 
     async function hydrateSession() {
       const { data } = await supabase.auth.getSession();
       if (!active) return;
-      if (data.session?.user) {
+      if (data.session?.user && !redirectStarted) {
+        redirectStarted = true;
         router.replace(nextPath);
       }
     }
@@ -185,7 +181,8 @@ function EmailAuthPageContent() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
-      if (session?.user) {
+      if (session?.user && !redirectStarted) {
+        redirectStarted = true;
         router.replace(nextPath);
       }
     });

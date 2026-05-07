@@ -1,3 +1,4 @@
+import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
 import { createClient } from "@supabase/supabase-js";
 
 const bundledPublicSupabaseUrl = "https://jgllsqixpfypunnstinl.supabase.co";
@@ -42,20 +43,29 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-    global: {
-      fetch: supabaseFetch,
-    },
-  },
-);
+export const supabase =
+  typeof window === "undefined"
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+        global: {
+          fetch: supabaseFetch,
+        },
+      })
+    : createBrowserClient(supabaseUrl, supabaseAnonKey, {
+        isSingleton: true,
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+        global: {
+          fetch: supabaseFetch,
+        },
+      });
 
 export function createServerSupabaseClient(accessToken: string) {
   return createClient(supabaseUrl, supabaseAnonKey, {

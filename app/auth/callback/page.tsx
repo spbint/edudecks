@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { normalizeNextPath } from "@/lib/authRedirect";
+import { normalizeAuthNextPath } from "@/lib/authRedirect";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -79,9 +79,9 @@ function AuthCallbackPageContent() {
   const callbackHandled = useRef(false);
 
   const requestedNextPath = useMemo(() => {
-    const fallback = normalizeNextPath("/my-day");
+    const fallback = normalizeAuthNextPath("/my-day", "/my-day");
     const candidate = searchParams.get("next");
-    return normalizeNextPath(candidate || fallback);
+    return normalizeAuthNextPath(candidate || fallback, "/my-day");
   }, [searchParams]);
 
   const errorParam = useMemo(() => safe(searchParams.get("error")), [searchParams]);
