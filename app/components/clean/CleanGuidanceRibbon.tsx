@@ -38,14 +38,21 @@ function getStatusColors(status: CleanGuidanceCard["status"]) {
 
 export default function CleanGuidanceRibbon({
   cards,
+  compact = false,
 }: {
   cards: CleanGuidanceCard[];
+  compact?: boolean;
 }) {
   if (!cards.length) return null;
 
   return (
-    <section style={cardStyle}>
-      <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+    <section
+      style={{
+        ...cardStyle,
+        padding: compact ? 16 : 20,
+      }}
+    >
+      <div style={{ display: "grid", gap: 8, marginBottom: compact ? 12 : 16 }}>
         <div
           style={{
             fontSize: 12,
@@ -55,19 +62,23 @@ export default function CleanGuidanceRibbon({
             textTransform: "uppercase",
           }}
         >
-          Calm next steps
+          {compact ? "Small next steps" : "Calm next steps"}
         </div>
         <h2 style={{ margin: 0, color: "#0f172a" }}>What to do next</h2>
-        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          These cards stay focused on the next few things that will make today and this week easier.
-        </p>
+        {!compact ? (
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+            These cards stay focused on the next few things that will make today and this week easier.
+          </p>
+        ) : null}
       </div>
 
       <div
         style={{
           display: "grid",
           gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gridTemplateColumns: compact
+            ? "repeat(auto-fit, minmax(220px, 1fr))"
+            : "repeat(auto-fit, minmax(240px, 1fr))",
         }}
       >
         {cards.map((card) => {
@@ -80,7 +91,7 @@ export default function CleanGuidanceRibbon({
                 border: `1px solid ${colors.border}`,
                 background: colors.background,
                 borderRadius: 14,
-                padding: 14,
+                padding: compact ? 12 : 14,
                 display: "grid",
                 gap: 8,
               }}

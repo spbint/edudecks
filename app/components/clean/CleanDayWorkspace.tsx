@@ -9,14 +9,18 @@ import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
-import {
-  CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
-  normalizeCleanErrorMessage,
-} from "@/lib/clean/family/client";
+import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { buildCleanGuidanceCards } from "@/lib/clean/guidance/client";
 import type { CleanGuidanceCard } from "@/lib/clean/guidance/types";
 import { listCleanPortfolioHighlights } from "@/lib/clean/portfolio/client";
-import { listCleanPrograms } from "@/lib/clean/programs/client";
+import {
+  listCleanProgramSegments,
+  listCleanPrograms,
+} from "@/lib/clean/programs/client";
+import type {
+  CleanProgram,
+  CleanProgramSegment,
+} from "@/lib/clean/programs/types";
 import { listCleanReports } from "@/lib/clean/reports/client";
 import { listCleanMasterTemplates } from "@/lib/clean/templates/client";
 import {
@@ -51,6 +55,13 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 10,
   padding: "10px 12px",
   fontSize: 14,
+};
+
+const compactInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  width: "min(260px, 100%)",
+  padding: "9px 12px",
+  fontSize: 13,
 };
 
 function getTodayDate() {
@@ -102,10 +113,19 @@ function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
 
+function getPreviewText(value: string | null, maxLength = 110) {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trimEnd()}...`;
+}
+
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
+  const [programs, setPrograms] = useState<CleanProgram[]>([]);
+  const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [guidanceCards, setGuidanceCards] = useState<CleanGuidanceCard[]>([]);
@@ -133,7 +153,104 @@ function CleanDayWorkspaceBody() {
     );
   }, [items, selectedLearnerId]);
 
+  const sortedVisibleItems = useMemo(
+    () =>
+      [...visibleItems].sort((left, right) => {
+        const leftTime = left.startsAt ?? "";
+        const rightTime = right.startsAt ?? "";
+
+        if (leftTime && rightTime) {
+          return leftTime.localeCompare(rightTime);
+        }
+
+        if (leftTime) return -1;
+        if (rightTime) return 1;
+
+        return left.title.localeCompare(right.title);
+      }),
+    [visibleItems],
+  );
+
   const openGuidanceCards = useMemo(() => guidanceCards.slice(0, 3), [guidanceCards]);
+  const hasLateStageGuidance = useMemo(
+    () => openGuidanceCards.some((card) => card.key === "portfolio" || card.key === "reports"),
+    [openGuidanceCards],
+  );
+
+  const learnerLabelById = useMemo(
+    () => new Map(learnerOptions.map((option) => [option.value, option.label])),
+    [learnerOptions],
+  );
+
+  const programLabelById = useMemo(
+    () => new Map(programs.map((program) => [program.id, program.title])),
+    [programs],
+  );
+
+  const segmentLabelById = useMemo(
+    () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
+    [programSegments],
+  );
+
+  const learnersInViewCount = useMemo(
+    () => new Set(sortedVisibleItems.map((item) => item.learnerId).filter(Boolean)).size,
+    [sortedVisibleItems],
+  );
+
+  const wholeFamilyBlocksCount = useMemo(
+    () => sortedVisibleItems.filter((item) => item.learnerId === null).length,
+    [sortedVisibleItems],
+  );
+
+  const nextUpcomingItem = useMemo(
+    () => {
+      const now = new Date();
+
+      return (
+        sortedVisibleItems.find((item) => {
+          if (!item.startsAt) return false;
+          const startsAt = new Date(item.startsAt);
+          return !Number.isNaN(startsAt.getTime()) && startsAt >= now;
+        }) ?? null
+      );
+    },
+    [sortedVisibleItems],
+  );
+
+  const selectedLearnerLabel = useMemo(
+    () => learnerOptions.find((option) => option.value === selectedLearnerId)?.label ?? null,
+    [learnerOptions, selectedLearnerId],
+  );
+
+  const overviewSummary = useMemo(() => {
+    if (!sortedVisibleItems.length) {
+      return "Nothing planned for today yet.";
+    }
+
+    if (selectedLearnerId && selectedLearnerLabel) {
+      return `Today has ${sortedVisibleItems.length} planned block${
+        sortedVisibleItems.length === 1 ? "" : "s"
+      } for ${selectedLearnerLabel}.`;
+    }
+
+    if (learnersInViewCount > 0) {
+      return `Today has ${sortedVisibleItems.length} planned block${
+        sortedVisibleItems.length === 1 ? "" : "s"
+      } across ${learnersInViewCount} learner${learnersInViewCount === 1 ? "" : "s"}${
+        wholeFamilyBlocksCount ? ", plus whole-family time." : "."
+      }`;
+    }
+
+    return `Today has ${sortedVisibleItems.length} planned block${
+      sortedVisibleItems.length === 1 ? "" : "s"
+    } for the whole family.`;
+  }, [
+    learnersInViewCount,
+    selectedLearnerId,
+    selectedLearnerLabel,
+    sortedVisibleItems,
+    wholeFamilyBlocksCount,
+  ]);
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -146,31 +263,47 @@ function CleanDayWorkspaceBody() {
         return current;
       }
 
-      return workspace.profile?.defaultLearnerId || "";
+      return "";
     });
-  }, [workspace.learners, workspace.profile]);
+  }, [workspace.learners]);
 
   useEffect(() => {
     async function loadItems() {
       if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
         setItems([]);
+        setPrograms([]);
+        setProgramSegments([]);
         return;
       }
 
       setItemsLoading(true);
       setItemsError(null);
       try {
-        const nextItems = await listCleanCalendarItems(workspace.profile.id, {
-          fromDate: today,
-          toDate: today,
-          limit: 40,
-        });
+        const [nextItems, nextPrograms] = await Promise.all([
+          listCleanCalendarItems(workspace.profile.id, {
+            fromDate: today,
+            toDate: today,
+            limit: 40,
+          }),
+          listCleanPrograms(workspace.profile.id, { limit: 50 }),
+        ]);
+
+        const nextProgramSegments = (
+          await Promise.all(
+            nextPrograms.map((program) =>
+              listCleanProgramSegments(workspace.profile!.id, program.id),
+            ),
+          )
+        ).flat();
+
         setItems(nextItems);
+        setPrograms(nextPrograms);
+        setProgramSegments(nextProgramSegments);
       } catch (error) {
         setItemsError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load today's clean calendar items.",
+            "We could not load today's learning blocks.",
           ),
         );
       } finally {
@@ -246,7 +379,7 @@ function CleanDayWorkspaceBody() {
         setGuidanceError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load clean guidance just now.",
+            "We could not load your next steps just now.",
           ),
         );
       } finally {
@@ -274,6 +407,7 @@ function CleanDayWorkspaceBody() {
   }
 
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const hasPlannedItemsToday = items.length > 0;
 
   return (
     <div style={shellStyle}>
@@ -289,25 +423,25 @@ function CleanDayWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Calm daily view
+              Family day
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               {formatTodayHeading(today)}
             </p>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              A calm view of what is planned for today, with the next few steps that matter most.
+              A calm view of today&apos;s flow for the whole family.
             </p>
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading clean family workspace...</section> : null}
+        {workspace.loading ? <section style={cardStyle}>Loading your day...</section> : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
-            <strong style={{ display: "block", marginBottom: 8 }}>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong>
+            <strong style={{ display: "block", marginBottom: 8 }}>My Day is not ready yet.</strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Day only reads from the clean family setup.
+              Finish the family setup first, then come back here for today&apos;s flow.
             </p>
           </section>
         ) : null}
@@ -322,7 +456,7 @@ function CleanDayWorkspaceBody() {
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#475569" }}>
-              Create a clean family profile first on <Link href="/my-profile">My Profile</Link>.
+              Create your family profile first on <Link href="/my-profile">My Profile</Link>.
             </p>
           </section>
         ) : null}
@@ -339,7 +473,7 @@ function CleanDayWorkspaceBody() {
           <>
             {guidanceLoading ? (
               <section style={cardStyle}>
-                <p style={{ margin: 0, color: "#475569" }}>Loading setup guidance...</p>
+                <p style={{ margin: 0, color: "#475569" }}>Loading your next steps...</p>
               </section>
             ) : null}
 
@@ -349,61 +483,113 @@ function CleanDayWorkspaceBody() {
               </section>
             ) : null}
 
-            {!guidanceLoading && !guidanceError && openGuidanceCards.length ? (
+            {!guidanceLoading &&
+            !guidanceError &&
+            !hasPlannedItemsToday &&
+            !hasLateStageGuidance &&
+            openGuidanceCards.length ? (
               <CleanGuidanceRibbon cards={openGuidanceCards} />
             ) : null}
 
             <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 12 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Today filter</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    The full family day is the default view. Use a learner filter only when you need to focus.
-                  </p>
-                </div>
-                <select
-                  value={selectedLearnerId}
-                  onChange={(event) => setSelectedLearnerId(event.target.value)}
-                  style={inputStyle}
-                >
-                  <option value="">All family</option>
-                  {learnerOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </section>
-
-            <section style={cardStyle}>
               <div
                 style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
+                  display: "grid",
+                  gap: 18,
                 }}
               >
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Today plan</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Today&apos;s blocks come from My Calendar.
-                  </p>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Today&apos;s flow</h2>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      {overviewSummary}
+                    </p>
+                    {nextUpcomingItem ? (
+                      <p style={{ margin: 0, color: "#334155", fontWeight: 700 }}>
+                        Next up: {nextUpcomingItem.title} at {formatTimeLabel(nextUpcomingItem.startsAt)}.
+                      </p>
+                    ) : null}
+                  </div>
+                  <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+                    <label
+                      style={{
+                        color: "#64748b",
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Family day view
+                    </label>
+                    <select
+                      value={selectedLearnerId}
+                      onChange={(event) => setSelectedLearnerId(event.target.value)}
+                      style={compactInputStyle}
+                    >
+                      <option value="">All family</option>
+                      {learnerOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
-                  Open My Calendar
-                </Link>
-              </div>
 
-              {itemsLoading ? <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>Loading items for today...</p> : null}
+                <div
+                  style={{
+                    border: "1px solid #dbeafe",
+                    borderRadius: 16,
+                    background: "#f8fbff",
+                    padding: 16,
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>{formatTodayHeading(today)}</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {selectedLearnerId && selectedLearnerLabel
+                      ? `You are looking at ${selectedLearnerLabel}'s day.`
+                      : "You are looking at the full family day."}
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: 13 }}>
+                    {sortedVisibleItems.length} learning block{sortedVisibleItems.length === 1 ? "" : "s"} in this view
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <strong style={{ color: "#0f172a" }}>Family timeline</strong>
+                    <p style={{ margin: "8px 0 0", color: "#475569" }}>
+                      Learning blocks stay compact until you open the details.
+                    </p>
+                  </div>
+                  <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                    Open My Calendar
+                  </Link>
+                </div>
+
+              {itemsLoading ? <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>Loading today&apos;s flow...</p> : null}
               {itemsError ? <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
 
               {!itemsLoading && !itemsError && !visibleItems.length ? (
                 <div
                   style={{
-                    marginTop: 16,
                     border: "1px solid #e2e8f0",
                     borderRadius: 16,
                     background: "#f8fafc",
@@ -413,9 +599,15 @@ function CleanDayWorkspaceBody() {
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ color: "#0f172a" }}>Nothing planned for today yet.</strong>
+                    <strong style={{ color: "#0f172a" }}>
+                      {hasPlannedItemsToday && selectedLearnerLabel
+                        ? `Nothing planned for ${selectedLearnerLabel} today yet.`
+                        : "Nothing planned for today yet."}
+                    </strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Open My Calendar to plan the week, or add one quick block for today.
+                      {hasPlannedItemsToday && selectedLearnerLabel
+                        ? "Try the full family view, or open My Calendar to adjust today."
+                        : "Open My Calendar to plan the week, or add one quick block for today."}
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -460,89 +652,104 @@ function CleanDayWorkspaceBody() {
               ) : null}
 
               {!itemsLoading && !itemsError && visibleItems.length ? (
-                <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                  {visibleItems.map((item) => {
+                <div style={{ display: "grid", gap: 12 }}>
+                  {sortedVisibleItems.map((item) => {
                     const learnerLabel =
-                      learnerOptions.find((option) => option.value === item.learnerId)?.label ||
-                      "Family / all learners";
+                      learnerLabelById.get(item.learnerId ?? "") || "Whole family";
                     const expanded = expandedItemIds.includes(item.id);
+                    const programLabel = item.programId
+                      ? programLabelById.get(item.programId) ?? null
+                      : null;
+                    const segmentLabel = item.programSegmentId
+                      ? segmentLabelById.get(item.programSegmentId) ?? null
+                      : null;
+                    const notesPreview = getPreviewText(item.description);
 
                     return (
                       <div
                         key={item.id}
                         style={{
-                          border: "1px solid #cbd5e1",
-                          borderRadius: 16,
+                          border: "1px solid #dbeafe",
+                          borderRadius: 18,
                           background: "#ffffff",
-                          padding: 16,
+                          padding: 0,
                           display: "grid",
-                          gap: 10,
+                          overflow: "hidden",
                         }}
                       >
-                        <div
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(item.id)}
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            gap: 12,
-                            flexWrap: "wrap",
-                            alignItems: "center",
+                            gap: 16,
+                            alignItems: "flex-start",
+                            padding: 16,
+                            background: expanded ? "#f8fbff" : "#ffffff",
+                            border: "none",
+                            cursor: "pointer",
+                            textAlign: "left",
                           }}
                         >
-                          <div style={{ display: "grid", gap: 6 }}>
+                          <div
+                            style={{
+                              minWidth: 88,
+                              display: "grid",
+                              gap: 2,
+                              color: "#1d4ed8",
+                              fontWeight: 800,
+                              flexShrink: 0,
+                            }}
+                          >
+                            <span>{formatTimeLabel(item.startsAt)}</span>
+                            {item.endsAt ? (
+                              <span style={{ color: "#94a3b8", fontWeight: 700 }}>
+                                to {formatTimeLabel(item.endsAt)}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div style={{ display: "grid", gap: 8, flex: 1 }}>
                             <div
                               style={{
                                 display: "flex",
-                                gap: 8,
+                                justifyContent: "space-between",
+                                gap: 12,
                                 flexWrap: "wrap",
                                 alignItems: "center",
                               }}
                             >
                               <strong style={{ color: "#0f172a" }}>{item.title}</strong>
-                              <span
-                                style={{
-                                  fontSize: 12,
-                                  color: "#1d4ed8",
-                                  fontWeight: 700,
-                                  textTransform: "uppercase",
-                                }}
-                              >
-                                {item.sourceType}
+                              <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                                {expanded ? "Hide details" : "Show details"}
                               </span>
-                            </div>
-                            <div style={{ color: "#475569" }}>
-                              {formatTimeLabel(item.startsAt)}
-                              {item.endsAt ? ` to ${formatTimeLabel(item.endsAt)}` : ""}
                             </div>
                             <div style={{ color: "#64748b" }}>
                               {learnerLabel}
                               {item.learningArea ? ` - ${item.learningArea}` : ""}
                             </div>
+                            {programLabel || segmentLabel ? (
+                              <div style={{ color: "#475569", fontSize: 13 }}>
+                                {programLabel ? `Program: ${programLabel}` : ""}
+                                {programLabel && segmentLabel ? " - " : ""}
+                                {segmentLabel ? `Segment: ${segmentLabel}` : ""}
+                              </div>
+                            ) : null}
+                            {notesPreview ? (
+                              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                                {notesPreview}
+                              </div>
+                            ) : null}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpanded(item.id)}
-                            style={{
-                              border: "1px solid #0f172a",
-                              background: "#ffffff",
-                              color: "#0f172a",
-                              borderRadius: 10,
-                              padding: "10px 14px",
-                              fontSize: 14,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                            }}
-                          >
-                            {expanded ? "Hide details" : "Show details"}
-                          </button>
-                        </div>
+                        </button>
 
                         {expanded ? (
                           <div
                             style={{
                               borderTop: "1px solid #e2e8f0",
-                              paddingTop: 12,
+                              padding: 16,
                               display: "grid",
-                              gap: 8,
+                              gap: 10,
                             }}
                           >
                             {item.description ? (
@@ -551,12 +758,24 @@ function CleanDayWorkspaceBody() {
                               </p>
                             ) : (
                               <p style={{ margin: 0, color: "#64748b" }}>
-                                No extra notes yet for this block.
+                                No extra notes yet for this learning block.
                               </p>
                             )}
-                            <div style={{ color: "#64748b" }}>
-                              Quick capture comes next. Use{" "}
-                              <Link href="/my-capture">My Capture</Link> after the learning block.
+                            {programLabel || segmentLabel ? (
+                              <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                {programLabel ? `Program: ${programLabel}` : ""}
+                                {programLabel && segmentLabel ? " - " : ""}
+                                {segmentLabel ? `Segment: ${segmentLabel}` : ""}
+                              </div>
+                            ) : null}
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              {/* TODO: pass learner/calendar/program context into My Capture when the capture route supports query-driven defaults. */}
+                              <Link href="/my-capture" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                                Capture what happened
+                              </Link>
+                              <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                                Open in My Calendar
+                              </Link>
                             </div>
                           </div>
                         ) : null}
@@ -565,7 +784,15 @@ function CleanDayWorkspaceBody() {
                   })}
                 </div>
               ) : null}
+              </div>
             </section>
+
+            {!guidanceLoading &&
+            !guidanceError &&
+            (hasPlannedItemsToday || hasLateStageGuidance) &&
+            openGuidanceCards.length ? (
+              <CleanGuidanceRibbon cards={openGuidanceCards} compact />
+            ) : null}
           </>
         ) : null}
       </div>
