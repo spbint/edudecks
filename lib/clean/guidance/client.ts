@@ -66,112 +66,127 @@ function toCleanGuidanceState(row: GuidanceStateRow): CleanGuidanceState {
 export function buildCleanGuidanceCards(
   input: BuildCleanGuidanceCardsInput,
 ): CleanGuidanceCard[] {
-  const cards: CleanGuidanceCard[] = [
-    {
+  const openCards: Omit<CleanGuidanceCard, "status">[] = [];
+
+  if (!input.hasFamilyProfile) {
+    openCards.push({
       key: "family-profile",
       title: "Set up your family",
-      description: "Create the family profile so the clean homeschool system has a home base.",
+      description: "Create your family profile first so everything else has a home.",
       actionLabel: "Open My Profile",
       actionHref: "/my-profile",
-      status: input.hasFamilyProfile ? "done" : "next",
-    },
-    {
-      key: "learners",
-      title: "Add learners",
-      description: "Add each child so planning, capture, portfolio, and reports stay family-scoped.",
-      actionLabel: "Add learners",
-      actionHref: "/my-profile",
-      status: input.learnerCount > 0 ? "done" : input.hasFamilyProfile ? "next" : "available",
-    },
-    {
-      key: "jurisdiction",
-      title: "Choose country and curriculum",
-      description: "Set your homeschool context before planning the year and reporting rhythm.",
-      actionLabel: "Review settings",
-      actionHref: "/my-settings",
-      status:
-        input.hasJurisdictionProfile ? "done" : input.learnerCount > 0 ? "next" : "available",
-    },
-    {
-      key: "academic-year",
-      title: "Set your learning year",
-      description: "Define the academic year before adding terms, breaks, and generated weeks.",
-      actionLabel: "Open clean calendar",
-      actionHref: "/clean-my-calendar",
-      status:
-        input.hasAcademicYear ? "done" : input.hasJurisdictionProfile ? "next" : "available",
-    },
-    {
-      key: "learning-periods",
-      title: "Add term dates and learning periods",
-      description: "Set terms, breaks, or units so generation can skip non-learning days.",
-      actionLabel: "Set learning periods",
-      actionHref: "/clean-my-calendar",
-      status:
-        input.hasLearningPeriods ? "done" : input.hasAcademicYear ? "next" : "available",
-    },
-    {
-      key: "master-template",
-      title: "Create a weekly rhythm",
-      description: "Add a light weekly template only if you want help planning the week.",
-      actionLabel: "Build weekly rhythm",
-      actionHref: "/clean-my-calendar",
-      status:
-        input.hasMasterTemplate ? "done" : input.hasLearningPeriods ? "next" : "available",
-    },
-    {
-      key: "programs",
-      title: "Add the first program",
-      description: "Programs give the generation layer something meaningful to feed into the week.",
-      actionLabel: "Open clean programs",
-      actionHref: "/clean-my-programs",
-      status: input.hasPrograms ? "done" : input.hasMasterTemplate ? "next" : "available",
-    },
-    {
-      key: "generate-week",
-      title: "Generate the first week",
-      description: "Preview the week from your template and programs before turning it into daily action.",
-      actionLabel: "Generate this week",
-      actionHref: "/clean-my-calendar",
-      status: input.hasCalendarItems ? "done" : input.hasPrograms ? "next" : "available",
-    },
-    {
-      key: "capture",
-      title: "Capture the first learning note",
-      description: "Start a text-first evidence trail before portfolio and report assembly.",
-      actionLabel: "Open clean capture",
-      actionHref: "/clean-my-capture",
-      status: input.hasEvidence ? "done" : input.hasCalendarItems ? "next" : "available",
-    },
-    {
-      key: "portfolio",
-      title: "Choose portfolio highlights",
-      description: "Promote meaningful evidence into the portfolio once capture has started.",
-      actionLabel: "Open clean portfolio",
-      actionHref: "/clean-my-portfolio",
-      status:
-        input.hasPortfolioHighlights ? "done" : input.hasEvidence ? "next" : "available",
-    },
-    {
-      key: "reports",
-      title: "Prepare a report",
-      description: "Create the reporting period and report once the family has enough evidence to review.",
-      actionLabel: "Open clean reports",
-      actionHref: "/clean-my-reports",
-      status: input.hasReports ? "done" : input.hasEvidence ? "next" : "available",
-    },
-  ];
-
-  const firstNext = cards.findIndex((card) => card.status === "next");
-  if (firstNext > 0) {
-    for (let index = 0; index < firstNext; index += 1) {
-      if (cards[index]?.status !== "done") {
-        cards[index] = { ...cards[index], status: "available" };
-      }
-    }
+    });
   }
 
-  return cards;
+  if (input.hasFamilyProfile && input.learnerCount === 0) {
+    openCards.push({
+      key: "learners",
+      title: "Add learners",
+      description: "Add each child before planning the year, the week, or today.",
+      actionLabel: "Add learners",
+      actionHref: "/my-profile",
+    });
+  }
+
+  if (input.learnerCount > 0 && !input.hasJurisdictionProfile) {
+    openCards.push({
+      key: "jurisdiction",
+      title: "Set country, state and reporting context",
+      description:
+        "This helps MyLearna shape portfolios and reports for your location.",
+      actionLabel: "Open setup preview",
+      actionHref: "/my-settings",
+    });
+  }
+
+  if (input.hasJurisdictionProfile && !input.hasAcademicYear) {
+    openCards.push({
+      key: "academic-year",
+      title: "Set your learning year",
+      description: "Add the year first so My Calendar knows the bigger date window to plan inside.",
+      actionLabel: "Open My Calendar",
+      actionHref: "/my-calendar",
+    });
+  }
+
+  if (input.hasAcademicYear && !input.hasLearningPeriods) {
+    openCards.push({
+      key: "learning-periods",
+      title: "Add your term dates",
+      description: "Set your learning terms and breaks so My Calendar knows when to plan.",
+      actionLabel: "Set learning periods",
+      actionHref: "/my-calendar",
+    });
+  }
+
+  if (input.hasLearningPeriods && !input.hasMasterTemplate) {
+    openCards.push({
+      key: "master-template",
+      title: "Create a master week",
+      description: "Set up a reusable week that you can later pour into This week when you need it.",
+      actionLabel: "Build master week",
+      actionHref: "/my-calendar",
+    });
+  }
+
+  if (input.hasMasterTemplate && !input.hasPrograms) {
+    openCards.push({
+      key: "programs",
+      title: "Add a first program",
+      description: "Programs can later feed your Master week and calendar.",
+      actionLabel: "Open My Programs",
+      actionHref: "/my-programs",
+    });
+  }
+
+  if (input.hasPrograms && !input.hasCurrentWeekItems) {
+    openCards.push({
+      key: "generate-week",
+      title: "Plan this week using master",
+      description: "Nothing is planned for this week yet. Use your Master week to place blocks into This week.",
+      actionLabel: "Open My Calendar",
+      actionHref: "/my-calendar",
+    });
+  }
+
+  if (input.hasTodayItems && !input.hasEvidence) {
+    openCards.push({
+      key: "capture",
+      title: "Capture today",
+      description: "Use today’s planned block as the anchor for your first learning note.",
+      actionLabel: "Open My Capture",
+      actionHref: "/my-capture",
+    });
+  }
+
+  if (input.hasEvidence && !input.hasPortfolioHighlights) {
+    openCards.push({
+      key: "portfolio",
+      title: "Choose portfolio highlights",
+      description: "Turn your strongest evidence into calm, shareable highlights.",
+      actionLabel: "Open My Portfolio",
+      actionHref: "/my-portfolio",
+    });
+  }
+
+  if (
+    input.learnerCount > 0 &&
+    (input.hasEvidence || input.hasPortfolioHighlights) &&
+    !input.hasReports
+  ) {
+    openCards.push({
+      key: "reports",
+      title: "Prepare a report",
+      description: "Once you have evidence, you can start shaping a report with more confidence.",
+      actionLabel: "Open My Reports",
+      actionHref: "/my-reports",
+    });
+  }
+
+  return openCards.map((card, index) => ({
+    ...card,
+    status: index === 0 ? "next" : "available",
+  }));
 }
 
 export async function loadCleanGuidanceState(familyId: string) {

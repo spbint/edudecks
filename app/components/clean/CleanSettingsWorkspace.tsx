@@ -36,22 +36,22 @@ function CleanSettingsWorkspaceBody() {
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>
-              Clean rebuild scaffold
+              Setup preview
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This route reads from the clean family schema only. Save wiring comes later.
+              This preview shows where country, state, curriculum, and reporting context will live. Save controls come next.
             </p>
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading clean settings…</section> : null}
+        {workspace.loading ? <section style={cardStyle}>Loading setup preview...</section> : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
             <strong style={{ display: "block", marginBottom: 8 }}>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean settings shell will not fall back to legacy settings tables.
+              This setup preview does not fall back to older settings tables.
             </p>
           </section>
         ) : null}
@@ -59,14 +59,17 @@ function CleanSettingsWorkspaceBody() {
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#475569" }}>
-              Create a clean family profile first. Settings are family-scoped in the new rebuild.
+              Create a family profile first. Settings are family-based here too.
             </p>
           </section>
         ) : null}
 
         {!workspace.loading && !workspace.schemaMissing && workspace.profile ? (
           <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Current clean settings read model</h2>
+            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Current setup preview</h2>
+            <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+              This helps MyLearna shape portfolios and reports for your location once full editing is ready.
+            </p>
             <div style={{ display: "grid", gap: 10, color: "#334155" }}>
               <div>
                 <strong>Family name:</strong> {workspace.profile.displayName}

@@ -55,15 +55,21 @@ export default function CleanGuidanceRibbon({
             textTransform: "uppercase",
           }}
         >
-          Guided setup
+          Calm next steps
         </div>
         <h2 style={{ margin: 0, color: "#0f172a" }}>What to do next</h2>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-          These cards are rule-based guidance for the clean homeschool system. They stay visible until the family has enough setup and content.
+          These cards stay focused on the next few things that will make today and this week easier.
         </p>
       </div>
 
-      <div style={{ display: "grid", gap: 12 }}>
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        }}
+      >
         {cards.map((card) => {
           const colors = getStatusColors(card.status);
 
@@ -92,7 +98,7 @@ export default function CleanGuidanceRibbon({
                   ? "Done"
                   : card.status === "next"
                     ? "Next step"
-                    : "Available"}
+                    : "Coming up"}
               </div>
               <strong style={{ color: "#0f172a" }}>{card.title}</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>

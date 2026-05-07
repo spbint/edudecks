@@ -49,7 +49,8 @@ export type BuildCleanGuidanceCardsInput = {
   hasLearningPeriods: boolean;
   hasMasterTemplate: boolean;
   hasPrograms: boolean;
-  hasCalendarItems: boolean;
+  hasCurrentWeekItems: boolean;
+  hasTodayItems: boolean;
   hasEvidence: boolean;
   hasPortfolioHighlights: boolean;
   hasReports: boolean;

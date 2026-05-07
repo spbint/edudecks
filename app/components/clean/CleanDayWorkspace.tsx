@@ -59,6 +59,24 @@ function getTodayDate() {
   return local.toISOString().slice(0, 10);
 }
 
+function addDays(dateValue: string, dayOffset: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  date.setDate(date.getDate() + dayOffset);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getWeekStart(dateValue = getTodayDate()) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return getTodayDate();
+  const weekday = date.getDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  date.setDate(date.getDate() + diff);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 function formatTodayHeading(value: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
@@ -96,6 +114,8 @@ function CleanDayWorkspaceBody() {
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
 
   const today = getTodayDate();
+  const weekStart = getWeekStart(today);
+  const weekEnd = addDays(weekStart, 6);
 
   const learnerOptions = useMemo(
     () =>
@@ -113,10 +133,7 @@ function CleanDayWorkspaceBody() {
     );
   }, [items, selectedLearnerId]);
 
-  const openGuidanceCards = useMemo(
-    () => guidanceCards.filter((card) => card.status !== "done"),
-    [guidanceCards],
-  );
+  const openGuidanceCards = useMemo(() => guidanceCards.slice(0, 3), [guidanceCards]);
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -180,7 +197,8 @@ function CleanDayWorkspaceBody() {
           learningPeriods,
           masterTemplates,
           programs,
-          anyCalendarItems,
+          currentWeekItems,
+          todayItems,
           evidenceEntries,
           portfolioHighlights,
           reports,
@@ -189,7 +207,16 @@ function CleanDayWorkspaceBody() {
           listCleanLearningPeriods(workspace.profile.id, { limit: 1 }),
           listCleanMasterTemplates(workspace.profile.id, { limit: 1 }),
           listCleanPrograms(workspace.profile.id, { limit: 1 }),
-          listCleanCalendarItems(workspace.profile.id, { limit: 1 }),
+          listCleanCalendarItems(workspace.profile.id, {
+            fromDate: weekStart,
+            toDate: weekEnd,
+            limit: 1,
+          }),
+          listCleanCalendarItems(workspace.profile.id, {
+            fromDate: today,
+            toDate: today,
+            limit: 1,
+          }),
           listCleanEvidenceEntries(workspace.profile.id, { limit: 1 }),
           listCleanPortfolioHighlights(workspace.profile.id, { limit: 1 }),
           listCleanReports(workspace.profile.id, { limit: 1 }),
@@ -207,7 +234,8 @@ function CleanDayWorkspaceBody() {
           hasLearningPeriods: learningPeriods.length > 0,
           hasMasterTemplate: masterTemplates.length > 0,
           hasPrograms: programs.length > 0,
-          hasCalendarItems: anyCalendarItems.length > 0,
+          hasCurrentWeekItems: currentWeekItems.length > 0,
+          hasTodayItems: todayItems.length > 0,
           hasEvidence: evidenceEntries.length > 0,
           hasPortfolioHighlights: portfolioHighlights.length > 0,
           hasReports: reports.length > 0,
@@ -227,7 +255,15 @@ function CleanDayWorkspaceBody() {
     }
 
     void loadGuidance();
-  }, [workspace.learners.length, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+  }, [
+    today,
+    weekEnd,
+    weekStart,
+    workspace.learners.length,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
 
   function toggleExpanded(itemId: string) {
     setExpandedItemIds((current) =>
@@ -253,14 +289,14 @@ function CleanDayWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              Calm daily view
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               {formatTodayHeading(today)}
             </p>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              My Day is extracted from the clean calendar and stays focused on daily clarity for the whole family.
+              A calm view of what is planned for today, with the next few steps that matter most.
             </p>
           </div>
         </section>
@@ -271,7 +307,7 @@ function CleanDayWorkspaceBody() {
           <section style={cardStyle}>
             <strong style={{ display: "block", marginBottom: 8 }}>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean day scaffold only reads from the new family-only schema.
+              My Day only reads from the clean family setup.
             </p>
           </section>
         ) : null}
@@ -294,7 +330,7 @@ function CleanDayWorkspaceBody() {
         {readyForDay && !workspace.learners.length ? (
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#475569" }}>
-              Add a learner first on <Link href="/my-profile">My Profile</Link> before using the clean daily view.
+              Add a learner first on <Link href="/my-profile">My Profile</Link> before using My Day.
             </p>
           </section>
         ) : null}
@@ -314,7 +350,7 @@ function CleanDayWorkspaceBody() {
             ) : null}
 
             {!guidanceLoading && !guidanceError && openGuidanceCards.length ? (
-              <CleanGuidanceRibbon cards={openGuidanceCards.slice(0, 5)} />
+              <CleanGuidanceRibbon cards={openGuidanceCards} />
             ) : null}
 
             <section style={cardStyle}>
@@ -353,11 +389,11 @@ function CleanDayWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Today plan</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Visual day blocks come from clean calendar items only.
+                    Today&apos;s blocks come from My Calendar.
                   </p>
                 </div>
-                <Link href="/clean-my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
-                  Open clean calendar
+                <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                  Open My Calendar
                 </Link>
               </div>
 
@@ -365,9 +401,62 @@ function CleanDayWorkspaceBody() {
               {itemsError ? <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
 
               {!itemsLoading && !itemsError && !visibleItems.length ? (
-                <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>
-                  Nothing planned for today yet.
-                </p>
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    padding: 18,
+                    display: "grid",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <strong style={{ color: "#0f172a" }}>Nothing planned for today yet.</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Open My Calendar to plan the week, or add one quick block for today.
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link
+                      href="/my-calendar"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid #0f172a",
+                        background: "#0f172a",
+                        color: "#ffffff",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Open My Calendar
+                    </Link>
+                    <Link
+                      href="/my-calendar"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid #cbd5e1",
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Add a quick block
+                    </Link>
+                  </div>
+                </div>
               ) : null}
 
               {!itemsLoading && !itemsError && visibleItems.length ? (
@@ -467,7 +556,7 @@ function CleanDayWorkspaceBody() {
                             )}
                             <div style={{ color: "#64748b" }}>
                               Quick capture comes next. Use{" "}
-                              <Link href="/clean-my-capture">clean capture</Link> after the learning block.
+                              <Link href="/my-capture">My Capture</Link> after the learning block.
                             </div>
                           </div>
                         ) : null}
