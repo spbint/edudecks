@@ -1,10 +1,12 @@
 import React from "react";
-import AuthRouteGuard from "@/app/components/AuthRouteGuard";
+import { requireAuthenticatedRoute } from "@/lib/auth/serverRouteAuth";
 
-export default function CleanRouteLayout({
+export default async function CleanRouteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthRouteGuard>{children}</AuthRouteGuard>;
+  await requireAuthenticatedRoute("/clean-my-day");
+
+  return <>{children}</>;
 }
