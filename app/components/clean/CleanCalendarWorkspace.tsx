@@ -18,11 +18,11 @@ import {
   createCleanGenerationRun,
   listCleanGenerationRuns,
 } from "@/lib/clean/generation/client";
-import type { CleanGeneratedWeekSuggestion, CleanGenerationRun } from "@/lib/clean/generation/types";
-import {
-  CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
-  normalizeCleanErrorMessage,
-} from "@/lib/clean/family/client";
+import type {
+  CleanGeneratedWeekSuggestion,
+  CleanGenerationRun,
+} from "@/lib/clean/generation/types";
+import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -77,12 +77,22 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
 };
 
+const subCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  background: "#f8fafc",
+  padding: 16,
+  display: "grid",
+  gap: 14,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
   borderRadius: 10,
   padding: "10px 12px",
   fontSize: 14,
+  background: "#ffffff",
 };
 
 const textAreaStyle: React.CSSProperties = {
@@ -106,6 +116,12 @@ const mutedButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: "#ffffff",
   color: "#0f172a",
+};
+
+const secondaryTextStyle: React.CSSProperties = {
+  margin: 0,
+  color: "#475569",
+  lineHeight: 1.6,
 };
 
 const AUSTRALIAN_LEARNING_AREAS = [
@@ -136,6 +152,13 @@ const WEEKDAY_OPTIONS = [
   { value: 6, label: "Saturday" },
   { value: 7, label: "Sunday" },
 ];
+
+type PickerOption = {
+  value: string;
+  label: string;
+};
+
+type PlanningView = "master" | "week";
 
 function getTodayDate() {
   const now = new Date();
@@ -179,6 +202,16 @@ function formatDateLabel(value: string) {
   });
 }
 
+function formatLongDateLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
 function formatWeekRangeLabel(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
 }
@@ -191,6 +224,62 @@ function formatTimeLabel(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function formatClockTimeLabel(value: string | null) {
+  const time = safeTimeString(value ?? "");
+  if (!time) return "";
+
+  const [hoursText = "00", minutesText = "00"] = time.split(":");
+  const hours = Number.parseInt(hoursText, 10);
+  const minutes = Number.parseInt(minutesText, 10);
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return time;
+  }
+
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatClockRangeLabel(startsAt: string | null, endsAt: string | null) {
+  const start = formatClockTimeLabel(startsAt);
+  const end = formatClockTimeLabel(endsAt);
+  if (start && end) return `${start} to ${end}`;
+  return start || end || "Any time";
+}
+
+function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boolean) {
+  if (isBreak || periodType === "break") return "Break";
+
+  switch (periodType) {
+    case "semester":
+      return "Semester";
+    case "unit":
+      return "Unit block";
+    case "custom":
+      return "Custom block";
+    default:
+      return "Term";
+  }
+}
+
+function getSourceLabel(sourceType: string | null) {
+  if (sourceType === "generated") return "Planned from rhythm";
+  if (sourceType === "template") return "From weekly rhythm";
+  return "Hand added";
+}
+
+function getSnapshotStatusLabel(status: string) {
+  if (status === "recorded" || status === "applied") return "Saved snapshot";
+  if (status === "preview") return "Preview only";
+  if (status === "cancelled") return "Cancelled";
+  return status;
 }
 
 function toTimestampFromDateAndTime(dateValue: string, timeValue: string) {
@@ -208,6 +297,340 @@ function toTimeFieldValue(timestamp: string | null) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function safeTimeString(value: string) {
+  const time = String(value ?? "").trim();
+  return time.length >= 5 ? time.slice(0, 5) : time;
+}
+
+function CleanRhythmBlockPopover({
+  open,
+  mode,
+  weekdayLabel,
+  title,
+  learningArea,
+  learnerId,
+  startTime,
+  endTime,
+  programId,
+  programSegmentId,
+  sessionLabel,
+  notes,
+  learnerOptions,
+  programOptions,
+  segmentOptions,
+  onChangeTitle,
+  onChangeLearningArea,
+  onChangeLearnerId,
+  onChangeStartTime,
+  onChangeEndTime,
+  onChangeProgramId,
+  onChangeProgramSegmentId,
+  onChangeSessionLabel,
+  onChangeNotes,
+  onClose,
+  onSave,
+  saving,
+}: {
+  open: boolean;
+  mode: "create" | "edit";
+  weekdayLabel: string;
+  title: string;
+  learningArea: string;
+  learnerId: string;
+  startTime: string;
+  endTime: string;
+  programId: string;
+  programSegmentId: string;
+  sessionLabel: string;
+  notes: string;
+  learnerOptions: PickerOption[];
+  programOptions: PickerOption[];
+  segmentOptions: PickerOption[];
+  onChangeTitle: (value: string) => void;
+  onChangeLearningArea: (value: string) => void;
+  onChangeLearnerId: (value: string) => void;
+  onChangeStartTime: (value: string) => void;
+  onChangeEndTime: (value: string) => void;
+  onChangeProgramId: (value: string) => void;
+  onChangeProgramSegmentId: (value: string) => void;
+  onChangeSessionLabel: (value: string) => void;
+  onChangeNotes: (value: string) => void;
+  onClose: () => void;
+  onSave: () => void;
+  saving: boolean;
+}) {
+  if (!open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.24)",
+        display: "grid",
+        placeItems: "center",
+        padding: 20,
+        zIndex: 60,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "min(620px, 100%)",
+          border: "1px solid #cbd5e1",
+          borderRadius: 18,
+          background: "#ffffff",
+          padding: 20,
+          display: "grid",
+          gap: 16,
+          boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div style={{ display: "grid", gap: 6 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#64748b",
+              textTransform: "uppercase",
+            }}
+          >
+            Weekly rhythm
+          </div>
+          <h2 style={{ margin: 0, color: "#0f172a" }}>
+            {mode === "edit" ? "Edit rhythm block" : "Add rhythm block"}
+          </h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+            {weekdayLabel}
+          </p>
+        </div>
+
+        <label
+          style={{
+            display: "grid",
+            gap: 6,
+            color: "#334155",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          What usually happens here?
+          <input
+            value={title}
+            onChange={(event) => onChangeTitle(event.target.value)}
+            placeholder="Morning maths, read-aloud, science walk"
+            style={inputStyle}
+          />
+        </label>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          }}
+        >
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Who is this for?
+            <select
+              value={learnerId}
+              onChange={(event) => onChangeLearnerId(event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Whole family</option>
+              {learnerOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Learning area
+            <input
+              value={learningArea}
+              onChange={(event) => onChangeLearningArea(event.target.value)}
+              placeholder="Optional"
+              list="clean-learning-areas"
+              style={inputStyle}
+            />
+          </label>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          }}
+        >
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Start time
+            <input
+              type="time"
+              value={startTime}
+              onChange={(event) => onChangeStartTime(event.target.value)}
+              style={inputStyle}
+            />
+          </label>
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            End time
+            <input
+              type="time"
+              value={endTime}
+              onChange={(event) => onChangeEndTime(event.target.value)}
+              style={inputStyle}
+            />
+          </label>
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Session label
+            <input
+              value={sessionLabel}
+              onChange={(event) => onChangeSessionLabel(event.target.value)}
+              placeholder="Optional"
+              style={inputStyle}
+            />
+          </label>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          }}
+        >
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Linked program
+            <select
+              value={programId}
+              onChange={(event) => onChangeProgramId(event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">None</option>
+              {programOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              color: "#334155",
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            Program segment
+            <select
+              value={programSegmentId}
+              onChange={(event) => onChangeProgramSegmentId(event.target.value)}
+              style={inputStyle}
+              disabled={!programId || !segmentOptions.length}
+            >
+              <option value="">
+                {!programId ? "Choose a program first" : "None"}
+              </option>
+              {segmentOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label
+          style={{
+            display: "grid",
+            gap: 6,
+            color: "#334155",
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          Notes
+          <textarea
+            value={notes}
+            onChange={(event) => onChangeNotes(event.target.value)}
+            placeholder="Anything you want to remember about this usual rhythm"
+            style={textAreaStyle}
+          />
+        </label>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button type="button" style={buttonStyle} onClick={onSave} disabled={saving}>
+            {saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save block"}
+          </button>
+          <button
+            type="button"
+            style={mutedButtonStyle}
+            onClick={onClose}
+            disabled={saving}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CleanCalendarWorkspaceBody() {
@@ -275,7 +698,12 @@ function CleanCalendarWorkspaceBody() {
   const [popoverProgramId, setPopoverProgramId] = useState("");
   const [popoverProgramSegmentId, setPopoverProgramSegmentId] = useState("");
 
-  const [generationWeekStart, setGenerationWeekStart] = useState(getWeekStart());
+  const [planningView, setPlanningView] = useState<PlanningView>("master");
+  const [showYearComposer, setShowYearComposer] = useState(false);
+  const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
+  const [showTemplateComposer, setShowTemplateComposer] = useState(false);
+  const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
+
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -299,23 +727,28 @@ function CleanCalendarWorkspaceBody() {
     [programs],
   );
 
-  const selectedTemplate =
-    masterTemplates.find((template) => template.id === selectedTemplateId) ?? null;
+  const selectedAcademicYear = useMemo(
+    () => academicYears.find((year) => year.id === selectedAcademicYearId) ?? null,
+    [academicYears, selectedAcademicYearId],
+  );
+
+  const selectedTemplate = useMemo(
+    () => masterTemplates.find((template) => template.id === selectedTemplateId) ?? null,
+    [masterTemplates, selectedTemplateId],
+  );
 
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
-  const generationWeekEnd = useMemo(
-    () => addDays(generationWeekStart, 6),
-    [generationWeekStart],
-  );
   const weekDates = useMemo(() => getWeekDates(selectedWeekStart), [selectedWeekStart]);
 
   const itemsByDate = useMemo(() => {
     const grouped = new Map<string, CleanCalendarItem[]>();
+
     for (const item of items) {
       const existing = grouped.get(item.plannedDate) ?? [];
       existing.push(item);
       grouped.set(item.plannedDate, existing);
     }
+
     return grouped;
   }, [items]);
 
@@ -324,8 +757,21 @@ function CleanCalendarWorkspaceBody() {
     return learningPeriods.filter((period) => period.academicYearId === selectedAcademicYearId);
   }, [learningPeriods, selectedAcademicYearId]);
 
+  const templateBlocksByWeekday = useMemo(() => {
+    const grouped = new Map<number, CleanTemplateBlock[]>();
+
+    for (const block of templateBlocks) {
+      const existing = grouped.get(block.weekday) ?? [];
+      existing.push(block);
+      grouped.set(block.weekday, existing);
+    }
+
+    return grouped;
+  }, [templateBlocks]);
+
   const visibleBlockSegments = useMemo(() => {
     if (!blockProgramId) return [];
+
     return programSegments
       .filter((segment) => segment.programId === blockProgramId)
       .map((segment) => ({
@@ -336,6 +782,7 @@ function CleanCalendarWorkspaceBody() {
 
   const visiblePopoverSegments = useMemo(() => {
     if (!popoverProgramId) return [];
+
     return programSegments
       .filter((segment) => segment.programId === popoverProgramId)
       .map((segment) => ({
@@ -349,6 +796,11 @@ function CleanCalendarWorkspaceBody() {
     const skipped = previewSuggestions.filter((item) => Boolean(item.skippedReason)).length;
     return { created, skipped };
   }, [previewSuggestions]);
+
+  const shouldShowYearComposer = showYearComposer || !academicYears.length;
+  const shouldShowLearningPeriodComposer =
+    showLearningPeriodComposer || !visibleLearningPeriods.length;
+  const shouldShowTemplateComposer = showTemplateComposer || !masterTemplates.length;
 
   const readyForCalendar =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
@@ -405,7 +857,7 @@ function CleanCalendarWorkspaceBody() {
       setSetupError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean homeschool intelligence scaffolds just now.",
+          "We could not load your planning setup just now.",
         ),
       );
     } finally {
@@ -432,7 +884,7 @@ function CleanCalendarWorkspaceBody() {
       setSetupError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean master template blocks just now.",
+          "We could not load this weekly rhythm just now.",
         ),
       );
     } finally {
@@ -445,6 +897,7 @@ function CleanCalendarWorkspaceBody() {
 
     setItemsLoading(true);
     setItemsError(null);
+
     try {
       const nextItems = await listCleanCalendarItems(workspace.profile.id, {
         fromDate: selectedWeekStart,
@@ -456,7 +909,7 @@ function CleanCalendarWorkspaceBody() {
       setItemsError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean calendar items just now.",
+          "We could not load this week's blocks just now.",
         ),
       );
     } finally {
@@ -512,6 +965,10 @@ function CleanCalendarWorkspaceBody() {
       setSelectedLearningPeriodId("");
     }
   }, [selectedLearningPeriodId, visibleLearningPeriods]);
+
+  useEffect(() => {
+    setPreviewSuggestions([]);
+  }, [selectedWeekStart, selectedTemplateId, selectedLearningPeriodId, templateBlocks, blackoutDays]);
 
   function resetTemplateBlockForm() {
     setEditingTemplateBlockId(null);
@@ -569,6 +1026,36 @@ function CleanCalendarWorkspaceBody() {
     resetPopoverForm();
   }
 
+  function openCreateRhythmPopover(weekday: number) {
+    resetTemplateBlockForm();
+    setBlockWeekday(String(weekday));
+    setRhythmPopoverOpen(true);
+    setMessage(null);
+    setActionError(null);
+  }
+
+  function openEditRhythmPopover(block: CleanTemplateBlock) {
+    setEditingTemplateBlockId(block.id);
+    setBlockWeekday(String(block.weekday));
+    setBlockTitle(block.title);
+    setBlockLearningArea(block.learningArea ?? "");
+    setBlockLearnerId(block.learnerId ?? "");
+    setBlockStartTime(block.startsAt ? safeTimeString(block.startsAt) : "");
+    setBlockEndTime(block.endsAt ? safeTimeString(block.endsAt) : "");
+    setBlockProgramId(block.programId ?? "");
+    setBlockProgramSegmentId(block.programSegmentId ?? "");
+    setBlockSessionLabel(block.sessionLabel ?? "");
+    setBlockNotes(block.notes ?? "");
+    setRhythmPopoverOpen(true);
+    setMessage(null);
+    setActionError(null);
+  }
+
+  function closeRhythmPopover() {
+    setRhythmPopoverOpen(false);
+    resetTemplateBlockForm();
+  }
+
   async function handleAcademicYearSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
@@ -585,15 +1072,18 @@ function CleanCalendarWorkspaceBody() {
         countryCode: yearCountryCode || null,
         jurisdictionCode: yearJurisdictionCode || null,
       });
+
       setSelectedAcademicYearId(created.id);
-      setMessage("Academic year created.");
+      setShowYearComposer(false);
+      setShowLearningPeriodComposer(true);
+      setMessage("Learning year saved.");
       setYearTitle("");
       await reloadSetupData();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean academic year.",
+          "We could not save this learning year.",
         ),
       );
     } finally {
@@ -618,14 +1108,18 @@ function CleanCalendarWorkspaceBody() {
         endsOn: periodEndsOn,
         isBreak: periodIsBreak,
       });
-      setMessage("Learning period created.");
+
+      setMessage("Learning period saved.");
+      setShowLearningPeriodComposer(false);
       setPeriodTitle("");
+      setPeriodType("term");
+      setPeriodIsBreak(false);
       await reloadSetupData();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean learning period.",
+          "We could not save this learning period.",
         ),
       );
     } finally {
@@ -646,11 +1140,13 @@ function CleanCalendarWorkspaceBody() {
         title: templateTitle,
         description: templateDescription || null,
         scopeType: templateScopeType,
-        learnerId: templateLearnerId || null,
+        learnerId: templateScopeType === "learner" ? templateLearnerId || null : null,
         isActive: true,
       });
+
       setSelectedTemplateId(created.id);
-      setMessage("Master template created.");
+      setShowTemplateComposer(false);
+      setMessage("Weekly rhythm saved.");
       setTemplateTitle("");
       setTemplateDescription("");
       setTemplateLearnerId("");
@@ -660,7 +1156,7 @@ function CleanCalendarWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean master template.",
+          "We could not save this weekly rhythm.",
         ),
       );
     } finally {
@@ -668,8 +1164,7 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
-  async function handleTemplateBlockSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleTemplateBlockSubmit() {
     if (!workspace.profile || !selectedTemplateId) return;
 
     setSubmitting(true);
@@ -696,23 +1191,22 @@ function CleanCalendarWorkspaceBody() {
           editingTemplateBlockId,
           payload,
         );
-        setMessage("Template block updated.");
       } else {
         await createCleanTemplateBlock(
           workspace.profile.id,
           selectedTemplateId,
           payload,
         );
-        setMessage("Template block created.");
       }
 
-      resetTemplateBlockForm();
+      closeRhythmPopover();
+      setMessage("Rhythm block saved.");
       await reloadTemplateBlocks();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean template block.",
+          "We could not save this rhythm block.",
         ),
       );
     } finally {
@@ -720,24 +1214,10 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
-  function handleEditTemplateBlock(block: CleanTemplateBlock) {
-    setEditingTemplateBlockId(block.id);
-    setBlockWeekday(String(block.weekday));
-    setBlockTitle(block.title);
-    setBlockLearningArea(block.learningArea ?? "");
-    setBlockLearnerId(block.learnerId ?? "");
-    setBlockStartTime(block.startsAt ? safeTimeString(block.startsAt) : "");
-    setBlockEndTime(block.endsAt ? safeTimeString(block.endsAt) : "");
-    setBlockProgramId(block.programId ?? "");
-    setBlockProgramSegmentId(block.programSegmentId ?? "");
-    setBlockSessionLabel(block.sessionLabel ?? "");
-    setBlockNotes(block.notes ?? "");
-  }
-
   async function handlePreviewGeneration() {
     const nextPreview = buildCleanGeneratedWeekPreview({
-      weekStartsOn: generationWeekStart,
-      weekEndsOn: generationWeekEnd,
+      weekStartsOn: selectedWeekStart,
+      weekEndsOn: selectedWeekEnd,
       templateBlocks,
       blackoutDays,
       programSegments: programSegments.map((segment) => ({
@@ -746,8 +1226,9 @@ function CleanCalendarWorkspaceBody() {
         title: segment.title,
       })),
     });
+
     setPreviewSuggestions(nextPreview);
-    setMessage("Week preview generated. Review before recording the run.");
+    setMessage("This week's draft is ready to review.");
     setActionError(null);
   }
 
@@ -762,8 +1243,8 @@ function CleanCalendarWorkspaceBody() {
       const payload = previewSuggestions.length
         ? previewSuggestions
         : buildCleanGeneratedWeekPreview({
-            weekStartsOn: generationWeekStart,
-            weekEndsOn: generationWeekEnd,
+            weekStartsOn: selectedWeekStart,
+            weekEndsOn: selectedWeekEnd,
             templateBlocks,
             blackoutDays,
             programSegments: programSegments.map((segment) => ({
@@ -777,24 +1258,26 @@ function CleanCalendarWorkspaceBody() {
         academicYearId: selectedAcademicYearId || null,
         learningPeriodId: selectedLearningPeriodId || null,
         masterTemplateId: selectedTemplateId || null,
-        weekStartsOn: generationWeekStart,
-        weekEndsOn: generationWeekEnd,
+        weekStartsOn: selectedWeekStart,
+        weekEndsOn: selectedWeekEnd,
         mergeStrategy: "fill-empty",
         status: "recorded",
         previewPayload: payload,
         createdItemsCount: payload.filter((item) => !item.skippedReason).length,
         skippedItemsCount: payload.filter((item) => Boolean(item.skippedReason)).length,
-        notes: "Scaffold only. Calendar item application remains a later controlled step.",
+        notes: "Saved from the clean weekly planning preview.",
       });
 
       setPreviewSuggestions(payload);
-      setMessage("Generation run recorded. Calendar application is intentionally deferred.");
+      setMessage(
+        "Planning snapshot saved. Your live calendar stays unchanged until you add or edit blocks below.",
+      );
       await reloadSetupData();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not record the clean generation run.",
+          "We could not save this planning snapshot.",
         ),
       );
     } finally {
@@ -825,10 +1308,10 @@ function CleanCalendarWorkspaceBody() {
 
       if (editingItemId) {
         await updateCleanCalendarItem(workspace.profile.id, editingItemId, payload);
-        setMessage("Calendar block updated.");
+        setMessage("This week's block was updated.");
       } else {
         await createCleanCalendarItem(workspace.profile.id, payload);
-        setMessage("Calendar block created.");
+        setMessage("This week's block was added.");
       }
 
       closePopover();
@@ -837,7 +1320,7 @@ function CleanCalendarWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean calendar block.",
+          "We could not save this week's block.",
         ),
       );
     } finally {
@@ -854,16 +1337,18 @@ function CleanCalendarWorkspaceBody() {
 
     try {
       await deleteCleanCalendarItem(workspace.profile.id, item.id);
-      setMessage("Calendar block deleted.");
+      setMessage("This block was removed from the week.");
+
       if (editingItemId === item.id) {
         closePopover();
       }
+
       await reloadWeekItems();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not delete the clean calendar block.",
+          "We could not remove this block from the week.",
         ),
       );
     } finally {
@@ -885,22 +1370,25 @@ function CleanCalendarWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              MyLearna planning
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Calendar</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              The calendar is the central planning surface. This controlled build adds term setup, weekly rhythm scaffolding, a generate-week preview, and direct popover add/edit.
+            <p style={secondaryTextStyle}>
+              Set term dates, keep a reusable weekly rhythm, and shape the real week when
+              you need it.
             </p>
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading clean family workspace...</section> : null}
+        {workspace.loading ? (
+          <section style={cardStyle}>Loading your clean planning space...</section>
+        ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
-            <strong style={{ display: "block", marginBottom: 8 }}>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong>
-            <p style={{ margin: 0, color: "#475569" }}>
-              The clean calendar and intelligence scaffolds will not fall back to legacy planning tables.
+            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Planning setup not ready yet</h2>
+            <p style={secondaryTextStyle}>
+              The clean planning tables are not installed yet, so this page cannot load.
             </p>
           </section>
         ) : null}
@@ -908,15 +1396,15 @@ function CleanCalendarWorkspaceBody() {
         {!workspace.loading && !workspace.schemaMissing && workspace.error ? (
           <section style={cardStyle}>
             <strong style={{ display: "block", marginBottom: 8 }}>Workspace error</strong>
-            <p style={{ margin: 0, color: "#475569" }}>{workspace.error}</p>
+            <p style={secondaryTextStyle}>{workspace.error}</p>
           </section>
         ) : null}
 
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
-            <p style={{ margin: 0, color: "#475569" }}>
-              Calendar intelligence is family-scoped in the clean rebuild. Create the family profile first on{" "}
+            <p style={secondaryTextStyle}>
+              This calendar is family-based. Create your family profile first on{" "}
               <Link href="/my-profile">My Profile</Link>.
             </p>
           </section>
@@ -925,8 +1413,9 @@ function CleanCalendarWorkspaceBody() {
         {readyForCalendar && !workspace.learners.length ? (
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
-            <p style={{ margin: 0, color: "#475569" }}>
-              Add at least one learner on <Link href="/my-profile">My Profile</Link> before building terms, weekly rhythm, or generated weeks.
+            <p style={secondaryTextStyle}>
+              Add at least one learner on <Link href="/my-profile">My Profile</Link> before
+              setting learning periods or building a weekly rhythm.
             </p>
           </section>
         ) : null}
@@ -936,441 +1425,339 @@ function CleanCalendarWorkspaceBody() {
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 16 }}>
                 <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Learning year and periods</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Set the year first, then add terms, units, or break windows. Generation uses these dates to stay inside the parent-defined learning rhythm.
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Learning periods</h2>
+                  <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                    A learning period is the span of time you want MyLearna to plan inside
+                    — for example Term 1, Autumn term, Semester 1, or a custom unit block.
                   </p>
                 </div>
 
-                <form onSubmit={handleAcademicYearSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <input
-                      value={yearTitle}
-                      onChange={(event) => setYearTitle(event.target.value)}
-                      placeholder="Academic year title"
-                      style={inputStyle}
-                    />
-                    <input
-                      value={yearCountryCode}
-                      onChange={(event) => setYearCountryCode(event.target.value.toUpperCase())}
-                      placeholder="Country code"
-                      style={inputStyle}
-                    />
-                    <input
-                      value={yearJurisdictionCode}
-                      onChange={(event) => setYearJurisdictionCode(event.target.value)}
-                      placeholder="State / jurisdiction"
-                      style={inputStyle}
-                    />
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <input type="date" value={yearStartsOn} onChange={(event) => setYearStartsOn(event.target.value)} style={inputStyle} />
-                    <input type="date" value={yearEndsOn} onChange={(event) => setYearEndsOn(event.target.value)} style={inputStyle} />
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button type="submit" style={buttonStyle} disabled={submitting}>
-                      {submitting ? "Saving..." : "Add academic year"}
-                    </button>
-                    <button
-                      type="button"
-                      style={mutedButtonStyle}
-                      onClick={() => void reloadSetupData()}
-                      disabled={setupLoading || submitting}
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 16,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                  }}
+                >
+                  <div style={subCardStyle}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                      }}
                     >
-                      {setupLoading ? "Refreshing..." : "Refresh setup"}
-                    </button>
-                  </div>
-                </form>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <strong style={{ color: "#0f172a" }}>1. Choose your year</strong>
+                        <p style={secondaryTextStyle}>
+                          Start with the bigger date window you want the planner to work
+                          inside.
+                        </p>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          style={mutedButtonStyle}
+                          onClick={() => setShowYearComposer((current) => !current)}
+                        >
+                          {shouldShowYearComposer ? "Hide year form" : "Add year"}
+                        </button>
+                        <button
+                          type="button"
+                          style={mutedButtonStyle}
+                          onClick={() => void reloadSetupData()}
+                          disabled={setupLoading || submitting}
+                        >
+                          {setupLoading ? "Refreshing..." : "Refresh"}
+                        </button>
+                      </div>
+                    </div>
 
-                {academicYears.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {academicYears.map((year) => {
-                      const yearPeriods = learningPeriods.filter(
-                        (period) => period.academicYearId === year.id,
-                      );
-                      const isSelected = selectedAcademicYearId === year.id;
-
-                      return (
+                    {shouldShowYearComposer ? (
+                      <form onSubmit={handleAcademicYearSubmit} style={{ display: "grid", gap: 12 }}>
                         <div
-                          key={year.id}
                           style={{
-                            border: isSelected ? "2px solid #1d4ed8" : "1px solid #e2e8f0",
-                            borderRadius: 14,
-                            padding: 14,
                             display: "grid",
-                            gap: 8,
+                            gap: 12,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <div>
-                              <strong>{year.title}</strong>
-                              <div style={{ color: "#64748b", marginTop: 4 }}>
-                                {formatWeekRangeLabel(year.startsOn, year.endsOn)}
-                              </div>
-                            </div>
+                          <input
+                            value={yearTitle}
+                            onChange={(event) => setYearTitle(event.target.value)}
+                            placeholder="2026 learning year"
+                            style={inputStyle}
+                          />
+                          <input
+                            value={yearCountryCode}
+                            onChange={(event) =>
+                              setYearCountryCode(event.target.value.toUpperCase())
+                            }
+                            placeholder="Country code"
+                            style={inputStyle}
+                          />
+                          <input
+                            value={yearJurisdictionCode}
+                            onChange={(event) => setYearJurisdictionCode(event.target.value)}
+                            placeholder="State or region"
+                            style={inputStyle}
+                          />
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 12,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          }}
+                        >
+                          <input
+                            type="date"
+                            value={yearStartsOn}
+                            onChange={(event) => setYearStartsOn(event.target.value)}
+                            style={inputStyle}
+                          />
+                          <input
+                            type="date"
+                            value={yearEndsOn}
+                            onChange={(event) => setYearEndsOn(event.target.value)}
+                            style={inputStyle}
+                          />
+                        </div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <button type="submit" style={buttonStyle} disabled={submitting}>
+                            {submitting ? "Saving..." : "Save year"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+
+                    {academicYears.length ? (
+                      <div style={{ display: "grid", gap: 12 }}>
+                        {academicYears.map((year) => {
+                          const yearPeriods = learningPeriods.filter(
+                            (period) => period.academicYearId === year.id,
+                          );
+                          const isSelected = selectedAcademicYearId === year.id;
+
+                          return (
                             <button
+                              key={year.id}
                               type="button"
                               style={{
-                                ...buttonStyle,
-                                background: isSelected ? "#1d4ed8" : "#ffffff",
-                                borderColor: isSelected ? "#1d4ed8" : "#0f172a",
-                                color: isSelected ? "#ffffff" : "#0f172a",
+                                border: isSelected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
+                                borderRadius: 14,
+                                background: "#ffffff",
+                                padding: 14,
+                                display: "grid",
+                                gap: 8,
+                                textAlign: "left",
+                                cursor: "pointer",
                               }}
                               onClick={() => setSelectedAcademicYearId(year.id)}
                             >
-                              {isSelected ? "Selected" : "Use year"}
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <strong style={{ color: "#0f172a" }}>{year.title}</strong>
+                                <span
+                                  style={{
+                                    padding: "4px 10px",
+                                    borderRadius: 999,
+                                    background: isSelected ? "#dbeafe" : "#e2e8f0",
+                                    color: isSelected ? "#1d4ed8" : "#475569",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {isSelected ? "Selected" : "Use this year"}
+                                </span>
+                              </div>
+                              <div style={{ color: "#475569" }}>
+                                {formatWeekRangeLabel(year.startsOn, year.endsOn)}
+                              </div>
+                              <div style={{ color: "#64748b", fontSize: 13 }}>
+                                {yearPeriods.length
+                                  ? `${yearPeriods.length} learning period${yearPeriods.length === 1 ? "" : "s"}`
+                                  : "No learning periods yet"}
+                              </div>
                             </button>
-                          </div>
-                          {yearPeriods.length ? (
-                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                              {yearPeriods
-                                .map((period) => `${period.title} (${period.periodType})`)
-                                .join(" - ")}
-                            </div>
-                          ) : (
-                            <div style={{ color: "#475569" }}>
-                              No learning periods added to this year yet.
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p style={secondaryTextStyle}>
+                        No year set yet. Add one before creating terms or unit blocks.
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p style={{ margin: 0, color: "#475569" }}>
-                    No academic year yet. Add one before setting terms or breaks.
-                  </p>
-                )}
 
-                <form onSubmit={handleLearningPeriodSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <select
-                      value={selectedAcademicYearId}
-                      onChange={(event) => setSelectedAcademicYearId(event.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">Select academic year</option>
-                      {academicYears.map((year) => (
-                        <option key={year.id} value={year.id}>
-                          {year.title}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={periodTitle}
-                      onChange={(event) => setPeriodTitle(event.target.value)}
-                      placeholder="Learning period title"
-                      style={inputStyle}
-                    />
-                    <select
-                      value={periodType}
-                      onChange={(event) => setPeriodType(event.target.value as CleanLearningPeriodType)}
-                      style={inputStyle}
-                    >
-                      {PERIOD_TYPES.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <input type="date" value={periodStartsOn} onChange={(event) => setPeriodStartsOn(event.target.value)} style={inputStyle} />
-                    <input type="date" value={periodEndsOn} onChange={(event) => setPeriodEndsOn(event.target.value)} style={inputStyle} />
-                    <label
+                  <div style={subCardStyle}>
+                    <div
                       style={{
                         display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        color: "#475569",
-                        padding: "10px 12px",
-                        border: "1px solid #cbd5e1",
-                        borderRadius: 10,
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={periodIsBreak}
-                        onChange={(event) => setPeriodIsBreak(event.target.checked)}
-                      />
-                      Mark as break / non-learning period
-                    </label>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <button type="submit" style={buttonStyle} disabled={submitting || !selectedAcademicYearId}>
-                      {submitting ? "Saving..." : "Add learning period"}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </section>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <strong style={{ color: "#0f172a" }}>2. Add your learning periods</strong>
+                        <p style={secondaryTextStyle}>
+                          Choose the year, then add term dates, semesters, breaks, or custom
+                          blocks.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        style={mutedButtonStyle}
+                        onClick={() => setShowLearningPeriodComposer((current) => !current)}
+                        disabled={!selectedAcademicYear}
+                      >
+                        {shouldShowLearningPeriodComposer ? "Hide period form" : "Add period"}
+                      </button>
+                    </div>
 
-            <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 16 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Weekly rhythm / master template</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Parents can stay manual forever, or use a weekly rhythm to make generation easier. Family-wide templates are the default.
-                  </p>
-                </div>
+                    {selectedAcademicYear ? (
+                      <div
+                        style={{
+                          border: "1px solid #cbd5e1",
+                          borderRadius: 14,
+                          padding: 14,
+                          background: "#ffffff",
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a" }}>{selectedAcademicYear.title}</strong>
+                        <div style={{ color: "#475569" }}>
+                          {formatWeekRangeLabel(
+                            selectedAcademicYear.startsOn,
+                            selectedAcademicYear.endsOn,
+                          )}
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: 13 }}>
+                          Example periods: Term 1, Autumn term, Semester 1, Unit block
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={secondaryTextStyle}>
+                        Pick a year first so your periods have a clear home.
+                      </p>
+                    )}
 
-                <form onSubmit={handleTemplateSubmit} style={{ display: "grid", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                    }}
-                  >
-                    <input
-                      value={templateTitle}
-                      onChange={(event) => setTemplateTitle(event.target.value)}
-                      placeholder="Template title"
-                      style={inputStyle}
-                    />
-                    <select
-                      value={templateScopeType}
-                      onChange={(event) => setTemplateScopeType(event.target.value as "family" | "learner")}
-                      style={inputStyle}
-                    >
-                      <option value="family">Family-wide rhythm</option>
-                      <option value="learner">Learner-specific rhythm</option>
-                    </select>
-                    <select
-                      value={templateLearnerId}
-                      onChange={(event) => setTemplateLearnerId(event.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">No learner override</option>
-                      {learnerOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <textarea
-                    value={templateDescription}
-                    onChange={(event) => setTemplateDescription(event.target.value)}
-                    placeholder="Optional description"
-                    style={textAreaStyle}
-                  />
-                  <button type="submit" style={buttonStyle} disabled={submitting}>
-                    {submitting ? "Saving..." : "Add weekly rhythm"}
-                  </button>
-                </form>
-
-                {masterTemplates.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    {masterTemplates.map((template) => {
-                      const learnerLabel =
-                        learnerOptions.find((option) => option.value === template.learnerId)?.label ||
-                        "Family-wide";
-                      const isSelected = selectedTemplateId === template.id;
-
-                      return (
+                    {shouldShowLearningPeriodComposer ? (
+                      <form onSubmit={handleLearningPeriodSubmit} style={{ display: "grid", gap: 12 }}>
                         <div
-                          key={template.id}
                           style={{
-                            border: isSelected ? "2px solid #1d4ed8" : "1px solid #e2e8f0",
-                            borderRadius: 14,
-                            padding: 14,
                             display: "grid",
-                            gap: 8,
+                            gap: 12,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
                           }}
                         >
-                          <div
+                          <select
+                            value={selectedAcademicYearId}
+                            onChange={(event) => setSelectedAcademicYearId(event.target.value)}
+                            style={inputStyle}
+                          >
+                            <option value="">Choose a year</option>
+                            {academicYears.map((year) => (
+                              <option key={year.id} value={year.id}>
+                                {year.title}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            value={periodTitle}
+                            onChange={(event) => setPeriodTitle(event.target.value)}
+                            placeholder="Term 1, Autumn term, Unit block"
+                            style={inputStyle}
+                          />
+                          <select
+                            value={periodType}
+                            onChange={(event) =>
+                              setPeriodType(event.target.value as CleanLearningPeriodType)
+                            }
+                            style={inputStyle}
+                          >
+                            {PERIOD_TYPES.map((option) => (
+                              <option key={option} value={option}>
+                                {formatPeriodTypeLabel(option, false)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 12,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                          }}
+                        >
+                          <input
+                            type="date"
+                            value={periodStartsOn}
+                            onChange={(event) => setPeriodStartsOn(event.target.value)}
+                            style={inputStyle}
+                          />
+                          <input
+                            type="date"
+                            value={periodEndsOn}
+                            onChange={(event) => setPeriodEndsOn(event.target.value)}
+                            style={inputStyle}
+                          />
+                          <label
                             style={{
                               display: "flex",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              flexWrap: "wrap",
+                              alignItems: "center",
+                              gap: 10,
+                              color: "#475569",
+                              padding: "10px 12px",
+                              border: "1px solid #cbd5e1",
+                              borderRadius: 10,
+                              background: "#ffffff",
                             }}
                           >
-                            <div>
-                              <strong>{template.title}</strong>
-                              <div style={{ color: "#64748b", marginTop: 4 }}>
-                                {template.scopeType === "learner" ? learnerLabel : "Family-wide"}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              style={{
-                                ...buttonStyle,
-                                background: isSelected ? "#1d4ed8" : "#ffffff",
-                                borderColor: isSelected ? "#1d4ed8" : "#0f172a",
-                                color: isSelected ? "#ffffff" : "#0f172a",
-                              }}
-                              onClick={() => setSelectedTemplateId(template.id)}
-                            >
-                              {isSelected ? "Selected" : "Use template"}
-                            </button>
-                          </div>
-                          {template.description ? (
-                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                              {template.description}
-                            </p>
-                          ) : null}
+                            <input
+                              type="checkbox"
+                              checked={periodIsBreak}
+                              onChange={(event) => setPeriodIsBreak(event.target.checked)}
+                            />
+                            Mark this as a break
+                          </label>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p style={{ margin: 0, color: "#475569" }}>
-                    No weekly rhythm yet. Parents can still use the calendar manually.
-                  </p>
-                )}
-
-                {selectedTemplate ? (
-                  <>
-                    <form onSubmit={handleTemplateBlockSubmit} style={{ display: "grid", gap: 12 }}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        }}
-                      >
-                        <select
-                          value={blockWeekday}
-                          onChange={(event) => setBlockWeekday(event.target.value)}
-                          style={inputStyle}
-                        >
-                          {WEEKDAY_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={blockTitle}
-                          onChange={(event) => setBlockTitle(event.target.value)}
-                          placeholder="Block title"
-                          style={inputStyle}
-                        />
-                        <input
-                          value={blockLearningArea}
-                          onChange={(event) => setBlockLearningArea(event.target.value)}
-                          placeholder="Learning area"
-                          list="clean-learning-areas"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        }}
-                      >
-                        <input type="time" value={blockStartTime} onChange={(event) => setBlockStartTime(event.target.value)} style={inputStyle} />
-                        <input type="time" value={blockEndTime} onChange={(event) => setBlockEndTime(event.target.value)} style={inputStyle} />
-                        <select value={blockLearnerId} onChange={(event) => setBlockLearnerId(event.target.value)} style={inputStyle}>
-                          <option value="">Family / all learners</option>
-                          {learnerOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                        }}
-                      >
-                        <select value={blockProgramId} onChange={(event) => setBlockProgramId(event.target.value)} style={inputStyle}>
-                          <option value="">No linked program</option>
-                          {programOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <select value={blockProgramSegmentId} onChange={(event) => setBlockProgramSegmentId(event.target.value)} style={inputStyle}>
-                          <option value="">No linked segment</option>
-                          {visibleBlockSegments.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          value={blockSessionLabel}
-                          onChange={(event) => setBlockSessionLabel(event.target.value)}
-                          placeholder="Optional session label"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <textarea
-                        value={blockNotes}
-                        onChange={(event) => setBlockNotes(event.target.value)}
-                        placeholder="Optional weekly rhythm notes"
-                        style={textAreaStyle}
-                      />
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button type="submit" style={buttonStyle} disabled={submitting}>
-                          {submitting ? "Saving..." : editingTemplateBlockId ? "Save block" : "Add block"}
-                        </button>
-                        {editingTemplateBlockId ? (
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button
-                            type="button"
-                            style={mutedButtonStyle}
-                            onClick={resetTemplateBlockForm}
-                            disabled={submitting}
+                            type="submit"
+                            style={buttonStyle}
+                            disabled={submitting || !selectedAcademicYearId}
                           >
-                            Cancel edit
+                            {submitting ? "Saving..." : "Save period"}
                           </button>
-                        ) : null}
-                      </div>
-                    </form>
+                        </div>
+                      </form>
+                    ) : null}
 
-                    {templateBlocksLoading ? (
-                      <p style={{ margin: 0, color: "#475569" }}>Loading weekly rhythm blocks...</p>
-                    ) : templateBlocks.length ? (
-                      <div style={{ display: "grid", gap: 12 }}>
-                        {templateBlocks.map((block) => (
+                    {visibleLearningPeriods.length ? (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {visibleLearningPeriods.map((period) => (
                           <div
-                            key={block.id}
+                            key={period.id}
                             style={{
-                              border: "1px solid #e2e8f0",
+                              border: "1px solid #cbd5e1",
                               borderRadius: 14,
                               padding: 14,
+                              background: "#ffffff",
                               display: "grid",
-                              gap: 8,
+                              gap: 6,
                             }}
                           >
                             <div
@@ -1378,315 +1765,763 @@ function CleanCalendarWorkspaceBody() {
                                 display: "flex",
                                 justifyContent: "space-between",
                                 gap: 12,
+                                alignItems: "center",
                                 flexWrap: "wrap",
                               }}
                             >
-                              <div>
-                                <strong>
-                                  {WEEKDAY_OPTIONS.find((option) => option.value === block.weekday)?.label} - {block.title}
-                                </strong>
-                                <div style={{ color: "#64748b", marginTop: 4 }}>
-                                  {block.startsAt || block.endsAt
-                                    ? `${block.startsAt ?? ""}${block.endsAt ? ` to ${block.endsAt}` : ""}`
-                                    : "No set time"}
-                                  {block.learningArea ? ` - ${block.learningArea}` : ""}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                style={mutedButtonStyle}
-                                onClick={() => handleEditTemplateBlock(block)}
+                              <strong style={{ color: "#0f172a" }}>{period.title}</strong>
+                              <span
+                                style={{
+                                  padding: "4px 10px",
+                                  borderRadius: 999,
+                                  background: period.isBreak ? "#fef3c7" : "#dbeafe",
+                                  color: period.isBreak ? "#92400e" : "#1d4ed8",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                }}
                               >
-                                Edit
-                              </button>
+                                {formatPeriodTypeLabel(period.periodType, period.isBreak)}
+                              </span>
                             </div>
-                            {block.notes ? (
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                {block.notes}
-                              </p>
-                            ) : null}
+                            <div style={{ color: "#475569" }}>
+                              {formatWeekRangeLabel(period.startsOn, period.endsOn)}
+                            </div>
                           </div>
                         ))}
                       </div>
-                    ) : (
-                      <p style={{ margin: 0, color: "#475569" }}>
-                        No rhythm blocks yet. Add the first one above.
+                    ) : selectedAcademicYear ? (
+                      <p style={secondaryTextStyle}>
+                        No learning periods yet for this year. Add your first term or block
+                        above.
                       </p>
-                    )}
-                  </>
-                ) : null}
+                    ) : null}
+                  </div>
+                </div>
               </div>
             </section>
 
             <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 16 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Generate this week</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    This scaffold previews the week from the selected template and records the generation run only. It does not overwrite or auto-apply calendar items yet.
-                  </p>
-                </div>
-
+              <div style={{ display: "grid", gap: 18 }}>
                 <div
                   style={{
-                    display: "grid",
+                    display: "flex",
+                    justifyContent: "space-between",
                     gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    alignItems: "center",
+                    flexWrap: "wrap",
                   }}
                 >
-                  <input type="date" value={generationWeekStart} onChange={(event) => setGenerationWeekStart(event.target.value)} style={inputStyle} />
-                  <select value={selectedLearningPeriodId} onChange={(event) => setSelectedLearningPeriodId(event.target.value)} style={inputStyle}>
-                    <option value="">No learning period selected</option>
-                    {visibleLearningPeriods.map((period) => (
-                      <option key={period.id} value={period.id}>
-                        {period.title}
-                      </option>
-                    ))}
-                  </select>
-                  <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)} style={inputStyle}>
-                    <option value="">No master template selected</option>
-                    {masterTemplates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    style={buttonStyle}
-                    onClick={() => void handlePreviewGeneration()}
-                    disabled={!selectedTemplateId}
-                  >
-                    Preview generated week
-                  </button>
-                  <button
-                    type="button"
-                    style={mutedButtonStyle}
-                    onClick={() => void handleRecordGenerationRun()}
-                    disabled={!selectedTemplateId || submitting}
-                  >
-                    {submitting ? "Recording..." : "Record generation run"}
-                  </button>
-                </div>
-
-                {previewSuggestions.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <div style={{ color: "#475569" }}>
-                      Preview for {formatWeekRangeLabel(generationWeekStart, generationWeekEnd)}.{" "}
-                      {generationSummary.created} suggested block(s), {generationSummary.skipped} skipped day marker(s).
-                    </div>
-                    {previewSuggestions.slice(0, 12).map((item, index) => (
-                      <div
-                        key={`${item.plannedDate}-${item.title}-${index}`}
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          display: "grid",
-                          gap: 6,
-                        }}
-                      >
-                        <strong>{item.title}</strong>
-                        <div style={{ color: "#64748b" }}>
-                          {formatDateLabel(item.plannedDate)}
-                          {item.startsAt ? ` - ${formatTimeLabel(item.startsAt)}` : ""}
-                          {item.learningArea ? ` - ${item.learningArea}` : ""}
-                        </div>
-                        {item.skippedReason ? (
-                          <div style={{ color: "#b45309" }}>{item.skippedReason}</div>
-                        ) : null}
-                      </div>
-                    ))}
+                  <div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Weekly planner</h2>
+                    <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                      Keep your reusable rhythm separate from the real week, then switch
+                      between the two as needed.
+                    </p>
                   </div>
-                ) : (
-                  <p style={{ margin: 0, color: "#475569" }}>
-                    No generation preview yet. Use the selected weekly rhythm to preview the week first.
-                  </p>
-                )}
-
-                {generationRuns.length ? (
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <strong style={{ color: "#0f172a" }}>Recent generation runs</strong>
-                    {generationRuns.slice(0, 4).map((run) => (
-                      <div
-                        key={run.id}
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          display: "grid",
-                          gap: 4,
-                        }}
-                      >
-                        <strong>{formatWeekRangeLabel(run.weekStartsOn, run.weekEndsOn)}</strong>
-                        <span style={{ color: "#475569" }}>
-                          {run.status} - {run.createdItemsCount} suggested, {run.skippedItemsCount} skipped
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </section>
-
-            <section style={cardStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Week view</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Click a day or block to open the small direct popover. This is the controlled Google-style interaction scaffold for the clean calendar.
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" style={mutedButtonStyle} onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, -7))}>
-                    Previous week
-                  </button>
-                  <button type="button" style={mutedButtonStyle} onClick={() => setSelectedWeekStart(getWeekStart())}>
-                    This week
-                  </button>
-                  <button type="button" style={mutedButtonStyle} onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))}>
-                    Next week
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ marginTop: 12, color: "#475569" }}>
-                {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
-              </div>
-
-              {itemsLoading ? <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>Loading week items...</p> : null}
-              {itemsError ? <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
-              {setupError ? <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>{setupError}</p> : null}
-
-              <div
-                style={{
-                  marginTop: 16,
-                  display: "grid",
-                  gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                }}
-              >
-                {weekDates.map((dateValue) => {
-                  const dayItems = itemsByDate.get(dateValue) ?? [];
-
-                  return (
-                    <div
-                      key={dateValue}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: 12,
+                      padding: 4,
+                      background: "#f8fafc",
+                      gap: 4,
+                    }}
+                  >
+                    <button
+                      type="button"
                       style={{
-                        border: "1px solid #dbeafe",
-                        borderRadius: 16,
-                        padding: 14,
-                        background: "#f8fbff",
-                        display: "grid",
-                        gap: 12,
+                        ...buttonStyle,
+                        padding: "9px 14px",
+                        background: planningView === "master" ? "#0f172a" : "#ffffff",
+                        color: planningView === "master" ? "#ffffff" : "#0f172a",
+                        borderColor: planningView === "master" ? "#0f172a" : "#ffffff",
                       }}
+                      onClick={() => setPlanningView("master")}
                     >
+                      Master rhythm
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        ...buttonStyle,
+                        padding: "9px 14px",
+                        background: planningView === "week" ? "#0f172a" : "#ffffff",
+                        color: planningView === "week" ? "#ffffff" : "#0f172a",
+                        borderColor: planningView === "week" ? "#0f172a" : "#ffffff",
+                      }}
+                      onClick={() => setPlanningView("week")}
+                    >
+                      This week
+                    </button>
+                  </div>
+                </div>
+
+                {planningView === "master" ? (
+                  <div style={{ display: "grid", gap: 16 }}>
+                    <div style={subCardStyle}>
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          gap: 8,
-                          alignItems: "center",
+                          gap: 12,
+                          alignItems: "flex-start",
+                          flexWrap: "wrap",
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>{formatDateLabel(dateValue)}</strong>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <strong style={{ color: "#0f172a" }}>Choose a weekly rhythm</strong>
+                          <p style={secondaryTextStyle}>
+                            This is your reusable pattern. It does not change the real week
+                            until you choose to plan inside This week.
+                          </p>
+                        </div>
                         <button
                           type="button"
-                          style={{ ...buttonStyle, padding: "8px 10px" }}
-                          onClick={() => openCreatePopover(dateValue)}
+                          style={mutedButtonStyle}
+                          onClick={() => setShowTemplateComposer((current) => !current)}
                         >
-                          Add
+                          {shouldShowTemplateComposer ? "Hide rhythm form" : "Add rhythm"}
                         </button>
                       </div>
 
-                      {dayItems.length ? (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {dayItems.map((item) => {
+                      {shouldShowTemplateComposer ? (
+                        <form onSubmit={handleTemplateSubmit} style={{ display: "grid", gap: 12 }}>
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 12,
+                              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                            }}
+                          >
+                            <input
+                              value={templateTitle}
+                              onChange={(event) => setTemplateTitle(event.target.value)}
+                              placeholder="Family rhythm or Maya's rhythm"
+                              style={inputStyle}
+                            />
+                            <select
+                              value={templateScopeType}
+                              onChange={(event) => {
+                                const nextValue = event.target.value as "family" | "learner";
+                                setTemplateScopeType(nextValue);
+                                if (nextValue === "family") {
+                                  setTemplateLearnerId("");
+                                }
+                              }}
+                              style={inputStyle}
+                            >
+                              <option value="family">Whole family</option>
+                              <option value="learner">One learner</option>
+                            </select>
+                            {templateScopeType === "learner" ? (
+                              <select
+                                value={templateLearnerId}
+                                onChange={(event) => setTemplateLearnerId(event.target.value)}
+                                style={inputStyle}
+                              >
+                                <option value="">Choose learner</option>
+                                {learnerOptions.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
+                          <textarea
+                            value={templateDescription}
+                            onChange={(event) => setTemplateDescription(event.target.value)}
+                            placeholder="Optional notes about how this rhythm works for your family"
+                            style={textAreaStyle}
+                          />
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button type="submit" style={buttonStyle} disabled={submitting}>
+                              {submitting ? "Saving..." : "Save rhythm"}
+                            </button>
+                          </div>
+                        </form>
+                      ) : null}
+
+                      {masterTemplates.length ? (
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 12,
+                            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                          }}
+                        >
+                          {masterTemplates.map((template) => {
                             const learnerLabel =
-                              learnerOptions.find((option) => option.value === item.learnerId)?.label ||
-                              "Family / all learners";
+                              learnerOptions.find((option) => option.value === template.learnerId)
+                                ?.label || "Whole family";
+                            const isSelected = selectedTemplateId === template.id;
 
                             return (
-                              <div
-                                key={item.id}
+                              <button
+                                key={template.id}
+                                type="button"
                                 style={{
-                                  border: "1px solid #bfdbfe",
+                                  border: isSelected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
                                   borderRadius: 14,
                                   background: "#ffffff",
-                                  padding: 12,
+                                  padding: 14,
                                   display: "grid",
-                                  gap: 6,
+                                  gap: 8,
+                                  textAlign: "left",
                                   cursor: "pointer",
                                 }}
-                                onClick={() => openEditPopover(item)}
+                                onClick={() => setSelectedTemplateId(template.id)}
                               >
-                                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                                  <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 12,
+                                    alignItems: "center",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  <strong style={{ color: "#0f172a" }}>{template.title}</strong>
                                   <span
                                     style={{
+                                      padding: "4px 10px",
+                                      borderRadius: 999,
+                                      background: isSelected ? "#dbeafe" : "#e2e8f0",
+                                      color: isSelected ? "#1d4ed8" : "#475569",
                                       fontSize: 12,
-                                      color: item.sourceType === "manual" ? "#64748b" : "#1d4ed8",
                                       fontWeight: 700,
-                                      textTransform: "uppercase",
                                     }}
                                   >
-                                    {item.sourceType}
+                                    {isSelected ? "Selected" : "Open"}
                                   </span>
                                 </div>
                                 <div style={{ color: "#475569" }}>
-                                  {item.startsAt || item.endsAt
-                                    ? `${formatTimeLabel(item.startsAt)}${item.endsAt ? ` to ${formatTimeLabel(item.endsAt)}` : ""}`
-                                    : "Any time"}
+                                  {template.scopeType === "learner" ? learnerLabel : "Whole family"}
                                 </div>
-                                <div style={{ color: "#64748b" }}>
-                                  {learnerLabel}
-                                  {item.learningArea ? ` - ${item.learningArea}` : ""}
+                                <div style={{ color: "#64748b", fontSize: 13 }}>
+                                  {template.description || "Reusable weekly rhythm"}
                                 </div>
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                  <button
-                                    type="button"
-                                    style={mutedButtonStyle}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      openEditPopover(item);
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      void handleDeleteItem(item);
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>
                       ) : (
-                        <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                          No blocks yet. Click Add to use the small in-place popover.
+                        <p style={secondaryTextStyle}>
+                          No weekly rhythm yet. You can still plan directly inside This week.
                         </p>
                       )}
                     </div>
-                  );
-                })}
+
+                    {selectedTemplate ? (
+                      <div style={subCardStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "flex-start",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a" }}>{selectedTemplate.title}</strong>
+                            <p style={secondaryTextStyle}>
+                              {selectedTemplate.description ||
+                                "Click a day to shape the usual flow of your week."}
+                            </p>
+                          </div>
+                          <div
+                            style={{
+                              padding: "6px 12px",
+                              borderRadius: 999,
+                              background: "#e2e8f0",
+                              color: "#334155",
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {selectedTemplate.scopeType === "learner"
+                              ? learnerOptions.find(
+                                  (option) => option.value === selectedTemplate.learnerId,
+                                )?.label || "Learner rhythm"
+                              : "Whole family"}
+                          </div>
+                        </div>
+
+                        {templateBlocksLoading ? (
+                          <p style={secondaryTextStyle}>Loading your weekly rhythm...</p>
+                        ) : (
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 12,
+                              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            }}
+                          >
+                            {WEEKDAY_OPTIONS.map((day) => {
+                              const dayBlocks = templateBlocksByWeekday.get(day.value) ?? [];
+
+                              return (
+                                <div
+                                  key={day.value}
+                                  style={{
+                                    border: "1px solid #cbd5e1",
+                                    borderRadius: 16,
+                                    background: "#ffffff",
+                                    padding: 14,
+                                    display: "grid",
+                                    gap: 12,
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      gap: 8,
+                                      alignItems: "center",
+                                    }}
+                                  >
+                                    <strong style={{ color: "#0f172a" }}>{day.label}</strong>
+                                    <button
+                                      type="button"
+                                      style={{ ...buttonStyle, padding: "8px 10px" }}
+                                      onClick={() => openCreateRhythmPopover(day.value)}
+                                    >
+                                      Add block
+                                    </button>
+                                  </div>
+
+                                  {dayBlocks.length ? (
+                                    <div style={{ display: "grid", gap: 10 }}>
+                                      {dayBlocks.map((block) => {
+                                        const learnerLabel =
+                                          learnerOptions.find(
+                                            (option) => option.value === block.learnerId,
+                                          )?.label || "Whole family";
+
+                                        return (
+                                          <button
+                                            key={block.id}
+                                            type="button"
+                                            style={{
+                                              border: "1px solid #dbeafe",
+                                              borderRadius: 14,
+                                              background: "#f8fbff",
+                                              padding: 12,
+                                              display: "grid",
+                                              gap: 6,
+                                              textAlign: "left",
+                                              cursor: "pointer",
+                                            }}
+                                            onClick={() => openEditRhythmPopover(block)}
+                                          >
+                                            <strong style={{ color: "#0f172a" }}>{block.title}</strong>
+                                            <div style={{ color: "#475569" }}>
+                                              {formatClockRangeLabel(block.startsAt, block.endsAt)}
+                                            </div>
+                                            <div style={{ color: "#64748b", fontSize: 13 }}>
+                                              {learnerLabel}
+                                              {block.learningArea ? ` - ${block.learningArea}` : ""}
+                                            </div>
+                                            {block.sessionLabel ? (
+                                              <div style={{ color: "#64748b", fontSize: 13 }}>
+                                                {block.sessionLabel}
+                                              </div>
+                                            ) : null}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <p style={secondaryTextStyle}>
+                                      No blocks yet. Click Add block to sketch the shape of this
+                                      day.
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gap: 16 }}>
+                    <div style={subCardStyle}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: "#0f172a" }}>Plan this week</strong>
+                          <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
+                            Use your weekly rhythm as a guide. The preview stays separate from
+                            your live calendar until you decide what to keep.
+                          </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, -7))}
+                          >
+                            Previous week
+                          </button>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={() => setSelectedWeekStart(getWeekStart())}
+                          >
+                            This week
+                          </button>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={() => setSelectedWeekStart(addDays(selectedWeekStart, 7))}
+                          >
+                            Next week
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ color: "#475569", fontWeight: 700 }}>
+                        {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                            Week starting
+                          </span>
+                          <input
+                            type="date"
+                            value={selectedWeekStart}
+                            onChange={(event) =>
+                              setSelectedWeekStart(getWeekStart(event.target.value))
+                            }
+                            style={inputStyle}
+                          />
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                            Learning period
+                          </span>
+                          <select
+                            value={selectedLearningPeriodId}
+                            onChange={(event) => setSelectedLearningPeriodId(event.target.value)}
+                            style={inputStyle}
+                          >
+                            <option value="">Optional: choose a learning period</option>
+                            {visibleLearningPeriods.map((period) => (
+                              <option key={period.id} value={period.id}>
+                                {period.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
+                            Weekly rhythm
+                          </span>
+                          <select
+                            value={selectedTemplateId}
+                            onChange={(event) => setSelectedTemplateId(event.target.value)}
+                            style={inputStyle}
+                          >
+                            <option value="">Optional: choose a weekly rhythm</option>
+                            {masterTemplates.map((template) => (
+                              <option key={template.id} value={template.id}>
+                                {template.title}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          style={buttonStyle}
+                          onClick={() => void handlePreviewGeneration()}
+                          disabled={!selectedTemplateId}
+                        >
+                          Preview this week
+                        </button>
+                        <button
+                          type="button"
+                          style={mutedButtonStyle}
+                          onClick={() => void handleRecordGenerationRun()}
+                          disabled={!selectedTemplateId || submitting}
+                        >
+                          {submitting ? "Saving..." : "Save planning snapshot"}
+                        </button>
+                      </div>
+
+                      {previewSuggestions.length ? (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <div
+                            style={{
+                              border: "1px solid #cbd5e1",
+                              borderRadius: 14,
+                              padding: 14,
+                              background: "#ffffff",
+                              color: "#475569",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            Preview for {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}.
+                            {" "}
+                            {generationSummary.created} planned block
+                            {generationSummary.created === 1 ? "" : "s"} and{" "}
+                            {generationSummary.skipped} held day marker
+                            {generationSummary.skipped === 1 ? "" : "s"}.
+                            {" "}
+                            This preview sits beside your live week. It does not replace
+                            anything in the calendar below.
+                          </div>
+                          {previewSuggestions.slice(0, 12).map((item, index) => (
+                            <div
+                              key={`${item.plannedDate}-${item.title}-${index}`}
+                              style={{
+                                border: "1px solid #cbd5e1",
+                                borderRadius: 14,
+                                padding: 14,
+                                background: "#ffffff",
+                                display: "grid",
+                                gap: 6,
+                              }}
+                            >
+                              <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                              <div style={{ color: "#64748b" }}>
+                                {formatDateLabel(item.plannedDate)}
+                                {item.startsAt ? ` - ${formatTimeLabel(item.startsAt)}` : ""}
+                                {item.learningArea ? ` - ${item.learningArea}` : ""}
+                              </div>
+                              {item.skippedReason ? (
+                                <div style={{ color: "#b45309" }}>{item.skippedReason}</div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={secondaryTextStyle}>
+                          No preview yet. Choose a weekly rhythm, then preview this week if you
+                          want a reusable starting point.
+                        </p>
+                      )}
+
+                      {generationRuns.length ? (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <strong style={{ color: "#0f172a" }}>Recent planning snapshots</strong>
+                          {generationRuns.slice(0, 4).map((run) => (
+                            <div
+                              key={run.id}
+                              style={{
+                                border: "1px solid #cbd5e1",
+                                borderRadius: 14,
+                                padding: 14,
+                                background: "#ffffff",
+                                display: "grid",
+                                gap: 4,
+                              }}
+                            >
+                              <strong style={{ color: "#0f172a" }}>
+                                {formatWeekRangeLabel(run.weekStartsOn, run.weekEndsOn)}
+                              </strong>
+                              <span style={{ color: "#475569" }}>
+                                {getSnapshotStatusLabel(run.status)} - {run.createdItemsCount} planned,{" "}
+                                {run.skippedItemsCount} held
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div style={subCardStyle}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: "#0f172a" }}>Live week</strong>
+                          <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
+                            Click a day to add something, or click an existing block to adjust
+                            the real week.
+                          </p>
+                        </div>
+                      </div>
+
+                      {itemsLoading ? (
+                        <p style={secondaryTextStyle}>Loading this week&apos;s blocks...</p>
+                      ) : null}
+                      {itemsError ? (
+                        <p style={{ margin: 0, color: "#b91c1c" }}>{itemsError}</p>
+                      ) : null}
+                      {setupError ? (
+                        <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>
+                      ) : null}
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                        }}
+                      >
+                        {weekDates.map((dateValue) => {
+                          const dayItems = itemsByDate.get(dateValue) ?? [];
+
+                          return (
+                            <div
+                              key={dateValue}
+                              style={{
+                                border: "1px solid #dbeafe",
+                                borderRadius: 16,
+                                padding: 14,
+                                background: "#f8fbff",
+                                display: "grid",
+                                gap: 12,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 8,
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div style={{ display: "grid", gap: 2 }}>
+                                  <strong style={{ color: "#0f172a" }}>
+                                    {formatLongDateLabel(dateValue)}
+                                  </strong>
+                                </div>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, padding: "8px 10px" }}
+                                  onClick={() => openCreatePopover(dateValue)}
+                                >
+                                  Add block
+                                </button>
+                              </div>
+
+                              {dayItems.length ? (
+                                <div style={{ display: "grid", gap: 10 }}>
+                                  {dayItems.map((item) => {
+                                    const learnerLabel =
+                                      learnerOptions.find(
+                                        (option) => option.value === item.learnerId,
+                                      )?.label || "Whole family";
+
+                                    return (
+                                      <div
+                                        key={item.id}
+                                        style={{
+                                          border: "1px solid #bfdbfe",
+                                          borderRadius: 14,
+                                          background: "#ffffff",
+                                          padding: 12,
+                                          display: "grid",
+                                          gap: 6,
+                                          cursor: "pointer",
+                                        }}
+                                        onClick={() => openEditPopover(item)}
+                                      >
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            gap: 8,
+                                            alignItems: "center",
+                                            flexWrap: "wrap",
+                                          }}
+                                        >
+                                          <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                                          <span
+                                            style={{
+                                              fontSize: 12,
+                                              color:
+                                                item.sourceType === "manual" ? "#64748b" : "#1d4ed8",
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            {getSourceLabel(item.sourceType)}
+                                          </span>
+                                        </div>
+                                        <div style={{ color: "#475569" }}>
+                                          {item.startsAt || item.endsAt
+                                            ? `${formatTimeLabel(item.startsAt)}${
+                                                item.endsAt
+                                                  ? ` to ${formatTimeLabel(item.endsAt)}`
+                                                  : ""
+                                              }`
+                                            : "Any time"}
+                                        </div>
+                                        <div style={{ color: "#64748b" }}>
+                                          {learnerLabel}
+                                          {item.learningArea ? ` - ${item.learningArea}` : ""}
+                                        </div>
+                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                          <button
+                                            type="button"
+                                            style={mutedButtonStyle}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              openEditPopover(item);
+                                            }}
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            type="button"
+                                            style={{
+                                              ...buttonStyle,
+                                              background: "#b91c1c",
+                                              borderColor: "#b91c1c",
+                                            }}
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              void handleDeleteItem(item);
+                                            }}
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <p style={secondaryTextStyle}>
+                                  No blocks yet. Click Add block to shape this day.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
           </>
@@ -1743,13 +2578,46 @@ function CleanCalendarWorkspaceBody() {
         onSave={() => void handlePopoverSave()}
         saving={submitting}
       />
+
+      <CleanRhythmBlockPopover
+        open={rhythmPopoverOpen}
+        mode={editingTemplateBlockId ? "edit" : "create"}
+        weekdayLabel={
+          WEEKDAY_OPTIONS.find((option) => option.value === Number.parseInt(blockWeekday, 10))
+            ?.label || "Day"
+        }
+        title={blockTitle}
+        learningArea={blockLearningArea}
+        learnerId={blockLearnerId}
+        startTime={blockStartTime}
+        endTime={blockEndTime}
+        programId={blockProgramId}
+        programSegmentId={blockProgramSegmentId}
+        sessionLabel={blockSessionLabel}
+        notes={blockNotes}
+        learnerOptions={learnerOptions}
+        programOptions={programOptions}
+        segmentOptions={visibleBlockSegments}
+        onChangeTitle={setBlockTitle}
+        onChangeLearningArea={setBlockLearningArea}
+        onChangeLearnerId={setBlockLearnerId}
+        onChangeStartTime={setBlockStartTime}
+        onChangeEndTime={setBlockEndTime}
+        onChangeProgramId={(value) => {
+          setBlockProgramId(value);
+          if (!value) {
+            setBlockProgramSegmentId("");
+          }
+        }}
+        onChangeProgramSegmentId={setBlockProgramSegmentId}
+        onChangeSessionLabel={setBlockSessionLabel}
+        onChangeNotes={setBlockNotes}
+        onClose={closeRhythmPopover}
+        onSave={() => void handleTemplateBlockSubmit()}
+        saving={submitting}
+      />
     </div>
   );
-}
-
-function safeTimeString(value: string) {
-  const time = String(value ?? "").trim();
-  return time.length >= 5 ? time.slice(0, 5) : time;
 }
 
 export default function CleanCalendarWorkspace() {

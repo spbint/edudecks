@@ -13,14 +13,22 @@ const overlayStyle: React.CSSProperties = {
 };
 
 const popoverStyle: React.CSSProperties = {
-  width: "min(520px, 100%)",
+  width: "min(560px, 100%)",
   border: "1px solid #cbd5e1",
   borderRadius: 18,
   background: "#ffffff",
   padding: 20,
   display: "grid",
-  gap: 12,
+  gap: 16,
   boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 6,
+  color: "#334155",
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -52,6 +60,16 @@ type Option = {
   value: string;
   label: string;
 };
+
+function formatDateLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
 
 export default function CleanCalendarPopover({
   open,
@@ -121,20 +139,25 @@ export default function CleanCalendarPopover({
               textTransform: "uppercase",
             }}
           >
-            Calendar popover
+            This week
           </div>
           <h2 style={{ margin: 0, color: "#0f172a" }}>
-            {mode === "edit" ? "Edit block" : "Add block"}
+            {mode === "edit" ? "Edit this block" : "Add a block"}
           </h2>
-          <p style={{ margin: 0, color: "#475569" }}>{plannedDate}</p>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+            {formatDateLabel(plannedDate)}
+          </p>
         </div>
 
-        <input
-          value={title}
-          onChange={(event) => onChangeTitle(event.target.value)}
-          placeholder="Title"
-          style={inputStyle}
-        />
+        <label style={labelStyle}>
+          What are you planning?
+          <input
+            value={title}
+            onChange={(event) => onChangeTitle(event.target.value)}
+            placeholder="Read-aloud, maths, nature walk"
+            style={inputStyle}
+          />
+        </label>
 
         <div
           style={{
@@ -143,25 +166,31 @@ export default function CleanCalendarPopover({
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           }}
         >
-          <select
-            value={learnerId}
-            onChange={(event) => onChangeLearnerId(event.target.value)}
-            style={inputStyle}
-          >
-            <option value="">Family / all learners</option>
-            {learnerOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <label style={labelStyle}>
+            Who is this for?
+            <select
+              value={learnerId}
+              onChange={(event) => onChangeLearnerId(event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">Whole family</option>
+              {learnerOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <input
-            value={learningArea}
-            onChange={(event) => onChangeLearningArea(event.target.value)}
-            placeholder="Learning area"
-            style={inputStyle}
-          />
+          <label style={labelStyle}>
+            Learning area
+            <input
+              value={learningArea}
+              onChange={(event) => onChangeLearningArea(event.target.value)}
+              placeholder="Optional"
+              style={inputStyle}
+            />
+          </label>
         </div>
 
         <div
@@ -171,18 +200,24 @@ export default function CleanCalendarPopover({
             gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           }}
         >
-          <input
-            type="time"
-            value={startTime}
-            onChange={(event) => onChangeStartTime(event.target.value)}
-            style={inputStyle}
-          />
-          <input
-            type="time"
-            value={endTime}
-            onChange={(event) => onChangeEndTime(event.target.value)}
-            style={inputStyle}
-          />
+          <label style={labelStyle}>
+            Start time
+            <input
+              type="time"
+              value={startTime}
+              onChange={(event) => onChangeStartTime(event.target.value)}
+              style={inputStyle}
+            />
+          </label>
+          <label style={labelStyle}>
+            End time
+            <input
+              type="time"
+              value={endTime}
+              onChange={(event) => onChangeEndTime(event.target.value)}
+              style={inputStyle}
+            />
+          </label>
         </div>
 
         <div
@@ -192,43 +227,55 @@ export default function CleanCalendarPopover({
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           }}
         >
-          <select
-            value={programId}
-            onChange={(event) => onChangeProgramId(event.target.value)}
-            style={inputStyle}
-          >
-            <option value="">No linked program</option>
-            {programOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <label style={labelStyle}>
+            Linked program
+            <select
+              value={programId}
+              onChange={(event) => onChangeProgramId(event.target.value)}
+              style={inputStyle}
+            >
+              <option value="">None</option>
+              {programOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <select
-            value={programSegmentId}
-            onChange={(event) => onChangeProgramSegmentId(event.target.value)}
-            style={inputStyle}
-          >
-            <option value="">No linked segment</option>
-            {segmentOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+          <label style={labelStyle}>
+            Program segment
+            <select
+              value={programSegmentId}
+              onChange={(event) => onChangeProgramSegmentId(event.target.value)}
+              style={inputStyle}
+              disabled={!programId || !segmentOptions.length}
+            >
+              <option value="">
+                {!programId ? "Choose a program first" : "None"}
               </option>
-            ))}
-          </select>
+              {segmentOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        <textarea
-          value={description}
-          onChange={(event) => onChangeDescription(event.target.value)}
-          placeholder="Optional notes"
-          style={textAreaStyle}
-        />
+        <label style={labelStyle}>
+          Notes
+          <textarea
+            value={description}
+            onChange={(event) => onChangeDescription(event.target.value)}
+            placeholder="Anything you want to remember for this block"
+            style={textAreaStyle}
+          />
+        </label>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button type="button" style={buttonStyle} onClick={onSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : mode === "edit" ? "Save changes" : "Save block"}
           </button>
           <button
             type="button"
@@ -236,7 +283,7 @@ export default function CleanCalendarPopover({
             onClick={onClose}
             disabled={saving}
           >
-            Close
+            Cancel
           </button>
         </div>
       </div>
