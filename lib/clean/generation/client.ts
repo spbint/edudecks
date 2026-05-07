@@ -158,6 +158,29 @@ function getSuggestionKey(plannedDate: string, sourceTemplateBlockId: string | n
   return `${plannedDate}::${blockId}`;
 }
 
+function buildSuggestionFromBlock(
+  dateValue: string,
+  block: BuildCleanGeneratedWeekPreviewInput["templateBlocks"][number],
+  skippedReason: string | null,
+): CleanGeneratedWeekSuggestion {
+  return {
+    plannedDate: dateValue,
+    title: block.title,
+    learnerId: block.learnerId,
+    learningArea: block.learningArea,
+    startsAt: combineDateAndTime(dateValue, block.startsAt),
+    endsAt: combineDateAndTime(dateValue, block.endsAt),
+    programId: block.programId,
+    programSegmentId: block.programSegmentId,
+    sourceType: "generated",
+    sourceTemplateBlockId: block.id,
+    sourceProgramSegmentId: block.programSegmentId,
+    sessionLabel: block.sessionLabel,
+    notes: block.notes,
+    skippedReason,
+  };
+}
+
 export function buildCleanGeneratedWeekPreview(
   input: BuildCleanGeneratedWeekPreviewInput,
 ) {
@@ -168,6 +191,9 @@ export function buildCleanGeneratedWeekPreview(
   const suggestions: CleanGeneratedWeekSuggestion[] = [];
 
   for (const dateValue of eachDateBetween(input.weekStartsOn, input.weekEndsOn)) {
+    const weekday = toIsoWeekday(dateValue);
+    const matchingBlocks = input.templateBlocks.filter((block) => block.weekday === weekday);
+
     if (
       selectedLearningPeriod &&
       !isDateBetween(
@@ -176,22 +202,15 @@ export function buildCleanGeneratedWeekPreview(
         selectedLearningPeriod.endsOn,
       )
     ) {
-      suggestions.push({
-        plannedDate: dateValue,
-        title: selectedLearningPeriod.title,
-        learnerId: null,
-        learningArea: null,
-        startsAt: null,
-        endsAt: null,
-        programId: null,
-        programSegmentId: null,
-        sourceType: "generated",
-        sourceTemplateBlockId: null,
-        sourceProgramSegmentId: null,
-        sessionLabel: null,
-        notes: null,
-        skippedReason: "Skipped because this date sits outside the chosen learning period.",
-      });
+      for (const block of matchingBlocks) {
+        suggestions.push(
+          buildSuggestionFromBlock(
+            dateValue,
+            block,
+            `Skipped because this date sits outside ${selectedLearningPeriod.title}.`,
+          ),
+        );
+      }
       continue;
     }
 
@@ -199,22 +218,15 @@ export function buildCleanGeneratedWeekPreview(
       selectedLearningPeriod &&
       (selectedLearningPeriod.isBreak || safe(selectedLearningPeriod.periodType) === "break")
     ) {
-      suggestions.push({
-        plannedDate: dateValue,
-        title: selectedLearningPeriod.title,
-        learnerId: null,
-        learningArea: null,
-        startsAt: null,
-        endsAt: null,
-        programId: null,
-        programSegmentId: null,
-        sourceType: "generated",
-        sourceTemplateBlockId: null,
-        sourceProgramSegmentId: null,
-        sessionLabel: null,
-        notes: null,
-        skippedReason: "Skipped because this is marked as a break.",
-      });
+      for (const block of matchingBlocks) {
+        suggestions.push(
+          buildSuggestionFromBlock(
+            dateValue,
+            block,
+            `Skipped because ${selectedLearningPeriod.title} is marked as a break.`,
+          ),
+        );
+      }
       continue;
     }
 
@@ -223,22 +235,15 @@ export function buildCleanGeneratedWeekPreview(
     );
 
     if (breakPeriod) {
-      suggestions.push({
-        plannedDate: dateValue,
-        title: breakPeriod.title,
-        learnerId: null,
-        learningArea: null,
-        startsAt: null,
-        endsAt: null,
-        programId: null,
-        programSegmentId: null,
-        sourceType: "generated",
-        sourceTemplateBlockId: null,
-        sourceProgramSegmentId: null,
-        sessionLabel: null,
-        notes: null,
-        skippedReason: "Skipped because this is marked as a break.",
-      });
+      for (const block of matchingBlocks) {
+        suggestions.push(
+          buildSuggestionFromBlock(
+            dateValue,
+            block,
+            `Skipped because ${breakPeriod.title} is marked as a break.`,
+          ),
+        );
+      }
       continue;
     }
 
@@ -250,45 +255,20 @@ export function buildCleanGeneratedWeekPreview(
     );
 
     if (blackout) {
-      suggestions.push({
-        plannedDate: dateValue,
-        title: blackout.title,
-        learnerId: null,
-        learningArea: null,
-        startsAt: null,
-        endsAt: null,
-        programId: null,
-        programSegmentId: null,
-        sourceType: "generated",
-        sourceTemplateBlockId: null,
-        sourceProgramSegmentId: null,
-        sessionLabel: null,
-        notes: null,
-        skippedReason: "Skipped because this day is blocked for learning.",
-      });
+      for (const block of matchingBlocks) {
+        suggestions.push(
+          buildSuggestionFromBlock(
+            dateValue,
+            block,
+            `Skipped because ${blackout.title} blocks learning on this day.`,
+          ),
+        );
+      }
       continue;
     }
 
-    const weekday = toIsoWeekday(dateValue);
-    const matchingBlocks = input.templateBlocks.filter((block) => block.weekday === weekday);
-
     for (const block of matchingBlocks) {
-      suggestions.push({
-        plannedDate: dateValue,
-        title: block.title,
-        learnerId: block.learnerId,
-        learningArea: block.learningArea,
-        startsAt: combineDateAndTime(dateValue, block.startsAt),
-        endsAt: combineDateAndTime(dateValue, block.endsAt),
-        programId: block.programId,
-        programSegmentId: block.programSegmentId,
-        sourceType: "generated",
-        sourceTemplateBlockId: block.id,
-        sourceProgramSegmentId: block.programSegmentId,
-        sessionLabel: block.sessionLabel,
-        notes: block.notes,
-        skippedReason: null,
-      });
+      suggestions.push(buildSuggestionFromBlock(dateValue, block, null));
     }
   }
 

@@ -124,6 +124,15 @@ const secondaryTextStyle: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
+const subtleFieldCardStyle: React.CSSProperties = {
+  border: "1px solid #cbd5e1",
+  borderRadius: 12,
+  background: "#ffffff",
+  padding: 12,
+  display: "grid",
+  gap: 8,
+};
+
 function getInteractiveZoneStyle(isActive: boolean): React.CSSProperties {
   return {
     width: "100%",
@@ -238,6 +247,15 @@ function formatLongDateLabel(value: string) {
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString(undefined, {
     weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function formatDayMonthLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "long",
   });
@@ -923,15 +941,46 @@ function CleanCalendarWorkspaceBody() {
         segmentLabel: item.programSegmentId
           ? segmentLabelById.get(item.programSegmentId) ?? null
           : null,
-        displayStatus: item.skippedReason
-          ? item.skippedReason
+        statusLabel: item.skippedReason
+          ? "Skipped"
           : alreadyPlanned
             ? "Already planned"
-            : "Ready to add",
+            : "Ready",
+        statusReason: item.skippedReason,
         canApply: !item.skippedReason && !alreadyPlanned,
       };
     });
   }, [items, learnerOptions, previewSuggestions, programOptions, programSegments]);
+
+  const previewDayGroups = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        plannedDate: string;
+        weekdayLabel: string;
+        items: typeof previewRows;
+      }
+    >();
+
+    for (const item of previewRows) {
+      const existing = grouped.get(item.plannedDate);
+
+      if (existing) {
+        existing.items.push(item);
+        continue;
+      }
+
+      grouped.set(item.plannedDate, {
+        plannedDate: item.plannedDate,
+        weekdayLabel: item.weekdayLabel,
+        items: [item],
+      });
+    }
+
+    return Array.from(grouped.values()).sort((left, right) =>
+      left.plannedDate.localeCompare(right.plannedDate),
+    );
+  }, [previewRows]);
 
   const shouldShowYearComposer = showYearComposer || !academicYears.length;
   const shouldShowLearningPeriodComposer =
@@ -1910,16 +1959,14 @@ function CleanCalendarWorkspaceBody() {
                             onChange={(event) => setPeriodEndsOn(event.target.value)}
                             style={inputStyle}
                           />
+                        </div>
+                        <div style={subtleFieldCardStyle}>
                           <label
                             style={{
                               display: "flex",
                               alignItems: "center",
                               gap: 10,
                               color: "#475569",
-                              padding: "10px 12px",
-                              border: "1px solid #cbd5e1",
-                              borderRadius: 10,
-                              background: "#ffffff",
                             }}
                           >
                             <input
@@ -1927,8 +1974,14 @@ function CleanCalendarWorkspaceBody() {
                               checked={periodIsBreak}
                               onChange={(event) => setPeriodIsBreak(event.target.checked)}
                             />
-                            Mark this as a break
+                            <span style={{ fontWeight: 700, color: "#334155" }}>
+                              Mark this as a break
+                            </span>
                           </label>
+                          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                            Only tick this for school holidays, public holidays, travel
+                            breaks, or weeks you do not want learning blocks generated.
+                          </p>
                         </div>
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button
@@ -2632,6 +2685,29 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                       ) : null}
 
+                      {selectedLearningPeriod &&
+                      (selectedLearningPeriod.isBreak ||
+                        selectedLearningPeriod.periodType === "break") ? (
+                        <div
+                          style={{
+                            border: "1px solid #fcd34d",
+                            borderRadius: 14,
+                            padding: 14,
+                            background: "#fffbeb",
+                            color: "#92400e",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          <strong style={{ color: "#92400e" }}>
+                            This period is marked as a break, so learning blocks will be skipped.
+                          </strong>
+                          <div style={{ marginTop: 6 }}>
+                            Choose a learning period that is not marked as a break, or edit this
+                            period.
+                          </div>
+                        </div>
+                      ) : null}
+
                       {previewSuggestions.length ? (
                         <div style={{ display: "grid", gap: 12 }}>
                           <div
@@ -2654,72 +2730,98 @@ function CleanCalendarWorkspaceBody() {
                               this week.
                             </div>
                           </div>
-                          {previewRows.slice(0, 18).map((item) => (
+                          {previewDayGroups.map((day) => (
                             <div
-                              key={item.previewKey}
+                              key={day.plannedDate}
                               style={{
                                 border: "1px solid #cbd5e1",
                                 borderRadius: 14,
                                 padding: 14,
                                 background: "#ffffff",
                                 display: "grid",
-                                gap: 8,
+                                gap: 12,
                               }}
                             >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                  alignItems: "center",
-                                }}
-                              >
-                                <strong style={{ color: "#0f172a" }}>{item.title}</strong>
-                                <span
-                                  style={{
-                                    padding: "4px 10px",
-                                    borderRadius: 999,
-                                    background: item.canApply
-                                      ? "#dcfce7"
-                                      : item.displayStatus === "Already planned"
-                                        ? "#e2e8f0"
-                                        : "#fef3c7",
-                                    color: item.canApply
-                                      ? "#166534"
-                                      : item.displayStatus === "Already planned"
-                                        ? "#475569"
-                                        : "#92400e",
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                  }}
-                                >
-                                  {item.displayStatus}
-                                </span>
+                              <div style={{ display: "grid", gap: 2 }}>
+                                <strong style={{ color: "#0f172a" }}>
+                                  {day.weekdayLabel} {formatDayMonthLabel(day.plannedDate)}
+                                </strong>
                               </div>
-                              <div style={{ color: "#64748b" }}>
-                                {item.weekdayLabel}, {formatDateLabel(item.plannedDate)}
-                                {item.startsAt ? ` - ${formatTimeLabel(item.startsAt)}` : ""}
+
+                              <div style={{ display: "grid", gap: 10 }}>
+                                {day.items.map((item) => (
+                                  <div
+                                    key={item.previewKey}
+                                    style={{
+                                      border: "1px solid #e2e8f0",
+                                      borderRadius: 12,
+                                      padding: 12,
+                                      background: "#f8fafc",
+                                      display: "grid",
+                                      gap: 8,
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        flexWrap: "wrap",
+                                        alignItems: "center",
+                                      }}
+                                    >
+                                      <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                                      <span
+                                        style={{
+                                          padding: "4px 10px",
+                                          borderRadius: 999,
+                                          background:
+                                            item.statusLabel === "Ready"
+                                              ? "#dcfce7"
+                                              : item.statusLabel === "Already planned"
+                                                ? "#e2e8f0"
+                                                : "#fef3c7",
+                                          color:
+                                            item.statusLabel === "Ready"
+                                              ? "#166534"
+                                              : item.statusLabel === "Already planned"
+                                                ? "#475569"
+                                                : "#92400e",
+                                          fontSize: 12,
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {item.statusLabel}
+                                      </span>
+                                    </div>
+                                    <div style={{ color: "#64748b" }}>
+                                      {item.startsAt
+                                        ? formatTimeLabel(item.startsAt)
+                                        : "Any time"}
+                                      {item.endsAt ? ` to ${formatTimeLabel(item.endsAt)}` : ""}
+                                    </div>
+                                    <div style={{ color: "#475569" }}>
+                                      {item.learnerLabel}
+                                      {item.learningArea ? ` - ${item.learningArea}` : ""}
+                                    </div>
+                                    {item.statusReason ? (
+                                      <div style={{ color: "#92400e", lineHeight: 1.6 }}>
+                                        {item.statusReason}
+                                      </div>
+                                    ) : null}
+                                    {item.programLabel || item.segmentLabel ? (
+                                      <div style={{ color: "#475569" }}>
+                                        {item.programLabel ? `Program: ${item.programLabel}` : ""}
+                                        {item.programLabel && item.segmentLabel ? " - " : ""}
+                                        {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
+                                      </div>
+                                    ) : null}
+                                    {item.sessionLabel ? (
+                                      <div style={{ color: "#475569" }}>{item.sessionLabel}</div>
+                                    ) : null}
+                                  </div>
+                                ))}
                               </div>
-                              <div style={{ color: "#475569" }}>
-                                {item.learnerLabel}
-                                {item.learningArea ? ` - ${item.learningArea}` : ""}
-                              </div>
-                              {item.programLabel || item.segmentLabel ? (
-                                <div style={{ color: "#475569" }}>
-                                  {item.programLabel ? `Program: ${item.programLabel}` : ""}
-                                  {item.programLabel && item.segmentLabel ? " - " : ""}
-                                  {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
-                                </div>
-                              ) : null}
-                              {item.sessionLabel ? (
-                                <div style={{ color: "#475569" }}>{item.sessionLabel}</div>
-                              ) : null}
-                              {item.notes ? (
-                                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                                  {item.notes}
-                                </div>
-                              ) : null}
                             </div>
                           ))}
                         </div>
