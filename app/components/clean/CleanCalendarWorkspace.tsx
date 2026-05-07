@@ -189,6 +189,7 @@ type PickerOption = {
 };
 
 type PlanningView = "master" | "week";
+type MasterWeekView = "school" | "full";
 
 function getTodayDate() {
   const now = new Date();
@@ -742,6 +743,8 @@ function CleanCalendarWorkspaceBody() {
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
+  const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
+  const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -813,6 +816,19 @@ function CleanCalendarWorkspaceBody() {
 
     return grouped;
   }, [templateBlocks]);
+
+  const hasWeekendTemplateBlocks = useMemo(
+    () => templateBlocks.some((block) => block.weekday === 6 || block.weekday === 7),
+    [templateBlocks],
+  );
+
+  const visibleMasterDays = useMemo(
+    () =>
+      masterWeekView === "school"
+        ? WEEKDAY_OPTIONS.filter((day) => day.value <= 5)
+        : WEEKDAY_OPTIONS,
+    [masterWeekView],
+  );
 
   const visibleBlockSegments = useMemo(() => {
     if (!blockProgramId) return [];
@@ -1085,6 +1101,15 @@ function CleanCalendarWorkspaceBody() {
       setSelectedLearningPeriodId("");
     }
   }, [selectedLearningPeriodId, visibleLearningPeriods]);
+
+  useEffect(() => {
+    setMasterWeekViewTouched(false);
+  }, [selectedTemplateId]);
+
+  useEffect(() => {
+    if (!selectedTemplateId || masterWeekViewTouched) return;
+    setMasterWeekView(hasWeekendTemplateBlocks ? "full" : "school");
+  }, [hasWeekendTemplateBlocks, masterWeekViewTouched, selectedTemplateId]);
 
   useEffect(() => {
     setPreviewSuggestions([]);
@@ -2204,33 +2229,113 @@ function CleanCalendarWorkspaceBody() {
                           </div>
                           <div
                             style={{
-                              padding: "6px 12px",
-                              borderRadius: 999,
-                              background: "#e2e8f0",
-                              color: "#334155",
-                              fontSize: 12,
-                              fontWeight: 700,
+                              display: "flex",
+                              gap: 8,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
                             }}
                           >
-                            {selectedTemplate.scopeType === "learner"
-                              ? learnerOptions.find(
-                                  (option) => option.value === selectedTemplate.learnerId,
-                                )?.label || "Learner rhythm"
-                              : "Whole family"}
+                            <div
+                              style={{
+                                display: "inline-flex",
+                                border: "1px solid #cbd5e1",
+                                borderRadius: 12,
+                                padding: 4,
+                                background: "#f8fafc",
+                                gap: 4,
+                              }}
+                            >
+                              <button
+                                type="button"
+                                style={{
+                                  ...buttonStyle,
+                                  padding: "8px 12px",
+                                  background:
+                                    masterWeekView === "school" ? "#0f172a" : "#ffffff",
+                                  color:
+                                    masterWeekView === "school" ? "#ffffff" : "#0f172a",
+                                  borderColor:
+                                    masterWeekView === "school" ? "#0f172a" : "#ffffff",
+                                }}
+                                onClick={() => {
+                                  setMasterWeekView("school");
+                                  setMasterWeekViewTouched(true);
+                                }}
+                              >
+                                School week
+                              </button>
+                              <button
+                                type="button"
+                                style={{
+                                  ...buttonStyle,
+                                  padding: "8px 12px",
+                                  background:
+                                    masterWeekView === "full" ? "#0f172a" : "#ffffff",
+                                  color:
+                                    masterWeekView === "full" ? "#ffffff" : "#0f172a",
+                                  borderColor:
+                                    masterWeekView === "full" ? "#0f172a" : "#ffffff",
+                                }}
+                                onClick={() => {
+                                  setMasterWeekView("full");
+                                  setMasterWeekViewTouched(true);
+                                }}
+                              >
+                                Full week
+                              </button>
+                            </div>
+                            <div
+                              style={{
+                                padding: "6px 12px",
+                                borderRadius: 999,
+                                background: "#e2e8f0",
+                                color: "#334155",
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {selectedTemplate.scopeType === "learner"
+                                ? learnerOptions.find(
+                                    (option) => option.value === selectedTemplate.learnerId,
+                                  )?.label || "Learner rhythm"
+                                : "Whole family"}
+                            </div>
                           </div>
                         </div>
+
+                        {hasWeekendTemplateBlocks && masterWeekView === "school" ? (
+                          <div
+                            style={{
+                              border: "1px solid #cbd5e1",
+                              borderRadius: 14,
+                              padding: 12,
+                              background: "#ffffff",
+                              color: "#475569",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            Weekend blocks are still part of this rhythm. Switch to Full week
+                            to view or edit Saturday and Sunday.
+                          </div>
+                        ) : null}
 
                         {templateBlocksLoading ? (
                           <p style={secondaryTextStyle}>Loading your weekly rhythm...</p>
                         ) : (
-                          <div
-                            style={{
-                              display: "grid",
-                              gap: 12,
-                              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                            }}
-                          >
-                            {WEEKDAY_OPTIONS.map((day) => {
+                          <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                            <div
+                              style={{
+                                display: "grid",
+                                gap: 12,
+                                gridTemplateColumns:
+                                  masterWeekView === "school"
+                                    ? "repeat(5, minmax(190px, 1fr))"
+                                    : "repeat(auto-fit, minmax(180px, 1fr))",
+                                minWidth: masterWeekView === "school" ? 998 : undefined,
+                              }}
+                            >
+                            {visibleMasterDays.map((day) => {
                               const dayBlocks = templateBlocksByWeekday.get(day.value) ?? [];
                               const emptyZoneSurfaceId = `master-empty-${day.value}`;
 
@@ -2379,6 +2484,7 @@ function CleanCalendarWorkspaceBody() {
                                 </div>
                               );
                             })}
+                            </div>
                           </div>
                         )}
                       </div>
