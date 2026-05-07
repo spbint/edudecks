@@ -14,8 +14,8 @@ import {
 } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
+  applyCleanGeneratedWeek,
   buildCleanGeneratedWeekPreview,
-  createCleanGenerationRun,
   listCleanGenerationRuns,
 } from "@/lib/clean/generation/client";
 import type {
@@ -239,6 +239,14 @@ function formatLongDateLabel(value: string) {
     weekday: "long",
     day: "numeric",
     month: "long",
+  });
+}
+
+function formatWeekdayLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
   });
 }
 
@@ -769,6 +777,11 @@ function CleanCalendarWorkspaceBody() {
     [masterTemplates, selectedTemplateId],
   );
 
+  const selectedLearningPeriod = useMemo(
+    () => learningPeriods.find((period) => period.id === selectedLearningPeriodId) ?? null,
+    [learningPeriods, selectedLearningPeriodId],
+  );
+
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
   const weekDates = useMemo(() => getWeekDates(selectedWeekStart), [selectedWeekStart]);
 
@@ -824,10 +837,85 @@ function CleanCalendarWorkspaceBody() {
   }, [popoverProgramId, programSegments]);
 
   const generationSummary = useMemo(() => {
-    const created = previewSuggestions.filter((item) => !item.skippedReason).length;
-    const skipped = previewSuggestions.filter((item) => Boolean(item.skippedReason)).length;
-    return { created, skipped };
-  }, [previewSuggestions]);
+    let readyToAdd = 0;
+    let alreadyPlanned = 0;
+    let skipped = 0;
+
+    const existingKeys = new Set(
+      items
+        .map((item) =>
+          item.sourceTemplateBlockId
+            ? `${item.plannedDate}::${item.sourceTemplateBlockId}`
+            : "",
+        )
+        .filter(Boolean),
+    );
+
+    for (const item of previewSuggestions) {
+      if (item.skippedReason) {
+        skipped += 1;
+        continue;
+      }
+
+      const duplicateKey = item.sourceTemplateBlockId
+        ? `${item.plannedDate}::${item.sourceTemplateBlockId}`
+        : "";
+
+      if (duplicateKey !== "" && existingKeys.has(duplicateKey)) {
+        alreadyPlanned += 1;
+      } else {
+        readyToAdd += 1;
+      }
+    }
+
+    return { readyToAdd, alreadyPlanned, skipped };
+  }, [items, previewSuggestions]);
+
+  const previewRows = useMemo(() => {
+    const learnerLabelById = new Map(learnerOptions.map((option) => [option.value, option.label]));
+    const programLabelById = new Map(programOptions.map((option) => [option.value, option.label]));
+    const segmentLabelById = new Map(
+      programSegments.map((segment) => [segment.id, segment.title]),
+    );
+    const existingKeys = new Set(
+      items
+        .map((item) =>
+          item.sourceTemplateBlockId
+            ? `${item.plannedDate}::${item.sourceTemplateBlockId}`
+            : "",
+        )
+        .filter(Boolean),
+    );
+
+    return previewSuggestions.map((item, index) => {
+      const duplicateKey = item.sourceTemplateBlockId
+        ? `${item.plannedDate}::${item.sourceTemplateBlockId}`
+        : "";
+      const alreadyPlanned =
+        !item.skippedReason &&
+        duplicateKey !== "" &&
+        existingKeys.has(duplicateKey);
+
+      return {
+        ...item,
+        previewKey: `${item.plannedDate}-${item.title}-${index}`,
+        weekdayLabel: formatWeekdayLabel(item.plannedDate),
+        learnerLabel: item.learnerId
+          ? learnerLabelById.get(item.learnerId) ?? "Learner"
+          : "Whole family",
+        programLabel: item.programId ? programLabelById.get(item.programId) ?? null : null,
+        segmentLabel: item.programSegmentId
+          ? segmentLabelById.get(item.programSegmentId) ?? null
+          : null,
+        displayStatus: item.skippedReason
+          ? item.skippedReason
+          : alreadyPlanned
+            ? "Already planned"
+            : "Ready to add",
+        canApply: !item.skippedReason && !alreadyPlanned,
+      };
+    });
+  }, [items, learnerOptions, previewSuggestions, programOptions, programSegments]);
 
   const shouldShowYearComposer = showYearComposer || !academicYears.length;
   const shouldShowLearningPeriodComposer =
@@ -1000,7 +1088,14 @@ function CleanCalendarWorkspaceBody() {
 
   useEffect(() => {
     setPreviewSuggestions([]);
-  }, [selectedWeekStart, selectedTemplateId, selectedLearningPeriodId, templateBlocks, blackoutDays]);
+  }, [
+    blackoutDays,
+    learningPeriods,
+    selectedLearningPeriodId,
+    selectedTemplateId,
+    selectedWeekStart,
+    templateBlocks,
+  ]);
 
   function resetTemplateBlockForm() {
     setEditingTemplateBlockId(null);
@@ -1246,70 +1341,114 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
-  async function handlePreviewGeneration() {
-    const nextPreview = buildCleanGeneratedWeekPreview({
+  function buildWeekPreview() {
+    return buildCleanGeneratedWeekPreview({
       weekStartsOn: selectedWeekStart,
       weekEndsOn: selectedWeekEnd,
       templateBlocks,
       blackoutDays,
+      breakPeriods: learningPeriods
+        .filter((period) => period.isBreak || period.periodType === "break")
+        .map((period) => ({
+          startsOn: period.startsOn,
+          endsOn: period.endsOn,
+          title: period.title,
+        })),
+      selectedLearningPeriod: selectedLearningPeriod
+        ? {
+            title: selectedLearningPeriod.title,
+            startsOn: selectedLearningPeriod.startsOn,
+            endsOn: selectedLearningPeriod.endsOn,
+            isBreak: selectedLearningPeriod.isBreak,
+            periodType: selectedLearningPeriod.periodType,
+          }
+        : null,
       programSegments: programSegments.map((segment) => ({
         id: segment.id,
         programId: segment.programId,
         title: segment.title,
       })),
     });
+  }
 
+  async function handlePreviewGeneration() {
+    if (!selectedTemplateId) {
+      setMessage("Choose or create a weekly rhythm first, then plan this week from rhythm.");
+      setActionError(null);
+      return;
+    }
+
+    const nextPreview = buildWeekPreview();
     setPreviewSuggestions(nextPreview);
-    setMessage("This week's draft is ready to review.");
+    setMessage("Preview your week below, then add the blocks you want to keep.");
     setActionError(null);
   }
 
-  async function handleRecordGenerationRun() {
+  async function handleApplyGeneratedWeek() {
     if (!workspace.profile) return;
+    if (!selectedTemplateId) {
+      setMessage("Choose or create a weekly rhythm first, then plan this week from rhythm.");
+      setActionError(null);
+      return;
+    }
+
+    if (!previewSuggestions.length) {
+      setMessage("Preview your week first, then add the blocks you want to keep.");
+      setActionError(null);
+      return;
+    }
 
     setSubmitting(true);
     setMessage(null);
     setActionError(null);
 
     try {
-      const payload = previewSuggestions.length
-        ? previewSuggestions
-        : buildCleanGeneratedWeekPreview({
-            weekStartsOn: selectedWeekStart,
-            weekEndsOn: selectedWeekEnd,
-            templateBlocks,
-            blackoutDays,
-            programSegments: programSegments.map((segment) => ({
-              id: segment.id,
-              programId: segment.programId,
-              title: segment.title,
-            })),
-          });
+      const latestWeekItems = await listCleanCalendarItems(workspace.profile.id, {
+        fromDate: selectedWeekStart,
+        toDate: selectedWeekEnd,
+        limit: 100,
+      });
 
-      await createCleanGenerationRun(workspace.profile.id, {
+      const result = await applyCleanGeneratedWeek(workspace.profile.id, {
         academicYearId: selectedAcademicYearId || null,
         learningPeriodId: selectedLearningPeriodId || null,
         masterTemplateId: selectedTemplateId || null,
         weekStartsOn: selectedWeekStart,
         weekEndsOn: selectedWeekEnd,
-        mergeStrategy: "fill-empty",
-        status: "recorded",
-        previewPayload: payload,
-        createdItemsCount: payload.filter((item) => !item.skippedReason).length,
-        skippedItemsCount: payload.filter((item) => Boolean(item.skippedReason)).length,
-        notes: "Saved from the clean weekly planning preview.",
+        previewSuggestions,
+        existingCalendarItems: latestWeekItems.map((item) => ({
+          plannedDate: item.plannedDate,
+          sourceTemplateBlockId: item.sourceTemplateBlockId,
+        })),
       });
 
-      setPreviewSuggestions(payload);
-      setMessage(
-        "Planning snapshot saved. Your live calendar stays unchanged until you add or edit blocks below.",
-      );
-      await reloadSetupData();
+      const alreadyPlannedCount = result.skippedItems.filter(
+        (item) => item.skippedReason === "Already planned",
+      ).length;
+      const blockedCount = result.skippedItems.length - alreadyPlannedCount;
+      const messageParts = [
+        `${result.createdItems.length} block${result.createdItems.length === 1 ? "" : "s"} added`,
+      ];
+
+      if (alreadyPlannedCount) {
+        messageParts.push(
+          `${alreadyPlannedCount} already planned`,
+        );
+      }
+
+      if (blockedCount) {
+        messageParts.push(
+          `${blockedCount} skipped for breaks or blocked days`,
+        );
+      }
+
+      setMessage(`${messageParts.join(". ")}.`);
+      await Promise.all([reloadWeekItems(), reloadSetupData()]);
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save this planning snapshot.",
+          "We could not add these blocks to this week.",
         ),
       );
     } finally {
@@ -2354,19 +2493,38 @@ function CleanCalendarWorkspaceBody() {
                           type="button"
                           style={buttonStyle}
                           onClick={() => void handlePreviewGeneration()}
-                          disabled={!selectedTemplateId}
                         >
-                          Preview this week
+                          Plan this week from rhythm
                         </button>
                         <button
                           type="button"
                           style={mutedButtonStyle}
-                          onClick={() => void handleRecordGenerationRun()}
-                          disabled={!selectedTemplateId || submitting}
+                          onClick={() => void handleApplyGeneratedWeek()}
+                          disabled={
+                            !previewSuggestions.length ||
+                            !previewRows.some((item) => item.canApply) ||
+                            submitting
+                          }
                         >
-                          {submitting ? "Saving..." : "Save planning snapshot"}
+                          {submitting ? "Adding..." : "Add these blocks to this week"}
                         </button>
                       </div>
+
+                      {!selectedTemplate ? (
+                        <div
+                          style={{
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 14,
+                            padding: 14,
+                            background: "#ffffff",
+                            color: "#475569",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          Choose or create a weekly rhythm first, then plan this week from
+                          rhythm.
+                        </div>
+                      ) : null}
 
                       {previewSuggestions.length ? (
                         <div style={{ display: "grid", gap: 12 }}>
@@ -2380,50 +2538,95 @@ function CleanCalendarWorkspaceBody() {
                               lineHeight: 1.6,
                             }}
                           >
-                            Preview for {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}.
-                            {" "}
-                            {generationSummary.created} planned block
-                            {generationSummary.created === 1 ? "" : "s"} and{" "}
-                            {generationSummary.skipped} held day marker
-                            {generationSummary.skipped === 1 ? "" : "s"}.
-                            {" "}
-                            This preview sits beside your live week. It does not replace
-                            anything in the calendar below.
+                            <strong style={{ color: "#0f172a" }}>Preview your week</strong>
+                            <div style={{ marginTop: 6 }}>
+                              {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}.{" "}
+                              {generationSummary.readyToAdd} ready to add,{" "}
+                              {generationSummary.alreadyPlanned} already planned,{" "}
+                              {generationSummary.skipped} skipped for breaks or blocked days.
+                              This preview stays read-only until you click Add these blocks to
+                              this week.
+                            </div>
                           </div>
-                          {previewSuggestions.slice(0, 12).map((item, index) => (
+                          {previewRows.slice(0, 18).map((item) => (
                             <div
-                              key={`${item.plannedDate}-${item.title}-${index}`}
+                              key={item.previewKey}
                               style={{
                                 border: "1px solid #cbd5e1",
                                 borderRadius: 14,
                                 padding: 14,
                                 background: "#ffffff",
                                 display: "grid",
-                                gap: 6,
+                                gap: 8,
                               }}
                             >
-                              <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  flexWrap: "wrap",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                                <span
+                                  style={{
+                                    padding: "4px 10px",
+                                    borderRadius: 999,
+                                    background: item.canApply
+                                      ? "#dcfce7"
+                                      : item.displayStatus === "Already planned"
+                                        ? "#e2e8f0"
+                                        : "#fef3c7",
+                                    color: item.canApply
+                                      ? "#166534"
+                                      : item.displayStatus === "Already planned"
+                                        ? "#475569"
+                                        : "#92400e",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                  }}
+                                >
+                                  {item.displayStatus}
+                                </span>
+                              </div>
                               <div style={{ color: "#64748b" }}>
-                                {formatDateLabel(item.plannedDate)}
+                                {item.weekdayLabel}, {formatDateLabel(item.plannedDate)}
                                 {item.startsAt ? ` - ${formatTimeLabel(item.startsAt)}` : ""}
+                              </div>
+                              <div style={{ color: "#475569" }}>
+                                {item.learnerLabel}
                                 {item.learningArea ? ` - ${item.learningArea}` : ""}
                               </div>
-                              {item.skippedReason ? (
-                                <div style={{ color: "#b45309" }}>{item.skippedReason}</div>
+                              {item.programLabel || item.segmentLabel ? (
+                                <div style={{ color: "#475569" }}>
+                                  {item.programLabel ? `Program: ${item.programLabel}` : ""}
+                                  {item.programLabel && item.segmentLabel ? " - " : ""}
+                                  {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
+                                </div>
+                              ) : null}
+                              {item.sessionLabel ? (
+                                <div style={{ color: "#475569" }}>{item.sessionLabel}</div>
+                              ) : null}
+                              {item.notes ? (
+                                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                  {item.notes}
+                                </div>
                               ) : null}
                             </div>
                           ))}
                         </div>
                       ) : (
                         <p style={secondaryTextStyle}>
-                          No preview yet. Choose a weekly rhythm, then preview this week if you
-                          want a reusable starting point.
+                          Choose a weekly rhythm, then plan this week from rhythm to preview
+                          what could be added.
                         </p>
                       )}
 
                       {generationRuns.length ? (
                         <div style={{ display: "grid", gap: 12 }}>
-                          <strong style={{ color: "#0f172a" }}>Recent planning snapshots</strong>
+                          <strong style={{ color: "#0f172a" }}>Recent week plans</strong>
                           {generationRuns.slice(0, 4).map((run) => (
                             <div
                               key={run.id}
@@ -2440,8 +2643,8 @@ function CleanCalendarWorkspaceBody() {
                                 {formatWeekRangeLabel(run.weekStartsOn, run.weekEndsOn)}
                               </strong>
                               <span style={{ color: "#475569" }}>
-                                {getSnapshotStatusLabel(run.status)} - {run.createdItemsCount} planned,{" "}
-                                {run.skippedItemsCount} held
+                                {getSnapshotStatusLabel(run.status)} - {run.createdItemsCount} added,{" "}
+                                {run.skippedItemsCount} skipped
                               </span>
                             </div>
                           ))}

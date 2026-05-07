@@ -1,9 +1,13 @@
+import { createCleanCalendarItems } from "@/lib/clean/calendar/client";
 import { supabase } from "@/lib/supabaseClient";
 import {
   getCurrentCleanUserId,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import type {
+  CleanApplyGeneratedWeekInput,
+  CleanApplyGeneratedWeekResult,
+  CleanApplyGeneratedWeekSkippedItem,
   BuildCleanGeneratedWeekPreviewInput,
   CleanGeneratedWeekSuggestion,
   CleanGenerationMergeStrategy,
@@ -144,25 +148,100 @@ function eachDateBetween(startsOn: string, endsOn: string) {
   return dates;
 }
 
+function isDateBetween(dateValue: string, startsOn: string, endsOn: string) {
+  return startsOn <= dateValue && endsOn >= dateValue;
+}
+
+function getSuggestionKey(plannedDate: string, sourceTemplateBlockId: string | null) {
+  const blockId = safe(sourceTemplateBlockId);
+  if (!blockId) return "";
+  return `${plannedDate}::${blockId}`;
+}
+
 export function buildCleanGeneratedWeekPreview(
   input: BuildCleanGeneratedWeekPreviewInput,
 ) {
   const blackoutDays = input.blackoutDays ?? [];
-  const programSegments = input.programSegments ?? [];
-
-  const segmentByProgramId = new Map<string, { id: string; title: string }>();
-  for (const segment of programSegments) {
-    if (!segmentByProgramId.has(segment.programId)) {
-      segmentByProgramId.set(segment.programId, {
-        id: segment.id,
-        title: segment.title,
-      });
-    }
-  }
+  const breakPeriods = input.breakPeriods ?? [];
+  const selectedLearningPeriod = input.selectedLearningPeriod ?? null;
 
   const suggestions: CleanGeneratedWeekSuggestion[] = [];
 
   for (const dateValue of eachDateBetween(input.weekStartsOn, input.weekEndsOn)) {
+    if (
+      selectedLearningPeriod &&
+      !isDateBetween(
+        dateValue,
+        selectedLearningPeriod.startsOn,
+        selectedLearningPeriod.endsOn,
+      )
+    ) {
+      suggestions.push({
+        plannedDate: dateValue,
+        title: selectedLearningPeriod.title,
+        learnerId: null,
+        learningArea: null,
+        startsAt: null,
+        endsAt: null,
+        programId: null,
+        programSegmentId: null,
+        sourceType: "generated",
+        sourceTemplateBlockId: null,
+        sourceProgramSegmentId: null,
+        sessionLabel: null,
+        notes: null,
+        skippedReason: "Skipped because this date sits outside the chosen learning period.",
+      });
+      continue;
+    }
+
+    if (
+      selectedLearningPeriod &&
+      (selectedLearningPeriod.isBreak || safe(selectedLearningPeriod.periodType) === "break")
+    ) {
+      suggestions.push({
+        plannedDate: dateValue,
+        title: selectedLearningPeriod.title,
+        learnerId: null,
+        learningArea: null,
+        startsAt: null,
+        endsAt: null,
+        programId: null,
+        programSegmentId: null,
+        sourceType: "generated",
+        sourceTemplateBlockId: null,
+        sourceProgramSegmentId: null,
+        sessionLabel: null,
+        notes: null,
+        skippedReason: "Skipped because this is marked as a break.",
+      });
+      continue;
+    }
+
+    const breakPeriod = breakPeriods.find((period) =>
+      isDateBetween(dateValue, period.startsOn, period.endsOn),
+    );
+
+    if (breakPeriod) {
+      suggestions.push({
+        plannedDate: dateValue,
+        title: breakPeriod.title,
+        learnerId: null,
+        learningArea: null,
+        startsAt: null,
+        endsAt: null,
+        programId: null,
+        programSegmentId: null,
+        sourceType: "generated",
+        sourceTemplateBlockId: null,
+        sourceProgramSegmentId: null,
+        sessionLabel: null,
+        notes: null,
+        skippedReason: "Skipped because this is marked as a break.",
+      });
+      continue;
+    }
+
     const blackout = blackoutDays.find(
       (item) =>
         item.isLearningBlocked &&
@@ -185,7 +264,7 @@ export function buildCleanGeneratedWeekPreview(
         sourceProgramSegmentId: null,
         sessionLabel: null,
         notes: null,
-        skippedReason: "Blackout day",
+        skippedReason: "Skipped because this day is blocked for learning.",
       });
       continue;
     }
@@ -194,28 +273,18 @@ export function buildCleanGeneratedWeekPreview(
     const matchingBlocks = input.templateBlocks.filter((block) => block.weekday === weekday);
 
     for (const block of matchingBlocks) {
-      const linkedSegment =
-        (block.programSegmentId
-          ? programSegments.find((segment) => segment.id === block.programSegmentId)
-          : null) ||
-        (block.programId ? segmentByProgramId.get(block.programId) ?? null : null);
-
-      const enrichedTitle = linkedSegment
-        ? `${block.title} - ${linkedSegment.title}`
-        : block.title;
-
       suggestions.push({
         plannedDate: dateValue,
-        title: enrichedTitle,
+        title: block.title,
         learnerId: block.learnerId,
         learningArea: block.learningArea,
         startsAt: combineDateAndTime(dateValue, block.startsAt),
         endsAt: combineDateAndTime(dateValue, block.endsAt),
         programId: block.programId,
-        programSegmentId: linkedSegment?.id ?? block.programSegmentId,
+        programSegmentId: block.programSegmentId,
         sourceType: "generated",
         sourceTemplateBlockId: block.id,
-        sourceProgramSegmentId: linkedSegment?.id ?? block.programSegmentId,
+        sourceProgramSegmentId: block.programSegmentId,
         sessionLabel: block.sessionLabel,
         notes: block.notes,
         skippedReason: null,
@@ -228,6 +297,91 @@ export function buildCleanGeneratedWeekPreview(
     if (dateCompare !== 0) return dateCompare;
     return safe(left.startsAt).localeCompare(safe(right.startsAt));
   });
+}
+
+export async function applyCleanGeneratedWeek(
+  familyId: string,
+  input: CleanApplyGeneratedWeekInput,
+): Promise<CleanApplyGeneratedWeekResult> {
+  const existingKeys = new Set(
+    input.existingCalendarItems
+      .map((item) => getSuggestionKey(item.plannedDate, item.sourceTemplateBlockId))
+      .filter(Boolean),
+  );
+
+  const skippedItems: CleanApplyGeneratedWeekSkippedItem[] = [];
+  const suggestionsToCreate: CleanGeneratedWeekSuggestion[] = [];
+
+  for (const suggestion of input.previewSuggestions) {
+    if (suggestion.skippedReason) {
+      skippedItems.push({
+        ...suggestion,
+        skippedReason: suggestion.skippedReason,
+      });
+      continue;
+    }
+
+    const suggestionKey = getSuggestionKey(
+      suggestion.plannedDate,
+      suggestion.sourceTemplateBlockId,
+    );
+
+    if (suggestionKey && existingKeys.has(suggestionKey)) {
+      skippedItems.push({
+        ...suggestion,
+        skippedReason: "Already planned",
+      });
+      continue;
+    }
+
+    suggestionsToCreate.push(suggestion);
+
+    if (suggestionKey) {
+      existingKeys.add(suggestionKey);
+    }
+  }
+
+  const generationRun = await createCleanGenerationRun(familyId, {
+    academicYearId: input.academicYearId ?? null,
+    learningPeriodId: input.learningPeriodId ?? null,
+    masterTemplateId: input.masterTemplateId ?? null,
+    weekStartsOn: input.weekStartsOn,
+    weekEndsOn: input.weekEndsOn,
+    mergeStrategy: "fill-empty",
+    status: "applied",
+    previewPayload: input.previewSuggestions,
+    createdItemsCount: suggestionsToCreate.length,
+    skippedItemsCount: skippedItems.length,
+    notes: "Applied from weekly rhythm.",
+  });
+
+  const createdItems = suggestionsToCreate.length
+    ? await createCleanCalendarItems(
+        familyId,
+        suggestionsToCreate.map((suggestion) => ({
+          title: suggestion.title,
+          plannedDate: suggestion.plannedDate,
+          learnerId: suggestion.learnerId,
+          programId: suggestion.programId,
+          programSegmentId: suggestion.programSegmentId,
+          description: suggestion.notes,
+          startsAt: suggestion.startsAt,
+          endsAt: suggestion.endsAt,
+          learningArea: suggestion.learningArea,
+          sessionLabel: suggestion.sessionLabel,
+          sourceType: "generated",
+          sourceTemplateBlockId: suggestion.sourceTemplateBlockId,
+          sourceProgramSegmentId: suggestion.sourceProgramSegmentId,
+          generationRunId: generationRun.id,
+        })),
+      )
+    : [];
+
+  return {
+    generationRun,
+    createdItems,
+    skippedItems,
+  };
 }
 
 export async function listCleanGenerationRuns(
@@ -260,7 +414,7 @@ export async function listCleanGenerationRuns(
     throw new Error(
       normalizeCleanErrorMessage(
         response.error,
-        "We could not load clean generation runs just now.",
+        "We could not load recent week plans just now.",
       ),
     );
   }
@@ -276,7 +430,7 @@ export async function createCleanGenerationRun(
 ) {
   const currentUserId = await getCurrentCleanUserId();
   if (!currentUserId) {
-    throw new Error("You need to sign in before recording a generation run.");
+    throw new Error("You need to sign in before saving this week plan.");
   }
 
   const weekStartsOn = safe(input.weekStartsOn);
@@ -312,7 +466,7 @@ export async function createCleanGenerationRun(
     throw new Error(
       normalizeCleanErrorMessage(
         response.error,
-        "Unable to record the clean generation run.",
+        "Unable to save this week plan.",
       ),
     );
   }

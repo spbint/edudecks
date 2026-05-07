@@ -1,4 +1,7 @@
-import type { CleanCalendarItemSourceType } from "@/lib/clean/calendar/types";
+import type {
+  CleanCalendarItem,
+  CleanCalendarItemSourceType,
+} from "@/lib/clean/calendar/types";
 
 export type CleanGenerationMergeStrategy =
   | "fill-empty"
@@ -89,9 +92,44 @@ export type BuildCleanGeneratedWeekPreviewInput = {
     isLearningBlocked: boolean;
     title: string;
   }>;
+  breakPeriods?: Array<{
+    startsOn: string;
+    endsOn: string;
+    title: string;
+  }>;
+  selectedLearningPeriod?: {
+    title: string;
+    startsOn: string;
+    endsOn: string;
+    isBreak: boolean;
+    periodType: string;
+  } | null;
   programSegments?: Array<{
     id: string;
     programId: string;
     title: string;
   }>;
+};
+
+export type CleanApplyGeneratedWeekInput = {
+  weekStartsOn: string;
+  weekEndsOn: string;
+  academicYearId?: string | null;
+  learningPeriodId?: string | null;
+  masterTemplateId?: string | null;
+  previewSuggestions: CleanGeneratedWeekSuggestion[];
+  existingCalendarItems: Array<{
+    plannedDate: string;
+    sourceTemplateBlockId: string | null;
+  }>;
+};
+
+export type CleanApplyGeneratedWeekSkippedItem = CleanGeneratedWeekSuggestion & {
+  skippedReason: string;
+};
+
+export type CleanApplyGeneratedWeekResult = {
+  generationRun: CleanGenerationRun;
+  createdItems: CleanCalendarItem[];
+  skippedItems: CleanApplyGeneratedWeekSkippedItem[];
 };

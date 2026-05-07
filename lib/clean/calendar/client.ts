@@ -256,6 +256,70 @@ export async function createCleanCalendarItem(
   return toCleanCalendarItem(response.data as CalendarItemRow);
 }
 
+export async function createCleanCalendarItems(
+  familyId: string,
+  inputs: CleanCalendarItemInput[],
+) {
+  if (!inputs.length) return [];
+
+  const currentUserId = await getCurrentCleanUserId();
+  if (!currentUserId) {
+    throw new Error("You need to sign in before adding calendar items.");
+  }
+
+  const payloads = inputs.map((input) => sanitizeCalendarItemInput(input));
+
+  for (const payload of payloads) {
+    if (!safe(payload.title)) {
+      throw new Error("A calendar item title is required.");
+    }
+
+    if (!sanitizeDate(payload.planned_date)) {
+      throw new Error("A planned date is required.");
+    }
+  }
+
+  const response = await supabase
+    .from("calendar_items")
+    .insert(
+      payloads.map((payload) => ({
+        family_id: familyId,
+        learner_id: payload.learner_id ?? null,
+        program_id: payload.program_id ?? null,
+        program_segment_id: payload.program_segment_id ?? null,
+        title: payload.title,
+        description: payload.description ?? null,
+        starts_at: payload.starts_at ?? null,
+        ends_at: payload.ends_at ?? null,
+        planned_date: payload.planned_date,
+        learning_area: payload.learning_area ?? null,
+        session_label: payload.session_label ?? null,
+        source_type: payload.source_type ?? "manual",
+        source_template_block_id: payload.source_template_block_id ?? null,
+        source_program_segment_id: payload.source_program_segment_id ?? null,
+        generation_run_id: payload.generation_run_id ?? null,
+        is_highlighted: payload.is_highlighted ?? false,
+        created_by_user_id: currentUserId,
+      })),
+    )
+    .select(
+      "id,family_id,learner_id,program_id,program_segment_id,title,description,starts_at,ends_at,planned_date,learning_area,session_label,source_type,source_template_block_id,source_program_segment_id,generation_run_id,is_highlighted,created_by_user_id,created_at,updated_at",
+    );
+
+  if (response.error) {
+    throw new Error(
+      normalizeCleanErrorMessage(
+        response.error,
+        "Unable to add these clean calendar items.",
+      ),
+    );
+  }
+
+  return sortCalendarItems(
+    (response.data ?? []).map((row) => toCleanCalendarItem(row as CalendarItemRow)),
+  );
+}
+
 export async function updateCleanCalendarItem(
   familyId: string,
   calendarItemId: string,
