@@ -207,7 +207,7 @@ export function buildCleanGeneratedWeekPreview(
           buildSuggestionFromBlock(
             dateValue,
             block,
-            `Skipped because this date sits outside ${selectedLearningPeriod.title}.`,
+            `This date falls outside ${selectedLearningPeriod.title}.`,
           ),
         );
       }
@@ -223,7 +223,7 @@ export function buildCleanGeneratedWeekPreview(
           buildSuggestionFromBlock(
             dateValue,
             block,
-            `Skipped because ${selectedLearningPeriod.title} is marked as a break.`,
+            `${selectedLearningPeriod.title} is marked as a break.`,
           ),
         );
       }
@@ -240,7 +240,7 @@ export function buildCleanGeneratedWeekPreview(
           buildSuggestionFromBlock(
             dateValue,
             block,
-            `Skipped because ${breakPeriod.title} is marked as a break.`,
+            `${breakPeriod.title} is marked as a break.`,
           ),
         );
       }
@@ -260,7 +260,7 @@ export function buildCleanGeneratedWeekPreview(
           buildSuggestionFromBlock(
             dateValue,
             block,
-            `Skipped because ${blackout.title} blocks learning on this day.`,
+            `${blackout.title} blocks learning on this day.`,
           ),
         );
       }
@@ -332,7 +332,7 @@ export async function applyCleanGeneratedWeek(
     previewPayload: input.previewSuggestions,
     createdItemsCount: suggestionsToCreate.length,
     skippedItemsCount: skippedItems.length,
-    notes: "Applied from weekly rhythm.",
+    notes: "Applied from master week.",
   });
 
   const createdItems = suggestionsToCreate.length

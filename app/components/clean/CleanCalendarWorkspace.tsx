@@ -199,6 +199,7 @@ type PickerOption = {
 
 type PlanningView = "master" | "week";
 type MasterWeekView = "school" | "full";
+type LearningPeriodComposerMode = "term" | "break";
 
 function getTodayDate() {
   const now = new Date();
@@ -226,6 +227,15 @@ function getWeekStart(dateValue = getTodayDate()) {
 
 function getWeekDates(weekStartsOn: string) {
   return Array.from({ length: 7 }, (_, index) => addDays(weekStartsOn, index));
+}
+
+function doDateRangesOverlap(
+  startsOn: string,
+  endsOn: string,
+  otherStartsOn: string,
+  otherEndsOn: string,
+) {
+  return startsOn <= otherEndsOn && endsOn >= otherStartsOn;
 }
 
 function getLearnerLabel(firstName: string, preferredName: string | null) {
@@ -312,7 +322,7 @@ function formatClockRangeLabel(startsAt: string | null, endsAt: string | null) {
 }
 
 function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boolean) {
-  if (isBreak || periodType === "break") return "Break";
+  if (isBreak || periodType === "break") return "Break / holiday";
 
   switch (periodType) {
     case "semester":
@@ -322,13 +332,13 @@ function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boo
     case "custom":
       return "Custom block";
     default:
-      return "Term";
+      return "Learning term";
   }
 }
 
 function getSourceLabel(sourceType: string | null) {
-  if (sourceType === "generated") return "Planned from rhythm";
-  if (sourceType === "template") return "From weekly rhythm";
+  if (sourceType === "generated") return "Added from master week";
+  if (sourceType === "template") return "From master week";
   return "Hand added";
 }
 
@@ -456,10 +466,10 @@ function CleanRhythmBlockPopover({
               textTransform: "uppercase",
             }}
           >
-            Weekly rhythm
+            Master week
           </div>
           <h2 style={{ margin: 0, color: "#0f172a" }}>
-            {mode === "edit" ? "Edit rhythm block" : "Add rhythm block"}
+            {mode === "edit" ? "Edit master block" : "Add master block"}
           </h2>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
             {weekdayLabel}
@@ -668,7 +678,7 @@ function CleanRhythmBlockPopover({
           <textarea
             value={notes}
             onChange={(event) => onChangeNotes(event.target.value)}
-            placeholder="Anything you want to remember about this usual rhythm"
+            placeholder="Anything you want to remember about this usual week"
             style={textAreaStyle}
           />
         </label>
@@ -726,6 +736,8 @@ function CleanCalendarWorkspaceBody() {
   const [periodEndsOn, setPeriodEndsOn] = useState(addDays(getWeekStart(), 13));
   const [periodType, setPeriodType] = useState<CleanLearningPeriodType>("term");
   const [periodIsBreak, setPeriodIsBreak] = useState(false);
+  const [learningPeriodComposerMode, setLearningPeriodComposerMode] =
+    useState<LearningPeriodComposerMode>("term");
 
   const [templateTitle, setTemplateTitle] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -805,6 +817,18 @@ function CleanCalendarWorkspaceBody() {
 
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
   const weekDates = useMemo(() => getWeekDates(selectedWeekStart), [selectedWeekStart]);
+  const selectedBreakOverlapsWeek = useMemo(
+    () =>
+      !!selectedLearningPeriod &&
+      (selectedLearningPeriod.isBreak || selectedLearningPeriod.periodType === "break") &&
+      doDateRangesOverlap(
+        selectedLearningPeriod.startsOn,
+        selectedLearningPeriod.endsOn,
+        selectedWeekStart,
+        selectedWeekEnd,
+      ),
+    [selectedLearningPeriod, selectedWeekEnd, selectedWeekStart],
+  );
 
   const itemsByDate = useMemo(() => {
     const grouped = new Map<string, CleanCalendarItem[]>();
@@ -822,6 +846,11 @@ function CleanCalendarWorkspaceBody() {
     if (!selectedAcademicYearId) return learningPeriods;
     return learningPeriods.filter((period) => period.academicYearId === selectedAcademicYearId);
   }, [learningPeriods, selectedAcademicYearId]);
+
+  const visibleComposerPeriodTypes = useMemo(
+    () => PERIOD_TYPES.filter((option) => option !== "break"),
+    [],
+  );
 
   const templateBlocksByWeekday = useMemo(() => {
     const grouped = new Map<number, CleanTemplateBlock[]>();
@@ -942,44 +971,32 @@ function CleanCalendarWorkspaceBody() {
           ? segmentLabelById.get(item.programSegmentId) ?? null
           : null,
         statusLabel: item.skippedReason
-          ? "Skipped"
+          ? item.skippedReason.includes("marked as a break")
+            ? "Not added — break week"
+            : item.skippedReason.includes("blocks learning")
+              ? "Not added — blocked day"
+              : item.skippedReason.includes("falls outside")
+                ? "Not added — outside this term"
+                : "Not added"
           : alreadyPlanned
             ? "Already planned"
-            : "Ready",
+            : "Ready to add",
         statusReason: item.skippedReason,
         canApply: !item.skippedReason && !alreadyPlanned,
       };
     });
   }, [items, learnerOptions, previewSuggestions, programOptions, programSegments]);
 
-  const previewDayGroups = useMemo(() => {
-    const grouped = new Map<
-      string,
-      {
-        plannedDate: string;
-        weekdayLabel: string;
-        items: typeof previewRows;
-      }
-    >();
+  const previewRowsByDate = useMemo(() => {
+    const grouped = new Map<string, typeof previewRows>();
 
     for (const item of previewRows) {
-      const existing = grouped.get(item.plannedDate);
-
-      if (existing) {
-        existing.items.push(item);
-        continue;
-      }
-
-      grouped.set(item.plannedDate, {
-        plannedDate: item.plannedDate,
-        weekdayLabel: item.weekdayLabel,
-        items: [item],
-      });
+      const existing = grouped.get(item.plannedDate) ?? [];
+      existing.push(item);
+      grouped.set(item.plannedDate, existing);
     }
 
-    return Array.from(grouped.values()).sort((left, right) =>
-      left.plannedDate.localeCompare(right.plannedDate),
-    );
+    return grouped;
   }, [previewRows]);
 
   const shouldShowYearComposer = showYearComposer || !academicYears.length;
@@ -1069,7 +1086,7 @@ function CleanCalendarWorkspaceBody() {
       setSetupError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load this weekly rhythm just now.",
+          "We could not load this master week just now.",
         ),
       );
     } finally {
@@ -1257,6 +1274,13 @@ function CleanCalendarWorkspaceBody() {
     resetTemplateBlockForm();
   }
 
+  function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
+    setLearningPeriodComposerMode(mode);
+    setShowLearningPeriodComposer(true);
+    setPeriodIsBreak(mode === "break");
+    setPeriodType(mode === "break" ? "break" : "term");
+  }
+
   async function handleAcademicYearSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
@@ -1277,6 +1301,7 @@ function CleanCalendarWorkspaceBody() {
       setSelectedAcademicYearId(created.id);
       setShowYearComposer(false);
       setShowLearningPeriodComposer(true);
+      setLearningPeriodComposerMode("term");
       setMessage("Learning year saved.");
       setYearTitle("");
       await reloadSetupData();
@@ -1310,11 +1335,12 @@ function CleanCalendarWorkspaceBody() {
         isBreak: periodIsBreak,
       });
 
-      setMessage("Learning period saved.");
+      setMessage(periodIsBreak ? "Break / holiday saved." : "Learning period saved.");
       setShowLearningPeriodComposer(false);
       setPeriodTitle("");
       setPeriodType("term");
       setPeriodIsBreak(false);
+      setLearningPeriodComposerMode("term");
       await reloadSetupData();
     } catch (error) {
       setActionError(
@@ -1347,7 +1373,7 @@ function CleanCalendarWorkspaceBody() {
 
       setSelectedTemplateId(created.id);
       setShowTemplateComposer(false);
-      setMessage("Weekly rhythm saved.");
+      setMessage("Master week saved.");
       setTemplateTitle("");
       setTemplateDescription("");
       setTemplateLearnerId("");
@@ -1357,7 +1383,7 @@ function CleanCalendarWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save this weekly rhythm.",
+          "We could not save this master week.",
         ),
       );
     } finally {
@@ -1401,13 +1427,13 @@ function CleanCalendarWorkspaceBody() {
       }
 
       closeRhythmPopover();
-      setMessage("Rhythm block saved.");
+      setMessage("Master block saved.");
       await reloadTemplateBlocks();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save this rhythm block.",
+          "We could not save this master block.",
         ),
       );
     } finally {
@@ -1447,27 +1473,27 @@ function CleanCalendarWorkspaceBody() {
 
   async function handlePreviewGeneration() {
     if (!selectedTemplateId) {
-      setMessage("Choose or create a weekly rhythm first, then plan this week from rhythm.");
+      setMessage("Choose or create a master week first, then plan this week using master.");
       setActionError(null);
       return;
     }
 
     const nextPreview = buildWeekPreview();
     setPreviewSuggestions(nextPreview);
-    setMessage("Preview your week below, then add the blocks you want to keep.");
+    setMessage("Preview your week below, then add the master blocks you want to keep.");
     setActionError(null);
   }
 
   async function handleApplyGeneratedWeek() {
     if (!workspace.profile) return;
     if (!selectedTemplateId) {
-      setMessage("Choose or create a weekly rhythm first, then plan this week from rhythm.");
+      setMessage("Choose or create a master week first, then plan this week using master.");
       setActionError(null);
       return;
     }
 
     if (!previewSuggestions.length) {
-      setMessage("Preview your week first, then add the blocks you want to keep.");
+      setMessage("Preview this week first, then add the master blocks you want to keep.");
       setActionError(null);
       return;
     }
@@ -1512,7 +1538,7 @@ function CleanCalendarWorkspaceBody() {
 
       if (blockedCount) {
         messageParts.push(
-          `${blockedCount} skipped for breaks or blocked days`,
+          `${blockedCount} not added for breaks or blocked days`,
         );
       }
 
@@ -1619,7 +1645,7 @@ function CleanCalendarWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Calendar</h1>
             <p style={secondaryTextStyle}>
-              Set term dates, keep a reusable weekly rhythm, and shape the real week when
+              Set term dates, keep a reusable master week, and shape the live week when
               you need it.
             </p>
           </div>
@@ -1660,7 +1686,7 @@ function CleanCalendarWorkspaceBody() {
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={secondaryTextStyle}>
               Add at least one learner on <Link href="/my-profile">My Profile</Link> before
-              setting learning periods or building a weekly rhythm.
+              setting learning periods or building a master week.
             </p>
           </section>
         ) : null}
@@ -1857,18 +1883,57 @@ function CleanCalendarWorkspaceBody() {
                       <div style={{ display: "grid", gap: 6 }}>
                         <strong style={{ color: "#0f172a" }}>2. Add your learning periods</strong>
                         <p style={secondaryTextStyle}>
-                          Choose the year, then add term dates, semesters, breaks, or custom
-                          blocks.
+                          Choose the year, then add the learning terms you do want planned.
+                          Breaks and holidays stay separate.
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        style={mutedButtonStyle}
-                        onClick={() => setShowLearningPeriodComposer((current) => !current)}
-                        disabled={!selectedAcademicYear}
-                      >
-                        {shouldShowLearningPeriodComposer ? "Hide period form" : "Add period"}
-                      </button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          style={mutedButtonStyle}
+                          onClick={() => {
+                            if (
+                              shouldShowLearningPeriodComposer &&
+                              learningPeriodComposerMode === "term"
+                            ) {
+                              setShowLearningPeriodComposer(false);
+                            } else {
+                              openLearningPeriodComposer("term");
+                            }
+                          }}
+                          disabled={!selectedAcademicYear}
+                        >
+                          {shouldShowLearningPeriodComposer &&
+                          learningPeriodComposerMode === "term"
+                            ? "Hide term form"
+                            : "Add term / learning block"}
+                        </button>
+                        <button
+                          type="button"
+                          style={{
+                            ...mutedButtonStyle,
+                            borderColor: "#fcd34d",
+                            color: "#92400e",
+                            background: "#fffbeb",
+                          }}
+                          onClick={() => {
+                            if (
+                              shouldShowLearningPeriodComposer &&
+                              learningPeriodComposerMode === "break"
+                            ) {
+                              setShowLearningPeriodComposer(false);
+                            } else {
+                              openLearningPeriodComposer("break");
+                            }
+                          }}
+                          disabled={!selectedAcademicYear}
+                        >
+                          {shouldShowLearningPeriodComposer &&
+                          learningPeriodComposerMode === "break"
+                            ? "Hide break form"
+                            : "Add a break / holiday"}
+                        </button>
+                      </div>
                     </div>
 
                     {selectedAcademicYear ? (
@@ -1903,6 +1968,31 @@ function CleanCalendarWorkspaceBody() {
                       <form onSubmit={handleLearningPeriodSubmit} style={{ display: "grid", gap: 12 }}>
                         <div
                           style={{
+                            border:
+                              learningPeriodComposerMode === "break"
+                                ? "1px solid #fcd34d"
+                                : "1px solid #bfdbfe",
+                            borderRadius: 14,
+                            padding: 14,
+                            background:
+                              learningPeriodComposerMode === "break" ? "#fffbeb" : "#eff6ff",
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>
+                            {learningPeriodComposerMode === "break"
+                              ? "Add a break / holiday"
+                              : "Add a learning term"}
+                          </strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            {learningPeriodComposerMode === "break"
+                              ? "Use this for school holidays, public holidays, travel breaks, or weeks where you do not want master blocks added."
+                              : "Use this for Term 1, Semester 1, or any span where you do want master blocks added."}
+                          </p>
+                        </div>
+                        <div
+                          style={{
                             display: "grid",
                             gap: 12,
                             gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
@@ -1923,22 +2013,42 @@ function CleanCalendarWorkspaceBody() {
                           <input
                             value={periodTitle}
                             onChange={(event) => setPeriodTitle(event.target.value)}
-                            placeholder="Term 1, Autumn term, Unit block"
-                            style={inputStyle}
-                          />
-                          <select
-                            value={periodType}
-                            onChange={(event) =>
-                              setPeriodType(event.target.value as CleanLearningPeriodType)
+                            placeholder={
+                              learningPeriodComposerMode === "break"
+                                ? "Winter holidays, Travel week, Public holiday break"
+                                : "Term 1, Autumn term, Unit block"
                             }
                             style={inputStyle}
-                          >
-                            {PERIOD_TYPES.map((option) => (
-                              <option key={option} value={option}>
-                                {formatPeriodTypeLabel(option, false)}
-                              </option>
-                            ))}
-                          </select>
+                          />
+                          {learningPeriodComposerMode === "break" ? (
+                            <div
+                              style={{
+                                ...subtleFieldCardStyle,
+                                justifyContent: "center",
+                                color: "#92400e",
+                              }}
+                            >
+                              <strong>Break / holiday</strong>
+                              <p style={{ margin: 0, lineHeight: 1.6 }}>
+                                Only use this when you do not want learning generated inside
+                                these dates.
+                              </p>
+                            </div>
+                          ) : (
+                            <select
+                              value={periodType}
+                              onChange={(event) =>
+                                setPeriodType(event.target.value as CleanLearningPeriodType)
+                              }
+                              style={inputStyle}
+                            >
+                              {visibleComposerPeriodTypes.map((option) => (
+                                <option key={option} value={option}>
+                                  {formatPeriodTypeLabel(option, false)}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div
                           style={{
@@ -1960,36 +2070,25 @@ function CleanCalendarWorkspaceBody() {
                             style={inputStyle}
                           />
                         </div>
-                        <div style={subtleFieldCardStyle}>
-                          <label
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              color: "#475569",
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={periodIsBreak}
-                              onChange={(event) => setPeriodIsBreak(event.target.checked)}
-                            />
-                            <span style={{ fontWeight: 700, color: "#334155" }}>
-                              Mark this as a break
-                            </span>
-                          </label>
-                          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                            Only tick this for school holidays, public holidays, travel
-                            breaks, or weeks you do not want learning blocks generated.
-                          </p>
-                        </div>
+                        {learningPeriodComposerMode === "break" ? (
+                          <div style={subtleFieldCardStyle}>
+                            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                              Only use this for school holidays, public holidays, travel
+                              breaks, or weeks you do not want learning blocks generated.
+                            </p>
+                          </div>
+                        ) : null}
                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                           <button
                             type="submit"
                             style={buttonStyle}
                             disabled={submitting || !selectedAcademicYearId}
                           >
-                            {submitting ? "Saving..." : "Save period"}
+                            {submitting
+                              ? "Saving..."
+                              : learningPeriodComposerMode === "break"
+                                ? "Save break"
+                                : "Save term"}
                           </button>
                         </div>
                       </form>
@@ -2001,10 +2100,10 @@ function CleanCalendarWorkspaceBody() {
                           <div
                             key={period.id}
                             style={{
-                              border: "1px solid #cbd5e1",
+                              border: period.isBreak ? "1px solid #fcd34d" : "1px solid #cbd5e1",
                               borderRadius: 14,
                               padding: 14,
-                              background: "#ffffff",
+                              background: period.isBreak ? "#fffbeb" : "#ffffff",
                               display: "grid",
                               gap: 6,
                             }}
@@ -2035,12 +2134,23 @@ function CleanCalendarWorkspaceBody() {
                             <div style={{ color: "#475569" }}>
                               {formatWeekRangeLabel(period.startsOn, period.endsOn)}
                             </div>
+                            <div
+                              style={{
+                                color: period.isBreak ? "#92400e" : "#64748b",
+                                fontSize: 13,
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {period.isBreak || period.periodType === "break"
+                                ? "Learning is paused inside these dates."
+                                : "Master blocks can be planned inside these dates."}
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : selectedAcademicYear ? (
                       <p style={secondaryTextStyle}>
-                        No learning periods yet for this year. Add your first term or block
+                        No learning periods yet for this year. Add your first term or break
                         above.
                       </p>
                     ) : null}
@@ -2063,8 +2173,8 @@ function CleanCalendarWorkspaceBody() {
                   <div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Weekly planner</h2>
                     <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                      Keep your reusable rhythm separate from the real week, then switch
-                      between the two as needed.
+                      Keep your reusable master week separate from the live calendar, then
+                      switch between the two as needed.
                     </p>
                   </div>
                   <div
@@ -2088,7 +2198,7 @@ function CleanCalendarWorkspaceBody() {
                       }}
                       onClick={() => setPlanningView("master")}
                     >
-                      Master rhythm
+                      Master week
                     </button>
                     <button
                       type="button"
@@ -2119,10 +2229,10 @@ function CleanCalendarWorkspaceBody() {
                         }}
                       >
                         <div style={{ display: "grid", gap: 6 }}>
-                          <strong style={{ color: "#0f172a" }}>Choose a weekly rhythm</strong>
+                          <strong style={{ color: "#0f172a" }}>Choose a master week</strong>
                           <p style={secondaryTextStyle}>
-                            This is your reusable pattern. It does not change the real week
-                            until you choose to plan inside This week.
+                            This is your reusable master calendar. It does not change the live
+                            week until you choose to plan inside This week.
                           </p>
                         </div>
                         <button
@@ -2130,7 +2240,7 @@ function CleanCalendarWorkspaceBody() {
                           style={mutedButtonStyle}
                           onClick={() => setShowTemplateComposer((current) => !current)}
                         >
-                          {shouldShowTemplateComposer ? "Hide rhythm form" : "Add rhythm"}
+                          {shouldShowTemplateComposer ? "Hide master form" : "Add master week"}
                         </button>
                       </div>
 
@@ -2146,7 +2256,7 @@ function CleanCalendarWorkspaceBody() {
                             <input
                               value={templateTitle}
                               onChange={(event) => setTemplateTitle(event.target.value)}
-                              placeholder="Family rhythm or Maya's rhythm"
+                              placeholder="Family master week or Maya's master week"
                               style={inputStyle}
                             />
                             <select
@@ -2181,12 +2291,12 @@ function CleanCalendarWorkspaceBody() {
                           <textarea
                             value={templateDescription}
                             onChange={(event) => setTemplateDescription(event.target.value)}
-                            placeholder="Optional notes about how this rhythm works for your family"
+                            placeholder="Optional notes about how this master week works for your family"
                             style={textAreaStyle}
                           />
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button type="submit" style={buttonStyle} disabled={submitting}>
-                              {submitting ? "Saving..." : "Save rhythm"}
+                              {submitting ? "Saving..." : "Save master week"}
                             </button>
                           </div>
                         </form>
@@ -2249,7 +2359,7 @@ function CleanCalendarWorkspaceBody() {
                                   {template.scopeType === "learner" ? learnerLabel : "Whole family"}
                                 </div>
                                 <div style={{ color: "#64748b", fontSize: 13 }}>
-                                  {template.description || "Reusable weekly rhythm"}
+                                  {template.description || "Reusable master week"}
                                 </div>
                               </button>
                             );
@@ -2257,7 +2367,7 @@ function CleanCalendarWorkspaceBody() {
                         </div>
                       ) : (
                         <p style={secondaryTextStyle}>
-                          No weekly rhythm yet. You can still plan directly inside This week.
+                          No master week yet. You can still plan directly inside This week.
                         </p>
                       )}
                     </div>
@@ -2351,7 +2461,7 @@ function CleanCalendarWorkspaceBody() {
                               {selectedTemplate.scopeType === "learner"
                                 ? learnerOptions.find(
                                     (option) => option.value === selectedTemplate.learnerId,
-                                  )?.label || "Learner rhythm"
+                                  )?.label || "Learner master week"
                                 : "Whole family"}
                             </div>
                           </div>
@@ -2368,13 +2478,13 @@ function CleanCalendarWorkspaceBody() {
                               lineHeight: 1.6,
                             }}
                           >
-                            Weekend blocks are still part of this rhythm. Switch to Full week
+                            Weekend blocks are still part of this master week. Switch to Full week
                             to view or edit Saturday and Sunday.
                           </div>
                         ) : null}
 
                         {templateBlocksLoading ? (
-                          <p style={secondaryTextStyle}>Loading your weekly rhythm...</p>
+                          <p style={secondaryTextStyle}>Loading your master week...</p>
                         ) : (
                           <div style={{ overflowX: "auto", paddingBottom: 4 }}>
                             <div
@@ -2556,10 +2666,10 @@ function CleanCalendarWorkspaceBody() {
                         }}
                       >
                         <div>
-                          <strong style={{ color: "#0f172a" }}>Plan this week</strong>
+                          <strong style={{ color: "#0f172a" }}>This week</strong>
                           <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
-                            Use your weekly rhythm as a guide. The preview stays separate from
-                            your live calendar until you decide what to keep.
+                            Use your master week as a guide. Preview first, then choose what
+                            to add into the live calendar.
                           </p>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2624,20 +2734,23 @@ function CleanCalendarWorkspaceBody() {
                             {visibleLearningPeriods.map((period) => (
                               <option key={period.id} value={period.id}>
                                 {period.title}
+                                {period.isBreak || period.periodType === "break"
+                                  ? " - Break / holiday"
+                                  : ""}
                               </option>
                             ))}
                           </select>
                         </div>
                         <div style={{ display: "grid", gap: 6 }}>
                           <span style={{ color: "#334155", fontSize: 13, fontWeight: 700 }}>
-                            Weekly rhythm
+                            Master week
                           </span>
                           <select
                             value={selectedTemplateId}
                             onChange={(event) => setSelectedTemplateId(event.target.value)}
                             style={inputStyle}
                           >
-                            <option value="">Optional: choose a weekly rhythm</option>
+                            <option value="">Optional: choose a master week</option>
                             {masterTemplates.map((template) => (
                               <option key={template.id} value={template.id}>
                                 {template.title}
@@ -2653,7 +2766,7 @@ function CleanCalendarWorkspaceBody() {
                           style={buttonStyle}
                           onClick={() => void handlePreviewGeneration()}
                         >
-                          Plan this week from rhythm
+                          Plan this week using master
                         </button>
                         <button
                           type="button"
@@ -2665,7 +2778,7 @@ function CleanCalendarWorkspaceBody() {
                             submitting
                           }
                         >
-                          {submitting ? "Adding..." : "Add these blocks to this week"}
+                          {submitting ? "Adding..." : "Add master blocks to this week"}
                         </button>
                       </div>
 
@@ -2680,14 +2793,12 @@ function CleanCalendarWorkspaceBody() {
                             lineHeight: 1.6,
                           }}
                         >
-                          Choose or create a weekly rhythm first, then plan this week from
-                          rhythm.
+                          Choose or create a master week first, then plan this week using
+                          master.
                         </div>
                       ) : null}
 
-                      {selectedLearningPeriod &&
-                      (selectedLearningPeriod.isBreak ||
-                        selectedLearningPeriod.periodType === "break") ? (
+                      {selectedBreakOverlapsWeek ? (
                         <div
                           style={{
                             border: "1px solid #fcd34d",
@@ -2699,11 +2810,10 @@ function CleanCalendarWorkspaceBody() {
                           }}
                         >
                           <strong style={{ color: "#92400e" }}>
-                            This period is marked as a break, so learning blocks will be skipped.
+                            This week falls inside a break, so learning blocks will not be added.
                           </strong>
                           <div style={{ marginTop: 6 }}>
-                            Choose a learning period that is not marked as a break, or edit this
-                            period.
+                            Choose a term week or edit the break.
                           </div>
                         </div>
                       ) : null}
@@ -2725,109 +2835,149 @@ function CleanCalendarWorkspaceBody() {
                               {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}.{" "}
                               {generationSummary.readyToAdd} ready to add,{" "}
                               {generationSummary.alreadyPlanned} already planned,{" "}
-                              {generationSummary.skipped} skipped for breaks or blocked days.
-                              This preview stays read-only until you click Add these blocks to
+                              {generationSummary.skipped} not added for breaks or blocked days.
+                              This preview stays read-only until you click Add master blocks to
                               this week.
                             </div>
                           </div>
-                          {previewDayGroups.map((day) => (
+                          <div style={{ overflowX: "auto", paddingBottom: 4 }}>
                             <div
-                              key={day.plannedDate}
                               style={{
-                                border: "1px solid #cbd5e1",
-                                borderRadius: 14,
-                                padding: 14,
-                                background: "#ffffff",
                                 display: "grid",
                                 gap: 12,
+                                gridTemplateColumns: "repeat(7, minmax(220px, 1fr))",
+                                minWidth: 1640,
                               }}
                             >
-                              <div style={{ display: "grid", gap: 2 }}>
-                                <strong style={{ color: "#0f172a" }}>
-                                  {day.weekdayLabel} {formatDayMonthLabel(day.plannedDate)}
-                                </strong>
-                              </div>
+                              {weekDates.map((dateValue) => {
+                                const dayItems = previewRowsByDate.get(dateValue) ?? [];
 
-                              <div style={{ display: "grid", gap: 10 }}>
-                                {day.items.map((item) => (
+                                return (
                                   <div
-                                    key={item.previewKey}
+                                    key={dateValue}
                                     style={{
-                                      border: "1px solid #e2e8f0",
-                                      borderRadius: 12,
-                                      padding: 12,
-                                      background: "#f8fafc",
+                                      border: "1px solid #cbd5e1",
+                                      borderRadius: 14,
+                                      padding: 14,
+                                      background: "#ffffff",
                                       display: "grid",
-                                      gap: 8,
+                                      gap: 12,
+                                      alignContent: "start",
                                     }}
                                   >
-                                    <div
-                                      style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        gap: 12,
-                                        flexWrap: "wrap",
-                                        alignItems: "center",
-                                      }}
-                                    >
-                                      <strong style={{ color: "#0f172a" }}>{item.title}</strong>
-                                      <span
-                                        style={{
-                                          padding: "4px 10px",
-                                          borderRadius: 999,
-                                          background:
-                                            item.statusLabel === "Ready"
-                                              ? "#dcfce7"
-                                              : item.statusLabel === "Already planned"
-                                                ? "#e2e8f0"
-                                                : "#fef3c7",
-                                          color:
-                                            item.statusLabel === "Ready"
-                                              ? "#166534"
-                                              : item.statusLabel === "Already planned"
-                                                ? "#475569"
-                                                : "#92400e",
-                                          fontSize: 12,
-                                          fontWeight: 700,
-                                        }}
-                                      >
-                                        {item.statusLabel}
+                                    <div style={{ display: "grid", gap: 2 }}>
+                                      <strong style={{ color: "#0f172a" }}>
+                                        {formatWeekdayLabel(dateValue)}
+                                      </strong>
+                                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                                        {formatDayMonthLabel(dateValue)}
                                       </span>
                                     </div>
-                                    <div style={{ color: "#64748b" }}>
-                                      {item.startsAt
-                                        ? formatTimeLabel(item.startsAt)
-                                        : "Any time"}
-                                      {item.endsAt ? ` to ${formatTimeLabel(item.endsAt)}` : ""}
-                                    </div>
-                                    <div style={{ color: "#475569" }}>
-                                      {item.learnerLabel}
-                                      {item.learningArea ? ` - ${item.learningArea}` : ""}
-                                    </div>
-                                    {item.statusReason ? (
-                                      <div style={{ color: "#92400e", lineHeight: 1.6 }}>
-                                        {item.statusReason}
+
+                                    {dayItems.length ? (
+                                      <div style={{ display: "grid", gap: 10 }}>
+                                        {dayItems.map((item) => (
+                                          <div
+                                            key={item.previewKey}
+                                            style={{
+                                              border: "1px solid #e2e8f0",
+                                              borderRadius: 12,
+                                              padding: 12,
+                                              background: "#f8fafc",
+                                              display: "grid",
+                                              gap: 8,
+                                            }}
+                                          >
+                                            <div
+                                              style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                gap: 12,
+                                                flexWrap: "wrap",
+                                                alignItems: "center",
+                                              }}
+                                            >
+                                              <strong style={{ color: "#0f172a" }}>
+                                                {item.title}
+                                              </strong>
+                                              <span
+                                                style={{
+                                                  padding: "4px 10px",
+                                                  borderRadius: 999,
+                                                  background:
+                                                    item.statusLabel === "Ready to add"
+                                                      ? "#dcfce7"
+                                                      : item.statusLabel === "Already planned"
+                                                        ? "#e2e8f0"
+                                                        : "#fef3c7",
+                                                  color:
+                                                    item.statusLabel === "Ready to add"
+                                                      ? "#166534"
+                                                      : item.statusLabel === "Already planned"
+                                                        ? "#475569"
+                                                        : "#92400e",
+                                                  fontSize: 12,
+                                                  fontWeight: 700,
+                                                }}
+                                              >
+                                                {item.statusLabel}
+                                              </span>
+                                            </div>
+                                            <div style={{ color: "#64748b" }}>
+                                              {item.startsAt
+                                                ? formatTimeLabel(item.startsAt)
+                                                : "Any time"}
+                                              {item.endsAt
+                                                ? ` to ${formatTimeLabel(item.endsAt)}`
+                                                : ""}
+                                            </div>
+                                            <div style={{ color: "#475569" }}>
+                                              {item.learnerLabel}
+                                              {item.learningArea ? ` - ${item.learningArea}` : ""}
+                                            </div>
+                                            {item.statusReason ? (
+                                              <div style={{ color: "#92400e", lineHeight: 1.6 }}>
+                                                {item.statusReason}
+                                              </div>
+                                            ) : null}
+                                            {item.programLabel || item.segmentLabel ? (
+                                              <div style={{ color: "#475569" }}>
+                                                {item.programLabel ? `Program: ${item.programLabel}` : ""}
+                                                {item.programLabel && item.segmentLabel ? " - " : ""}
+                                                {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
+                                              </div>
+                                            ) : null}
+                                            {item.sessionLabel ? (
+                                              <div style={{ color: "#475569" }}>
+                                                {item.sessionLabel}
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        ))}
                                       </div>
-                                    ) : null}
-                                    {item.programLabel || item.segmentLabel ? (
-                                      <div style={{ color: "#475569" }}>
-                                        {item.programLabel ? `Program: ${item.programLabel}` : ""}
-                                        {item.programLabel && item.segmentLabel ? " - " : ""}
-                                        {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
+                                    ) : (
+                                      <div
+                                        style={{
+                                          border: "1px dashed #cbd5e1",
+                                          borderRadius: 12,
+                                          padding: 12,
+                                          background: "#f8fafc",
+                                          color: "#64748b",
+                                          lineHeight: 1.6,
+                                        }}
+                                      >
+                                        No master blocks land on this day yet.
                                       </div>
-                                    ) : null}
-                                    {item.sessionLabel ? (
-                                      <div style={{ color: "#475569" }}>{item.sessionLabel}</div>
-                                    ) : null}
+                                    )}
                                   </div>
-                                ))}
-                              </div>
+                                );
+                              })}
                             </div>
-                          ))}
+                          </div>
                         </div>
                       ) : (
                         <p style={secondaryTextStyle}>
-                          Choose a weekly rhythm, then plan this week from rhythm to preview
+                          Choose a master week, then plan this week using master to preview
                           what could be added.
                         </p>
                       )}
@@ -2852,7 +3002,7 @@ function CleanCalendarWorkspaceBody() {
                               </strong>
                               <span style={{ color: "#475569" }}>
                                 {getSnapshotStatusLabel(run.status)} - {run.createdItemsCount} added,{" "}
-                                {run.skippedItemsCount} skipped
+                                {run.skippedItemsCount} not added
                               </span>
                             </div>
                           ))}
