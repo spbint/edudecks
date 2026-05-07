@@ -45,9 +45,11 @@ import type {
 import {
   createCleanAcademicYear,
   createCleanLearningPeriod,
+  deleteCleanLearningPeriod,
   listCleanAcademicYears,
   listCleanBlackoutDays,
   listCleanLearningPeriods,
+  updateCleanLearningPeriod,
 } from "@/lib/clean/terms/client";
 import type {
   CleanAcademicYear,
@@ -116,6 +118,12 @@ const mutedButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: "#ffffff",
   color: "#0f172a",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  background: "#b91c1c",
+  borderColor: "#b91c1c",
 };
 
 const secondaryTextStyle: React.CSSProperties = {
@@ -738,6 +746,17 @@ function CleanCalendarWorkspaceBody() {
   const [periodIsBreak, setPeriodIsBreak] = useState(false);
   const [learningPeriodComposerMode, setLearningPeriodComposerMode] =
     useState<LearningPeriodComposerMode>("term");
+  const [editingLearningPeriodId, setEditingLearningPeriodId] = useState<string | null>(null);
+  const [editingLearningPeriodTitle, setEditingLearningPeriodTitle] = useState("");
+  const [editingLearningPeriodType, setEditingLearningPeriodType] =
+    useState<CleanLearningPeriodType>("term");
+  const [editingLearningPeriodStartsOn, setEditingLearningPeriodStartsOn] =
+    useState(getWeekStart());
+  const [editingLearningPeriodEndsOn, setEditingLearningPeriodEndsOn] = useState(
+    addDays(getWeekStart(), 13),
+  );
+  const [editingLearningPeriodIsBreak, setEditingLearningPeriodIsBreak] = useState(false);
+  const [editingLearningPeriodNotes, setEditingLearningPeriodNotes] = useState("");
 
   const [templateTitle, setTemplateTitle] = useState("");
   const [templateDescription, setTemplateDescription] = useState("");
@@ -1169,6 +1188,15 @@ function CleanCalendarWorkspaceBody() {
   }, [selectedLearningPeriodId, visibleLearningPeriods]);
 
   useEffect(() => {
+    if (
+      editingLearningPeriodId &&
+      !visibleLearningPeriods.some((period) => period.id === editingLearningPeriodId)
+    ) {
+      resetLearningPeriodEditor();
+    }
+  }, [editingLearningPeriodId, visibleLearningPeriods]);
+
+  useEffect(() => {
     setMasterWeekViewTouched(false);
   }, [selectedTemplateId]);
 
@@ -1215,6 +1243,16 @@ function CleanCalendarWorkspaceBody() {
     setPopoverProgramSegmentId("");
   }
 
+  function resetLearningPeriodEditor() {
+    setEditingLearningPeriodId(null);
+    setEditingLearningPeriodTitle("");
+    setEditingLearningPeriodType("term");
+    setEditingLearningPeriodStartsOn(getWeekStart());
+    setEditingLearningPeriodEndsOn(addDays(getWeekStart(), 13));
+    setEditingLearningPeriodIsBreak(false);
+    setEditingLearningPeriodNotes("");
+  }
+
   function openCreatePopover(dateValue: string) {
     resetPopoverForm();
     setPopoverDate(dateValue);
@@ -1242,6 +1280,24 @@ function CleanCalendarWorkspaceBody() {
   function closePopover() {
     setPopoverOpen(false);
     resetPopoverForm();
+  }
+
+  function openLearningPeriodEditor(period: CleanLearningPeriod) {
+    setEditingLearningPeriodId(period.id);
+    setEditingLearningPeriodTitle(period.title);
+    setEditingLearningPeriodType(
+      period.periodType === "break" ? "term" : period.periodType,
+    );
+    setEditingLearningPeriodStartsOn(period.startsOn);
+    setEditingLearningPeriodEndsOn(period.endsOn);
+    setEditingLearningPeriodIsBreak(period.isBreak || period.periodType === "break");
+    setEditingLearningPeriodNotes(period.notes ?? "");
+    setMessage(null);
+    setActionError(null);
+  }
+
+  function closeLearningPeriodEditor() {
+    resetLearningPeriodEditor();
   }
 
   function openCreateRhythmPopover(weekday: number) {
@@ -1347,6 +1403,88 @@ function CleanCalendarWorkspaceBody() {
         normalizeCleanErrorMessage(
           error,
           "We could not save this learning period.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleLearningPeriodUpdate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!workspace.profile || !editingLearningPeriodId) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await updateCleanLearningPeriod(workspace.profile.id, editingLearningPeriodId, {
+        title: editingLearningPeriodTitle,
+        periodType: editingLearningPeriodIsBreak ? "break" : editingLearningPeriodType,
+        startsOn: editingLearningPeriodStartsOn,
+        endsOn: editingLearningPeriodEndsOn,
+        isBreak: editingLearningPeriodIsBreak,
+        notes: editingLearningPeriodNotes || null,
+      });
+
+      setMessage(
+        editingLearningPeriodIsBreak
+          ? "Break / holiday updated."
+          : "Learning period updated.",
+      );
+      closeLearningPeriodEditor();
+      await reloadSetupData();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not update this learning period.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleLearningPeriodDelete(period: CleanLearningPeriod) {
+    if (!workspace.profile) return;
+
+    const confirmationMessage =
+      period.isBreak || period.periodType === "break"
+        ? "Delete this break / holiday? Learning blocks may be generated for these dates again."
+        : "Delete this learning period? This will not delete your learners or programs, but weekly planning may no longer use these dates.";
+
+    if (!window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await deleteCleanLearningPeriod(workspace.profile.id, period.id);
+
+      if (selectedLearningPeriodId === period.id) {
+        setSelectedLearningPeriodId("");
+      }
+
+      if (editingLearningPeriodId === period.id) {
+        closeLearningPeriodEditor();
+      }
+
+      setMessage(
+        period.isBreak || period.periodType === "break"
+          ? "Break / holiday removed."
+          : "Learning period removed.",
+      );
+      await reloadSetupData();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not delete this learning period.",
         ),
       );
     } finally {
@@ -2096,57 +2234,258 @@ function CleanCalendarWorkspaceBody() {
 
                     {visibleLearningPeriods.length ? (
                       <div style={{ display: "grid", gap: 10 }}>
-                        {visibleLearningPeriods.map((period) => (
-                          <div
-                            key={period.id}
-                            style={{
-                              border: period.isBreak ? "1px solid #fcd34d" : "1px solid #cbd5e1",
-                              borderRadius: 14,
-                              padding: 14,
-                              background: period.isBreak ? "#fffbeb" : "#ffffff",
-                              display: "grid",
-                              gap: 6,
-                            }}
-                          >
+                        {visibleLearningPeriods.map((period) => {
+                          const isBreakPeriod =
+                            period.isBreak || period.periodType === "break";
+                          const isEditing = editingLearningPeriodId === period.id;
+
+                          return (
                             <div
+                              key={period.id}
                               style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                gap: 12,
-                                alignItems: "center",
-                                flexWrap: "wrap",
+                                border: isBreakPeriod
+                                  ? "1px solid #fcd34d"
+                                  : "1px solid #cbd5e1",
+                                borderRadius: 14,
+                                padding: 14,
+                                background: isBreakPeriod ? "#fffbeb" : "#ffffff",
+                                display: "grid",
+                                gap: 10,
                               }}
                             >
-                              <strong style={{ color: "#0f172a" }}>{period.title}</strong>
-                              <span
+                              <div
                                 style={{
-                                  padding: "4px 10px",
-                                  borderRadius: 999,
-                                  background: period.isBreak ? "#fef3c7" : "#dbeafe",
-                                  color: period.isBreak ? "#92400e" : "#1d4ed8",
-                                  fontSize: 12,
-                                  fontWeight: 700,
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
                                 }}
                               >
-                                {formatPeriodTypeLabel(period.periodType, period.isBreak)}
-                              </span>
+                                <strong style={{ color: "#0f172a" }}>{period.title}</strong>
+                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                  <span
+                                    style={{
+                                      padding: "4px 10px",
+                                      borderRadius: 999,
+                                      background: isBreakPeriod ? "#fef3c7" : "#dbeafe",
+                                      color: isBreakPeriod ? "#92400e" : "#1d4ed8",
+                                      fontSize: 12,
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {isBreakPeriod
+                                      ? "Break / holiday"
+                                      : "Learning term"}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    style={mutedButtonStyle}
+                                    onClick={() =>
+                                      isEditing
+                                        ? closeLearningPeriodEditor()
+                                        : openLearningPeriodEditor(period)
+                                    }
+                                    disabled={submitting}
+                                  >
+                                    {isEditing ? "Cancel edit" : "Edit"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    style={dangerButtonStyle}
+                                    onClick={() => void handleLearningPeriodDelete(period)}
+                                    disabled={submitting}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                              <div style={{ color: "#475569" }}>
+                                {formatWeekRangeLabel(period.startsOn, period.endsOn)}
+                              </div>
+                              <div
+                                style={{
+                                  color: isBreakPeriod ? "#92400e" : "#64748b",
+                                  fontSize: 13,
+                                  lineHeight: 1.6,
+                                }}
+                              >
+                                {isBreakPeriod
+                                  ? "Learning is paused inside these dates."
+                                  : "Master blocks can be planned inside these dates."}
+                              </div>
+                              {period.notes ? (
+                                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                  {period.notes}
+                                </div>
+                              ) : null}
+                              {isEditing ? (
+                                <form
+                                  onSubmit={handleLearningPeriodUpdate}
+                                  style={{
+                                    ...subtleFieldCardStyle,
+                                    background: "#ffffff",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: "inline-flex",
+                                      border: "1px solid #cbd5e1",
+                                      borderRadius: 12,
+                                      padding: 4,
+                                      background: "#f8fafc",
+                                      gap: 4,
+                                      width: "fit-content",
+                                    }}
+                                  >
+                                    <button
+                                      type="button"
+                                      style={{
+                                        ...buttonStyle,
+                                        padding: "8px 12px",
+                                        background: !editingLearningPeriodIsBreak
+                                          ? "#0f172a"
+                                          : "#ffffff",
+                                        color: !editingLearningPeriodIsBreak
+                                          ? "#ffffff"
+                                          : "#0f172a",
+                                        borderColor: !editingLearningPeriodIsBreak
+                                          ? "#0f172a"
+                                          : "#ffffff",
+                                      }}
+                                      onClick={() => {
+                                        setEditingLearningPeriodIsBreak(false);
+                                        if (editingLearningPeriodType === "break") {
+                                          setEditingLearningPeriodType("term");
+                                        }
+                                      }}
+                                    >
+                                      Learning term
+                                    </button>
+                                    <button
+                                      type="button"
+                                      style={{
+                                        ...buttonStyle,
+                                        padding: "8px 12px",
+                                        background: editingLearningPeriodIsBreak
+                                          ? "#92400e"
+                                          : "#ffffff",
+                                        color: editingLearningPeriodIsBreak
+                                          ? "#ffffff"
+                                          : "#92400e",
+                                        borderColor: editingLearningPeriodIsBreak
+                                          ? "#92400e"
+                                          : "#ffffff",
+                                      }}
+                                      onClick={() => setEditingLearningPeriodIsBreak(true)}
+                                    >
+                                      Break / holiday
+                                    </button>
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gap: 12,
+                                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                                    }}
+                                  >
+                                    <input
+                                      value={editingLearningPeriodTitle}
+                                      onChange={(event) =>
+                                        setEditingLearningPeriodTitle(event.target.value)
+                                      }
+                                      placeholder="Title"
+                                      style={inputStyle}
+                                    />
+                                    {editingLearningPeriodIsBreak ? (
+                                      <div
+                                        style={{
+                                          ...subtleFieldCardStyle,
+                                          justifyContent: "center",
+                                          color: "#92400e",
+                                        }}
+                                      >
+                                        <strong>Break / holiday</strong>
+                                        <p style={{ margin: 0, lineHeight: 1.6 }}>
+                                          Learning blocks will not be planned inside these dates.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <select
+                                        value={editingLearningPeriodType}
+                                        onChange={(event) =>
+                                          setEditingLearningPeriodType(
+                                            event.target.value as CleanLearningPeriodType,
+                                          )
+                                        }
+                                        style={inputStyle}
+                                      >
+                                        {visibleComposerPeriodTypes.map((option) => (
+                                          <option key={option} value={option}>
+                                            {formatPeriodTypeLabel(option, false)}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </div>
+
+                                  <div
+                                    style={{
+                                      display: "grid",
+                                      gap: 12,
+                                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                                    }}
+                                  >
+                                    <input
+                                      type="date"
+                                      value={editingLearningPeriodStartsOn}
+                                      onChange={(event) =>
+                                        setEditingLearningPeriodStartsOn(event.target.value)
+                                      }
+                                      style={inputStyle}
+                                    />
+                                    <input
+                                      type="date"
+                                      value={editingLearningPeriodEndsOn}
+                                      onChange={(event) =>
+                                        setEditingLearningPeriodEndsOn(event.target.value)
+                                      }
+                                      style={inputStyle}
+                                    />
+                                  </div>
+
+                                  <textarea
+                                    value={editingLearningPeriodNotes}
+                                    onChange={(event) =>
+                                      setEditingLearningPeriodNotes(event.target.value)
+                                    }
+                                    placeholder="Optional notes"
+                                    style={textAreaStyle}
+                                  />
+
+                                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                    <button
+                                      type="submit"
+                                      style={buttonStyle}
+                                      disabled={submitting}
+                                    >
+                                      {submitting ? "Saving..." : "Save"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      style={mutedButtonStyle}
+                                      onClick={closeLearningPeriodEditor}
+                                      disabled={submitting}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : null}
                             </div>
-                            <div style={{ color: "#475569" }}>
-                              {formatWeekRangeLabel(period.startsOn, period.endsOn)}
-                            </div>
-                            <div
-                              style={{
-                                color: period.isBreak ? "#92400e" : "#64748b",
-                                fontSize: 13,
-                                lineHeight: 1.6,
-                              }}
-                            >
-                              {period.isBreak || period.periodType === "break"
-                                ? "Learning is paused inside these dates."
-                                : "Master blocks can be planned inside these dates."}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : selectedAcademicYear ? (
                       <p style={secondaryTextStyle}>
