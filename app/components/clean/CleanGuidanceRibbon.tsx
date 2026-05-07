@@ -45,14 +45,19 @@ export default function CleanGuidanceRibbon({
 }) {
   if (!cards.length) return null;
 
-  return (
-    <section
-      style={{
+  const sectionStyle: React.CSSProperties = compact
+    ? {
         ...cardStyle,
-        padding: compact ? 16 : 20,
-      }}
-    >
-      <div style={{ display: "grid", gap: 8, marginBottom: compact ? 12 : 16 }}>
+        padding: 14,
+        borderRadius: 20,
+        background: "#f8fafc",
+        boxShadow: "none",
+      }
+    : cardStyle;
+
+  return (
+    <section style={sectionStyle}>
+      <div style={{ display: "grid", gap: compact ? 6 : 8, marginBottom: compact ? 10 : 16 }}>
         <div
           style={{
             fontSize: 12,
@@ -62,9 +67,11 @@ export default function CleanGuidanceRibbon({
             textTransform: "uppercase",
           }}
         >
-          {compact ? "Small next steps" : "Calm next steps"}
+          {compact ? "If helpful next" : "Calm next steps"}
         </div>
-        <h2 style={{ margin: 0, color: "#0f172a" }}>What to do next</h2>
+        <h2 style={{ margin: 0, color: "#0f172a", fontSize: compact ? 18 : 24 }}>
+          {compact ? "A few gentle next steps" : "What to do next"}
+        </h2>
         {!compact ? (
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
             These cards stay focused on the next few things that will make today and this week easier.
@@ -75,9 +82,9 @@ export default function CleanGuidanceRibbon({
       <div
         style={{
           display: "grid",
-          gap: 12,
+          gap: compact ? 10 : 12,
           gridTemplateColumns: compact
-            ? "repeat(auto-fit, minmax(220px, 1fr))"
+            ? "repeat(auto-fit, minmax(200px, 1fr))"
             : "repeat(auto-fit, minmax(240px, 1fr))",
         }}
       >
@@ -89,11 +96,11 @@ export default function CleanGuidanceRibbon({
               key={card.key}
               style={{
                 border: `1px solid ${colors.border}`,
-                background: colors.background,
-                borderRadius: 14,
-                padding: compact ? 12 : 14,
+                background: compact ? "#ffffff" : colors.background,
+                borderRadius: 16,
+                padding: compact ? 10 : 14,
                 display: "grid",
-                gap: 8,
+                gap: compact ? 6 : 8,
               }}
             >
               <div
@@ -111,12 +118,15 @@ export default function CleanGuidanceRibbon({
                     ? "Next step"
                     : "Coming up"}
               </div>
-              <strong style={{ color: "#0f172a" }}>{card.title}</strong>
+              <strong style={{ color: "#0f172a", fontSize: compact ? 14 : 16 }}>{card.title}</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                 {card.description}
               </p>
               <div>
-                <Link href={card.actionHref} style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                <Link
+                  href={card.actionHref}
+                  style={{ color: "#1d4ed8", fontWeight: 700, fontSize: compact ? 14 : 15 }}
+                >
                   {card.actionLabel}
                 </Link>
               </div>

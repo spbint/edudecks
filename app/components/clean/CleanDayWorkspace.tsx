@@ -30,23 +30,23 @@ import {
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
-  background: "#f8fafc",
-  padding: "32px 20px 48px",
+  background: "linear-gradient(180deg, #f8fafc 0%, #fdfefe 45%, #f8fafc 100%)",
+  padding: "28px 18px 44px",
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1040,
+  maxWidth: 980,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 16,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 18,
+  borderRadius: 22,
   background: "#ffffff",
-  padding: 20,
-  boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
+  padding: 22,
+  boxShadow: "0 14px 32px rgba(15,23,42,0.04)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -62,6 +62,32 @@ const compactInputStyle: React.CSSProperties = {
   width: "min(260px, 100%)",
   padding: "9px 12px",
   fontSize: 13,
+  background: "#ffffff",
+};
+
+const overviewPillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "8px 10px",
+  borderRadius: 999,
+  border: "1px solid #dbeafe",
+  background: "#ffffff",
+  color: "#334155",
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const blockMetaPillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "5px 9px",
+  borderRadius: 999,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  color: "#475569",
+  fontSize: 12,
+  fontWeight: 600,
 };
 
 function getTodayDate() {
@@ -251,6 +277,39 @@ function CleanDayWorkspaceBody() {
     sortedVisibleItems,
     wholeFamilyBlocksCount,
   ]);
+
+  const overviewFocusLabel = useMemo(() => {
+    if (selectedLearnerId && selectedLearnerLabel) {
+      return selectedLearnerLabel;
+    }
+
+    if (learnersInViewCount > 0 && wholeFamilyBlocksCount > 0) {
+      return `${learnersInViewCount} learners + family time`;
+    }
+
+    if (learnersInViewCount > 0) {
+      return `${learnersInViewCount} learner${learnersInViewCount === 1 ? "" : "s"}`;
+    }
+
+    return "Whole family";
+  }, [
+    learnersInViewCount,
+    selectedLearnerId,
+    selectedLearnerLabel,
+    wholeFamilyBlocksCount,
+  ]);
+
+  const nextUpSummary = useMemo(() => {
+    if (nextUpcomingItem) {
+      return `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`;
+    }
+
+    if (sortedVisibleItems.length) {
+      return "The rest of today is open.";
+    }
+
+    return "Nothing planned yet.";
+  }, [nextUpcomingItem, sortedVisibleItems]);
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -491,76 +550,102 @@ function CleanDayWorkspaceBody() {
               <CleanGuidanceRibbon cards={openGuidanceCards} />
             ) : null}
 
-            <section style={cardStyle}>
+            <section
+              style={{
+                ...cardStyle,
+                padding: 18,
+              }}
+            >
               <div
                 style={{
                   display: "grid",
-                  gap: 18,
+                  gap: 16,
                 }}
               >
                 <div
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "flex-start",
-                    flexWrap: "wrap",
+                    border: "1px solid #dbeafe",
+                    borderRadius: 20,
+                    background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+                    padding: 20,
+                    display: "grid",
+                    gap: 16,
                   }}
                 >
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Today&apos;s flow</h2>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      {overviewSummary}
-                    </p>
-                    {nextUpcomingItem ? (
-                      <p style={{ margin: 0, color: "#334155", fontWeight: 700 }}>
-                        Next up: {nextUpcomingItem.title} at {formatTimeLabel(nextUpcomingItem.startsAt)}.
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 16,
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.08em",
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Today&apos;s flow
+                      </div>
+                      <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28 }}>
+                        A calmer view of today
+                      </h2>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                        {overviewSummary}
                       </p>
-                    ) : null}
-                  </div>
-                  <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
-                    <label
+                      <p style={{ margin: 0, color: "#0f172a", fontWeight: 700 }}>
+                        Next up: {nextUpSummary}
+                      </p>
+                    </div>
+                    <div
                       style={{
-                        color: "#64748b",
-                        fontSize: 13,
-                        fontWeight: 700,
+                        display: "grid",
+                        gap: 8,
+                        minWidth: 220,
+                        padding: 14,
+                        borderRadius: 16,
+                        background: "rgba(255,255,255,0.9)",
+                        border: "1px solid #dbeafe",
                       }}
                     >
-                      Family day view
-                    </label>
-                    <select
-                      value={selectedLearnerId}
-                      onChange={(event) => setSelectedLearnerId(event.target.value)}
-                      style={compactInputStyle}
-                    >
-                      <option value="">All family</option>
-                      {learnerOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                      <label
+                        style={{
+                          color: "#64748b",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        View
+                      </label>
+                      <select
+                        value={selectedLearnerId}
+                        onChange={(event) => setSelectedLearnerId(event.target.value)}
+                        style={compactInputStyle}
+                      >
+                        <option value="">All family</option>
+                        {learnerOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
 
-                <div
-                  style={{
-                    border: "1px solid #dbeafe",
-                    borderRadius: 16,
-                    background: "#f8fbff",
-                    padding: 16,
-                    display: "grid",
-                    gap: 8,
-                  }}
-                >
-                  <strong style={{ color: "#0f172a" }}>{formatTodayHeading(today)}</strong>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    {selectedLearnerId && selectedLearnerLabel
-                      ? `You are looking at ${selectedLearnerLabel}'s day.`
-                      : "You are looking at the full family day."}
-                  </div>
-                  <div style={{ color: "#64748b", fontSize: 13 }}>
-                    {sortedVisibleItems.length} learning block{sortedVisibleItems.length === 1 ? "" : "s"} in this view
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span style={overviewPillStyle}>{formatTodayHeading(today)}</span>
+                    <span style={overviewPillStyle}>{overviewFocusLabel}</span>
+                    <span style={overviewPillStyle}>
+                      {sortedVisibleItems.length} block{sortedVisibleItems.length === 1 ? "" : "s"}
+                    </span>
                   </div>
                 </div>
 
@@ -568,34 +653,34 @@ function CleanDayWorkspaceBody() {
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    gap: 12,
-                    alignItems: "center",
+                    gap: 14,
+                    alignItems: "flex-end",
                     flexWrap: "wrap",
                   }}
                 >
-                  <div>
-                    <strong style={{ color: "#0f172a" }}>Family timeline</strong>
-                    <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                      Learning blocks stay compact until you open the details.
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 18 }}>Family timeline</strong>
+                    <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                      Learning blocks stay small until you open the details.
                     </p>
                   </div>
-                  <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                  <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>
                     Open My Calendar
                   </Link>
                 </div>
 
               {itemsLoading ? <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>Loading today&apos;s flow...</p> : null}
-              {itemsError ? <p style={{ marginTop: 16, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
+              {itemsError ? <p style={{ marginTop: 0, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
 
               {!itemsLoading && !itemsError && !visibleItems.length ? (
                 <div
                   style={{
                     border: "1px solid #e2e8f0",
-                    borderRadius: 16,
-                    background: "#f8fafc",
-                    padding: 18,
+                    borderRadius: 18,
+                    background: "#fbfdff",
+                    padding: 20,
                     display: "grid",
-                    gap: 12,
+                    gap: 14,
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
@@ -652,7 +737,13 @@ function CleanDayWorkspaceBody() {
               ) : null}
 
               {!itemsLoading && !itemsError && visibleItems.length ? (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    position: "relative",
+                  }}
+                >
                   {sortedVisibleItems.map((item) => {
                     const learnerLabel =
                       learnerLabelById.get(item.learnerId ?? "") || "Whole family";
@@ -669,12 +760,15 @@ function CleanDayWorkspaceBody() {
                       <div
                         key={item.id}
                         style={{
-                          border: "1px solid #dbeafe",
+                          border: expanded ? "1px solid #cfe3ff" : "1px solid #e2e8f0",
                           borderRadius: 18,
-                          background: "#ffffff",
+                          background: expanded ? "#ffffff" : "#fcfdff",
                           padding: 0,
                           display: "grid",
                           overflow: "hidden",
+                          boxShadow: expanded
+                            ? "0 10px 24px rgba(15,23,42,0.05)"
+                            : "0 4px 14px rgba(15,23,42,0.03)",
                         }}
                       >
                         <button
@@ -683,10 +777,10 @@ function CleanDayWorkspaceBody() {
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            gap: 16,
+                            gap: 14,
                             alignItems: "flex-start",
-                            padding: 16,
-                            background: expanded ? "#f8fbff" : "#ffffff",
+                            padding: 14,
+                            background: expanded ? "#f8fbff" : "#fcfdff",
                             border: "none",
                             cursor: "pointer",
                             textAlign: "left",
@@ -694,12 +788,16 @@ function CleanDayWorkspaceBody() {
                         >
                           <div
                             style={{
-                              minWidth: 88,
+                              minWidth: 96,
                               display: "grid",
-                              gap: 2,
+                              gap: 4,
                               color: "#1d4ed8",
                               fontWeight: 800,
                               flexShrink: 0,
+                              alignSelf: "stretch",
+                              padding: "10px 12px",
+                              borderRadius: 14,
+                              background: expanded ? "#dbeafe" : "#eff6ff",
                             }}
                           >
                             <span>{formatTimeLabel(item.startsAt)}</span>
@@ -719,27 +817,26 @@ function CleanDayWorkspaceBody() {
                                 alignItems: "center",
                               }}
                             >
-                              <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                              <strong style={{ color: "#0f172a", fontSize: 16 }}>{item.title}</strong>
                               <span style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
                                 {expanded ? "Hide details" : "Show details"}
                               </span>
                             </div>
-                            <div style={{ color: "#64748b" }}>
-                              {learnerLabel}
-                              {item.learningArea ? ` - ${item.learningArea}` : ""}
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <span style={blockMetaPillStyle}>{learnerLabel}</span>
+                              {item.learningArea ? (
+                                <span style={blockMetaPillStyle}>{item.learningArea}</span>
+                              ) : null}
+                              {programLabel ? (
+                                <span style={blockMetaPillStyle}>{programLabel}</span>
+                              ) : null}
+                              {segmentLabel ? (
+                                <span style={blockMetaPillStyle}>{segmentLabel}</span>
+                              ) : null}
                             </div>
-                            {programLabel || segmentLabel ? (
-                              <div style={{ color: "#475569", fontSize: 13 }}>
-                                {programLabel ? `Program: ${programLabel}` : ""}
-                                {programLabel && segmentLabel ? " - " : ""}
-                                {segmentLabel ? `Segment: ${segmentLabel}` : ""}
-                              </div>
-                            ) : null}
-                            {notesPreview ? (
-                              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                                {notesPreview}
-                              </div>
-                            ) : null}
+                            <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                              {notesPreview ?? "Open this block to see notes and capture what happened."}
+                            </div>
                           </div>
                         </button>
 
@@ -747,11 +844,15 @@ function CleanDayWorkspaceBody() {
                           <div
                             style={{
                               borderTop: "1px solid #e2e8f0",
-                              padding: 16,
+                              background: "#fbfdff",
+                              padding: 14,
                               display: "grid",
                               gap: 10,
                             }}
                           >
+                            <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                              Details
+                            </div>
                             {item.description ? (
                               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                                 {item.description}
@@ -768,7 +869,7 @@ function CleanDayWorkspaceBody() {
                                 {segmentLabel ? `Segment: ${segmentLabel}` : ""}
                               </div>
                             ) : null}
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                               {/* TODO: pass learner/calendar/program context into My Capture when the capture route supports query-driven defaults. */}
                               <Link href="/my-capture" style={{ color: "#1d4ed8", fontWeight: 700 }}>
                                 Capture what happened
