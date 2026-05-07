@@ -11,8 +11,11 @@ import {
 } from "@/lib/clean/family/client";
 import {
   createCleanLearner,
+  deleteCleanLearner,
   setDefaultCleanLearner,
+  updateCleanLearner,
 } from "@/lib/clean/learners/client";
+import type { Learner } from "@/lib/clean/learners/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -54,6 +57,57 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const secondaryButtonStyle: React.CSSProperties = {
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  borderRadius: 10,
+  padding: "10px 14px",
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+  ...secondaryButtonStyle,
+  borderColor: "#fecaca",
+  color: "#b91c1c",
+};
+
+const subtleButtonStyle: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  color: "#475569",
+  padding: 0,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+type LearnerDraft = {
+  firstName: string;
+  preferredName: string;
+  surname: string;
+  yearLevel: string;
+  notes: string;
+};
+
+function buildLearnerDraft(learner: Learner): LearnerDraft {
+  return {
+    firstName: learner.firstName,
+    preferredName: learner.preferredName ?? "",
+    surname: learner.surname ?? "",
+    yearLevel: learner.yearLevel ?? "",
+    notes: learner.notes ?? "",
+  };
+}
+
+function formatLearnerDisplayName(learner: Learner) {
+  const givenName = learner.preferredName || learner.firstName;
+  const surname = learner.surname?.trim();
+  return surname ? `${givenName} ${surname}` : givenName;
+}
+
 function CleanProfileWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const [familyName, setFamilyName] = useState("");
@@ -63,17 +117,16 @@ function CleanProfileWorkspaceBody() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editingLearnerId, setEditingLearnerId] = useState<string | null>(null);
+  const [editingLearnerDraft, setEditingLearnerDraft] = useState<LearnerDraft | null>(null);
+  const [learnerActionId, setLearnerActionId] = useState<string | null>(null);
 
   const defaultLearnerLabel = useMemo(() => {
     if (!workspace.profile?.defaultLearnerId) return null;
-
-    return (
-      workspace.learners.find((learner) => learner.id === workspace.profile?.defaultLearnerId)
-        ?.preferredName ||
-      workspace.learners.find((learner) => learner.id === workspace.profile?.defaultLearnerId)
-        ?.firstName ||
-      null
+    const learner = workspace.learners.find(
+      (item) => item.id === workspace.profile?.defaultLearnerId,
     );
+    return learner ? formatLearnerDisplayName(learner) : null;
   }, [workspace.learners, workspace.profile?.defaultLearnerId]);
 
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
@@ -137,6 +190,7 @@ function CleanProfileWorkspaceBody() {
     if (!workspace.profile) return;
 
     setSubmitting(true);
+    setLearnerActionId(learnerId);
     setMessage(null);
     setError(null);
 
@@ -153,6 +207,87 @@ function CleanProfileWorkspaceBody() {
       );
     } finally {
       setSubmitting(false);
+      setLearnerActionId(null);
+    }
+  }
+
+  function handleStartLearnerEdit(learner: Learner) {
+    setEditingLearnerId(learner.id);
+    setEditingLearnerDraft(buildLearnerDraft(learner));
+    setMessage(null);
+    setError(null);
+  }
+
+  function handleCancelLearnerEdit() {
+    setEditingLearnerId(null);
+    setEditingLearnerDraft(null);
+  }
+
+  async function handleSaveLearnerEdit(learnerId: string) {
+    if (!workspace.profile || !editingLearnerDraft) return;
+
+    setSubmitting(true);
+    setLearnerActionId(learnerId);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await updateCleanLearner(workspace.profile.id, learnerId, {
+        firstName: editingLearnerDraft.firstName,
+        preferredName: editingLearnerDraft.preferredName || null,
+        surname: editingLearnerDraft.surname || null,
+        yearLevel: editingLearnerDraft.yearLevel || null,
+        notes: editingLearnerDraft.notes || null,
+      });
+      setEditingLearnerId(null);
+      setEditingLearnerDraft(null);
+      setMessage("Learner updated.");
+      await workspace.reload();
+    } catch (nextError) {
+      setError(
+        normalizeCleanErrorMessage(
+          nextError,
+          "We could not update the learner.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+      setLearnerActionId(null);
+    }
+  }
+
+  async function handleDeleteLearner(learner: Learner) {
+    if (!workspace.profile) return;
+
+    const confirmed = window.confirm(
+      "Delete this learner? This may also remove this learner’s clean programs, calendar items, evidence, portfolio highlights, and reports. This cannot be undone.",
+    );
+
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    setLearnerActionId(learner.id);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await deleteCleanLearner(workspace.profile.id, learner.id);
+      if (editingLearnerId === learner.id) {
+        setEditingLearnerId(null);
+        setEditingLearnerDraft(null);
+      }
+      setMessage("Learner deleted.");
+      await workspace.reload();
+    } catch (nextError) {
+      setError(
+        normalizeCleanErrorMessage(
+          nextError,
+          "We could not delete the learner.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+      setLearnerActionId(null);
     }
   }
 
@@ -161,7 +296,15 @@ function CleanProfileWorkspaceBody() {
       <div style={wrapStyle}>
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                color: "#64748b",
+                textTransform: "uppercase",
+              }}
+            >
               Clean rebuild scaffold
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Profile</h1>
@@ -172,12 +315,14 @@ function CleanProfileWorkspaceBody() {
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading clean family workspace…</section>
+          <section style={cardStyle}>Loading clean family workspace...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
-            <strong style={{ display: "block", marginBottom: 8 }}>{CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}</strong>
+            <strong style={{ display: "block", marginBottom: 8 }}>
+              {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
+            </strong>
             <p style={{ margin: 0, color: "#475569" }}>
               The clean rebuild service only talks to the new family-only schema. It will not fall back to legacy tables.
             </p>
@@ -206,7 +351,7 @@ function CleanProfileWorkspaceBody() {
               />
               <div>
                 <button type="submit" style={buttonStyle} disabled={submitting}>
-                  {submitting ? "Creating…" : "Create family profile"}
+                  {submitting ? "Creating..." : "Create family profile"}
                 </button>
               </div>
             </form>
@@ -244,8 +389,9 @@ function CleanProfileWorkspaceBody() {
               {workspace.learners.length ? (
                 <div style={{ display: "grid", gap: 12 }}>
                   {workspace.learners.map((learner) => {
-                    const label = learner.preferredName || learner.firstName;
                     const isDefault = workspace.profile?.defaultLearnerId === learner.id;
+                    const isEditing = editingLearnerId === learner.id;
+                    const isBusy = submitting && learnerActionId === learner.id;
 
                     return (
                       <div
@@ -255,30 +401,150 @@ function CleanProfileWorkspaceBody() {
                           borderRadius: 14,
                           padding: 14,
                           display: "grid",
-                          gap: 8,
+                          gap: 12,
                         }}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                           <div>
-                            <strong>{label}</strong>
+                            <strong>{formatLearnerDisplayName(learner)}</strong>
                             {learner.yearLevel ? (
                               <span style={{ color: "#64748b" }}> · {learner.yearLevel}</span>
                             ) : null}
                           </div>
-                          <button
-                            type="button"
-                            style={{
-                              ...buttonStyle,
-                              background: isDefault ? "#1d4ed8" : "#0f172a",
-                              borderColor: isDefault ? "#1d4ed8" : "#0f172a",
-                            }}
-                            disabled={submitting || isDefault}
-                            onClick={() => void handleSetDefaultLearner(learner.id)}
-                          >
-                            {isDefault ? "Default learner" : "Set default"}
-                          </button>
                         </div>
-                        <div style={{ color: "#64748b", fontSize: 13 }}>{learner.id}</div>
+
+                        {isEditing && editingLearnerDraft ? (
+                          <div style={{ display: "grid", gap: 10 }}>
+                            <input
+                              value={editingLearnerDraft.firstName}
+                              onChange={(event) =>
+                                setEditingLearnerDraft((current) =>
+                                  current
+                                    ? { ...current, firstName: event.target.value }
+                                    : current,
+                                )
+                              }
+                              placeholder="First name"
+                              style={inputStyle}
+                            />
+                            <input
+                              value={editingLearnerDraft.preferredName}
+                              onChange={(event) =>
+                                setEditingLearnerDraft((current) =>
+                                  current
+                                    ? { ...current, preferredName: event.target.value }
+                                    : current,
+                                )
+                              }
+                              placeholder="Preferred name"
+                              style={inputStyle}
+                            />
+                            <input
+                              value={editingLearnerDraft.surname}
+                              onChange={(event) =>
+                                setEditingLearnerDraft((current) =>
+                                  current
+                                    ? { ...current, surname: event.target.value }
+                                    : current,
+                                )
+                              }
+                              placeholder="Surname"
+                              style={inputStyle}
+                            />
+                            <input
+                              value={editingLearnerDraft.yearLevel}
+                              onChange={(event) =>
+                                setEditingLearnerDraft((current) =>
+                                  current
+                                    ? { ...current, yearLevel: event.target.value }
+                                    : current,
+                                )
+                              }
+                              placeholder="Year level"
+                              style={inputStyle}
+                            />
+                            <textarea
+                              value={editingLearnerDraft.notes}
+                              onChange={(event) =>
+                                setEditingLearnerDraft((current) =>
+                                  current
+                                    ? { ...current, notes: event.target.value }
+                                    : current,
+                                )
+                              }
+                              placeholder="Notes"
+                              style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
+                            />
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                style={buttonStyle}
+                                disabled={isBusy}
+                                onClick={() => void handleSaveLearnerEdit(learner.id)}
+                              >
+                                {isBusy ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                style={secondaryButtonStyle}
+                                disabled={isBusy}
+                                onClick={handleCancelLearnerEdit}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <button
+                                type="button"
+                                style={secondaryButtonStyle}
+                                disabled={submitting}
+                                onClick={() => handleStartLearnerEdit(learner)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                style={dangerButtonStyle}
+                                disabled={isBusy}
+                                onClick={() => void handleDeleteLearner(learner)}
+                              >
+                                {isBusy ? "Deleting..." : "Delete"}
+                              </button>
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                              <div style={{ color: "#64748b", fontSize: 13 }}>
+                                {isDefault ? "Default learner" : "Optional default learner"}
+                              </div>
+                              {isDefault ? (
+                                <span style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+                                  Default learner
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  style={subtleButtonStyle}
+                                  disabled={isBusy}
+                                  onClick={() => void handleSetDefaultLearner(learner.id)}
+                                >
+                                  Make default
+                                </button>
+                              )}
+                            </div>
+
+                            <details>
+                              <summary style={{ color: "#64748b", fontSize: 12, cursor: "pointer" }}>
+                                Debug details
+                              </summary>
+                              <div style={{ color: "#64748b", fontSize: 12, marginTop: 8 }}>
+                                Learner ID: {learner.id}
+                              </div>
+                            </details>
+                          </>
+                        )}
                       </div>
                     );
                   })}
@@ -313,7 +579,7 @@ function CleanProfileWorkspaceBody() {
                 />
                 <div>
                   <button type="submit" style={buttonStyle} disabled={submitting}>
-                    {submitting ? "Saving…" : "Add learner"}
+                    {submitting ? "Saving..." : "Add learner"}
                   </button>
                 </div>
               </form>

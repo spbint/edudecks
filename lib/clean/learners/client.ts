@@ -163,3 +163,26 @@ export async function setDefaultCleanLearner(
     defaultLearnerId: learnerId,
   });
 }
+
+export async function deleteCleanLearner(
+  familyId: string,
+  learnerId: string,
+) {
+  const response = await supabase
+    .from("learners")
+    .delete()
+    .eq("family_id", familyId)
+    .eq("id", learnerId)
+    .select("id")
+    .maybeSingle();
+
+  if (response.error) {
+    throw response.error;
+  }
+
+  if (!response.data) {
+    throw new Error("Unable to delete the learner.");
+  }
+
+  return safe(response.data.id);
+}
