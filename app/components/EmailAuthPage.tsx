@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
@@ -25,7 +25,7 @@ function passwordErrorMessage(error: unknown) {
     message.includes("invalid login credentials") ||
     message.includes("invalid credentials")
   ) {
-    return "That email and password combination didn't match our records.";
+    return "That email and password combination didn't match our records. Use Forgot password? below if you need a reset.";
   }
 
   if (message.includes("email not confirmed")) {
@@ -134,13 +134,14 @@ function EmailAuthPageContent() {
   const [password, setPassword] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
+  const redirectStarted = useRef(false);
 
   const nextPath = useMemo(
     () => normalizeAuthNextPath(searchParams.get("next"), "/my-day"),
     [searchParams],
   );
   const emailValid = useMemo(() => isValidEmail(email), [email]);
-  const passwordValid = useMemo(() => safe(password).length >= 8, [password]);
+  const passwordValid = useMemo(() => safe(password).length > 0, [password]);
 
   useEffect(() => {
     const authMessage = safe(searchParams.get("authMessage"));
@@ -164,32 +165,35 @@ function EmailAuthPageContent() {
 
   useEffect(() => {
     let active = true;
-    let redirectStarted = false;
 
     async function hydrateSession() {
-      const { data } = await supabase.auth.getSession();
+      const { data, error } = await supabase.auth.getSession();
       if (!active) return;
-      if (data.session?.user && !redirectStarted) {
-        redirectStarted = true;
+
+      if (error) {
+        console.warn("[auth] login session hydrate failed", {
+          message: safe(error.message),
+        });
+        return;
+      }
+
+      if (data.session?.user) {
+        if (redirectStarted.current) return;
+        redirectStarted.current = true;
+
+        if (typeof window !== "undefined") {
+          window.location.replace(nextPath);
+          return;
+        }
+
         router.replace(nextPath);
       }
     }
 
     void hydrateSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!active) return;
-      if (session?.user && !redirectStarted) {
-        redirectStarted = true;
-        router.replace(nextPath);
-      }
-    });
-
     return () => {
       active = false;
-      subscription.unsubscribe();
     };
   }, [nextPath, router]);
 
@@ -211,7 +215,7 @@ function EmailAuthPageContent() {
 
     if (!passwordValid) {
       setSaveState("error");
-      setMessage("Please enter your password. Passwords need at least 8 characters.");
+      setMessage("Please enter your password first.");
       return;
     }
 
@@ -219,7 +223,7 @@ function EmailAuthPageContent() {
       setSaveState("saving");
       setMessage("");
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: safe(email).toLowerCase(),
         password,
       });
@@ -227,7 +231,34 @@ function EmailAuthPageContent() {
       if (error) {
         throw error;
       }
+
+      const confirmedSession =
+        data.session ?? (await supabase.auth.getSession()).data.session ?? null;
+
+      if (!confirmedSession?.user) {
+        console.warn("[auth] password sign-in returned without a confirmed session");
+        setSaveState("error");
+        setMessage(
+          "Your sign-in was accepted, but we could not confirm the session. Please try again.",
+        );
+        return;
+      }
+
+      setSaveState("success");
+      setMessage("Signed in. Taking you to MyLearna...");
+      if (redirectStarted.current) return;
+      redirectStarted.current = true;
+
+      if (typeof window !== "undefined") {
+        window.location.replace(nextPath);
+        return;
+      }
+
+      router.replace(nextPath);
     } catch (error) {
+      console.warn("[auth] password sign-in failed", {
+        message: safe((error as { message?: unknown })?.message),
+      });
       setSaveState("error");
       setMessage(passwordErrorMessage(error));
     }
@@ -391,7 +422,7 @@ function EmailAuthPageContent() {
                     lineHeight: 1.5,
                   }}
                 >
-                  Passwords need at least 8 characters.
+                  Please enter your password.
                 </div>
               ) : null}
             </div>
