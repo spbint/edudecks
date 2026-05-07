@@ -6,6 +6,7 @@ import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   createCleanCalendarItem,
   deleteCleanCalendarItem,
@@ -1768,6 +1769,8 @@ function CleanCalendarWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <CleanWorkflowRibbon />
+
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div

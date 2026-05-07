@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   createCleanPortfolioHighlight,
   deleteCleanPortfolioHighlight,
@@ -168,6 +169,8 @@ function CleanPortfolioWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <CleanWorkflowRibbon />
+
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div
