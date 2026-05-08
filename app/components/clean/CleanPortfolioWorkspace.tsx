@@ -1,10 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
+import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
   createCleanPortfolioHighlight,
   deleteCleanPortfolioHighlight,
@@ -15,6 +19,11 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import {
+  listCleanProgramSegments,
+  listCleanPrograms,
+} from "@/lib/clean/programs/client";
+import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -77,8 +86,12 @@ function portfolioCardTitle(item: CleanPortfolioItem) {
 
 function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const pathname = usePathname();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [items, setItems] = useState<CleanPortfolioItem[]>([]);
+  const [programs, setPrograms] = useState<CleanProgram[]>([]);
+  const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
+  const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -94,22 +107,57 @@ function CleanPortfolioWorkspaceBody() {
     [workspace.learners],
   );
 
+  const capturePathBase = pathname.startsWith("/clean-my-portfolio")
+    ? "/clean-my-capture"
+    : "/my-capture";
+
+  const programLabelById = useMemo(
+    () => new Map(programs.map((program) => [program.id, program.title])),
+    [programs],
+  );
+
+  const segmentLabelById = useMemo(
+    () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
+    [programSegments],
+  );
+
+  const calendarItemById = useMemo(
+    () => new Map(calendarItems.map((item) => [item.id, item])),
+    [calendarItems],
+  );
+
   const reloadItems = useCallback(async () => {
     if (!workspace.profile) return;
 
     setItemsLoading(true);
     setItemsError(null);
     try {
-      const nextItems = await listCleanPortfolioItems(workspace.profile.id, {
-        learnerId: selectedLearnerId || null,
-        limit: 50,
-      });
+      const [nextItems, nextPrograms, nextCalendarItems] = await Promise.all([
+        listCleanPortfolioItems(workspace.profile.id, {
+          learnerId: selectedLearnerId || null,
+          limit: 50,
+        }),
+        listCleanPrograms(workspace.profile.id, { limit: 50 }),
+        listCleanCalendarItems(workspace.profile.id, { limit: 80 }),
+      ]);
+
+      const nextProgramSegments = (
+        await Promise.all(
+          nextPrograms.map((program) =>
+            listCleanProgramSegments(workspace.profile!.id, program.id),
+          ),
+        )
+      ).flat();
+
       setItems(nextItems);
+      setPrograms(nextPrograms);
+      setProgramSegments(nextProgramSegments);
+      setCalendarItems(nextCalendarItems);
     } catch (error) {
       setItemsError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean portfolio items just now.",
+          "We could not load your portfolio items just now.",
         ),
       );
     } finally {
@@ -120,6 +168,9 @@ function CleanPortfolioWorkspaceBody() {
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setItems([]);
+      setPrograms([]);
+      setProgramSegments([]);
+      setCalendarItems([]);
       return;
     }
 
@@ -141,13 +192,13 @@ function CleanPortfolioWorkspaceBody() {
     try {
       if (item.highlight) {
         await deleteCleanPortfolioHighlight(workspace.profile.id, item.highlight.id);
-        setMessage("Portfolio highlight removed.");
+        setMessage("Removed from portfolio.");
       } else {
         await createCleanPortfolioHighlight(workspace.profile.id, {
           learnerId: item.evidence.learnerId,
           evidenceEntryId: item.evidence.id,
         });
-        setMessage("Portfolio highlight saved.");
+        setMessage("Added to portfolio.");
       }
 
       await reloadItems();
@@ -155,7 +206,7 @@ function CleanPortfolioWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not update the clean portfolio highlight.",
+          "We could not update this portfolio selection.",
         ),
       );
     } finally {
@@ -182,17 +233,17 @@ function CleanPortfolioWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              Choose evidence
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Portfolio</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This preview route shows clean evidence cards and uses clean portfolio highlights only.
+              Review captured evidence and choose what belongs in the portfolio.
             </p>
           </div>
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading clean family workspace...</section>
+          <section style={cardStyle}>Loading your family workspace...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
@@ -201,7 +252,7 @@ function CleanPortfolioWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean portfolio scaffold will not fall back to legacy portfolio or storage systems.
+              My Portfolio will not fall back to older portfolio or storage systems.
             </p>
           </section>
         ) : null}
@@ -226,7 +277,7 @@ function CleanPortfolioWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              A clean learner is required before the portfolio foundation can load evidence cards.
+              A learner is required before portfolio evidence can load.
             </p>
           </section>
         ) : null}
@@ -246,7 +297,8 @@ function CleanPortfolioWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Portfolio filters</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Portfolio cards are derived from clean evidence entries, with a simple highlight toggle.
+                    Start from captured evidence, then add the strongest pieces to the
+                    portfolio.
                   </p>
                 </div>
                 <button
@@ -276,7 +328,7 @@ function CleanPortfolioWorkspaceBody() {
             </section>
 
             <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Evidence cards</h2>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
               {itemsLoading ? (
                 <p style={{ margin: 0, color: "#475569" }}>Loading portfolio cards...</p>
               ) : null}
@@ -284,7 +336,7 @@ function CleanPortfolioWorkspaceBody() {
 
               {!itemsLoading && !itemsError && !items.length ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  No clean portfolio items exist yet.
+                  No evidence is ready for the portfolio yet.
                 </p>
               ) : null}
 
@@ -295,6 +347,16 @@ function CleanPortfolioWorkspaceBody() {
                       learnerOptions.find(
                         (option) => option.value === item.evidence.learnerId,
                       )?.label || "Unknown learner";
+                    const linkedProgram = item.evidence.programId
+                      ? programLabelById.get(item.evidence.programId) ?? null
+                      : null;
+                    const linkedCalendarItem = item.evidence.calendarItemId
+                      ? calendarItemById.get(item.evidence.calendarItemId) ?? null
+                      : null;
+                    const linkedSegment =
+                      linkedCalendarItem?.programSegmentId
+                        ? segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
+                        : null;
 
                     return (
                       <div
@@ -336,7 +398,7 @@ function CleanPortfolioWorkspaceBody() {
                             onClick={() => void handleToggleHighlight(item)}
                             disabled={submitting}
                           >
-                            {item.isHighlighted ? "Remove highlight" : "Highlight"}
+                            {item.isHighlighted ? "Remove from portfolio" : "Add to portfolio"}
                           </button>
                         </div>
                         {!item.evidence.title ? (
@@ -348,6 +410,28 @@ function CleanPortfolioWorkspaceBody() {
                             {item.evidence.whatHappened}
                           </p>
                         )}
+                        {linkedProgram || linkedSegment || linkedCalendarItem ? (
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                            {linkedProgram ? `Program: ${linkedProgram}` : ""}
+                            {linkedProgram && linkedSegment ? " | " : ""}
+                            {linkedSegment ? `Week / segment: ${linkedSegment}` : ""}
+                            {(linkedProgram || linkedSegment) && linkedCalendarItem ? " | " : ""}
+                            {linkedCalendarItem ? `Block: ${linkedCalendarItem.title}` : ""}
+                          </div>
+                        ) : null}
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                          <Link
+                            href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}
+                            style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
+                          >
+                            Open capture
+                          </Link>
+                          {item.isHighlighted ? (
+                            <span style={{ color: "#0f766e", fontWeight: 700 }}>
+                              In portfolio
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}

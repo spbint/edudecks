@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -18,8 +19,11 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
-import { listCleanPrograms } from "@/lib/clean/programs/client";
-import type { CleanProgram } from "@/lib/clean/programs/types";
+import {
+  listCleanProgramSegments,
+  listCleanPrograms,
+} from "@/lib/clean/programs/client";
+import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -92,12 +96,20 @@ function buildCalendarOptionLabel(item: CleanCalendarItem, learnerLabel: string)
   return `${formatDateLabel(item.plannedDate)} - ${item.title} - ${learnerLabel}`;
 }
 
+function safeQueryValue(value: string | null) {
+  return String(value ?? "").trim();
+}
+
 function CleanCaptureWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
+  const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
   const [linkingLoading, setLinkingLoading] = useState(false);
   const [linkingError, setLinkingError] = useState<string | null>(null);
@@ -111,6 +123,7 @@ function CleanCaptureWorkspaceBody() {
   const [programId, setProgramId] = useState("");
   const [calendarItemId, setCalendarItemId] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -123,6 +136,33 @@ function CleanCaptureWorkspaceBody() {
       })),
     [workspace.learners],
   );
+
+  const captureContextKey = searchParams.toString();
+  const evidenceEntryIdFromQuery = safeQueryValue(searchParams.get("evidence_entry_id"));
+  const calendarItemIdFromQuery = safeQueryValue(searchParams.get("calendar_item_id"));
+  const learnerIdFromQuery = safeQueryValue(searchParams.get("learner_id"));
+  const programIdFromQuery = safeQueryValue(searchParams.get("program_id"));
+  const programSegmentIdFromQuery = safeQueryValue(searchParams.get("program_segment_id"));
+  const observedOnFromQuery =
+    safeQueryValue(searchParams.get("observed_on")) ||
+    safeQueryValue(searchParams.get("planned_date"));
+
+  const selectedProgram = useMemo(
+    () => programs.find((program) => program.id === programId) ?? null,
+    [programId, programs],
+  );
+
+  const selectedCalendarItem = useMemo(
+    () => calendarItems.find((item) => item.id === calendarItemId) ?? null,
+    [calendarItemId, calendarItems],
+  );
+
+  const selectedProgramSegment = useMemo(() => {
+    const linkedSegmentId =
+      programSegmentIdFromQuery || selectedCalendarItem?.programSegmentId || "";
+    if (!linkedSegmentId) return null;
+    return programSegments.find((segment) => segment.id === linkedSegmentId) ?? null;
+  }, [programSegmentIdFromQuery, programSegments, selectedCalendarItem?.programSegmentId]);
 
   const filteredPrograms = useMemo(() => {
     if (!learnerId) return programs;
@@ -154,7 +194,7 @@ function CleanCaptureWorkspaceBody() {
       setEntriesError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean evidence entries just now.",
+          "We could not load your capture notes just now.",
         ),
       );
     } finally {
@@ -173,13 +213,22 @@ function CleanCaptureWorkspaceBody() {
         listCleanCalendarItems(workspace.profile.id, { limit: 50 }),
       ]);
 
+      const nextProgramSegments = (
+        await Promise.all(
+          nextPrograms.map((program) =>
+            listCleanProgramSegments(workspace.profile!.id, program.id),
+          ),
+        )
+      ).flat();
+
       setPrograms(nextPrograms);
+      setProgramSegments(nextProgramSegments);
       setCalendarItems(nextCalendarItems);
     } catch (error) {
       setLinkingError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load clean linking options just now.",
+          "We could not load the program and calendar links just now.",
         ),
       );
     } finally {
@@ -191,6 +240,7 @@ function CleanCaptureWorkspaceBody() {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setEntries([]);
       setPrograms([]);
+      setProgramSegments([]);
       setCalendarItems([]);
       return;
     }
@@ -247,6 +297,94 @@ function CleanCaptureWorkspaceBody() {
     setLearnerId(nextLearnerId ?? workspace.profile?.defaultLearnerId ?? workspace.learners[0]?.id ?? "");
   }
 
+  function clearCaptureContext() {
+    setLastAppliedContextKey("");
+    router.replace(pathname);
+  }
+
+  useEffect(() => {
+    if (
+      !workspace.profile ||
+      !captureContextKey ||
+      captureContextKey === lastAppliedContextKey ||
+      linkingLoading ||
+      entriesLoading
+    ) {
+      return;
+    }
+
+    if (evidenceEntryIdFromQuery) {
+      const existingEntry = entries.find((entry) => entry.id === evidenceEntryIdFromQuery);
+      if (!existingEntry) return;
+
+      setEditingEntryId(existingEntry.id);
+      setLearnerId(existingEntry.learnerId);
+      setObservedOn(existingEntry.observedOn);
+      setTitle(existingEntry.title || "");
+      setWhatHappened(existingEntry.whatHappened);
+      setReflection(existingEntry.reflection || "");
+      setLearningArea(existingEntry.learningArea || "");
+      setProgramId(existingEntry.programId || "");
+      setCalendarItemId(existingEntry.calendarItemId || calendarItemIdFromQuery || "");
+      setMessage(null);
+      setActionError(null);
+      setLastAppliedContextKey(captureContextKey);
+      return;
+    }
+
+    const linkedCalendarItem = calendarItemIdFromQuery
+      ? calendarItems.find((item) => item.id === calendarItemIdFromQuery) ?? null
+      : null;
+    const linkedProgram = programIdFromQuery
+      ? programs.find((program) => program.id === programIdFromQuery) ?? null
+      : null;
+    const linkedSegment = programSegmentIdFromQuery
+      ? programSegments.find((segment) => segment.id === programSegmentIdFromQuery) ?? null
+      : null;
+
+    const nextLearnerId =
+      learnerIdFromQuery ||
+      linkedCalendarItem?.learnerId ||
+      linkedSegment?.learnerId ||
+      linkedProgram?.learnerId ||
+      workspace.profile.defaultLearnerId ||
+      workspace.learners[0]?.id ||
+      "";
+
+    setEditingEntryId(null);
+    setLearnerId(nextLearnerId);
+    setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
+    setTitle(linkedCalendarItem?.title || linkedSegment?.title || linkedProgram?.title || "");
+    setWhatHappened("");
+    setReflection("");
+    setLearningArea(
+      linkedCalendarItem?.learningArea || linkedProgram?.learningArea || "",
+    );
+    setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
+    setCalendarItemId(calendarItemIdFromQuery || "");
+    setMessage(null);
+    setActionError(null);
+    setLastAppliedContextKey(captureContextKey);
+  }, [
+    calendarItemIdFromQuery,
+    calendarItems,
+    captureContextKey,
+    entries,
+    entriesLoading,
+    evidenceEntryIdFromQuery,
+    lastAppliedContextKey,
+    learnerIdFromQuery,
+    linkingLoading,
+    observedOnFromQuery,
+    pathname,
+    programIdFromQuery,
+    programSegmentIdFromQuery,
+    programSegments,
+    programs,
+    workspace.learners,
+    workspace.profile,
+  ]);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile) return;
@@ -269,20 +407,23 @@ function CleanCaptureWorkspaceBody() {
 
       if (editingEntryId) {
         await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
-        setMessage("Clean capture note updated.");
+        setMessage("Capture note updated.");
       } else {
         await createCleanEvidenceEntry(workspace.profile.id, payload);
-        setMessage("Clean capture note saved.");
+        setMessage("Capture note saved.");
       }
 
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
+      if (captureContextKey) {
+        clearCaptureContext();
+      }
       await reloadEntries();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean capture note.",
+          "We could not save this capture note.",
         ),
       );
     } finally {
@@ -302,13 +443,13 @@ function CleanCaptureWorkspaceBody() {
       if (editingEntryId === entry.id) {
         resetForm();
       }
-      setMessage("Clean capture note deleted.");
+      setMessage("Capture note deleted.");
       await reloadEntries();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not delete the clean capture note.",
+          "We could not delete this capture note.",
         ),
       );
     } finally {
@@ -349,17 +490,18 @@ function CleanCaptureWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              Capture what happened
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Capture</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This preview route stores text-only notes in clean <code>evidence_entries</code>.
+              Save a simple learning record from today&apos;s blocks, then decide later what
+              belongs in the portfolio.
             </p>
           </div>
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading clean family workspace...</section>
+          <section style={cardStyle}>Loading your family workspace...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
@@ -368,7 +510,7 @@ function CleanCaptureWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean capture scaffold will not fall back to legacy evidence tables.
+              My Capture will not fall back to older evidence systems.
             </p>
           </section>
         ) : null}
@@ -401,10 +543,10 @@ function CleanCaptureWorkspaceBody() {
         {readyForCapture && workspace.profile && workspace.learners.length ? (
           <>
             <section style={cardStyle}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
                   gap: 12,
                   alignItems: "center",
                   flexWrap: "wrap",
@@ -413,7 +555,8 @@ function CleanCaptureWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Text capture</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Save is always explicit. No auto-save, no sample rows, no storage upload.
+                    Save is always explicit. Write what happened, keep the useful links, and
+                    decide later what belongs in the portfolio.
                   </p>
                 </div>
                 <button
@@ -428,6 +571,35 @@ function CleanCaptureWorkspaceBody() {
                   {entriesLoading || linkingLoading ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
+
+              {selectedCalendarItem || selectedProgram || selectedProgramSegment ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#eff6ff",
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>
+                    {selectedCalendarItem
+                      ? `Capturing from: ${selectedCalendarItem.title}`
+                      : "Capture context ready"}
+                  </strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {selectedCalendarItem
+                      ? formatDateLabel(selectedCalendarItem.plannedDate)
+                      : formatDateLabel(observedOn)}
+                    {selectedProgram ? ` - Program: ${selectedProgram.title}` : ""}
+                    {selectedProgramSegment
+                      ? ` - Week / segment: ${selectedProgramSegment.title}`
+                      : ""}
+                  </div>
+                </div>
+              ) : null}
 
               <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 <div
@@ -474,7 +646,7 @@ function CleanCaptureWorkspaceBody() {
                 <textarea
                   value={reflection}
                   onChange={(event) => setReflection(event.target.value)}
-                  placeholder="Observation or reflection (optional)"
+                  placeholder="Reflection, next step, or what stood out (optional)"
                   style={textAreaStyle}
                 />
 
@@ -533,13 +705,18 @@ function CleanCaptureWorkspaceBody() {
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="submit" style={buttonStyle} disabled={submitting}>
-                    {submitting ? "Saving..." : editingEntryId ? "Save note" : "Save note"}
+                    {submitting ? "Saving..." : "Save capture"}
                   </button>
                   {editingEntryId ? (
                     <button
                       type="button"
                       style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                      onClick={() => resetForm()}
+                      onClick={() => {
+                        resetForm();
+                        if (captureContextKey) {
+                          clearCaptureContext();
+                        }
+                      }}
                       disabled={submitting}
                     >
                       Cancel edit
@@ -554,9 +731,9 @@ function CleanCaptureWorkspaceBody() {
             </section>
 
             <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Premium placeholders</h2>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Later additions</h2>
               <p style={{ marginTop: 0, color: "#475569" }}>
-                These controls are intentionally disabled. This phase does not call storage APIs.
+                This phase stays text-first. Media and file capture can come later.
               </p>
               <div
                 style={{
@@ -576,8 +753,8 @@ function CleanCaptureWorkspaceBody() {
                       gap: 8,
                       background: "#f8fafc",
                     }}
-                  >
-                    <strong style={{ color: "#0f172a" }}>{label}</strong>
+                    >
+                      <strong style={{ color: "#0f172a" }}>{label}</strong>
                     <button
                       type="button"
                       disabled
@@ -589,7 +766,7 @@ function CleanCaptureWorkspaceBody() {
                         cursor: "not-allowed",
                       }}
                     >
-                      Premium - Coming Soon
+                      Coming later
                     </button>
                   </div>
                 ))}
@@ -605,7 +782,7 @@ function CleanCaptureWorkspaceBody() {
 
               {!entriesLoading && !entriesError && !entries.length ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  No clean capture notes exist yet.
+                  No capture notes yet.
                 </p>
               ) : null}
 
@@ -616,11 +793,16 @@ function CleanCaptureWorkspaceBody() {
                       learnerOptions.find((option) => option.value === entry.learnerId)?.label ||
                       "Unknown learner";
                     const linkedProgram =
-                      filteredPrograms.find((program) => program.id === entry.programId)?.title ||
+                      programs.find((program) => program.id === entry.programId)?.title ||
                       null;
                     const linkedCalendarItem =
-                      filteredCalendarItems.find((item) => item.id === entry.calendarItemId)?.title ||
-                      null;
+                      calendarItems.find((item) => item.id === entry.calendarItemId) ?? null;
+                    const linkedSegment =
+                      linkedCalendarItem?.programSegmentId
+                        ? programSegments.find(
+                            (segment) => segment.id === linkedCalendarItem.programSegmentId,
+                          )?.title ?? null
+                        : null;
 
                     return (
                       <div
@@ -678,8 +860,10 @@ function CleanCaptureWorkspaceBody() {
                         {linkedProgram || linkedCalendarItem ? (
                           <div style={{ color: "#64748b", fontSize: 13 }}>
                             {linkedProgram ? `Program: ${linkedProgram}` : ""}
-                            {linkedProgram && linkedCalendarItem ? " | " : ""}
-                            {linkedCalendarItem ? `Calendar: ${linkedCalendarItem}` : ""}
+                            {linkedProgram && linkedSegment ? " | " : ""}
+                            {linkedSegment ? `Week / segment: ${linkedSegment}` : ""}
+                            {(linkedProgram || linkedSegment) && linkedCalendarItem ? " | " : ""}
+                            {linkedCalendarItem ? `Block: ${linkedCalendarItem.title}` : ""}
                           </div>
                         ) : null}
                       </div>

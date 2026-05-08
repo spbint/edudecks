@@ -11,6 +11,7 @@ import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import { normalizeCleanErrorMessage } from "@/lib/clean/family/client";
 import { buildCleanGuidanceCards } from "@/lib/clean/guidance/client";
 import type { CleanGuidanceCard } from "@/lib/clean/guidance/types";
@@ -197,6 +198,7 @@ function CleanDayWorkspaceBody() {
   const searchParams = useSearchParams();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
+  const [evidenceEntries, setEvidenceEntries] = useState<CleanEvidenceEntry[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
@@ -208,6 +210,9 @@ function CleanDayWorkspaceBody() {
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
+  const capturePathBase = pathname.startsWith("/clean-my-day")
+    ? "/clean-my-capture"
+    : "/my-capture";
   const selectedDate = useMemo(() => {
     const candidate = searchParams.get("date");
     return isValidDateValue(candidate) ? candidate : today;
@@ -219,6 +224,34 @@ function CleanDayWorkspaceBody() {
   const buildDayPath = useMemo(
     () => (dateValue: string) => (dateValue === today ? dayPathBase : `${dayPathBase}?date=${dateValue}`),
     [dayPathBase, today],
+  );
+
+  const buildCaptureHref = useMemo(
+    () => (item: CleanCalendarItem, evidenceEntryId?: string | null) => {
+      const params = new URLSearchParams();
+
+      if (evidenceEntryId) {
+        params.set("evidence_entry_id", evidenceEntryId);
+      }
+
+      params.set("calendar_item_id", item.id);
+      params.set("observed_on", item.plannedDate);
+
+      if (item.learnerId) {
+        params.set("learner_id", item.learnerId);
+      }
+
+      if (item.programId) {
+        params.set("program_id", item.programId);
+      }
+
+      if (item.programSegmentId) {
+        params.set("program_segment_id", item.programSegmentId);
+      }
+
+      return `${capturePathBase}?${params.toString()}`;
+    },
+    [capturePathBase],
   );
 
   const learnerOptions = useMemo(
@@ -275,6 +308,17 @@ function CleanDayWorkspaceBody() {
     () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
     [programSegments],
   );
+
+  const evidenceByCalendarItemId = useMemo(() => {
+    const grouped = new Map<string, CleanEvidenceEntry>();
+
+    for (const entry of evidenceEntries) {
+      if (!entry.calendarItemId || grouped.has(entry.calendarItemId)) continue;
+      grouped.set(entry.calendarItemId, entry);
+    }
+
+    return grouped;
+  }, [evidenceEntries]);
 
   const learnersInViewCount = useMemo(
     () => new Set(sortedVisibleItems.map((item) => item.learnerId).filter(Boolean)).size,
@@ -403,6 +447,7 @@ function CleanDayWorkspaceBody() {
     async function loadItems() {
       if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
         setItems([]);
+        setEvidenceEntries([]);
         setPrograms([]);
         setProgramSegments([]);
         return;
@@ -411,11 +456,16 @@ function CleanDayWorkspaceBody() {
       setItemsLoading(true);
       setItemsError(null);
       try {
-        const [nextItems, nextPrograms] = await Promise.all([
+        const [nextItems, nextEvidenceEntries, nextPrograms] = await Promise.all([
           listCleanCalendarItems(workspace.profile.id, {
             fromDate: selectedDate,
             toDate: selectedDate,
             limit: 40,
+          }),
+          listCleanEvidenceEntries(workspace.profile.id, {
+            fromDate: selectedDate,
+            toDate: selectedDate,
+            limit: 60,
           }),
           listCleanPrograms(workspace.profile.id, { limit: 50 }),
         ]);
@@ -429,6 +479,7 @@ function CleanDayWorkspaceBody() {
         ).flat();
 
         setItems(nextItems);
+        setEvidenceEntries(nextEvidenceEntries);
         setPrograms(nextPrograms);
         setProgramSegments(nextProgramSegments);
       } catch (error) {
@@ -875,6 +926,8 @@ function CleanDayWorkspaceBody() {
                     const learnerLabel =
                       learnerLabelById.get(item.learnerId ?? "") || "Whole family";
                     const expanded = expandedItemIds.includes(item.id);
+                    const capturedEvidence =
+                      evidenceByCalendarItemId.get(item.id) ?? null;
                     const programLabel = item.programId
                       ? programLabelById.get(item.programId) ?? null
                       : null;
@@ -960,6 +1013,9 @@ function CleanDayWorkspaceBody() {
                               {segmentLabel ? (
                                 <span style={blockMetaPillStyle}>{`Week / segment: ${segmentLabel}`}</span>
                               ) : null}
+                              {capturedEvidence ? (
+                                <span style={blockMetaPillStyle}>Evidence captured</span>
+                              ) : null}
                             </div>
                             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                               {notesPreview ?? "Open this block to see notes and capture what happened."}
@@ -996,11 +1052,27 @@ function CleanDayWorkspaceBody() {
                                 {segmentLabel ? `Week / segment: ${segmentLabel}` : ""}
                               </div>
                             ) : null}
+                            {capturedEvidence ? (
+                              <div style={{ color: "#0f766e", fontWeight: 700 }}>
+                                Evidence captured
+                              </div>
+                            ) : null}
                             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-                              {/* TODO: pass learner/calendar/program context into My Capture when the capture route supports query-driven defaults. */}
-                              <Link href="/my-capture" style={{ color: "#1d4ed8", fontWeight: 700 }}>
-                                Capture what happened
-                              </Link>
+                              {capturedEvidence ? (
+                                <Link
+                                  href={buildCaptureHref(item, capturedEvidence.id)}
+                                  style={{ color: "#1d4ed8", fontWeight: 700 }}
+                                >
+                                  View capture
+                                </Link>
+                              ) : (
+                                <Link
+                                  href={buildCaptureHref(item)}
+                                  style={{ color: "#1d4ed8", fontWeight: 700 }}
+                                >
+                                  Capture what happened
+                                </Link>
+                              )}
                               <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
                                 Open in My Calendar
                               </Link>

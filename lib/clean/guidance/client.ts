@@ -154,7 +154,8 @@ export function buildCleanGuidanceCards(
     openCards.push({
       key: "capture",
       title: "Capture today",
-      description: "Use today’s planned block as the anchor for your first learning note.",
+      description:
+        "Use one of today&apos;s planned blocks as the anchor for your first learning note.",
       actionLabel: "Open My Capture",
       actionHref: "/my-capture",
     });
