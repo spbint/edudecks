@@ -24,6 +24,7 @@ import {
 import type {
   CleanReport,
   CleanReportSection,
+  CleanReportStatus,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
 import {
@@ -82,6 +83,13 @@ type ReportSectionTemplate = {
   label: string;
   heading: string;
   starterText: string;
+};
+
+type ReportChecklistItem = {
+  key: string;
+  label: string;
+  done: boolean;
+  detail: string;
 };
 
 const reportSectionTemplates: ReportSectionTemplate[] = [
@@ -162,6 +170,49 @@ function buildEvidenceNote(item: CleanPortfolioItem, learnerLabel: string) {
   return lines.join("\n");
 }
 
+function formatUpdatedLabel(value: string | null) {
+  if (!value) return "Not saved yet";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Saved recently";
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getReportStatusLabel(status: CleanReportStatus) {
+  if (status === "ready") return "Ready";
+  if (status === "archived") return "Archived";
+  return "Draft";
+}
+
+function getReportStatusStyles(status: CleanReportStatus): React.CSSProperties {
+  if (status === "ready") {
+    return {
+      border: "1px solid #bbf7d0",
+      background: "#f0fdf4",
+      color: "#166534",
+    };
+  }
+
+  if (status === "archived") {
+    return {
+      border: "1px solid #cbd5e1",
+      background: "#f8fafc",
+      color: "#475569",
+    };
+  }
+
+  return {
+    border: "1px solid #dbeafe",
+    background: "#eff6ff",
+    color: "#1d4ed8",
+  };
+}
+
 function CleanReportsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
@@ -232,6 +283,12 @@ function CleanReportsWorkspaceBody() {
   const selectedReportLearnerLabel =
     learnerOptions.find((option) => option.value === selectedReport?.learnerId)?.label ||
     "Unknown learner";
+  const continueReport = selectedReport ?? reports[0] ?? null;
+  const continueReportPeriod =
+    periods.find((period) => period.id === continueReport?.reportingPeriodId) ?? null;
+  const continueReportLearnerLabel =
+    learnerOptions.find((option) => option.value === continueReport?.learnerId)?.label ||
+    "Unknown learner";
   const focusedPortfolioItems = useMemo(() => {
     if (!portfolioItems.length) return portfolioItems;
     if (!evidenceEntryIdFromQuery) return portfolioItems;
@@ -269,6 +326,82 @@ function CleanReportsWorkspaceBody() {
 
     return items;
   }, [portfolioItems.length, sectionHeading, sections.length, selectedPeriod, selectedReport]);
+  const reportChecklist = useMemo<ReportChecklistItem[]>(() => {
+    if (!selectedReport) return [];
+
+    return [
+      {
+        key: "period",
+        label: "Reporting period chosen",
+        done: Boolean(selectedPeriod),
+        detail: selectedPeriod
+          ? `${selectedPeriod.title} is linked to this report.`
+          : "Choose the reporting period for this report.",
+      },
+      {
+        key: "evidence",
+        label: "Portfolio evidence linked",
+        done: portfolioItems.length > 0,
+        detail:
+          portfolioItems.length > 0
+            ? `${portfolioItems.length} portfolio ${portfolioItems.length === 1 ? "note is" : "notes are"} ready to support this report.`
+            : "Add at least one portfolio highlight that supports this report.",
+      },
+      {
+        key: "sections",
+        label: "Section structure started",
+        done: sections.length > 0,
+        detail:
+          sections.length > 0
+            ? `${sections.length} ${sections.length === 1 ? "section is" : "sections are"} in place.`
+            : "Start the first report section.",
+      },
+      {
+        key: "content",
+        label: "Section writing added",
+        done: sections.some((section) => section.content.trim()),
+        detail: sections.some((section) => section.content.trim())
+          ? "At least one section includes written content."
+          : "Add the main notes to one or more sections.",
+      },
+    ];
+  }, [portfolioItems.length, sections, selectedPeriod, selectedReport]);
+  const checklistDoneCount = reportChecklist.filter((item) => item.done).length;
+  const reportIsReadyToMark =
+    Boolean(selectedReport) &&
+    reportChecklist.length > 0 &&
+    reportChecklist.every((item) => item.done);
+  const nextReportGuidance = useMemo(() => {
+    if (!selectedReport) {
+      return "Create or open a report, then keep building it from your portfolio notes.";
+    }
+
+    if (selectedReport.status === "archived") {
+      return "This report is archived. Return it to draft if you want to keep refining it.";
+    }
+
+    if (selectedReport.status === "ready") {
+      return "This report is marked ready. Review the draft below and return it to draft if you need more changes.";
+    }
+
+    if (!selectedPeriod) {
+      return "Choose the reporting period so the report and portfolio evidence line up.";
+    }
+
+    if (!portfolioItems.length) {
+      return "Add or choose portfolio highlights that support this report, then bring them into the sections.";
+    }
+
+    if (!sections.length) {
+      return "Start the first section. A section starter is the quickest way to begin.";
+    }
+
+    if (!sections.some((section) => section.content.trim())) {
+      return "Add the main written notes to your sections, then review the draft preview.";
+    }
+
+    return "Review the preview and mark the report ready when the wording feels complete.";
+  }, [portfolioItems.length, sections, selectedPeriod, selectedReport]);
 
   const reloadPeriods = useCallback(async () => {
     if (!workspace.profile) return;
@@ -609,6 +742,43 @@ function CleanReportsWorkspaceBody() {
     setActionError(null);
   }
 
+  function handleContinueReport(report: CleanReport) {
+    setSelectedReportId(report.id);
+    setEditingReportId(null);
+    setMessage(null);
+    setActionError(null);
+  }
+
+  async function handleUpdateReportStatus(
+    report: CleanReport,
+    status: CleanReportStatus,
+  ) {
+    if (!workspace.profile) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await updateCleanReport(workspace.profile.id, report.id, { status });
+      setSelectedReportId(report.id);
+      setMessage(
+        status === "ready"
+          ? "Report marked ready."
+          : status === "archived"
+            ? "Report archived."
+            : "Report returned to draft.",
+      );
+      await reloadReports();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(error, "We could not update the report status."),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleSectionSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!workspace.profile || !selectedReport) return;
@@ -925,6 +1095,149 @@ function CleanReportsWorkspaceBody() {
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                 Choose a learner, pick the reporting period, and start the report you want to shape.
               </p>
+
+              {continueReport ? (
+                <div
+                  style={{
+                    border: "1px solid #dbeafe",
+                    borderRadius: 16,
+                    padding: 16,
+                    background: "#f8fbff",
+                    display: "grid",
+                    gap: 14,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a" }}>Continue where you left off</strong>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        {continueReport.title} for {continueReportLearnerLabel}
+                        {continueReportPeriod
+                          ? ` - ${continueReportPeriod.title}`
+                          : ""}
+                      </div>
+                    </div>
+
+                    <span
+                      style={{
+                        ...getReportStatusStyles(continueReport.status),
+                        borderRadius: 999,
+                        padding: "8px 12px",
+                        fontSize: 13,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {getReportStatusLabel(continueReport.status)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 12,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.06em",
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Progress
+                      </div>
+                      <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                        {checklistDoneCount}/{reportChecklist.length || 4} readiness checks complete
+                      </div>
+                    </div>
+
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.06em",
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                          marginBottom: 4,
+                        }}
+                      >
+                        Last updated
+                      </div>
+                      <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                        {formatUpdatedLabel(continueReport.updatedAt || continueReport.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>{nextReportGuidance}</div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      style={buttonStyle}
+                      onClick={() => handleContinueReport(continueReport)}
+                      disabled={submitting}
+                    >
+                      Continue working
+                    </button>
+                    {continueReport.status !== "ready" && reportIsReadyToMark ? (
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#166534", borderColor: "#166534" }}
+                        onClick={() => void handleUpdateReportStatus(continueReport, "ready")}
+                        disabled={submitting}
+                      >
+                        Mark ready
+                      </button>
+                    ) : null}
+                    {continueReport.status === "ready" ? (
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => void handleUpdateReportStatus(continueReport, "draft")}
+                        disabled={submitting}
+                      >
+                        Return to draft
+                      </button>
+                    ) : null}
+                    {continueReport.status !== "archived" ? (
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => void handleUpdateReportStatus(continueReport, "archived")}
+                        disabled={submitting}
+                      >
+                        Archive
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => void handleUpdateReportStatus(continueReport, "draft")}
+                        disabled={submitting}
+                      >
+                        Reopen as draft
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
               <form onSubmit={handleReportSubmit} style={{ display: "grid", gap: 12 }}>
                 <div
                   style={{
@@ -1009,10 +1322,33 @@ function CleanReportsWorkspaceBody() {
                         }}
                       >
                         <div>
-                          <strong>{report.title}</strong>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <strong>{report.title}</strong>
+                            <span
+                              style={{
+                                ...getReportStatusStyles(report.status),
+                                borderRadius: 999,
+                                padding: "4px 10px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {getReportStatusLabel(report.status)}
+                            </span>
+                          </div>
                           <div style={{ color: "#64748b", marginTop: 4 }}>
                             {learnerLabel}
                             {period ? ` - ${period.title} (${formatDateRange(period.startsOn, period.endsOn)})` : ""}
+                          </div>
+                          <div style={{ color: "#64748b", marginTop: 4, fontSize: 13 }}>
+                            Updated {formatUpdatedLabel(report.updatedAt || report.createdAt)}
                           </div>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1024,10 +1360,14 @@ function CleanReportsWorkspaceBody() {
                               borderColor: isSelected ? "#1d4ed8" : "#0f172a",
                               color: isSelected ? "#ffffff" : "#0f172a",
                             }}
-                            onClick={() => setSelectedReportId(report.id)}
+                            onClick={() => handleContinueReport(report)}
                             disabled={submitting}
                           >
-                            {isSelected ? "Selected" : "Select"}
+                            {isSelected
+                              ? "Open now"
+                              : report.status === "draft"
+                                ? "Continue"
+                                : "Open"}
                           </button>
                           <button
                             type="button"
@@ -1134,15 +1474,96 @@ function CleanReportsWorkspaceBody() {
                 </div>
               ) : (
                 <>
-                  <p style={{ marginTop: 0, color: "#475569" }}>
-                    Working in: <strong>{selectedReport.title}</strong>
-                    {selectedPeriod ? (
-                      <span>
-                        {" "}
-                        - Portfolio evidence in this period: <strong>{portfolioItems.length}</strong>
+                  <section
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#ffffff",
+                      display: "grid",
+                      gap: 14,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <strong style={{ color: "#0f172a" }}>
+                          Working in: {selectedReport.title}
+                        </strong>
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                          {selectedPeriod
+                            ? `Portfolio evidence in this period: ${portfolioItems.length}`
+                            : "Choose the reporting period to line up the draft with the right evidence."}
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          ...getReportStatusStyles(selectedReport.status),
+                          borderRadius: 999,
+                          padding: "8px 12px",
+                          fontSize: 13,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {getReportStatusLabel(selectedReport.status)}
                       </span>
-                    ) : null}
-                  </p>
+                    </div>
+
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Next: {nextReportGuidance}
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {selectedReport.status !== "ready" && reportIsReadyToMark ? (
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#166534", borderColor: "#166534" }}
+                          onClick={() => void handleUpdateReportStatus(selectedReport, "ready")}
+                          disabled={submitting}
+                        >
+                          Mark ready
+                        </button>
+                      ) : null}
+                      {selectedReport.status === "ready" ? (
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                          onClick={() => void handleUpdateReportStatus(selectedReport, "draft")}
+                          disabled={submitting}
+                        >
+                          Return to draft
+                        </button>
+                      ) : null}
+                      {selectedReport.status !== "archived" ? (
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                          onClick={() => void handleUpdateReportStatus(selectedReport, "archived")}
+                          disabled={submitting}
+                        >
+                          Archive
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                          onClick={() => void handleUpdateReportStatus(selectedReport, "draft")}
+                          disabled={submitting}
+                        >
+                          Reopen as draft
+                        </button>
+                      )}
+                    </div>
+                  </section>
 
                   <section
                     style={{
@@ -1215,6 +1636,98 @@ function CleanReportsWorkspaceBody() {
                           ? "Use this checklist to see what will make the report feel more complete."
                           : "You have a reporting period, portfolio support, and at least one section started."}
                       </p>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 8,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Readiness
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {checklistDoneCount}/{reportChecklist.length} checks complete
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Lifecycle
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {getReportStatusLabel(selectedReport.status)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {reportChecklist.map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            display: "grid",
+                            gap: 2,
+                            padding: "10px 12px",
+                            borderRadius: 12,
+                            background: item.done ? "#ffffff" : "rgba(255,255,255,0.45)",
+                            border: item.done ? "1px solid #bbf7d0" : "1px solid rgba(245,158,11,0.35)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 999,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                fontWeight: 900,
+                                background: item.done ? "#dcfce7" : "#fef3c7",
+                                color: item.done ? "#166534" : "#92400e",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {item.done ? "OK" : "!"}
+                            </span>
+                            <strong style={{ color: "#0f172a" }}>{item.label}</strong>
+                          </div>
+                          <div style={{ color: item.done ? "#166534" : "#92400e", lineHeight: 1.6 }}>
+                            {item.detail}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     {missingReportItems.length ? (
@@ -1579,21 +2092,38 @@ function CleanReportsWorkspaceBody() {
                         >
                           {selectedReport.title}
                         </h3>
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                          {nextReportGuidance}
+                        </div>
                       </div>
 
-                      <div
-                        style={{
-                          border: "1px solid #dbeafe",
-                          borderRadius: 999,
-                          background: "#eff6ff",
-                          padding: "8px 12px",
-                          color: "#1d4ed8",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {sections.length} {sections.length === 1 ? "section" : "sections"}
+                      <div style={{ display: "grid", gap: 8, justifyItems: "end" }}>
+                        <div
+                          style={{
+                            ...getReportStatusStyles(selectedReport.status),
+                            borderRadius: 999,
+                            padding: "8px 12px",
+                            fontSize: 13,
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {getReportStatusLabel(selectedReport.status)}
+                        </div>
+                        <div
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 999,
+                            background: "#eff6ff",
+                            padding: "8px 12px",
+                            color: "#1d4ed8",
+                            fontSize: 13,
+                            fontWeight: 800,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {sections.length} {sections.length === 1 ? "section" : "sections"}
+                        </div>
                       </div>
                     </div>
 
