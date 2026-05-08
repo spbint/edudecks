@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 
+type CallbackErrorKind = "none" | "missing-pkce" | "generic";
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -48,6 +50,16 @@ function localLearnerCount() {
   }
 }
 
+function isMissingPkceError(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message).toLowerCase();
+  return (
+    message.includes("pkce") ||
+    message.includes("code verifier") ||
+    message.includes("verifier not found") ||
+    message.includes("both auth code and code verifier should be non-empty")
+  );
+}
+
 function isProtectedMyLearnaPath(path: string) {
   return (
     path === "/my-day" ||
@@ -85,8 +97,9 @@ export default function AuthCallbackPage() {
 function AuthCallbackPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [title, setTitle] = useState("Finishing your sign-in");
   const [message, setMessage] = useState("Signing you in and returning you to MyLearna...");
-  const [error, setError] = useState("");
+  const [errorKind, setErrorKind] = useState<CallbackErrorKind>("none");
   const redirectInProgress = useRef(false);
   const callbackHandled = useRef(false);
 
@@ -104,6 +117,10 @@ function AuthCallbackPageContent() {
   const codeParam = useMemo(() => safe(searchParams.get("code")), [searchParams]);
   const accessTokenParam = useMemo(() => safe(searchParams.get("access_token")), [searchParams]);
   const refreshTokenParam = useMemo(() => safe(searchParams.get("refresh_token")), [searchParams]);
+  const loginHref = useMemo(
+    () => `/login?next=${encodeURIComponent(requestedNextPath)}`,
+    [requestedNextPath],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -123,7 +140,9 @@ function AuthCallbackPageContent() {
           throw new Error(errorDescription || errorParam);
         }
 
+        setTitle("Finishing your sign-in");
         setMessage("Completing your MyLearna session...");
+        setErrorKind("none");
 
         const hashParams = parseHashParams();
         const hashAccessToken = safe(hashParams.get("access_token"));
@@ -250,6 +269,7 @@ function AuthCallbackPageContent() {
               ? "You're signed in. Getting your first step ready..."
               : "You're signed in. Taking you back to MyLearna...",
         );
+        setErrorKind("none");
 
         if (redirectInProgress.current) return;
         redirectInProgress.current = true;
@@ -257,11 +277,16 @@ function AuthCallbackPageContent() {
       } catch (authError: unknown) {
         console.error("[auth] callback failed", authError);
         if (!mounted) return;
-        setMessage("");
-        setError(
-          safe((authError as { message?: unknown })?.message) ||
-            "We could not complete sign-in. Please try again.",
-        );
+        if (isMissingPkceError(authError)) {
+          setTitle("Email confirmation complete");
+          setMessage("Your email may already be confirmed. Please sign in to continue.");
+          setErrorKind("missing-pkce");
+          return;
+        }
+
+        setTitle("Sign-in link needs another try");
+        setMessage("We could not finish sign-in from this link. Please sign in again or request a new link.");
+        setErrorKind("generic");
       }
     }
 
@@ -318,7 +343,7 @@ function AuthCallbackPageContent() {
               color: "#0f172a",
             }}
           >
-            Finishing your sign-in
+            {title}
           </div>
           <div
             style={{
@@ -327,15 +352,17 @@ function AuthCallbackPageContent() {
               color: "#475569",
             }}
           >
-            {error || message}
+            {message}
           </div>
         </div>
 
         <div
           style={{
             borderRadius: 18,
-            border: `1px solid ${error ? "#fecaca" : "#bfdbfe"}`,
-            background: error ? "#fff1f2" : "#eff6ff",
+            border: `1px solid ${
+              errorKind === "generic" ? "#fecaca" : "#bfdbfe"
+            }`,
+            background: errorKind === "generic" ? "#fff1f2" : "#eff6ff",
             padding: 16,
           }}
         >
@@ -343,20 +370,41 @@ function AuthCallbackPageContent() {
             style={{
               fontSize: 13,
               fontWeight: 800,
-              color: error ? "#9f1239" : "#1d4ed8",
+              color: errorKind === "generic" ? "#9f1239" : "#1d4ed8",
               lineHeight: 1.6,
             }}
           >
-            {error
-              ? "We hit a problem while completing sign-in. No new login link has been sent."
-              : requestedNextPath === "/my-day"
+            {errorKind === "missing-pkce"
+              ? "If you opened the confirmation link in a different browser or email app, sign in here and we'll take you back into MyLearna."
+              : errorKind === "generic"
+                ? "Please sign in again. If the link has expired or was interrupted, request a fresh one from the sign-in screen."
+                : requestedNextPath === "/my-day"
                 ? "Your learning record is still waiting for you. We'll take you back so you can keep saving your progress."
                 : "You'll be returned to the right MyLearna page automatically."}
           </div>
 
-          {error ? (
+          {errorKind === "missing-pkce" ? (
             <Link
-              href="/login"
+              href={loginHref}
+              style={{
+                marginTop: 12,
+                width: "100%",
+                borderRadius: 12,
+                border: "1px solid #2563eb",
+                background: "#2563eb",
+                color: "#ffffff",
+                fontWeight: 700,
+                padding: "10px",
+                display: "inline-flex",
+                justifyContent: "center",
+                textDecoration: "none",
+              }}
+            >
+              Sign in to MyLearna
+            </Link>
+          ) : errorKind === "generic" ? (
+            <Link
+              href={loginHref}
               style={{
                 marginTop: 12,
                 width: "100%",
@@ -371,7 +419,7 @@ function AuthCallbackPageContent() {
                 textDecoration: "none",
               }}
             >
-              Back to login
+              Back to sign in
             </Link>
           ) : (
             <button
