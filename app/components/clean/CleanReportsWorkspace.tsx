@@ -191,6 +191,9 @@ function CleanReportsWorkspaceBody() {
     null;
   const activeLearnerLabel =
     learnerOptions.find((option) => option.value === activeLearnerId)?.label || "";
+  const selectedReportLearnerLabel =
+    learnerOptions.find((option) => option.value === selectedReport?.learnerId)?.label ||
+    "Unknown learner";
 
   const reloadPeriods = useCallback(async () => {
     if (!workspace.profile) return;
@@ -1241,88 +1244,304 @@ function CleanReportsWorkspaceBody() {
             </section>
 
             {selectedReport ? (
-              <section style={cardStyle}>
-                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Report preview</h2>
+              <section
+                style={{
+                  ...cardStyle,
+                  background: "linear-gradient(180deg, #eef4ff 0%, #f8fafc 100%)",
+                  borderColor: "#dbeafe",
+                  padding: 24,
+                }}
+              >
+                <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      color: "#1d4ed8",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Draft report preview
+                  </div>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 30 }}>
+                    See how this report is taking shape
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    This preview shows the learner, reporting period, selected
+                    portfolio evidence, and the sections you have written so far.
+                  </p>
+                </div>
+
                 <div
                   style={{
+                    maxWidth: 860,
+                    margin: "0 auto",
+                    border: "1px solid #dbe4f0",
+                    borderRadius: 22,
+                    background: "#ffffff",
+                    boxShadow: "0 20px 48px rgba(15,23,42,0.08)",
+                    padding: "28px clamp(20px, 4vw, 40px)",
                     display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 26,
                   }}
                 >
-                  <div
+                  <header
                     style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: 14,
                       display: "grid",
-                      gap: 6,
+                      gap: 16,
+                      paddingBottom: 20,
+                      borderBottom: "1px solid #dbe4f0",
                     }}
                   >
-                    <strong>{selectedReport.title}</strong>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Learner: {learnerOptions.find((option) => option.value === selectedReport.learnerId)?.label || "Unknown learner"}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Reporting period: {selectedPeriod ? `${selectedPeriod.title} (${formatDateRange(selectedPeriod.startsOn, selectedPeriod.endsOn)})` : "Not set"}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Portfolio evidence ready: {portfolioItems.length}
-                    </div>
-                  </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: 16,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.08em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Homeschool report draft
+                        </div>
+                        <h3
+                          style={{
+                            margin: 0,
+                            color: "#0f172a",
+                            fontSize: "clamp(28px, 4vw, 36px)",
+                            lineHeight: 1.15,
+                          }}
+                        >
+                          {selectedReport.title}
+                        </h3>
+                      </div>
 
-                  <div
+                      <div
+                        style={{
+                          border: "1px solid #dbeafe",
+                          borderRadius: 999,
+                          background: "#eff6ff",
+                          padding: "8px 12px",
+                          color: "#1d4ed8",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {sections.length} {sections.length === 1 ? "section" : "sections"}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 14,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Learner
+                        </div>
+                        <div style={{ color: "#0f172a", fontSize: 18, fontWeight: 700 }}>
+                          {selectedReportLearnerLabel}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Reporting period
+                        </div>
+                        <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>
+                          {selectedPeriod ? selectedPeriod.title : "Not set"}
+                        </div>
+                        <div style={{ color: "#475569", marginTop: 4, lineHeight: 1.6 }}>
+                          {selectedPeriod
+                            ? formatDateRange(selectedPeriod.startsOn, selectedPeriod.endsOn)
+                            : "Choose a reporting period for this report."}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 6,
+                          }}
+                        >
+                          Evidence summary
+                        </div>
+                        <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>
+                          {portfolioItems.length} {portfolioItems.length === 1 ? "portfolio note" : "portfolio notes"}
+                        </div>
+                        <div style={{ color: "#475569", marginTop: 4, lineHeight: 1.6 }}>
+                          Selected highlights ready to support this report.
+                        </div>
+                      </div>
+                    </div>
+                  </header>
+
+                  <section
                     style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 14,
-                      padding: 14,
                       display: "grid",
-                      gap: 6,
+                      gap: 12,
+                      padding: 18,
+                      borderRadius: 18,
+                      background: "#f8fafc",
+                      border: "1px solid #e2e8f0",
                     }}
                   >
-                    <strong>Evidence summary</strong>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Evidence summary
+                    </div>
                     {portfolioItems.length ? (
-                      <div style={{ display: "grid", gap: 6 }}>
-                        {portfolioItems.slice(0, 4).map((item) => (
-                          <div key={item.evidence.id} style={{ color: "#475569", lineHeight: 1.6 }}>
-                            {portfolioEvidenceTitle(item)} - {formatDateLabel(item.evidence.observedOn)}
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {portfolioItems.slice(0, 5).map((item) => (
+                          <div
+                            key={item.evidence.id}
+                            style={{
+                              display: "grid",
+                              gap: 4,
+                              paddingLeft: 14,
+                              borderLeft:
+                                evidenceEntryIdFromQuery === item.evidence.id
+                                  ? "3px solid #1d4ed8"
+                                  : "3px solid #cbd5e1",
+                            }}
+                          >
+                            <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                              {portfolioEvidenceTitle(item)}
+                            </div>
+                            <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                              {formatDateLabel(item.evidence.observedOn)}
+                              {item.evidence.learningArea
+                                ? ` • ${item.evidence.learningArea}`
+                                : ""}
+                            </div>
+                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                              {summarizeEvidence(item)}
+                            </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        No portfolio evidence matches this report yet.
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                        No portfolio evidence matches this report yet. Add highlights
+                        in My Portfolio, then return here.
                       </p>
                     )}
-                  </div>
-                </div>
+                  </section>
 
-                <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
-                  {sections.length ? (
-                    sections.map((section) => (
+                  <section style={{ display: "grid", gap: 22 }}>
+                    {sections.length ? (
+                      sections.map((section) => (
+                        <article
+                          key={section.id}
+                          style={{
+                            display: "grid",
+                            gap: 12,
+                            paddingTop: 4,
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "grid",
+                              gap: 6,
+                              paddingBottom: 12,
+                              borderBottom: "1px solid #eef2f7",
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 800,
+                                letterSpacing: "0.08em",
+                                color: "#64748b",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Section {section.sortOrder}
+                            </div>
+                            <h4
+                              style={{
+                                margin: 0,
+                                color: "#0f172a",
+                                fontSize: 22,
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {section.heading}
+                            </h4>
+                          </div>
+                          <div
+                            style={{
+                              color: "#334155",
+                              lineHeight: 1.85,
+                              fontSize: 16,
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            {section.content || "No content yet."}
+                          </div>
+                        </article>
+                      ))
+                    ) : (
                       <div
-                        key={section.id}
                         style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          display: "grid",
-                          gap: 8,
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: 18,
+                          padding: 22,
+                          color: "#475569",
+                          lineHeight: 1.7,
+                          background: "#fcfdff",
                         }}
                       >
-                        <strong>
-                          {section.sortOrder}. {section.heading}
-                        </strong>
-                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                          {section.content || "No content yet."}
-                        </p>
+                        Add a section to start shaping this report. The preview will
+                        show each section here as the draft grows.
                       </div>
-                    ))
-                  ) : (
-                    <p style={{ margin: 0, color: "#475569" }}>
-                      Add a section to start shaping this report.
-                    </p>
-                  )}
+                    )}
+                  </section>
                 </div>
               </section>
             ) : null}
