@@ -77,6 +77,44 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+type ReportSectionTemplate = {
+  key: string;
+  label: string;
+  heading: string;
+  starterText: string;
+};
+
+const reportSectionTemplates: ReportSectionTemplate[] = [
+  {
+    key: "learning-highlights",
+    label: "Learning highlights",
+    heading: "Learning highlights",
+    starterText:
+      "What stood out most this period?\n\nHow did the learner respond to the work?\n\nWhich moments are worth remembering?",
+  },
+  {
+    key: "progress-and-growth",
+    label: "Progress and growth",
+    heading: "Progress and growth",
+    starterText:
+      "Where has the learner grown this period?\n\nWhat has become more confident or consistent?\n\nWhat evidence best shows that progress?",
+  },
+  {
+    key: "family-reflection",
+    label: "Family reflection",
+    heading: "Family reflection",
+    starterText:
+      "What worked well for the family this period?\n\nWhich routines, supports, or changes helped?\n\nWhat would you keep or adjust next time?",
+  },
+  {
+    key: "next-steps",
+    label: "Next steps",
+    heading: "Next steps",
+    starterText:
+      "What is the next helpful focus?\n\nWhich strengths would you build on next?\n\nWhat support or opportunities would help most?",
+  },
+];
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -194,6 +232,43 @@ function CleanReportsWorkspaceBody() {
   const selectedReportLearnerLabel =
     learnerOptions.find((option) => option.value === selectedReport?.learnerId)?.label ||
     "Unknown learner";
+  const focusedPortfolioItems = useMemo(() => {
+    if (!portfolioItems.length) return portfolioItems;
+    if (!evidenceEntryIdFromQuery) return portfolioItems;
+
+    return [...portfolioItems].sort((left, right) => {
+      const leftFocused = left.evidence.id === evidenceEntryIdFromQuery ? 1 : 0;
+      const rightFocused = right.evidence.id === evidenceEntryIdFromQuery ? 1 : 0;
+      return rightFocused - leftFocused;
+    });
+  }, [evidenceEntryIdFromQuery, portfolioItems]);
+  const nextSectionSortOrder = useMemo(() => {
+    if (!sections.length) return 1;
+    return Math.max(...sections.map((section) => section.sortOrder)) + 1;
+  }, [sections]);
+  const missingReportItems = useMemo(() => {
+    if (!selectedReport) return [];
+
+    const items: string[] = [];
+
+    if (!selectedPeriod) {
+      items.push("Choose a reporting period for this report.");
+    }
+
+    if (!portfolioItems.length) {
+      items.push("Add at least one portfolio highlight that supports this report.");
+    }
+
+    if (!sections.length) {
+      items.push("Add the first report section.");
+    }
+
+    if (!sectionHeading.trim() && !sections.length) {
+      items.push("Start with a section template or create a blank section.");
+    }
+
+    return items;
+  }, [portfolioItems.length, sectionHeading, sections.length, selectedPeriod, selectedReport]);
 
   const reloadPeriods = useCallback(async () => {
     if (!workspace.profile) return;
@@ -353,14 +428,14 @@ function CleanReportsWorkspaceBody() {
     if (!selectedSection) {
       setSectionHeading("");
       setSectionContent("");
-      setSectionSortOrder("0");
+      setSectionSortOrder(String(nextSectionSortOrder));
       return;
     }
 
     setSectionHeading(selectedSection.heading);
     setSectionContent(selectedSection.content);
     setSectionSortOrder(String(selectedSection.sortOrder));
-  }, [sections, selectedSectionKey]);
+  }, [nextSectionSortOrder, sections, selectedSectionKey]);
 
   function resetPeriodForm() {
     setEditingPeriodId(null);
@@ -381,7 +456,7 @@ function CleanReportsWorkspaceBody() {
     setSelectedSectionKey("");
     setSectionHeading("");
     setSectionContent("");
-    setSectionSortOrder("0");
+    setSectionSortOrder(String(nextSectionSortOrder));
   }
 
   async function handlePeriodSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -551,6 +626,9 @@ function CleanReportsWorkspaceBody() {
         content: sectionContent,
         sortOrder: Number.parseInt(sectionSortOrder || "0", 10) || 0,
       });
+      const savedSectionKey =
+        selectedSectionKey || sectionHeading.toLowerCase().replace(/\s+/g, "-");
+      setSelectedSectionKey(savedSectionKey);
       setMessage("Report section saved.");
       await reloadSections();
     } catch (error) {
@@ -585,6 +663,39 @@ function CleanReportsWorkspaceBody() {
       current.trim() ? `${current.trim()}\n\n${note}` : note,
     );
     setMessage("Evidence note added to the section editor. Save the section when you're ready.");
+    setActionError(null);
+  }
+
+  async function handleCopyEvidenceText(item: CleanPortfolioItem) {
+    const learnerLabel =
+      learnerOptions.find((option) => option.value === item.evidence.learnerId)?.label ||
+      "Learner";
+    const note = buildEvidenceNote(item, learnerLabel);
+
+    try {
+      await navigator.clipboard.writeText(note);
+      setMessage("Evidence note copied. You can paste it into any section.");
+      setActionError(null);
+    } catch {
+      setActionError("We could not copy that evidence note just now.");
+    }
+  }
+
+  function handleStartTemplate(template: ReportSectionTemplate) {
+    setSelectedSectionKey("");
+    setSectionHeading(template.heading);
+    setSectionContent(template.starterText);
+    setSectionSortOrder(String(nextSectionSortOrder));
+    setMessage(`Started a new "${template.label}" section.`);
+    setActionError(null);
+  }
+
+  function handleStartBlankSection() {
+    setSelectedSectionKey("");
+    setSectionHeading("");
+    setSectionContent("");
+    setSectionSortOrder(String(nextSectionSortOrder));
+    setMessage("Started a blank report section.");
     setActionError(null);
   }
 
@@ -1033,6 +1144,110 @@ function CleanReportsWorkspaceBody() {
                     ) : null}
                   </p>
 
+                  <section
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: "#f8fbff",
+                      display: "grid",
+                      gap: 14,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a" }}>Start a section more quickly</strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        Pick a section starter or begin with a blank section. You can edit everything before saving.
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {reportSectionTemplates.map((template) => (
+                        <button
+                          key={template.key}
+                          type="button"
+                          style={{
+                            ...buttonStyle,
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            borderColor: "#cbd5e1",
+                          }}
+                          onClick={() => handleStartTemplate(template)}
+                          disabled={submitting}
+                        >
+                          {template.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        style={{
+                          ...buttonStyle,
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          borderColor: "#cbd5e1",
+                        }}
+                        onClick={handleStartBlankSection}
+                        disabled={submitting}
+                      >
+                        Blank section
+                      </button>
+                    </div>
+                  </section>
+
+                  <section
+                    style={{
+                      border: missingReportItems.length ? "1px solid #fcd34d" : "1px solid #bbf7d0",
+                      borderRadius: 16,
+                      padding: 16,
+                      background: missingReportItems.length ? "#fffbeb" : "#f0fdf4",
+                      display: "grid",
+                      gap: 12,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a" }}>
+                        {missingReportItems.length ? "What is still missing?" : "This report has the key pieces in place"}
+                      </strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        {missingReportItems.length
+                          ? "Use this checklist to see what will make the report feel more complete."
+                          : "You have a reporting period, portfolio support, and at least one section started."}
+                      </p>
+                    </div>
+
+                    {missingReportItems.length ? (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {missingReportItems.map((item) => (
+                          <div
+                            key={item}
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "flex-start",
+                              color: "#92400e",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 999,
+                                background: "#f59e0b",
+                                marginTop: 8,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </section>
+
                   <div
                     style={{
                       display: "grid",
@@ -1042,6 +1257,26 @@ function CleanReportsWorkspaceBody() {
                     }}
                   >
                     <div style={{ display: "grid", gap: 16 }}>
+                      <div
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 14,
+                          padding: 14,
+                          background: selectedSectionKey ? "#eff6ff" : "#f8fafc",
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a" }}>
+                          {selectedSectionKey ? "Editing section" : "Drafting a new section"}
+                        </strong>
+                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                          {selectedSectionKey
+                            ? `You are editing "${sectionHeading || selectedSectionKey}". Changes are only saved when you click Save section.`
+                            : "Use a section starter, add evidence notes, then save when the wording feels right."}
+                        </p>
+                      </div>
+
                       <form onSubmit={handleSectionSubmit} style={{ display: "grid", gap: 12 }}>
                         <div
                           style={{
@@ -1186,7 +1421,7 @@ function CleanReportsWorkspaceBody() {
 
                       {!portfolioLoading && !portfolioError && portfolioItems.length ? (
                         <div style={{ display: "grid", gap: 10 }}>
-                          {portfolioItems.map((item) => (
+                          {focusedPortfolioItems.map((item) => (
                             <div
                               key={item.evidence.id}
                               style={{
@@ -1213,6 +1448,11 @@ function CleanReportsWorkspaceBody() {
                               <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
                                 {summarizeEvidence(item)}
                               </p>
+                              {item.evidence.reflection ? (
+                                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                  Reflection saved for this evidence.
+                                </div>
+                              ) : null}
                               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                 <button
                                   type="button"
@@ -1224,6 +1464,20 @@ function CleanReportsWorkspaceBody() {
                                   onClick={() => handleAddEvidenceToSection(item)}
                                 >
                                   Add note to section
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{
+                                    ...buttonStyle,
+                                    background: "#ffffff",
+                                    color: "#0f172a",
+                                    borderColor: "#cbd5e1",
+                                    padding: "8px 12px",
+                                    fontSize: 13,
+                                  }}
+                                  onClick={() => void handleCopyEvidenceText(item)}
+                                >
+                                  Copy evidence text
                                 </button>
                               </div>
                             </div>
@@ -1437,7 +1691,7 @@ function CleanReportsWorkspaceBody() {
                     </div>
                     {portfolioItems.length ? (
                       <div style={{ display: "grid", gap: 10 }}>
-                        {portfolioItems.slice(0, 5).map((item) => (
+                        {focusedPortfolioItems.slice(0, 5).map((item) => (
                           <div
                             key={item.evidence.id}
                             style={{
@@ -1456,7 +1710,7 @@ function CleanReportsWorkspaceBody() {
                             <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                               {formatDateLabel(item.evidence.observedOn)}
                               {item.evidence.learningArea
-                                ? ` • ${item.evidence.learningArea}`
+                                ? ` | ${item.evidence.learningArea}`
                                 : ""}
                             </div>
                             <div style={{ color: "#475569", lineHeight: 1.6 }}>
@@ -1542,6 +1796,36 @@ function CleanReportsWorkspaceBody() {
                       </div>
                     )}
                   </section>
+
+                  {missingReportItems.length ? (
+                    <section
+                      style={{
+                        display: "grid",
+                        gap: 10,
+                        paddingTop: 16,
+                        borderTop: "1px solid #eef2f7",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.08em",
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Still to add
+                      </div>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {missingReportItems.map((item) => (
+                          <div key={item} style={{ color: "#475569", lineHeight: 1.7 }}>
+                            {item}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
                 </div>
               </section>
             ) : null}
