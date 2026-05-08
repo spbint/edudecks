@@ -1,4 +1,5 @@
 import Link from "next/link";
+import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 
 const shellStyle = {
   minHeight: "100vh",
@@ -53,6 +54,8 @@ export default function CleanPreviewHubPage() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <CleanAppHeader />
+
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 8 }}>
             <div

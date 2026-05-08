@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
+import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -485,37 +485,28 @@ function CleanSettingsWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <CleanAppHeader />
+
         <section style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 16,
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Family settings
-              </div>
-              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Set your family location, curriculum direction, reporting context, and day-to-day preferences here.
-              </p>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                My Profile stays focused on family and learner details.
-              </p>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                color: "#64748b",
+                textTransform: "uppercase",
+              }}
+            >
+              Family settings
             </div>
-            <CleanAccountMenu />
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              Set your family location, curriculum direction, reporting context, and day-to-day preferences here.
+            </p>
+            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+              My Profile stays focused on family and learner details.
+            </p>
           </div>
         </section>
 

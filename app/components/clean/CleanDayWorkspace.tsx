@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import React, { useEffect, useMemo, useState } from "react";
+import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
-import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
@@ -490,37 +490,28 @@ function CleanDayWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
+        <CleanAppHeader />
+
         <section style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 16,
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: "0.08em",
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                }}
-              >
-                Family day
-              </div>
-              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                {formatTodayHeading(today)}
-              </p>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                See what is planned and what comes next.
-              </p>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                color: "#64748b",
+                textTransform: "uppercase",
+              }}
+            >
+              Family day
             </div>
-            <CleanAccountMenu />
+            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              {formatTodayHeading(today)}
+            </p>
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              See what is planned and what comes next.
+            </p>
           </div>
         </section>
 

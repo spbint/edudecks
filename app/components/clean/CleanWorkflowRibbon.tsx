@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
-import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
+import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 
 type CleanWorkflowStepKey =
   | "today"
@@ -107,30 +107,21 @@ export default function CleanWorkflowRibbon({
   const useCleanLinks = pathname.startsWith("/clean-");
 
   return (
-    <div style={{ display: "grid", gap: 10 }}>
+    <div style={{ display: "grid", gap: 12 }}>
+      <CleanAppHeader />
+
       <section style={sectionStyle}>
         <div style={{ display: "grid", gap: 10 }}>
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#64748b",
+              textTransform: "uppercase",
             }}
           >
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
-                textTransform: "uppercase",
-              }}
-            >
-              Journey
-            </div>
-            <CleanAccountMenu />
+            Journey
           </div>
           <nav aria-label="Journey steps" style={{ overflowX: "auto", paddingBottom: 4 }}>
             <div
@@ -151,7 +142,7 @@ export default function CleanWorkflowRibbon({
                     <Link
                       href={href}
                       aria-current={isCurrent ? "step" : undefined}
-                      title={`${step.label} — ${step.helper}`}
+                      title={`${step.label} - ${step.helper}`}
                       style={{
                         display: "grid",
                         gridTemplateColumns: "36px minmax(0, 1fr)",
