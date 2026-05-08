@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 
 type HeaderNavItem = {
@@ -69,15 +70,47 @@ function isCurrentMatch(pathname: string, candidates: string[]) {
   return candidates.some((candidate) => matchesPath(pathname, candidate));
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 export default function CleanAppHeader() {
   const pathname = usePathname();
   const [outputsOpen, setOutputsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 220 });
   const outputsRef = useRef<HTMLDivElement | null>(null);
+  const outputsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const outputsCurrent = isCurrentMatch(
     pathname,
     outputNavItems.flatMap((item) => item.matches),
   );
+
+  useLayoutEffect(() => {
+    if (!outputsOpen) return;
+
+    function updateMenuPosition() {
+      const button = outputsButtonRef.current;
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      const width = Math.min(220, Math.max(200, window.innerWidth - 24));
+      const left = clamp(rect.left, 12, Math.max(12, window.innerWidth - width - 12));
+      const top = rect.bottom + 10;
+
+      setMenuPosition({ top, left, width });
+    }
+
+    updateMenuPosition();
+
+    window.addEventListener("resize", updateMenuPosition);
+    window.addEventListener("scroll", updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuPosition);
+      window.removeEventListener("scroll", updateMenuPosition, true);
+    };
+  }, [outputsOpen]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -196,6 +229,7 @@ export default function CleanAppHeader() {
 
             <div ref={outputsRef} style={{ position: "relative", flexShrink: 0 }}>
               <button
+                ref={outputsButtonRef}
                 type="button"
                 onClick={() => setOutputsOpen((current) => !current)}
                 aria-haspopup="menu"
@@ -225,55 +259,58 @@ export default function CleanAppHeader() {
                     transition: "transform 120ms ease",
                   }}
                 >
-                  ▼
+                  v
                 </span>
               </button>
 
-              {outputsOpen ? (
-                <div
-                  role="menu"
-                  aria-label="Outputs"
-                  style={{
-                    position: "absolute",
-                    left: 0,
-                    top: "calc(100% + 10px)",
-                    width: 220,
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 18,
-                    background: "#ffffff",
-                    boxShadow: "0 20px 40px rgba(15,23,42,0.12)",
-                    padding: 10,
-                    display: "grid",
-                    gap: 6,
-                    zIndex: 40,
-                  }}
-                >
-                  {outputNavItems.map((item) => {
-                    const isCurrent = isCurrentMatch(pathname, item.matches);
+              {outputsOpen && typeof document !== "undefined"
+                ? createPortal(
+                    <div
+                      role="menu"
+                      aria-label="Outputs"
+                      style={{
+                        position: "fixed",
+                        left: menuPosition.left,
+                        top: menuPosition.top,
+                        width: menuPosition.width,
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 18,
+                        background: "#ffffff",
+                        boxShadow: "0 20px 40px rgba(15,23,42,0.12)",
+                        padding: 10,
+                        display: "grid",
+                        gap: 6,
+                        zIndex: 80,
+                      }}
+                    >
+                      {outputNavItems.map((item) => {
+                        const isCurrent = isCurrentMatch(pathname, item.matches);
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        role="menuitem"
-                        onClick={() => setOutputsOpen(false)}
-                        style={{
-                          display: "block",
-                          borderRadius: 12,
-                          padding: "10px 12px",
-                          textDecoration: "none",
-                          background: isCurrent ? "#eff6ff" : "#ffffff",
-                          color: isCurrent ? "#1d4ed8" : "#0f172a",
-                          fontSize: 14,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : null}
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            role="menuitem"
+                            onClick={() => setOutputsOpen(false)}
+                            style={{
+                              display: "block",
+                              borderRadius: 12,
+                              padding: "10px 12px",
+                              textDecoration: "none",
+                              background: isCurrent ? "#eff6ff" : "#ffffff",
+                              color: isCurrent ? "#1d4ed8" : "#0f172a",
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {item.label}
+                          </Link>
+                        );
+                      })}
+                    </div>,
+                    document.body,
+                  )
+                : null}
             </div>
           </div>
         </nav>
