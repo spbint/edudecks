@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
@@ -64,6 +65,17 @@ const compactInputStyle: React.CSSProperties = {
   padding: "9px 12px",
   fontSize: 13,
   background: "#ffffff",
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  borderRadius: 10,
+  padding: "9px 12px",
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const overviewPillStyle: React.CSSProperties = {
@@ -147,6 +159,15 @@ function getPreviewText(value: string | null, maxLength = 110) {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 }
 
+function isValidDateValue(value: string | null): value is string {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(date.getTime());
+}
+
 function hasGuidanceContext(profile: {
   countryCode: string | null;
   jurisdictionCode: string | null;
@@ -171,6 +192,9 @@ function hasGuidanceContext(profile: {
 
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [items, setItems] = useState<CleanCalendarItem[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
@@ -183,8 +207,19 @@ function CleanDayWorkspaceBody() {
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
 
   const today = getTodayDate();
-  const weekStart = getWeekStart(today);
+  const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
+  const selectedDate = useMemo(() => {
+    const candidate = searchParams.get("date");
+    return isValidDateValue(candidate) ? candidate : today;
+  }, [searchParams, today]);
+  const isViewingToday = selectedDate === today;
+  const weekStart = getWeekStart(selectedDate);
   const weekEnd = addDays(weekStart, 6);
+
+  const buildDayPath = useMemo(
+    () => (dateValue: string) => (dateValue === today ? dayPathBase : `${dayPathBase}?date=${dateValue}`),
+    [dayPathBase, today],
+  );
 
   const learnerOptions = useMemo(
     () =>
@@ -253,6 +288,12 @@ function CleanDayWorkspaceBody() {
 
   const nextUpcomingItem = useMemo(
     () => {
+      if (!sortedVisibleItems.length) return null;
+
+      if (!isViewingToday) {
+        return sortedVisibleItems.find((item) => item.startsAt) ?? sortedVisibleItems[0] ?? null;
+      }
+
       const now = new Date();
 
       return (
@@ -263,7 +304,7 @@ function CleanDayWorkspaceBody() {
         }) ?? null
       );
     },
-    [sortedVisibleItems],
+    [isViewingToday, sortedVisibleItems],
   );
 
   const selectedLearnerLabel = useMemo(
@@ -273,27 +314,28 @@ function CleanDayWorkspaceBody() {
 
   const overviewSummary = useMemo(() => {
     if (!sortedVisibleItems.length) {
-      return "Nothing planned for today yet.";
+      return isViewingToday ? "Nothing planned for today yet." : "Nothing planned for this day yet.";
     }
 
     if (selectedLearnerId && selectedLearnerLabel) {
-      return `Today has ${sortedVisibleItems.length} planned block${
+      return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
         sortedVisibleItems.length === 1 ? "" : "s"
       } for ${selectedLearnerLabel}.`;
     }
 
     if (learnersInViewCount > 0) {
-      return `Today has ${sortedVisibleItems.length} planned block${
+      return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
         sortedVisibleItems.length === 1 ? "" : "s"
       } across ${learnersInViewCount} learner${learnersInViewCount === 1 ? "" : "s"}${
         wholeFamilyBlocksCount ? ", plus whole-family time." : "."
       }`;
     }
 
-    return `Today has ${sortedVisibleItems.length} planned block${
+    return `${isViewingToday ? "Today" : "This day"} has ${sortedVisibleItems.length} planned block${
       sortedVisibleItems.length === 1 ? "" : "s"
     } for the whole family.`;
   }, [
+    isViewingToday,
     learnersInViewCount,
     selectedLearnerId,
     selectedLearnerLabel,
@@ -324,15 +366,19 @@ function CleanDayWorkspaceBody() {
 
   const nextUpSummary = useMemo(() => {
     if (nextUpcomingItem) {
-      return `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`;
+      return nextUpcomingItem.startsAt
+        ? `${nextUpcomingItem.title} at ${formatTimeLabel(nextUpcomingItem.startsAt)}`
+        : nextUpcomingItem.title;
     }
 
     if (sortedVisibleItems.length) {
-      return "The rest of today is open.";
+      return isViewingToday ? "The rest of today is open." : "This day is open.";
     }
 
-    return "Nothing planned yet.";
-  }, [nextUpcomingItem, sortedVisibleItems]);
+    return isViewingToday ? "Nothing planned yet." : "Nothing planned for this day yet.";
+  }, [isViewingToday, nextUpcomingItem, sortedVisibleItems]);
+
+  const nextUpLabel = isViewingToday ? "Next up" : "Looking ahead";
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -350,6 +396,10 @@ function CleanDayWorkspaceBody() {
   }, [workspace.learners]);
 
   useEffect(() => {
+    setExpandedItemIds([]);
+  }, [selectedDate]);
+
+  useEffect(() => {
     async function loadItems() {
       if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
         setItems([]);
@@ -363,8 +413,8 @@ function CleanDayWorkspaceBody() {
       try {
         const [nextItems, nextPrograms] = await Promise.all([
           listCleanCalendarItems(workspace.profile.id, {
-            fromDate: today,
-            toDate: today,
+            fromDate: selectedDate,
+            toDate: selectedDate,
             limit: 40,
           }),
           listCleanPrograms(workspace.profile.id, { limit: 50 }),
@@ -385,7 +435,7 @@ function CleanDayWorkspaceBody() {
         setItemsError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load today's learning blocks.",
+            "We could not load this day's learning blocks.",
           ),
         );
       } finally {
@@ -394,7 +444,12 @@ function CleanDayWorkspaceBody() {
     }
 
     void loadItems();
-  }, [today, workspace.profile, workspace.requiresFamilyCreation, workspace.schemaMissing]);
+  }, [
+    selectedDate,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
 
   useEffect(() => {
     async function loadGuidance() {
@@ -428,8 +483,8 @@ function CleanDayWorkspaceBody() {
             limit: 1,
           }),
           listCleanCalendarItems(workspace.profile.id, {
-            fromDate: today,
-            toDate: today,
+            fromDate: selectedDate,
+            toDate: selectedDate,
             limit: 1,
           }),
           listCleanEvidenceEntries(workspace.profile.id, { limit: 1 }),
@@ -467,7 +522,7 @@ function CleanDayWorkspaceBody() {
 
     void loadGuidance();
   }, [
-    today,
+    selectedDate,
     weekEnd,
     weekStart,
     workspace.learners.length,
@@ -485,7 +540,7 @@ function CleanDayWorkspaceBody() {
   }
 
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
-  const hasPlannedItemsToday = items.length > 0;
+  const hasPlannedItemsForSelectedDate = items.length > 0;
 
   return (
     <div style={shellStyle}>
@@ -507,7 +562,7 @@ function CleanDayWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              {formatTodayHeading(today)}
+              {formatTodayHeading(selectedDate)}
             </p>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
               See what is planned and what comes next.
@@ -565,7 +620,7 @@ function CleanDayWorkspaceBody() {
 
             {!guidanceLoading &&
             !guidanceError &&
-            !hasPlannedItemsToday &&
+            !hasPlannedItemsForSelectedDate &&
             !hasLateStageGuidance &&
             openGuidanceCards.length ? (
               <CleanGuidanceRibbon cards={openGuidanceCards} />
@@ -612,16 +667,16 @@ function CleanDayWorkspaceBody() {
                           textTransform: "uppercase",
                         }}
                       >
-                        Today&apos;s flow
+                        {isViewingToday ? "Today&apos;s flow" : "Family day"}
                       </div>
                       <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28 }}>
-                        Learning blocks for today
+                        {isViewingToday ? "Learning blocks for today" : "Learning blocks for this day"}
                       </h2>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                         {overviewSummary}
                       </p>
                       <p style={{ margin: 0, color: "#0f172a", fontWeight: 700 }}>
-                        Next up: {nextUpSummary}
+                        {nextUpLabel}: {nextUpSummary}
                       </p>
                     </div>
                     <div
@@ -635,6 +690,47 @@ function CleanDayWorkspaceBody() {
                         border: "1px solid #dbeafe",
                       }}
                     >
+                      <label
+                        style={{
+                          color: "#64748b",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Day
+                      </label>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          style={secondaryButtonStyle}
+                          onClick={() => router.push(buildDayPath(addDays(selectedDate, -1)))}
+                        >
+                          Previous day
+                        </button>
+                        <button
+                          type="button"
+                          style={{
+                            ...secondaryButtonStyle,
+                            background: isViewingToday ? "#eff6ff" : "#ffffff",
+                            borderColor: isViewingToday ? "#93c5fd" : "#cbd5e1",
+                            color: isViewingToday ? "#1d4ed8" : "#0f172a",
+                            cursor: isViewingToday ? "default" : "pointer",
+                          }}
+                          onClick={() => router.push(buildDayPath(today))}
+                          disabled={isViewingToday}
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          style={secondaryButtonStyle}
+                          onClick={() => router.push(buildDayPath(addDays(selectedDate, 1)))}
+                        >
+                          Next day
+                        </button>
+                      </div>
                       <label
                         style={{
                           color: "#64748b",
@@ -662,7 +758,7 @@ function CleanDayWorkspaceBody() {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span style={overviewPillStyle}>{formatTodayHeading(today)}</span>
+                    <span style={overviewPillStyle}>{formatTodayHeading(selectedDate)}</span>
                     <span style={overviewPillStyle}>{overviewFocusLabel}</span>
                     <span style={overviewPillStyle}>
                       {sortedVisibleItems.length} block{sortedVisibleItems.length === 1 ? "" : "s"}
@@ -690,7 +786,11 @@ function CleanDayWorkspaceBody() {
                   </Link>
                 </div>
 
-              {itemsLoading ? <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>Loading today&apos;s flow...</p> : null}
+              {itemsLoading ? (
+                <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>
+                  Loading this day&apos;s flow...
+                </p>
+              ) : null}
               {itemsError ? <p style={{ marginTop: 0, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
 
               {!itemsLoading && !itemsError && !visibleItems.length ? (
@@ -706,14 +806,20 @@ function CleanDayWorkspaceBody() {
                 >
                   <div style={{ display: "grid", gap: 6 }}>
                     <strong style={{ color: "#0f172a" }}>
-                      {hasPlannedItemsToday && selectedLearnerLabel
-                        ? `Nothing planned for ${selectedLearnerLabel} today yet.`
-                        : "Nothing planned for today yet."}
+                      {hasPlannedItemsForSelectedDate && selectedLearnerLabel
+                        ? `Nothing planned for ${selectedLearnerLabel} on this day yet.`
+                        : isViewingToday
+                          ? "Nothing planned for today yet."
+                          : "Nothing planned for this day yet."}
                     </strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      {hasPlannedItemsToday && selectedLearnerLabel
-                        ? "Try the full family view, or open My Calendar to adjust today."
-                        : "Open My Calendar to plan the week, or add one quick block for today."}
+                      {hasPlannedItemsForSelectedDate && selectedLearnerLabel
+                        ? `Try the full family view, or open My Calendar to adjust ${
+                            isViewingToday ? "today" : "this day"
+                          }.`
+                        : `Open My Calendar to plan the week, or add one quick block for ${
+                            isViewingToday ? "today" : "this day"
+                          }.`}
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -911,7 +1017,7 @@ function CleanDayWorkspaceBody() {
 
             {!guidanceLoading &&
             !guidanceError &&
-            (hasPlannedItemsToday || hasLateStageGuidance) &&
+            (hasPlannedItemsForSelectedDate || hasLateStageGuidance) &&
             openGuidanceCards.length ? (
               <CleanGuidanceRibbon cards={openGuidanceCards} compact />
             ) : null}

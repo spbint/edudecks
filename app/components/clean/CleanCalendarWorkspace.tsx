@@ -208,6 +208,7 @@ type PickerOption = {
 
 type PlanningView = "master" | "week";
 type MasterWeekView = "school" | "full";
+type LiveWeekView = "school" | "full";
 type LearningPeriodComposerMode = "term" | "break";
 
 function getTodayDate() {
@@ -788,13 +789,15 @@ function CleanCalendarWorkspaceBody() {
   const [popoverProgramId, setPopoverProgramId] = useState("");
   const [popoverProgramSegmentId, setPopoverProgramSegmentId] = useState("");
 
-  const [planningView, setPlanningView] = useState<PlanningView>("master");
+  const [planningView, setPlanningView] = useState<PlanningView>("week");
   const [showYearComposer, setShowYearComposer] = useState(false);
   const [showLearningPeriodComposer, setShowLearningPeriodComposer] = useState(false);
   const [showTemplateComposer, setShowTemplateComposer] = useState(false);
   const [rhythmPopoverOpen, setRhythmPopoverOpen] = useState(false);
   const [masterWeekView, setMasterWeekView] = useState<MasterWeekView>("school");
   const [masterWeekViewTouched, setMasterWeekViewTouched] = useState(false);
+  const [liveWeekView, setLiveWeekView] = useState<LiveWeekView>("school");
+  const [liveWeekViewTouched, setLiveWeekViewTouched] = useState(false);
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -895,6 +898,19 @@ function CleanCalendarWorkspaceBody() {
         ? WEEKDAY_OPTIONS.filter((day) => day.value <= 5)
         : WEEKDAY_OPTIONS,
     [masterWeekView],
+  );
+
+  const hasWeekendLiveItems = useMemo(
+    () =>
+      weekDates
+        .slice(5)
+        .some((dateValue) => (itemsByDate.get(dateValue) ?? []).length > 0),
+    [itemsByDate, weekDates],
+  );
+
+  const visibleWeekDates = useMemo(
+    () => (liveWeekView === "school" ? weekDates.slice(0, 5) : weekDates),
+    [liveWeekView, weekDates],
   );
 
   const visibleBlockSegments = useMemo(() => {
@@ -1018,6 +1034,17 @@ function CleanCalendarWorkspaceBody() {
 
     return grouped;
   }, [previewRows]);
+
+  const hasWeekendPreviewItems = useMemo(
+    () =>
+      weekDates
+        .slice(5)
+        .some((dateValue) => (previewRowsByDate.get(dateValue) ?? []).length > 0),
+    [previewRowsByDate, weekDates],
+  );
+
+  const hasHiddenWeekendWeekContent =
+    liveWeekView === "school" && (hasWeekendLiveItems || hasWeekendPreviewItems);
 
   const shouldShowYearComposer = showYearComposer || !academicYears.length;
   const shouldShowLearningPeriodComposer =
@@ -1205,6 +1232,15 @@ function CleanCalendarWorkspaceBody() {
     if (!selectedTemplateId || masterWeekViewTouched) return;
     setMasterWeekView(hasWeekendTemplateBlocks ? "full" : "school");
   }, [hasWeekendTemplateBlocks, masterWeekViewTouched, selectedTemplateId]);
+
+  useEffect(() => {
+    setLiveWeekViewTouched(false);
+  }, [selectedWeekStart]);
+
+  useEffect(() => {
+    if (liveWeekViewTouched) return;
+    setLiveWeekView(hasWeekendLiveItems ? "full" : "school");
+  }, [hasWeekendLiveItems, liveWeekViewTouched]);
 
   useEffect(() => {
     setPreviewSuggestions([]);
@@ -2515,8 +2551,8 @@ function CleanCalendarWorkspaceBody() {
                   <div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Weekly planner</h2>
                     <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                      Keep your reusable master week separate from the live calendar, then
-                      switch between the two as needed.
+                      Open This week for day-to-day changes. Use Master week when you want
+                      to update the reusable template.
                     </p>
                   </div>
                   <div
@@ -2534,19 +2570,6 @@ function CleanCalendarWorkspaceBody() {
                       style={{
                         ...buttonStyle,
                         padding: "9px 14px",
-                        background: planningView === "master" ? "#0f172a" : "#ffffff",
-                        color: planningView === "master" ? "#ffffff" : "#0f172a",
-                        borderColor: planningView === "master" ? "#0f172a" : "#ffffff",
-                      }}
-                      onClick={() => setPlanningView("master")}
-                    >
-                      Master week
-                    </button>
-                    <button
-                      type="button"
-                      style={{
-                        ...buttonStyle,
-                        padding: "9px 14px",
                         background: planningView === "week" ? "#0f172a" : "#ffffff",
                         color: planningView === "week" ? "#ffffff" : "#0f172a",
                         borderColor: planningView === "week" ? "#0f172a" : "#ffffff",
@@ -2554,6 +2577,19 @@ function CleanCalendarWorkspaceBody() {
                       onClick={() => setPlanningView("week")}
                     >
                       This week
+                    </button>
+                    <button
+                      type="button"
+                      style={{
+                        ...buttonStyle,
+                        padding: "9px 14px",
+                        background: planningView === "master" ? "#0f172a" : "#ffffff",
+                        color: planningView === "master" ? "#ffffff" : "#0f172a",
+                        borderColor: planningView === "master" ? "#0f172a" : "#ffffff",
+                      }}
+                      onClick={() => setPlanningView("master")}
+                    >
+                      Master week
                     </button>
                   </div>
                 </div>
@@ -3010,11 +3046,56 @@ function CleanCalendarWorkspaceBody() {
                         <div>
                           <strong style={{ color: "#0f172a" }}>This week</strong>
                           <p style={{ ...secondaryTextStyle, marginTop: 6 }}>
-                            Use your master week as a guide. Preview first, then choose what
-                            to add into the live calendar.
+                            This week is the real calendar you adjust day to day. Use your
+                            master week as a guide, then choose what to add into the live week.
                           </p>
                         </div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              display: "inline-flex",
+                              border: "1px solid #cbd5e1",
+                              borderRadius: 12,
+                              padding: 4,
+                              background: "#f8fafc",
+                              gap: 4,
+                            }}
+                          >
+                            <button
+                              type="button"
+                              style={{
+                                ...buttonStyle,
+                                padding: "8px 12px",
+                                background: liveWeekView === "school" ? "#0f172a" : "#ffffff",
+                                color: liveWeekView === "school" ? "#ffffff" : "#0f172a",
+                                borderColor:
+                                  liveWeekView === "school" ? "#0f172a" : "#ffffff",
+                              }}
+                              onClick={() => {
+                                setLiveWeekView("school");
+                                setLiveWeekViewTouched(true);
+                              }}
+                            >
+                              School week
+                            </button>
+                            <button
+                              type="button"
+                              style={{
+                                ...buttonStyle,
+                                padding: "8px 12px",
+                                background: liveWeekView === "full" ? "#0f172a" : "#ffffff",
+                                color: liveWeekView === "full" ? "#ffffff" : "#0f172a",
+                                borderColor:
+                                  liveWeekView === "full" ? "#0f172a" : "#ffffff",
+                              }}
+                              onClick={() => {
+                                setLiveWeekView("full");
+                                setLiveWeekViewTouched(true);
+                              }}
+                            >
+                              Full week
+                            </button>
+                          </div>
                           <button
                             type="button"
                             style={mutedButtonStyle}
@@ -3042,6 +3123,22 @@ function CleanCalendarWorkspaceBody() {
                       <div style={{ color: "#475569", fontWeight: 700 }}>
                         {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
                       </div>
+
+                      {hasHiddenWeekendWeekContent ? (
+                        <div
+                          style={{
+                            border: "1px solid #cbd5e1",
+                            borderRadius: 14,
+                            padding: 12,
+                            background: "#ffffff",
+                            color: "#475569",
+                            lineHeight: 1.6,
+                          }}
+                        >
+                          Weekend plans are still part of this week. Switch to Full week to
+                          view Saturday and Sunday.
+                        </div>
+                      ) : null}
 
                       <div
                         style={{
@@ -3187,11 +3284,14 @@ function CleanCalendarWorkspaceBody() {
                               style={{
                                 display: "grid",
                                 gap: 12,
-                                gridTemplateColumns: "repeat(7, minmax(220px, 1fr))",
-                                minWidth: 1640,
+                                gridTemplateColumns:
+                                  liveWeekView === "school"
+                                    ? "repeat(5, minmax(220px, 1fr))"
+                                    : "repeat(7, minmax(220px, 1fr))",
+                                minWidth: liveWeekView === "school" ? 1160 : 1640,
                               }}
                             >
-                              {weekDates.map((dateValue) => {
+                              {visibleWeekDates.map((dateValue) => {
                                 const dayItems = previewRowsByDate.get(dateValue) ?? [];
 
                                 return (
@@ -3381,14 +3481,19 @@ function CleanCalendarWorkspaceBody() {
                         <p style={{ margin: 0, color: "#b91c1c" }}>{setupError}</p>
                       ) : null}
 
-                      <div
-                        style={{
-                          display: "grid",
-                          gap: 12,
-                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                        }}
-                      >
-                        {weekDates.map((dateValue) => {
+                      <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gap: 12,
+                            gridTemplateColumns:
+                              liveWeekView === "school"
+                                ? "repeat(5, minmax(220px, 1fr))"
+                                : "repeat(7, minmax(220px, 1fr))",
+                            minWidth: liveWeekView === "school" ? 1160 : 1640,
+                          }}
+                        >
+                        {visibleWeekDates.map((dateValue) => {
                           const dayItems = itemsByDate.get(dateValue) ?? [];
                           const emptyZoneSurfaceId = `week-empty-${dateValue}`;
 
@@ -3588,6 +3693,7 @@ function CleanCalendarWorkspaceBody() {
                             </div>
                           );
                         })}
+                        </div>
                       </div>
                     </div>
                   </div>
