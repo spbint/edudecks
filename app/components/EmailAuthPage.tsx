@@ -4,7 +4,11 @@ import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
-import { supabase } from "@/lib/supabaseClient";
+import {
+  hasSupabaseEnv,
+  MISSING_PUBLIC_SUPABASE_ENV_MESSAGE,
+  supabase,
+} from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 
 type SaveState = "idle" | "saving" | "success" | "error";
@@ -219,6 +223,12 @@ function EmailAuthPageContent() {
   const destinationLabel = useMemo(() => nextPathLabel(nextPath), [nextPath]);
 
   useEffect(() => {
+    if (!hasSupabaseEnv) {
+      setSaveState("error");
+      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      return;
+    }
+
     const authMessage = safe(searchParams.get("authMessage"));
     const authError = safe(searchParams.get("authError"));
 
@@ -247,6 +257,12 @@ function EmailAuthPageContent() {
 
   async function handlePasswordSignIn() {
     if (saveState === "saving") return;
+
+    if (!hasSupabaseEnv) {
+      setSaveState("error");
+      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      return;
+    }
 
     if (!emailValid) {
       setSaveState("error");
@@ -307,6 +323,12 @@ function EmailAuthPageContent() {
 
   async function handleForgotPassword() {
     if (saveState === "saving") return;
+
+    if (!hasSupabaseEnv) {
+      setSaveState("error");
+      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      return;
+    }
 
     if (!emailValid) {
       setSaveState("error");
@@ -541,7 +563,7 @@ function EmailAuthPageContent() {
                 style={inputStyle(safe(email) !== "" && !emailValid)}
                 autoComplete="email"
                 inputMode="email"
-                disabled={saveState === "saving"}
+                disabled={!hasSupabaseEnv || saveState === "saving"}
               />
               {safe(email) && !emailValid ? (
                 <div
@@ -571,7 +593,7 @@ function EmailAuthPageContent() {
                 <button
                   type="button"
                   onClick={() => void handleForgotPassword()}
-                  disabled={!emailValid || saveState === "saving"}
+                  disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
                   style={{
                     border: "none",
                     background: "transparent",
@@ -579,8 +601,11 @@ function EmailAuthPageContent() {
                     fontSize: 13,
                     fontWeight: 800,
                     textAlign: "center",
-                    cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
-                    opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
+                    cursor:
+                      !hasSupabaseEnv || !emailValid || saveState === "saving"
+                        ? "not-allowed"
+                        : "pointer",
+                    opacity: !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
                     padding: 0,
                   }}
                 >
@@ -597,7 +622,7 @@ function EmailAuthPageContent() {
                 placeholder="Enter your password"
                 style={inputStyle(safe(password) !== "" && !passwordValid)}
                 autoComplete="current-password"
-                disabled={saveState === "saving"}
+                disabled={!hasSupabaseEnv || saveState === "saving"}
               />
               {safe(password) && !passwordValid ? (
                 <div
@@ -638,9 +663,9 @@ function EmailAuthPageContent() {
 
             <button
               type="submit"
-              disabled={!emailValid || !passwordValid || saveState === "saving"}
+              disabled={!hasSupabaseEnv || !emailValid || !passwordValid || saveState === "saving"}
               style={primaryButtonStyle(
-                !emailValid || !passwordValid || saveState === "saving",
+                !hasSupabaseEnv || !emailValid || !passwordValid || saveState === "saving",
               )}
             >
               {saveState === "saving" ? "Signing you in..." : "Sign in"}

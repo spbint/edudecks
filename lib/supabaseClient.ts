@@ -1,25 +1,24 @@
 import { createBrowserClient } from "@supabase/auth-helpers-nextjs";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const bundledPublicSupabaseUrl = "https://jgllsqixpfypunnstinl.supabase.co";
-const bundledPublicSupabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnbGxzcWl4cGZ5cHVubnN0aW5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5MTc0MDYsImV4cCI6MjA4MjQ5MzQwNn0.YYKiRuxYye7_iDfQ4nZ6U4pFiTVtt1lIGSSwQa98CBE";
+export const MISSING_PUBLIC_SUPABASE_ENV_MESSAGE =
+  "Missing Supabase public environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY before using MyLearna.";
 
-export const supabaseUrl =
-  process.env.NEXT_PUBLIC_SUPABASE_URL || bundledPublicSupabaseUrl;
-export const supabaseAnonKey =
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || bundledPublicSupabaseAnonKey;
+export const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").trim();
+export const supabaseAnonKey = String(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
 
 export const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
 const SUPABASE_REQUEST_TIMEOUT_MS = 20000;
 
-if (
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-) {
-  console.warn(
-    "Supabase public environment variables are missing. Using bundled public project auth configuration as a fallback.",
-  );
+export function requireSupabasePublicEnv() {
+  if (!hasSupabaseEnv) {
+    throw new Error(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+  }
+
+  return {
+    supabaseUrl,
+    supabaseAnonKey,
+  };
 }
 
 async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
@@ -43,32 +42,54 @@ async function supabaseFetch(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
-export const supabase =
-  typeof window === "undefined"
-    ? createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-          detectSessionInUrl: false,
-        },
-        global: {
-          fetch: supabaseFetch,
-        },
-      })
-    : createBrowserClient(supabaseUrl, supabaseAnonKey, {
-        isSingleton: true,
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-        },
-        global: {
-          fetch: supabaseFetch,
-        },
-      });
+function createMissingEnvSupabaseProxy() {
+  return new Proxy(
+    {},
+    {
+      get() {
+        throw new Error(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      },
+    },
+  ) as SupabaseClient;
+}
+
+function createConfiguredSupabaseClient() {
+  const config = requireSupabasePublicEnv();
+
+  if (typeof window === "undefined") {
+    return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+      global: {
+        fetch: supabaseFetch,
+      },
+    });
+  }
+
+  return createBrowserClient(config.supabaseUrl, config.supabaseAnonKey, {
+    isSingleton: true,
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+    global: {
+      fetch: supabaseFetch,
+    },
+  });
+}
+
+export const supabase = hasSupabaseEnv
+  ? createConfiguredSupabaseClient()
+  : createMissingEnvSupabaseProxy();
 
 export function createServerSupabaseClient(accessToken: string) {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  const config = requireSupabasePublicEnv();
+
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

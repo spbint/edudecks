@@ -1,12 +1,13 @@
 import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { supabaseAnonKey, supabaseUrl } from "@/lib/supabaseClient";
+import { requireSupabasePublicEnv } from "@/lib/supabaseClient";
 
 async function getServerAuthClient() {
   const cookieStore = await cookies();
+  const config = requireSupabasePublicEnv();
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(config.supabaseUrl, config.supabaseAnonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
