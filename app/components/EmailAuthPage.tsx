@@ -238,40 +238,6 @@ function EmailAuthPageContent() {
     setMessage("");
   }, [searchParams]);
 
-  useEffect(() => {
-    let active = true;
-
-    async function hydrateSession() {
-      const { data, error } = await supabase.auth.getSession();
-      if (!active) return;
-
-      if (error) {
-        console.warn("[auth] login session hydrate failed", {
-          message: safe(error.message),
-        });
-        return;
-      }
-
-      if (data.session?.user) {
-        if (redirectStarted.current) return;
-        redirectStarted.current = true;
-
-        if (typeof window !== "undefined") {
-          window.location.replace(nextPath);
-          return;
-        }
-
-        router.replace(nextPath);
-      }
-    }
-
-    void hydrateSession();
-
-    return () => {
-      active = false;
-    };
-  }, [nextPath, router]);
-
   function resetFeedback() {
     if (saveState !== "idle") {
       setSaveState("idle");
