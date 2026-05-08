@@ -9,37 +9,54 @@ import PublicSiteShell, {
 } from "@/app/components/PublicSiteShell";
 import useIsMobile from "@/app/components/useIsMobile";
 
-const STEPS = [
+const PRIMARY_CTA = {
+  label: "Start your learning record",
+  href: "/login",
+} as const;
+
+const LIFECYCLE_STEPS = [
   {
     number: "1",
     title: "Plan",
-    text: "Set a learning focus for the moment.",
+    text: "Organise the week and connect programs to the calendar.",
   },
   {
     number: "2",
     title: "Capture",
-    text: "Record what actually happened.",
+    text: "Record what happened from daily learning blocks while it is still fresh.",
   },
   {
     number: "3",
-    title: "Build",
-    text: "Turn moments into a structured learning record.",
+    title: "Portfolio",
+    text: "Choose the strongest evidence worth keeping over time.",
   },
   {
     number: "4",
-    title: "Report",
-    text: "See progress clearly over time.",
+    title: "Reports",
+    text: "Prepare reports from selected records when you are ready.",
   },
-];
+] as const;
 
-const BENEFITS = [
-  "Capture evidence as it happens",
-  "Build a record without extra admin",
-  "Track progress over time",
-  "Be ready for reporting when needed",
-];
+const VALUE_POINTS = [
+  "See the week, daily learning, and records in one place.",
+  "Build a real learning trail instead of rebuilding the story later.",
+  "Move from planning to reports with records that stay connected.",
+] as const;
 
-const AUDIENCES = ["Families", "Homeschool", "Flexible rhythms"];
+const TRUST_POINTS = [
+  "Your family learning records stay private to your account.",
+  "Text-first capture is available now.",
+  "Media uploads and advanced exports will come later with clear storage controls.",
+] as const;
+
+const FIRST_SESSION_STEPS = [
+  "Add your learner",
+  "Set your country and reporting context",
+  "Plan your week",
+  "Capture your first learning note",
+] as const;
+
+const HERO_PILLS = ["Plan", "Capture", "Portfolio", "Reports"] as const;
 
 function sectionHeader(title: string, text?: string) {
   return (
@@ -48,7 +65,7 @@ function sectionHeader(title: string, text?: string) {
         style={{
           margin: 0,
           fontSize: 32,
-          lineHeight: 1.1,
+          lineHeight: 1.08,
           fontWeight: 900,
           color: "#0f172a",
         }}
@@ -79,18 +96,23 @@ export default function HomePage() {
     <PublicSiteShell
       title="MyLearna"
       eyebrow=""
-      heroTitle="Capture learning as it happens. Build a record that grows over time."
-      heroText="Plan learning, capture real moments, and turn them into clear records for reporting and assessment."
-      heroBadges={[]}
-      heroMicrocopy={<span>No complex setup. Start with one moment.</span>}
+      heroTitle="Plan the week. Capture learning. Build records over time."
+      heroText="MyLearna helps homeschool families organise the week, capture learning as it happens, choose portfolio evidence, and prepare reports from real records."
+      heroBadges={[...HERO_PILLS]}
+      heroMicrocopy={
+        <span>
+          Start from the secure account screen. Existing users can sign in there today, and
+          new-family account setup is being prepared for the same entry.
+        </span>
+      }
       asideTitle=""
       asideText=""
       asideItems={[]}
       heroAsideVisible={false}
-      primaryCta={{ label: "Start a family", href: "/my-day" }}
+      primaryCta={PRIMARY_CTA}
       secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       headerAction={{ label: "Sign in", href: "/login" }}
-      footerPrimaryCta={{ label: "Start a family", href: "/my-day" }}
+      footerPrimaryCta={PRIMARY_CTA}
       footerSecondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       showWorkflowStrip={false}
     >
@@ -105,16 +127,19 @@ export default function HomePage() {
           scrollMarginTop: 116,
         }}
       >
-        {sectionHeader("A clear pathway from learning to reporting")}
+        {sectionHeader(
+          "A working homeschool record in four steps",
+          "Keep the week, the learning notes, the portfolio, and the reports connected as your family moves through the year.",
+        )}
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 14,
           }}
         >
-          {STEPS.map((step) => (
+          {LIFECYCLE_STEPS.map((step) => (
             <div
               key={step.title}
               style={{
@@ -169,73 +194,96 @@ export default function HomePage() {
 
       <section
         style={{
-          borderRadius: 28,
-          padding: isMobile ? 20 : isTablet ? 24 : 32,
-          marginBottom: isMobile ? 18 : 22,
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-          color: "#ffffff",
-          boxShadow: "0 18px 50px rgba(15,23,42,0.14)",
           display: "grid",
-          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+          gap: 18,
+          marginBottom: isMobile ? 18 : 22,
         }}
       >
         <div
           style={{
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: 1,
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.7)",
+            ...publicCardStyle(),
+            padding: isMobile ? 18 : isTablet ? 24 : 28,
+            display: "grid",
+            gap: 18,
           }}
         >
-          Start now
+          {sectionHeader(
+            "Homeschool records without the paperwork spiral",
+            "Use MyLearna to keep planning, daily learning, and long-term records moving in one practical flow.",
+          )}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 14,
+            }}
+          >
+            {VALUE_POINTS.map((item, index) => (
+              <div
+                key={item}
+                style={{
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 18,
+                  padding: isMobile ? 16 : 18,
+                  background: index === 1 ? "#f8fafc" : "#ffffff",
+                  fontSize: 15,
+                  lineHeight: 1.65,
+                  color: "#334155",
+                  fontWeight: 800,
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
+
         <div
           style={{
-            fontSize: isMobile ? 30 : 34,
-            lineHeight: isMobile ? 1.08 : 1.12,
-            fontWeight: 900,
-            maxWidth: 720,
+            borderRadius: 24,
+            border: "1px solid #dbeafe",
+            background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+            padding: isMobile ? 18 : isTablet ? 24 : 28,
+            display: "grid",
+            gap: 16,
           }}
         >
-          Start your first learning record
-        </div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: "rgba(255,255,255,0.82)",
-            maxWidth: 620,
-          }}
-        >
-          Capture one moment and build from there.
-        </p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Link
-            href="/my-day"
+          <div style={publicPill("#eff6ff", "#1d4ed8")}>
+            Built around private family records
+          </div>
+          <p
             style={{
-              ...publicButtonStyle(true),
-              background: "#ffffff",
-              color: "#0f172a",
-              border: "1px solid #ffffff",
-              width: isMobile ? "100%" : undefined,
+              margin: 0,
+              fontSize: 15,
+              lineHeight: 1.7,
+              color: "#475569",
             }}
           >
-            Start a family
-          </Link>
-          <Link
-            href="/#how-it-works"
-            style={{
-              ...publicButtonStyle(false),
-              background: "transparent",
-              color: "#ffffff",
-              border: "1px solid rgba(255,255,255,0.32)",
-              width: isMobile ? "100%" : undefined,
-            }}
-          >
-            See how it works
-          </Link>
+            MyLearna is built for private family learning records. Media uploads and
+            downloadable exports will be introduced only after storage and privacy controls
+            are ready.
+          </p>
+          <div style={{ display: "grid", gap: 10 }}>
+            {TRUST_POINTS.map((item) => (
+              <div
+                key={item}
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: "12px 14px",
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  fontWeight: 700,
+                }}
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -248,63 +296,84 @@ export default function HomePage() {
           gap: 22,
         }}
       >
-        {sectionHeader("Built for real learning, not paperwork")}
+        {sectionHeader(
+          "Your first session",
+          "The first win is simple: get one learner set up, plan the week, and capture the first learning note.",
+        )}
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
             gap: 14,
           }}
         >
-          {BENEFITS.map((item, index) => (
+          {FIRST_SESSION_STEPS.map((step, index) => (
             <div
-              key={item}
+              key={step}
               style={{
                 border: "1px solid #e5e7eb",
                 borderRadius: 18,
+                background: "#ffffff",
                 padding: isMobile ? 16 : 18,
-                background: index % 2 === 0 ? "#ffffff" : "#f8fafc",
-                fontSize: 15,
-                lineHeight: 1.6,
-                color: "#334155",
-                fontWeight: 800,
+                display: "grid",
+                gap: 10,
               }}
             >
-              {item}
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 13,
+                  fontWeight: 900,
+                }}
+              >
+                {index + 1}
+              </div>
+              <div
+                style={{
+                  fontSize: 16,
+                  lineHeight: 1.35,
+                  fontWeight: 900,
+                  color: "#0f172a",
+                }}
+              >
+                {step}
+              </div>
             </div>
           ))}
         </div>
-      </section>
 
-      <section
-        style={{
-          ...publicCardStyle(),
-          marginBottom: isMobile ? 18 : 22,
-          padding: isMobile ? 18 : isTablet ? 24 : 28,
-          display: "grid",
-          gap: 18,
-        }}
-      >
-        {sectionHeader(
-          "Built for families. Ready for real homeschool life.",
-          "Start with your family's learning and keep the record calm, practical, and ready when reporting is needed."
-        )}
-
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          {AUDIENCES.map((item, index) => {
-            const tones = [
-              ["#eff6ff", "#2563eb"],
-              ["#f8fafc", "#334155"],
-              ["#f5f3ff", "#6d28d9"],
-            ] as const;
-            const tone = tones[index] ?? tones[0];
-            return (
-              <div key={item} style={publicPill(tone[0], tone[1])}>
-                {item}
-              </div>
-            );
-          })}
+        <div style={{ display: "grid", gap: 10 }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 14,
+              lineHeight: 1.65,
+              color: "#475569",
+              maxWidth: 720,
+            }}
+          >
+            Existing users can sign in on the next screen. New-family account setup is being
+            prepared for the same secure entry, so the path stays simple.
+          </p>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <Link
+              href={PRIMARY_CTA.href}
+              style={{
+                ...publicButtonStyle(true),
+                width: isMobile ? "100%" : undefined,
+              }}
+            >
+              {PRIMARY_CTA.label}
+            </Link>
+          </div>
         </div>
       </section>
     </PublicSiteShell>

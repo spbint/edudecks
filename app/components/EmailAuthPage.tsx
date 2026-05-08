@@ -367,6 +367,7 @@ function EmailAuthPageContent() {
 
   return (
     <PublicSiteShell
+      title="MyLearna"
       eyebrow="Return to MyLearna"
       heroTitle="Pick up your homeschool journey"
       heroText="Sign in to step back into today, move through the week, and keep your family record growing in one place."
@@ -376,7 +377,7 @@ function EmailAuthPageContent() {
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
       footerPrimaryCta={{ label: "Back to login", href: "/login" }}
-      footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
+      footerSecondaryCta={{ label: "See how MyLearna works", href: "/#how-it-works" }}
       asideTitle="Your next step"
       asideText="MyLearna should feel like one guided journey from planning through to reporting."
       showWorkflowStrip={false}
@@ -542,6 +543,23 @@ function EmailAuthPageContent() {
             }}
           >
             Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.
+          </div>
+
+          <div
+            style={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 16,
+              background: "#f8fafc",
+              padding: 14,
+              marginBottom: 18,
+              color: "#475569",
+              fontSize: 14,
+              lineHeight: 1.6,
+              fontWeight: 700,
+            }}
+          >
+            Existing account sign-in is live on this screen today. Self-serve account creation is
+            being prepared for the same secure entry.
           </div>
 
           <form
