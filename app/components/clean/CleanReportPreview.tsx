@@ -52,6 +52,36 @@ function formatDateLabel(value: string) {
   });
 }
 
+function getReportStatusLabel(status: CleanReport["status"]) {
+  if (status === "ready") return "Ready";
+  if (status === "archived") return "Archived";
+  return "Draft";
+}
+
+function getReportStatusStyles(status: CleanReport["status"]): React.CSSProperties {
+  if (status === "ready") {
+    return {
+      border: "1px solid #bbf7d0",
+      background: "#f0fdf4",
+      color: "#166534",
+    };
+  }
+
+  if (status === "archived") {
+    return {
+      border: "1px solid #cbd5e1",
+      background: "#f8fafc",
+      color: "#475569",
+    };
+  }
+
+  return {
+    border: "1px solid #fcd34d",
+    background: "#fffbeb",
+    color: "#92400e",
+  };
+}
+
 export default function CleanReportPreview({
   report,
   learnerLabel,
@@ -63,14 +93,35 @@ export default function CleanReportPreview({
       <header style={previewHeaderStyle}>
         <div
           style={{
-            fontSize: 12,
-            fontWeight: 800,
-            letterSpacing: "0.08em",
-            color: "#64748b",
-            textTransform: "uppercase",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 12,
+            flexWrap: "wrap",
           }}
         >
-          Report preview
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#64748b",
+              textTransform: "uppercase",
+            }}
+          >
+            Report preview
+          </div>
+          <span
+            style={{
+              ...getReportStatusStyles(report.status),
+              borderRadius: 999,
+              padding: "6px 10px",
+              fontSize: 12,
+              fontWeight: 800,
+            }}
+          >
+            {getReportStatusLabel(report.status)}
+          </span>
         </div>
         <h2 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{report.title}</h2>
         <div style={{ display: "grid", gap: 4, color: "#475569" }}>

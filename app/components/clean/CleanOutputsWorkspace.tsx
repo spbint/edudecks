@@ -78,6 +78,17 @@ function formatTimestamp(value: string | null) {
   return date.toLocaleString();
 }
 
+function formatUpdatedLabel(value: string | null) {
+  if (!value) return "Not saved yet";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function formatDateLabel(value: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
@@ -174,6 +185,15 @@ function CleanOutputsWorkspaceBody() {
       "Unknown learner"
     : null;
   const latestExport = exportsHistory[0] ?? null;
+  const outputsNextGuidance = !readyReports.length
+    ? draftReports.length
+      ? "Finish a draft in My Reports, then mark it ready so it appears here."
+      : "Create a report in My Reports and move it through to Ready."
+    : selectedReport
+      ? latestExport
+        ? "You can record another output when you want to capture a new version."
+        : "Review the report preview, then record the first output for this ready report."
+      : "Choose one of the ready reports to review and record.";
 
   const reloadCatalog = useCallback(async () => {
     if (!workspace.profile) return;
@@ -521,8 +541,25 @@ function CleanOutputsWorkspaceBody() {
                   <div style={{ color: "#475569", lineHeight: 1.5 }}>
                     Older reports kept for reference
                   </div>
+                  </div>
                 </div>
-              </div>
+
+              <section
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "#ffffff",
+                  display: "grid",
+                  gap: 8,
+                  marginTop: 16,
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>What next?</strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {outputsNextGuidance}
+                </p>
+              </section>
 
               <div
                 style={{
@@ -565,6 +602,134 @@ function CleanOutputsWorkspaceBody() {
                 The preview stays on screen only. Recording an output adds an export record and history entry, but does not generate a file yet.
               </p>
             </section>
+
+            {draftReports.length ? (
+              <section style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Still drafting</h2>
+                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                  These reports are not ready for outputs yet. Finish them in My Reports, then mark them ready.
+                </p>
+
+                <div style={{ display: "grid", gap: 12 }}>
+                  {draftReports.map((report) => {
+                    const learnerLabel =
+                      learnerOptions.find((option) => option.value === report.learnerId)?.label ??
+                      "Unknown learner";
+                    const period =
+                      periods.find((item) => item.id === report.reportingPeriodId) ?? null;
+
+                    return (
+                      <div
+                        key={report.id}
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 14,
+                          padding: 14,
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "flex-start",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <strong style={{ color: "#0f172a" }}>{report.title}</strong>
+                            <div style={{ color: "#475569", lineHeight: 1.6, marginTop: 4 }}>
+                              {learnerLabel}
+                              {period ? ` - ${period.title}` : ""}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              ...getReportStatusStyles(report.status),
+                              borderRadius: 999,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {getReportStatusLabel(report.status)}
+                          </span>
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                          Updated {formatUpdatedLabel(report.updatedAt || report.createdAt)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {archivedReports.length ? (
+              <section style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>Archived reports</h2>
+                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Archived reports stay here for reference, but they are not active output candidates.
+                </p>
+
+                <div style={{ display: "grid", gap: 12 }}>
+                  {archivedReports.map((report) => {
+                    const learnerLabel =
+                      learnerOptions.find((option) => option.value === report.learnerId)?.label ??
+                      "Unknown learner";
+                    const period =
+                      periods.find((item) => item.id === report.reportingPeriodId) ?? null;
+
+                    return (
+                      <div
+                        key={report.id}
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 14,
+                          padding: 14,
+                          display: "grid",
+                          gap: 6,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "flex-start",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div>
+                            <strong style={{ color: "#0f172a" }}>{report.title}</strong>
+                            <div style={{ color: "#475569", lineHeight: 1.6, marginTop: 4 }}>
+                              {learnerLabel}
+                              {period ? ` - ${period.title}` : ""}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              ...getReportStatusStyles(report.status),
+                              borderRadius: 999,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {getReportStatusLabel(report.status)}
+                          </span>
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                          Updated {formatUpdatedLabel(report.updatedAt || report.createdAt)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
             {!readyReports.length ? (
               <section style={cardStyle}>
