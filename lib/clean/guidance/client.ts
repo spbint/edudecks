@@ -94,7 +94,7 @@ export function buildCleanGuidanceCards(
       title: "Set country, state and reporting context",
       description:
         "This helps MyLearna shape portfolios and reports for your location.",
-      actionLabel: "Open setup preview",
+      actionLabel: "Open My Settings",
       actionHref: "/my-settings",
     });
   }
@@ -163,7 +163,7 @@ export function buildCleanGuidanceCards(
     openCards.push({
       key: "portfolio",
       title: "Choose portfolio highlights",
-      description: "Turn your strongest evidence into calm, shareable highlights.",
+      description: "Turn your strongest evidence into shareable highlights.",
       actionLabel: "Open My Portfolio",
       actionHref: "/my-portfolio",
     });

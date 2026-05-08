@@ -147,6 +147,28 @@ function getPreviewText(value: string | null, maxLength = 110) {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 }
 
+function hasGuidanceContext(profile: {
+  countryCode: string | null;
+  jurisdictionCode: string | null;
+  curriculumFrameworkId: string | null;
+} | null) {
+  if (!profile) return false;
+
+  const countryCode = String(profile.countryCode ?? "").trim();
+  const jurisdictionCode = String(profile.jurisdictionCode ?? "").trim();
+  const curriculumFrameworkId = String(profile.curriculumFrameworkId ?? "").trim();
+
+  if (!countryCode || !curriculumFrameworkId) {
+    return false;
+  }
+
+  if (countryCode === "INTL") {
+    return true;
+  }
+
+  return Boolean(jurisdictionCode);
+}
+
 function CleanDayWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
@@ -418,11 +440,7 @@ function CleanDayWorkspaceBody() {
         const nextCards = buildCleanGuidanceCards({
           hasFamilyProfile: Boolean(workspace.profile),
           learnerCount: workspace.learners.length,
-          hasJurisdictionProfile: Boolean(
-            workspace.profile.countryCode ||
-              workspace.profile.jurisdictionCode ||
-              workspace.profile.curriculumFrameworkId,
-          ),
+          hasJurisdictionProfile: hasGuidanceContext(workspace.profile),
           hasAcademicYear: academicYears.length > 0,
           hasLearningPeriods: learningPeriods.length > 0,
           hasMasterTemplate: masterTemplates.length > 0,
