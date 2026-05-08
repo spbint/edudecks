@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 
 type HeaderNavItem = {
@@ -20,32 +20,44 @@ const sectionStyle: React.CSSProperties = {
   boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
 };
 
-const navItems: HeaderNavItem[] = [
-  { label: "Today", href: "/my-day", matches: ["/my-day", "/clean-my-day"] },
+const coreNavItems: HeaderNavItem[] = [
   {
-    label: "Plan",
+    label: "My Day",
+    href: "/my-day",
+    matches: ["/my-day", "/clean-my-day"],
+  },
+  {
+    label: "My Calendar",
     href: "/my-calendar",
     matches: ["/my-calendar", "/clean-my-calendar"],
   },
   {
-    label: "Programs",
+    label: "My Programs",
     href: "/my-programs",
     matches: ["/my-programs", "/clean-my-programs"],
   },
+];
+
+const outputNavItems: HeaderNavItem[] = [
   {
-    label: "Capture",
+    label: "My Capture",
     href: "/my-capture",
     matches: ["/my-capture", "/clean-my-capture"],
   },
   {
-    label: "Portfolio",
+    label: "My Portfolio",
     href: "/my-portfolio",
     matches: ["/my-portfolio", "/clean-my-portfolio"],
   },
   {
-    label: "Reports",
+    label: "My Reports",
     href: "/my-reports",
-    matches: ["/my-reports", "/my-outputs", "/clean-my-reports", "/clean-my-outputs"],
+    matches: ["/my-reports", "/clean-my-reports"],
+  },
+  {
+    label: "My Outputs",
+    href: "/my-outputs",
+    matches: ["/my-outputs", "/clean-my-outputs"],
   },
 ];
 
@@ -53,8 +65,41 @@ function matchesPath(pathname: string, candidate: string) {
   return pathname === candidate || pathname.startsWith(`${candidate}/`);
 }
 
+function isCurrentMatch(pathname: string, candidates: string[]) {
+  return candidates.some((candidate) => matchesPath(pathname, candidate));
+}
+
 export default function CleanAppHeader() {
   const pathname = usePathname();
+  const [outputsOpen, setOutputsOpen] = useState(false);
+  const outputsRef = useRef<HTMLDivElement | null>(null);
+
+  const outputsCurrent = isCurrentMatch(
+    pathname,
+    outputNavItems.flatMap((item) => item.matches),
+  );
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!outputsRef.current?.contains(event.target as Node)) {
+        setOutputsOpen(false);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOutputsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
 
   return (
     <section style={sectionStyle}>
@@ -86,7 +131,7 @@ export default function CleanAppHeader() {
               height={821}
               priority
               style={{
-                width: "clamp(132px, 20vw, 172px)",
+                width: "clamp(132px, 19vw, 172px)",
                 maxWidth: "100%",
                 height: "auto",
                 display: "block",
@@ -118,12 +163,11 @@ export default function CleanAppHeader() {
               gap: 8,
               minWidth: "max-content",
               flexWrap: "nowrap",
+              alignItems: "center",
             }}
           >
-            {navItems.map((item) => {
-              const isCurrent = item.matches.some((candidate) =>
-                matchesPath(pathname, candidate),
-              );
+            {coreNavItems.map((item) => {
+              const isCurrent = isCurrentMatch(pathname, item.matches);
 
               return (
                 <Link
@@ -149,10 +193,92 @@ export default function CleanAppHeader() {
                 </Link>
               );
             })}
+
+            <div ref={outputsRef} style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setOutputsOpen((current) => !current)}
+                aria-haspopup="menu"
+                aria-expanded={outputsOpen}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  borderRadius: 999,
+                  border: outputsCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                  background: outputsCurrent ? "#eff6ff" : "#ffffff",
+                  color: outputsCurrent ? "#1d4ed8" : "#334155",
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Outputs
+                <span
+                  aria-hidden="true"
+                  style={{
+                    fontSize: 11,
+                    transform: outputsOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 120ms ease",
+                  }}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {outputsOpen ? (
+                <div
+                  role="menu"
+                  aria-label="Outputs"
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: "calc(100% + 10px)",
+                    width: 220,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 18,
+                    background: "#ffffff",
+                    boxShadow: "0 20px 40px rgba(15,23,42,0.12)",
+                    padding: 10,
+                    display: "grid",
+                    gap: 6,
+                    zIndex: 40,
+                  }}
+                >
+                  {outputNavItems.map((item) => {
+                    const isCurrent = isCurrentMatch(pathname, item.matches);
+
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        role="menuitem"
+                        onClick={() => setOutputsOpen(false)}
+                        style={{
+                          display: "block",
+                          borderRadius: 12,
+                          padding: "10px 12px",
+                          textDecoration: "none",
+                          background: isCurrent ? "#eff6ff" : "#ffffff",
+                          color: isCurrent ? "#1d4ed8" : "#0f172a",
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         </nav>
 
-        {/* TODO: outputs and report grouping can sit in the header nav later if the flow needs it. */}
+        {/* TODO: if outputs grows further, split reports and exports more clearly in the header. */}
       </div>
     </section>
   );
