@@ -9,6 +9,25 @@ import { normalizeAuthNextPath } from "@/lib/authRedirect";
 
 type SaveState = "idle" | "saving" | "success" | "error";
 
+const JOURNEY_STEPS = [
+  {
+    title: "Today",
+    detail: "See what is planned and keep the day moving.",
+  },
+  {
+    title: "Plan",
+    detail: "Shape the week when you are ready.",
+  },
+  {
+    title: "Capture",
+    detail: "Record what happened while it is still fresh.",
+  },
+  {
+    title: "Portfolio",
+    detail: "Keep the evidence worth saving.",
+  },
+] as const;
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -86,6 +105,15 @@ function helperCardStyle(): React.CSSProperties {
   };
 }
 
+function spotlightCardStyle(): React.CSSProperties {
+  return {
+    border: "1px solid #dbeafe",
+    borderRadius: 20,
+    background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+    padding: 20,
+  };
+}
+
 function primaryButtonStyle(disabled = false): React.CSSProperties {
   return {
     width: "100%",
@@ -119,6 +147,52 @@ function secondaryButtonStyle(): React.CSSProperties {
   };
 }
 
+function sectionLabelStyle(): React.CSSProperties {
+  return {
+    fontSize: 12,
+    lineHeight: 1.2,
+    fontWeight: 800,
+    letterSpacing: 1.05,
+    textTransform: "uppercase",
+    color: "#64748b",
+    marginBottom: 8,
+  };
+}
+
+function statusCardStyle(saveState: SaveState): React.CSSProperties {
+  const success = saveState === "success";
+  const error = saveState === "error";
+
+  return {
+    border: `1px solid ${success ? "#86efac" : error ? "#fecaca" : "#dbeafe"}`,
+    background: success ? "#ecfdf5" : error ? "#fff1f2" : "#eff6ff",
+    color: success ? "#166534" : error ? "#9f1239" : "#1d4ed8",
+    borderRadius: 16,
+    padding: 16,
+    display: "grid",
+    gap: 8,
+  };
+}
+
+function statusHeading(saveState: SaveState) {
+  if (saveState === "success") return "Signed in";
+  if (saveState === "error") return "We could not sign you in";
+  return "Sign in to continue";
+}
+
+function nextPathLabel(nextPath: string) {
+  if (nextPath.startsWith("/my-day")) return "My Day";
+  if (nextPath.startsWith("/my-calendar")) return "My Calendar";
+  if (nextPath.startsWith("/my-programs")) return "My Programs";
+  if (nextPath.startsWith("/my-capture")) return "My Capture";
+  if (nextPath.startsWith("/my-portfolio")) return "My Portfolio";
+  if (nextPath.startsWith("/my-reports") || nextPath.startsWith("/my-outputs")) {
+    return "Reports";
+  }
+
+  return "MyLearna";
+}
+
 export default function EmailAuthPage() {
   return (
     <Suspense fallback={null}>
@@ -142,6 +216,7 @@ function EmailAuthPageContent() {
   );
   const emailValid = useMemo(() => isValidEmail(email), [email]);
   const passwordValid = useMemo(() => safe(password).length > 0, [password]);
+  const destinationLabel = useMemo(() => nextPathLabel(nextPath), [nextPath]);
 
   useEffect(() => {
     const authMessage = safe(searchParams.get("authMessage"));
@@ -304,41 +379,158 @@ function EmailAuthPageContent() {
 
   return (
     <PublicSiteShell
-      eyebrow="Sign in to EduDecks"
-      heroTitle="Password-first family sign-in"
-      heroText="Use your email and password to get back into the family workspace quickly and repeatably."
-      heroBadges={[]}
+      eyebrow="Return to MyLearna"
+      heroTitle="Pick up your homeschool journey"
+      heroText="Sign in to step back into today, move through the week, and keep your family record growing in one place."
+      heroBadges={["Today", "Plan", "Capture", "Portfolio", "Reports"]}
+      heroMicrocopy={`After sign-in, we will take you to ${destinationLabel}.`}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
       footerPrimaryCta={{ label: "Back to login", href: "/login" }}
       footerSecondaryCta={{ label: "See how EduDecks works", href: "/get-started" }}
-      asideTitle="Simple auth"
-      asideText="EduDecks now uses a single password-first login flow for everyday family use and repeated testing."
+      asideTitle="Your next step"
+      asideText="MyLearna should feel like one guided journey from planning through to reporting."
       showWorkflowStrip={false}
     >
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0,1.05fr) minmax(320px,0.95fr)",
-          gap: 22,
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+          gap: 20,
           alignItems: "start",
         }}
       >
-        <div style={cardStyle()}>
-          <div
-            style={{
-              fontSize: 12,
-              lineHeight: 1.2,
-              fontWeight: 800,
-              letterSpacing: 1.05,
-              textTransform: "uppercase",
-              color: "#64748b",
-              marginBottom: 8,
-            }}
-          >
-            Sign in
+        <div style={{ display: "grid", gap: 18 }}>
+          <div style={spotlightCardStyle()}>
+            <div style={sectionLabelStyle()}>Your way back in</div>
+            <div
+              style={{
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {JOURNEY_STEPS.map((step, index) => (
+                  <div
+                    key={step.title}
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 16,
+                      background: "#ffffff",
+                      padding: 14,
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 999,
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 12,
+                        fontWeight: 900,
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+                    <strong style={{ color: "#0f172a", fontSize: 14 }}>{step.title}</strong>
+                    <div
+                      style={{
+                        color: "#475569",
+                        fontSize: 13,
+                        lineHeight: 1.55,
+                      }}
+                    >
+                      {step.detail}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                style={{
+                  borderRadius: 16,
+                  border: "1px solid #dbeafe",
+                  background: "#ffffff",
+                  padding: 16,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Next destination
+                </div>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>{destinationLabel}</strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  We will only move you on after sign-in succeeds and your session is confirmed.
+                </div>
+              </div>
+            </div>
           </div>
+
+          <div style={helperCardStyle()}>
+            <div style={sectionLabelStyle()}>What to expect</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {[
+                "Your login stays public until you choose to sign in.",
+                "We only redirect after we confirm your session.",
+                "If sign-in is rejected, the error stays visible here on the page.",
+              ].map((item, index) => (
+                <div
+                  key={item}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "24px minmax(0, 1fr)",
+                    gap: 10,
+                    alignItems: "start",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 999,
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      fontWeight: 900,
+                    }}
+                  >
+                    {index + 1}
+                  </div>
+                  <div
+                    style={{
+                      color: "#334155",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {item}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={cardStyle()}>
+          <div style={sectionLabelStyle()}>Sign in</div>
 
           <div
             style={{
@@ -349,7 +541,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Continue with password
+            Continue your family journey
           </div>
 
           <div
@@ -361,7 +553,7 @@ function EmailAuthPageContent() {
               maxWidth: 720,
             }}
           >
-            Sign in with your EduDecks email and password. If you need to set a new password, use the reset link below.
+            Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.
           </div>
 
           <form
@@ -400,7 +592,35 @@ function EmailAuthPageContent() {
             </div>
 
             <div>
-              <label style={labelStyle()}>Password</label>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
+                <button
+                  type="button"
+                  onClick={() => void handleForgotPassword()}
+                  disabled={!emailValid || saveState === "saving"}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#2563eb",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    textAlign: "center",
+                    cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
+                    opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
+                    padding: 0,
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
                 type="password"
                 value={password}
@@ -429,18 +649,24 @@ function EmailAuthPageContent() {
 
             {message ? (
               <div
-                style={{
-                  border: `1px solid ${saveState === "success" ? "#86efac" : "#fecaca"}`,
-                  background: saveState === "success" ? "#ecfdf5" : "#fff1f2",
-                  color: saveState === "success" ? "#166534" : "#9f1239",
-                  borderRadius: 14,
-                  padding: 14,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  lineHeight: 1.6,
-                }}
+                style={statusCardStyle(saveState)}
+                role={saveState === "error" ? "alert" : "status"}
               >
-                {message}
+                <strong style={{ fontSize: 14 }}>{statusHeading(saveState)}</strong>
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {message}
+                </div>
+                {saveState === "error" ? (
+                  <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                    If you cannot remember your password, use <strong>Forgot password?</strong>.
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -453,117 +679,42 @@ function EmailAuthPageContent() {
             >
               {saveState === "saving" ? "Signing you in..." : "Sign in"}
             </button>
-
-            <button
-              type="button"
-              onClick={() => void handleForgotPassword()}
-              disabled={!emailValid || saveState === "saving"}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#2563eb",
-                fontSize: 13,
-                fontWeight: 800,
-                textAlign: "center",
-                cursor: !emailValid || saveState === "saving" ? "not-allowed" : "pointer",
-                opacity: !emailValid || saveState === "saving" ? 0.7 : 1,
-                padding: 0,
-              }}
-            >
-              Forgot password?
-            </button>
           </form>
-        </div>
 
-        <div style={{ display: "grid", gap: 18 }}>
           <div style={helperCardStyle()}>
+            <div style={sectionLabelStyle()}>What happens after sign-in</div>
             <div
               style={{
-                fontSize: 12,
-                lineHeight: 1.2,
-                fontWeight: 800,
-                letterSpacing: 1.05,
-                textTransform: "uppercase",
-                color: "#64748b",
-                marginBottom: 8,
+                display: "grid",
+                gap: 10,
               }}
             >
-              What works now
-            </div>
-
-            <div style={{ display: "grid", gap: 10 }}>
               {[
-                "One password form on one login page.",
-                "One reset-password path from the same screen.",
-                "Session stays valid across refresh until you sign out.",
-                "Sign-out returns you cleanly to login.",
-              ].map((item, index) => (
+                "Open today's flow for the whole family.",
+                "Move into planning when you want to shape the week.",
+                "Capture what happened as the day unfolds.",
+              ].map((item) => (
                 <div
                   key={item}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "28px minmax(0,1fr)",
-                    gap: 10,
-                    alignItems: "start",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    background: "#ffffff",
+                    padding: 12,
+                    color: "#475569",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    fontWeight: 700,
                   }}
                 >
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 999,
-                      background: "#eff6ff",
-                      color: "#1d4ed8",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      color: "#334155",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {item}
-                  </div>
+                  {item}
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={helperCardStyle()}>
-            <div
-              style={{
-                fontSize: 18,
-                lineHeight: 1.2,
-                fontWeight: 900,
-                color: "#0f172a",
-                marginBottom: 10,
-              }}
-            >
-              Testing-safe login
-            </div>
-
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#475569",
-              }}
-            >
-              This flow no longer depends on sending a sign-in email for repeated manual testing. Use password sign-in, sign out, and sign in again immediately.
-            </div>
-          </div>
-
           <Link href="/get-started" style={secondaryButtonStyle()}>
-            See how EduDecks works
+            See how MyLearna works
           </Link>
         </div>
       </section>
