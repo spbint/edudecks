@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -76,6 +78,7 @@ function getLearnerLabel(firstName: string, preferredName: string | null) {
 
 function CleanProgramsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const pathname = usePathname();
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programsLoading, setProgramsLoading] = useState(false);
   const [programsError, setProgramsError] = useState<string | null>(null);
@@ -138,7 +141,7 @@ function CleanProgramsWorkspaceBody() {
         setProgramsError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load clean programs just now.",
+            "We could not load your programs just now.",
           ),
         );
       } finally {
@@ -167,7 +170,7 @@ function CleanProgramsWorkspaceBody() {
         setSegmentsError(
           normalizeCleanErrorMessage(
             error,
-            "We could not load clean program segments just now.",
+            "We could not load these week or segment entries just now.",
           ),
         );
       } finally {
@@ -233,11 +236,11 @@ function CleanProgramsWorkspaceBody() {
           payload,
         );
         savedProgramId = updated.id;
-        setMessage("Clean program updated.");
+        setMessage("Program updated.");
       } else {
         const created = await createCleanProgram(workspace.profile.id, payload);
         savedProgramId = created.id;
-        setMessage("Clean program created.");
+        setMessage("Program created.");
       }
 
       resetProgramForm();
@@ -246,7 +249,7 @@ function CleanProgramsWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the clean program.",
+          "We could not save this program.",
         ),
       );
     } finally {
@@ -269,13 +272,13 @@ function CleanProgramsWorkspaceBody() {
       if (selectedProgramId === program.id) {
         resetSegmentForm();
       }
-      setMessage("Clean program deleted.");
+      setMessage("Program deleted.");
       await reloadPrograms(null);
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not delete the clean program.",
+          "We could not delete this program.",
         ),
       );
     } finally {
@@ -316,14 +319,14 @@ function CleanProgramsWorkspaceBody() {
           editingSegmentId,
           payload,
         );
-        setMessage("Program segment updated.");
+        setMessage("Week / segment updated.");
       } else {
         await createCleanProgramSegment(
           workspace.profile.id,
           selectedProgram.id,
           payload,
         );
-        setMessage("Program segment created.");
+        setMessage("Week / segment created.");
       }
 
       resetSegmentForm();
@@ -332,7 +335,7 @@ function CleanProgramsWorkspaceBody() {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the program segment.",
+          "We could not save this week or segment entry.",
         ),
       );
     } finally {
@@ -352,13 +355,13 @@ function CleanProgramsWorkspaceBody() {
       if (editingSegmentId === segment.id) {
         resetSegmentForm();
       }
-      setMessage("Program segment deleted.");
+      setMessage("Week / segment deleted.");
       await reloadSegments(selectedProgram.id);
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not delete the program segment.",
+          "We could not delete this week or segment entry.",
         ),
       );
     } finally {
@@ -379,6 +382,27 @@ function CleanProgramsWorkspaceBody() {
   const readyForPrograms =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
+  const calendarPath = pathname.startsWith("/clean-my-programs")
+    ? "/clean-my-calendar"
+    : "/my-calendar";
+
+  function buildCalendarHandoffHref(
+    view: "master" | "week",
+    programId: string,
+    segmentId?: string | null,
+  ) {
+    const params = new URLSearchParams({
+      view,
+      programId,
+    });
+
+    if (segmentId) {
+      params.set("segmentId", segmentId);
+    }
+
+    return `${calendarPath}?${params.toString()}`;
+  }
+
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
@@ -395,16 +419,17 @@ function CleanProgramsWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              Shape learning
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Programs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This preview route uses only the clean programs and program_segments tables.
+              Build longer learning threads here, then place them into Master week or This
+              week when you are ready to plan.
             </p>
           </div>
         </section>
 
-        {workspace.loading ? <section style={cardStyle}>Loading clean family workspace...</section> : null}
+        {workspace.loading ? <section style={cardStyle}>Loading your family workspace...</section> : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
           <section style={cardStyle}>
@@ -412,7 +437,7 @@ function CleanProgramsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean programs scaffold will not fall back to legacy program or planning tables.
+              My Programs will not fall back to older planning systems.
             </p>
           </section>
         ) : null}
@@ -437,7 +462,8 @@ function CleanProgramsWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              This scaffold supports family-wide programs, but it still expects at least one clean learner before planning begins.
+              You can build family-wide programs, but add at least one learner before
+              planning begins.
             </p>
           </section>
         ) : null}
@@ -457,7 +483,8 @@ function CleanProgramsWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Program details</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Calendar handoff is deferred to Phase 4B. This layer focuses only on programs and segments.
+                    A program holds the bigger learning thread. Add week or segment chunks
+                    underneath it, then send them into Master week or This week when you plan.
                   </p>
                 </div>
                 <button
@@ -474,7 +501,7 @@ function CleanProgramsWorkspaceBody() {
                 <input
                   value={programTitle}
                   onChange={(event) => setProgramTitle(event.target.value)}
-                  placeholder="Program title"
+                  placeholder="Program"
                   style={inputStyle}
                 />
                 <div
@@ -506,7 +533,7 @@ function CleanProgramsWorkspaceBody() {
                 <textarea
                   value={programDescription}
                   onChange={(event) => setProgramDescription(event.target.value)}
-                  placeholder="Program description"
+                  placeholder="Planned focus, resources, or the bigger aim for this program"
                   style={textAreaStyle}
                 />
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -530,7 +557,8 @@ function CleanProgramsWorkspaceBody() {
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Programs</h2>
               <p style={{ marginTop: 0, color: "#475569" }}>
-                A simple list and detail view for the clean rebuild foundation.
+                Use programs for the bigger learning thread, then place them into your
+                weekly planning when they are ready.
               </p>
 
               {programsLoading ? <p style={{ margin: 0, color: "#475569" }}>Loading programs...</p> : null}
@@ -538,7 +566,7 @@ function CleanProgramsWorkspaceBody() {
 
               {!programsLoading && !programsError && !programs.length ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  No clean programs exist yet. Add one above to start the clean planning layer.
+                  No programs yet. Add one above to start shaping learning.
                 </p>
               ) : null}
 
@@ -590,6 +618,28 @@ function CleanProgramsWorkspaceBody() {
                             >
                               {isSelected ? "Selected" : "Select"}
                             </button>
+                            <Link
+                              href={buildCalendarHandoffHref("master", program.id)}
+                              style={{
+                                ...buttonStyle,
+                                background: "#ffffff",
+                                color: "#0f172a",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Add to Master week
+                            </Link>
+                            <Link
+                              href={buildCalendarHandoffHref("week", program.id)}
+                              style={{
+                                ...buttonStyle,
+                                background: "#ffffff",
+                                color: "#0f172a",
+                                textDecoration: "none",
+                              }}
+                            >
+                              Plan in My Calendar
+                            </Link>
                             <button
                               type="button"
                               style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
@@ -621,10 +671,10 @@ function CleanProgramsWorkspaceBody() {
             </section>
 
             <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Program segments</h2>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Weeks / segments</h2>
               {!selectedProgram ? (
                 <p style={{ margin: 0, color: "#475569" }}>
-                  Select a program to manage its segments.
+                  Select a program to shape its week or segment entries.
                 </p>
               ) : (
                 <>
@@ -635,7 +685,7 @@ function CleanProgramsWorkspaceBody() {
                     <input
                       value={segmentTitle}
                       onChange={(event) => setSegmentTitle(event.target.value)}
-                      placeholder="Segment title"
+                      placeholder="Week / segment"
                       style={inputStyle}
                     />
                     <div
@@ -668,7 +718,7 @@ function CleanProgramsWorkspaceBody() {
                     <textarea
                       value={segmentNotes}
                       onChange={(event) => setSegmentNotes(event.target.value)}
-                      placeholder="Segment notes"
+                      placeholder="Planned focus, resources, or what this chunk of learning should cover"
                       style={textAreaStyle}
                     />
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -690,7 +740,7 @@ function CleanProgramsWorkspaceBody() {
 
                   {segmentsLoading ? (
                     <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>
-                      Loading program segments...
+                      Loading your week or segment entries...
                     </p>
                   ) : null}
                   {segmentsError ? (
@@ -700,7 +750,7 @@ function CleanProgramsWorkspaceBody() {
                   ) : null}
                   {!segmentsLoading && !segmentsError && !segments.length ? (
                     <p style={{ marginTop: 16, marginBottom: 0, color: "#475569" }}>
-                      No segments exist for this clean program yet.
+                      No week or segment entries yet for this program.
                     </p>
                   ) : null}
                   {!segmentsLoading && !segmentsError && segments.length ? (
@@ -738,6 +788,36 @@ function CleanProgramsWorkspaceBody() {
                                 </div>
                               </div>
                               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <Link
+                                  href={buildCalendarHandoffHref(
+                                    "master",
+                                    selectedProgram.id,
+                                    segment.id,
+                                  )}
+                                  style={{
+                                    ...buttonStyle,
+                                    background: "#ffffff",
+                                    color: "#0f172a",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  Add to Master week
+                                </Link>
+                                <Link
+                                  href={buildCalendarHandoffHref(
+                                    "week",
+                                    selectedProgram.id,
+                                    segment.id,
+                                  )}
+                                  style={{
+                                    ...buttonStyle,
+                                    background: "#ffffff",
+                                    color: "#0f172a",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  Plan in My Calendar
+                                </Link>
                                 <button
                                   type="button"
                                   style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}

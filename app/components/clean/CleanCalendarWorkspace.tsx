@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanCalendarPopover from "@/app/components/clean/CleanCalendarPopover";
 import CleanFamilyWorkspaceProvider, {
@@ -381,6 +382,10 @@ function safeTimeString(value: string) {
   return time.length >= 5 ? time.slice(0, 5) : time;
 }
 
+function isPlanningView(value: string | null): value is PlanningView {
+  return value === "master" || value === "week";
+}
+
 function CleanRhythmBlockPopover({
   open,
   mode,
@@ -632,7 +637,7 @@ function CleanRhythmBlockPopover({
               fontWeight: 700,
             }}
           >
-            Linked program
+            Program
             <select
               value={programId}
               onChange={(event) => onChangeProgramId(event.target.value)}
@@ -656,7 +661,7 @@ function CleanRhythmBlockPopover({
               fontWeight: 700,
             }}
           >
-            Program segment
+            Week / segment
             <select
               value={programSegmentId}
               onChange={(event) => onChangeProgramSegmentId(event.target.value)}
@@ -713,6 +718,9 @@ function CleanRhythmBlockPopover({
 
 function CleanCalendarWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [academicYears, setAcademicYears] = useState<CleanAcademicYear[]>([]);
   const [learningPeriods, setLearningPeriods] = useState<CleanLearningPeriod[]>([]);
@@ -804,6 +812,10 @@ function CleanCalendarWorkspaceBody() {
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null);
+
+  const handoffView = searchParams.get("view");
+  const handoffProgramId = searchParams.get("programId");
+  const handoffSegmentId = searchParams.get("segmentId");
 
   const learnerOptions = useMemo(
     () =>
@@ -934,6 +946,47 @@ function CleanCalendarWorkspaceBody() {
         label: segment.title,
       }));
   }, [popoverProgramId, programSegments]);
+
+  const handoffProgram = useMemo(() => {
+    if (!handoffProgramId) return null;
+    return programs.find((program) => program.id === handoffProgramId) ?? null;
+  }, [handoffProgramId, programs]);
+
+  const handoffSegment = useMemo(() => {
+    if (!handoffSegmentId) return null;
+    return programSegments.find((segment) => segment.id === handoffSegmentId) ?? null;
+  }, [handoffSegmentId, programSegments]);
+
+  const activeHandoffProgram = handoffProgram ?? (
+    handoffSegment
+      ? programs.find((program) => program.id === handoffSegment.programId) ?? null
+      : null
+  );
+
+  const handoffDefaults = useMemo(
+    () => ({
+      title: handoffSegment?.title || activeHandoffProgram?.title || "",
+      learnerId: handoffSegment?.learnerId ?? activeHandoffProgram?.learnerId ?? "",
+      learningArea: activeHandoffProgram?.learningArea ?? "",
+      notes: handoffSegment?.notes || activeHandoffProgram?.description || "",
+      programId: activeHandoffProgram?.id ?? "",
+      segmentId: handoffSegment?.id ?? "",
+    }),
+    [activeHandoffProgram, handoffSegment],
+  );
+
+  const hasCalendarHandoff =
+    Boolean(activeHandoffProgram) || Boolean(handoffSegment);
+
+  const handoffSummary = useMemo(() => {
+    if (!hasCalendarHandoff) return null;
+
+    if (activeHandoffProgram && handoffSegment) {
+      return `${activeHandoffProgram.title} - ${handoffSegment.title}`;
+    }
+
+    return activeHandoffProgram?.title ?? handoffSegment?.title ?? null;
+  }, [activeHandoffProgram, handoffSegment, hasCalendarHandoff]);
 
   const generationSummary = useMemo(() => {
     let readyToAdd = 0;
@@ -1243,6 +1296,11 @@ function CleanCalendarWorkspaceBody() {
   }, [hasWeekendLiveItems, liveWeekViewTouched]);
 
   useEffect(() => {
+    if (!isPlanningView(handoffView)) return;
+    setPlanningView(handoffView);
+  }, [handoffView]);
+
+  useEffect(() => {
     setPreviewSuggestions([]);
   }, [
     blackoutDays,
@@ -1293,6 +1351,14 @@ function CleanCalendarWorkspaceBody() {
   function openCreatePopover(dateValue: string) {
     resetPopoverForm();
     setPopoverDate(dateValue);
+    if (hasCalendarHandoff) {
+      setPopoverTitle(handoffDefaults.title);
+      setPopoverLearnerId(handoffDefaults.learnerId);
+      setPopoverLearningArea(handoffDefaults.learningArea);
+      setPopoverDescription(handoffDefaults.notes);
+      setPopoverProgramId(handoffDefaults.programId);
+      setPopoverProgramSegmentId(handoffDefaults.segmentId);
+    }
     setPopoverOpen(true);
     setMessage(null);
     setActionError(null);
@@ -1340,6 +1406,14 @@ function CleanCalendarWorkspaceBody() {
   function openCreateRhythmPopover(weekday: number) {
     resetTemplateBlockForm();
     setBlockWeekday(String(weekday));
+    if (hasCalendarHandoff) {
+      setBlockTitle(handoffDefaults.title);
+      setBlockLearnerId(handoffDefaults.learnerId);
+      setBlockLearningArea(handoffDefaults.learningArea);
+      setBlockNotes(handoffDefaults.notes);
+      setBlockProgramId(handoffDefaults.programId);
+      setBlockProgramSegmentId(handoffDefaults.segmentId);
+    }
     setRhythmPopoverOpen(true);
     setMessage(null);
     setActionError(null);
@@ -1365,6 +1439,10 @@ function CleanCalendarWorkspaceBody() {
   function closeRhythmPopover() {
     setRhythmPopoverOpen(false);
     resetTemplateBlockForm();
+  }
+
+  function clearCalendarHandoff() {
+    router.replace(pathname);
   }
 
   function openLearningPeriodComposer(mode: LearningPeriodComposerMode) {
@@ -2743,12 +2821,42 @@ function CleanCalendarWorkspaceBody() {
                             );
                           })}
                         </div>
-                      ) : (
+                    ) : (
                         <p style={secondaryTextStyle}>
                           No master week yet. You can still plan directly inside This week.
                         </p>
                       )}
                     </div>
+
+                    {hasCalendarHandoff ? (
+                      <div
+                        style={{
+                          border: "1px solid #bfdbfe",
+                          borderRadius: 14,
+                          padding: 14,
+                          background: "#eff6ff",
+                          display: "grid",
+                          gap: 8,
+                        }}
+                      >
+                        <strong style={{ color: "#0f172a" }}>
+                          Ready to place from My Programs
+                        </strong>
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                          {handoffSummary}. Choose a master week, then click inside a day to
+                          place this reusable block without retyping it.
+                        </div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={clearCalendarHandoff}
+                          >
+                            Clear handoff
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     {selectedTemplate ? (
                       <div style={subCardStyle}>
@@ -2920,6 +3028,16 @@ function CleanCalendarWorkspaceBody() {
                                           learnerOptions.find(
                                             (option) => option.value === block.learnerId,
                                           )?.label || "Whole family";
+                                        const programLabel =
+                                          programOptions.find(
+                                            (option) => option.value === block.programId,
+                                          )?.label ?? null;
+                                        const segmentLabel =
+                                          programSegments.find(
+                                            (segment) =>
+                                              segment.id === block.programSegmentId,
+                                          )?.title ||
+                                          null;
                                         const blockSurfaceId = `master-block-${block.id}`;
 
                                         return (
@@ -2954,6 +3072,13 @@ function CleanCalendarWorkspaceBody() {
                                               {learnerLabel}
                                               {block.learningArea ? ` - ${block.learningArea}` : ""}
                                             </div>
+                                            {programLabel || segmentLabel ? (
+                                              <div style={{ color: "#64748b", fontSize: 13 }}>
+                                                {programLabel ? `Program: ${programLabel}` : ""}
+                                                {programLabel && segmentLabel ? " - " : ""}
+                                                {segmentLabel ? `Week / segment: ${segmentLabel}` : ""}
+                                              </div>
+                                            ) : null}
                                             {block.sessionLabel ? (
                                               <div style={{ color: "#64748b", fontSize: 13 }}>
                                                 {block.sessionLabel}
@@ -3123,6 +3248,36 @@ function CleanCalendarWorkspaceBody() {
                       <div style={{ color: "#475569", fontWeight: 700 }}>
                         {formatWeekRangeLabel(selectedWeekStart, selectedWeekEnd)}
                       </div>
+
+                      {hasCalendarHandoff ? (
+                        <div
+                          style={{
+                            border: "1px solid #bfdbfe",
+                            borderRadius: 14,
+                            padding: 14,
+                            background: "#eff6ff",
+                            display: "grid",
+                            gap: 8,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>
+                            Ready to place from My Programs
+                          </strong>
+                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                            {handoffSummary}. Click inside a day to place this into the live
+                            week with the program link already filled in.
+                          </div>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              style={mutedButtonStyle}
+                              onClick={clearCalendarHandoff}
+                            >
+                              Clear handoff
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
 
                       {hasHiddenWeekendWeekContent ? (
                         <div
@@ -3386,7 +3541,9 @@ function CleanCalendarWorkspaceBody() {
                                               <div style={{ color: "#475569" }}>
                                                 {item.programLabel ? `Program: ${item.programLabel}` : ""}
                                                 {item.programLabel && item.segmentLabel ? " - " : ""}
-                                                {item.segmentLabel ? `Segment: ${item.segmentLabel}` : ""}
+                                                {item.segmentLabel
+                                                  ? `Week / segment: ${item.segmentLabel}`
+                                                  : ""}
                                               </div>
                                             ) : null}
                                             {item.sessionLabel ? (
@@ -3541,6 +3698,14 @@ function CleanCalendarWorkspaceBody() {
                                       learnerOptions.find(
                                         (option) => option.value === item.learnerId,
                                       )?.label || "Whole family";
+                                    const programLabel =
+                                      programOptions.find(
+                                        (option) => option.value === item.programId,
+                                      )?.label ?? null;
+                                    const segmentLabel =
+                                      programSegments.find(
+                                        (segment) => segment.id === item.programSegmentId,
+                                      )?.title ?? null;
                                     const blockSurfaceId = `week-block-${item.id}`;
 
                                     return (
@@ -3605,6 +3770,15 @@ function CleanCalendarWorkspaceBody() {
                                           {learnerLabel}
                                           {item.learningArea ? ` - ${item.learningArea}` : ""}
                                         </div>
+                                        {programLabel || segmentLabel ? (
+                                          <div style={{ color: "#64748b", fontSize: 13 }}>
+                                            {programLabel ? `Program: ${programLabel}` : ""}
+                                            {programLabel && segmentLabel ? " - " : ""}
+                                            {segmentLabel
+                                              ? `Week / segment: ${segmentLabel}`
+                                              : ""}
+                                          </div>
+                                        ) : null}
                                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                                           <button
                                             type="button"

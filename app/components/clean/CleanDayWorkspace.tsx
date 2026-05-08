@@ -955,10 +955,10 @@ function CleanDayWorkspaceBody() {
                                 <span style={blockMetaPillStyle}>{item.learningArea}</span>
                               ) : null}
                               {programLabel ? (
-                                <span style={blockMetaPillStyle}>{programLabel}</span>
+                                <span style={blockMetaPillStyle}>{`Program: ${programLabel}`}</span>
                               ) : null}
                               {segmentLabel ? (
-                                <span style={blockMetaPillStyle}>{segmentLabel}</span>
+                                <span style={blockMetaPillStyle}>{`Week / segment: ${segmentLabel}`}</span>
                               ) : null}
                             </div>
                             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
@@ -993,7 +993,7 @@ function CleanDayWorkspaceBody() {
                               <div style={{ color: "#475569", lineHeight: 1.6 }}>
                                 {programLabel ? `Program: ${programLabel}` : ""}
                                 {programLabel && segmentLabel ? " - " : ""}
-                                {segmentLabel ? `Segment: ${segmentLabel}` : ""}
+                                {segmentLabel ? `Week / segment: ${segmentLabel}` : ""}
                               </div>
                             ) : null}
                             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>

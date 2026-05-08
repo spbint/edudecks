@@ -229,7 +229,7 @@ export default function CleanCalendarPopover({
           }}
         >
           <label style={labelStyle}>
-            Linked program
+            Program
             <select
               value={programId}
               onChange={(event) => onChangeProgramId(event.target.value)}
@@ -245,7 +245,7 @@ export default function CleanCalendarPopover({
           </label>
 
           <label style={labelStyle}>
-            Program segment
+            Week / segment
             <select
               value={programSegmentId}
               onChange={(event) => onChangeProgramSegmentId(event.target.value)}

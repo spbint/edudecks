@@ -142,8 +142,9 @@ export function buildCleanGuidanceCards(
   if (input.hasPrograms && !input.hasCurrentWeekItems) {
     openCards.push({
       key: "generate-week",
-      title: "Plan this week using master",
-      description: "Nothing is planned for this week yet. Use your Master week to place blocks into This week.",
+      title: "Add a program to your Master week",
+      description:
+        "You already have programs. Link one into your Master week, then plan this week from it.",
       actionLabel: "Open My Calendar",
       actionHref: "/my-calendar",
     });
