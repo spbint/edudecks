@@ -70,7 +70,7 @@ export default function CleanReportPreview({
             textTransform: "uppercase",
           }}
         >
-          Clean preview
+          Report preview
         </div>
         <h2 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{report.title}</h2>
         <div style={{ display: "grid", gap: 4, color: "#475569" }}>
@@ -118,7 +118,7 @@ export default function CleanReportPreview({
               No sections yet
             </h3>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Add report sections in the clean reports preview before recording an export.
+              Add report sections in My Reports before recording an output.
             </p>
           </section>
         )}

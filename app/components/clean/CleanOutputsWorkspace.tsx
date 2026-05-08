@@ -19,6 +19,7 @@ import {
 import type {
   CleanReport,
   CleanReportSection,
+  CleanReportStatus,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
 import {
@@ -77,6 +78,50 @@ function formatTimestamp(value: string | null) {
   return date.toLocaleString();
 }
 
+function formatDateLabel(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateRange(startsOn: string, endsOn: string) {
+  return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
+}
+
+function getReportStatusLabel(status: CleanReportStatus) {
+  if (status === "ready") return "Ready";
+  if (status === "archived") return "Archived";
+  return "Draft";
+}
+
+function getReportStatusStyles(status: CleanReportStatus): React.CSSProperties {
+  if (status === "ready") {
+    return {
+      border: "1px solid #bbf7d0",
+      background: "#f0fdf4",
+      color: "#166534",
+    };
+  }
+
+  if (status === "archived") {
+    return {
+      border: "1px solid #cbd5e1",
+      background: "#f8fafc",
+      color: "#475569",
+    };
+  }
+
+  return {
+    border: "1px solid #fcd34d",
+    background: "#fffbeb",
+    color: "#92400e",
+  };
+}
+
 function CleanOutputsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const [periods, setPeriods] = useState<CleanReportingPeriod[]>([]);
@@ -106,9 +151,21 @@ function CleanOutputsWorkspaceBody() {
     if (!selectedLearnerId) return reports;
     return reports.filter((report) => report.learnerId === selectedLearnerId);
   }, [reports, selectedLearnerId]);
+  const readyReports = useMemo(
+    () => filteredReports.filter((report) => report.status === "ready"),
+    [filteredReports],
+  );
+  const draftReports = useMemo(
+    () => filteredReports.filter((report) => report.status === "draft"),
+    [filteredReports],
+  );
+  const archivedReports = useMemo(
+    () => filteredReports.filter((report) => report.status === "archived"),
+    [filteredReports],
+  );
 
   const selectedReport =
-    filteredReports.find((report) => report.id === selectedReportId) ?? null;
+    readyReports.find((report) => report.id === selectedReportId) ?? null;
   const selectedPeriod =
     periods.find((period) => period.id === selectedReport?.reportingPeriodId) ?? null;
 
@@ -116,6 +173,7 @@ function CleanOutputsWorkspaceBody() {
     ? learnerOptions.find((option) => option.value === selectedReport.learnerId)?.label ??
       "Unknown learner"
     : null;
+  const latestExport = exportsHistory[0] ?? null;
 
   const reloadCatalog = useCallback(async () => {
     if (!workspace.profile) return;
@@ -229,17 +287,17 @@ function CleanOutputsWorkspaceBody() {
   }, [workspace.learners, workspace.profile]);
 
   useEffect(() => {
-    if (!filteredReports.length) {
+    if (!readyReports.length) {
       setSelectedReportId("");
       return;
     }
 
     setSelectedReportId((current) =>
-      current && filteredReports.some((report) => report.id === current)
+      current && readyReports.some((report) => report.id === current)
         ? current
-        : filteredReports[0]?.id ?? "",
+        : readyReports[0]?.id ?? "",
     );
-  }, [filteredReports]);
+  }, [readyReports]);
 
   useEffect(() => {
     void reloadSections();
@@ -292,17 +350,17 @@ function CleanOutputsWorkspaceBody() {
                 textTransform: "uppercase",
               }}
             >
-              Clean rebuild scaffold
+              Final stage
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Outputs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This preview route shows a clean HTML report preview and records export history without generating a file yet.
+              Choose a ready report, review the draft, and record an output when it is ready to leave the writing stage.
             </p>
           </div>
         </section>
 
         {workspace.loading ? (
-          <section style={cardStyle}>Loading clean family workspace...</section>
+          <section style={cardStyle}>Loading your family workspace...</section>
         ) : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
@@ -311,7 +369,7 @@ function CleanOutputsWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean outputs scaffold will not fall back to legacy export systems.
+              My Outputs will not fall back to older export tools.
             </p>
           </section>
         ) : null}
@@ -327,7 +385,7 @@ function CleanOutputsWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              Outputs are family-scoped in the clean rebuild. Create the family profile first on My Profile.
+              Outputs are stored at the family level. Create the family profile first on My Profile.
             </p>
           </section>
         ) : null}
@@ -336,7 +394,7 @@ function CleanOutputsWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569" }}>
-              A clean learner is required before the outputs foundation can preview or record report exports.
+              Add a learner before previewing or recording report outputs.
             </p>
           </section>
         ) : null}
@@ -344,6 +402,13 @@ function CleanOutputsWorkspaceBody() {
         {readyForOutputs && workspace.profile && workspace.learners.length ? (
           <>
             <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>Choose a ready report</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Only reports marked ready appear as output candidates. Draft and archived reports stay visible below so you know what still needs attention.
+                </p>
+              </div>
+
               <div
                 style={{
                   display: "grid",
@@ -369,19 +434,94 @@ function CleanOutputsWorkspaceBody() {
                   onChange={(event) => setSelectedReportId(event.target.value)}
                   style={inputStyle}
                 >
-                  <option value="">Select report</option>
-                  {filteredReports.map((report) => {
+                  <option value="">Select ready report</option>
+                  {readyReports.map((report) => {
                     const learnerLabel =
                       learnerOptions.find((option) => option.value === report.learnerId)?.label ??
                       "Unknown learner";
+                    const period =
+                      periods.find((item) => item.id === report.reportingPeriodId) ?? null;
 
                     return (
                       <option key={report.id} value={report.id}>
                         {report.title} - {learnerLabel}
+                        {period ? ` - ${period.title}` : ""}
                       </option>
                     );
                   })}
                 </select>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  marginTop: 16,
+                }}
+              >
+                <div
+                  style={{
+                    border: "1px solid #bbf7d0",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f0fdf4",
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ color: "#166534", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Ready now
+                  </div>
+                  <div style={{ color: "#0f172a", fontSize: 24, fontWeight: 800 }}>
+                    {readyReports.length}
+                  </div>
+                  <div style={{ color: "#166534", lineHeight: 1.5 }}>
+                    Reports ready for output records
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #fcd34d",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#fffbeb",
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ color: "#92400e", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Still drafting
+                  </div>
+                  <div style={{ color: "#0f172a", fontSize: 24, fontWeight: 800 }}>
+                    {draftReports.length}
+                  </div>
+                  <div style={{ color: "#92400e", lineHeight: 1.5 }}>
+                    Reports that still need writing or review
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: "1px solid #cbd5e1",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fafc",
+                    display: "grid",
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Archived
+                  </div>
+                  <div style={{ color: "#0f172a", fontSize: 24, fontWeight: 800 }}>
+                    {archivedReports.length}
+                  </div>
+                  <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                    Older reports kept for reference
+                  </div>
+                </div>
               </div>
 
               <div
@@ -417,23 +557,122 @@ function CleanOutputsWorkspaceBody() {
                   onClick={() => void handleExport()}
                   disabled={!selectedReport || submitting}
                 >
-                  {submitting ? "Recording export..." : "Export Report"}
+                  {submitting ? "Recording output..." : "Record output"}
                 </button>
               </div>
 
               <p style={{ margin: "12px 0 0", color: "#475569" }}>
-                Preview is HTML only in this phase. Export records a clean `report_exports` row but does not generate a file yet.
+                The preview stays on screen only. Recording an output adds an export record and history entry, but does not generate a file yet.
               </p>
             </section>
+
+            {!readyReports.length ? (
+              <section style={cardStyle}>
+                <h2 style={{ marginTop: 0, color: "#0f172a" }}>No ready reports yet</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Move back to My Reports, finish a draft, and mark it ready. Once a report is ready, it becomes available here as an output candidate.
+                </p>
+              </section>
+            ) : null}
 
             {!selectedReport || !selectedLearnerLabel ? (
               <section style={cardStyle}>
                 <p style={{ margin: 0, color: "#475569" }}>
-                  Select a clean report to preview it and record an export.
+                  Select a ready report to review it and record an output.
                 </p>
               </section>
             ) : (
               <>
+                <section style={cardStyle}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 14,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    }}
+                  >
+                    <div
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: 14,
+                        display: "grid",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Selected report
+                      </div>
+                      <strong style={{ color: "#0f172a", fontSize: 20 }}>{selectedReport.title}</strong>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        {selectedLearnerLabel}
+                        {selectedPeriod ? ` - ${selectedPeriod.title}` : ""}
+                      </div>
+                      {selectedPeriod ? (
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                          {formatDateRange(selectedPeriod.startsOn, selectedPeriod.endsOn)}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid #bbf7d0",
+                        borderRadius: 14,
+                        padding: 14,
+                        background: "#f0fdf4",
+                        display: "grid",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ color: "#166534", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Output readiness
+                      </div>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <span
+                          style={{
+                            ...getReportStatusStyles(selectedReport.status),
+                            borderRadius: 999,
+                            padding: "6px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {getReportStatusLabel(selectedReport.status)}
+                        </span>
+                        <span style={{ color: "#166534", fontWeight: 700 }}>
+                          Ready to record as an output
+                        </span>
+                      </div>
+                      <div style={{ color: "#166534", lineHeight: 1.6 }}>
+                        Review the report below, then record the output when you are satisfied with this version.
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 14,
+                        padding: 14,
+                        display: "grid",
+                        gap: 6,
+                      }}
+                    >
+                      <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                        Output history
+                      </div>
+                      <div style={{ color: "#0f172a", fontSize: 22, fontWeight: 800 }}>
+                        {exportsHistory.length}
+                      </div>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        {latestExport
+                          ? `Latest record: ${latestExport.exportFormat.toUpperCase()} on ${formatTimestamp(latestExport.createdAt)}`
+                          : "No output records yet for this report."}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
                 <CleanReportPreview
                   report={selectedReport}
                   learnerLabel={selectedLearnerLabel}
@@ -442,13 +681,13 @@ function CleanOutputsWorkspaceBody() {
                 />
 
                 <section style={cardStyle}>
-                  <h2 style={{ marginTop: 0, color: "#0f172a" }}>Export history</h2>
+                  <h2 style={{ marginTop: 0, color: "#0f172a" }}>Output history</h2>
                   <p style={{ marginTop: 0, color: "#475569" }}>
-                    Recorded exports for the selected report. File generation is intentionally deferred.
+                    Each record shows that this ready report was captured as an output. File generation comes later.
                   </p>
 
                   {exportsLoading ? (
-                    <p style={{ margin: 0, color: "#475569" }}>Loading export history...</p>
+                    <p style={{ margin: 0, color: "#475569" }}>Loading output history...</p>
                   ) : exportsHistory.length ? (
                     <div style={{ display: "grid", gap: 12 }}>
                       {exportsHistory.map((entry) => (
@@ -463,7 +702,7 @@ function CleanOutputsWorkspaceBody() {
                           }}
                         >
                           <strong style={{ color: "#0f172a" }}>
-                            {entry.exportFormat.toUpperCase()} export
+                            {entry.exportFormat.toUpperCase()} output record
                           </strong>
                           <span style={{ color: "#475569" }}>
                             Recorded {formatTimestamp(entry.createdAt)}
@@ -473,7 +712,7 @@ function CleanOutputsWorkspaceBody() {
                     </div>
                   ) : (
                     <p style={{ margin: 0, color: "#475569" }}>
-                      No clean exports recorded for this report yet.
+                      No output records for this report yet.
                     </p>
                   )}
                 </section>
