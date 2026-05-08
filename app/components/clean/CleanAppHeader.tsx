@@ -80,6 +80,7 @@ export default function CleanAppHeader() {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 220 });
   const outputsRef = useRef<HTMLDivElement | null>(null);
   const outputsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const outputsMenuRef = useRef<HTMLDivElement | null>(null);
 
   const outputsCurrent = isCurrentMatch(
     pathname,
@@ -114,7 +115,11 @@ export default function CleanAppHeader() {
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
-      if (!outputsRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const clickedTrigger = outputsRef.current?.contains(target);
+      const clickedMenu = outputsMenuRef.current?.contains(target);
+
+      if (!clickedTrigger && !clickedMenu) {
         setOutputsOpen(false);
       }
     }
@@ -266,6 +271,7 @@ export default function CleanAppHeader() {
               {outputsOpen && typeof document !== "undefined"
                 ? createPortal(
                     <div
+                      ref={outputsMenuRef}
                       role="menu"
                       aria-label="Outputs"
                       style={{
