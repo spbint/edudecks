@@ -101,8 +101,7 @@ export default function HomePage() {
       heroBadges={[...HERO_PILLS]}
       heroMicrocopy={
         <span>
-          New families can create an account on the next screen. Existing users can still sign
-          in with their email and password.
+          Ready to start? Create your account. Want to understand the flow first? See how it works.
         </span>
       }
       asideTitle=""
@@ -112,6 +111,7 @@ export default function HomePage() {
       primaryCta={PRIMARY_CTA}
       secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       headerAction={{ label: "Sign in", href: "/login" }}
+      headerPrimaryAction={PRIMARY_CTA}
       footerPrimaryCta={PRIMARY_CTA}
       footerSecondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       showWorkflowStrip={false}
@@ -360,8 +360,8 @@ export default function HomePage() {
               maxWidth: 720,
             }}
           >
-            New families can create an account on the next screen. Existing users can sign in
-            from the same public entry when they return.
+            Ready to start? Create your account on the next screen. Existing users can sign in
+            when they return.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link

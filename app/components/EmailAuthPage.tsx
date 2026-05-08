@@ -527,23 +527,474 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const formLabel = isSignup ? "Create account" : "Sign in";
   const formTitle = isSignup ? "Create your MyLearna account" : "Continue your family journey";
   const formText = isSignup
-    ? "Use your email and password to begin. After account creation, you'll move into learner and family setup."
+    ? "Use your email and password to begin. After account creation, you can move straight into learner and family setup."
     : "Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.";
   const introNotice = isSignup
-    ? "New to MyLearna? Start with your email and password. If email confirmation is required, we'll ask you to check your inbox before you continue."
+    ? "New to MyLearna? Create your account here. If email confirmation is required, we'll ask you to check your inbox before you continue."
     : "Existing account sign-in is live on this screen. New to MyLearna? Create your account from the signup screen.";
   const heroTitle = isSignup ? "Create your MyLearna account" : "Pick up your homeschool journey";
   const heroText = isSignup
-    ? "Start your learning record with your email and password, then move into learner setup, weekly planning, and your first capture note."
+    ? "Create your account, then move into learner setup, weekly planning, and your first learning note."
     : "Sign in to step back into today, move through the week, and keep your family record growing in one place.";
   const heroMicrocopy = isSignup
-    ? "After account creation, we will take you into your first setup step."
+    ? "Create your account here, then head into My Profile for your first setup step."
     : `After sign-in, we will take you to ${destinationLabel}.`;
   const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
   const alternateLabel = isSignup ? "Sign in" : "Create an account";
   const footerPrimary = isSignup
     ? { label: "Back to signup", href: "/signup" }
     : { label: "Back to login", href: "/login" };
+
+  const formCard = (
+    <div style={cardStyle()}>
+      <div style={sectionLabelStyle()}>{formLabel}</div>
+
+      <div
+        style={{
+          fontSize: 26,
+          lineHeight: 1.15,
+          fontWeight: 900,
+          color: "#0f172a",
+          marginBottom: 8,
+        }}
+      >
+        {formTitle}
+      </div>
+
+      <div
+        style={{
+          fontSize: 14,
+          lineHeight: 1.7,
+          color: "#475569",
+          marginBottom: 18,
+          maxWidth: 720,
+        }}
+      >
+        {formText}
+      </div>
+
+      <div
+        style={{
+          border: "1px solid #e5e7eb",
+          borderRadius: 16,
+          background: "#f8fafc",
+          padding: 14,
+          marginBottom: 18,
+          color: "#475569",
+          fontSize: 14,
+          lineHeight: 1.6,
+          fontWeight: 700,
+        }}
+      >
+        {introNotice}
+      </div>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (isSignup) {
+            void handleCreateAccount();
+          } else {
+            void handlePasswordSignIn();
+          }
+        }}
+        style={{ display: "grid", gap: 16 }}
+      >
+        <div>
+          <label style={labelStyle()}>Email address</label>
+          <input
+            value={email}
+            onChange={(event) => {
+              setEmail(event.target.value);
+              clearFeedback();
+            }}
+            placeholder="Enter your email"
+            style={inputStyle(safe(email) !== "" && !emailValid)}
+            autoComplete="email"
+            inputMode="email"
+            disabled={!hasSupabaseEnv || saveState === "saving"}
+          />
+          {safe(email) && !emailValid ? (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "#b91c1c",
+                lineHeight: 1.5,
+              }}
+            >
+              Please enter a valid email address.
+            </div>
+          ) : null}
+        </div>
+
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
+            {!isSignup ? (
+              <button
+                type="button"
+                onClick={() => void handleForgotPassword()}
+                disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#2563eb",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textAlign: "center",
+                  cursor:
+                    !hasSupabaseEnv || !emailValid || saveState === "saving"
+                      ? "not-allowed"
+                      : "pointer",
+                  opacity:
+                    !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
+                  padding: 0,
+                }}
+              >
+                Forgot password?
+              </button>
+            ) : null}
+          </div>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              clearFeedback();
+            }}
+            placeholder={isSignup ? "Create a password" : "Enter your password"}
+            style={inputStyle(safe(password) !== "" && !passwordValid)}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+            disabled={!hasSupabaseEnv || saveState === "saving"}
+          />
+          {safe(password) && !passwordValid ? (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "#b91c1c",
+                lineHeight: 1.5,
+              }}
+            >
+              Please enter your password.
+            </div>
+          ) : null}
+        </div>
+
+        {isSignup ? (
+          <div>
+            <label style={labelStyle()}>Confirm password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                clearFeedback();
+              }}
+              placeholder="Confirm your password"
+              style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
+              autoComplete="new-password"
+              disabled={!hasSupabaseEnv || saveState === "saving"}
+            />
+            {safe(confirmPassword) && !confirmPasswordValid ? (
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  color: "#b91c1c",
+                  lineHeight: 1.5,
+                }}
+              >
+                Confirm password must match your password.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {message ? (
+          <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
+            <strong style={{ fontSize: 14 }}>
+              {statusTitle ||
+                (saveState === "signed-up"
+                  ? "Account created"
+                  : saveState === "signed-in"
+                    ? "Signed in"
+                    : saveState === "check-email"
+                      ? "Check your email"
+                      : saveState === "error"
+                        ? isSignup
+                          ? "We could not create your account"
+                          : "We could not sign you in"
+                        : isSignup
+                          ? "Create your account"
+                          : "Sign in to continue")}
+            </strong>
+            <div
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                lineHeight: 1.6,
+              }}
+            >
+              {message}
+            </div>
+            {saveState === "error" && !isSignup ? (
+              <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                If you cannot remember your password, use <strong>Forgot password?</strong>.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={
+            !hasSupabaseEnv ||
+            !emailValid ||
+            !passwordValid ||
+            (isSignup && !confirmPasswordValid) ||
+            saveState === "saving"
+          }
+          style={primaryButtonStyle(
+            !hasSupabaseEnv ||
+              !emailValid ||
+              !passwordValid ||
+              (isSignup && !confirmPasswordValid) ||
+              saveState === "saving",
+          )}
+        >
+          {saveState === "saving"
+            ? isSignup
+              ? "Creating your account..."
+              : "Signing you in..."
+            : isSignup
+              ? "Create account"
+              : "Sign in"}
+        </button>
+      </form>
+
+      <div
+        style={{
+          marginTop: 16,
+          color: "#475569",
+          fontSize: 14,
+          lineHeight: 1.6,
+          fontWeight: 700,
+        }}
+      >
+        {alternatePrompt}{" "}
+        <Link href={alternateAuthHref} style={{ color: "#2563eb", fontWeight: 800 }}>
+          {alternateLabel}
+        </Link>
+      </div>
+
+      <Link href="/#how-it-works" style={{ ...secondaryButtonStyle(), marginTop: 16 }}>
+        See how MyLearna works
+      </Link>
+    </div>
+  );
+
+  const signupSupportPanel = (
+    <div style={{ display: "grid", gap: 18 }}>
+      <div style={helperCardStyle()}>
+        <div style={sectionLabelStyle()}>What happens next</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {SIGNUP_FIRST_STEPS.map((step, index) => (
+            <div
+              key={step.title}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "24px minmax(0, 1fr)",
+                gap: 10,
+                alignItems: "start",
+              }}
+            >
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 999,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 900,
+                }}
+              >
+                {index + 1}
+              </div>
+              <div style={{ display: "grid", gap: 4 }}>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>{step.title}</strong>
+                <div
+                  style={{
+                    color: "#475569",
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {step.detail}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={spotlightCardStyle()}>
+        <div style={sectionLabelStyle()}>Your first app step</div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <strong style={{ color: "#0f172a", fontSize: 18 }}>My Profile</strong>
+          <div style={{ color: "#475569", fontSize: 14, lineHeight: 1.65 }}>
+            After account creation, learner and family setup comes first so the rest of the workflow has a clear home.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const loginSupportPanel = (
+    <div style={{ display: "grid", gap: 18 }}>
+      <div style={spotlightCardStyle()}>
+        <div style={sectionLabelStyle()}>Your way back in</div>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {LOGIN_JOURNEY_STEPS.map((step, index) => (
+              <div
+                key={step.title}
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: "#eff6ff",
+                    color: "#1d4ed8",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 12,
+                    fontWeight: 900,
+                  }}
+                >
+                  {index + 1}
+                </div>
+                <strong style={{ color: "#0f172a", fontSize: 14 }}>{step.title}</strong>
+                <div
+                  style={{
+                    color: "#475569",
+                    fontSize: 13,
+                    lineHeight: 1.55,
+                  }}
+                >
+                  {step.detail}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div
+            style={{
+              borderRadius: 16,
+              border: "1px solid #dbeafe",
+              background: "#ffffff",
+              padding: 16,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                color: "#64748b",
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+              }}
+            >
+              Next destination
+            </div>
+            <strong style={{ color: "#0f172a", fontSize: 18 }}>{destinationLabel}</strong>
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+              We only move you on after sign-in succeeds and your session is confirmed.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={helperCardStyle()}>
+        <div style={sectionLabelStyle()}>What happens after sign-in</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {[
+            "Open today's flow for the whole family.",
+            "Move into planning when you want to shape the week.",
+            "Capture what happened as the day unfolds.",
+          ].map((item, index) => (
+            <div
+              key={item}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "24px minmax(0, 1fr)",
+                gap: 10,
+                alignItems: "start",
+              }}
+            >
+              <div
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 999,
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 900,
+                }}
+              >
+                {index + 1}
+              </div>
+              <div
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  fontWeight: 700,
+                }}
+              >
+                {item}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <PublicSiteShell
@@ -561,6 +1012,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       asideTitle="Your next step"
       asideText="MyLearna should feel like one guided journey from planning through to reporting."
       showWorkflowStrip={false}
+      compactHero
     >
       <section
         style={{
@@ -570,404 +1022,17 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           alignItems: "start",
         }}
       >
-        <div style={{ display: "grid", gap: 18 }}>
-          <div style={spotlightCardStyle()}>
-            <div style={sectionLabelStyle()}>
-              {isSignup ? "Your first steps" : "Your way back in"}
-            </div>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                {(isSignup ? SIGNUP_FIRST_STEPS : LOGIN_JOURNEY_STEPS).map((step, index) => (
-                  <div
-                    key={step.title}
-                    style={{
-                      border: "1px solid #dbeafe",
-                      borderRadius: 16,
-                      background: "#ffffff",
-                      padding: 14,
-                      display: "grid",
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 999,
-                        background: "#eff6ff",
-                        color: "#1d4ed8",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 12,
-                        fontWeight: 900,
-                      }}
-                    >
-                      {index + 1}
-                    </div>
-                    <strong style={{ color: "#0f172a", fontSize: 14 }}>{step.title}</strong>
-                    <div
-                      style={{
-                        color: "#475569",
-                        fontSize: 13,
-                        lineHeight: 1.55,
-                      }}
-                    >
-                      {step.detail}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div
-                style={{
-                  borderRadius: 16,
-                  border: "1px solid #dbeafe",
-                  background: "#ffffff",
-                  padding: 16,
-                  display: "grid",
-                  gap: 6,
-                }}
-              >
-                <div
-                  style={{
-                    color: "#64748b",
-                    fontSize: 12,
-                    fontWeight: 800,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {isSignup ? "Starting point" : "Next destination"}
-                </div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  {isSignup ? "My Profile" : destinationLabel}
-                </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {isSignup
-                    ? "After account creation, learner and family setup comes first so the rest of the workflow has a home."
-                    : "We only move you on after sign-in succeeds and your session is confirmed."}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={helperCardStyle()}>
-            <div style={sectionLabelStyle()}>{isSignup ? "What to expect" : "What happens after sign-in"}</div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {(isSignup
-                ? [
-                    "Create your account with your email and password.",
-                    "Add your learner and family details first.",
-                    "Move into planning, capture, portfolio, and reports over time.",
-                  ]
-                : [
-                    "Open today's flow for the whole family.",
-                    "Move into planning when you want to shape the week.",
-                    "Capture what happened as the day unfolds.",
-                  ]).map((item, index) => (
-                <div
-                  key={item}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "24px minmax(0, 1fr)",
-                    gap: 10,
-                    alignItems: "start",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 999,
-                      background: "#eff6ff",
-                      color: "#1d4ed8",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      fontWeight: 900,
-                    }}
-                  >
-                    {index + 1}
-                  </div>
-                  <div
-                    style={{
-                      color: "#334155",
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {item}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={cardStyle()}>
-          <div style={sectionLabelStyle()}>{formLabel}</div>
-
-          <div
-            style={{
-              fontSize: 26,
-              lineHeight: 1.15,
-              fontWeight: 900,
-              color: "#0f172a",
-              marginBottom: 8,
-            }}
-          >
-            {formTitle}
-          </div>
-
-          <div
-            style={{
-              fontSize: 14,
-              lineHeight: 1.7,
-              color: "#475569",
-              marginBottom: 18,
-              maxWidth: 720,
-            }}
-          >
-            {formText}
-          </div>
-
-          <div
-            style={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 16,
-              background: "#f8fafc",
-              padding: 14,
-              marginBottom: 18,
-              color: "#475569",
-              fontSize: 14,
-              lineHeight: 1.6,
-              fontWeight: 700,
-            }}
-          >
-            {introNotice}
-          </div>
-
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (isSignup) {
-                void handleCreateAccount();
-              } else {
-                void handlePasswordSignIn();
-              }
-            }}
-            style={{ display: "grid", gap: 16 }}
-          >
-            <div>
-              <label style={labelStyle()}>Email address</label>
-              <input
-                value={email}
-                onChange={(event) => {
-                  setEmail(event.target.value);
-                  clearFeedback();
-                }}
-                placeholder="Enter your email"
-                style={inputStyle(safe(email) !== "" && !emailValid)}
-                autoComplete="email"
-                inputMode="email"
-                disabled={!hasSupabaseEnv || saveState === "saving"}
-              />
-              {safe(email) && !emailValid ? (
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 12,
-                    color: "#b91c1c",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Please enter a valid email address.
-                </div>
-              ) : null}
-            </div>
-
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
-                {!isSignup ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleForgotPassword()}
-                    disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      color: "#2563eb",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      textAlign: "center",
-                      cursor:
-                        !hasSupabaseEnv || !emailValid || saveState === "saving"
-                          ? "not-allowed"
-                          : "pointer",
-                      opacity:
-                        !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
-                      padding: 0,
-                    }}
-                  >
-                    Forgot password?
-                  </button>
-                ) : null}
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  clearFeedback();
-                }}
-                placeholder={isSignup ? "Create a password" : "Enter your password"}
-                style={inputStyle(safe(password) !== "" && !passwordValid)}
-                autoComplete={isSignup ? "new-password" : "current-password"}
-                disabled={!hasSupabaseEnv || saveState === "saving"}
-              />
-              {safe(password) && !passwordValid ? (
-                <div
-                  style={{
-                    marginTop: 6,
-                    fontSize: 12,
-                    color: "#b91c1c",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  Please enter your password.
-                </div>
-              ) : null}
-            </div>
-
-            {isSignup ? (
-              <div>
-                <label style={labelStyle()}>Confirm password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(event) => {
-                    setConfirmPassword(event.target.value);
-                    clearFeedback();
-                  }}
-                  placeholder="Confirm your password"
-                  style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
-                  autoComplete="new-password"
-                  disabled={!hasSupabaseEnv || saveState === "saving"}
-                />
-                {safe(confirmPassword) && !confirmPasswordValid ? (
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 12,
-                      color: "#b91c1c",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Confirm password must match your password.
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {message ? (
-              <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
-                <strong style={{ fontSize: 14 }}>
-                  {statusTitle ||
-                    (saveState === "signed-up"
-                      ? "Account created"
-                      : saveState === "signed-in"
-                        ? "Signed in"
-                        : saveState === "check-email"
-                          ? "Check your email"
-                          : saveState === "error"
-                            ? isSignup
-                              ? "We could not create your account"
-                              : "We could not sign you in"
-                            : isSignup
-                              ? "Create your account"
-                              : "Sign in to continue")}
-                </strong>
-                <div
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 700,
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {message}
-                </div>
-                {saveState === "error" && !isSignup ? (
-                  <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                    If you cannot remember your password, use <strong>Forgot password?</strong>.
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={
-                !hasSupabaseEnv ||
-                !emailValid ||
-                !passwordValid ||
-                (isSignup && !confirmPasswordValid) ||
-                saveState === "saving"
-              }
-              style={primaryButtonStyle(
-                !hasSupabaseEnv ||
-                  !emailValid ||
-                  !passwordValid ||
-                  (isSignup && !confirmPasswordValid) ||
-                  saveState === "saving",
-              )}
-            >
-              {saveState === "saving"
-                ? isSignup
-                  ? "Creating your account..."
-                  : "Signing you in..."
-                : isSignup
-                  ? "Create account"
-                  : "Sign in"}
-            </button>
-          </form>
-
-          <div
-            style={{
-              marginTop: 16,
-              color: "#475569",
-              fontSize: 14,
-              lineHeight: 1.6,
-              fontWeight: 700,
-            }}
-          >
-            {alternatePrompt}{" "}
-            <Link href={alternateAuthHref} style={{ color: "#2563eb", fontWeight: 800 }}>
-              {alternateLabel}
-            </Link>
-          </div>
-
-          <Link href="/#how-it-works" style={{ ...secondaryButtonStyle(), marginTop: 16 }}>
-            See how MyLearna works
-          </Link>
-        </div>
+        {isSignup ? (
+          <>
+            {formCard}
+            {signupSupportPanel}
+          </>
+        ) : (
+          <>
+            {loginSupportPanel}
+            {formCard}
+          </>
+        )}
       </section>
     </PublicSiteShell>
   );

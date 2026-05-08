@@ -21,12 +21,14 @@ type PublicSiteShellProps = {
   primaryCta?: CtaLink | null;
   secondaryCta?: CtaLink | null;
   headerAction?: CtaLink | null;
+  headerPrimaryAction?: CtaLink | null;
   footerPrimaryCta?: CtaLink | null;
   footerSecondaryCta?: CtaLink | null;
   asideTitle?: string;
   asideText?: string;
   heroAsideVisible?: boolean;
   showWorkflowStrip?: boolean;
+  compactHero?: boolean;
   children: React.ReactNode;
 };
 
@@ -109,16 +111,6 @@ function shellNavStyle(active: boolean): React.CSSProperties {
   };
 }
 
-function shellCardStyle(): React.CSSProperties {
-  return {
-    background: C.bgSurface,
-    border: `1px solid ${C.borderSoft}`,
-    borderRadius: 18,
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
-  };
-}
-
 function shellPillStyle(
   background: string,
   color: string,
@@ -148,12 +140,14 @@ export default function PublicSiteShell({
   primaryCta = { label: "Start Free", href: "/capture" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
+  headerPrimaryAction = null,
   footerPrimaryCta = primaryCta,
   footerSecondaryCta = { label: "Contact", href: "/contact" },
   asideTitle = "",
   asideText = "",
   heroAsideVisible = false,
   showWorkflowStrip = false,
+  compactHero = false,
   children,
 }: PublicSiteShellProps) {
   const pathname = usePathname();
@@ -235,6 +229,14 @@ export default function PublicSiteShell({
                   {headerAction.label}
                 </Link>
               ) : null}
+              {headerPrimaryAction ? (
+                <Link
+                  href={headerPrimaryAction.href}
+                  style={shellButtonStyle(true)}
+                >
+                  {headerPrimaryAction.label}
+                </Link>
+              ) : null}
             </div>
           </div>
 
@@ -283,11 +285,17 @@ export default function PublicSiteShell({
           >
             <div
               style={{
-                padding: isMobile
-                  ? "28px 16px 24px"
+              padding: isMobile
+                  ? compactHero
+                    ? "22px 16px 20px"
+                    : "28px 16px 24px"
                   : isTablet
-                    ? "36px 24px 30px"
-                    : "48px 32px 38px",
+                    ? compactHero
+                      ? "28px 24px 24px"
+                      : "36px 24px 30px"
+                    : compactHero
+                      ? "34px 32px 30px"
+                      : "48px 32px 38px",
                 display: "grid",
                 gridTemplateColumns: "minmax(0, 1fr)",
                 gap: isMobile ? 18 : 28,
@@ -309,7 +317,17 @@ export default function PublicSiteShell({
                     height={821}
                     priority
                     style={{
-                      width: isMobile ? "280px" : isTablet ? "420px" : "560px",
+                      width: compactHero
+                        ? isMobile
+                          ? "220px"
+                          : isTablet
+                            ? "320px"
+                            : "400px"
+                        : isMobile
+                          ? "280px"
+                          : isTablet
+                            ? "420px"
+                            : "560px",
                       maxWidth: "100%",
                       height: "auto",
                       display: "block",
@@ -319,11 +337,11 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: isMobile ? 32 : 44,
+                    fontSize: compactHero ? (isMobile ? 28 : 36) : isMobile ? 32 : 44,
                     lineHeight: 1.02,
                     fontWeight: 900,
                     color: C.textStrong,
-                    marginBottom: isMobile ? 12 : 14,
+                    marginBottom: compactHero ? 10 : isMobile ? 12 : 14,
                     maxWidth: 820,
                     marginLeft: "auto",
                     marginRight: "auto",
@@ -336,11 +354,11 @@ export default function PublicSiteShell({
 
                 <div
                   style={{
-                    fontSize: isMobile ? 16 : 17,
+                    fontSize: compactHero ? 15 : isMobile ? 16 : 17,
                     lineHeight: 1.7,
                     color: C.textMain,
                     maxWidth: 700,
-                    marginBottom: isMobile ? 20 : 20,
+                    marginBottom: compactHero ? 16 : 20,
                     marginLeft: "auto",
                     marginRight: "auto",
                     textAlign: "center",
@@ -352,13 +370,13 @@ export default function PublicSiteShell({
                 {heroBadges.length > 0 ? (
                   <div
                     style={{
-                      display: "flex",
-                      gap: 10,
-                      flexWrap: "wrap",
-                      justifyContent: "center",
-                      marginBottom: 18,
-                    }}
-                  >
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    marginBottom: compactHero ? 14 : 18,
+                  }}
+                >
                     {heroBadges.map((badge, i) => {
                       const tones = [
                         [C.brandPrimarySoft, C.brandPrimaryStrong, C.brandPrimaryBorder],
