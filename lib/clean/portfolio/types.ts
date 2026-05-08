@@ -8,6 +8,9 @@ export type CleanPortfolioHighlightsOptions = {
 
 export type CleanPortfolioItemsOptions = {
   learnerId?: string | null;
+  fromDate?: string | null;
+  toDate?: string | null;
+  highlightedOnly?: boolean;
   limit?: number;
 };
 

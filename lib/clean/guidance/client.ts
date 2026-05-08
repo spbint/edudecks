@@ -179,7 +179,9 @@ export function buildCleanGuidanceCards(
     openCards.push({
       key: "reports",
       title: "Prepare a report",
-      description: "Once you have evidence, you can start shaping a report with more confidence.",
+      description: input.hasPortfolioHighlights
+        ? "You already have portfolio highlights. Start a report and bring those notes into sections."
+        : "Once you have evidence, you can start shaping a report for the learner.",
       actionLabel: "Open My Reports",
       actionHref: "/my-reports",
     });

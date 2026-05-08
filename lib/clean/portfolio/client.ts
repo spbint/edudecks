@@ -138,6 +138,8 @@ export async function listCleanPortfolioItems(
   const [evidenceEntries, highlights] = await Promise.all([
     listCleanEvidenceEntries(familyId, {
       learnerId: options.learnerId || null,
+      fromDate: options.fromDate || null,
+      toDate: options.toDate || null,
       limit: options.limit,
     }),
     listCleanPortfolioHighlights(familyId, {
@@ -152,7 +154,7 @@ export async function listCleanPortfolioItems(
       .map((highlight) => [highlight.evidenceEntryId as string, highlight]),
   );
 
-  return evidenceEntries.map((evidence) => {
+  const items = evidenceEntries.map((evidence) => {
     const highlight = highlightByEvidenceId.get(evidence.id) ?? null;
     return {
       evidence,
@@ -160,6 +162,8 @@ export async function listCleanPortfolioItems(
       isHighlighted: Boolean(highlight),
     };
   });
+
+  return options.highlightedOnly ? items.filter((item) => item.isHighlighted) : items;
 }
 
 export async function createCleanPortfolioHighlight(

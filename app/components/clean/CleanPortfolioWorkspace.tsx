@@ -110,6 +110,9 @@ function CleanPortfolioWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-portfolio")
     ? "/clean-my-capture"
     : "/my-capture";
+  const reportsPathBase = pathname.startsWith("/clean-my-portfolio")
+    ? "/clean-my-reports"
+    : "/my-reports";
 
   const programLabelById = useMemo(
     () => new Map(programs.map((program) => [program.id, program.title])),
@@ -426,6 +429,14 @@ function CleanPortfolioWorkspaceBody() {
                           >
                             Open capture
                           </Link>
+                          {item.isHighlighted ? (
+                            <Link
+                              href={`${reportsPathBase}?learner_id=${item.evidence.learnerId}&evidence_entry_id=${item.evidence.id}`}
+                              style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
+                            >
+                              Use in report
+                            </Link>
+                          ) : null}
                           {item.isHighlighted ? (
                             <span style={{ color: "#0f766e", fontWeight: 700 }}>
                               In portfolio
