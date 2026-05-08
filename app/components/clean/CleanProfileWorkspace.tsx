@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   createCleanFamilyProfile,
@@ -295,22 +296,33 @@ function CleanProfileWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
-                textTransform: "uppercase",
-              }}
-            >
-              Clean rebuild scaffold
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: "0.08em",
+                  color: "#64748b",
+                  textTransform: "uppercase",
+                }}
+              >
+                Family details
+              </div>
+              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Profile</h1>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Keep family details and learner information together here.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Profile</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This isolated route uses only the clean family schema draft and never writes on page load.
-            </p>
+            <CleanAccountMenu />
           </div>
         </section>
 

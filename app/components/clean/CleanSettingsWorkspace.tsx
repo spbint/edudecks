@@ -4,6 +4,7 @@ import React from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import { CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE } from "@/lib/clean/family/client";
 
 const shellStyle: React.CSSProperties = {
@@ -34,14 +35,25 @@ function CleanSettingsWorkspaceBody() {
     <div style={shellStyle}>
       <div style={wrapStyle}>
         <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>
-              Setup preview
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 16,
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: "0.08em", color: "#64748b", textTransform: "uppercase" }}>
+                Family settings
+              </div>
+              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                This is the future home for country and state reporting context, curriculum setup, and family preferences.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Settings</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              This preview shows where country, state, curriculum, and reporting context will live. Save controls come next.
-            </p>
+            <CleanAccountMenu />
           </div>
         </section>
 

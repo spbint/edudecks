@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
+import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 
 type CleanWorkflowStepKey =
   | "today"
@@ -111,14 +112,25 @@ export default function CleanWorkflowRibbon({
         <div style={{ display: "grid", gap: 10 }}>
           <div
             style={{
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              color: "#64748b",
-              textTransform: "uppercase",
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
             }}
           >
-            Journey
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                color: "#64748b",
+                textTransform: "uppercase",
+              }}
+            >
+              Journey
+            </div>
+            <CleanAccountMenu />
           </div>
           <nav aria-label="Journey steps" style={{ overflowX: "auto", paddingBottom: 4 }}>
             <div

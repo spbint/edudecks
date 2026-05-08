@@ -69,22 +69,16 @@ export function resetAuthClientStateImmediately() {
   window.dispatchEvent(new CustomEvent(FAMILY_SIGN_OUT_EVENT));
 }
 
-function requestSupabaseSignOutInBackground() {
-  void supabase.auth
-    .signOut({ scope: "local" })
-    .then((result) => {
-      if (result.error) {
-        console.warn("Supabase sign-out request reported an error", result.error);
-      }
-    })
-    .catch((error) => {
-      console.warn("Supabase sign-out request failed", error);
-    });
+async function requestSupabaseSignOut() {
+  const result = await supabase.auth.signOut({ scope: "local" });
+  if (result.error) {
+    throw result.error;
+  }
 }
 
 export async function completeFamilySignOut() {
+  await requestSupabaseSignOut();
   resetAuthClientStateImmediately();
-  requestSupabaseSignOutInBackground();
 }
 
 export function isFamilySignOutTimeout() {

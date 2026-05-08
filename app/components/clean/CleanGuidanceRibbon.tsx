@@ -67,7 +67,7 @@ export default function CleanGuidanceRibbon({
             textTransform: "uppercase",
           }}
         >
-          {compact ? "If helpful next" : "Calm next steps"}
+          {compact ? "If helpful next" : "Next steps"}
         </div>
         <h2 style={{ margin: 0, color: "#0f172a", fontSize: compact ? 18 : 24 }}>
           {compact ? "A few gentle next steps" : "What to do next"}

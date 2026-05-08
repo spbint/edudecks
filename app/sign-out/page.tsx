@@ -1,14 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { completeFamilySignOut } from "@/lib/familySignOut";
 
 export default function SignOutPage() {
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    void completeFamilySignOut().finally(() => {
-      window.location.replace("/login?authMessage=You%20have%20been%20signed%20out.");
-    });
+    let active = true;
+
+    void completeFamilySignOut()
+      .then(() => {
+        window.location.replace("/login?authMessage=You%20have%20been%20signed%20out.");
+      })
+      .catch((nextError) => {
+        if (!active) return;
+        setError(
+          (nextError as { message?: string })?.message ||
+            "We couldn't sign you out just yet. Please try again.",
+        );
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -57,21 +73,41 @@ export default function SignOutPage() {
             Signing you out...
           </h1>
           <p style={{ margin: 0, fontSize: 15, lineHeight: 1.7, color: "#475569" }}>
-            We&apos;re clearing your local session now and sending you back to login.
+            {error
+              ? "We couldn't finish signing you out yet."
+              : "We're signing you out now and sending you back to login."}
           </p>
         </div>
 
-        <div
-          aria-hidden
-          style={{
-            width: 20,
-            height: 20,
-            borderRadius: "50%",
-            border: "3px solid #cbd5e1",
-            borderTopColor: "#1d4ed8",
-            animation: "spin 1s linear infinite",
-          }}
-        />
+        {error ? (
+          <div
+            role="alert"
+            style={{
+              borderRadius: 14,
+              border: "1px solid #fecaca",
+              background: "#fff1f2",
+              color: "#b91c1c",
+              padding: 14,
+              fontSize: 14,
+              lineHeight: 1.6,
+              fontWeight: 700,
+            }}
+          >
+            {error}
+          </div>
+        ) : (
+          <div
+            aria-hidden
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              border: "3px solid #cbd5e1",
+              borderTopColor: "#1d4ed8",
+              animation: "spin 1s linear infinite",
+            }}
+          />
+        )}
 
         <Link
           href="/login"
