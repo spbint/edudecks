@@ -1565,10 +1565,10 @@ function CleanCalendarWorkspaceBody() {
   async function handleLearningPeriodDelete(period: CleanLearningPeriod) {
     if (!workspace.profile) return;
 
-    const confirmationMessage =
-      period.isBreak || period.periodType === "break"
-        ? "Delete this break / holiday? Learning blocks may be generated for these dates again."
-        : "Delete this learning period? This will not delete your learners or programs, but weekly planning may no longer use these dates.";
+      const confirmationMessage =
+        period.isBreak || period.periodType === "break"
+          ? "Delete this break / holiday? Learning blocks may be planned for these dates again."
+          : "Delete this learning period? This will not delete your learners or programs, but weekly planning may no longer use these dates.";
 
     if (!window.confirm(confirmationMessage)) {
       return;
@@ -2285,7 +2285,7 @@ function CleanCalendarWorkspaceBody() {
                             >
                               <strong>Break / holiday</strong>
                               <p style={{ margin: 0, lineHeight: 1.6 }}>
-                                Only use this when you do not want learning generated inside
+                                Only use this when you do not want learning planned inside
                                 these dates.
                               </p>
                             </div>
@@ -2329,7 +2329,7 @@ function CleanCalendarWorkspaceBody() {
                           <div style={subtleFieldCardStyle}>
                             <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
                               Only use this for school holidays, public holidays, travel
-                              breaks, or weeks you do not want learning blocks generated.
+                              breaks, or weeks you do not want learning blocks added.
                             </p>
                           </div>
                         ) : null}

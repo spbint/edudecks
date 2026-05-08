@@ -8,7 +8,7 @@ import type {
 } from "@/lib/clean/family/types";
 
 export const CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE =
-  "Clean family schema is not installed yet.";
+  "This part of MyLearna is not available yet.";
 
 type FamilyProfileRow = {
   id: string;

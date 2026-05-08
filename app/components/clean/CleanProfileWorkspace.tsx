@@ -327,7 +327,7 @@ function CleanProfileWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              The clean rebuild service only talks to the new family-only schema. It will not fall back to legacy tables.
+              Family details are not ready on this install yet.
             </p>
           </section>
         ) : null}
@@ -343,7 +343,7 @@ function CleanProfileWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile</h2>
             <p style={{ color: "#475569", lineHeight: 1.6 }}>
-              No clean family profile exists yet. Creation is explicit and happens only when you submit this form.
+              No family profile exists yet. Creation happens only when you submit this form.
             </p>
             <form onSubmit={handleCreateFamilyProfile} style={{ display: "grid", gap: 12 }}>
               <input
