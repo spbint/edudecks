@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
+import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -45,6 +46,17 @@ function localLearnerCount() {
   } catch {
     return 0;
   }
+}
+
+function isProtectedMyLearnaPath(path: string) {
+  return (
+    path === "/my-day" ||
+    path === "/my-profile" ||
+    path === "/my-settings" ||
+    path.startsWith("/my-") ||
+    path === "/clean" ||
+    path.startsWith("/clean-my-")
+  );
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number) {
@@ -167,8 +179,16 @@ function AuthCallbackPageContent() {
         const { data: userData } = await supabase.auth.getUser();
         const user = userData.user;
         let resolvedNextPath = requestedNextPath;
+        let hasCleanFamilyProfile = false;
 
         if (user?.id) {
+          try {
+            const familyState = await withTimeout(loadCleanFamilyProfile(), 1200);
+            hasCleanFamilyProfile = Boolean(familyState.profile);
+          } catch (familyError) {
+            console.error("[auth] callback clean family lookup failed", familyError);
+          }
+
           try {
             const profileAndRouting = await withTimeout(
               (async () => {
@@ -208,6 +228,10 @@ function AuthCallbackPageContent() {
             }
           } catch (profileError) {
             console.error("[auth] callback profile hydration failed", profileError);
+          }
+
+          if (!hasCleanFamilyProfile && isProtectedMyLearnaPath(requestedNextPath)) {
+            resolvedNextPath = "/my-profile";
           }
         }
 

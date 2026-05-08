@@ -9,11 +9,24 @@ import {
   MISSING_PUBLIC_SUPABASE_ENV_MESSAGE,
   supabase,
 } from "@/lib/supabaseClient";
-import { normalizeAuthNextPath } from "@/lib/authRedirect";
+import { buildAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/authRedirect";
+import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 
-type SaveState = "idle" | "saving" | "success" | "error";
+export type EmailAuthPageMode = "login" | "signup";
 
-const JOURNEY_STEPS = [
+type EmailAuthPageProps = {
+  mode?: EmailAuthPageMode;
+};
+
+type SaveState =
+  | "idle"
+  | "saving"
+  | "signed-in"
+  | "signed-up"
+  | "check-email"
+  | "error";
+
+const LOGIN_JOURNEY_STEPS = [
   {
     title: "Today",
     detail: "See what is planned and keep the day moving.",
@@ -32,6 +45,25 @@ const JOURNEY_STEPS = [
   },
 ] as const;
 
+const SIGNUP_FIRST_STEPS = [
+  {
+    title: "Add learner",
+    detail: "Start with the learner you want to support first.",
+  },
+  {
+    title: "Set context",
+    detail: "Choose your country, state, and reporting context.",
+  },
+  {
+    title: "Plan week",
+    detail: "Set up the week before the learning notes begin.",
+  },
+  {
+    title: "Capture note",
+    detail: "Record the first real learning moment from the day.",
+  },
+] as const;
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -40,9 +72,23 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(safe(value));
 }
 
-function passwordErrorMessage(error: unknown) {
+function authErrorMessage(error: unknown, mode: EmailAuthPageMode) {
   const original = safe((error as { message?: unknown })?.message);
   const message = original.toLowerCase();
+
+  if (mode === "signup") {
+    if (
+      message.includes("user already registered") ||
+      message.includes("already registered") ||
+      message.includes("already been registered")
+    ) {
+      return "That email already has a MyLearna account. Sign in instead, or use Forgot password? on the sign-in screen.";
+    }
+
+    if (message.includes("password")) {
+      return original || "Please choose a stronger password and try again.";
+    }
+  }
 
   if (
     message.includes("invalid login credentials") ||
@@ -60,10 +106,17 @@ function passwordErrorMessage(error: unknown) {
     message.includes("networkerror") ||
     message.includes("load failed")
   ) {
-    return "We couldn't reach the sign-in service just now. Please try again.";
+    return mode === "signup"
+      ? "We couldn't reach account creation just now. Please try again."
+      : "We couldn't reach the sign-in service just now. Please try again.";
   }
 
-  return original || "We couldn't sign you in just yet. Please try again.";
+  return (
+    original ||
+    (mode === "signup"
+      ? "We couldn't create your account just yet. Please try again."
+      : "We couldn't sign you in just yet. Please try again.")
+  );
 }
 
 function cardStyle(): React.CSSProperties {
@@ -164,7 +217,7 @@ function sectionLabelStyle(): React.CSSProperties {
 }
 
 function statusCardStyle(saveState: SaveState): React.CSSProperties {
-  const success = saveState === "success";
+  const success = saveState === "signed-in" || saveState === "signed-up";
   const error = saveState === "error";
 
   return {
@@ -178,13 +231,9 @@ function statusCardStyle(saveState: SaveState): React.CSSProperties {
   };
 }
 
-function statusHeading(saveState: SaveState) {
-  if (saveState === "success") return "Signed in";
-  if (saveState === "error") return "We could not sign you in";
-  return "Sign in to continue";
-}
-
 function nextPathLabel(nextPath: string) {
+  if (nextPath.startsWith("/my-profile")) return "My Profile";
+  if (nextPath.startsWith("/my-settings")) return "My Settings";
   if (nextPath.startsWith("/my-day")) return "My Day";
   if (nextPath.startsWith("/my-calendar")) return "My Calendar";
   if (nextPath.startsWith("/my-programs")) return "My Programs";
@@ -197,35 +246,69 @@ function nextPathLabel(nextPath: string) {
   return "MyLearna";
 }
 
-export default function EmailAuthPage() {
+async function resolveFirstAppPath(requestedNextPath: string) {
+  try {
+    const familyState = await loadCleanFamilyProfile();
+    return familyState.profile ? requestedNextPath : "/my-profile";
+  } catch {
+    return "/my-profile";
+  }
+}
+
+function buildAlternateAuthHref(mode: EmailAuthPageMode, nextPath: string) {
+  const base = mode === "login" ? "/signup" : "/login";
+  return nextPath ? `${base}?next=${encodeURIComponent(nextPath)}` : base;
+}
+
+export default function EmailAuthPage({ mode = "login" }: EmailAuthPageProps) {
   return (
     <Suspense fallback={null}>
-      <EmailAuthPageContent />
+      <EmailAuthPageContent mode={mode} />
     </Suspense>
   );
 }
 
-function EmailAuthPageContent() {
+function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [message, setMessage] = useState("");
+  const [statusTitle, setStatusTitle] = useState("");
   const redirectStarted = useRef(false);
 
+  const isSignup = mode === "signup";
+  const defaultNextPath = isSignup ? "/my-profile" : "/my-day";
   const nextPath = useMemo(
-    () => normalizeAuthNextPath(searchParams.get("next"), "/my-day"),
-    [searchParams],
+    () => normalizeAuthNextPath(searchParams.get("next"), defaultNextPath),
+    [defaultNextPath, searchParams],
   );
   const emailValid = useMemo(() => isValidEmail(email), [email]);
   const passwordValid = useMemo(() => safe(password).length > 0, [password]);
+  const confirmPasswordValid = useMemo(
+    () => !isSignup || safe(confirmPassword) === safe(password),
+    [confirmPassword, isSignup, password],
+  );
   const destinationLabel = useMemo(() => nextPathLabel(nextPath), [nextPath]);
+  const alternateAuthHref = useMemo(() => buildAlternateAuthHref(mode, nextPath), [mode, nextPath]);
+
+  function clearFeedback() {
+    setSaveState("idle");
+    setMessage("");
+    setStatusTitle("");
+  }
+
+  function setStatus(nextState: SaveState, nextTitle: string, nextMessage: string) {
+    setSaveState(nextState);
+    setStatusTitle(nextTitle);
+    setMessage(nextMessage);
+  }
 
   useEffect(() => {
     if (!hasSupabaseEnv) {
-      setSaveState("error");
-      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
       return;
     }
 
@@ -233,52 +316,63 @@ function EmailAuthPageContent() {
     const authError = safe(searchParams.get("authError"));
 
     if (authError) {
-      setSaveState("error");
-      setMessage(authError);
+      setStatus(
+        "error",
+        isSignup ? "We could not create your account" : "We could not sign you in",
+        authError,
+      );
       return;
     }
 
     if (authMessage) {
-      setSaveState("success");
-      setMessage(authMessage);
+      const lower = authMessage.toLowerCase();
+      if (lower.includes("signed out")) {
+        setStatus("idle", "Signed out", authMessage);
+      } else {
+        setStatus("idle", "Notice", authMessage);
+      }
       return;
     }
 
-    setSaveState("idle");
-    setMessage("");
-  }, [searchParams]);
+    clearFeedback();
+  }, [isSignup, searchParams]);
 
-  function resetFeedback() {
-    if (saveState !== "idle") {
-      setSaveState("idle");
-      setMessage("");
+  async function redirectAfterSession(successTitle: string, successMessage: string, targetPath: string) {
+    setStatus(isSignup ? "signed-up" : "signed-in", successTitle, successMessage);
+
+    if (redirectStarted.current) return;
+    redirectStarted.current = true;
+
+    if (typeof window !== "undefined") {
+      window.location.replace(targetPath);
+      return;
     }
+
+    router.replace(targetPath);
   }
 
   async function handlePasswordSignIn() {
     if (saveState === "saving") return;
 
     if (!hasSupabaseEnv) {
-      setSaveState("error");
-      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
       return;
     }
 
     if (!emailValid) {
-      setSaveState("error");
-      setMessage("Please enter a valid email address first.");
+      setStatus("error", "We could not sign you in", "Please enter a valid email address first.");
       return;
     }
 
     if (!passwordValid) {
-      setSaveState("error");
-      setMessage("Please enter your password first.");
+      setStatus("error", "We could not sign you in", "Please enter your password first.");
       return;
     }
 
     try {
       setSaveState("saving");
       setMessage("");
+      setStatusTitle("");
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email: safe(email).toLowerCase(),
@@ -293,31 +387,93 @@ function EmailAuthPageContent() {
         data.session ?? (await supabase.auth.getSession()).data.session ?? null;
 
       if (!confirmedSession?.user) {
-        console.warn("[auth] password sign-in returned without a confirmed session");
-        setSaveState("error");
-        setMessage(
+        setStatus(
+          "error",
+          "We could not sign you in",
           "Your sign-in was accepted, but we could not confirm the session. Please try again.",
         );
         return;
       }
 
-      setSaveState("success");
-      setMessage("Signed in. Taking you to MyLearna...");
-      if (redirectStarted.current) return;
-      redirectStarted.current = true;
+      await redirectAfterSession(
+        "Signed in",
+        "Signed in. Taking you to MyLearna...",
+        nextPath,
+      );
+    } catch (error) {
+      setStatus("error", "We could not sign you in", authErrorMessage(error, "login"));
+    }
+  }
 
-      if (typeof window !== "undefined") {
-        window.location.replace(nextPath);
+  async function handleCreateAccount() {
+    if (saveState === "saving") return;
+
+    if (!hasSupabaseEnv) {
+      setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      return;
+    }
+
+    if (!emailValid) {
+      setStatus("error", "We could not create your account", "Please enter a valid email address first.");
+      return;
+    }
+
+    if (!passwordValid) {
+      setStatus("error", "We could not create your account", "Please enter your password first.");
+      return;
+    }
+
+    if (!confirmPasswordValid) {
+      setStatus("error", "We could not create your account", "Confirm password must match your password.");
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setMessage("");
+      setStatusTitle("");
+
+      const { data, error } = await supabase.auth.signUp({
+        email: safe(email).toLowerCase(),
+        password,
+        options: {
+          emailRedirectTo: buildAuthCallbackUrl(nextPath),
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const confirmedSession =
+        data.session ?? (await supabase.auth.getSession()).data.session ?? null;
+
+      if (!confirmedSession?.user) {
+        const identityCount = Array.isArray(data.user?.identities)
+          ? data.user.identities.length
+          : undefined;
+
+        const emailMessage =
+          identityCount === 0
+            ? "If this email is new, check your email to confirm your account. If you already have an account, sign in instead."
+            : "Check your email to confirm your account.";
+
+        setStatus(
+          "check-email",
+          "Check your email",
+          `${emailMessage} After confirmation, we'll take you to My Profile to add your learner, set your reporting context, plan your week, and capture your first note.`,
+        );
         return;
       }
 
-      router.replace(nextPath);
+      const resolvedPath = await resolveFirstAppPath(nextPath);
+      await redirectAfterSession(
+        "Account created",
+        "Account created. Taking you to your first setup step...",
+        resolvedPath,
+      );
     } catch (error) {
-      console.warn("[auth] password sign-in failed", {
-        message: safe((error as { message?: unknown })?.message),
-      });
-      setSaveState("error");
-      setMessage(passwordErrorMessage(error));
+      setStatus("error", "We could not create your account", authErrorMessage(error, "signup"));
     }
   }
 
@@ -325,20 +481,23 @@ function EmailAuthPageContent() {
     if (saveState === "saving") return;
 
     if (!hasSupabaseEnv) {
-      setSaveState("error");
-      setMessage(MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
       return;
     }
 
     if (!emailValid) {
-      setSaveState("error");
-      setMessage("Enter a valid email first so we know where to send the reset link.");
+      setStatus(
+        "error",
+        "We could not send the reset link",
+        "Enter a valid email first so we know where to send the reset link.",
+      );
       return;
     }
 
     try {
       setSaveState("saving");
       setMessage("");
+      setStatusTitle("");
 
       const redirectTo =
         typeof window !== "undefined"
@@ -354,29 +513,50 @@ function EmailAuthPageContent() {
         throw error;
       }
 
-      setSaveState("success");
-      setMessage("We've sent a password reset link to your email.");
+      setStatus("check-email", "Check your email", "We've sent a password reset link to your email.");
     } catch (error) {
-      setSaveState("error");
-      setMessage(
+      setStatus(
+        "error",
+        "We could not send the reset link",
         safe((error as { message?: unknown })?.message) ||
           "We couldn't send the password reset email just yet. Please try again.",
       );
     }
   }
 
+  const formLabel = isSignup ? "Create account" : "Sign in";
+  const formTitle = isSignup ? "Create your MyLearna account" : "Continue your family journey";
+  const formText = isSignup
+    ? "Use your email and password to begin. After account creation, you'll move into learner and family setup."
+    : "Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.";
+  const introNotice = isSignup
+    ? "New to MyLearna? Start with your email and password. If email confirmation is required, we'll ask you to check your inbox before you continue."
+    : "Existing account sign-in is live on this screen. New to MyLearna? Create your account from the signup screen.";
+  const heroTitle = isSignup ? "Create your MyLearna account" : "Pick up your homeschool journey";
+  const heroText = isSignup
+    ? "Start your learning record with your email and password, then move into learner setup, weekly planning, and your first capture note."
+    : "Sign in to step back into today, move through the week, and keep your family record growing in one place.";
+  const heroMicrocopy = isSignup
+    ? "After account creation, we will take you into your first setup step."
+    : `After sign-in, we will take you to ${destinationLabel}.`;
+  const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
+  const alternateLabel = isSignup ? "Sign in" : "Create an account";
+  const footerPrimary = isSignup
+    ? { label: "Back to signup", href: "/signup" }
+    : { label: "Back to login", href: "/login" };
+
   return (
     <PublicSiteShell
       title="MyLearna"
-      eyebrow="Return to MyLearna"
-      heroTitle="Pick up your homeschool journey"
-      heroText="Sign in to step back into today, move through the week, and keep your family record growing in one place."
-      heroBadges={["Today", "Plan", "Capture", "Portfolio", "Reports"]}
-      heroMicrocopy={`After sign-in, we will take you to ${destinationLabel}.`}
+      eyebrow={isSignup ? "Create your account" : "Return to MyLearna"}
+      heroTitle={heroTitle}
+      heroText={heroText}
+      heroBadges={isSignup ? ["Add learner", "Set context", "Plan week", "Capture note"] : ["Today", "Plan", "Capture", "Portfolio", "Reports"]}
+      heroMicrocopy={heroMicrocopy}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
-      footerPrimaryCta={{ label: "Back to login", href: "/login" }}
+      footerPrimaryCta={footerPrimary}
       footerSecondaryCta={{ label: "See how MyLearna works", href: "/#how-it-works" }}
       asideTitle="Your next step"
       asideText="MyLearna should feel like one guided journey from planning through to reporting."
@@ -392,13 +572,10 @@ function EmailAuthPageContent() {
       >
         <div style={{ display: "grid", gap: 18 }}>
           <div style={spotlightCardStyle()}>
-            <div style={sectionLabelStyle()}>Your way back in</div>
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-              }}
-            >
+            <div style={sectionLabelStyle()}>
+              {isSignup ? "Your first steps" : "Your way back in"}
+            </div>
+            <div style={{ display: "grid", gap: 14 }}>
               <div
                 style={{
                   display: "grid",
@@ -406,7 +583,7 @@ function EmailAuthPageContent() {
                   gap: 10,
                 }}
               >
-                {JOURNEY_STEPS.map((step, index) => (
+                {(isSignup ? SIGNUP_FIRST_STEPS : LOGIN_JOURNEY_STEPS).map((step, index) => (
                   <div
                     key={step.title}
                     style={{
@@ -458,25 +635,43 @@ function EmailAuthPageContent() {
                   gap: 6,
                 }}
               >
-                <div style={{ color: "#64748b", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  Next destination
+                <div
+                  style={{
+                    color: "#64748b",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  {isSignup ? "Starting point" : "Next destination"}
                 </div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>{destinationLabel}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                  {isSignup ? "My Profile" : destinationLabel}
+                </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  We will only move you on after sign-in succeeds and your session is confirmed.
+                  {isSignup
+                    ? "After account creation, learner and family setup comes first so the rest of the workflow has a home."
+                    : "We only move you on after sign-in succeeds and your session is confirmed."}
                 </div>
               </div>
             </div>
           </div>
 
           <div style={helperCardStyle()}>
-            <div style={sectionLabelStyle()}>What to expect</div>
+            <div style={sectionLabelStyle()}>{isSignup ? "What to expect" : "What happens after sign-in"}</div>
             <div style={{ display: "grid", gap: 10 }}>
-              {[
-                "Your login stays public until you choose to sign in.",
-                "We only redirect after we confirm your session.",
-                "If sign-in is rejected, the error stays visible here on the page.",
-              ].map((item, index) => (
+              {(isSignup
+                ? [
+                    "Create your account with your email and password.",
+                    "Add your learner and family details first.",
+                    "Move into planning, capture, portfolio, and reports over time.",
+                  ]
+                : [
+                    "Open today's flow for the whole family.",
+                    "Move into planning when you want to shape the week.",
+                    "Capture what happened as the day unfolds.",
+                  ]).map((item, index) => (
                 <div
                   key={item}
                   style={{
@@ -519,7 +714,7 @@ function EmailAuthPageContent() {
         </div>
 
         <div style={cardStyle()}>
-          <div style={sectionLabelStyle()}>Sign in</div>
+          <div style={sectionLabelStyle()}>{formLabel}</div>
 
           <div
             style={{
@@ -530,7 +725,7 @@ function EmailAuthPageContent() {
               marginBottom: 8,
             }}
           >
-            Continue your family journey
+            {formTitle}
           </div>
 
           <div
@@ -542,7 +737,7 @@ function EmailAuthPageContent() {
               maxWidth: 720,
             }}
           >
-            Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.
+            {formText}
           </div>
 
           <div
@@ -558,14 +753,17 @@ function EmailAuthPageContent() {
               fontWeight: 700,
             }}
           >
-            Existing account sign-in is live on this screen today. Self-serve account creation is
-            being prepared for the same secure entry.
+            {introNotice}
           </div>
 
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              void handlePasswordSignIn();
+              if (isSignup) {
+                void handleCreateAccount();
+              } else {
+                void handlePasswordSignIn();
+              }
             }}
             style={{ display: "grid", gap: 16 }}
           >
@@ -575,7 +773,7 @@ function EmailAuthPageContent() {
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
-                  resetFeedback();
+                  clearFeedback();
                 }}
                 placeholder="Enter your email"
                 style={inputStyle(safe(email) !== "" && !emailValid)}
@@ -608,38 +806,41 @@ function EmailAuthPageContent() {
                 }}
               >
                 <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
-                <button
-                  type="button"
-                  onClick={() => void handleForgotPassword()}
-                  disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    color: "#2563eb",
-                    fontSize: 13,
-                    fontWeight: 800,
-                    textAlign: "center",
-                    cursor:
-                      !hasSupabaseEnv || !emailValid || saveState === "saving"
-                        ? "not-allowed"
-                        : "pointer",
-                    opacity: !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
-                    padding: 0,
-                  }}
-                >
-                  Forgot password?
-                </button>
+                {!isSignup ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleForgotPassword()}
+                    disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: "#2563eb",
+                      fontSize: 13,
+                      fontWeight: 800,
+                      textAlign: "center",
+                      cursor:
+                        !hasSupabaseEnv || !emailValid || saveState === "saving"
+                          ? "not-allowed"
+                          : "pointer",
+                      opacity:
+                        !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
+                      padding: 0,
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                ) : null}
               </div>
               <input
                 type="password"
                 value={password}
                 onChange={(event) => {
                   setPassword(event.target.value);
-                  resetFeedback();
+                  clearFeedback();
                 }}
-                placeholder="Enter your password"
+                placeholder={isSignup ? "Create a password" : "Enter your password"}
                 style={inputStyle(safe(password) !== "" && !passwordValid)}
-                autoComplete="current-password"
+                autoComplete={isSignup ? "new-password" : "current-password"}
                 disabled={!hasSupabaseEnv || saveState === "saving"}
               />
               {safe(password) && !passwordValid ? (
@@ -656,12 +857,54 @@ function EmailAuthPageContent() {
               ) : null}
             </div>
 
+            {isSignup ? (
+              <div>
+                <label style={labelStyle()}>Confirm password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => {
+                    setConfirmPassword(event.target.value);
+                    clearFeedback();
+                  }}
+                  placeholder="Confirm your password"
+                  style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
+                  autoComplete="new-password"
+                  disabled={!hasSupabaseEnv || saveState === "saving"}
+                />
+                {safe(confirmPassword) && !confirmPasswordValid ? (
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 12,
+                      color: "#b91c1c",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Confirm password must match your password.
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {message ? (
-              <div
-                style={statusCardStyle(saveState)}
-                role={saveState === "error" ? "alert" : "status"}
-              >
-                <strong style={{ fontSize: 14 }}>{statusHeading(saveState)}</strong>
+              <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
+                <strong style={{ fontSize: 14 }}>
+                  {statusTitle ||
+                    (saveState === "signed-up"
+                      ? "Account created"
+                      : saveState === "signed-in"
+                        ? "Signed in"
+                        : saveState === "check-email"
+                          ? "Check your email"
+                          : saveState === "error"
+                            ? isSignup
+                              ? "We could not create your account"
+                              : "We could not sign you in"
+                            : isSignup
+                              ? "Create your account"
+                              : "Sign in to continue")}
+                </strong>
                 <div
                   style={{
                     fontSize: 14,
@@ -671,7 +914,7 @@ function EmailAuthPageContent() {
                 >
                   {message}
                 </div>
-                {saveState === "error" ? (
+                {saveState === "error" && !isSignup ? (
                   <div style={{ fontSize: 13, lineHeight: 1.6 }}>
                     If you cannot remember your password, use <strong>Forgot password?</strong>.
                   </div>
@@ -681,48 +924,47 @@ function EmailAuthPageContent() {
 
             <button
               type="submit"
-              disabled={!hasSupabaseEnv || !emailValid || !passwordValid || saveState === "saving"}
+              disabled={
+                !hasSupabaseEnv ||
+                !emailValid ||
+                !passwordValid ||
+                (isSignup && !confirmPasswordValid) ||
+                saveState === "saving"
+              }
               style={primaryButtonStyle(
-                !hasSupabaseEnv || !emailValid || !passwordValid || saveState === "saving",
+                !hasSupabaseEnv ||
+                  !emailValid ||
+                  !passwordValid ||
+                  (isSignup && !confirmPasswordValid) ||
+                  saveState === "saving",
               )}
             >
-              {saveState === "saving" ? "Signing you in..." : "Sign in"}
+              {saveState === "saving"
+                ? isSignup
+                  ? "Creating your account..."
+                  : "Signing you in..."
+                : isSignup
+                  ? "Create account"
+                  : "Sign in"}
             </button>
           </form>
 
-          <div style={helperCardStyle()}>
-            <div style={sectionLabelStyle()}>What happens after sign-in</div>
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-              }}
-            >
-              {[
-                "Open today's flow for the whole family.",
-                "Move into planning when you want to shape the week.",
-                "Capture what happened as the day unfolds.",
-              ].map((item) => (
-                <div
-                  key={item}
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 14,
-                    background: "#ffffff",
-                    padding: 12,
-                    color: "#475569",
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    fontWeight: 700,
-                  }}
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
+          <div
+            style={{
+              marginTop: 16,
+              color: "#475569",
+              fontSize: 14,
+              lineHeight: 1.6,
+              fontWeight: 700,
+            }}
+          >
+            {alternatePrompt}{" "}
+            <Link href={alternateAuthHref} style={{ color: "#2563eb", fontWeight: 800 }}>
+              {alternateLabel}
+            </Link>
           </div>
 
-          <Link href="/get-started" style={secondaryButtonStyle()}>
+          <Link href="/#how-it-works" style={{ ...secondaryButtonStyle(), marginTop: 16 }}>
             See how MyLearna works
           </Link>
         </div>

@@ -11,7 +11,7 @@ import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
   label: "Start your learning record",
-  href: "/login",
+  href: "/signup",
 } as const;
 
 const LIFECYCLE_STEPS = [
@@ -101,8 +101,8 @@ export default function HomePage() {
       heroBadges={[...HERO_PILLS]}
       heroMicrocopy={
         <span>
-          Start from the secure account screen. Existing users can sign in there today, and
-          new-family account setup is being prepared for the same entry.
+          New families can create an account on the next screen. Existing users can still sign
+          in with their email and password.
         </span>
       }
       asideTitle=""
@@ -360,8 +360,8 @@ export default function HomePage() {
               maxWidth: 720,
             }}
           >
-            Existing users can sign in on the next screen. New-family account setup is being
-            prepared for the same secure entry, so the path stays simple.
+            New families can create an account on the next screen. Existing users can sign in
+            from the same public entry when they return.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link

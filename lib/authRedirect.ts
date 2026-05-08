@@ -26,6 +26,8 @@ export function normalizeAuthNextPath(
   if (
     normalized === "/login" ||
     normalized.startsWith("/login?") ||
+    normalized === "/signup" ||
+    normalized.startsWith("/signup?") ||
     normalized === "/auth/callback" ||
     normalized.startsWith("/auth/callback?")
   ) {

@@ -13,11 +13,11 @@ export default async function LoginPage() {
   } catch (error) {
     const message = String((error as { message?: unknown })?.message ?? "").trim();
     if (message && message === MISSING_PUBLIC_SUPABASE_ENV_MESSAGE) {
-      return <EmailAuthPage />;
+      return <EmailAuthPage mode="login" />;
     }
 
     throw error;
   }
 
-  return <EmailAuthPage />;
+  return <EmailAuthPage mode="login" />;
 }
