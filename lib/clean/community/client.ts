@@ -1,0 +1,596 @@
+import { supabase } from "@/lib/supabaseClient";
+import {
+  getCurrentCleanUserId,
+  isCleanSchemaMissingError,
+} from "@/lib/clean/family/client";
+import type {
+  CommunityCategory,
+  CommunityPost,
+  CommunityPostInput,
+  CommunityPostStatus,
+  CommunityReport,
+  CommunityReportInput,
+  CommunityReportStatus,
+  CommunityReportTargetType,
+  CommunityThread,
+  CommunityThreadInput,
+  CommunityThreadsOptions,
+  CommunityThreadStatus,
+} from "@/lib/clean/community/types";
+import { COMMUNITY_CATEGORIES } from "@/lib/clean/community/types";
+
+export const COMMUNITY_NOT_AVAILABLE_MESSAGE =
+  "MyLearna Community is not available yet.";
+
+type CommunityThreadRow = {
+  id: string;
+  author_user_id: string;
+  category: string;
+  title: string;
+  body: string;
+  link_url?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type CommunityPostRow = {
+  id: string;
+  thread_id: string;
+  author_user_id: string;
+  body: string;
+  status?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+type CommunityReportRow = {
+  id: string;
+  reporter_user_id: string;
+  target_type: string;
+  target_id: string;
+  reason: string;
+  status?: string | null;
+  created_at?: string | null;
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function normalizeNullString(value: unknown) {
+  const text = safe(value);
+  return text || null;
+}
+
+function normalizeCommunityCategory(
+  value: unknown,
+  fallback: CommunityCategory = "general",
+): CommunityCategory {
+  const category = safe(value) as CommunityCategory;
+  return COMMUNITY_CATEGORIES.includes(category) ? category : fallback;
+}
+
+function normalizeCommunityThreadStatus(value: unknown): CommunityThreadStatus {
+  const status = safe(value);
+  if (status === "hidden" || status === "locked") return status;
+  return "open";
+}
+
+function normalizeCommunityPostStatus(value: unknown): CommunityPostStatus {
+  return safe(value) === "hidden" ? "hidden" : "open";
+}
+
+function normalizeCommunityReportStatus(value: unknown): CommunityReportStatus {
+  const status = safe(value);
+  if (status === "reviewed" || status === "dismissed" || status === "actioned") {
+    return status;
+  }
+
+  return "open";
+}
+
+function normalizeCommunityReportTargetType(
+  value: unknown,
+): CommunityReportTargetType {
+  return safe(value) === "post" ? "post" : "thread";
+}
+
+function toCommunityThread(row: CommunityThreadRow): CommunityThread {
+  return {
+    id: safe(row.id),
+    authorUserId: safe(row.author_user_id),
+    category: normalizeCommunityCategory(row.category),
+    title: safe(row.title),
+    body: safe(row.body),
+    linkUrl: normalizeNullString(row.link_url),
+    status: normalizeCommunityThreadStatus(row.status),
+    createdAt: normalizeNullString(row.created_at),
+    updatedAt: normalizeNullString(row.updated_at),
+  };
+}
+
+function toCommunityPost(row: CommunityPostRow): CommunityPost {
+  return {
+    id: safe(row.id),
+    threadId: safe(row.thread_id),
+    authorUserId: safe(row.author_user_id),
+    body: safe(row.body),
+    status: normalizeCommunityPostStatus(row.status),
+    createdAt: normalizeNullString(row.created_at),
+    updatedAt: normalizeNullString(row.updated_at),
+  };
+}
+
+function toCommunityReport(row: CommunityReportRow): CommunityReport {
+  return {
+    id: safe(row.id),
+    reporterUserId: safe(row.reporter_user_id),
+    targetType: normalizeCommunityReportTargetType(row.target_type),
+    targetId: safe(row.target_id),
+    reason: safe(row.reason),
+    status: normalizeCommunityReportStatus(row.status),
+    createdAt: normalizeNullString(row.created_at),
+  };
+}
+
+function sortCommunityThreads(items: CommunityThread[]) {
+  return [...items].sort((left, right) => {
+    const leftCreated = Date.parse(left.createdAt || left.updatedAt || "");
+    const rightCreated = Date.parse(right.createdAt || right.updatedAt || "");
+
+    if (!Number.isNaN(leftCreated) || !Number.isNaN(rightCreated)) {
+      if (Number.isNaN(leftCreated)) return 1;
+      if (Number.isNaN(rightCreated)) return -1;
+      if (leftCreated !== rightCreated) return rightCreated - leftCreated;
+    }
+
+    return left.title.localeCompare(right.title);
+  });
+}
+
+function sortCommunityPosts(items: CommunityPost[]) {
+  return [...items].sort((left, right) => {
+    const leftCreated = Date.parse(left.createdAt || left.updatedAt || "");
+    const rightCreated = Date.parse(right.createdAt || right.updatedAt || "");
+
+    if (!Number.isNaN(leftCreated) || !Number.isNaN(rightCreated)) {
+      if (Number.isNaN(leftCreated)) return 1;
+      if (Number.isNaN(rightCreated)) return -1;
+      if (leftCreated !== rightCreated) return leftCreated - rightCreated;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+}
+
+function validateCommunityCategory(value: unknown) {
+  const category = safe(value) as CommunityCategory;
+  if (!COMMUNITY_CATEGORIES.includes(category)) {
+    throw new Error("Choose a valid community category.");
+  }
+
+  return category;
+}
+
+function validateCommunityReportTargetType(value: unknown) {
+  const targetType = safe(value);
+  if (targetType !== "thread" && targetType !== "post") {
+    throw new Error("Choose valid community content to report.");
+  }
+
+  return targetType as CommunityReportTargetType;
+}
+
+function normalizeCommunityErrorMessage(error: unknown, fallback: string) {
+  if (isCleanSchemaMissingError(error)) {
+    return COMMUNITY_NOT_AVAILABLE_MESSAGE;
+  }
+
+  return String((error as { message?: unknown })?.message ?? fallback).trim();
+}
+
+async function requireCommunityUser(message: string) {
+  const currentUserId = await getCurrentCleanUserId();
+  if (!currentUserId) {
+    throw new Error(message);
+  }
+
+  return currentUserId;
+}
+
+function sanitizeCommunityThreadInput(
+  input: CommunityThreadInput | Partial<CommunityThreadInput>,
+) {
+  return {
+    category:
+      "category" in input && input.category !== undefined
+        ? validateCommunityCategory(input.category)
+        : undefined,
+    title:
+      "title" in input && input.title !== undefined ? safe(input.title) || null : undefined,
+    body: "body" in input && input.body !== undefined ? safe(input.body) || null : undefined,
+    link_url:
+      "linkUrl" in input && input.linkUrl !== undefined
+        ? normalizeNullString(input.linkUrl)
+        : undefined,
+  };
+}
+
+function sanitizeCommunityPostInput(
+  input: CommunityPostInput | Partial<CommunityPostInput>,
+) {
+  return {
+    body: "body" in input && input.body !== undefined ? safe(input.body) || null : undefined,
+  };
+}
+
+function sanitizeCommunityReportInput(input: CommunityReportInput) {
+  return {
+    target_type: validateCommunityReportTargetType(input.targetType),
+    target_id: safe(input.targetId) || null,
+    reason: safe(input.reason) || null,
+  };
+}
+
+export async function listCommunityThreads(options: CommunityThreadsOptions = {}) {
+  await requireCommunityUser("You need to sign in before opening MyLearna Community.");
+
+  let query = supabase
+    .from("community_threads")
+    .select(
+      "id,author_user_id,category,title,body,link_url,status,created_at,updated_at",
+    )
+    .order("created_at", { ascending: false });
+
+  if (options.category) {
+    query = query.eq("category", validateCommunityCategory(options.category));
+  }
+
+  if (typeof options.limit === "number" && options.limit > 0) {
+    query = query.limit(options.limit);
+  }
+
+  const response = await query;
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not load MyLearna Community just now.",
+      ),
+    );
+  }
+
+  return sortCommunityThreads(
+    (response.data ?? []).map((row) => toCommunityThread(row as CommunityThreadRow)),
+  );
+}
+
+export async function getCommunityThread(threadId: string) {
+  await requireCommunityUser("You need to sign in before opening MyLearna Community.");
+
+  const normalizedThreadId = safe(threadId);
+  if (!normalizedThreadId) {
+    throw new Error("A community thread is required.");
+  }
+
+  const response = await supabase
+    .from("community_threads")
+    .select(
+      "id,author_user_id,category,title,body,link_url,status,created_at,updated_at",
+    )
+    .eq("id", normalizedThreadId)
+    .maybeSingle();
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not open this community thread just now.",
+      ),
+    );
+  }
+
+  if (!response.data) {
+    return null;
+  }
+
+  return toCommunityThread(response.data as CommunityThreadRow);
+}
+
+export async function createCommunityThread(input: CommunityThreadInput) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before starting a community thread.",
+  );
+
+  const payload = sanitizeCommunityThreadInput(input);
+
+  if (!payload.category) {
+    throw new Error("Choose a community category.");
+  }
+
+  if (!safe(payload.title)) {
+    throw new Error("A thread title is required.");
+  }
+
+  if (!safe(payload.body)) {
+    throw new Error("Add a message before starting this thread.");
+  }
+
+  const response = await supabase
+    .from("community_threads")
+    .insert({
+      author_user_id: currentUserId,
+      category: payload.category,
+      title: payload.title,
+      body: payload.body,
+      link_url: payload.link_url,
+    })
+    .select(
+      "id,author_user_id,category,title,body,link_url,status,created_at,updated_at",
+    )
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not start this community thread.",
+      ),
+    );
+  }
+
+  return toCommunityThread(response.data as CommunityThreadRow);
+}
+
+export async function updateCommunityThread(
+  threadId: string,
+  input: Partial<CommunityThreadInput>,
+) {
+  await requireCommunityUser("You need to sign in before editing this community thread.");
+
+  const normalizedThreadId = safe(threadId);
+  if (!normalizedThreadId) {
+    throw new Error("A community thread is required.");
+  }
+
+  const payload = Object.fromEntries(
+    Object.entries(sanitizeCommunityThreadInput(input)).filter(
+      ([, value]) => value !== undefined,
+    ),
+  );
+
+  if (!Object.keys(payload).length) {
+    throw new Error("Choose something to update in this thread.");
+  }
+
+  if (payload.category !== undefined) {
+    validateCommunityCategory(payload.category);
+  }
+
+  if (payload.title !== undefined && !safe(payload.title)) {
+    throw new Error("A thread title is required.");
+  }
+
+  if (payload.body !== undefined && !safe(payload.body)) {
+    throw new Error("Add a message before saving this thread.");
+  }
+
+  const response = await supabase
+    .from("community_threads")
+    .update(payload)
+    .eq("id", normalizedThreadId)
+    .select(
+      "id,author_user_id,category,title,body,link_url,status,created_at,updated_at",
+    )
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not update this community thread.",
+      ),
+    );
+  }
+
+  return toCommunityThread(response.data as CommunityThreadRow);
+}
+
+export async function deleteCommunityThread(threadId: string) {
+  await requireCommunityUser("You need to sign in before deleting this community thread.");
+
+  const normalizedThreadId = safe(threadId);
+  if (!normalizedThreadId) {
+    throw new Error("A community thread is required.");
+  }
+
+  const response = await supabase
+    .from("community_threads")
+    .delete()
+    .eq("id", normalizedThreadId);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not delete this community thread.",
+      ),
+    );
+  }
+}
+
+export async function listCommunityPosts(threadId: string) {
+  await requireCommunityUser("You need to sign in before opening MyLearna Community.");
+
+  const normalizedThreadId = safe(threadId);
+  if (!normalizedThreadId) {
+    throw new Error("A community thread is required.");
+  }
+
+  const response = await supabase
+    .from("community_posts")
+    .select("id,thread_id,author_user_id,body,status,created_at,updated_at")
+    .eq("thread_id", normalizedThreadId)
+    .order("created_at", { ascending: true });
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not load community replies just now.",
+      ),
+    );
+  }
+
+  return sortCommunityPosts(
+    (response.data ?? []).map((row) => toCommunityPost(row as CommunityPostRow)),
+  );
+}
+
+export async function createCommunityPost(
+  threadId: string,
+  input: CommunityPostInput,
+) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before replying in MyLearna Community.",
+  );
+
+  const normalizedThreadId = safe(threadId);
+  if (!normalizedThreadId) {
+    throw new Error("A community thread is required.");
+  }
+
+  const payload = sanitizeCommunityPostInput(input);
+
+  if (!safe(payload.body)) {
+    throw new Error("Add a reply before posting.");
+  }
+
+  const response = await supabase
+    .from("community_posts")
+    .insert({
+      thread_id: normalizedThreadId,
+      author_user_id: currentUserId,
+      body: payload.body,
+    })
+    .select("id,thread_id,author_user_id,body,status,created_at,updated_at")
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not post this reply.",
+      ),
+    );
+  }
+
+  return toCommunityPost(response.data as CommunityPostRow);
+}
+
+export async function updateCommunityPost(
+  postId: string,
+  input: Partial<CommunityPostInput>,
+) {
+  await requireCommunityUser("You need to sign in before editing this reply.");
+
+  const normalizedPostId = safe(postId);
+  if (!normalizedPostId) {
+    throw new Error("A community reply is required.");
+  }
+
+  const payload = Object.fromEntries(
+    Object.entries(sanitizeCommunityPostInput(input)).filter(
+      ([, value]) => value !== undefined,
+    ),
+  );
+
+  if (!Object.keys(payload).length) {
+    throw new Error("Choose something to update in this reply.");
+  }
+
+  if (payload.body !== undefined && !safe(payload.body)) {
+    throw new Error("Add a reply before saving.");
+  }
+
+  const response = await supabase
+    .from("community_posts")
+    .update(payload)
+    .eq("id", normalizedPostId)
+    .select("id,thread_id,author_user_id,body,status,created_at,updated_at")
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not update this reply.",
+      ),
+    );
+  }
+
+  return toCommunityPost(response.data as CommunityPostRow);
+}
+
+export async function deleteCommunityPost(postId: string) {
+  await requireCommunityUser("You need to sign in before deleting this reply.");
+
+  const normalizedPostId = safe(postId);
+  if (!normalizedPostId) {
+    throw new Error("A community reply is required.");
+  }
+
+  const response = await supabase
+    .from("community_posts")
+    .delete()
+    .eq("id", normalizedPostId);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not delete this reply.",
+      ),
+    );
+  }
+}
+
+export async function reportCommunityContent(input: CommunityReportInput) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before reporting community content.",
+  );
+
+  const payload = sanitizeCommunityReportInput(input);
+
+  if (!safe(payload.target_id)) {
+    throw new Error("Choose community content to report.");
+  }
+
+  if (!safe(payload.reason)) {
+    throw new Error("Add a reason before sending this report.");
+  }
+
+  const response = await supabase
+    .from("community_reports")
+    .insert({
+      reporter_user_id: currentUserId,
+      target_type: payload.target_type,
+      target_id: payload.target_id,
+      reason: payload.reason,
+    })
+    .select("id,reporter_user_id,target_type,target_id,reason,status,created_at")
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not send this community report.",
+      ),
+    );
+  }
+
+  return toCommunityReport(response.data as CommunityReportRow);
+}
