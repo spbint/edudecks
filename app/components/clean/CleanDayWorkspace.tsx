@@ -8,7 +8,10 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanGuidanceRibbon from "@/app/components/clean/CleanGuidanceRibbon";
-import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
+import {
+  createCleanCalendarItem,
+  listCleanCalendarItems,
+} from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
@@ -104,6 +107,37 @@ const blockMetaPillStyle: React.CSSProperties = {
   fontWeight: 600,
 };
 
+const primaryButtonStyle: React.CSSProperties = {
+  border: "1px solid #0f172a",
+  background: "#0f172a",
+  color: "#ffffff",
+  borderRadius: 12,
+  padding: "10px 14px",
+  fontSize: 14,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const quickAddCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 18,
+  background: "#f8fbff",
+  padding: 18,
+  display: "grid",
+  gap: 14,
+};
+
+const COMMON_LEARNING_AREAS = [
+  "English",
+  "Mathematics",
+  "Science",
+  "Humanities and Social Sciences",
+  "The Arts",
+  "Languages",
+  "Health and Physical Education",
+  "Technologies",
+];
+
 function getTodayDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -147,6 +181,14 @@ function formatTimeLabel(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function toTimestampFromDateAndTime(dateValue: string, timeValue: string) {
+  const time = String(timeValue ?? "").trim();
+  if (!time) return null;
+  const localDate = new Date(`${dateValue}T${time}:00`);
+  if (Number.isNaN(localDate.getTime())) return null;
+  return localDate.toISOString();
 }
 
 function getLearnerLabel(firstName: string, preferredName: string | null) {
@@ -207,9 +249,21 @@ function CleanDayWorkspaceBody() {
   const [guidanceLoading, setGuidanceLoading] = useState(false);
   const [guidanceError, setGuidanceError] = useState<string | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<string[]>([]);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [quickAddLearnerId, setQuickAddLearnerId] = useState("");
+  const [quickAddTime, setQuickAddTime] = useState("");
+  const [quickAddLearningArea, setQuickAddLearningArea] = useState("");
+  const [quickAddProgramId, setQuickAddProgramId] = useState("");
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
+  const [quickAddError, setQuickAddError] = useState<string | null>(null);
+  const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
 
   const today = getTodayDate();
   const dayPathBase = pathname.startsWith("/clean-my-day") ? "/clean-my-day" : "/my-day";
+  const calendarPathBase = pathname.startsWith("/clean-my-day")
+    ? "/clean-my-calendar"
+    : "/my-calendar";
   const capturePathBase = pathname.startsWith("/clean-my-day")
     ? "/clean-my-capture"
     : "/my-capture";
@@ -307,6 +361,15 @@ function CleanDayWorkspaceBody() {
   const segmentLabelById = useMemo(
     () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
     [programSegments],
+  );
+
+  const programOptions = useMemo(
+    () =>
+      programs.map((program) => ({
+        value: program.id,
+        label: program.title,
+      })),
+    [programs],
   );
 
   const evidenceByCalendarItemId = useMemo(() => {
@@ -423,6 +486,12 @@ function CleanDayWorkspaceBody() {
   }, [isViewingToday, nextUpcomingItem, sortedVisibleItems]);
 
   const nextUpLabel = isViewingToday ? "Next up" : "Looking ahead";
+  const quickAddHeading = isViewingToday
+    ? "Add one quick block for today"
+    : "Add one quick block for this day";
+  const quickAddLead = isViewingToday
+    ? "Quick add stays on My Day. Use My Calendar when you want the fuller planning view."
+    : "Quick add stays on this page. Use My Calendar when you want the fuller planning view.";
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -442,6 +511,18 @@ function CleanDayWorkspaceBody() {
   useEffect(() => {
     setExpandedItemIds([]);
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (!quickAddOpen) return;
+
+    setQuickAddLearnerId((current) => {
+      if (current && learnerOptions.some((option) => option.value === current)) {
+        return current;
+      }
+
+      return selectedLearnerId;
+    });
+  }, [learnerOptions, quickAddOpen, selectedLearnerId]);
 
   useEffect(() => {
     async function loadItems() {
@@ -590,6 +671,69 @@ function CleanDayWorkspaceBody() {
     );
   }
 
+  function openQuickAdd() {
+    setQuickAddOpen(true);
+    setQuickAddLearnerId(selectedLearnerId);
+    setQuickAddError(null);
+    setQuickAddMessage(null);
+  }
+
+  function closeQuickAdd() {
+    setQuickAddOpen(false);
+    setQuickAddTitle("");
+    setQuickAddLearnerId(selectedLearnerId);
+    setQuickAddTime("");
+    setQuickAddLearningArea("");
+    setQuickAddProgramId("");
+    setQuickAddError(null);
+  }
+
+  async function handleQuickAddSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!workspace.profile) {
+      setQuickAddError("My Day is not ready for quick add yet.");
+      return;
+    }
+
+    const title = String(quickAddTitle ?? "").trim();
+    if (!title) {
+      setQuickAddError("Add a title before saving this quick block.");
+      return;
+    }
+
+    setQuickAddSubmitting(true);
+    setQuickAddError(null);
+    setQuickAddMessage(null);
+
+    try {
+      const createdItem = await createCleanCalendarItem(workspace.profile.id, {
+        title,
+        plannedDate: selectedDate,
+        learnerId: quickAddLearnerId || null,
+        startsAt: toTimestampFromDateAndTime(selectedDate, quickAddTime),
+        learningArea: String(quickAddLearningArea ?? "").trim() || null,
+        programId: quickAddProgramId || null,
+        sourceType: "manual",
+      });
+
+      setItems((current) => [...current, createdItem]);
+      setExpandedItemIds([createdItem.id]);
+      setQuickAddMessage("Quick block added to My Day.");
+      setQuickAddTitle("");
+      setQuickAddTime("");
+      setQuickAddLearningArea("");
+      setQuickAddProgramId("");
+      setQuickAddOpen(false);
+    } catch (error) {
+      setQuickAddError(
+        normalizeCleanErrorMessage(error, "We could not add this quick block."),
+      );
+    } finally {
+      setQuickAddSubmitting(false);
+    }
+  }
+
   const readyForDay = !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
   const hasPlannedItemsForSelectedDate = items.length > 0;
 
@@ -599,7 +743,7 @@ function CleanDayWorkspaceBody() {
         <CleanAppHeader />
 
         <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
+          <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
                 fontSize: 12,
@@ -611,11 +755,29 @@ function CleanDayWorkspaceBody() {
             >
               Family day
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Day</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 34,
+                lineHeight: 1.05,
+                letterSpacing: "-0.03em",
+                color: "#0f172a",
+              }}
+            >
+              My Day
+            </h1>
+            <p
+              style={{
+                margin: 0,
+                color: "#0f172a",
+                fontSize: 20,
+                fontWeight: 700,
+                lineHeight: 1.35,
+              }}
+            >
               {formatTodayHeading(selectedDate)}
             </p>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
               See what is planned and what comes next.
             </p>
           </div>
@@ -694,9 +856,9 @@ function CleanDayWorkspaceBody() {
                     border: "1px solid #dbeafe",
                     borderRadius: 20,
                     background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
-                    padding: 20,
+                    padding: 22,
                     display: "grid",
-                    gap: 16,
+                    gap: 18,
                   }}
                 >
                   <div
@@ -720,13 +882,21 @@ function CleanDayWorkspaceBody() {
                       >
                         {isViewingToday ? "Today&apos;s flow" : "Family day"}
                       </div>
-                      <h2 style={{ margin: 0, color: "#0f172a", fontSize: 28 }}>
+                      <h2
+                        style={{
+                          margin: 0,
+                          color: "#0f172a",
+                          fontSize: 30,
+                          lineHeight: 1.08,
+                          letterSpacing: "-0.03em",
+                        }}
+                      >
                         {isViewingToday ? "Learning blocks for today" : "Learning blocks for this day"}
                       </h2>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                      <p style={{ margin: 0, color: "#475569", fontSize: 15, lineHeight: 1.75 }}>
                         {overviewSummary}
                       </p>
-                      <p style={{ margin: 0, color: "#0f172a", fontWeight: 700 }}>
+                      <p style={{ margin: 0, color: "#0f172a", fontWeight: 700, fontSize: 15 }}>
                         {nextUpLabel}: {nextUpSummary}
                       </p>
                     </div>
@@ -809,7 +979,19 @@ function CleanDayWorkspaceBody() {
                   </div>
 
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <span style={overviewPillStyle}>{formatTodayHeading(selectedDate)}</span>
+                    <span
+                      style={{
+                        ...overviewPillStyle,
+                        padding: "9px 12px",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "#0f172a",
+                        background: "#eff6ff",
+                        borderColor: "#bfdbfe",
+                      }}
+                    >
+                      {formatTodayHeading(selectedDate)}
+                    </span>
                     <span style={overviewPillStyle}>{overviewFocusLabel}</span>
                     <span style={overviewPillStyle}>
                       {sortedVisibleItems.length} block{sortedVisibleItems.length === 1 ? "" : "s"}
@@ -827,92 +1009,229 @@ function CleanDayWorkspaceBody() {
                   }}
                 >
                   <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ color: "#0f172a", fontSize: 18 }}>Family timeline</strong>
-                    <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    <strong style={{ color: "#0f172a", fontSize: 20, letterSpacing: "-0.02em" }}>
+                      Family timeline
+                    </strong>
+                    <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
                       Learning blocks stay small until you open the details.
                     </p>
                   </div>
-                  <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>
-                    Open My Calendar
-                  </Link>
-                </div>
-
-              {itemsLoading ? (
-                <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>
-                  Loading this day&apos;s flow...
-                </p>
-              ) : null}
-              {itemsError ? <p style={{ marginTop: 0, marginBottom: 0, color: "#b91c1c" }}>{itemsError}</p> : null}
-
-              {!itemsLoading && !itemsError && !visibleItems.length ? (
-                <div
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 18,
-                    background: "#fbfdff",
-                    padding: 20,
-                    display: "grid",
-                    gap: 14,
-                  }}
-                >
-                  <div style={{ display: "grid", gap: 6 }}>
-                    <strong style={{ color: "#0f172a" }}>
-                      {hasPlannedItemsForSelectedDate && selectedLearnerLabel
-                        ? `Nothing planned for ${selectedLearnerLabel} on this day yet.`
-                        : isViewingToday
-                          ? "Nothing planned for today yet."
-                          : "Nothing planned for this day yet."}
-                    </strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      {hasPlannedItemsForSelectedDate && selectedLearnerLabel
-                        ? `Try the full family view, or open My Calendar to adjust ${
-                            isViewingToday ? "today" : "this day"
-                          }.`
-                        : `Open My Calendar to plan the week, or add one quick block for ${
-                            isViewingToday ? "today" : "this day"
-                          }.`}
-                    </p>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <button type="button" onClick={openQuickAdd} style={primaryButtonStyle}>
+                      Add a quick block
+                    </button>
                     <Link
-                      href="/my-calendar"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1px solid #0f172a",
-                        background: "#0f172a",
-                        color: "#ffffff",
-                        borderRadius: 10,
-                        padding: "10px 14px",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
+                      href={calendarPathBase}
+                      style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}
                     >
                       Open My Calendar
                     </Link>
-                    <Link
-                      href="/my-calendar"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        border: "1px solid #cbd5e1",
-                        background: "#ffffff",
-                        color: "#0f172a",
-                        borderRadius: 10,
-                        padding: "10px 14px",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
-                    >
-                      Add a quick block
-                    </Link>
                   </div>
                 </div>
-              ) : null}
+
+                {quickAddOpen ? (
+                  <form
+                    onSubmit={(event) => void handleQuickAddSubmit(event)}
+                    style={quickAddCardStyle}
+                  >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "flex-start",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a", fontSize: 18, letterSpacing: "-0.02em" }}>
+                        {quickAddHeading}
+                      </strong>
+                      <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                        {quickAddLead}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeQuickAdd}
+                      style={secondaryButtonStyle}
+                      disabled={quickAddSubmitting}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 12,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                    }}
+                  >
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                        Activity
+                      </span>
+                      <input
+                        value={quickAddTitle}
+                        onChange={(event) => setQuickAddTitle(event.target.value)}
+                        style={inputStyle}
+                        placeholder="Read-aloud, maths, nature walk"
+                        autoFocus
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                        Who is this for?
+                      </span>
+                      <select
+                        value={quickAddLearnerId}
+                        onChange={(event) => setQuickAddLearnerId(event.target.value)}
+                        style={inputStyle}
+                      >
+                        <option value="">Whole family</option>
+                        {learnerOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                        Optional time
+                      </span>
+                      <input
+                        type="time"
+                        value={quickAddTime}
+                        onChange={(event) => setQuickAddTime(event.target.value)}
+                        style={inputStyle}
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                        Learning area
+                      </span>
+                      <input
+                        value={quickAddLearningArea}
+                        onChange={(event) => setQuickAddLearningArea(event.target.value)}
+                        list="clean-my-day-learning-areas"
+                        style={inputStyle}
+                        placeholder="Optional"
+                      />
+                    </label>
+
+                    <label style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                        Program
+                      </span>
+                      <select
+                        value={quickAddProgramId}
+                        onChange={(event) => setQuickAddProgramId(event.target.value)}
+                        style={inputStyle}
+                      >
+                        <option value="">None</option>
+                        {programOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  {quickAddError ? (
+                    <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                      {quickAddError}
+                    </div>
+                  ) : null}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    <button type="submit" disabled={quickAddSubmitting} style={primaryButtonStyle}>
+                      {quickAddSubmitting ? "Creating..." : "Create quick block"}
+                    </button>
+                    <Link
+                      href={calendarPathBase}
+                      style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}
+                    >
+                      Open My Calendar instead
+                    </Link>
+                  </div>
+                  </form>
+                ) : null}
+
+                {quickAddMessage ? (
+                  <div role="status" style={{ color: "#166534", fontSize: 13, fontWeight: 700 }}>
+                    {quickAddMessage}
+                  </div>
+                ) : null}
+
+                {itemsLoading ? (
+                  <p style={{ marginTop: 0, marginBottom: 0, color: "#475569" }}>
+                    Loading this day&apos;s flow...
+                  </p>
+                ) : null}
+                {itemsError ? (
+                  <p style={{ marginTop: 0, marginBottom: 0, color: "#b91c1c" }}>
+                    {itemsError}
+                  </p>
+                ) : null}
+
+                {!itemsLoading && !itemsError && !visibleItems.length ? (
+                  <div
+                    style={{
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 18,
+                      background: "#fbfdff",
+                      padding: 20,
+                      display: "grid",
+                      gap: 14,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a", fontSize: 17, letterSpacing: "-0.01em" }}>
+                        {hasPlannedItemsForSelectedDate && selectedLearnerLabel
+                          ? `Nothing planned for ${selectedLearnerLabel} on this day yet.`
+                          : isViewingToday
+                            ? "Nothing planned for today yet."
+                            : "Nothing planned for this day yet."}
+                      </strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                        {hasPlannedItemsForSelectedDate && selectedLearnerLabel
+                          ? `Try the full family view, add one quick block here, or open My Calendar to adjust ${
+                              isViewingToday ? "today" : "this day"
+                            }.`
+                          : `Add one quick block here when you want to plan immediately, or open My Calendar for the fuller planning view.`}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button type="button" onClick={openQuickAdd} style={primaryButtonStyle}>
+                        {quickAddOpen ? "Quick add is open above" : "Add a quick block"}
+                      </button>
+                      <Link
+                        href={calendarPathBase}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          borderRadius: 10,
+                          padding: "10px 14px",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          textDecoration: "none",
+                        }}
+                      >
+                        Open My Calendar
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
 
               {!itemsLoading && !itemsError && visibleItems.length ? (
                 <div
@@ -1073,7 +1392,10 @@ function CleanDayWorkspaceBody() {
                                   Capture what happened
                                 </Link>
                               )}
-                              <Link href="/my-calendar" style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                              <Link
+                                href={calendarPathBase}
+                                style={{ color: "#1d4ed8", fontWeight: 700 }}
+                              >
                                 Open in My Calendar
                               </Link>
                             </div>
@@ -1084,6 +1406,11 @@ function CleanDayWorkspaceBody() {
                   })}
                 </div>
               ) : null}
+                <datalist id="clean-my-day-learning-areas">
+                  {COMMON_LEARNING_AREAS.map((area) => (
+                    <option key={area} value={area} />
+                  ))}
+                </datalist>
               </div>
             </section>
 
