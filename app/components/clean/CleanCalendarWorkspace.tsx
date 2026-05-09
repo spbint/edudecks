@@ -90,6 +90,15 @@ const subCardStyle: React.CSSProperties = {
   gap: 14,
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  background: "#f8fbff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -1949,6 +1958,57 @@ function CleanCalendarWorkspaceBody() {
         {readyForCalendar && workspace.profile && workspace.learners.length ? (
           <>
             <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>What this means</h2>
+                  <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                    Keep the planning terms. Use the short notes below when you need a quick
+                    reminder of what belongs where.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  }}
+                >
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Learning period</strong>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      A learning period is the span of time you want to plan inside, such as a
+                      term, semester, unit block, or custom period.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Master week</strong>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Use Master week when you want to set up a repeatable weekly pattern. You
+                      can then apply it to an actual week and adjust that week without changing
+                      the master.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>This week</strong>
+                    <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                      Use This week for the real week you are working in now. Changes here
+                      affect this week only.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What happens next</strong>
+                  <p style={{ ...secondaryTextStyle, margin: 0 }}>
+                    Planned blocks appear in My Day, where you can follow the day and capture
+                    what happened.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
               <div style={{ display: "grid", gap: 16 }}>
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Learning periods</h2>
@@ -2631,6 +2691,10 @@ function CleanCalendarWorkspaceBody() {
                     <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
                       Open This week for day-to-day changes. Use Master week when you want
                       to update the reusable template.
+                    </p>
+                    <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
+                      School week keeps the focus on Monday to Friday. Full week includes
+                      Saturday and Sunday when you need weekend planning.
                     </p>
                   </div>
                   <div

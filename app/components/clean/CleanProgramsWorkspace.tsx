@@ -47,6 +47,15 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  background: "#f8fbff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -470,6 +479,48 @@ function CleanProgramsWorkspaceBody() {
 
         {readyForPrograms && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>What this means</h2>
+                  <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                    My Programs gives your planning a bigger learning structure, then breaks it
+                    into chunks you can actually place into the week.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  }}
+                >
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Program</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      A program is the bigger learning thread you are working through, such as
+                      science, writing, history, or a family project.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Week / segment</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      A week or segment is the next chunk of that program that you want to
+                      place into planning.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>What happens next</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Once a segment exists, you can add it to Master week or plan it directly
+                      into This week.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div
                 style={{

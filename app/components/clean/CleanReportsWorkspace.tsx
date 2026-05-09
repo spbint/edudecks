@@ -53,6 +53,15 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  background: "#f8fbff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -940,6 +949,55 @@ function CleanReportsWorkspaceBody() {
 
         {readyForReports && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>What this means</h2>
+                  <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
+                    My Reports turns selected portfolio evidence into a structured written
+                    record for a reporting period.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  }}
+                >
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Report</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      A report brings together your written review and selected portfolio
+                      evidence for a set reporting period.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Reporting period</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      This is the time span the report covers, such as a term, semester, or
+                      custom period.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Ready</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Ready means this report is prepared for final review and export. You can
+                      still return it to draft if needed.
+                    </p>
+                  </div>
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>What happens next</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      When the report is ready, mark it Ready and open My Outputs to download
+                      the final learning record.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div
                 style={{

@@ -49,6 +49,15 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  background: "#f8fbff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -337,6 +346,26 @@ function getCurriculumLabel(countryCode: string | null, curriculumFrameworkId: s
 function getReportingModeLabel(countryCode: string | null, reportingMode: string | null) {
   const formValue = decodeReportingModeForForm(countryCode, reportingMode);
   return getOptionLabel(getReportingOptions(safe(countryCode)), formValue);
+}
+
+function getReportingModeDescription(reportingMode: string) {
+  if (reportingMode === "family-summary") {
+    return "Family summary gives a quick overview across the family's records.";
+  }
+
+  if (reportingMode === "progress-review") {
+    return "Progress shows the pattern of learning records building over time. It is not a score.";
+  }
+
+  if (reportingMode === "compliance-support") {
+    return "Compliance support helps organise records around common home education reporting needs. Families should still check their own authority requirements.";
+  }
+
+  if (reportingMode === "standard-learning-portfolio-report") {
+    return "This keeps the learning record clear and flexible when you are not working inside one fixed state or country model.";
+  }
+
+  return "Choose the reporting approach that best fits how you want MyLearna to frame your records.";
 }
 
 function hasMyDayContext(profile: FamilyProfile | null) {
@@ -696,15 +725,77 @@ function CleanSettingsWorkspaceBody() {
                         </option>
                       ))}
                     </select>
-                    {draft.countryCode === "INTL" ? (
+                    <div style={helperCardStyle}>
+                      <strong style={{ color: "#0f172a" }}>Reporting mode</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Use a flexible report format suitable for families who want a clear learning record. This does not make legal or regulatory claims.
+                        Reporting mode sets how MyLearna frames your records and reporting
+                        flow. It helps shape the structure without locking you into one style
+                        of homeschooling.
                       </p>
-                    ) : (
-                      <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                        Detailed state or country compliance rules come later. This setting only shapes the report style for now.
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        <strong>
+                          {getOptionLabel(reportingOptions, draft.reportingMode, "Current mode")}:
+                        </strong>{" "}
+                        {getReportingModeDescription(draft.reportingMode)}
                       </p>
-                    )}
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 10,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        }}
+                      >
+                        <div
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 12,
+                            background: "#ffffff",
+                            padding: 12,
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>Family summary</strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            Family summary gives a quick overview across the family&apos;s
+                            records.
+                          </p>
+                        </div>
+                        <div
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 12,
+                            background: "#ffffff",
+                            padding: 12,
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>Progress</strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            Progress shows the pattern of learning records building over time.
+                            It is not a score.
+                          </p>
+                        </div>
+                        <div
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 12,
+                            background: "#ffffff",
+                            padding: 12,
+                            display: "grid",
+                            gap: 6,
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a" }}>Compliance support</strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            Compliance support helps organise records around common home
+                            education reporting needs. Families should still check their own
+                            authority requirements.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div

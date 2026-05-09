@@ -46,6 +46,15 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 8px 24px rgba(15,23,42,0.05)",
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 16,
+  background: "#f8fbff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
@@ -287,6 +296,31 @@ function CleanPortfolioWorkspaceBody() {
 
         {readyForPortfolio && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                }}
+              >
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Portfolio</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Portfolio is where you keep the strongest examples of learning from your
+                    captured notes. It is a selected record, not every note you have taken.
+                  </p>
+                </div>
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What happens next</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Selected portfolio evidence can be used in My Reports to support the
+                    learner&apos;s story and the written report.
+                  </p>
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div
                 style={{
