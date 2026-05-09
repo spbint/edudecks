@@ -5,6 +5,9 @@ import {
 } from "@/lib/clean/family/client";
 import type {
   CommunityCategory,
+  CommunityNotification,
+  CommunityNotificationItem,
+  CommunityNotificationType,
   CommunityPost,
   CommunityPostInput,
   CommunityPostStatus,
@@ -33,6 +36,9 @@ export const COMMUNITY_NOT_AVAILABLE_MESSAGE =
 
 export const COMMUNITY_REACTIONS_NOT_AVAILABLE_MESSAGE =
   "Community reactions are not available yet.";
+
+export const COMMUNITY_NOTIFICATIONS_NOT_AVAILABLE_MESSAGE =
+  "Community notifications are not available yet.";
 
 type CommunityThreadRow = {
   id: string;
@@ -72,6 +78,17 @@ type CommunityReactionRow = {
   target_id: string;
   reaction_type: string;
   user_id: string;
+  created_at?: string | null;
+};
+
+type CommunityNotificationRow = {
+  id: string;
+  user_id: string;
+  type: string;
+  target_type: string;
+  target_id: string;
+  actor_user_id: string;
+  read_at?: string | null;
   created_at?: string | null;
 };
 
@@ -131,6 +148,12 @@ function normalizeCommunityReactionType(
   return COMMUNITY_REACTION_TYPES.includes(reactionType) ? reactionType : fallback;
 }
 
+function normalizeCommunityNotificationType(
+  value: unknown,
+): CommunityNotificationType {
+  return safe(value) === "reaction" ? "reaction" : "thread_reply";
+}
+
 function toCommunityThread(row: CommunityThreadRow): CommunityThread {
   return {
     id: safe(row.id),
@@ -176,6 +199,21 @@ function toCommunityReaction(row: CommunityReactionRow): CommunityReaction {
     targetId: safe(row.target_id),
     reactionType: normalizeCommunityReactionType(row.reaction_type),
     userId: safe(row.user_id),
+    createdAt: normalizeNullString(row.created_at),
+  };
+}
+
+function toCommunityNotification(
+  row: CommunityNotificationRow,
+): CommunityNotification {
+  return {
+    id: safe(row.id),
+    userId: safe(row.user_id),
+    type: normalizeCommunityNotificationType(row.type),
+    targetType: normalizeCommunityReactionTargetType(row.target_type),
+    targetId: safe(row.target_id),
+    actorUserId: safe(row.actor_user_id),
+    readAt: normalizeNullString(row.read_at),
     createdAt: normalizeNullString(row.created_at),
   };
 }
@@ -262,6 +300,17 @@ function normalizeCommunityReactionErrorMessage(error: unknown, fallback: string
   return String((error as { message?: unknown })?.message ?? fallback).trim();
 }
 
+function normalizeCommunityNotificationErrorMessage(
+  error: unknown,
+  fallback: string,
+) {
+  if (isCleanSchemaMissingError(error)) {
+    return COMMUNITY_NOTIFICATIONS_NOT_AVAILABLE_MESSAGE;
+  }
+
+  return String((error as { message?: unknown })?.message ?? fallback).trim();
+}
+
 function sanitizeCommunityThreadInput(
   input: CommunityThreadInput | Partial<CommunityThreadInput>,
 ) {
@@ -312,6 +361,52 @@ function buildReactionSummary(targetIds: string[]) {
   }
 
   return summary;
+}
+
+async function createCommunityNotification(input: {
+  userId: string;
+  actorUserId: string;
+  type: CommunityNotificationType;
+  targetType: CommunityReactionTargetType;
+  targetId: string;
+}) {
+  const userId = safe(input.userId);
+  const actorUserId = safe(input.actorUserId);
+  const targetId = safe(input.targetId);
+
+  if (!userId || !actorUserId || !targetId || userId === actorUserId) {
+    return;
+  }
+
+  const existingResponse = await supabase
+    .from("community_notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", input.type)
+    .eq("target_type", input.targetType)
+    .eq("target_id", targetId)
+    .eq("actor_user_id", actorUserId)
+    .maybeSingle();
+
+  if (existingResponse.error) {
+    throw existingResponse.error;
+  }
+
+  if (existingResponse.data) {
+    return;
+  }
+
+  const insertResponse = await supabase.from("community_notifications").insert({
+    user_id: userId,
+    type: input.type,
+    target_type: input.targetType,
+    target_id: targetId,
+    actor_user_id: actorUserId,
+  });
+
+  if (insertResponse.error) {
+    throw insertResponse.error;
+  }
 }
 
 export async function listCommunityThreads(options: CommunityThreadsOptions = {}) {
@@ -393,6 +488,203 @@ export async function listCommunityReactionSummary(
   }
 
   return summary;
+}
+
+export async function listCommunityNotifications(limit = 8) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before opening community notifications.",
+  );
+
+  let query = supabase
+    .from("community_notifications")
+    .select("id,user_id,type,target_type,target_id,actor_user_id,read_at,created_at")
+    .eq("user_id", currentUserId)
+    .order("created_at", { ascending: false });
+
+  if (limit > 0) {
+    query = query.limit(limit);
+  }
+
+  const response = await query;
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityNotificationErrorMessage(
+        response.error,
+        "We could not load community notifications just now.",
+      ),
+    );
+  }
+
+  const notifications = (response.data ?? []).map((row) =>
+    toCommunityNotification(row as CommunityNotificationRow),
+  );
+
+  const threadTargetIds = notifications
+    .filter((item) => item.targetType === "thread")
+    .map((item) => item.targetId);
+  const postTargetIds = notifications
+    .filter((item) => item.targetType === "post")
+    .map((item) => item.targetId);
+
+  const threadTitleById = new Map<string, string>();
+  const postThreadIdById = new Map<string, string>();
+
+  if (threadTargetIds.length) {
+    const threadResponse = await supabase
+      .from("community_threads")
+      .select("id,title")
+      .in("id", [...new Set(threadTargetIds)]);
+
+    if (threadResponse.error) {
+      throw new Error(
+        normalizeCommunityNotificationErrorMessage(
+          threadResponse.error,
+          "We could not load community notifications just now.",
+        ),
+      );
+    }
+
+    for (const row of threadResponse.data ?? []) {
+      const threadId = safe((row as { id?: unknown })?.id);
+      const title = safe((row as { title?: unknown })?.title);
+      if (threadId && title) {
+        threadTitleById.set(threadId, title);
+      }
+    }
+  }
+
+  if (postTargetIds.length) {
+    const postResponse = await supabase
+      .from("community_posts")
+      .select("id,thread_id")
+      .in("id", [...new Set(postTargetIds)]);
+
+    if (postResponse.error) {
+      throw new Error(
+        normalizeCommunityNotificationErrorMessage(
+          postResponse.error,
+          "We could not load community notifications just now.",
+        ),
+      );
+    }
+
+    const relatedThreadIds: string[] = [];
+
+    for (const row of postResponse.data ?? []) {
+      const postId = safe((row as { id?: unknown })?.id);
+      const threadId = safe((row as { thread_id?: unknown })?.thread_id);
+      if (postId && threadId) {
+        postThreadIdById.set(postId, threadId);
+        relatedThreadIds.push(threadId);
+      }
+    }
+
+    if (relatedThreadIds.length) {
+      const relatedThreadResponse = await supabase
+        .from("community_threads")
+        .select("id,title")
+        .in("id", [...new Set(relatedThreadIds)]);
+
+      if (relatedThreadResponse.error) {
+        throw new Error(
+          normalizeCommunityNotificationErrorMessage(
+            relatedThreadResponse.error,
+            "We could not load community notifications just now.",
+          ),
+        );
+      }
+
+      for (const row of relatedThreadResponse.data ?? []) {
+        const threadId = safe((row as { id?: unknown })?.id);
+        const title = safe((row as { title?: unknown })?.title);
+        if (threadId && title) {
+          threadTitleById.set(threadId, title);
+        }
+      }
+    }
+  }
+
+  return notifications.map((notification): CommunityNotificationItem => {
+    const threadId =
+      notification.targetType === "thread"
+        ? notification.targetId
+        : postThreadIdById.get(notification.targetId) ?? null;
+    const threadTitle = threadId ? threadTitleById.get(threadId) ?? null : null;
+
+    let message = "Community activity";
+    if (notification.type === "thread_reply") {
+      message = "Community member replied to your thread";
+    } else if (notification.targetType === "post") {
+      message = "Community member reacted to your reply";
+    } else {
+      message = "Community member reacted to your thread";
+    }
+
+    return {
+      ...notification,
+      actorLabel: "Community member",
+      message,
+      threadId,
+      threadTitle,
+      href: threadId ? `/my-community?thread=${encodeURIComponent(threadId)}` : "/my-community",
+    };
+  });
+}
+
+export async function markCommunityNotificationRead(notificationId: string) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before opening community notifications.",
+  );
+
+  const normalizedNotificationId = safe(notificationId);
+  if (!normalizedNotificationId) {
+    throw new Error("A notification is required.");
+  }
+
+  const response = await supabase
+    .from("community_notifications")
+    .update({
+      read_at: new Date().toISOString(),
+    })
+    .eq("id", normalizedNotificationId)
+    .eq("user_id", currentUserId)
+    .select("id,user_id,type,target_type,target_id,actor_user_id,read_at,created_at")
+    .maybeSingle();
+
+  if (response.error || !response.data) {
+    throw new Error(
+      normalizeCommunityNotificationErrorMessage(
+        response.error,
+        "We could not mark this notification as read.",
+      ),
+    );
+  }
+
+  return toCommunityNotification(response.data as CommunityNotificationRow);
+}
+
+export async function markAllCommunityNotificationsRead() {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before opening community notifications.",
+  );
+
+  const response = await supabase
+    .from("community_notifications")
+    .update({
+      read_at: new Date().toISOString(),
+    })
+    .eq("user_id", currentUserId)
+    .is("read_at", null);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityNotificationErrorMessage(
+        response.error,
+        "We could not mark your notifications as read.",
+      ),
+    );
+  }
 }
 
 export async function listCommunityReplyCounts(threadIds: string[]) {
@@ -500,6 +792,46 @@ export async function toggleCommunityReaction(input: CommunityReactionToggleInpu
         "We could not add this reaction just now.",
       ),
     );
+  }
+
+  try {
+    if (targetType === "thread") {
+      const threadResponse = await supabase
+        .from("community_threads")
+        .select("id,author_user_id")
+        .eq("id", targetId)
+        .maybeSingle();
+
+      if (!threadResponse.error && threadResponse.data) {
+        await createCommunityNotification({
+          userId: safe((threadResponse.data as { author_user_id?: unknown })?.author_user_id),
+          actorUserId: currentUserId,
+          type: "reaction",
+          targetType,
+          targetId,
+        });
+      }
+    } else {
+      const postResponse = await supabase
+        .from("community_posts")
+        .select("id,author_user_id")
+        .eq("id", targetId)
+        .maybeSingle();
+
+      if (!postResponse.error && postResponse.data) {
+        await createCommunityNotification({
+          userId: safe((postResponse.data as { author_user_id?: unknown })?.author_user_id),
+          actorUserId: currentUserId,
+          type: "reaction",
+          targetType,
+          targetId,
+        });
+      }
+    }
+  } catch (notificationError) {
+    console.warn("[community] reaction notification skipped", {
+      message: safe((notificationError as { message?: unknown })?.message),
+    });
   }
 
   return {
@@ -730,7 +1062,31 @@ export async function createCommunityPost(
     );
   }
 
-  return toCommunityPost(response.data as CommunityPostRow);
+  const createdPost = toCommunityPost(response.data as CommunityPostRow);
+
+  try {
+    const threadResponse = await supabase
+      .from("community_threads")
+      .select("id,author_user_id")
+      .eq("id", normalizedThreadId)
+      .maybeSingle();
+
+    if (!threadResponse.error && threadResponse.data) {
+      await createCommunityNotification({
+        userId: safe((threadResponse.data as { author_user_id?: unknown })?.author_user_id),
+        actorUserId: currentUserId,
+        type: "thread_reply",
+        targetType: "thread",
+        targetId: normalizedThreadId,
+      });
+    }
+  } catch (notificationError) {
+    console.warn("[community] reply notification skipped", {
+      message: safe((notificationError as { message?: unknown })?.message),
+    });
+  }
+
+  return createdPost;
 }
 
 export async function updateCommunityPost(

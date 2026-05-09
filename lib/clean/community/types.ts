@@ -91,6 +91,27 @@ export type CommunityReactionCounts = Record<
 
 export type CommunityReactionSummary = Record<string, CommunityReactionCounts>;
 
+export type CommunityNotificationType = "thread_reply" | "reaction";
+
+export type CommunityNotification = {
+  id: string;
+  userId: string;
+  type: CommunityNotificationType;
+  targetType: CommunityReactionTargetType;
+  targetId: string;
+  actorUserId: string;
+  readAt: string | null;
+  createdAt: string | null;
+};
+
+export type CommunityNotificationItem = CommunityNotification & {
+  actorLabel: string;
+  message: string;
+  threadId: string | null;
+  threadTitle: string | null;
+  href: string;
+};
+
 export type CommunityThreadInput = {
   category: CommunityCategory;
   title: string;

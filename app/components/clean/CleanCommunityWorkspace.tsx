@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import {
@@ -272,6 +273,7 @@ function CommunityReactionBar({
 }
 
 export default function CleanCommunityWorkspace() {
+  const searchParams = useSearchParams();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
@@ -305,6 +307,7 @@ export default function CleanCommunityWorkspace() {
   const [reactionBusyKey, setReactionBusyKey] = useState<string | null>(null);
   const [reactionErrorKey, setReactionErrorKey] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState<string | null>(null);
+  const requestedThreadId = safe(searchParams.get("thread"));
 
   const filteredThreads = useMemo(() => {
     if (selectedCategory === "all") return threads;
@@ -387,6 +390,16 @@ export default function CleanCommunityWorkspace() {
       setSelectedThreadId(filteredThreads[0]?.id ?? null);
     }
   }, [filteredThreads, selectedThreadId]);
+
+  useEffect(() => {
+    if (!requestedThreadId) return;
+
+    const matchingThread = threads.find((thread) => thread.id === requestedThreadId);
+    if (!matchingThread) return;
+
+    setSelectedCategory("all");
+    setSelectedThreadId(requestedThreadId);
+  }, [requestedThreadId, threads]);
 
   useEffect(() => {
     async function loadReplies() {

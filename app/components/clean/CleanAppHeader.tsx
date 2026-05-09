@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
+import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 
 type HeaderNavItem = {
   label: string;
@@ -197,7 +198,18 @@ export default function CleanAppHeader() {
             </span>
           </Link>
 
-          <CleanAccountMenu />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <CleanCommunityNotificationsMenu />
+            <CleanAccountMenu />
+          </div>
         </div>
 
         <nav aria-label="App sections" style={{ overflowX: "auto", paddingBottom: 2 }}>
