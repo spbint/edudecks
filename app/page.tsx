@@ -14,6 +14,11 @@ const PRIMARY_CTA = {
   href: "/signup",
 } as const;
 
+const HEADER_PRIMARY_CTA = {
+  label: "Sign up",
+  href: "/signup",
+} as const;
+
 const LIFECYCLE_STEPS = [
   {
     number: "1",
@@ -111,7 +116,7 @@ export default function HomePage() {
       primaryCta={PRIMARY_CTA}
       secondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       headerAction={{ label: "Sign in", href: "/login" }}
-      headerPrimaryAction={PRIMARY_CTA}
+      headerPrimaryAction={HEADER_PRIMARY_CTA}
       footerPrimaryCta={PRIMARY_CTA}
       footerSecondaryCta={{ label: "See how it works", href: "/#how-it-works" }}
       showWorkflowStrip={false}
