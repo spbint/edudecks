@@ -62,6 +62,12 @@ const outputNavItems: HeaderNavItem[] = [
   },
 ];
 
+const communityNavItem: HeaderNavItem = {
+  label: "Community",
+  href: "/my-community",
+  matches: ["/my-community"],
+};
+
 function matchesPath(pathname: string, candidate: string) {
   return pathname === candidate || pathname.startsWith(`${candidate}/`);
 }
@@ -318,6 +324,33 @@ export default function CleanAppHeader() {
                   )
                 : null}
             </div>
+
+            {(() => {
+              const isCurrent = isCurrentMatch(pathname, communityNavItem.matches);
+
+              return (
+                <Link
+                  href={communityNavItem.href}
+                  aria-current={isCurrent ? "page" : undefined}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 999,
+                    border: isCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                    background: isCurrent ? "#eff6ff" : "#ffffff",
+                    color: isCurrent ? "#1d4ed8" : "#334155",
+                    padding: "8px 12px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {communityNavItem.label}
+                </Link>
+              );
+            })()}
           </div>
         </nav>
 

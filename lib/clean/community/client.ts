@@ -267,6 +267,39 @@ export async function listCommunityThreads(options: CommunityThreadsOptions = {}
   );
 }
 
+export async function listCommunityReplyCounts(threadIds: string[]) {
+  await requireCommunityUser("You need to sign in before opening MyLearna Community.");
+
+  const normalizedThreadIds = [...new Set(threadIds.map((value) => safe(value)).filter(Boolean))];
+  if (!normalizedThreadIds.length) {
+    return {} as Record<string, number>;
+  }
+
+  const response = await supabase
+    .from("community_posts")
+    .select("thread_id")
+    .in("thread_id", normalizedThreadIds);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityErrorMessage(
+        response.error,
+        "We could not load community reply counts just now.",
+      ),
+    );
+  }
+
+  const counts: Record<string, number> = {};
+
+  for (const row of response.data ?? []) {
+    const threadId = safe((row as { thread_id?: unknown })?.thread_id);
+    if (!threadId) continue;
+    counts[threadId] = (counts[threadId] ?? 0) + 1;
+  }
+
+  return counts;
+}
+
 export async function getCommunityThread(threadId: string) {
   await requireCommunityUser("You need to sign in before opening MyLearna Community.");
 
