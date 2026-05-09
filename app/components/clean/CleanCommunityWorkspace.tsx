@@ -1,18 +1,22 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import {
   COMMUNITY_NOT_AVAILABLE_MESSAGE,
   createCommunityPost,
   createCommunityThread,
+  deleteCommunityPost,
+  deleteCommunityThread,
   listCommunityPosts,
   listCommunityReactionSummary,
   listCommunityReplyCounts,
   listCommunityThreads,
   reportCommunityContent,
   toggleCommunityReaction,
+  updateCommunityPost,
+  updateCommunityThread,
 } from "@/lib/clean/community/client";
 import { getCurrentCleanUserId } from "@/lib/clean/family/client";
 import {
@@ -85,6 +89,24 @@ const secondaryButtonStyle: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 700,
   cursor: "pointer",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+  borderRadius: 999,
+  padding: "7px 11px",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+};
+
+const dangerButtonStyle: React.CSSProperties = {
+  ...smallButtonStyle,
+  border: "1px solid #fecaca",
+  background: "#fff5f5",
+  color: "#b91c1c",
 };
 
 const subtleButtonStyle: React.CSSProperties = {
@@ -440,7 +462,9 @@ function CommunitySharedLinkCard({
 
 export default function CleanCommunityWorkspace() {
   const searchParams = useSearchParams();
+  const replyComposerRef = useRef<HTMLTextAreaElement | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isWideScreen, setIsWideScreen] = useState(false);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
   const [threadReactionSummary, setThreadReactionSummary] =
@@ -473,11 +497,29 @@ export default function CleanCommunityWorkspace() {
   const [reactionBusyKey, setReactionBusyKey] = useState<string | null>(null);
   const [reactionErrorKey, setReactionErrorKey] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState<string | null>(null);
+  const [threadEditing, setThreadEditing] = useState(false);
+  const [threadEditTitle, setThreadEditTitle] = useState("");
+  const [threadEditCategory, setThreadEditCategory] =
+    useState<CommunityCategory>("general");
+  const [threadEditBody, setThreadEditBody] = useState("");
+  const [threadEditLinkUrl, setThreadEditLinkUrl] = useState("");
+  const [threadEditSubmitting, setThreadEditSubmitting] = useState(false);
+  const [threadEditError, setThreadEditError] = useState<string | null>(null);
+  const [threadDeleting, setThreadDeleting] = useState(false);
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [replyEditBody, setReplyEditBody] = useState("");
+  const [replyEditSubmitting, setReplyEditSubmitting] = useState(false);
+  const [replyEditError, setReplyEditError] = useState<string | null>(null);
+  const [replyDeletingId, setReplyDeletingId] = useState<string | null>(null);
   const requestedThreadId = safe(searchParams.get("thread"));
   const categoryHelperText = getCategoryHelperText(threadCategory);
   const linkHelperText = getLinkHelperText(threadCategory);
   const threadBodyPlaceholder = getThreadBodyPlaceholder(threadCategory);
   const draftLinkPreview = getSafeHttpUrl(threadLinkUrl);
+  const threadEditCategoryHelperText = getCategoryHelperText(threadEditCategory);
+  const threadEditLinkHelperText = getLinkHelperText(threadEditCategory);
+  const threadEditBodyPlaceholder = getThreadBodyPlaceholder(threadEditCategory);
+  const threadEditLinkPreview = getSafeHttpUrl(threadEditLinkUrl);
 
   const filteredThreads = useMemo(() => {
     if (selectedCategory === "all") return threads;
@@ -490,6 +532,11 @@ export default function CleanCommunityWorkspace() {
   );
 
   const communityUnavailable = threadsError === COMMUNITY_NOT_AVAILABLE_MESSAGE;
+  const canEditSelectedThread = Boolean(
+    selectedThread &&
+      currentUserId &&
+      safe(selectedThread.authorUserId) === safe(currentUserId),
+  );
 
   async function loadThreads() {
     setThreadsLoading(true);
@@ -551,6 +598,20 @@ export default function CleanCommunityWorkspace() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(min-width: 1100px)");
+    const sync = () => setIsWideScreen(mediaQuery.matches);
+
+    sync();
+    mediaQuery.addEventListener("change", sync);
+
+    return () => {
+      mediaQuery.removeEventListener("change", sync);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!filteredThreads.length) {
       setSelectedThreadId(null);
       return;
@@ -570,6 +631,14 @@ export default function CleanCommunityWorkspace() {
     setSelectedCategory("all");
     setSelectedThreadId(requestedThreadId);
   }, [requestedThreadId, threads]);
+
+  useEffect(() => {
+    setThreadEditing(false);
+    setThreadEditError(null);
+    setEditingReplyId(null);
+    setReplyEditBody("");
+    setReplyEditError(null);
+  }, [selectedThreadId]);
 
   useEffect(() => {
     async function loadReplies() {
@@ -747,6 +816,208 @@ export default function CleanCommunityWorkspace() {
     setReportMessage(null);
   }
 
+  function focusReplyComposer() {
+    replyComposerRef.current?.focus();
+    replyComposerRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }
+
+  function openThreadEdit(thread: CommunityThread) {
+    setThreadEditTitle(thread.title);
+    setThreadEditCategory(thread.category);
+    setThreadEditBody(thread.body);
+    setThreadEditLinkUrl(thread.linkUrl ?? "");
+    setThreadEditError(null);
+    setThreadEditing(true);
+    setReportTarget(null);
+  }
+
+  async function handleThreadEditSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedThread) {
+      setThreadEditError("Choose a thread before editing.");
+      return;
+    }
+
+    const title = safe(threadEditTitle);
+    const body = safe(threadEditBody);
+    const linkUrl = safe(threadEditLinkUrl);
+
+    if (!title) {
+      setThreadEditError("Add a title for your thread.");
+      return;
+    }
+
+    if (!body) {
+      setThreadEditError("Add your message before saving.");
+      return;
+    }
+
+    if (linkUrl && !isValidHttpUrl(linkUrl)) {
+      setThreadEditError(
+        "Add a full public link starting with http:// or https://, or leave it blank.",
+      );
+      return;
+    }
+
+    setThreadEditSubmitting(true);
+    setThreadEditError(null);
+
+    try {
+      const updatedThread = await updateCommunityThread(selectedThread.id, {
+        category: threadEditCategory,
+        title,
+        body,
+        linkUrl: linkUrl || null,
+      });
+
+      setThreads((current) =>
+        current.map((thread) => (thread.id === updatedThread.id ? updatedThread : thread)),
+      );
+      setThreadEditing(false);
+    } catch (nextError) {
+      setThreadEditError(
+        messageFromError(nextError, "We could not save this thread just now."),
+      );
+    } finally {
+      setThreadEditSubmitting(false);
+    }
+  }
+
+  async function handleDeleteThread() {
+    if (!selectedThread) return;
+
+    const confirmed = window.confirm(
+      "Delete this thread? This will also remove its replies.",
+    );
+    if (!confirmed) return;
+
+    setThreadDeleting(true);
+    setThreadEditError(null);
+
+    try {
+      await deleteCommunityThread(selectedThread.id);
+
+      setThreads((current) =>
+        current.filter((thread) => thread.id !== selectedThread.id),
+      );
+      setReplyCounts((current) => {
+        const next = { ...current };
+        delete next[selectedThread.id];
+        return next;
+      });
+      setThreadReactionSummary((current) => {
+        const next = { ...current };
+        delete next[selectedThread.id];
+        return next;
+      });
+      setReplies([]);
+      setReplyReactionSummary({});
+      setReportTarget(null);
+      setReportReason("");
+      setReportError(null);
+      setReplyMessage(null);
+      setReplyError(null);
+      setThreadEditing(false);
+    } catch (nextError) {
+      setThreadEditError(
+        messageFromError(nextError, "We could not delete this thread just now."),
+      );
+    } finally {
+      setThreadDeleting(false);
+    }
+  }
+
+  function openReplyEdit(reply: CommunityPost) {
+    setEditingReplyId(reply.id);
+    setReplyEditBody(reply.body);
+    setReplyEditError(null);
+    setReportTarget(null);
+  }
+
+  async function handleReplyEditSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+    replyId: string,
+  ) {
+    event.preventDefault();
+
+    const body = safe(replyEditBody);
+    if (!body) {
+      setReplyEditError("Add your reply before saving.");
+      return;
+    }
+
+    setReplyEditSubmitting(true);
+    setReplyEditError(null);
+
+    try {
+      const updatedReply = await updateCommunityPost(replyId, { body });
+      setReplies((current) =>
+        current.map((reply) => (reply.id === updatedReply.id ? updatedReply : reply)),
+      );
+      setEditingReplyId(null);
+      setReplyEditBody("");
+    } catch (nextError) {
+      setReplyEditError(
+        messageFromError(nextError, "We could not save this reply just now."),
+      );
+    } finally {
+      setReplyEditSubmitting(false);
+    }
+  }
+
+  async function handleDeleteReply(reply: CommunityPost) {
+    if (!selectedThread) return;
+
+    const confirmed = window.confirm("Delete this reply?");
+    if (!confirmed) return;
+
+    setReplyDeletingId(reply.id);
+    setReplyEditError(null);
+    setReplyError(null);
+
+    try {
+      await deleteCommunityPost(reply.id);
+      setReplies((current) => current.filter((item) => item.id !== reply.id));
+      setReplyReactionSummary((current) => {
+        const next = { ...current };
+        delete next[reply.id];
+        return next;
+      });
+      setReplyCounts((current) => ({
+        ...current,
+        [selectedThread.id]: Math.max(0, (current[selectedThread.id] ?? 0) - 1),
+      }));
+
+      if (editingReplyId === reply.id) {
+        setEditingReplyId(null);
+        setReplyEditBody("");
+      }
+
+      if (reportTarget?.type === "post" && reportTarget.id === reply.id) {
+        setReportTarget(null);
+        setReportReason("");
+        setReportError(null);
+      }
+    } catch (nextError) {
+      const message = messageFromError(
+        nextError,
+        "We could not delete this reply just now.",
+      );
+
+      if (editingReplyId === reply.id) {
+        setReplyEditError(message);
+      } else {
+        setReplyError(message);
+      }
+    } finally {
+      setReplyDeletingId(null);
+    }
+  }
+
   async function handleToggleReaction(
     targetType: CommunityReactionTargetType,
     targetId: string,
@@ -828,7 +1099,8 @@ export default function CleanCommunityWorkspace() {
           style={{
             display: "grid",
             gap: 20,
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gridTemplateColumns: isWideScreen ? "minmax(0, 1fr) 320px" : "1fr",
+            alignItems: "start",
           }}
         >
           <section style={{ ...cardStyle, display: "grid", gap: 18 }}>
@@ -921,11 +1193,22 @@ export default function CleanCommunityWorkspace() {
                 style={{
                   display: "grid",
                   gap: 18,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: isWideScreen
+                    ? "320px minmax(0, 1fr)"
+                    : "repeat(auto-fit, minmax(280px, 1fr))",
                   alignItems: "start",
                 }}
               >
-                <div style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    alignContent: "start",
+                    maxHeight: isWideScreen ? "min(78vh, 920px)" : undefined,
+                    overflowY: isWideScreen ? "auto" : undefined,
+                    paddingRight: isWideScreen ? 4 : 0,
+                  }}
+                >
                   {threadsLoading ? (
                     <div style={{ color: "#64748b", fontSize: 14 }}>Loading community threads...</div>
                   ) : filteredThreads.length ? (
@@ -1016,7 +1299,7 @@ export default function CleanCommunityWorkspace() {
                             <span>{authorLabel}</span>
                             <span>
                               {formatReplyCount(replyCount)}
-                              {active ? " · Selected" : ""}
+                              {active ? " | Selected" : ""}
                             </span>
                           </div>
                         </button>
@@ -1050,6 +1333,8 @@ export default function CleanCommunityWorkspace() {
                         padding: 20,
                         display: "grid",
                         gap: 16,
+                        maxHeight: isWideScreen ? "min(78vh, 920px)" : undefined,
+                        overflowY: isWideScreen ? "auto" : undefined,
                       }}
                     >
                       <div style={{ display: "grid", gap: 14 }}>
@@ -1093,13 +1378,46 @@ export default function CleanCommunityWorkspace() {
                               {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
                             </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => openReportForm({ id: selectedThread.id, type: "thread" })}
-                            style={subtleButtonStyle}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                            }}
                           >
-                            Report thread
-                          </button>
+                            <button type="button" onClick={focusReplyComposer} style={smallButtonStyle}>
+                              Reply
+                            </button>
+                            {canEditSelectedThread ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openThreadEdit(selectedThread)}
+                                  style={smallButtonStyle}
+                                >
+                                  Edit thread
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleDeleteThread()}
+                                  disabled={threadDeleting}
+                                  style={dangerButtonStyle}
+                                >
+                                  {threadDeleting ? "Deleting..." : "Delete thread"}
+                                </button>
+                              </>
+                            ) : null}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openReportForm({ id: selectedThread.id, type: "thread" })
+                              }
+                              style={subtleButtonStyle}
+                            >
+                              Report thread
+                            </button>
+                          </div>
                         </div>
 
                         <div style={{ display: "grid", gap: 8 }}>
@@ -1119,55 +1437,172 @@ export default function CleanCommunityWorkspace() {
                             <span style={{ color: "#0f172a", fontWeight: 700 }}>
                               {getAuthorLabel(selectedThread.authorUserId, currentUserId)}
                             </span>
-                            <span aria-hidden="true">•</span>
+                            <span aria-hidden="true">|</span>
                             <span>{formatDateTimeLabel(selectedThread.createdAt)}</span>
                           </div>
                         </div>
 
-                        <div
-                          style={{
-                            border: "1px solid #dbeafe",
-                            borderRadius: 18,
-                            background: "#f8fbff",
-                            padding: 18,
-                            display: "grid",
-                            gap: 12,
-                          }}
-                        >
-                          <div
+                        {threadEditError ? (
+                          <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                            {threadEditError}
+                          </div>
+                        ) : null}
+
+                        {threadEditing ? (
+                          <form
+                            onSubmit={(event) => void handleThreadEditSubmit(event)}
                             style={{
-                              color: "#64748b",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              letterSpacing: "0.08em",
-                              textTransform: "uppercase",
+                              border: "1px solid #dbeafe",
+                              borderRadius: 18,
+                              background: "#f8fbff",
+                              padding: 18,
+                              display: "grid",
+                              gap: 12,
                             }}
                           >
-                            Original post
-                          </div>
+                            <div
+                              style={{
+                                color: "#64748b",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                letterSpacing: "0.08em",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Edit thread
+                            </div>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                                Title
+                              </span>
+                              <input
+                                value={threadEditTitle}
+                                onChange={(event) => setThreadEditTitle(event.target.value)}
+                                style={inputStyle}
+                                maxLength={160}
+                              />
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                                Category
+                              </span>
+                              <select
+                                value={threadEditCategory}
+                                onChange={(event) =>
+                                  setThreadEditCategory(event.target.value as CommunityCategory)
+                                }
+                                style={inputStyle}
+                              >
+                                {COMMUNITY_CATEGORIES.map((category) => (
+                                  <option key={category} value={category}>
+                                    {COMMUNITY_CATEGORY_LABELS[category]}
+                                  </option>
+                                ))}
+                              </select>
+                              <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.6 }}>
+                                {threadEditCategoryHelperText}
+                              </span>
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                                Message
+                              </span>
+                              <textarea
+                                value={threadEditBody}
+                                onChange={(event) => setThreadEditBody(event.target.value)}
+                                style={textareaStyle}
+                                placeholder={threadEditBodyPlaceholder}
+                              />
+                            </label>
+
+                            <label style={{ display: "grid", gap: 6 }}>
+                              <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                                Optional resource link
+                              </span>
+                              <input
+                                value={threadEditLinkUrl}
+                                onChange={(event) => setThreadEditLinkUrl(event.target.value)}
+                                style={inputStyle}
+                                placeholder="https://example.com/resource"
+                              />
+                              <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.6 }}>
+                                {threadEditLinkHelperText}
+                              </span>
+                            </label>
+
+                            {threadEditLinkPreview ? (
+                              <CommunitySharedLinkCard url={threadEditLinkPreview} />
+                            ) : null}
+
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <button
+                                type="submit"
+                                disabled={threadEditSubmitting}
+                                style={buttonStyle}
+                              >
+                                {threadEditSubmitting ? "Saving..." : "Save thread"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setThreadEditing(false);
+                                  setThreadEditError(null);
+                                }}
+                                style={secondaryButtonStyle}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
                           <div
                             style={{
-                              margin: 0,
-                              color: "#334155",
-                              fontSize: 15,
-                              lineHeight: 1.9,
-                              whiteSpace: "pre-wrap",
-                              wordBreak: "break-word",
+                              border: "1px solid #dbeafe",
+                              borderRadius: 18,
+                              background: "#f8fbff",
+                              padding: 18,
+                              display: "grid",
+                              gap: 12,
                             }}
                           >
-                            {selectedThread.body}
+                            <div
+                              style={{
+                                color: "#64748b",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                letterSpacing: "0.08em",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Original post
+                            </div>
+                            <div
+                              style={{
+                                margin: 0,
+                                color: "#334155",
+                                fontSize: 15,
+                                lineHeight: 1.9,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              {selectedThread.body}
+                            </div>
+                            <CommunitySharedLinkCard url={selectedThread.linkUrl} />
+                            <CommunityReactionBar
+                              targetType="thread"
+                              targetId={selectedThread.id}
+                              summary={threadReactionSummary}
+                              busyKey={reactionBusyKey}
+                              errorKey={reactionErrorKey}
+                              errorMessage={reactionError}
+                              onToggle={handleToggleReaction}
+                            />
                           </div>
-                          <CommunitySharedLinkCard url={selectedThread.linkUrl} />
-                          <CommunityReactionBar
-                            targetType="thread"
-                            targetId={selectedThread.id}
-                            summary={threadReactionSummary}
-                            busyKey={reactionBusyKey}
-                            errorKey={reactionErrorKey}
-                            errorMessage={reactionError}
-                            onToggle={handleToggleReaction}
-                          />
-                        </div>
+                        )}
                       </div>
 
                       {reportTarget?.type === "thread" && reportTarget.id === selectedThread.id ? (
@@ -1221,11 +1656,31 @@ export default function CleanCommunityWorkspace() {
                       ) : null}
 
                       <div style={{ display: "grid", gap: 14 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
                           <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Conversation</h3>
-                          <span style={{ color: "#64748b", fontSize: 13 }}>
-                            {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
-                          </span>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                            }}
+                          >
+                            <span style={{ color: "#64748b", fontSize: 13 }}>
+                              {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
+                            </span>
+                            <button type="button" onClick={focusReplyComposer} style={smallButtonStyle}>
+                              Jump to reply box
+                            </button>
+                          </div>
                         </div>
 
                         {repliesError ? (
@@ -1241,6 +1696,10 @@ export default function CleanCommunityWorkspace() {
                             {replies.map((reply, index) => {
                               const isOriginalPoster =
                                 reply.authorUserId === selectedThread.authorUserId;
+                              const canEditReply = Boolean(
+                                currentUserId && safe(reply.authorUserId) === safe(currentUserId),
+                              );
+                              const replyIsEditing = editingReplyId === reply.id;
 
                               return (
                                 <article
@@ -1348,31 +1807,114 @@ export default function CleanCommunityWorkspace() {
                                           <span style={{ color: "#0f172a", fontWeight: 700 }}>
                                             {getAuthorLabel(reply.authorUserId, currentUserId)}
                                           </span>
-                                          <span aria-hidden="true">•</span>
+                                          <span aria-hidden="true">|</span>
                                           <span>{formatDateTimeLabel(reply.createdAt)}</span>
                                         </div>
                                       </div>
 
-                                      <button
-                                        type="button"
-                                        onClick={() => openReportForm({ id: reply.id, type: "post" })}
-                                        style={subtleButtonStyle}
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          gap: 8,
+                                          flexWrap: "wrap",
+                                          alignItems: "center",
+                                        }}
                                       >
-                                        Report reply
-                                      </button>
+                                        {canEditReply ? (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() => openReplyEdit(reply)}
+                                              style={smallButtonStyle}
+                                            >
+                                              Edit reply
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => void handleDeleteReply(reply)}
+                                              disabled={replyDeletingId === reply.id}
+                                              style={dangerButtonStyle}
+                                            >
+                                              {replyDeletingId === reply.id
+                                                ? "Deleting..."
+                                                : "Delete reply"}
+                                            </button>
+                                          </>
+                                        ) : null}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            openReportForm({ id: reply.id, type: "post" })
+                                          }
+                                          style={subtleButtonStyle}
+                                        >
+                                          Report reply
+                                        </button>
+                                      </div>
                                     </div>
 
-                                    <div
-                                      style={{
-                                        color: "#334155",
-                                        fontSize: 14,
-                                        lineHeight: 1.8,
-                                        whiteSpace: "pre-wrap",
-                                        wordBreak: "break-word",
-                                      }}
-                                    >
-                                      {reply.body}
-                                    </div>
+                                    {replyIsEditing ? (
+                                      <form
+                                        onSubmit={(event) =>
+                                          void handleReplyEditSubmit(event, reply.id)
+                                        }
+                                        style={{ display: "grid", gap: 10 }}
+                                      >
+                                        <label style={{ display: "grid", gap: 6 }}>
+                                          <span
+                                            style={{
+                                              color: "#0f172a",
+                                              fontSize: 13,
+                                              fontWeight: 700,
+                                            }}
+                                          >
+                                            Edit reply
+                                          </span>
+                                          <textarea
+                                            value={replyEditBody}
+                                            onChange={(event) => setReplyEditBody(event.target.value)}
+                                            style={{ ...textareaStyle, minHeight: 96 }}
+                                          />
+                                        </label>
+                                        {replyEditError ? (
+                                          <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                                            {replyEditError}
+                                          </div>
+                                        ) : null}
+                                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                          <button
+                                            type="submit"
+                                            disabled={replyEditSubmitting}
+                                            style={buttonStyle}
+                                          >
+                                            {replyEditSubmitting ? "Saving..." : "Save reply"}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setEditingReplyId(null);
+                                              setReplyEditBody("");
+                                              setReplyEditError(null);
+                                            }}
+                                            style={secondaryButtonStyle}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </form>
+                                    ) : (
+                                      <div
+                                        style={{
+                                          color: "#334155",
+                                          fontSize: 14,
+                                          lineHeight: 1.8,
+                                          whiteSpace: "pre-wrap",
+                                          wordBreak: "break-word",
+                                        }}
+                                      >
+                                        {reply.body}
+                                      </div>
+                                    )}
 
                                     <CommunityReactionBar
                                       targetType="post"
@@ -1460,6 +2002,12 @@ export default function CleanCommunityWorkspace() {
                             paddingTop: 16,
                             display: "grid",
                             gap: 10,
+                            position: isWideScreen ? "sticky" : "static",
+                            bottom: isWideScreen ? 0 : undefined,
+                            background: "#ffffff",
+                            boxShadow: isWideScreen
+                              ? "0 -12px 24px rgba(15,23,42,0.06)"
+                              : "none",
                           }}
                         >
                           <label style={{ display: "grid", gap: 6 }}>
@@ -1467,6 +2015,7 @@ export default function CleanCommunityWorkspace() {
                               Add a reply
                             </span>
                             <textarea
+                              ref={replyComposerRef}
                               value={replyBody}
                               onChange={(event) => setReplyBody(event.target.value)}
                               style={{ ...textareaStyle, minHeight: 110 }}
@@ -1483,7 +2032,7 @@ export default function CleanCommunityWorkspace() {
                               {replyMessage}
                             </div>
                           ) : null}
-                          <div>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button type="submit" disabled={replySubmitting} style={buttonStyle}>
                               {replySubmitting ? "Posting..." : "Post reply"}
                             </button>
@@ -1512,7 +2061,15 @@ export default function CleanCommunityWorkspace() {
             )}
           </section>
 
-          <aside style={{ display: "grid", gap: 20, alignContent: "start" }}>
+          <aside
+            style={{
+              display: "grid",
+              gap: 20,
+              alignContent: "start",
+              position: isWideScreen ? "sticky" : "static",
+              top: isWideScreen ? 24 : undefined,
+            }}
+          >
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 10 }}>
                 <h2 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Community guidelines</h2>
