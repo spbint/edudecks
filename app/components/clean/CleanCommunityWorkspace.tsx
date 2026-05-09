@@ -7,16 +7,23 @@ import {
   createCommunityPost,
   createCommunityThread,
   listCommunityPosts,
+  listCommunityReactionSummary,
   listCommunityReplyCounts,
   listCommunityThreads,
   reportCommunityContent,
+  toggleCommunityReaction,
 } from "@/lib/clean/community/client";
 import { getCurrentCleanUserId } from "@/lib/clean/family/client";
 import {
   COMMUNITY_CATEGORIES,
   COMMUNITY_CATEGORY_LABELS,
+  COMMUNITY_REACTION_LABELS,
+  COMMUNITY_REACTION_TYPES,
   type CommunityCategory,
   type CommunityPost,
+  type CommunityReactionSummary,
+  type CommunityReactionTargetType,
+  type CommunityReactionType,
   type CommunityThread,
 } from "@/lib/clean/community/types";
 
@@ -96,6 +103,16 @@ type ReportTarget = {
   type: "thread" | "post";
 };
 
+function buildReactionTargetKey(
+  targetType: CommunityReactionTargetType,
+  targetId: string,
+  reactionType?: CommunityReactionType,
+) {
+  return reactionType
+    ? `${targetType}:${targetId}:${reactionType}`
+    : `${targetType}:${targetId}`;
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -170,10 +187,98 @@ function getAuthorLabel(authorUserId: string, currentUserId: string | null) {
   return "Community member";
 }
 
+function buildEmptyReactionCounts() {
+  return {
+    like: { count: 0, reacted: false },
+    helpful: { count: 0, reacted: false },
+    thanks: { count: 0, reacted: false },
+  };
+}
+
+function getReactionCounts(
+  summary: CommunityReactionSummary,
+  targetId: string,
+) {
+  return summary[targetId] ?? buildEmptyReactionCounts();
+}
+
+function CommunityReactionBar({
+  targetType,
+  targetId,
+  summary,
+  busyKey,
+  errorKey,
+  errorMessage,
+  onToggle,
+}: {
+  targetType: CommunityReactionTargetType;
+  targetId: string;
+  summary: CommunityReactionSummary;
+  busyKey: string | null;
+  errorKey: string | null;
+  errorMessage: string | null;
+  onToggle: (
+    targetType: CommunityReactionTargetType,
+    targetId: string,
+    reactionType: CommunityReactionType,
+  ) => void;
+}) {
+  const counts = getReactionCounts(summary, targetId);
+  const targetKey = buildReactionTargetKey(targetType, targetId);
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {COMMUNITY_REACTION_TYPES.map((reactionType) => {
+          const state = counts[reactionType];
+          const isBusy = busyKey === buildReactionTargetKey(targetType, targetId, reactionType);
+
+          return (
+            <button
+              key={reactionType}
+              type="button"
+              onClick={() => onToggle(targetType, targetId, reactionType)}
+              disabled={isBusy}
+              aria-pressed={state.reacted}
+              style={{
+                border: state.reacted ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                background: state.reacted ? "#eff6ff" : "#ffffff",
+                color: state.reacted ? "#1d4ed8" : "#475569",
+                borderRadius: 999,
+                padding: "7px 11px",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: isBusy ? "wait" : "pointer",
+                opacity: isBusy ? 0.7 : 1,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              <span>{COMMUNITY_REACTION_LABELS[reactionType]}</span>
+              {state.count > 0 ? <span>{state.count}</span> : null}
+            </button>
+          );
+        })}
+      </div>
+
+      {errorKey === targetKey && errorMessage ? (
+        <div role="alert" style={{ color: "#b91c1c", fontSize: 12 }}>
+          {errorMessage}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function CleanCommunityWorkspace() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
+  const [threadReactionSummary, setThreadReactionSummary] =
+    useState<CommunityReactionSummary>({});
+  const [replyReactionSummary, setReplyReactionSummary] =
+    useState<CommunityReactionSummary>({});
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("all");
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [replies, setReplies] = useState<CommunityPost[]>([]);
@@ -197,6 +302,9 @@ export default function CleanCommunityWorkspace() {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportMessage, setReportMessage] = useState<string | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
+  const [reactionBusyKey, setReactionBusyKey] = useState<string | null>(null);
+  const [reactionErrorKey, setReactionErrorKey] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState<string | null>(null);
 
   const filteredThreads = useMemo(() => {
     if (selectedCategory === "all") return threads;
@@ -220,9 +328,20 @@ export default function CleanCommunityWorkspace() {
 
       const nextCounts = await listCommunityReplyCounts(nextThreads.map((thread) => thread.id));
       setReplyCounts(nextCounts);
+
+      try {
+        const nextReactions = await listCommunityReactionSummary(
+          "thread",
+          nextThreads.map((thread) => thread.id),
+        );
+        setThreadReactionSummary(nextReactions);
+      } catch {
+        setThreadReactionSummary({});
+      }
     } catch (nextError) {
       setThreads([]);
       setReplyCounts({});
+      setThreadReactionSummary({});
       setThreadsError(
         messageFromError(nextError, "We could not load MyLearna Community just now."),
       );
@@ -274,6 +393,7 @@ export default function CleanCommunityWorkspace() {
       if (!selectedThreadId) {
         setReplies([]);
         setRepliesError(null);
+        setReplyReactionSummary({});
         return;
       }
 
@@ -283,8 +403,19 @@ export default function CleanCommunityWorkspace() {
       try {
         const nextReplies = await listCommunityPosts(selectedThreadId);
         setReplies(nextReplies);
+
+        try {
+          const nextReactions = await listCommunityReactionSummary(
+            "post",
+            nextReplies.map((reply) => reply.id),
+          );
+          setReplyReactionSummary(nextReactions);
+        } catch {
+          setReplyReactionSummary({});
+        }
       } catch (nextError) {
         setReplies([]);
+        setReplyReactionSummary({});
         setRepliesError(
           messageFromError(nextError, "We could not load replies for this thread."),
         );
@@ -429,6 +560,63 @@ export default function CleanCommunityWorkspace() {
     setReportReason("");
     setReportError(null);
     setReportMessage(null);
+  }
+
+  async function handleToggleReaction(
+    targetType: CommunityReactionTargetType,
+    targetId: string,
+    reactionType: CommunityReactionType,
+  ) {
+    const busyKey = buildReactionTargetKey(targetType, targetId, reactionType);
+    const targetKey = buildReactionTargetKey(targetType, targetId);
+
+    setReactionBusyKey(busyKey);
+    setReactionErrorKey(null);
+    setReactionError(null);
+
+    try {
+      const result = await toggleCommunityReaction({
+        targetType,
+        targetId,
+        reactionType,
+      });
+
+      const applyUpdate = (
+        setter: React.Dispatch<React.SetStateAction<CommunityReactionSummary>>,
+      ) => {
+        setter((current) => {
+          const nextCounts = {
+            ...getReactionCounts(current, targetId),
+            [reactionType]: {
+              count: Math.max(
+                0,
+                getReactionCounts(current, targetId)[reactionType].count +
+                  (result.active ? 1 : -1),
+              ),
+              reacted: result.active,
+            },
+          };
+
+          return {
+            ...current,
+            [targetId]: nextCounts,
+          };
+        });
+      };
+
+      if (targetType === "thread") {
+        applyUpdate(setThreadReactionSummary);
+      } else {
+        applyUpdate(setReplyReactionSummary);
+      }
+    } catch (nextError) {
+      setReactionErrorKey(targetKey);
+      setReactionError(
+        messageFromError(nextError, "We could not update this reaction just now."),
+      );
+    } finally {
+      setReactionBusyKey(null);
+    }
   }
 
   return (
@@ -791,6 +979,15 @@ export default function CleanCommunityWorkspace() {
                               Visit shared link
                             </a>
                           ) : null}
+                          <CommunityReactionBar
+                            targetType="thread"
+                            targetId={selectedThread.id}
+                            summary={threadReactionSummary}
+                            busyKey={reactionBusyKey}
+                            errorKey={reactionErrorKey}
+                            errorMessage={reactionError}
+                            onToggle={handleToggleReaction}
+                          />
                         </div>
                       </div>
 
@@ -997,6 +1194,16 @@ export default function CleanCommunityWorkspace() {
                                     >
                                       {reply.body}
                                     </div>
+
+                                    <CommunityReactionBar
+                                      targetType="post"
+                                      targetId={reply.id}
+                                      summary={replyReactionSummary}
+                                      busyKey={reactionBusyKey}
+                                      errorKey={reactionErrorKey}
+                                      errorMessage={reactionError}
+                                      onToggle={handleToggleReaction}
+                                    />
 
                                     {reportTarget?.type === "post" && reportTarget.id === reply.id ? (
                                       <form

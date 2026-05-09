@@ -26,6 +26,18 @@ export type CommunityReportStatus = "open" | "reviewed" | "dismissed" | "actione
 
 export type CommunityReportTargetType = "thread" | "post";
 
+export type CommunityReactionTargetType = "thread" | "post";
+
+export const COMMUNITY_REACTION_TYPES = ["like", "helpful", "thanks"] as const;
+
+export type CommunityReactionType = (typeof COMMUNITY_REACTION_TYPES)[number];
+
+export const COMMUNITY_REACTION_LABELS: Record<CommunityReactionType, string> = {
+  like: "Like",
+  helpful: "Helpful",
+  thanks: "Thanks",
+};
+
 export type CommunityThread = {
   id: string;
   authorUserId: string;
@@ -58,6 +70,27 @@ export type CommunityReport = {
   createdAt: string | null;
 };
 
+export type CommunityReaction = {
+  id: string;
+  targetType: CommunityReactionTargetType;
+  targetId: string;
+  reactionType: CommunityReactionType;
+  userId: string;
+  createdAt: string | null;
+};
+
+export type CommunityReactionCount = {
+  count: number;
+  reacted: boolean;
+};
+
+export type CommunityReactionCounts = Record<
+  CommunityReactionType,
+  CommunityReactionCount
+>;
+
+export type CommunityReactionSummary = Record<string, CommunityReactionCounts>;
+
 export type CommunityThreadInput = {
   category: CommunityCategory;
   title: string;
@@ -73,6 +106,12 @@ export type CommunityReportInput = {
   targetType: CommunityReportTargetType;
   targetId: string;
   reason: string;
+};
+
+export type CommunityReactionToggleInput = {
+  targetType: CommunityReactionTargetType;
+  targetId: string;
+  reactionType: CommunityReactionType;
 };
 
 export type CommunityThreadsOptions = {

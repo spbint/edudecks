@@ -8,6 +8,12 @@ import type {
   CommunityPost,
   CommunityPostInput,
   CommunityPostStatus,
+  CommunityReaction,
+  CommunityReactionCounts,
+  CommunityReactionSummary,
+  CommunityReactionTargetType,
+  CommunityReactionToggleInput,
+  CommunityReactionType,
   CommunityReport,
   CommunityReportInput,
   CommunityReportStatus,
@@ -17,10 +23,16 @@ import type {
   CommunityThreadsOptions,
   CommunityThreadStatus,
 } from "@/lib/clean/community/types";
-import { COMMUNITY_CATEGORIES } from "@/lib/clean/community/types";
+import {
+  COMMUNITY_CATEGORIES,
+  COMMUNITY_REACTION_TYPES,
+} from "@/lib/clean/community/types";
 
 export const COMMUNITY_NOT_AVAILABLE_MESSAGE =
   "MyLearna Community is not available yet.";
+
+export const COMMUNITY_REACTIONS_NOT_AVAILABLE_MESSAGE =
+  "Community reactions are not available yet.";
 
 type CommunityThreadRow = {
   id: string;
@@ -51,6 +63,15 @@ type CommunityReportRow = {
   target_id: string;
   reason: string;
   status?: string | null;
+  created_at?: string | null;
+};
+
+type CommunityReactionRow = {
+  id: string;
+  target_type: string;
+  target_id: string;
+  reaction_type: string;
+  user_id: string;
   created_at?: string | null;
 };
 
@@ -96,6 +117,20 @@ function normalizeCommunityReportTargetType(
   return safe(value) === "post" ? "post" : "thread";
 }
 
+function normalizeCommunityReactionTargetType(
+  value: unknown,
+): CommunityReactionTargetType {
+  return safe(value) === "post" ? "post" : "thread";
+}
+
+function normalizeCommunityReactionType(
+  value: unknown,
+  fallback: CommunityReactionType = "like",
+): CommunityReactionType {
+  const reactionType = safe(value) as CommunityReactionType;
+  return COMMUNITY_REACTION_TYPES.includes(reactionType) ? reactionType : fallback;
+}
+
 function toCommunityThread(row: CommunityThreadRow): CommunityThread {
   return {
     id: safe(row.id),
@@ -130,6 +165,17 @@ function toCommunityReport(row: CommunityReportRow): CommunityReport {
     targetId: safe(row.target_id),
     reason: safe(row.reason),
     status: normalizeCommunityReportStatus(row.status),
+    createdAt: normalizeNullString(row.created_at),
+  };
+}
+
+function toCommunityReaction(row: CommunityReactionRow): CommunityReaction {
+  return {
+    id: safe(row.id),
+    targetType: normalizeCommunityReactionTargetType(row.target_type),
+    targetId: safe(row.target_id),
+    reactionType: normalizeCommunityReactionType(row.reaction_type),
+    userId: safe(row.user_id),
     createdAt: normalizeNullString(row.created_at),
   };
 }
@@ -182,6 +228,15 @@ function validateCommunityReportTargetType(value: unknown) {
   return targetType as CommunityReportTargetType;
 }
 
+function validateCommunityReactionType(value: unknown) {
+  const reactionType = safe(value) as CommunityReactionType;
+  if (!COMMUNITY_REACTION_TYPES.includes(reactionType)) {
+    throw new Error("Choose a valid reaction.");
+  }
+
+  return reactionType;
+}
+
 function normalizeCommunityErrorMessage(error: unknown, fallback: string) {
   if (isCleanSchemaMissingError(error)) {
     return COMMUNITY_NOT_AVAILABLE_MESSAGE;
@@ -197,6 +252,14 @@ async function requireCommunityUser(message: string) {
   }
 
   return currentUserId;
+}
+
+function normalizeCommunityReactionErrorMessage(error: unknown, fallback: string) {
+  if (isCleanSchemaMissingError(error)) {
+    return COMMUNITY_REACTIONS_NOT_AVAILABLE_MESSAGE;
+  }
+
+  return String((error as { message?: unknown })?.message ?? fallback).trim();
 }
 
 function sanitizeCommunityThreadInput(
@@ -233,6 +296,24 @@ function sanitizeCommunityReportInput(input: CommunityReportInput) {
   };
 }
 
+function buildEmptyReactionCounts(): CommunityReactionCounts {
+  return {
+    like: { count: 0, reacted: false },
+    helpful: { count: 0, reacted: false },
+    thanks: { count: 0, reacted: false },
+  };
+}
+
+function buildReactionSummary(targetIds: string[]) {
+  const summary: CommunityReactionSummary = {};
+
+  for (const targetId of targetIds) {
+    summary[targetId] = buildEmptyReactionCounts();
+  }
+
+  return summary;
+}
+
 export async function listCommunityThreads(options: CommunityThreadsOptions = {}) {
   await requireCommunityUser("You need to sign in before opening MyLearna Community.");
 
@@ -267,6 +348,53 @@ export async function listCommunityThreads(options: CommunityThreadsOptions = {}
   );
 }
 
+export async function listCommunityReactionSummary(
+  targetType: CommunityReactionTargetType,
+  targetIds: string[],
+) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before reacting in MyLearna Community.",
+  );
+
+  const normalizedTargetType = normalizeCommunityReactionTargetType(targetType);
+  const normalizedTargetIds = [...new Set(targetIds.map((value) => safe(value)).filter(Boolean))];
+  const summary = buildReactionSummary(normalizedTargetIds);
+
+  if (!normalizedTargetIds.length) {
+    return summary;
+  }
+
+  const response = await supabase
+    .from("community_reactions")
+    .select("id,target_type,target_id,reaction_type,user_id,created_at")
+    .eq("target_type", normalizedTargetType)
+    .in("target_id", normalizedTargetIds);
+
+  if (response.error) {
+    throw new Error(
+      normalizeCommunityReactionErrorMessage(
+        response.error,
+        "We could not load community reactions just now.",
+      ),
+    );
+  }
+
+  for (const row of response.data ?? []) {
+    const reaction = toCommunityReaction(row as CommunityReactionRow);
+    const targetSummary =
+      summary[reaction.targetId] ?? (summary[reaction.targetId] = buildEmptyReactionCounts());
+    const reactionState = targetSummary[reaction.reactionType];
+
+    reactionState.count += 1;
+
+    if (reaction.userId === currentUserId) {
+      reactionState.reacted = true;
+    }
+  }
+
+  return summary;
+}
+
 export async function listCommunityReplyCounts(threadIds: string[]) {
   await requireCommunityUser("You need to sign in before opening MyLearna Community.");
 
@@ -298,6 +426,88 @@ export async function listCommunityReplyCounts(threadIds: string[]) {
   }
 
   return counts;
+}
+
+export async function toggleCommunityReaction(input: CommunityReactionToggleInput) {
+  const currentUserId = await requireCommunityUser(
+    "You need to sign in before reacting in MyLearna Community.",
+  );
+
+  const targetType = normalizeCommunityReactionTargetType(input.targetType);
+  const targetId = safe(input.targetId);
+  const reactionType = validateCommunityReactionType(input.reactionType);
+
+  if (!targetId) {
+    throw new Error("Choose a community thread or reply first.");
+  }
+
+  const existingResponse = await supabase
+    .from("community_reactions")
+    .select("id,target_type,target_id,reaction_type,user_id,created_at")
+    .eq("target_type", targetType)
+    .eq("target_id", targetId)
+    .eq("reaction_type", reactionType)
+    .eq("user_id", currentUserId)
+    .maybeSingle();
+
+  if (existingResponse.error) {
+    throw new Error(
+      normalizeCommunityReactionErrorMessage(
+        existingResponse.error,
+        "We could not update this reaction just now.",
+      ),
+    );
+  }
+
+  if (existingResponse.data) {
+    const deleteResponse = await supabase
+      .from("community_reactions")
+      .delete()
+      .eq("id", safe((existingResponse.data as CommunityReactionRow).id));
+
+    if (deleteResponse.error) {
+      throw new Error(
+        normalizeCommunityReactionErrorMessage(
+          deleteResponse.error,
+          "We could not remove this reaction just now.",
+        ),
+      );
+    }
+
+    return {
+      active: false,
+      targetType,
+      targetId,
+      reactionType,
+    };
+  }
+
+  const insertResponse = await supabase
+    .from("community_reactions")
+    .insert({
+      target_type: targetType,
+      target_id: targetId,
+      reaction_type: reactionType,
+      user_id: currentUserId,
+    })
+    .select("id,target_type,target_id,reaction_type,user_id,created_at")
+    .maybeSingle();
+
+  if (insertResponse.error || !insertResponse.data) {
+    throw new Error(
+      normalizeCommunityReactionErrorMessage(
+        insertResponse.error,
+        "We could not add this reaction just now.",
+      ),
+    );
+  }
+
+  return {
+    active: true,
+    targetType,
+    targetId,
+    reactionType,
+  };
 }
 
 export async function getCommunityThread(threadId: string) {
