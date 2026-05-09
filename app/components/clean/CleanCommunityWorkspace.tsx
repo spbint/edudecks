@@ -11,6 +11,7 @@ import {
   listCommunityThreads,
   reportCommunityContent,
 } from "@/lib/clean/community/client";
+import { getCurrentCleanUserId } from "@/lib/clean/family/client";
 import {
   COMMUNITY_CATEGORIES,
   COMMUNITY_CATEGORY_LABELS,
@@ -109,11 +110,38 @@ function formatDateLabel(value: string | null) {
   const date = value ? new Date(value) : null;
   if (!date || Number.isNaN(date.getTime())) return "Recently";
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTarget = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const dayDiff = Math.round(
+    (startOfToday.getTime() - startOfTarget.getTime()) / (24 * 60 * 60 * 1000),
+  );
+
+  if (dayDiff === 0) return "Today";
+  if (dayDiff === 1) return "Yesterday";
+
   return date.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+function formatDateTimeLabel(value: string | null) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "Recently";
+
+  const dateLabel = formatDateLabel(value);
+  const timeLabel = date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (dateLabel === "Today" || dateLabel === "Yesterday") {
+    return `${dateLabel} at ${timeLabel}`;
+  }
+
+  return `${dateLabel} at ${timeLabel}`;
 }
 
 function formatReplyCount(count: number) {
@@ -134,7 +162,16 @@ function messageFromError(error: unknown, fallback: string) {
   return String((error as { message?: unknown })?.message ?? fallback).trim();
 }
 
+function getAuthorLabel(authorUserId: string, currentUserId: string | null) {
+  if (currentUserId && safe(authorUserId) === safe(currentUserId)) {
+    return "You";
+  }
+
+  return "Community member";
+}
+
 export default function CleanCommunityWorkspace() {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
   const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>("all");
@@ -196,6 +233,29 @@ export default function CleanCommunityWorkspace() {
 
   useEffect(() => {
     void loadThreads();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadCurrentUser() {
+      try {
+        const nextUserId = await getCurrentCleanUserId();
+        if (active) {
+          setCurrentUserId(nextUserId);
+        }
+      } catch {
+        if (active) {
+          setCurrentUserId(null);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -499,6 +559,7 @@ export default function CleanCommunityWorkspace() {
                     filteredThreads.map((thread) => {
                       const active = thread.id === selectedThreadId;
                       const replyCount = replyCounts[thread.id] ?? 0;
+                      const authorLabel = getAuthorLabel(thread.authorUserId, currentUserId);
 
                       return (
                         <button
@@ -548,13 +609,34 @@ export default function CleanCommunityWorkspace() {
                             <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 800 }}>
                               {thread.title}
                             </div>
-                            <div style={{ color: "#475569", fontSize: 14, lineHeight: 1.6 }}>
+                            <div
+                              style={{
+                                color: "#475569",
+                                fontSize: 14,
+                                lineHeight: 1.6,
+                                wordBreak: "break-word",
+                              }}
+                            >
                               {getPreviewText(thread.body)}
                             </div>
                           </div>
-                          <div style={{ color: "#64748b", fontSize: 12, fontWeight: 600 }}>
-                            {formatReplyCount(replyCount)}
-                            {active ? " · Selected" : ""}
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              color: "#64748b",
+                              fontSize: 12,
+                              fontWeight: 600,
+                            }}
+                          >
+                            <span>{authorLabel}</span>
+                            <span>
+                              {formatReplyCount(replyCount)}
+                              {active ? " · Selected" : ""}
+                            </span>
                           </div>
                         </button>
                       );
@@ -589,46 +671,47 @@ export default function CleanCommunityWorkspace() {
                         gap: 16,
                       }}
                     >
-                      <div style={{ display: "grid", gap: 10 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              background: "#eff6ff",
-                              color: "#1d4ed8",
-                              fontSize: 12,
-                              fontWeight: 700,
-                            }}
-                          >
-                            {COMMUNITY_CATEGORY_LABELS[selectedThread.category]}
-                          </span>
-                          <span style={{ color: "#64748b", fontSize: 12 }}>
-                            Started {formatDateLabel(selectedThread.createdAt)}
-                          </span>
-                        </div>
-                        <h2 style={{ margin: 0, fontSize: 24, color: "#0f172a" }}>
-                          {selectedThread.title}
-                        </h2>
-                        <p style={{ margin: 0, color: "#334155", fontSize: 15, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
-                          {selectedThread.body}
-                        </p>
-                        {selectedThread.linkUrl ? (
-                          <a
-                            href={selectedThread.linkUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ color: "#1d4ed8", fontSize: 14, fontWeight: 700, wordBreak: "break-word" }}
-                          >
-                            Visit shared link
-                          </a>
-                        ) : null}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                          <span style={{ color: "#64748b", fontSize: 13 }}>
-                            {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
-                          </span>
+                      <div style={{ display: "grid", gap: 14 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "flex-start",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                padding: "6px 10px",
+                                borderRadius: 999,
+                                background: "#eff6ff",
+                                color: "#1d4ed8",
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {COMMUNITY_CATEGORY_LABELS[selectedThread.category]}
+                            </span>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                padding: "6px 10px",
+                                borderRadius: 999,
+                                background: "#f8fafc",
+                                color: "#475569",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                border: "1px solid #e2e8f0",
+                              }}
+                            >
+                              {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
+                            </span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => openReportForm({ id: selectedThread.id, type: "thread" })}
@@ -636,6 +719,78 @@ export default function CleanCommunityWorkspace() {
                           >
                             Report thread
                           </button>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 8 }}>
+                          <h2 style={{ margin: 0, fontSize: 26, color: "#0f172a", lineHeight: 1.2 }}>
+                            {selectedThread.title}
+                          </h2>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              color: "#64748b",
+                              fontSize: 13,
+                            }}
+                          >
+                            <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                              {getAuthorLabel(selectedThread.authorUserId, currentUserId)}
+                            </span>
+                            <span aria-hidden="true">•</span>
+                            <span>{formatDateTimeLabel(selectedThread.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 18,
+                            background: "#f8fbff",
+                            padding: 18,
+                            display: "grid",
+                            gap: 12,
+                          }}
+                        >
+                          <div
+                            style={{
+                              color: "#64748b",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Original post
+                          </div>
+                          <div
+                            style={{
+                              margin: 0,
+                              color: "#334155",
+                              fontSize: 15,
+                              lineHeight: 1.9,
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {selectedThread.body}
+                          </div>
+                          {selectedThread.linkUrl ? (
+                            <a
+                              href={selectedThread.linkUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                color: "#1d4ed8",
+                                fontSize: 14,
+                                fontWeight: 700,
+                                wordBreak: "break-word",
+                              }}
+                            >
+                              Visit shared link
+                            </a>
+                          ) : null}
                         </div>
                       </div>
 
@@ -691,7 +846,7 @@ export default function CleanCommunityWorkspace() {
 
                       <div style={{ display: "grid", gap: 14 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                          <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Replies</h3>
+                          <h3 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Conversation</h3>
                           <span style={{ color: "#64748b", fontSize: 13 }}>
                             {formatReplyCount(replyCounts[selectedThread.id] ?? 0)}
                           </span>
@@ -706,93 +861,197 @@ export default function CleanCommunityWorkspace() {
                         {repliesLoading ? (
                           <div style={{ color: "#64748b", fontSize: 14 }}>Loading replies...</div>
                         ) : replies.length ? (
-                          replies.map((reply) => (
-                            <article
-                              key={reply.id}
-                              style={{
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 16,
-                                padding: 16,
-                                display: "grid",
-                                gap: 10,
-                                background: "#f8fafc",
-                              }}
-                            >
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                                <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                                  Community reply
-                                </span>
-                                <span style={{ color: "#64748b", fontSize: 12 }}>
-                                  {formatDateLabel(reply.createdAt)}
-                                </span>
-                              </div>
-                              <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
-                                {reply.body}
-                              </div>
-                              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                                <span style={{ color: "#64748b", fontSize: 12 }}>
-                                  Text only
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => openReportForm({ id: reply.id, type: "post" })}
-                                  style={subtleButtonStyle}
-                                >
-                                  Report reply
-                                </button>
-                              </div>
+                          <div style={{ display: "grid", gap: 14 }}>
+                            {replies.map((reply, index) => {
+                              const isOriginalPoster =
+                                reply.authorUserId === selectedThread.authorUserId;
 
-                              {reportTarget?.type === "post" && reportTarget.id === reply.id ? (
-                                <form
-                                  onSubmit={(event) => void handleReportSubmit(event)}
+                              return (
+                                <article
+                                  key={reply.id}
                                   style={{
-                                    borderTop: "1px solid #dbeafe",
-                                    paddingTop: 12,
                                     display: "grid",
-                                    gap: 10,
+                                    gridTemplateColumns: "18px minmax(0, 1fr)",
+                                    gap: 12,
+                                    alignItems: "stretch",
                                   }}
                                 >
-                                  <label style={{ display: "grid", gap: 6 }}>
-                                    <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                                      Tell us what needs review
-                                    </span>
-                                    <textarea
-                                      value={reportReason}
-                                      onChange={(event) => setReportReason(event.target.value)}
-                                      style={{ ...textareaStyle, minHeight: 88 }}
-                                      placeholder="Briefly explain why this reply should be reviewed."
-                                    />
-                                  </label>
-                                  {reportError ? (
-                                    <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
-                                      {reportError}
-                                    </div>
-                                  ) : null}
-                                  {reportMessage ? (
-                                    <div role="status" style={{ color: "#166534", fontSize: 13 }}>
-                                      {reportMessage}
-                                    </div>
-                                  ) : null}
-                                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                    <button type="submit" disabled={reportSubmitting} style={buttonStyle}>
-                                      {reportSubmitting ? "Sending..." : "Submit report"}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setReportTarget(null);
-                                        setReportReason("");
-                                        setReportError(null);
+                                  <div
+                                    aria-hidden="true"
+                                    style={{
+                                      display: "grid",
+                                      justifyItems: "center",
+                                      gridTemplateRows: "18px minmax(0, 1fr)",
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: 999,
+                                        background: "#93c5fd",
+                                        marginTop: 4,
                                       }}
-                                      style={secondaryButtonStyle}
-                                    >
-                                      Cancel
-                                    </button>
+                                    />
+                                    {index < replies.length - 1 ? (
+                                      <span
+                                        style={{
+                                          width: 2,
+                                          height: "100%",
+                                          background: "#dbeafe",
+                                          borderRadius: 999,
+                                        }}
+                                      />
+                                    ) : null}
                                   </div>
-                                </form>
-                              ) : null}
-                            </article>
-                          ))
+
+                                  <div
+                                    style={{
+                                      borderLeft: "3px solid #dbeafe",
+                                      borderRadius: 16,
+                                      padding: "14px 16px",
+                                      display: "grid",
+                                      gap: 10,
+                                      background: "#f8fafc",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        gap: 12,
+                                        alignItems: "flex-start",
+                                        flexWrap: "wrap",
+                                      }}
+                                    >
+                                      <div style={{ display: "grid", gap: 6 }}>
+                                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                                          <span
+                                            style={{
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              padding: "5px 9px",
+                                              borderRadius: 999,
+                                              background: "#ffffff",
+                                              border: "1px solid #dbeafe",
+                                              color: "#1d4ed8",
+                                              fontSize: 11,
+                                              fontWeight: 800,
+                                            }}
+                                          >
+                                            Reply {index + 1}
+                                          </span>
+                                          {isOriginalPoster ? (
+                                            <span
+                                              style={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                padding: "5px 9px",
+                                                borderRadius: 999,
+                                                background: "#ffffff",
+                                                border: "1px solid #e2e8f0",
+                                                color: "#475569",
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              Original poster
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            gap: 10,
+                                            flexWrap: "wrap",
+                                            alignItems: "center",
+                                            color: "#64748b",
+                                            fontSize: 12,
+                                          }}
+                                        >
+                                          <span style={{ color: "#0f172a", fontWeight: 700 }}>
+                                            {getAuthorLabel(reply.authorUserId, currentUserId)}
+                                          </span>
+                                          <span aria-hidden="true">•</span>
+                                          <span>{formatDateTimeLabel(reply.createdAt)}</span>
+                                        </div>
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => openReportForm({ id: reply.id, type: "post" })}
+                                        style={subtleButtonStyle}
+                                      >
+                                        Report reply
+                                      </button>
+                                    </div>
+
+                                    <div
+                                      style={{
+                                        color: "#334155",
+                                        fontSize: 14,
+                                        lineHeight: 1.8,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                      }}
+                                    >
+                                      {reply.body}
+                                    </div>
+
+                                    {reportTarget?.type === "post" && reportTarget.id === reply.id ? (
+                                      <form
+                                        onSubmit={(event) => void handleReportSubmit(event)}
+                                        style={{
+                                          borderTop: "1px solid #dbeafe",
+                                          paddingTop: 12,
+                                          display: "grid",
+                                          gap: 10,
+                                        }}
+                                      >
+                                        <label style={{ display: "grid", gap: 6 }}>
+                                          <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                                            Tell us what needs review
+                                          </span>
+                                          <textarea
+                                            value={reportReason}
+                                            onChange={(event) => setReportReason(event.target.value)}
+                                            style={{ ...textareaStyle, minHeight: 88 }}
+                                            placeholder="Briefly explain why this reply should be reviewed."
+                                          />
+                                        </label>
+                                        {reportError ? (
+                                          <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
+                                            {reportError}
+                                          </div>
+                                        ) : null}
+                                        {reportMessage ? (
+                                          <div role="status" style={{ color: "#166534", fontSize: 13 }}>
+                                            {reportMessage}
+                                          </div>
+                                        ) : null}
+                                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                          <button type="submit" disabled={reportSubmitting} style={buttonStyle}>
+                                            {reportSubmitting ? "Sending..." : "Submit report"}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setReportTarget(null);
+                                              setReportReason("");
+                                              setReportError(null);
+                                            }}
+                                            style={secondaryButtonStyle}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </form>
+                                    ) : null}
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <div
                             style={{
