@@ -1,4 +1,11 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFFont,
+  type PDFImage,
+  type PDFPage,
+} from "pdf-lib";
 import type {
   CleanReport,
   CleanReportSection,
@@ -53,6 +60,7 @@ type PdfComposer = {
 
 const DISCLAIMER_TEXT =
   "This document is a family learning record. Families should check their local home education authority requirements before submitting records.";
+const LOGO_PATH = "/branding/mylearna-logo.png";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -100,6 +108,19 @@ function formatDateLabel(value: string | null | undefined) {
 function formatDateRange(period: CleanReportingPeriod | null) {
   if (!period) return "Dates not set";
   return `${formatDateLabel(period.startsOn)} to ${formatDateLabel(period.endsOn)}`;
+}
+
+async function loadSafeLogoImage(doc: PDFDocument) {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const response = await fetch(LOGO_PATH, { cache: "force-cache" });
+    if (!response.ok) return null;
+    const bytes = await response.arrayBuffer();
+    return await doc.embedPng(bytes);
+  } catch {
+    return null;
+  }
 }
 
 function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number) {
@@ -217,6 +238,49 @@ function drawTextBlock(
   return next;
 }
 
+function drawCenteredTextBlock(
+  composer: PdfComposer,
+  text: string,
+  options?: {
+    font?: PDFFont;
+    fontSize?: number;
+    lineHeight?: number;
+    color?: ReturnType<typeof rgb>;
+    spacingAfter?: number;
+    maxWidth?: number;
+  },
+) {
+  const font = options?.font || composer.regular;
+  const fontSize = options?.fontSize || 11;
+  const lineHeight = options?.lineHeight || fontSize + 4;
+  const color = options?.color || composer.theme.body;
+  const spacingAfter = options?.spacingAfter ?? 10;
+  const maxWidth =
+    options?.maxWidth || composer.width - composer.margin * 2;
+  const lines = wrapText(text, font, fontSize, maxWidth);
+  const next = ensureSpace(composer, lines.length * lineHeight + spacingAfter);
+
+  lines.forEach((line) => {
+    if (!line) {
+      next.y -= lineHeight * 0.5;
+      return;
+    }
+
+    const textWidth = font.widthOfTextAtSize(line, fontSize);
+    next.page.drawText(line, {
+      x: (next.width - textWidth) / 2,
+      y: next.y,
+      size: fontSize,
+      font,
+      color,
+    });
+    next.y -= lineHeight;
+  });
+
+  next.y -= spacingAfter;
+  return next;
+}
+
 function drawHeading(composer: PdfComposer, text: string, level: 1 | 2 | 3 = 1) {
   const fontSize = level === 1 ? 22 : level === 2 ? 16 : 13;
   const spacingBefore = level === 1 ? 16 : 12;
@@ -242,6 +306,40 @@ function drawDivider(composer: PdfComposer) {
   });
   composer.y -= 14;
   return composer;
+}
+
+function drawCenteredRule(composer: PdfComposer, width = 120) {
+  const next = ensureSpace(composer, 16);
+  const startX = (next.width - width) / 2;
+  next.page.drawLine({
+    start: { x: startX, y: next.y },
+    end: { x: startX + width, y: next.y },
+    thickness: 1,
+    color: next.theme.accent,
+  });
+  next.y -= 14;
+  return next;
+}
+
+function drawHeaderLogo(
+  composer: PdfComposer,
+  logo: PDFImage | null,
+) {
+  if (!logo) return composer;
+
+  const next = ensureSpace(composer, 78);
+  const targetWidth = 138;
+  const scale = targetWidth / logo.width;
+  const logoWidth = targetWidth;
+  const logoHeight = logo.height * scale;
+  next.page.drawImage(logo, {
+    x: (next.width - logoWidth) / 2,
+    y: next.y - logoHeight,
+    width: logoWidth,
+    height: logoHeight,
+  });
+  next.y -= logoHeight + 12;
+  return next;
 }
 
 function measureWrappedLines(lines: string[], lineHeight: number) {
@@ -746,6 +844,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const logo = await loadSafeLogoImage(doc);
   const learningAreas = Array.from(
     new Set(
       model.evidenceItems
@@ -764,23 +863,34 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
 
   let composer = createComposer(doc, regular, bold, theme);
 
-  composer = drawTextBlock(composer, "MyLearna", {
+  composer = drawHeaderLogo(composer, logo);
+  composer = drawCenteredTextBlock(composer, "MyLearna", {
     font: bold,
-    fontSize: 12,
+    fontSize: 12.5,
     color: theme.heading,
     lineHeight: 14,
     spacingAfter: 6,
   });
-  composer = drawHeading(composer, "MyLearna Learning Record", 1);
-  composer = drawTextBlock(
+  composer = drawCenteredTextBlock(composer, "MyLearna Learning Record", {
+    font: bold,
+    fontSize: 24,
+    lineHeight: 28,
+    color: theme.title,
+    spacingAfter: 10,
+    maxWidth: 420,
+  });
+  composer = drawCenteredTextBlock(
     composer,
     "Prepared as a family learning record to support home education reporting.",
     {
       fontSize: 11.5,
       lineHeight: 16,
       spacingAfter: 12,
+      color: theme.body,
+      maxWidth: 420,
     },
   );
+  composer = drawCenteredRule(composer, 136);
   composer = drawMetaCard(composer, [
     { label: "Learner", value: model.learnerLabel },
     {
