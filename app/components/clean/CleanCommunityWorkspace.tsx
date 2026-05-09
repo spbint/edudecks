@@ -176,6 +176,92 @@ function isValidHttpUrl(value: string) {
   }
 }
 
+function getSafeHttpUrl(value: string | null) {
+  const text = safe(value);
+  if (!text) return null;
+
+  try {
+    const url = new URL(text);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function getHostnameLabel(value: string | null) {
+  const safeUrl = getSafeHttpUrl(value);
+  if (!safeUrl) return null;
+
+  try {
+    return new URL(safeUrl).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+function getLinkPathLabel(value: string | null) {
+  const safeUrl = getSafeHttpUrl(value);
+  if (!safeUrl) return null;
+
+  try {
+    const url = new URL(safeUrl);
+    const path = `${url.pathname}${url.search}`.trim();
+    if (!path || path === "/") {
+      return "Open shared resource";
+    }
+
+    return path.length > 46 ? `${path.slice(0, 43).trimEnd()}...` : path;
+  } catch {
+    return null;
+  }
+}
+
+function getThreadBodyPlaceholder(category: CommunityCategory) {
+  switch (category) {
+    case "resources":
+      return "Share why this resource is useful, who it may suit, and any practical notes for other families.";
+    case "curriculum":
+      return "Share the curriculum idea, how you are using it, and what other families should know before trying it.";
+    case "reporting":
+      return "Explain the reporting question or record-keeping approach you want to discuss.";
+    case "state-country":
+      return "Share the state or country context and the practical question you want help with.";
+    case "mylearna-suggestions":
+      return "Share the improvement or workflow idea you would like to see in MyLearna.";
+    default:
+      return "Share the question, idea, or resource you want to discuss.";
+  }
+}
+
+function getCategoryHelperText(category: CommunityCategory) {
+  switch (category) {
+    case "resources":
+      return "Share public resources that other homeschool families can review safely.";
+    case "curriculum":
+      return "Discuss curriculum ideas, how they fit into real weeks, and what has worked for your family.";
+    case "reporting":
+      return "Use this space for practical record-keeping, progress, and reporting questions.";
+    case "state-country":
+      return "Ask about state or country reporting expectations without posting private family records.";
+    case "mylearna-suggestions":
+      return "Suggest practical product improvements and explain the problem you are trying to solve.";
+    default:
+      return "Start a practical discussion for other homeschool families.";
+  }
+}
+
+function getLinkHelperText(category: CommunityCategory) {
+  if (category === "resources" || category === "curriculum") {
+    return "Share a full public webpage link only. Do not post private drive links, child records, or copyrighted file downloads.";
+  }
+
+  return "Optional public webpage link. Leave this blank if your thread does not need a shared resource.";
+}
+
 function messageFromError(error: unknown, fallback: string) {
   return String((error as { message?: unknown })?.message ?? fallback).trim();
 }
@@ -272,6 +358,86 @@ function CommunityReactionBar({
   );
 }
 
+function CommunitySharedLinkCard({
+  url,
+  compact = false,
+}: {
+  url: string | null;
+  compact?: boolean;
+}) {
+  const safeUrl = getSafeHttpUrl(url);
+  if (!safeUrl) return null;
+
+  const hostname = getHostnameLabel(safeUrl);
+  const pathLabel = getLinkPathLabel(safeUrl);
+
+  return (
+    <a
+      href={safeUrl}
+      target="_blank"
+      rel="noreferrer"
+      style={{
+        display: "grid",
+        gap: compact ? 4 : 8,
+        textDecoration: "none",
+        border: "1px solid #dbeafe",
+        borderRadius: compact ? 14 : 16,
+        background: compact ? "#ffffff" : "#f8fbff",
+        padding: compact ? "10px 12px" : "14px 16px",
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "5px 9px",
+            borderRadius: 999,
+            background: "#eff6ff",
+            color: "#1d4ed8",
+            fontSize: 11,
+            fontWeight: 800,
+          }}
+        >
+          Shared resource
+        </span>
+        {hostname ? (
+          <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
+            {hostname}
+          </span>
+        ) : null}
+      </div>
+
+      {pathLabel ? (
+        <div
+          style={{
+            color: "#0f172a",
+            fontSize: compact ? 13 : 14,
+            fontWeight: 700,
+            lineHeight: 1.5,
+            wordBreak: "break-word",
+          }}
+        >
+          {pathLabel}
+        </div>
+      ) : null}
+
+      <span style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+        Open resource
+      </span>
+    </a>
+  );
+}
+
 export default function CleanCommunityWorkspace() {
   const searchParams = useSearchParams();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -308,6 +474,10 @@ export default function CleanCommunityWorkspace() {
   const [reactionErrorKey, setReactionErrorKey] = useState<string | null>(null);
   const [reactionError, setReactionError] = useState<string | null>(null);
   const requestedThreadId = safe(searchParams.get("thread"));
+  const categoryHelperText = getCategoryHelperText(threadCategory);
+  const linkHelperText = getLinkHelperText(threadCategory);
+  const threadBodyPlaceholder = getThreadBodyPlaceholder(threadCategory);
+  const draftLinkPreview = getSafeHttpUrl(threadLinkUrl);
 
   const filteredThreads = useMemo(() => {
     if (selectedCategory === "all") return threads;
@@ -460,7 +630,9 @@ export default function CleanCommunityWorkspace() {
     }
 
     if (linkUrl && !isValidHttpUrl(linkUrl)) {
-      setThreadError("Add a full link starting with http:// or https://, or leave it blank.");
+      setThreadError(
+        "Add a full public link starting with http:// or https://, or leave it blank.",
+      );
       setThreadMessage(null);
       return;
     }
@@ -761,6 +933,7 @@ export default function CleanCommunityWorkspace() {
                       const active = thread.id === selectedThreadId;
                       const replyCount = replyCounts[thread.id] ?? 0;
                       const authorLabel = getAuthorLabel(thread.authorUserId, currentUserId);
+                      const hasSharedResource = Boolean(getSafeHttpUrl(thread.linkUrl));
 
                       return (
                         <button
@@ -776,7 +949,11 @@ export default function CleanCommunityWorkspace() {
                           }}
                           style={{
                             border: active ? "1px solid #1d4ed8" : "1px solid #e2e8f0",
-                            background: active ? "#eff6ff" : "#ffffff",
+                            background: active
+                              ? "#eff6ff"
+                              : hasSharedResource
+                                ? "#f8fbff"
+                                : "#ffffff",
                             borderRadius: 16,
                             padding: 16,
                             textAlign: "left",
@@ -821,6 +998,9 @@ export default function CleanCommunityWorkspace() {
                               {getPreviewText(thread.body)}
                             </div>
                           </div>
+                          {hasSharedResource ? (
+                            <CommunitySharedLinkCard url={thread.linkUrl} compact />
+                          ) : null}
                           <div
                             style={{
                               display: "flex",
@@ -977,21 +1157,7 @@ export default function CleanCommunityWorkspace() {
                           >
                             {selectedThread.body}
                           </div>
-                          {selectedThread.linkUrl ? (
-                            <a
-                              href={selectedThread.linkUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{
-                                color: "#1d4ed8",
-                                fontSize: 14,
-                                fontWeight: 700,
-                                wordBreak: "break-word",
-                              }}
-                            >
-                              Visit shared link
-                            </a>
-                          ) : null}
+                          <CommunitySharedLinkCard url={selectedThread.linkUrl} />
                           <CommunityReactionBar
                             targetType="thread"
                             targetId={selectedThread.id}
@@ -1392,6 +1558,9 @@ export default function CleanCommunityWorkspace() {
                       </option>
                     ))}
                   </select>
+                  <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.6 }}>
+                    {categoryHelperText}
+                  </span>
                 </label>
 
                 <label style={{ display: "grid", gap: 6 }}>
@@ -1400,13 +1569,13 @@ export default function CleanCommunityWorkspace() {
                     value={threadBody}
                     onChange={(event) => setThreadBody(event.target.value)}
                     style={textareaStyle}
-                    placeholder="Share the question, idea, or resource you want to discuss."
+                    placeholder={threadBodyPlaceholder}
                   />
                 </label>
 
                 <label style={{ display: "grid", gap: 6 }}>
                   <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                    Optional link
+                    Optional resource link
                   </span>
                   <input
                     value={threadLinkUrl}
@@ -1414,7 +1583,12 @@ export default function CleanCommunityWorkspace() {
                     style={inputStyle}
                     placeholder="https://example.com/resource"
                   />
+                  <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.6 }}>
+                    {linkHelperText}
+                  </span>
                 </label>
+
+                {draftLinkPreview ? <CommunitySharedLinkCard url={draftLinkPreview} /> : null}
 
                 {threadError ? (
                   <div role="alert" style={{ color: "#b91c1c", fontSize: 13 }}>
