@@ -4,13 +4,27 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
+import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import {
+  buildCleanReportPdfFilename,
+  generateCleanReportPdfBytes,
+  type CleanReportPdfEvidenceItem,
+} from "@/lib/clean/outputs/pdf";
 import {
   createCleanReportExport,
   listCleanReportExports,
 } from "@/lib/clean/outputs/client";
 import type { CleanReportExport } from "@/lib/clean/outputs/types";
+import { listCleanPortfolioItems } from "@/lib/clean/portfolio/client";
+import type { CleanPortfolioItem } from "@/lib/clean/portfolio/types";
+import {
+  listCleanProgramSegments,
+  listCleanPrograms,
+} from "@/lib/clean/programs/client";
+import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/types";
 import {
   listCleanReportSections,
   listCleanReports,
@@ -103,6 +117,19 @@ function formatDateRange(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
 }
 
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
 function getReportStatusLabel(status: CleanReportStatus) {
   if (status === "ready") return "Ready";
   if (status === "archived") return "Archived";
@@ -139,9 +166,14 @@ function CleanOutputsWorkspaceBody() {
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [exportsHistory, setExportsHistory] = useState<CleanReportExport[]>([]);
+  const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
+  const [programs, setPrograms] = useState<CleanProgram[]>([]);
+  const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
+  const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
   const [exportsLoading, setExportsLoading] = useState(false);
+  const [reportContextLoading, setReportContextLoading] = useState(false);
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
   const [dataError, setDataError] = useState<string | null>(null);
@@ -156,6 +188,22 @@ function CleanOutputsWorkspaceBody() {
         label: getLearnerLabel(learner.firstName, learner.preferredName),
       })),
     [workspace.learners],
+  );
+  const learnerLabelById = useMemo(
+    () => new Map(learnerOptions.map((option) => [option.value, option.label])),
+    [learnerOptions],
+  );
+  const programLabelById = useMemo(
+    () => new Map(programs.map((program) => [program.id, program.title])),
+    [programs],
+  );
+  const segmentLabelById = useMemo(
+    () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
+    [programSegments],
+  );
+  const calendarItemById = useMemo(
+    () => new Map(calendarItems.map((item) => [item.id, item])),
+    [calendarItems],
   );
 
   const filteredReports = useMemo(() => {
@@ -184,6 +232,49 @@ function CleanOutputsWorkspaceBody() {
     ? learnerOptions.find((option) => option.value === selectedReport.learnerId)?.label ??
       "Unknown learner"
     : null;
+  const previewEvidenceItems = useMemo<CleanReportPdfEvidenceItem[]>(
+    () =>
+      portfolioItems.map((item) => {
+        const linkedCalendarItem = item.evidence.calendarItemId
+          ? calendarItemById.get(item.evidence.calendarItemId) ?? null
+          : null;
+        const programTitle =
+          (item.evidence.programId
+            ? programLabelById.get(item.evidence.programId) ?? null
+            : null) ||
+          (linkedCalendarItem?.programId
+            ? programLabelById.get(linkedCalendarItem.programId) ?? null
+            : null);
+        const segmentTitle =
+          linkedCalendarItem?.programSegmentId
+            ? segmentLabelById.get(linkedCalendarItem.programSegmentId) ?? null
+            : null;
+
+        return {
+          id: item.evidence.id,
+          title: item.evidence.title || item.evidence.whatHappened,
+          observedOn: item.evidence.observedOn,
+          learnerLabel:
+            learnerLabelById.get(item.evidence.learnerId) || selectedLearnerLabel || "Unknown learner",
+          learningArea:
+            item.evidence.learningArea || linkedCalendarItem?.learningArea || null,
+          programTitle,
+          segmentTitle,
+          blockTitle: linkedCalendarItem?.title || null,
+          whatHappened: item.evidence.whatHappened,
+          reflection: item.evidence.reflection,
+          portfolioNote: item.highlight?.note ?? null,
+        };
+      }),
+    [
+      calendarItemById,
+      learnerLabelById,
+      portfolioItems,
+      programLabelById,
+      segmentLabelById,
+      selectedLearnerLabel,
+    ],
+  );
   const latestExport = exportsHistory[0] ?? null;
   const outputsNextGuidance = !readyReports.length
     ? draftReports.length
@@ -191,9 +282,9 @@ function CleanOutputsWorkspaceBody() {
       : "Create a report in My Reports and move it through to Ready."
     : selectedReport
       ? latestExport
-        ? "You can record another output when you want to capture a new version."
-        : "Review the report preview, then record the first output for this ready report."
-      : "Choose one of the ready reports to review and record.";
+        ? "Download the PDF when you want a fresh family learning record. Each download adds a new output entry."
+        : "Review the report preview, then download the PDF when you are ready to keep this version."
+      : "Choose one of the ready reports to review and download.";
 
   const reloadCatalog = useCallback(async () => {
     if (!workspace.profile) return;
@@ -272,12 +363,69 @@ function CleanOutputsWorkspaceBody() {
     }
   }, [selectedReportId, workspace.profile]);
 
+  const reloadReportContext = useCallback(async () => {
+    if (!workspace.profile || !selectedReport) {
+      setPortfolioItems([]);
+      setPrograms([]);
+      setProgramSegments([]);
+      setCalendarItems([]);
+      return;
+    }
+
+    setReportContextLoading(true);
+    setDataError(null);
+    try {
+      const [nextPortfolioItems, nextPrograms, nextCalendarItems] = await Promise.all([
+        listCleanPortfolioItems(workspace.profile.id, {
+          learnerId: selectedReport.learnerId,
+          fromDate: selectedPeriod?.startsOn ?? null,
+          toDate: selectedPeriod?.endsOn ?? null,
+          highlightedOnly: true,
+          limit: 100,
+        }),
+        listCleanPrograms(workspace.profile.id, { limit: 60 }),
+        listCleanCalendarItems(workspace.profile.id, {
+          learnerId: selectedReport.learnerId,
+          fromDate: selectedPeriod?.startsOn ?? null,
+          toDate: selectedPeriod?.endsOn ?? null,
+          limit: 200,
+        }),
+      ]);
+
+      const nextProgramSegments = (
+        await Promise.all(
+          nextPrograms.map((program) =>
+            listCleanProgramSegments(workspace.profile!.id, program.id),
+          ),
+        )
+      ).flat();
+
+      setPortfolioItems(nextPortfolioItems);
+      setPrograms(nextPrograms);
+      setProgramSegments(nextProgramSegments);
+      setCalendarItems(nextCalendarItems);
+    } catch (error) {
+      setDataError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not load the report evidence and planning details just now.",
+        ),
+      );
+    } finally {
+      setReportContextLoading(false);
+    }
+  }, [selectedPeriod, selectedReport, workspace.profile]);
+
   useEffect(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
       setPeriods([]);
       setReports([]);
       setSections([]);
       setExportsHistory([]);
+      setPortfolioItems([]);
+      setPrograms([]);
+      setProgramSegments([]);
+      setCalendarItems([]);
       setSelectedLearnerId("");
       setSelectedReportId("");
       return;
@@ -322,28 +470,55 @@ function CleanOutputsWorkspaceBody() {
   useEffect(() => {
     void reloadSections();
     void reloadExports();
-  }, [reloadExports, reloadSections]);
+    void reloadReportContext();
+  }, [reloadExports, reloadReportContext, reloadSections]);
 
-  async function handleExport() {
-    if (!workspace.profile || !selectedReport) return;
+  async function handleDownloadPdf() {
+    if (!workspace.profile || !selectedReport || !selectedLearnerLabel) return;
 
     setSubmitting(true);
     setActionError(null);
     setMessage(null);
 
     try {
-      await createCleanReportExport(workspace.profile.id, {
-        reportId: selectedReport.id,
-        learnerId: selectedReport.learnerId,
-        exportFormat: "pdf",
+      const pdfBytes = await generateCleanReportPdfBytes({
+        report: selectedReport,
+        learnerLabel: selectedLearnerLabel,
+        reportingPeriod: selectedPeriod,
+        sections,
+        evidenceItems: previewEvidenceItems,
+        preparedOnLabel: formatDateLabel(new Date().toISOString().slice(0, 10)),
+        statusLabel: getReportStatusLabel(selectedReport.status),
       });
-      setMessage("Export recorded. PDF generation comes in the next clean phase.");
-      await reloadExports();
+      const filename = buildCleanReportPdfFilename(
+        selectedLearnerLabel,
+        selectedPeriod?.title || selectedReport.title,
+      );
+
+      downloadPdf(pdfBytes, filename);
+
+      try {
+        await createCleanReportExport(workspace.profile.id, {
+          reportId: selectedReport.id,
+          learnerId: selectedReport.learnerId,
+          exportFormat: "pdf",
+        });
+        setMessage("PDF downloaded. Output history has been updated for this report.");
+        await reloadExports();
+      } catch (historyError) {
+        setMessage("PDF downloaded. We could not update output history this time.");
+        setActionError(
+          normalizeCleanErrorMessage(
+            historyError,
+            "We could not update output history for this PDF download.",
+          ),
+        );
+      }
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not record the clean report export.",
+          "We could not create the PDF for this report just now.",
         ),
       );
     } finally {
@@ -374,7 +549,7 @@ function CleanOutputsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Outputs</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Choose a ready report, review the draft, and record an output when it is ready to leave the writing stage.
+              Choose a ready report, review the learning record, and download a PDF when you are ready to keep this version.
             </p>
           </div>
         </section>
@@ -411,13 +586,13 @@ function CleanOutputsWorkspaceBody() {
         ) : null}
 
         {readyForOutputs && !workspace.learners.length ? (
-          <section style={cardStyle}>
-            <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
-            <p style={{ margin: 0, color: "#475569" }}>
-              Add a learner before previewing or recording report outputs.
-            </p>
-          </section>
-        ) : null}
+            <section style={cardStyle}>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
+              <p style={{ margin: 0, color: "#475569" }}>
+              Add a learner before previewing or downloading report PDFs.
+              </p>
+            </section>
+          ) : null}
 
         {readyForOutputs && workspace.profile && workspace.learners.length ? (
           <>
@@ -497,7 +672,7 @@ function CleanOutputsWorkspaceBody() {
                     {readyReports.length}
                   </div>
                   <div style={{ color: "#166534", lineHeight: 1.5 }}>
-                    Reports ready for output records
+                    Reports ready for PDF download
                   </div>
                 </div>
 
@@ -576,10 +751,17 @@ function CleanOutputsWorkspaceBody() {
                     void reloadCatalog();
                     void reloadSections();
                     void reloadExports();
+                    void reloadReportContext();
                   }}
-                  disabled={catalogLoading || sectionsLoading || exportsLoading || submitting}
+                  disabled={
+                    catalogLoading ||
+                    sectionsLoading ||
+                    exportsLoading ||
+                    reportContextLoading ||
+                    submitting
+                  }
                 >
-                  {catalogLoading || sectionsLoading || exportsLoading
+                  {catalogLoading || sectionsLoading || exportsLoading || reportContextLoading
                     ? "Refreshing..."
                     : "Refresh"}
                 </button>
@@ -591,15 +773,15 @@ function CleanOutputsWorkspaceBody() {
                     borderColor: selectedReport ? "#0f172a" : "#94a3b8",
                     cursor: selectedReport ? "pointer" : "not-allowed",
                   }}
-                  onClick={() => void handleExport()}
+                  onClick={() => void handleDownloadPdf()}
                   disabled={!selectedReport || submitting}
                 >
-                  {submitting ? "Recording output..." : "Record output"}
+                  {submitting ? "Preparing PDF..." : "Download PDF"}
                 </button>
               </div>
 
               <p style={{ margin: "12px 0 0", color: "#475569" }}>
-                The preview stays on screen only. Recording an output adds an export record and history entry, but does not generate a file yet.
+                Downloading the PDF also records an output entry for this ready report. The file stays in your browser download flow and is not stored online in this phase.
               </p>
             </section>
 
@@ -743,7 +925,7 @@ function CleanOutputsWorkspaceBody() {
             {!selectedReport || !selectedLearnerLabel ? (
               <section style={cardStyle}>
                 <p style={{ margin: 0, color: "#475569" }}>
-                  Select a ready report to review it and record an output.
+                  Select a ready report to review it and download the PDF.
                 </p>
               </section>
             ) : (
@@ -806,11 +988,11 @@ function CleanOutputsWorkspaceBody() {
                           {getReportStatusLabel(selectedReport.status)}
                         </span>
                         <span style={{ color: "#166534", fontWeight: 700 }}>
-                          Ready to record as an output
+                          Ready to download as a PDF
                         </span>
                       </div>
                       <div style={{ color: "#166534", lineHeight: 1.6 }}>
-                        Review the report below, then record the output when you are satisfied with this version.
+                        Review the report below, then download the PDF when you are satisfied with this version.
                       </div>
                     </div>
 
@@ -832,23 +1014,32 @@ function CleanOutputsWorkspaceBody() {
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
                         {latestExport
                           ? `Latest record: ${latestExport.exportFormat.toUpperCase()} on ${formatTimestamp(latestExport.createdAt)}`
-                          : "No output records yet for this report."}
+                          : "No PDF download records yet for this report."}
                       </div>
                     </div>
                   </div>
                 </section>
+
+                {reportContextLoading ? (
+                  <section style={cardStyle}>
+                    <p style={{ margin: 0, color: "#475569" }}>
+                      Loading the selected evidence and planning details for this PDF...
+                    </p>
+                  </section>
+                ) : null}
 
                 <CleanReportPreview
                   report={selectedReport}
                   learnerLabel={selectedLearnerLabel}
                   reportingPeriod={selectedPeriod}
                   sections={sections}
+                  evidenceItems={previewEvidenceItems}
                 />
 
                 <section style={cardStyle}>
                   <h2 style={{ marginTop: 0, color: "#0f172a" }}>Output history</h2>
                   <p style={{ marginTop: 0, color: "#475569" }}>
-                    Each record shows that this ready report was captured as an output. File generation comes later.
+                    Each entry shows when a PDF was downloaded for this ready report. The file itself is not stored online in this phase.
                   </p>
 
                   {exportsLoading ? (
@@ -867,7 +1058,7 @@ function CleanOutputsWorkspaceBody() {
                           }}
                         >
                           <strong style={{ color: "#0f172a" }}>
-                            {entry.exportFormat.toUpperCase()} output record
+                            {entry.exportFormat.toUpperCase()} download record
                           </strong>
                           <span style={{ color: "#475569" }}>
                             Recorded {formatTimestamp(entry.createdAt)}
@@ -877,7 +1068,7 @@ function CleanOutputsWorkspaceBody() {
                     </div>
                   ) : (
                     <p style={{ margin: 0, color: "#475569" }}>
-                      No output records for this report yet.
+                      No PDF download records for this report yet.
                     </p>
                   )}
                 </section>

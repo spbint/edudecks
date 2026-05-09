@@ -6,6 +6,7 @@ import type {
   CleanReportSection,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
+import type { CleanReportPdfEvidenceItem } from "@/lib/clean/outputs/pdf";
 
 const previewWrapStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
@@ -40,6 +41,7 @@ type CleanReportPreviewProps = {
   learnerLabel: string;
   reportingPeriod: CleanReportingPeriod | null;
   sections: CleanReportSection[];
+  evidenceItems?: CleanReportPdfEvidenceItem[];
 };
 
 function formatDateLabel(value: string) {
@@ -87,6 +89,7 @@ export default function CleanReportPreview({
   learnerLabel,
   reportingPeriod,
   sections,
+  evidenceItems = [],
 }: CleanReportPreviewProps) {
   return (
     <article style={previewWrapStyle}>
@@ -123,6 +126,25 @@ export default function CleanReportPreview({
             {getReportStatusLabel(report.status)}
           </span>
         </div>
+        <div
+          style={{
+            fontSize: 26,
+            lineHeight: 1.08,
+            fontWeight: 900,
+            color: "#0f172a",
+          }}
+        >
+          MyLearna Learning Record
+        </div>
+        <div
+          style={{
+            color: "#475569",
+            lineHeight: 1.7,
+            maxWidth: 760,
+          }}
+        >
+          Prepared as a family learning record to support home education reporting.
+        </div>
         <h2 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>{report.title}</h2>
         <div style={{ display: "grid", gap: 4, color: "#475569" }}>
           <div>
@@ -138,10 +160,38 @@ export default function CleanReportPreview({
               {formatDateLabel(reportingPeriod.endsOn)}
             </div>
           ) : null}
+          <div>
+            <strong>Portfolio evidence:</strong> {evidenceItems.length}
+          </div>
+          <div>
+            <strong>Section count:</strong> {sections.length}
+          </div>
         </div>
       </header>
 
       <div style={previewBodyStyle}>
+        <section style={sectionStyle}>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Evidence summary</div>
+          {evidenceItems.length ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              {evidenceItems.map((item) => (
+                <div key={item.id} style={{ display: "grid", gap: 4 }}>
+                  <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {formatDateLabel(item.observedOn || "")}
+                    {item.learningArea ? ` - ${item.learningArea}` : ""}
+                    {item.programTitle ? ` - Program: ${item.programTitle}` : ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              No selected portfolio evidence matches this report yet.
+            </p>
+          )}
+        </section>
+
         {sections.length ? (
           sections.map((section) => (
             <section key={section.id} style={sectionStyle}>
@@ -173,6 +223,72 @@ export default function CleanReportPreview({
             </p>
           </section>
         )}
+
+        <section style={sectionStyle}>
+          <div style={{ color: "#64748b", fontSize: 12 }}>Selected evidence details</div>
+          {evidenceItems.length ? (
+            <div style={{ display: "grid", gap: 14 }}>
+              {evidenceItems.map((item) => (
+                <div
+                  key={`detail-${item.id}`}
+                  style={{
+                    borderTop: "1px solid #e2e8f0",
+                    paddingTop: 14,
+                    display: "grid",
+                    gap: 6,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {formatDateLabel(item.observedOn || "")}
+                    {item.learningArea ? ` - ${item.learningArea}` : ""}
+                    {item.programTitle ? ` - Program: ${item.programTitle}` : ""}
+                    {item.segmentTitle ? ` - Week / segment: ${item.segmentTitle}` : ""}
+                    {item.blockTitle ? ` - Block: ${item.blockTitle}` : ""}
+                  </div>
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "#334155",
+                      lineHeight: 1.7,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {item.whatHappened}
+                  </p>
+                  {item.reflection ? (
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#475569",
+                        lineHeight: 1.7,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      <strong>Reflection / next step:</strong> {item.reflection}
+                    </p>
+                  ) : null}
+                  {item.portfolioNote ? (
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "#475569",
+                        lineHeight: 1.7,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      <strong>Portfolio note:</strong> {item.portfolioNote}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+              Selected evidence details will appear here once portfolio notes are linked to the report period.
+            </p>
+          )}
+        </section>
       </div>
     </article>
   );
