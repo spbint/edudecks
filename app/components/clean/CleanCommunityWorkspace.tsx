@@ -126,6 +126,33 @@ type ReportTarget = {
   type: "thread" | "post";
 };
 
+type SuggestFeedbackType =
+  | "suggest-improvement"
+  | "suggest-tool"
+  | "report-problem"
+  | "general-feedback";
+
+const SUGGEST_SOURCE_PAGE_LABELS: Record<string, string> = {
+  "my-day": "My Day",
+  "my-calendar": "My Calendar",
+  "my-programs": "My Programs",
+  "my-capture": "My Capture",
+  "my-portfolio": "My Portfolio",
+  "my-reports": "My Reports",
+  "my-outputs": "My Outputs",
+  "my-profile": "My Profile",
+  "my-settings": "My Settings",
+  "my-community": "My Community",
+  "current-page": "Current page",
+};
+
+const SUGGEST_FEEDBACK_LABELS: Record<SuggestFeedbackType, string> = {
+  "suggest-improvement": "Suggest improvement",
+  "suggest-tool": "Suggest a tool",
+  "report-problem": "Report a problem",
+  "general-feedback": "General feedback",
+};
+
 function buildReactionTargetKey(
   targetType: CommunityReactionTargetType,
   targetId: string,
@@ -286,6 +313,61 @@ function getLinkHelperText(category: CommunityCategory) {
 
 function messageFromError(error: unknown, fallback: string) {
   return String((error as { message?: unknown })?.message ?? fallback).trim();
+}
+
+function normalizeSuggestFeedbackType(value: unknown): SuggestFeedbackType {
+  const feedbackType = safe(value);
+  if (
+    feedbackType === "suggest-tool" ||
+    feedbackType === "report-problem" ||
+    feedbackType === "general-feedback"
+  ) {
+    return feedbackType;
+  }
+
+  return "suggest-improvement";
+}
+
+function normalizeRequestedCommunityCategory(value: unknown): CommunityCategory | null {
+  const category = safe(value) as CommunityCategory;
+  return COMMUNITY_CATEGORIES.includes(category) ? category : null;
+}
+
+function getSuggestionSourceLabel(value: string) {
+  return SUGGEST_SOURCE_PAGE_LABELS[value] ?? "Current page";
+}
+
+function buildSuggestionDraftTitle(
+  feedbackType: SuggestFeedbackType,
+  sourcePageLabel: string,
+) {
+  const label = SUGGEST_FEEDBACK_LABELS[feedbackType];
+  if (!safe(sourcePageLabel) || sourcePageLabel === "Current page") {
+    return label;
+  }
+
+  return `${label}: ${sourcePageLabel}`;
+}
+
+function buildSuggestionDraftBody(
+  feedbackType: SuggestFeedbackType,
+  sourcePageLabel: string,
+) {
+  const contextLine =
+    safe(sourcePageLabel) && sourcePageLabel !== "Current page"
+      ? `Context: ${sourcePageLabel}`
+      : "Context: Current page";
+
+  switch (feedbackType) {
+    case "suggest-tool":
+      return `${contextLine}\n\nWhat tool or workflow would help?\n\nWhere would it fit in MyLearna?\n\nWhy would this help your family?`;
+    case "report-problem":
+      return `${contextLine}\n\nWhat happened?\n\nWhat did you expect instead?\n\nHow often does this happen?`;
+    case "general-feedback":
+      return `${contextLine}\n\nWhat feedback would you like to share?\n\nWhat should stay the same?\n\nWhat should improve next?`;
+    default:
+      return `${contextLine}\n\nWhat would make this part of MyLearna work better?\n\nWhat were you trying to do?\n\nWhy would this improvement help your family?`;
+  }
 }
 
 function getAuthorLabel(authorUserId: string, currentUserId: string | null) {
@@ -463,6 +545,7 @@ function CommunitySharedLinkCard({
 export default function CleanCommunityWorkspace() {
   const searchParams = useSearchParams();
   const replyComposerRef = useRef<HTMLTextAreaElement | null>(null);
+  const threadTitleInputRef = useRef<HTMLInputElement | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isWideScreen, setIsWideScreen] = useState(false);
   const [threads, setThreads] = useState<CommunityThread[]>([]);
@@ -511,7 +594,27 @@ export default function CleanCommunityWorkspace() {
   const [replyEditSubmitting, setReplyEditSubmitting] = useState(false);
   const [replyEditError, setReplyEditError] = useState<string | null>(null);
   const [replyDeletingId, setReplyDeletingId] = useState<string | null>(null);
+  const [appliedSuggestionPrefillKey, setAppliedSuggestionPrefillKey] = useState("");
   const requestedThreadId = safe(searchParams.get("thread"));
+  const requestedCompose = safe(searchParams.get("compose")) === "1";
+  const requestedCategory = normalizeRequestedCommunityCategory(
+    searchParams.get("category"),
+  );
+  const requestedFeedbackType = normalizeSuggestFeedbackType(
+    searchParams.get("feedbackType"),
+  );
+  const requestedSourcePage = safe(searchParams.get("sourcePage"));
+  const requestedSourceLabel = getSuggestionSourceLabel(requestedSourcePage);
+  const suggestionPrefillKey = [
+    requestedCompose ? "1" : "0",
+    requestedCategory ?? "",
+    requestedFeedbackType,
+    requestedSourcePage,
+  ].join("|");
+  const showSuggestionDraftHelper =
+    requestedCompose ||
+    requestedCategory === "mylearna-suggestions" ||
+    Boolean(requestedSourcePage);
   const categoryHelperText = getCategoryHelperText(threadCategory);
   const linkHelperText = getLinkHelperText(threadCategory);
   const threadBodyPlaceholder = getThreadBodyPlaceholder(threadCategory);
@@ -631,6 +734,48 @@ export default function CleanCommunityWorkspace() {
     setSelectedCategory("all");
     setSelectedThreadId(requestedThreadId);
   }, [requestedThreadId, threads]);
+
+  useEffect(() => {
+    if (!showSuggestionDraftHelper) return;
+    if (appliedSuggestionPrefillKey === suggestionPrefillKey) return;
+
+    setThreadCategory(requestedCategory ?? "mylearna-suggestions");
+    setSelectedCategory(requestedCategory ?? "mylearna-suggestions");
+    setThreadError(null);
+    setThreadMessage("Suggestion draft ready. Edit it, then post it to the community.");
+
+    setThreadTitle((current) =>
+      safe(current) || buildSuggestionDraftTitle(requestedFeedbackType, requestedSourceLabel),
+    );
+    setThreadBody((current) =>
+      safe(current) || buildSuggestionDraftBody(requestedFeedbackType, requestedSourceLabel),
+    );
+
+    setAppliedSuggestionPrefillKey(suggestionPrefillKey);
+  }, [
+    appliedSuggestionPrefillKey,
+    requestedCategory,
+    requestedFeedbackType,
+    requestedSourceLabel,
+    showSuggestionDraftHelper,
+    suggestionPrefillKey,
+  ]);
+
+  useEffect(() => {
+    if (!showSuggestionDraftHelper) return;
+
+    const nextFrame = window.requestAnimationFrame(() => {
+      threadTitleInputRef.current?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+      threadTitleInputRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(nextFrame);
+    };
+  }, [showSuggestionDraftHelper, suggestionPrefillKey]);
 
   useEffect(() => {
     setThreadEditing(false);
@@ -2084,6 +2229,41 @@ export default function CleanCommunityWorkspace() {
 
             <section style={cardStyle}>
               <form onSubmit={(event) => void handleCreateThread(event)} style={{ display: "grid", gap: 12 }}>
+                {showSuggestionDraftHelper ? (
+                  <div
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 16,
+                      background: "#f8fbff",
+                      padding: 14,
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    <strong style={{ color: "#0f172a" }}>Help shape MyLearna</strong>
+                    <p style={{ margin: 0, color: "#475569", fontSize: 14, lineHeight: 1.7 }}>
+                      This draft started from {requestedSourceLabel}. It will be posted in
+                      MyLearna suggestions so early users can share practical ideas together.
+                    </p>
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        width: "fit-content",
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        background: "#ffffff",
+                        border: "1px solid #dbeafe",
+                        color: "#1d4ed8",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {SUGGEST_FEEDBACK_LABELS[requestedFeedbackType]}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div style={{ display: "grid", gap: 6 }}>
                   <h2 style={{ margin: 0, fontSize: 18, color: "#0f172a" }}>Start a thread</h2>
                   <p style={{ margin: 0, color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
@@ -2094,6 +2274,7 @@ export default function CleanCommunityWorkspace() {
                 <label style={{ display: "grid", gap: 6 }}>
                   <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>Title</span>
                   <input
+                    ref={threadTitleInputRef}
                     value={threadTitle}
                     onChange={(event) => setThreadTitle(event.target.value)}
                     style={inputStyle}
