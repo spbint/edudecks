@@ -288,6 +288,23 @@ export default function CleanAppHeader() {
               flexWrap: "wrap",
             }}
           >
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                border: "1px solid #dbeafe",
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                padding: "7px 11px",
+                fontSize: 12,
+                fontWeight: 800,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Early access
+            </span>
             <button
               type="button"
               onClick={() => setSuggestOpen(true)}

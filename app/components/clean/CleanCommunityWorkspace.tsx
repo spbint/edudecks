@@ -1236,6 +1236,10 @@ export default function CleanCommunityWorkspace() {
                 A place for homeschool families to share ideas, resources, reporting questions,
                 and suggestions for MyLearna.
               </p>
+              <p style={{ margin: 0, color: "#64748b", fontSize: 14, lineHeight: 1.7 }}>
+                Early-access families help shape MyLearna through practical discussion and
+                collaborative suggestions.
+              </p>
             </div>
           </div>
         </section>

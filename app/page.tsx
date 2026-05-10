@@ -122,6 +122,33 @@ export default function HomePage() {
       showWorkflowStrip={false}
     >
       <section
+        style={{
+          ...publicCardStyle(),
+          marginBottom: isMobile ? 18 : 22,
+          padding: isMobile ? 18 : isTablet ? 22 : 24,
+          display: "grid",
+          gap: 12,
+          border: "1px solid #dbeafe",
+          background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+        }}
+      >
+        <div style={publicPill("#eff6ff", "#1d4ed8")}>Early access</div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15,
+            lineHeight: 1.7,
+            color: "#334155",
+            maxWidth: 860,
+            fontWeight: 700,
+          }}
+        >
+          MyLearna is evolving with feedback from homeschooling families. Help shape the
+          homeschool record system we&apos;re building with families.
+        </p>
+      </section>
+
+      <section
         id="how-it-works"
         style={{
           ...publicCardStyle(),
