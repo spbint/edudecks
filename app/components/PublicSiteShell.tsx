@@ -39,7 +39,10 @@ const NAV_ITEMS = [
   { href: "/contact", label: "Contact" },
 ];
 
-const FOOTER_LINKS = [{ href: "/privacy", label: "Privacy" }] as const;
+const FOOTER_LINKS = [
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+] as const;
 
 const C = {
   bgApp: "#f6f8fc",
