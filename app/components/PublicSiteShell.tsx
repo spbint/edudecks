@@ -39,6 +39,8 @@ const NAV_ITEMS = [
   { href: "/contact", label: "Contact" },
 ];
 
+const FOOTER_LINKS = [{ href: "/privacy", label: "Privacy" }] as const;
+
 const C = {
   bgApp: "#f6f8fc",
   bgSurface: "#ffffff",
@@ -130,7 +132,7 @@ function shellPillStyle(
 }
 
 export default function PublicSiteShell({
-  title = "EduDecks",
+  title = "MyLearna",
   eyebrow = "",
   heroTitle,
   heroText,
@@ -471,7 +473,7 @@ export default function PublicSiteShell({
             margin: "0 auto",
             padding: "24px",
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) auto",
+            gridTemplateColumns: isMobile ? "minmax(0, 1fr)" : "minmax(0, 1fr) auto",
             gap: 16,
             alignItems: "center",
           }}
@@ -497,9 +499,39 @@ export default function PublicSiteShell({
             >
               Capture learning, build a record over time, and move into reporting with a clearer pathway.
             </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 14,
+                flexWrap: "wrap",
+                marginTop: 10,
+              }}
+            >
+              {FOOTER_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: C.textMain,
+                    textDecoration: "none",
+                  }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              flexWrap: "wrap",
+              justifyContent: isMobile ? "flex-start" : "flex-end",
+            }}
+          >
             {footerSecondaryCta ? (
               <Link href={footerSecondaryCta.href} style={shellButtonStyle(false)}>
                 {footerSecondaryCta.label}
