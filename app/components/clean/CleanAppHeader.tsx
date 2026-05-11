@@ -254,7 +254,6 @@ export default function CleanAppHeader() {
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 12,
                 textDecoration: "none",
                 color: "#0f172a",
                 minWidth: 0,
@@ -273,20 +272,6 @@ export default function CleanAppHeader() {
                   display: "block",
                 }}
               />
-              <span
-                style={{
-                  display: "grid",
-                  gap: 2,
-                  minWidth: 0,
-                }}
-              >
-                <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>
-                  MyLearna
-                </span>
-                <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                  Guided home learning
-                </span>
-              </span>
             </Link>
             <BetaV1Badge compact />
           </div>
