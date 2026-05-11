@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import BetaV1Badge from "@/app/components/BetaV1Badge";
 import CleanAccountMenu from "@/app/components/clean/CleanAccountMenu";
 import CleanCommunityNotificationsMenu from "@/app/components/clean/CleanCommunityNotificationsMenu";
 
@@ -239,45 +240,56 @@ export default function CleanAppHeader() {
             flexWrap: "wrap",
           }}
         >
-          <Link
-            href="/my-day"
+          <div
             style={{
-              display: "inline-flex",
+              display: "flex",
               alignItems: "center",
-              gap: 12,
-              textDecoration: "none",
-              color: "#0f172a",
+              gap: 10,
+              flexWrap: "wrap",
               minWidth: 0,
             }}
           >
-            <Image
-              src="/branding/MyLearna Logo.png"
-              alt="MyLearna"
-              width={1916}
-              height={821}
-              priority
+            <Link
+              href="/my-day"
               style={{
-                width: "clamp(132px, 19vw, 172px)",
-                maxWidth: "100%",
-                height: "auto",
-                display: "block",
-              }}
-            />
-            <span
-              style={{
-                display: "grid",
-                gap: 2,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 12,
+                textDecoration: "none",
+                color: "#0f172a",
                 minWidth: 0,
               }}
             >
-              <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>
-                MyLearna
+              <Image
+                src="/branding/MyLearna Logo.png"
+                alt="MyLearna"
+                width={1916}
+                height={821}
+                priority
+                style={{
+                  width: "clamp(132px, 19vw, 172px)",
+                  maxWidth: "100%",
+                  height: "auto",
+                  display: "block",
+                }}
+              />
+              <span
+                style={{
+                  display: "grid",
+                  gap: 2,
+                  minWidth: 0,
+                }}
+              >
+                <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>
+                  MyLearna
+                </span>
+                <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                  Guided home learning
+                </span>
               </span>
-              <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                Guided home learning
-              </span>
-            </span>
-          </Link>
+            </Link>
+            <BetaV1Badge compact />
+          </div>
 
           <div
             style={{
@@ -288,23 +300,6 @@ export default function CleanAppHeader() {
               flexWrap: "wrap",
             }}
           >
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 999,
-                border: "1px solid #dbeafe",
-                background: "#eff6ff",
-                color: "#1d4ed8",
-                padding: "7px 11px",
-                fontSize: 12,
-                fontWeight: 800,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Early access
-            </span>
             <button
               type="button"
               onClick={() => setSuggestOpen(true)}

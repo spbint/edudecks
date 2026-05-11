@@ -4,6 +4,7 @@ import Link from "next/link";
 import React from "react";
 import { usePathname } from "next/navigation";
 import { useAuthUser } from "@/app/components/AuthUserProvider";
+import BetaV1Badge from "@/app/components/BetaV1Badge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import FamilyProfileMenu from "@/app/components/FamilyProfileMenu";
 import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
@@ -301,9 +302,10 @@ export default function FamilyTopNavShell({
     >
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/92 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-6 py-3.5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-7">
-            <div className="shrink-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-7">
+            <div className="flex shrink-0 items-center gap-3">
               <BrandHomeLink href="/my-day" />
+              <BetaV1Badge compact />
             </div>
 
             <div className="min-w-0 rounded-full border border-slate-200/80 bg-slate-50/80 p-1">

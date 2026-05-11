@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import FamilyWorkflowStrip from "@/app/components/FamilyWorkflowStrip";
+import BetaV1Badge from "@/app/components/BetaV1Badge";
 import BrandHomeLink from "@/app/components/BrandHomeLink";
 import useIsMobile from "@/app/components/useIsMobile";
 
@@ -211,15 +212,26 @@ export default function PublicSiteShell({
               flexWrap: "wrap",
             }}
           >
-            <BrandHomeLink
-              href="/"
-              height={isMobile ? 40 : 50}
-              width={isMobile ? 148 : 184}
+            <div
               style={{
-                flexShrink: 0,
-                paddingRight: isMobile ? 0 : 6,
+                display: "flex",
+                alignItems: "center",
+                gap: isMobile ? 8 : 10,
+                flexWrap: "wrap",
+                minWidth: 0,
               }}
-            />
+            >
+              <BrandHomeLink
+                href="/"
+                height={isMobile ? 40 : 50}
+                width={isMobile ? 148 : 184}
+                style={{
+                  flexShrink: 0,
+                  paddingRight: isMobile ? 0 : 6,
+                }}
+              />
+              <BetaV1Badge compact={isMobile} />
+            </div>
 
             <div
               style={{
