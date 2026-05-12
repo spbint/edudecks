@@ -5,7 +5,6 @@ import Link from "next/link";
 import PublicSiteShell, {
   publicButtonStyle,
   publicCardStyle,
-  publicPill,
 } from "@/app/components/PublicSiteShell";
 
 type FAQCategory =
@@ -26,9 +25,9 @@ type FAQItem = {
 const FAQS: FAQItem[] = [
   {
     category: "Getting Started",
-    question: "What is EduDecks Family?",
+    question: "What is MyLearna?",
     answer:
-      "EduDecks Family is a homeschool-first workflow for capturing learning, curating stronger evidence, planning intentionally, and building reports more calmly over time.",
+      "MyLearna is a homeschool-first workflow for capturing learning, curating stronger evidence, planning intentionally, and building reports more calmly over time.",
     featured: true,
   },
   {
@@ -69,7 +68,7 @@ const FAQS: FAQItem[] = [
     category: "Trust",
     question: "Will this judge our homeschooling?",
     answer:
-      "No. EduDecks is designed to support families, not supervise them.",
+      "No. MyLearna is designed to support families, not supervise them.",
   },
 ];
 
@@ -84,7 +83,7 @@ const CATEGORY_ORDER: Array<"All" | FAQCategory> = [
 ];
 
 export default function FAQPage() {
-  const [openKey, setOpenKey] = useState<string>("What is EduDecks Family?");
+  const [openKey, setOpenKey] = useState<string>("What is MyLearna?");
   const [activeCategory, setActiveCategory] =
     useState<"All" | FAQCategory>("All");
 
@@ -98,7 +97,7 @@ export default function FAQPage() {
     <PublicSiteShell
       eyebrow="Trust starts with clarity"
       heroTitle="Common questions. Calm, honest answers."
-      heroText="Most families do not need a perfect system. They just need a calm place to begin."
+      heroText="Answers about homeschool record keeping, evidence tracking, reporting, and how MyLearna fits real family learning."
       heroBadges={[
         "Homeschool-first",
         "Flexible use",

@@ -11,14 +11,14 @@ import PublicSiteShell, {
 export default function AboutPage() {
   return (
     <PublicSiteShell
-      eyebrow="Why EduDecks exists"
-      heroTitle="A calmer, stronger way to organise learning outside the classroom."
-      heroText="EduDecks Family is being built for families who want a more connected way to capture learning, curate evidence, plan intentionally, and report with confidence — without turning home into school."
+      eyebrow="Why MyLearna exists"
+      heroTitle="A calmer way to keep homeschool records and learning plans connected."
+      heroText="MyLearna is being built for families who want a more connected way to capture learning, track evidence, plan intentionally, and prepare homeschool reports without turning home into school."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
       primaryCta={{ label: "See How It Works", href: "/get-started" }}
       secondaryCta={{ label: "Start Free", href: "/capture" }}
       asideTitle="What this is"
-      asideText="EduDecks is not just a planner, a portfolio, or a report builder on its own. It is a connected family learning workflow designed to reduce overwhelm and build confidence over time."
+      asideText="MyLearna is not just a planner, a portfolio, or a report builder on its own. It is a connected family learning workflow designed to reduce overwhelm and build confidence over time."
     >
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div
@@ -56,7 +56,7 @@ export default function AboutPage() {
             maxWidth: 920,
           }}
         >
-          EduDecks Family exists to offer a calmer alternative: one connected workflow
+          MyLearna exists to offer a calmer alternative: one connected workflow
           for capturing real learning, shaping stronger evidence, planning what comes
           next, and building reports that feel more credible and less rushed.
         </div>
@@ -80,7 +80,7 @@ export default function AboutPage() {
               marginBottom: 10,
             }}
           >
-            What makes EduDecks different
+            What makes MyLearna different
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
@@ -171,7 +171,7 @@ export default function AboutPage() {
                 color: "#475569",
               }}
             >
-              EduDecks is being designed for real family life: mixed ages, flexible
+              MyLearna is being designed for real family life: mixed ages, flexible
               rhythms, different homeschool philosophies, project-based learning,
               everyday learning, and records that build gradually rather than appearing
               all at once.
@@ -230,7 +230,7 @@ export default function AboutPage() {
             maxWidth: 900,
           }}
         >
-          EduDecks Family should feel calm, premium, clear, and trustworthy. It should
+          MyLearna should feel calm, premium, clear, and trustworthy. It should
           feel more like a thoughtful family support system than a school dashboard,
           and more like an organised record of growth than a pile of admin tasks.
         </div>

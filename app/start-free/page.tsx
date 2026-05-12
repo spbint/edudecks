@@ -100,13 +100,13 @@ export default function StartFreePage() {
   return (
     <PublicSiteShell
       eyebrow="Start free"
-      heroTitle="Begin simply. Build confidence steadily."
-      heroText="EduDecks is designed so families can start with one child and one learning moment — not a full system on day one. You can grow into stronger records, portfolio, and reports over time."
+      heroTitle="Start free with a calmer homeschool record system."
+      heroText="MyLearna is designed so families can start with one child and one learning moment, not a full system on day one. You can grow into stronger records, portfolio choices, and reports over time."
       heroBadges={["Start free", "No pressure", "Family-first", "Build over time"]}
       primaryCta={{ label: "Create free account", href: "/signup" }}
       secondaryCta={{ label: "I already have an account", href: "/login" }}
       asideTitle="A calm way to begin"
-      asideText="You do not need a polished setup, perfect evidence, or a complete plan before you begin. EduDecks is built to grow with your family."
+      asideText="You do not need a polished setup, perfect evidence, or a complete plan before you begin. MyLearna is built to grow with your family."
     >
       <section
         style={{
@@ -140,7 +140,7 @@ export default function StartFreePage() {
             }}
           >
             The first goal is not to build everything. It is simply to begin.
-            EduDecks helps you capture one useful learning moment, then build
+            MyLearna helps you capture one useful learning moment, then build
             from there with clarity and confidence.
           </div>
 
@@ -175,7 +175,7 @@ export default function StartFreePage() {
                   color: "#334155",
                 }}
               >
-                Start with a simple family account so EduDecks can save your
+                Start with a simple family account so MyLearna can save your
                 child records, portfolio moments, and reporting progress over
                 time.
               </div>
@@ -282,7 +282,7 @@ export default function StartFreePage() {
                   color: "#334155",
                 }}
               >
-                As evidence grows, EduDecks helps you organise it, shape it into
+                As evidence grows, MyLearna helps you organise it, shape it into
                 calm reports, and eventually move into stronger authority-ready
                 workflows.
               </div>
@@ -370,7 +370,7 @@ export default function StartFreePage() {
                 color: "#475569",
               }}
             >
-              EduDecks works best when families begin with real learning rather
+              MyLearna works best when families begin with real learning rather
               than trying to set up everything perfectly first. Start free, add
               one child, and capture one useful moment. The rest can grow later.
             </div>
@@ -386,7 +386,7 @@ export default function StartFreePage() {
                 marginBottom: 10,
               }}
             >
-              Already started with EduDecks?
+              Already started with MyLearna?
             </div>
 
             <div

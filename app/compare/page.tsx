@@ -93,7 +93,7 @@ const SWITCH_REASONS = [
   {
     title: "From scattered evidence to one calm record",
     text:
-      "EduDecks brings capture, portfolio, planning, and reporting into one homeschool-friendly flow so families do not have to stitch the story together later.",
+      "MyLearna brings capture, portfolio, planning, and reporting into one homeschool-friendly flow so families do not have to stitch the story together later.",
   },
   {
     title: "From reactive reporting to guided readiness",
@@ -103,17 +103,17 @@ const SWITCH_REASONS = [
   {
     title: "From generic tools to a homeschool-first system",
     text:
-      "Most tools can be adapted. EduDecks is designed around what homeschool families actually need: confidence, evidence, and a usable path to reporting.",
+      "Most tools can be adapted. MyLearna is designed around what homeschool families actually need: confidence, evidence, and a usable path to reporting.",
   },
 ];
 
 export default function ComparePage() {
   return (
     <PublicSiteShell
-      title="Compare EduDecks"
+      title="Compare MyLearna"
       eyebrow="WHY SWITCH"
-      heroTitle="Why families move from spreadsheets and notes apps to EduDecks"
-      heroText="Most families do not need more tools. They need one clear system that helps them capture learning, shape evidence, and move toward reporting with confidence."
+      heroTitle="Compare homeschool planning and reporting workflows"
+      heroText="See how MyLearna compares with spreadsheets, notes apps, and generic tools for capturing learning, shaping evidence, and preparing reports with confidence."
       heroBadges={[
         "Homeschool-first workflow",
         "Capture → portfolio → reports",
@@ -122,7 +122,7 @@ export default function ComparePage() {
       primaryCta={{ label: "Get Started", href: "/get-started" }}
       secondaryCta={{ label: "View Pricing", href: "/pricing" }}
       asideTitle="The simplest difference"
-      asideText="Spreadsheets and notes apps can store information. EduDecks helps families turn that information into a usable learning record."
+      asideText="Spreadsheets and notes apps can store information. MyLearna helps families turn that information into a usable learning record."
     >
       <section style={publicCardStyle()}>
         <div
@@ -165,7 +165,7 @@ export default function ComparePage() {
               FAQ
             </Link>
             <Link href="/get-started" style={publicButtonStyle(true)}>
-              Start with EduDecks
+              Start with MyLearna
             </Link>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function ComparePage() {
                     background: "#ecfdf5",
                   }}
                 >
-                  EduDecks
+                  MyLearna
                 </th>
                 <th
                   style={{
@@ -404,7 +404,7 @@ export default function ComparePage() {
                 maxWidth: 760,
               }}
             >
-              Families often already have the raw information. EduDecks helps shape it into a clearer story that can support portfolio decisions, reporting, and authority direction later.
+              Families often already have the raw information. MyLearna helps shape it into a clearer story that can support portfolio decisions, reporting, and authority direction later.
             </div>
           </div>
 

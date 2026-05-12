@@ -60,8 +60,8 @@ export default function GetStartedPage() {
   return (
     <PublicSiteShell
       eyebrow="Your best first path"
-      heroTitle="Start simply. Build confidence steadily. Grow into the full workflow."
-      heroText="The best way to begin is not by setting up everything at once. Start with one captured learning moment, then let the system guide you into portfolio, planning, and reporting when you are ready."
+      heroTitle="How to start homeschool record keeping with confidence."
+      heroText="Start with one learning record, then let MyLearna guide you into portfolio choices, curriculum planning, and homeschool reporting when you are ready."
       heroBadges={[
         "Begin simply",
         "Curate gradually",
@@ -71,7 +71,7 @@ export default function GetStartedPage() {
       primaryCta={{ label: "Open Quick Capture", href: "/capture" }}
       secondaryCta={{ label: "Open Family Hub", href: "/family" }}
       asideTitle="Best first move"
-      asideText="One captured learning moment is enough to begin. You do not need a perfect setup before EduDecks starts becoming useful."
+      asideText="One captured learning moment is enough to begin. You do not need a perfect setup before MyLearna starts becoming useful."
     >
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div
@@ -184,7 +184,7 @@ export default function GetStartedPage() {
               marginBottom: 16,
             }}
           >
-            You do not need a full system in place before EduDecks becomes
+            You do not need a full system in place before MyLearna becomes
             helpful. A simple first week is usually enough to make the workflow
             feel real.
           </div>
@@ -276,7 +276,7 @@ export default function GetStartedPage() {
               marginBottom: 16,
             }}
           >
-            EduDecks is designed to become more useful as your family record grows.
+            MyLearna is designed to become more useful as your family record grows.
             That means you can begin simply, ignore the deeper parts for now, and
             build more confidence over time.
           </div>

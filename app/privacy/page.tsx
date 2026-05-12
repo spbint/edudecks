@@ -2,12 +2,14 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Privacy Policy | MyLearna",
   description:
-    "Plain-language privacy policy for MyLearna early access, covering family records, community content, and the services used to run the platform.",
-};
+    "Plain-language privacy policy for MyLearna, covering family learning records, community content, Google Analytics, and the services used to run the platform.",
+  path: "/privacy",
+});
 
 const INFO_CATEGORIES = [
   {

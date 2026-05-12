@@ -4,12 +4,19 @@ import "./globals.css";
 
 import { AuthUserProvider } from "@/app/components/AuthUserProvider";
 import GoogleAnalyticsPageTracker from "@/app/components/GoogleAnalyticsPageTracker";
+import { buildPublicMetadata, PUBLIC_SITE_URL } from "@/app/lib/publicMetadata";
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZENKS";
 
 export const metadata: Metadata = {
-  title: "Edu Dashboard",
-  description: "Homeschool and family learning records, planning, capture, and portfolio tools.",
+  metadataBase: new URL(PUBLIC_SITE_URL),
+  applicationName: "MyLearna",
+  ...buildPublicMetadata({
+    title: "Homeschool Record Keeping and Reporting for Families | MyLearna",
+    description:
+      "MyLearna helps homeschooling families plan learning, capture evidence, build portfolios, and prepare homeschool reports from connected learning records.",
+    path: "/",
+  }),
 };
 
 export default function RootLayout({

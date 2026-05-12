@@ -2,12 +2,14 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import PublicSiteShell from "@/app/components/PublicSiteShell";
+import { buildPublicMetadata } from "@/app/lib/publicMetadata";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicMetadata({
   title: "Terms of Use | MyLearna",
   description:
-    "Plain-language terms of use for MyLearna early access, covering acceptable use, community expectations, account responsibility, and reporting boundaries.",
-};
+    "Plain-language terms for MyLearna early access, covering family responsibilities, community expectations, and homeschool reporting boundaries.",
+  path: "/terms",
+});
 
 const EXPECTATIONS = [
   "use MyLearna for lawful, genuine family learning records and constructive participation",

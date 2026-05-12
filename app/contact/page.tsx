@@ -5,13 +5,12 @@ import Link from "next/link";
 import PublicSiteShell, {
   publicButtonStyle,
   publicCardStyle,
-  publicPill,
 } from "@/app/components/PublicSiteShell";
 
 type SignupState = "idle" | "saving" | "success" | "error";
 
-function safe(v: any) {
-  return String(v ?? "").trim();
+function safe(value: unknown) {
+  return String(value ?? "").trim();
 }
 
 function inputStyle(): React.CSSProperties {
@@ -61,15 +60,17 @@ export default function ContactPage() {
 
       setState("success");
       setFeedback(
-        "You’re on the list. Thanks for your interest in EduDecks Family."
+        "You’re on the list. Thanks for your interest in MyLearna."
       );
 
       setName("");
       setEmail("");
       setMessage("");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("error");
-      setFeedback(String(err?.message || err || "Something went wrong."));
+      setFeedback(
+        String((err as { message?: unknown })?.message ?? err ?? "Something went wrong.")
+      );
     }
   }
 
@@ -77,7 +78,7 @@ export default function ContactPage() {
     <PublicSiteShell
       eyebrow="Stay close to the launch"
       heroTitle="Join the waitlist. Share your needs. Help shape the product."
-      heroText="EduDecks Family is being built for homeschool families who want a calmer, stronger system for capture, portfolios, planning, and reporting."
+      heroText="MyLearna is being built for homeschool families who want a calmer, stronger system for record keeping, portfolios, planning, and reporting."
       heroBadges={["Waitlist", "Early access", "Feedback welcome", "Beta interest"]}
       primaryCta={{ label: "Start Free", href: "/capture" }}
       secondaryCta={{ label: "View Pricing", href: "/pricing" }}
@@ -250,7 +251,7 @@ export default function ContactPage() {
                 color: "#475569",
               }}
             >
-              We will only contact you about EduDecks Family updates and launch
+              We will only contact you about MyLearna updates and launch
               information. No spam. No third-party sharing.
             </div>
           </section>

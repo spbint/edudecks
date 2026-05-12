@@ -12,13 +12,13 @@ export default function PricingPage() {
   return (
     <PublicSiteShell
       eyebrow="Start free, grow when it matters"
-      heroTitle="Start free. Build your child’s learning record with confidence."
-      heroText="EduDecks is designed to help families begin without pressure. You can capture learning, build evidence, and explore reporting — all before needing to upgrade."
+      heroTitle="Start free. Build your homeschool learning record with confidence."
+      heroText="MyLearna is designed to help families begin without pressure. You can capture learning, build evidence, and explore reporting before needing anything more."
       heroBadges={["Begin free", "No pressure", "Family-first", "Grow later"]}
       primaryCta={{ label: "Start with one learning moment", href: "/capture" }}
       secondaryCta={{ label: "See How It Works", href: "/get-started" }}
       asideTitle="Why it's free to start"
-      asideText="Families need to build confidence first. EduDecks becomes more valuable over time — not on day one."
+      asideText="Families need to build confidence first. MyLearna becomes more valuable over time, not on day one."
     >
       {/* FREE PLAN */}
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
@@ -133,7 +133,7 @@ export default function PricingPage() {
           </div>
 
           <div style={{ fontSize: 14, color: "#475569", marginBottom: 16 }}>
-            EduDecks is not just a tool. It helps you build a clear, calm, and
+            MyLearna is not just a tool. It helps you build a clear, calm, and
             credible record of your child’s learning over time.
           </div>
 
