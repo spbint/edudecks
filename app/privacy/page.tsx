@@ -53,6 +53,10 @@ const SERVICES = [
     name: "Google Workspace",
     text: "used for human contact email handling",
   },
+  {
+    name: "Google Analytics",
+    text: "used for basic website usage analytics such as page views and referral sources",
+  },
 ] as const;
 
 const sectionStyle: CSSProperties = {
@@ -107,7 +111,7 @@ export default function PrivacyPage() {
       heroBadges={["Early access", "Family records", "Community guidance", "No data selling"]}
       heroMicrocopy={
         <span>
-          Last updated May 11, 2026. Questions can be sent to{" "}
+          Last updated May 12, 2026. Questions can be sent to{" "}
           <a
             href="mailto:hello@mylearna.com"
             style={{ color: "#2563eb", fontWeight: 800, textDecoration: "none" }}
@@ -267,6 +271,11 @@ export default function PrivacyPage() {
                 </div>
               ))}
             </div>
+            <p style={paragraphStyle}>
+              We use Google Analytics in a minimal way to understand basic website usage,
+              such as page visits and how people found MyLearna. We do not use it for ads
+              personalization, remarketing, or session replay.
+            </p>
           </div>
         </section>
 
