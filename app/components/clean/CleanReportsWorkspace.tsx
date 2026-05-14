@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -160,6 +160,20 @@ function summarizeEvidence(item: CleanPortfolioItem) {
   return `${text.slice(0, 177).trimEnd()}...`;
 }
 
+function summarizeSectionContent(value: string) {
+  const text = value.trim();
+  if (!text) return "No content yet.";
+  if (text.length <= 180) return text;
+  return `${text.slice(0, 177).trimEnd()}...`;
+}
+
+function buildDefaultReportTitle(learnerLabel: string, periodTitle: string) {
+  if (learnerLabel && periodTitle) return `${learnerLabel} - ${periodTitle} report`;
+  if (periodTitle) return `${periodTitle} report`;
+  if (learnerLabel) return `${learnerLabel} report`;
+  return "Learning report";
+}
+
 function buildEvidenceNote(item: CleanPortfolioItem, learnerLabel: string) {
   const lines = [
     `${portfolioEvidenceTitle(item)} (${formatDateLabel(item.evidence.observedOn)})`,
@@ -240,6 +254,12 @@ function CleanReportsWorkspaceBody() {
   const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [selectedSectionKey, setSelectedSectionKey] = useState("");
+  const [showPeriodManager, setShowPeriodManager] = useState(false);
+  const [showReportBuilder, setShowReportBuilder] = useState(false);
+  const [showCustomReportTitle, setShowCustomReportTitle] = useState(false);
+  const [showSectionComposer, setShowSectionComposer] = useState(false);
+  const [showSectionAdvanced, setShowSectionAdvanced] = useState(false);
+  const [showEvidencePanel, setShowEvidencePanel] = useState(false);
 
   const [periodLearnerId, setPeriodLearnerId] = useState("");
   const [periodTitle, setPeriodTitle] = useState("");
@@ -257,11 +277,20 @@ function CleanReportsWorkspaceBody() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const reportSetupRef = useRef<HTMLDivElement>(null);
+  const periodManagerRef = useRef<HTMLDivElement>(null);
+  const sectionComposerRef = useRef<HTMLDivElement>(null);
+  const reportPreviewRef = useRef<HTMLDivElement>(null);
   const evidenceEntryIdFromQuery = searchParams.get("evidence_entry_id") ?? "";
   const learnerIdFromQuery = searchParams.get("learner_id") ?? "";
   const portfolioPathBase = pathname.startsWith("/clean-my-reports")
     ? "/clean-my-portfolio"
     : "/my-portfolio";
+  const outputsPathBase = pathname.startsWith("/clean-my-reports")
+    ? "/clean-my-outputs"
+    : "/my-outputs";
+  const readyForReports =
+    !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
   const learnerOptions = useMemo(
     () =>
@@ -292,6 +321,8 @@ function CleanReportsWorkspaceBody() {
   const selectedReportLearnerLabel =
     learnerOptions.find((option) => option.value === selectedReport?.learnerId)?.label ||
     "Unknown learner";
+  const draftReportLearnerLabel =
+    learnerOptions.find((option) => option.value === reportLearnerId)?.label || "";
   const continueReport = selectedReport ?? reports[0] ?? null;
   const continueReportPeriod =
     periods.find((period) => period.id === continueReport?.reportingPeriodId) ?? null;
@@ -312,6 +343,13 @@ function CleanReportsWorkspaceBody() {
     if (!sections.length) return 1;
     return Math.max(...sections.map((section) => section.sortOrder)) + 1;
   }, [sections]);
+  const suggestedReportTitle = useMemo(
+    () => buildDefaultReportTitle(draftReportLearnerLabel, activePeriod?.title ?? ""),
+    [activePeriod?.title, draftReportLearnerLabel],
+  );
+  const sectionDraftStarted = Boolean(
+    selectedSectionKey || sectionHeading.trim() || sectionContent.trim(),
+  );
   const missingReportItems = useMemo(() => {
     if (!selectedReport) return [];
 
@@ -329,12 +367,12 @@ function CleanReportsWorkspaceBody() {
       items.push("Add the first report section.");
     }
 
-    if (!sectionHeading.trim() && !sections.length) {
-      items.push("Start with a section template or create a blank section.");
+    if (sections.length && !sections.some((section) => section.content.trim())) {
+      items.push("Add the main notes to one or more sections.");
     }
 
     return items;
-  }, [portfolioItems.length, sectionHeading, sections.length, selectedPeriod, selectedReport]);
+  }, [portfolioItems.length, sections, selectedPeriod, selectedReport]);
   const reportChecklist = useMemo<ReportChecklistItem[]>(() => {
     if (!selectedReport) return [];
 
@@ -411,6 +449,43 @@ function CleanReportsWorkspaceBody() {
 
     return "Review the preview and mark the report ready when the wording feels complete.";
   }, [portfolioItems.length, sections, selectedPeriod, selectedReport]);
+
+  const scrollToRef = useCallback((target: React.RefObject<HTMLDivElement | null>) => {
+    target.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  const openReportBuilder = useCallback(() => {
+    setShowReportBuilder(true);
+    window.requestAnimationFrame(() => {
+      scrollToRef(reportSetupRef);
+    });
+  }, [scrollToRef]);
+
+  const openPeriodManager = useCallback(() => {
+    setShowPeriodManager(true);
+    window.requestAnimationFrame(() => {
+      scrollToRef(periodManagerRef);
+    });
+  }, [scrollToRef]);
+
+  const openSectionComposer = useCallback(
+    (advanced = false) => {
+      setShowSectionComposer(true);
+      if (advanced) {
+        setShowSectionAdvanced(true);
+      }
+      window.requestAnimationFrame(() => {
+        scrollToRef(sectionComposerRef);
+      });
+    },
+    [scrollToRef],
+  );
+
+  const openPreview = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      scrollToRef(reportPreviewRef);
+    });
+  }, [scrollToRef]);
 
   const reloadPeriods = useCallback(async () => {
     if (!workspace.profile) return;
@@ -564,6 +639,70 @@ function CleanReportsWorkspaceBody() {
   }, [filteredPeriodsForReport, reportingPeriodId]);
 
   useEffect(() => {
+    if (!readyForReports) return;
+    if (!reports.length) {
+      setShowReportBuilder(true);
+      setShowPeriodManager(periods.length === 0);
+      return;
+    }
+
+    if (editingReportId) {
+      setShowReportBuilder(true);
+    }
+
+    if (editingPeriodId) {
+      setShowPeriodManager(true);
+    }
+  }, [editingPeriodId, editingReportId, periods.length, readyForReports, reports.length]);
+
+  useEffect(() => {
+    if (sectionDraftStarted) {
+      setShowSectionComposer(true);
+    }
+  }, [sectionDraftStarted]);
+
+  useEffect(() => {
+    if (!selectedReport) {
+      setShowSectionComposer(false);
+      setShowSectionAdvanced(false);
+      setShowEvidencePanel(false);
+      return;
+    }
+
+    if (!sections.length) {
+      setShowSectionComposer(true);
+    }
+  }, [sections.length, selectedReport]);
+
+  useEffect(() => {
+    if (
+      !selectedReport &&
+      workspace.learners.length === 1 &&
+      !reportLearnerId &&
+      !editingReportId
+    ) {
+      setReportLearnerId(workspace.learners[0]?.id ?? "");
+    }
+  }, [editingReportId, reportLearnerId, selectedReport, workspace.learners]);
+
+  useEffect(() => {
+    if (
+      reportLearnerId &&
+      !reportingPeriodId &&
+      filteredPeriodsForReport.length === 1 &&
+      !editingReportId
+    ) {
+      setReportingPeriodId(filteredPeriodsForReport[0]?.id ?? "");
+    }
+  }, [editingReportId, filteredPeriodsForReport, reportLearnerId, reportingPeriodId]);
+
+  useEffect(() => {
+    if (evidenceEntryIdFromQuery) {
+      setShowEvidencePanel(true);
+    }
+  }, [evidenceEntryIdFromQuery]);
+
+  useEffect(() => {
     const selectedSection =
       sections.find((section) => section.sectionKey === selectedSectionKey) ?? null;
 
@@ -592,6 +731,7 @@ function CleanReportsWorkspaceBody() {
     setReportLearnerId("");
     setReportingPeriodId("");
     setReportTitle("");
+    setShowCustomReportTitle(false);
   }
 
   function resetSectionForm() {
@@ -599,6 +739,7 @@ function CleanReportsWorkspaceBody() {
     setSectionHeading("");
     setSectionContent("");
     setSectionSortOrder(String(nextSectionSortOrder));
+    setShowSectionAdvanced(false);
   }
 
   async function handlePeriodSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -689,10 +830,11 @@ function CleanReportsWorkspaceBody() {
     setActionError(null);
 
     try {
+      const nextTitle = reportTitle.trim() || suggestedReportTitle;
       const payload = {
         learnerId: reportLearnerId,
         reportingPeriodId,
-        title: reportTitle,
+        title: nextTitle,
       };
 
       if (editingReportId) {
@@ -705,6 +847,7 @@ function CleanReportsWorkspaceBody() {
       }
 
       resetReportForm();
+      setShowReportBuilder(false);
       await reloadReports();
     } catch (error) {
       setActionError(
@@ -747,6 +890,8 @@ function CleanReportsWorkspaceBody() {
     setReportingPeriodId(report.reportingPeriodId);
     setReportTitle(report.title);
     setSelectedReportId(report.id);
+    setShowReportBuilder(true);
+    setShowCustomReportTitle(true);
     setMessage(null);
     setActionError(null);
   }
@@ -754,6 +899,7 @@ function CleanReportsWorkspaceBody() {
   function handleContinueReport(report: CleanReport) {
     setSelectedReportId(report.id);
     setEditingReportId(null);
+    setShowReportBuilder(false);
     setMessage(null);
     setActionError(null);
   }
@@ -797,19 +943,23 @@ function CleanReportsWorkspaceBody() {
     setActionError(null);
 
     try {
+      const resolvedSortOrder = selectedSectionKey
+        ? Number.parseInt(sectionSortOrder || "0", 10) || 0
+        : nextSectionSortOrder;
       await upsertCleanReportSection(workspace.profile.id, {
         reportId: selectedReport.id,
         learnerId: selectedReport.learnerId,
         sectionKey: selectedSectionKey || sectionHeading.toLowerCase().replace(/\s+/g, "-"),
         heading: sectionHeading,
         content: sectionContent,
-        sortOrder: Number.parseInt(sectionSortOrder || "0", 10) || 0,
+        sortOrder: resolvedSortOrder,
       });
       const savedSectionKey =
         selectedSectionKey || sectionHeading.toLowerCase().replace(/\s+/g, "-");
       setSelectedSectionKey(savedSectionKey);
       setMessage("Report section saved.");
       await reloadSections();
+      openPreview();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
@@ -827,6 +977,7 @@ function CleanReportsWorkspaceBody() {
     setSectionHeading(section.heading);
     setSectionContent(section.content);
     setSectionSortOrder(String(section.sortOrder));
+    openSectionComposer(true);
     setMessage(null);
     setActionError(null);
   }
@@ -841,6 +992,8 @@ function CleanReportsWorkspaceBody() {
     setSectionContent((current) =>
       current.trim() ? `${current.trim()}\n\n${note}` : note,
     );
+    openSectionComposer();
+    setShowEvidencePanel(true);
     setMessage("Evidence note added to the section editor. Save the section when you're ready.");
     setActionError(null);
   }
@@ -865,6 +1018,7 @@ function CleanReportsWorkspaceBody() {
     setSectionHeading(template.heading);
     setSectionContent(template.starterText);
     setSectionSortOrder(String(nextSectionSortOrder));
+    openSectionComposer();
     setMessage(`Started a new "${template.label}" section.`);
     setActionError(null);
   }
@@ -874,12 +1028,172 @@ function CleanReportsWorkspaceBody() {
     setSectionHeading("");
     setSectionContent("");
     setSectionSortOrder(String(nextSectionSortOrder));
+    openSectionComposer();
     setMessage("Started a blank report section.");
     setActionError(null);
   }
 
-  const readyForReports =
-    !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  function renderChecklistAction(item: ReportChecklistItem) {
+    if (item.done) return null;
+
+    if (item.key === "period") {
+      return (
+        <button
+          type="button"
+          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+          onClick={periods.length ? openReportBuilder : openPeriodManager}
+        >
+          {periods.length ? "Choose period" : "Add reporting period"}
+        </button>
+      );
+    }
+
+    if (item.key === "evidence") {
+      return (
+        <Link
+          href={portfolioPathBase}
+          style={{
+            ...buttonStyle,
+            background: "#ffffff",
+            color: "#0f172a",
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          Open selected portfolio evidence
+        </Link>
+      );
+    }
+
+    if (item.key === "sections") {
+      return (
+        <button
+          type="button"
+          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+          onClick={() => {
+            handleStartTemplate(reportSectionTemplates[0]);
+            openSectionComposer();
+          }}
+        >
+          Add first section
+        </button>
+      );
+    }
+
+    if (item.key === "content") {
+      return (
+        <button
+          type="button"
+          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+          onClick={() => openSectionComposer()}
+        >
+          Continue writing
+        </button>
+      );
+    }
+
+    return null;
+  }
+
+  const nextActionButton = (() => {
+    if (!selectedReport) {
+      return (
+        <button type="button" style={buttonStyle} onClick={openReportBuilder}>
+          Start a report
+        </button>
+      );
+    }
+
+    if (selectedReport.status === "archived") {
+      return (
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => void handleUpdateReportStatus(selectedReport, "draft")}
+          disabled={submitting}
+        >
+          Reopen as draft
+        </button>
+      );
+    }
+
+    if (selectedReport.status === "ready") {
+      return (
+        <Link
+          href={outputsPathBase}
+          style={{
+            ...buttonStyle,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          Open My Outputs
+        </Link>
+      );
+    }
+
+    if (!selectedPeriod) {
+      return (
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={periods.length ? openReportBuilder : openPeriodManager}
+        >
+          {periods.length ? "Choose the period" : "Add a reporting period"}
+        </button>
+      );
+    }
+
+    if (!portfolioItems.length) {
+      return (
+        <Link
+          href={portfolioPathBase}
+          style={{
+            ...buttonStyle,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          Open My Portfolio
+        </Link>
+      );
+    }
+
+    if (!sections.length) {
+      return (
+        <button
+          type="button"
+          style={buttonStyle}
+          onClick={() => {
+            handleStartTemplate(reportSectionTemplates[0]);
+            openSectionComposer();
+          }}
+        >
+          Add first section
+        </button>
+      );
+    }
+
+    if (!sections.some((section) => section.content.trim())) {
+      return (
+        <button type="button" style={buttonStyle} onClick={() => openSectionComposer()}>
+          Continue writing
+        </button>
+      );
+    }
+
+    return (
+      <button type="button" style={buttonStyle} onClick={openPreview}>
+        Review preview
+      </button>
+    );
+  })();
 
   return (
     <div style={shellStyle}>
@@ -950,55 +1264,46 @@ function CleanReportsWorkspaceBody() {
         {readyForReports && workspace.profile && workspace.learners.length ? (
           <>
             <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 14 }}>
+              <div style={{ display: "grid", gap: 12 }}>
                 <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>What this means</h2>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Guided report building</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    My Reports turns selected portfolio evidence into a structured written
-                    record for a reporting period.
+                    My Reports works best when you open one report, follow the readiness steps,
+                    and use the preview to see the learning record take shape.
                   </p>
                 </div>
-
                 <div
                   style={{
-                    display: "grid",
-                    gap: 12,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Report</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      A report brings together your written review and selected portfolio
-                      evidence for a set reporting period.
-                    </p>
-                  </div>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Reporting period</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      This is the time span the report covers, such as a term, semester, or
-                      custom period.
-                    </p>
-                  </div>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Ready</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Ready means this report is prepared for final review and export. You can
-                      still return it to draft if needed.
-                    </p>
-                  </div>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>What happens next</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      When the report is ready, mark it Ready and open My Outputs to download
-                      the final learning record.
-                    </p>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>{nextReportGuidance}</div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {nextActionButton}
+                    <Link
+                      href={portfolioPathBase}
+                      style={{
+                        ...buttonStyle,
+                        background: "#ffffff",
+                        color: "#0f172a",
+                        textDecoration: "none",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      Open My Portfolio
+                    </Link>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section style={cardStyle}>
+            <section ref={periodManagerRef} style={cardStyle}>
               <div
                 style={{
                   display: "flex",
@@ -1011,23 +1316,35 @@ function CleanReportsWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Reporting periods</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
-                    Set the date window you want this report to cover.
+                    Set the time span a report should cover. You only need this when you are adding or adjusting a period.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  style={buttonStyle}
-                  onClick={() => {
-                    void reloadPeriods();
-                    void reloadReports();
-                    void reloadSections();
-                  }}
-                  disabled={periodsLoading || reportsLoading || sectionsLoading || submitting}
-                >
-                  {periodsLoading || reportsLoading || sectionsLoading ? "Refreshing..." : "Refresh"}
-                </button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                    onClick={() => setShowPeriodManager((current) => !current)}
+                    disabled={submitting}
+                  >
+                    {showPeriodManager ? "Hide period tools" : periods.length ? "Manage periods" : "Add first period"}
+                  </button>
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => {
+                      void reloadPeriods();
+                      void reloadReports();
+                      void reloadSections();
+                    }}
+                    disabled={periodsLoading || reportsLoading || sectionsLoading || submitting}
+                  >
+                    {periodsLoading || reportsLoading || sectionsLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                </div>
               </div>
 
+              {showPeriodManager || !periods.length ? (
+                <>
               <form onSubmit={handlePeriodSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 <div
                   style={{
@@ -1146,12 +1463,23 @@ function CleanReportsWorkspaceBody() {
                   );
                 })}
               </div>
+                </>
+              ) : (
+                <div style={{ ...helperCardStyle, marginTop: 16 }}>
+                  <strong style={{ color: "#0f172a" }}>
+                    {periods.length} reporting {periods.length === 1 ? "period is" : "periods are"} ready
+                  </strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Open this panel only when you need to add a new period or adjust the dates for an existing one.
+                  </p>
+                </div>
+              )}
             </section>
 
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Reports</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                Choose a learner, pick the reporting period, and start the report you want to shape.
+                Open a report, see what is still missing, then keep building from the preview and section tools below.
               </p>
 
               {continueReport ? (
@@ -1176,7 +1504,9 @@ function CleanReportsWorkspaceBody() {
                     }}
                   >
                     <div style={{ display: "grid", gap: 6 }}>
-                      <strong style={{ color: "#0f172a" }}>Continue where you left off</strong>
+                      <strong style={{ color: "#0f172a" }}>
+                        {selectedReportId === continueReport.id ? "Selected report" : "Continue where you left off"}
+                      </strong>
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
                         {continueReport.title} for {continueReportLearnerLabel}
                         {continueReportPeriod
@@ -1251,7 +1581,15 @@ function CleanReportsWorkspaceBody() {
                       onClick={() => handleContinueReport(continueReport)}
                       disabled={submitting}
                     >
-                      Continue working
+                      Open this report
+                    </button>
+                    <button
+                      type="button"
+                      style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                      onClick={openPreview}
+                      disabled={submitting}
+                    >
+                      Jump to preview
                     </button>
                     {continueReport.status !== "ready" && reportIsReadyToMark ? (
                       <button
@@ -1292,10 +1630,64 @@ function CleanReportsWorkspaceBody() {
                         Reopen as draft
                       </button>
                     )}
+                    {continueReport.status === "ready" ? (
+                      <Link
+                        href={outputsPathBase}
+                        style={{
+                          ...buttonStyle,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        Open My Outputs
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
 
+              <div
+                ref={reportSetupRef}
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  padding: 14,
+                  background: "#f8fafc",
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <strong style={{ color: "#0f172a" }}>
+                      {editingReportId ? "Edit this report setup" : "Start another report"}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Use the learner and reporting period the page already knows, then only edit the title if you want a different name.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                    onClick={() => setShowReportBuilder((current) => !current)}
+                    disabled={submitting}
+                  >
+                    {showReportBuilder ? "Hide report setup" : editingReportId ? "Edit report setup" : "Create another report"}
+                  </button>
+                </div>
+
+                {showReportBuilder || !reports.length ? (
               <form onSubmit={handleReportSubmit} style={{ display: "grid", gap: 12 }}>
                 <div
                   style={{
@@ -1329,12 +1721,31 @@ function CleanReportsWorkspaceBody() {
                     ))}
                   </select>
                 </div>
-                <input
-                  value={reportTitle}
-                  onChange={(event) => setReportTitle(event.target.value)}
-                  placeholder="Report title"
-                  style={inputStyle}
-                />
+                {showCustomReportTitle || editingReportId ? (
+                  <input
+                    value={reportTitle}
+                    onChange={(event) => setReportTitle(event.target.value)}
+                    placeholder={suggestedReportTitle || "Report title"}
+                    style={inputStyle}
+                  />
+                ) : (
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Suggested title</strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      {suggestedReportTitle || "Choose the learner and reporting period to build the title automatically."}
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => setShowCustomReportTitle(true)}
+                        disabled={submitting}
+                      >
+                        Edit title
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <button type="submit" style={buttonStyle} disabled={submitting}>
                     {submitting ? "Saving..." : editingReportId ? "Save report" : "Create report"}
@@ -1351,6 +1762,8 @@ function CleanReportsWorkspaceBody() {
                   ) : null}
                 </div>
               </form>
+                ) : null}
+              </div>
 
               <div style={{ display: "grid", gap: 12, marginTop: 16 }}>
                 {reports.map((report) => {
@@ -1534,12 +1947,12 @@ function CleanReportsWorkspaceBody() {
                 <>
                   <section
                     style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 16,
-                      padding: 16,
-                      background: "#ffffff",
+                      border: "1px solid #dbeafe",
+                      borderRadius: 18,
+                      padding: 18,
+                      background: "#f8fbff",
                       display: "grid",
-                      gap: 14,
+                      gap: 16,
                       marginBottom: 18,
                     }}
                   >
@@ -1558,8 +1971,8 @@ function CleanReportsWorkspaceBody() {
                         </strong>
                         <div style={{ color: "#475569", lineHeight: 1.6 }}>
                           {selectedPeriod
-                            ? `Portfolio evidence in this period: ${portfolioItems.length}`
-                            : "Choose the reporting period to line up the draft with the right evidence."}
+                            ? `For ${selectedReportLearnerLabel} during ${selectedPeriod.title}.`
+                            : `For ${selectedReportLearnerLabel}. Choose the reporting period to line up the draft with the right evidence.`}
                         </div>
                       </div>
 
@@ -1576,8 +1989,108 @@ function CleanReportsWorkspaceBody() {
                       </span>
                     </div>
 
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Next: {nextReportGuidance}
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Learner
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {selectedReportLearnerLabel}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Reporting period
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {selectedPeriod ? selectedPeriod.title : "Not set"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Selected portfolio evidence
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {portfolioItems.length} {portfolioItems.length === 1 ? "note" : "notes"}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            color: "#64748b",
+                            textTransform: "uppercase",
+                            marginBottom: 4,
+                          }}
+                        >
+                          Progress
+                        </div>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          {checklistDoneCount}/{reportChecklist.length} checks complete
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        ...helperCardStyle,
+                        background: "#ffffff",
+                        borderColor: "#dbeafe",
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>What happens next</strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        {nextReportGuidance}
+                      </p>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {nextActionButton}
+                        <button
+                          type="button"
+                          style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                          onClick={openPreview}
+                          disabled={submitting}
+                        >
+                          Jump to preview
+                        </button>
+                      </div>
                     </div>
 
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1600,6 +2113,22 @@ function CleanReportsWorkspaceBody() {
                         >
                           Return to draft
                         </button>
+                      ) : null}
+                      {selectedReport.status === "ready" ? (
+                        <Link
+                          href={outputsPathBase}
+                          style={{
+                            ...buttonStyle,
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          Open My Outputs
+                        </Link>
                       ) : null}
                       {selectedReport.status !== "archived" ? (
                         <button
@@ -1625,9 +2154,91 @@ function CleanReportsWorkspaceBody() {
 
                   <section
                     style={{
+                      border: missingReportItems.length ? "1px solid #fcd34d" : "1px solid #bbf7d0",
+                      borderRadius: 18,
+                      padding: 18,
+                      background: missingReportItems.length ? "#fffbeb" : "#f0fdf4",
+                      display: "grid",
+                      gap: 14,
+                      marginBottom: 18,
+                    }}
+                  >
+                    <div style={{ display: "grid", gap: 6 }}>
+                      <strong style={{ color: "#0f172a" }}>
+                        {missingReportItems.length ? "Readiness guide" : "This report is ready for a final review"}
+                      </strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        {missingReportItems.length
+                          ? "Follow the first unfinished step below. Each one points to the next helpful action."
+                          : "The key pieces are in place. Review the preview, then mark the report ready when the wording feels complete."}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {reportChecklist.map((item) => (
+                        <div
+                          key={item.key}
+                          style={{
+                            display: "grid",
+                            gap: 10,
+                            padding: "12px 14px",
+                            borderRadius: 14,
+                            background: item.done ? "#ffffff" : "rgba(255,255,255,0.55)",
+                            border: item.done ? "1px solid #bbf7d0" : "1px solid rgba(245,158,11,0.35)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <span
+                                aria-hidden="true"
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: 999,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: 12,
+                                  fontWeight: 900,
+                                  background: item.done ? "#dcfce7" : "#fef3c7",
+                                  color: item.done ? "#166534" : "#92400e",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {item.done ? "OK" : "!"}
+                              </span>
+                              <strong style={{ color: "#0f172a" }}>{item.label}</strong>
+                            </div>
+                            {renderChecklistAction(item)}
+                          </div>
+                          <div style={{ color: item.done ? "#166534" : "#92400e", lineHeight: 1.6 }}>
+                            {item.detail}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section
+                    style={{
                       border: "1px solid #dbeafe",
-                      borderRadius: 16,
-                      padding: 16,
+                      borderRadius: 18,
+                      padding: 18,
                       background: "#f8fbff",
                       display: "grid",
                       gap: 14,
@@ -1635,9 +2246,9 @@ function CleanReportsWorkspaceBody() {
                     }}
                   >
                     <div style={{ display: "grid", gap: 6 }}>
-                      <strong style={{ color: "#0f172a" }}>Start a section more quickly</strong>
+                      <strong style={{ color: "#0f172a" }}>Choose how to add the next section</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Pick a section starter or begin with a blank section. You can edit everything before saving.
+                        Start with a guided section, write from scratch, or bring in selected portfolio evidence when it helps.
                       </p>
                     </div>
 
@@ -1669,392 +2280,363 @@ function CleanReportsWorkspaceBody() {
                         onClick={handleStartBlankSection}
                         disabled={submitting}
                       >
-                        Blank section
+                        Write from scratch
+                      </button>
+                      <button
+                        type="button"
+                        style={{
+                          ...buttonStyle,
+                          background: "#ffffff",
+                          color: "#0f172a",
+                          borderColor: "#cbd5e1",
+                        }}
+                        onClick={() => setShowEvidencePanel((current) => !current)}
+                        disabled={submitting}
+                      >
+                        {showEvidencePanel ? "Hide selected portfolio evidence" : "Use selected portfolio evidence"}
                       </button>
                     </div>
-                  </section>
-
-                  <section
-                    style={{
-                      border: missingReportItems.length ? "1px solid #fcd34d" : "1px solid #bbf7d0",
-                      borderRadius: 16,
-                      padding: 16,
-                      background: missingReportItems.length ? "#fffbeb" : "#f0fdf4",
-                      display: "grid",
-                      gap: 12,
-                      marginBottom: 18,
-                    }}
-                  >
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <strong style={{ color: "#0f172a" }}>
-                        {missingReportItems.length ? "What is still missing?" : "This report has the key pieces in place"}
-                      </strong>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        {missingReportItems.length
-                          ? "Use this checklist to see what will make the report feel more complete."
-                          : "You have a reporting period, portfolio support, and at least one section started."}
-                      </p>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 8,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            letterSpacing: "0.06em",
-                            color: "#64748b",
-                            textTransform: "uppercase",
-                            marginBottom: 4,
-                          }}
-                        >
-                          Readiness
-                        </div>
-                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                          {checklistDoneCount}/{reportChecklist.length} checks complete
-                        </div>
-                      </div>
-
-                      <div>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 800,
-                            letterSpacing: "0.06em",
-                            color: "#64748b",
-                            textTransform: "uppercase",
-                            marginBottom: 4,
-                          }}
-                        >
-                          Lifecycle
-                        </div>
-                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                          {getReportStatusLabel(selectedReport.status)}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {reportChecklist.map((item) => (
-                        <div
-                          key={item.key}
-                          style={{
-                            display: "grid",
-                            gap: 2,
-                            padding: "10px 12px",
-                            borderRadius: 12,
-                            background: item.done ? "#ffffff" : "rgba(255,255,255,0.45)",
-                            border: item.done ? "1px solid #bbf7d0" : "1px solid rgba(245,158,11,0.35)",
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              alignItems: "center",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                width: 20,
-                                height: 20,
-                                borderRadius: 999,
-                                display: "inline-flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: 12,
-                                fontWeight: 900,
-                                background: item.done ? "#dcfce7" : "#fef3c7",
-                                color: item.done ? "#166534" : "#92400e",
-                                flexShrink: 0,
-                              }}
-                            >
-                              {item.done ? "OK" : "!"}
-                            </span>
-                            <strong style={{ color: "#0f172a" }}>{item.label}</strong>
-                          </div>
-                          <div style={{ color: item.done ? "#166534" : "#92400e", lineHeight: 1.6 }}>
-                            {item.detail}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {missingReportItems.length ? (
-                      <div style={{ display: "grid", gap: 8 }}>
-                        {missingReportItems.map((item) => (
-                          <div
-                            key={item}
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              alignItems: "flex-start",
-                              color: "#92400e",
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            <span
-                              aria-hidden="true"
-                              style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: 999,
-                                background: "#f59e0b",
-                                marginTop: 8,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
                   </section>
 
                   <div
                     style={{
                       display: "grid",
                       gap: 20,
-                      gridTemplateColumns: "minmax(0, 1.6fr) minmax(280px, 1fr)",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
                       alignItems: "start",
                     }}
                   >
                     <div style={{ display: "grid", gap: 16 }}>
-                      <div
+                      <section
+                        ref={sectionComposerRef}
                         style={{
                           border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          background: selectedSectionKey ? "#eff6ff" : "#f8fafc",
+                          borderRadius: 16,
+                          padding: 16,
+                          background: "#ffffff",
                           display: "grid",
-                          gap: 6,
+                          gap: 14,
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>
-                          {selectedSectionKey ? "Editing section" : "Drafting a new section"}
-                        </strong>
-                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                          {selectedSectionKey
-                            ? `You are editing "${sectionHeading || selectedSectionKey}". Changes are only saved when you click Save section.`
-                            : "Use a section starter, add evidence notes, then save when the wording feels right."}
-                        </p>
-                      </div>
-
-                      <form onSubmit={handleSectionSubmit} style={{ display: "grid", gap: 12 }}>
                         <div
                           style={{
-                            display: "grid",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
                             gap: 12,
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                            flexWrap: "wrap",
                           }}
                         >
-                          <select
-                            value={selectedSectionKey}
-                            onChange={(event) => setSelectedSectionKey(event.target.value)}
-                            style={inputStyle}
-                          >
-                            <option value="">New section</option>
-                            {sections.map((section) => (
-                              <option key={section.id} value={section.sectionKey}>
-                                {section.heading}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="number"
-                            value={sectionSortOrder}
-                            onChange={(event) => setSectionSortOrder(event.target.value)}
-                            placeholder="Sort order"
-                            style={inputStyle}
-                          />
-                        </div>
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a" }}>
+                              {selectedSectionKey ? "Editing this section" : "Section editor"}
+                            </strong>
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              {selectedSectionKey
+                                ? `You are editing "${sectionHeading || "this section"}". Save when the wording feels right.`
+                                : showSectionComposer
+                                  ? "Use the heading and writing space below. The report already keeps track of the order for you."
+                                  : "The section editor stays tucked away until you choose a section starter, open a section below, or add a portfolio note."}
+                            </p>
+                          </div>
 
-                        <input
-                          value={sectionHeading}
-                          onChange={(event) => setSectionHeading(event.target.value)}
-                          placeholder="Section heading"
-                          style={inputStyle}
-                        />
-
-                        <textarea
-                          value={sectionContent}
-                          onChange={(event) => setSectionContent(event.target.value)}
-                          placeholder="Write the section in your own words. Use the evidence notes on the right when they help."
-                          style={textAreaStyle}
-                        />
-
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          <button type="submit" style={buttonStyle} disabled={submitting}>
-                            {submitting ? "Saving..." : "Save section"}
-                          </button>
-                          {selectedSectionKey ? (
+                          {showSectionComposer ? (
                             <button
                               type="button"
                               style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                              onClick={resetSectionForm}
+                              onClick={() => {
+                                resetSectionForm();
+                                setShowSectionComposer(false);
+                              }}
                               disabled={submitting}
                             >
-                              Clear selection
+                              Hide editor
                             </button>
                           ) : null}
                         </div>
-                      </form>
 
-                      {sectionsLoading ? (
-                        <p style={{ margin: 0, color: "#475569" }}>Loading report sections...</p>
-                      ) : null}
+                        {showSectionComposer ? (
+                          <form onSubmit={handleSectionSubmit} style={{ display: "grid", gap: 12 }}>
+                            <input
+                              value={sectionHeading}
+                              onChange={(event) => setSectionHeading(event.target.value)}
+                              placeholder="Section heading"
+                              style={inputStyle}
+                            />
 
-                      {!sectionsLoading && sections.length ? (
-                        <div style={{ display: "grid", gap: 12 }}>
-                          {sections.map((section) => (
-                            <div
-                              key={section.id}
-                              style={{
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 14,
-                                padding: 14,
-                                display: "grid",
-                                gap: 8,
-                              }}
-                            >
+                            <textarea
+                              value={sectionContent}
+                              onChange={(event) => setSectionContent(event.target.value)}
+                              placeholder="Write the section in your own words. Pull in selected portfolio evidence only when it helps the report."
+                              style={textAreaStyle}
+                            />
+
+                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                              <button type="submit" style={buttonStyle} disabled={submitting}>
+                                {submitting ? "Saving..." : "Save section"}
+                              </button>
+                              <button
+                                type="button"
+                                style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                onClick={() => setShowSectionAdvanced((current) => !current)}
+                                disabled={submitting}
+                              >
+                                {showSectionAdvanced ? "Hide advanced options" : "Show advanced section options"}
+                              </button>
+                              <button
+                                type="button"
+                                style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                onClick={() => {
+                                  resetSectionForm();
+                                  setShowSectionComposer(false);
+                                }}
+                                disabled={submitting}
+                              >
+                                Close editor
+                              </button>
+                            </div>
+
+                            {showSectionAdvanced ? (
                               <div
                                 style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: 12,
-                                  flexWrap: "wrap",
+                                  ...helperCardStyle,
+                                  background: "#ffffff",
+                                  borderColor: "#e2e8f0",
                                 }}
                               >
-                                <div>
-                                  <strong>
-                                    {section.sortOrder}. {section.heading}
-                                  </strong>
-                                  <div style={{ color: "#64748b", marginTop: 4 }}>
-                                    {section.sectionKey}
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                                  onClick={() => handleEditSection(section)}
-                                  disabled={submitting}
-                                >
-                                  Edit
-                                </button>
+                                <strong style={{ color: "#0f172a" }}>Advanced section options</strong>
+                                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                  MyLearna fills in the section order automatically. Only change it if you want this section to appear in a different place.
+                                </p>
+                                <input
+                                  type="number"
+                                  value={sectionSortOrder}
+                                  onChange={(event) => setSectionSortOrder(event.target.value)}
+                                  placeholder="Section order"
+                                  style={inputStyle}
+                                />
                               </div>
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                {section.content}
-                              </p>
+                            ) : null}
+                          </form>
+                        ) : (
+                          <div style={helperCardStyle}>
+                            <strong style={{ color: "#0f172a" }}>The heavy form is hidden until you need it</strong>
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              Choose a section starter above, open a section from the list below, or add a portfolio note to begin writing.
+                            </p>
+                          </div>
+                        )}
+                      </section>
+
+                      <section
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 16,
+                          padding: 16,
+                          background: "#ffffff",
+                          display: "grid",
+                          gap: 12,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 4 }}>
+                            <strong style={{ color: "#0f172a" }}>Sections so far</strong>
+                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                              {sections.length
+                                ? `${sections.length} ${sections.length === 1 ? "section is" : "sections are"} already shaping the report.`
+                                : "No sections yet. Start with a guided section or write one from scratch."}
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      ) : null}
+
+                        {sectionsLoading ? (
+                          <p style={{ margin: 0, color: "#475569" }}>Loading report sections...</p>
+                        ) : null}
+
+                        {!sectionsLoading && sections.length ? (
+                          <div style={{ display: "grid", gap: 12 }}>
+                            {sections.map((section) => (
+                              <div
+                                key={section.id}
+                                style={{
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 14,
+                                  padding: 14,
+                                  display: "grid",
+                                  gap: 8,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    gap: 12,
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <div style={{ display: "grid", gap: 4 }}>
+                                    <strong>
+                                      Section {section.sortOrder}: {section.heading}
+                                    </strong>
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>
+                                      {section.content.trim() ? "Writing added" : "Heading saved, writing still to add"}
+                                    </div>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                    onClick={() => handleEditSection(section)}
+                                    disabled={submitting}
+                                  >
+                                    Edit section
+                                  </button>
+                                </div>
+                                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                  {summarizeSectionContent(section.content)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
                     </div>
 
                     <aside
                       style={{
                         border: "1px solid #e2e8f0",
-                        borderRadius: 14,
+                        borderRadius: 16,
                         padding: 16,
                         display: "grid",
                         gap: 12,
                         background: "#f8fafc",
                       }}
                     >
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <strong style={{ color: "#0f172a" }}>Selected portfolio evidence</strong>
-                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                          {activePeriod
-                            ? `Showing portfolio evidence for ${activePeriod.title}. Add notes to the section editor only when they help.`
-                            : "Showing selected evidence for this learner. Choose a reporting period to narrow it down further."}
-                        </p>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 12,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <strong style={{ color: "#0f172a" }}>Selected portfolio evidence</strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            {activePeriod
+                              ? `${portfolioItems.length} ${portfolioItems.length === 1 ? "note is" : "notes are"} lined up with ${activePeriod.title}.`
+                              : "Choose the reporting period to narrow the selected portfolio evidence for this report."}
+                          </p>
+                        </div>
+                        {portfolioItems.length ? (
+                          <button
+                            type="button"
+                            style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                            onClick={() => setShowEvidencePanel((current) => !current)}
+                            disabled={submitting}
+                          >
+                            {showEvidencePanel ? "Hide evidence" : "Show evidence"}
+                          </button>
+                        ) : null}
                       </div>
 
-                      {portfolioLoading ? (
-                        <p style={{ margin: 0, color: "#475569" }}>Loading portfolio evidence...</p>
-                      ) : null}
-                      {portfolioError ? (
-                        <p style={{ margin: 0, color: "#b91c1c" }}>{portfolioError}</p>
-                      ) : null}
-                      {!portfolioLoading && !portfolioError && !portfolioItems.length ? (
-                        <p style={{ margin: 0, color: "#475569" }}>
-                          Nothing from the portfolio matches this report yet.
-                        </p>
-                      ) : null}
+                      {showEvidencePanel || !portfolioItems.length ? (
+                        <>
+                          {portfolioLoading ? (
+                            <p style={{ margin: 0, color: "#475569" }}>Loading portfolio evidence...</p>
+                          ) : null}
+                          {portfolioError ? (
+                            <p style={{ margin: 0, color: "#b91c1c" }}>{portfolioError}</p>
+                          ) : null}
+                          {!portfolioLoading && !portfolioError && !portfolioItems.length ? (
+                            <p style={{ margin: 0, color: "#475569" }}>
+                              Nothing from the portfolio matches this report yet.
+                            </p>
+                          ) : null}
 
-                      {!portfolioLoading && !portfolioError && portfolioItems.length ? (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {focusedPortfolioItems.map((item) => (
-                            <div
-                              key={item.evidence.id}
-                              style={{
-                                border:
-                                  evidenceEntryIdFromQuery === item.evidence.id
-                                    ? "2px solid #1d4ed8"
-                                    : "1px solid #dbeafe",
-                                borderRadius: 12,
-                                background: "#ffffff",
-                                padding: 12,
-                                display: "grid",
-                                gap: 8,
-                              }}
-                            >
-                              <div style={{ display: "grid", gap: 4 }}>
-                                <strong>{portfolioEvidenceTitle(item)}</strong>
-                                <div style={{ color: "#64748b", fontSize: 13 }}>
-                                  {formatDateLabel(item.evidence.observedOn)}
-                                  {item.evidence.learningArea
-                                    ? ` - ${item.evidence.learningArea}`
-                                    : ""}
-                                </div>
-                              </div>
-                              <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                                {summarizeEvidence(item)}
-                              </p>
-                              {item.evidence.reflection ? (
-                                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                                  Reflection saved for this evidence.
-                                </div>
-                              ) : null}
-                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                <button
-                                  type="button"
+                          {!portfolioLoading && !portfolioError && portfolioItems.length ? (
+                            <div style={{ display: "grid", gap: 10 }}>
+                              {focusedPortfolioItems.map((item) => (
+                                <div
+                                  key={item.evidence.id}
                                   style={{
-                                    ...buttonStyle,
-                                    padding: "8px 12px",
-                                    fontSize: 13,
-                                  }}
-                                  onClick={() => handleAddEvidenceToSection(item)}
-                                >
-                                  Add note to section
-                                </button>
-                                <button
-                                  type="button"
-                                  style={{
-                                    ...buttonStyle,
+                                    border:
+                                      evidenceEntryIdFromQuery === item.evidence.id
+                                        ? "2px solid #1d4ed8"
+                                        : "1px solid #dbeafe",
+                                    borderRadius: 12,
                                     background: "#ffffff",
-                                    color: "#0f172a",
-                                    borderColor: "#cbd5e1",
-                                    padding: "8px 12px",
-                                    fontSize: 13,
+                                    padding: 12,
+                                    display: "grid",
+                                    gap: 8,
                                   }}
-                                  onClick={() => void handleCopyEvidenceText(item)}
                                 >
-                                  Copy evidence text
-                                </button>
-                              </div>
+                                  <div style={{ display: "grid", gap: 4 }}>
+                                    <strong>{portfolioEvidenceTitle(item)}</strong>
+                                    <div style={{ color: "#64748b", fontSize: 13 }}>
+                                      {formatDateLabel(item.evidence.observedOn)}
+                                      {item.evidence.learningArea
+                                        ? ` - ${item.evidence.learningArea}`
+                                        : ""}
+                                    </div>
+                                  </div>
+                                  <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                                    {summarizeEvidence(item)}
+                                  </p>
+                                  {item.evidence.reflection ? (
+                                    <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                      Reflection saved for this evidence.
+                                    </div>
+                                  ) : null}
+                                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                    <button
+                                      type="button"
+                                      style={{
+                                        ...buttonStyle,
+                                        padding: "8px 12px",
+                                        fontSize: 13,
+                                      }}
+                                      onClick={() => handleAddEvidenceToSection(item)}
+                                    >
+                                      Add note to section
+                                    </button>
+                                    <button
+                                      type="button"
+                                      style={{
+                                        ...buttonStyle,
+                                        background: "#ffffff",
+                                        color: "#0f172a",
+                                        borderColor: "#cbd5e1",
+                                        padding: "8px 12px",
+                                        fontSize: 13,
+                                      }}
+                                      onClick={() => void handleCopyEvidenceText(item)}
+                                    >
+                                      Copy evidence text
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          ) : null}
+                        </>
+                      ) : (
+                        <div style={helperCardStyle}>
+                          <strong style={{ color: "#0f172a" }}>Evidence is ready when you need it</strong>
+                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                            Open this panel when you want to pull a portfolio note into the section editor or copy it into your own wording.
+                          </p>
                         </div>
-                      ) : null}
+                      )}
 
                       <Link
                         href={portfolioPathBase}
@@ -2070,6 +2652,7 @@ function CleanReportsWorkspaceBody() {
 
             {selectedReport ? (
               <section
+                ref={reportPreviewRef}
                 style={{
                   ...cardStyle,
                   background: "linear-gradient(180deg, #eef4ff 0%, #f8fafc 100%)",
@@ -2385,35 +2968,6 @@ function CleanReportsWorkspaceBody() {
                     )}
                   </section>
 
-                  {missingReportItems.length ? (
-                    <section
-                      style={{
-                        display: "grid",
-                        gap: 10,
-                        paddingTop: 16,
-                        borderTop: "1px solid #eef2f7",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 800,
-                          letterSpacing: "0.08em",
-                          color: "#64748b",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Still to add
-                      </div>
-                      <div style={{ display: "grid", gap: 8 }}>
-                        {missingReportItems.map((item) => (
-                          <div key={item} style={{ color: "#475569", lineHeight: 1.7 }}>
-                            {item}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
                 </div>
               </section>
             ) : null}
