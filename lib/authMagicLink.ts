@@ -19,8 +19,11 @@ export type MagicLinkErrorDetails = {
   provider: "supabase" | "browser" | "app";
   isRetryable: boolean;
   diagnosticCode: string;
+  errorCode?: string;
   retryAfterMs?: number;
 };
+
+export type MagicLinkMode = "login" | "signup";
 
 export const MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS = 30000;
 export const MAGIC_LINK_CLIENT_RESEND_DELAY_MS = 30000;
@@ -99,6 +102,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
     error && typeof error === "object" ? (error as { message?: unknown }).message : error,
   );
   const normalized = rawMessage.toLowerCase();
+  const errorCode = readErrorCode(error).toLowerCase();
 
   if (!normalized) {
     return {
@@ -108,10 +112,10 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "app",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-UNKNOWN",
+      errorCode: errorCode || undefined,
     };
   }
 
-  const errorCode = readErrorCode(error);
   const retryAfterMs = readRetryAfterMs(error);
 
   if (errorCode === "AUTH-SEND-DUPLICATE") {
@@ -122,6 +126,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "app",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-DUPLICATE",
+      errorCode,
       retryAfterMs,
     };
   }
@@ -135,7 +140,40 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "app",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-COOLDOWN",
+      errorCode,
       retryAfterMs,
+    };
+  }
+
+  if (
+    errorCode === "user_not_found" ||
+    normalized.includes("user not found") ||
+    normalized.includes("no user")
+  ) {
+    return {
+      category: "auth_client",
+      message: "We couldn't find a MyLearna account for that email yet.",
+      rawMessage,
+      provider: "supabase",
+      isRetryable: false,
+      diagnosticCode: "AUTH-SEND-USER-NOT-FOUND",
+      errorCode,
+    };
+  }
+
+  if (
+    errorCode === "signup_disabled" ||
+    normalized.includes("signup disabled") ||
+    normalized.includes("signups not allowed")
+  ) {
+    return {
+      category: "auth_client",
+      message: "Secure sign-in links are not available for that email right now.",
+      rawMessage,
+      provider: "supabase",
+      isRetryable: false,
+      diagnosticCode: "AUTH-SEND-SIGNUP-DISABLED",
+      errorCode,
     };
   }
 
@@ -148,6 +186,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "supabase",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-RATE-LIMIT",
+      errorCode: errorCode || undefined,
       retryAfterMs: MAGIC_LINK_RATE_LIMIT_RETRY_DELAY_MS,
     };
   }
@@ -165,6 +204,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "supabase",
       isRetryable: false,
       diagnosticCode: "AUTH-SEND-REDIRECT",
+      errorCode: errorCode || undefined,
     };
   }
 
@@ -181,6 +221,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "browser",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-NETWORK",
+      errorCode: errorCode || undefined,
     };
   }
 
@@ -197,6 +238,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
       provider: "supabase",
       isRetryable: true,
       diagnosticCode: "AUTH-SEND-AUTH",
+      errorCode: errorCode || undefined,
     };
   }
 
@@ -207,6 +249,7 @@ export function getMagicLinkErrorDetails(error: unknown): MagicLinkErrorDetails 
     provider: "supabase",
     isRetryable: true,
     diagnosticCode: "AUTH-SEND-UNEXPECTED",
+    errorCode: errorCode || undefined,
   };
 }
 
@@ -240,6 +283,7 @@ export function resetMagicLinkClientState() {
 
 export async function sendMagicLink(input: {
   email: string;
+  mode: MagicLinkMode;
   nextPath: string;
   source: string;
 }) {
@@ -277,15 +321,20 @@ export async function sendMagicLink(input: {
   inFlightMagicLinkEmails.add(normalizedEmail);
 
   try {
+    const shouldCreateUser = input.mode === "signup";
     const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
         emailRedirectTo,
-        shouldCreateUser: true,
-        data: {
-          user_type: "family",
-          onboarding_state: "new",
-        },
+        shouldCreateUser,
+        ...(shouldCreateUser
+          ? {
+              data: {
+                user_type: "family",
+                onboarding_state: "new",
+              },
+            }
+          : {}),
       },
     });
 

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { normalizeAuthNextPath } from "@/lib/authRedirect";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 
-type CallbackErrorKind = "none" | "missing-pkce" | "generic";
+type CallbackErrorKind = "none" | "missing-pkce" | "expired-link" | "generic";
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
@@ -57,6 +57,27 @@ function isMissingPkceError(error: unknown) {
     message.includes("code verifier") ||
     message.includes("verifier not found") ||
     message.includes("both auth code and code verifier should be non-empty")
+  );
+}
+
+function readErrorCode(error: unknown) {
+  return safe((error as { code?: unknown })?.code).toLowerCase();
+}
+
+function isExpiredOrUsedLinkError(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message).toLowerCase();
+  const errorCode = readErrorCode(error);
+
+  return (
+    errorCode === "otp_expired" ||
+    errorCode === "flow_state_expired" ||
+    errorCode === "flow_state_not_found" ||
+    errorCode === "session_expired" ||
+    errorCode === "bad_code_verifier" ||
+    message.includes("expired") ||
+    message.includes("already used") ||
+    message.includes("flow state") ||
+    message.includes("bad code verifier")
   );
 }
 
@@ -278,9 +299,20 @@ function AuthCallbackPageContent() {
         console.error("[auth] callback failed", authError);
         if (!mounted) return;
         if (isMissingPkceError(authError)) {
-          setTitle("Email confirmation complete");
-          setMessage("Your email may already be confirmed. Please sign in to continue.");
+          setTitle("Finish signing in from this browser");
+          setMessage(
+            "This sign-in link opened in a different browser or email app, so we could not finish automatically. Please sign in here and we'll take you back into MyLearna.",
+          );
           setErrorKind("missing-pkce");
+          return;
+        }
+
+        if (isExpiredOrUsedLinkError(authError)) {
+          setTitle("That sign-in link needs a fresh try");
+          setMessage(
+            "That sign-in link has expired or has already been used. Please request a fresh link and we'll get you back into MyLearna.",
+          );
+          setErrorKind("expired-link");
           return;
         }
 
@@ -360,9 +392,14 @@ function AuthCallbackPageContent() {
           style={{
             borderRadius: 18,
             border: `1px solid ${
-              errorKind === "generic" ? "#fecaca" : "#bfdbfe"
+              errorKind === "generic" || errorKind === "expired-link"
+                ? "#fecaca"
+                : "#bfdbfe"
             }`,
-            background: errorKind === "generic" ? "#fff1f2" : "#eff6ff",
+            background:
+              errorKind === "generic" || errorKind === "expired-link"
+                ? "#fff1f2"
+                : "#eff6ff",
             padding: 16,
           }}
         >
@@ -370,12 +407,17 @@ function AuthCallbackPageContent() {
             style={{
               fontSize: 13,
               fontWeight: 800,
-              color: errorKind === "generic" ? "#9f1239" : "#1d4ed8",
+              color:
+                errorKind === "generic" || errorKind === "expired-link"
+                  ? "#9f1239"
+                  : "#1d4ed8",
               lineHeight: 1.6,
             }}
           >
             {errorKind === "missing-pkce"
               ? "If you opened the confirmation link in a different browser or email app, sign in here and we'll take you back into MyLearna."
+              : errorKind === "expired-link"
+                ? "Please request a fresh sign-in link from the sign-in screen. Opening the newest email usually resolves this straight away."
               : errorKind === "generic"
                 ? "Please sign in again. If the link has expired or was interrupted, request a fresh one from the sign-in screen."
                 : requestedNextPath === "/my-day"
@@ -402,7 +444,7 @@ function AuthCallbackPageContent() {
             >
               Sign in to MyLearna
             </Link>
-          ) : errorKind === "generic" ? (
+          ) : errorKind === "generic" || errorKind === "expired-link" ? (
             <Link
               href={loginHref}
               style={{

@@ -10,6 +10,11 @@ import {
   supabase,
 } from "@/lib/supabaseClient";
 import { buildAuthCallbackUrl, normalizeAuthNextPath } from "@/lib/authRedirect";
+import {
+  getMagicLinkRetryAfterMs,
+  mapMagicLinkError,
+  sendMagicLink,
+} from "@/lib/authMagicLink";
 import { loadCleanFamilyProfile } from "@/lib/clean/family/client";
 
 export type EmailAuthPageMode = "login" | "signup";
@@ -25,6 +30,8 @@ type SaveState =
   | "signed-up"
   | "check-email"
   | "error";
+
+type AuthAction = "none" | "password" | "email-link" | "password-reset";
 
 const LOGIN_JOURNEY_STEPS = [
   {
@@ -119,6 +126,32 @@ function authErrorMessage(error: unknown, mode: EmailAuthPageMode) {
   );
 }
 
+function emailLinkErrorMessage(error: unknown, mode: EmailAuthPageMode) {
+  const rawMessage = safe((error as { message?: unknown })?.message).toLowerCase();
+  const errorCode = safe((error as { code?: unknown })?.code).toLowerCase();
+
+  if (
+    mode === "login" &&
+    (errorCode === "user_not_found" ||
+      rawMessage.includes("user not found") ||
+      rawMessage.includes("no user"))
+  ) {
+    return "We couldn't find a MyLearna account for that email yet. Create your account first, or continue with your password if you already have one.";
+  }
+
+  if (
+    errorCode === "signup_disabled" ||
+    rawMessage.includes("signup disabled") ||
+    rawMessage.includes("signups not allowed")
+  ) {
+    return mode === "signup"
+      ? "Secure sign-in links are not available for new accounts right now. Please create your password to continue."
+      : "Secure sign-in links are not available for that email right now. Please continue with your password instead.";
+  }
+
+  return mapMagicLinkError(error);
+}
+
 function cardStyle(): React.CSSProperties {
   return {
     border: "1px solid #e5e7eb",
@@ -186,7 +219,7 @@ function primaryButtonStyle(disabled = false): React.CSSProperties {
   };
 }
 
-function secondaryButtonStyle(): React.CSSProperties {
+function secondaryButtonStyle(disabled = false): React.CSSProperties {
   return {
     width: "100%",
     minHeight: 48,
@@ -196,7 +229,8 @@ function secondaryButtonStyle(): React.CSSProperties {
     color: "#0f172a",
     fontSize: 15,
     fontWeight: 800,
-    cursor: "pointer",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.7 : 1,
     textDecoration: "none",
     display: "inline-flex",
     alignItems: "center",
@@ -275,6 +309,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [authAction, setAuthAction] = useState<AuthAction>("none");
   const [message, setMessage] = useState("");
   const [statusTitle, setStatusTitle] = useState("");
   const redirectStarted = useRef(false);
@@ -296,12 +331,19 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
 
   function clearFeedback() {
     setSaveState("idle");
+    setAuthAction("none");
     setMessage("");
     setStatusTitle("");
   }
 
-  function setStatus(nextState: SaveState, nextTitle: string, nextMessage: string) {
+  function setStatus(
+    nextState: SaveState,
+    nextTitle: string,
+    nextMessage: string,
+    nextAction: AuthAction = "none",
+  ) {
     setSaveState(nextState);
+    setAuthAction(nextAction);
     setStatusTitle(nextTitle);
     setMessage(nextMessage);
   }
@@ -338,7 +380,12 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   }, [isSignup, searchParams]);
 
   async function redirectAfterSession(successTitle: string, successMessage: string, targetPath: string) {
-    setStatus(isSignup ? "signed-up" : "signed-in", successTitle, successMessage);
+    setStatus(
+      isSignup ? "signed-up" : "signed-in",
+      successTitle,
+      successMessage,
+      "password",
+    );
 
     if (redirectStarted.current) return;
     redirectStarted.current = true;
@@ -370,6 +417,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     }
 
     try {
+      setAuthAction("password");
       setSaveState("saving");
       setMessage("");
       setStatusTitle("");
@@ -391,6 +439,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           "error",
           "We could not sign you in",
           "Your sign-in was accepted, but we could not confirm the session. Please try again.",
+          "password",
         );
         return;
       }
@@ -401,7 +450,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         nextPath,
       );
     } catch (error) {
-      setStatus("error", "We could not sign you in", authErrorMessage(error, "login"));
+      setStatus("error", "We could not sign you in", authErrorMessage(error, "login"), "password");
     }
   }
 
@@ -429,6 +478,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     }
 
     try {
+      setAuthAction("password");
       setSaveState("saving");
       setMessage("");
       setStatusTitle("");
@@ -462,6 +512,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           "check-email",
           "Check your email",
           `${emailMessage} After confirmation, we'll take you to My Profile to add your learner, set your reporting context, plan your week, and capture your first note.`,
+          "password",
         );
         return;
       }
@@ -473,7 +524,12 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         resolvedPath,
       );
     } catch (error) {
-      setStatus("error", "We could not create your account", authErrorMessage(error, "signup"));
+      setStatus(
+        "error",
+        "We could not create your account",
+        authErrorMessage(error, "signup"),
+        "password",
+      );
     }
   }
 
@@ -495,6 +551,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     }
 
     try {
+      setAuthAction("password-reset");
       setSaveState("saving");
       setMessage("");
       setStatusTitle("");
@@ -513,13 +570,74 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         throw error;
       }
 
-      setStatus("check-email", "Check your email", "We've sent a password reset link to your email.");
+      setStatus(
+        "check-email",
+        "Check your email",
+        "We've sent a password reset link to your email.",
+        "password-reset",
+      );
     } catch (error) {
       setStatus(
         "error",
         "We could not send the reset link",
         safe((error as { message?: unknown })?.message) ||
           "We couldn't send the password reset email just yet. Please try again.",
+        "password-reset",
+      );
+    }
+  }
+
+  async function handleEmailLink() {
+    if (saveState === "saving") return;
+
+    if (!hasSupabaseEnv) {
+      setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
+      return;
+    }
+
+    if (!emailValid) {
+      setStatus(
+        "error",
+        "We could not send your sign-in link",
+        "Please enter a valid email address first.",
+        "email-link",
+      );
+      return;
+    }
+
+    try {
+      setAuthAction("email-link");
+      setSaveState("saving");
+      setMessage("");
+      setStatusTitle("");
+
+      await sendMagicLink({
+        email: safe(email).toLowerCase(),
+        mode,
+        nextPath,
+        source: isSignup ? "signup-page" : "login-page",
+      });
+
+      setStatus(
+        "check-email",
+        "Check your email",
+        isSignup
+          ? "Check your email for your secure sign-in link. Open it to continue into MyLearna and we'll take you to your first setup step."
+          : "Check your email for your secure sign-in link. Open it on this device if you can, and we'll bring you straight back to MyLearna.",
+        "email-link",
+      );
+    } catch (error) {
+      const retryAfterMs = getMagicLinkRetryAfterMs(error);
+      const retryHint =
+        retryAfterMs && retryAfterMs > 0
+          ? ` You can try again in about ${Math.max(1, Math.ceil(retryAfterMs / 1000))} seconds.`
+          : "";
+
+      setStatus(
+        "error",
+        "We could not send your sign-in link",
+        `${emailLinkErrorMessage(error, mode)}${retryHint}`,
+        "email-link",
       );
     }
   }
@@ -527,11 +645,11 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const formLabel = isSignup ? "Create account" : "Sign in";
   const formTitle = isSignup ? "Create your MyLearna account" : "Continue your family journey";
   const formText = isSignup
-    ? "Use your email and password to begin. After account creation, you can move straight into learner and family setup."
-    : "Sign in with your MyLearna email and password. If you need to reset your password, the link stays visible here.";
+    ? "Create a password, or use a one-time sign-in link sent to your email to begin. After account creation, you can move straight into learner and family setup."
+    : "Continue with your MyLearna password, or use a one-time sign-in link sent to your email if that feels simpler today.";
   const introNotice = isSignup
-    ? "New to MyLearna? Create your account here. If email confirmation is required, we'll ask you to check your inbox before you continue."
-    : "Existing account sign-in is live on this screen. New to MyLearna? Create your account from the signup screen.";
+    ? "You can create your MyLearna account with a password or by secure email link. If email confirmation is required, we'll guide you from your inbox before you continue."
+    : "You can continue with a password or use a one-time sign-in link. New to MyLearna? Create your account from the signup screen.";
   const heroTitle = isSignup ? "Create your MyLearna account" : "Pick up your homeschool journey";
   const heroText = isSignup
     ? "Create your account, then move into learner setup, weekly planning, and your first learning note."
@@ -539,6 +657,12 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const heroMicrocopy = isSignup
     ? "Create your account here, then head into My Profile for your first setup step."
     : `After sign-in, we will take you to ${destinationLabel}.`;
+  const passwordButtonLabel = isSignup ? "Create account with password" : "Continue with password";
+  const passwordSavingLabel = isSignup ? "Creating your account..." : "Signing you in...";
+  const emailLinkButtonLabel = "Email me a sign-in link";
+  const emailLinkHelperText = isSignup
+    ? "Prefer less typing? We can email you a secure sign-in link and bring you straight into your first setup step."
+    : "Prefer not to use your password right now? We'll email you a secure sign-in link and bring you straight back into MyLearna.";
   const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
   const alternateLabel = isSignup ? "Sign in" : "Create an account";
   const footerPrimary = isSignup
@@ -747,7 +871,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
             >
               {message}
             </div>
-            {saveState === "error" && !isSignup ? (
+            {saveState === "error" && !isSignup && authAction === "password" ? (
               <div style={{ fontSize: 13, lineHeight: 1.6 }}>
                 If you cannot remember your password, use <strong>Forgot password?</strong>.
               </div>
@@ -772,15 +896,81 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               saveState === "saving",
           )}
         >
-          {saveState === "saving"
-            ? isSignup
-              ? "Creating your account..."
-              : "Signing you in..."
-            : isSignup
-              ? "Create account"
-              : "Sign in"}
+          {saveState === "saving" && authAction === "password"
+            ? passwordSavingLabel
+            : passwordButtonLabel}
         </button>
       </form>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+          marginTop: 18,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            gap: 12,
+            alignItems: "center",
+          }}
+        >
+          <div style={{ height: 1, background: "#e2e8f0" }} />
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 900,
+              letterSpacing: 1.05,
+              textTransform: "uppercase",
+              color: "#94a3b8",
+            }}
+          >
+            Or
+          </div>
+          <div style={{ height: 1, background: "#e2e8f0" }} />
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 18,
+            background: "#f8fbff",
+            padding: 18,
+            display: "grid",
+            gap: 12,
+          }}
+        >
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+              {emailLinkButtonLabel}
+            </div>
+            <div
+              style={{
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "#475569",
+              }}
+            >
+              {emailLinkHelperText}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void handleEmailLink()}
+            disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
+            style={secondaryButtonStyle(
+              !hasSupabaseEnv || !emailValid || saveState === "saving",
+            )}
+          >
+            {saveState === "saving" && authAction === "email-link"
+              ? "Sending your sign-in link..."
+              : emailLinkButtonLabel}
+          </button>
+        </div>
+      </div>
 
       <div
         style={{
