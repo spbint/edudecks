@@ -110,6 +110,25 @@ function formatDateRange(period: CleanReportingPeriod | null) {
   return `${formatDateLabel(period.startsOn)} to ${formatDateLabel(period.endsOn)}`;
 }
 
+function buildEvidenceMetaLine(item: CleanReportPdfEvidenceItem) {
+  return [
+    item.observedOn ? formatDateLabel(item.observedOn) : "",
+    safe(item.learningArea),
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
+  const parts = [
+    safe(item.programTitle) ? `Program: ${safe(item.programTitle)}` : "",
+    safe(item.segmentTitle) ? `Week / segment: ${safe(item.segmentTitle)}` : "",
+    safe(item.blockTitle) ? `Block: ${safe(item.blockTitle)}` : "",
+  ].filter(Boolean);
+
+  return parts.join(" | ");
+}
+
 async function loadSafeLogoImage(doc: PDFDocument) {
   if (typeof window === "undefined") return null;
 
@@ -190,6 +209,15 @@ function ensureSpace(composer: PdfComposer, needed: number) {
     return composer;
   }
 
+  const page = composer.doc.addPage([composer.width, composer.height]);
+  return {
+    ...composer,
+    page,
+    y: composer.height - 54,
+  };
+}
+
+function startNewPage(composer: PdfComposer) {
   const page = composer.doc.addPage([composer.width, composer.height]);
   return {
     ...composer,
@@ -281,10 +309,18 @@ function drawCenteredTextBlock(
   return next;
 }
 
-function drawHeading(composer: PdfComposer, text: string, level: 1 | 2 | 3 = 1) {
+function drawHeading(
+  composer: PdfComposer,
+  text: string,
+  level: 1 | 2 | 3 = 1,
+  options?: { minFollowingSpace?: number },
+) {
   const fontSize = level === 1 ? 22 : level === 2 ? 16 : 13;
   const spacingBefore = level === 1 ? 16 : 12;
-  const next = ensureSpace(composer, fontSize + spacingBefore + 14);
+  const next = ensureSpace(
+    composer,
+    fontSize + spacingBefore + 14 + (options?.minFollowingSpace ?? 0),
+  );
   next.y -= spacingBefore;
   next.page.drawText(text, {
     x: next.margin,
@@ -458,10 +494,10 @@ function drawMetaCard(
     border: next.theme.accent,
   });
 
-  next.page.drawText("Report details", {
+  next.page.drawText("At a glance", {
     x: next.margin + paddingX,
     y: top - paddingTop,
-    size: 10.5,
+    size: 11,
     font: next.bold,
     color: next.theme.heading,
   });
@@ -604,34 +640,36 @@ function drawEvidenceSummaryCard(
 ) {
   const width = composer.width - composer.margin * 2 - 28;
   const titleHeight = 14;
-  const rowHeight = 14;
-  const itemLines = items.map((item, index) => {
-    const learningArea = safe(item.learningArea);
-    const meta = [formatDateLabel(item.observedOn), learningArea]
-      .filter(Boolean)
-      .join(" | ");
-
-    return wrapText(
-      `${index + 1}. ${item.title}${meta ? ` (${meta})` : ""}`,
-      composer.regular,
-      10.5,
+  const itemPrepared = items.map((item, index) => {
+    const titleLines = wrapText(
+      `${index + 1}. ${item.title}`,
+      composer.bold,
+      11.5,
       width,
     );
+    const meta = buildEvidenceMetaLine(item);
+    const metaLines = meta
+      ? wrapText(meta, composer.regular, 9.75, width)
+      : [];
+    return { titleLines, metaLines };
   });
-  const contentHeight = itemLines.reduce(
-    (sum, lines) => sum + measureWrappedLines(lines, rowHeight) + 3,
-    0,
-  );
+  const contentHeight = itemPrepared.reduce((sum, item) => {
+    const titleHeightUsed = measureWrappedLines(item.titleLines, 15);
+    const metaHeightUsed = item.metaLines.length
+      ? measureWrappedLines(item.metaLines, 13) + 2
+      : 0;
+    return sum + titleHeightUsed + metaHeightUsed + 10;
+  }, 0);
   const totalHeight = 18 + titleHeight + 12 + contentHeight + 16;
   const next = ensureSpace(composer, totalHeight + 10);
   const top = next.y;
 
   drawPanel(next, top, totalHeight, {
-    fill: rgb(1, 1, 1),
+    fill: next.theme.surface,
     border: next.theme.accent,
   });
 
-  next.page.drawText("Evidence summary", {
+  next.page.drawText("Selected evidence in this record", {
     x: next.margin + 14,
     y: top - 18,
     size: 11.5,
@@ -640,18 +678,36 @@ function drawEvidenceSummaryCard(
   });
 
   let cursor = top - 40;
-  itemLines.forEach((lines, index) => {
-    cursor = drawPreparedLines(next, lines, {
+  itemPrepared.forEach((item, index) => {
+    cursor = drawPreparedLines(next, item.titleLines, {
       x: next.margin + 14,
       y: cursor,
-      font: next.regular,
-      fontSize: 10.5,
-      lineHeight: rowHeight,
-      color: next.theme.body,
+      font: next.bold,
+      fontSize: 11.5,
+      lineHeight: 15,
+      color: next.theme.heading,
     });
 
-    if (index < itemLines.length - 1) {
-      cursor -= 3;
+    if (item.metaLines.length) {
+      cursor = drawPreparedLines(next, item.metaLines, {
+        x: next.margin + 14,
+        y: cursor,
+        font: next.regular,
+        fontSize: 9.75,
+        lineHeight: 13,
+        color: next.theme.muted,
+      });
+      cursor -= 2;
+    }
+
+    if (index < itemPrepared.length - 1) {
+      next.page.drawLine({
+        start: { x: next.margin + 14, y: cursor },
+        end: { x: next.width - next.margin - 14, y: cursor },
+        thickness: 1,
+        color: next.theme.accent,
+      });
+      cursor -= 10;
     }
   });
 
@@ -663,34 +719,37 @@ function drawReportSectionCard(
   composer: PdfComposer,
   section: CleanReportSection,
 ) {
-  const width = composer.width - composer.margin * 2 - 28;
+  const width = composer.width - composer.margin * 2 - 22;
   const sectionLabel = `Section ${section.sortOrder}`;
   const headingLines = wrapText(
     section.heading || "Untitled section",
     composer.bold,
-    14,
+    15,
     width,
   );
   const bodyLines = wrapText(
     normalizeText(section.content) || "No section content yet.",
     composer.regular,
-    11,
+    11.25,
     width,
   );
   const totalHeight =
-    18 +
+    12 +
     11 +
-    10 +
-    measureWrappedLines(headingLines, 18) +
-    10 +
-    measureWrappedLines(bodyLines, 16) +
-    18;
-  const next = ensureSpace(composer, totalHeight + 10);
+    12 +
+    measureWrappedLines(headingLines, 19) +
+    12 +
+    measureWrappedLines(bodyLines, 17) +
+    16;
+  let next = ensureSpace(composer, totalHeight + 10);
   const top = next.y;
 
-  drawPanel(next, top, totalHeight, {
-    fill: rgb(1, 1, 1),
-    border: next.theme.accent,
+  next.page.drawRectangle({
+    x: next.margin,
+    y: top - totalHeight + 6,
+    width: 3,
+    height: totalHeight - 12,
+    color: rgb(0.76, 0.84, 0.96),
   });
 
   next.page.drawText(sectionLabel, {
@@ -703,10 +762,10 @@ function drawReportSectionCard(
 
   const afterHeading = drawPreparedLines(next, headingLines, {
     x: next.margin + 14,
-    y: top - 38,
+    y: top - 42,
     font: next.bold,
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 19,
     color: next.theme.heading,
   });
 
@@ -714,12 +773,13 @@ function drawReportSectionCard(
     x: next.margin + 14,
     y: afterHeading - 8,
     font: next.regular,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 11.25,
+    lineHeight: 17,
     color: next.theme.body,
   });
 
-  next.y = top - totalHeight - 8;
+  next.y = top - totalHeight - 2;
+  next = drawDivider(next);
   return next;
 }
 
@@ -735,34 +795,54 @@ function drawEvidenceDetailCard(
     13,
     width,
   );
-  const detailRows = [
-    ["Observed", formatDateLabel(item.observedOn)],
-    ["Learner", item.learnerLabel || "Unknown learner"],
-    ["Learning area", item.learningArea || "Not recorded"],
-    ["Program", item.programTitle || "Not linked"],
-    ["Week / segment", item.segmentTitle || "Not linked"],
-    ["Block", item.blockTitle || "Not linked"],
-    ["What happened", item.whatHappened],
-    ["Reflection / next step", item.reflection || "Not recorded"],
-  ] as const;
-  const optionalRows = item.portfolioNote
-    ? ([["Portfolio note", item.portfolioNote]] as const)
+  const metaLine = [
+    item.observedOn ? `Observed ${formatDateLabel(item.observedOn)}` : "",
+    item.learnerLabel ? `Learner ${item.learnerLabel}` : "",
+    safe(item.learningArea) ? `Learning area ${safe(item.learningArea)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const contextLine = buildEvidenceContextLine(item);
+  const metaLines = metaLine
+    ? wrapText(metaLine, composer.regular, 10, width)
     : [];
-  const rows = [...detailRows, ...optionalRows];
-  const preparedRows = rows.map(([label, value]) => ({
-    label,
-    lines: wrapText(value, composer.regular, 10.5, width),
-  }));
-  const rowsHeight = preparedRows.reduce(
-    (sum, row) => sum + 12 + 4 + measureWrappedLines(row.lines, 14) + 6,
+  const contextLines = contextLine
+    ? wrapText(contextLine, composer.regular, 9.5, width)
+    : [];
+  const narrativeBlocks = [
+    {
+      label: "What happened",
+      lines: wrapText(normalizeText(item.whatHappened), composer.regular, 10.75, width),
+    },
+    ...(normalizeText(item.reflection)
+      ? [
+          {
+            label: "Reflection",
+            lines: wrapText(normalizeText(item.reflection), composer.regular, 10.75, width),
+          },
+        ]
+      : []),
+    ...(normalizeText(item.portfolioNote)
+      ? [
+          {
+            label: "Portfolio note",
+            lines: wrapText(normalizeText(item.portfolioNote), composer.regular, 10.75, width),
+          },
+        ]
+      : []),
+  ];
+  const narrativeHeight = narrativeBlocks.reduce(
+    (sum, block) => sum + 11 + 6 + measureWrappedLines(block.lines, 15) + 10,
     0,
   );
   const totalHeight =
     18 +
     measureWrappedLines(titleLines, 17) +
-    12 +
-    rowsHeight +
-    12;
+    10 +
+    (metaLines.length ? measureWrappedLines(metaLines, 13) + 6 : 0) +
+    (contextLines.length ? measureWrappedLines(contextLines, 12) + 8 : 0) +
+    narrativeHeight +
+    10;
   const next = ensureSpace(composer, totalHeight + 10);
   const top = next.y;
 
@@ -780,24 +860,56 @@ function drawEvidenceDetailCard(
     color: next.theme.heading,
   });
 
-  cursor -= 4;
-  preparedRows.forEach((row) => {
-    next.page.drawText(`${row.label}:`, {
+  if (metaLines.length) {
+    cursor = drawPreparedLines(next, metaLines, {
       x: next.margin + 14,
       y: cursor,
-      size: 9.75,
+      font: next.regular,
+      fontSize: 10,
+      lineHeight: 13,
+      color: next.theme.muted,
+    });
+    cursor -= 4;
+  }
+
+  if (contextLines.length) {
+    cursor = drawPreparedLines(next, contextLines, {
+      x: next.margin + 14,
+      y: cursor,
+      font: next.regular,
+      fontSize: 9.5,
+      lineHeight: 12,
+      color: next.theme.muted,
+    });
+    cursor -= 8;
+  }
+
+  narrativeBlocks.forEach((block, blockIndex) => {
+    next.page.drawText(block.label.toUpperCase(), {
+      x: next.margin + 14,
+      y: cursor,
+      size: 9.25,
       font: next.bold,
       color: next.theme.muted,
     });
-    cursor = drawPreparedLines(next, row.lines, {
+    cursor = drawPreparedLines(next, block.lines, {
       x: next.margin + 14,
-      y: cursor - 14,
+      y: cursor - 16,
       font: next.regular,
-      fontSize: 10.5,
-      lineHeight: 14,
+      fontSize: 10.75,
+      lineHeight: 15,
       color: next.theme.body,
     });
-    cursor -= 6;
+    if (blockIndex < narrativeBlocks.length - 1) {
+      cursor -= 8;
+      next.page.drawLine({
+        start: { x: next.margin + 14, y: cursor },
+        end: { x: next.width - next.margin - 14, y: cursor },
+        thickness: 1,
+        color: next.theme.accent,
+      });
+      cursor -= 10;
+    }
   });
 
   next.y = top - totalHeight - 8;
@@ -808,23 +920,23 @@ function addFooter(doc: PDFDocument, regular: PDFFont, theme: PdfTheme) {
   const pageCount = doc.getPageCount();
   doc.getPages().forEach((page, index) => {
     page.drawLine({
-      start: { x: 46, y: 42 },
-      end: { x: page.getWidth() - 46, y: 42 },
-      thickness: 1,
+      start: { x: 46, y: 44 },
+      end: { x: page.getWidth() - 46, y: 44 },
+      thickness: 0.8,
       color: theme.accent,
     });
     page.drawText(DISCLAIMER_TEXT, {
       x: 46,
-      y: 28,
-      size: 8.5,
+      y: 26,
+      size: 8.25,
       font: regular,
       color: theme.muted,
-      maxWidth: page.getWidth() - 130,
+      maxWidth: page.getWidth() - 148,
     });
     page.drawText(`Page ${index + 1} of ${pageCount}`, {
-      x: page.getWidth() - 100,
-      y: 28,
-      size: 8.5,
+      x: page.getWidth() - 92,
+      y: 26,
+      size: 8.25,
       font: regular,
       color: theme.muted,
     });
@@ -857,35 +969,52 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     heading: rgb(0.1, 0.19, 0.36),
     body: rgb(0.2, 0.24, 0.31),
     muted: rgb(0.39, 0.45, 0.54),
-    accent: rgb(0.82, 0.86, 0.92),
-    surface: rgb(0.96, 0.98, 1),
+    accent: rgb(0.85, 0.89, 0.94),
+    surface: rgb(0.97, 0.985, 1),
   };
+  const overviewText = model.reportingPeriod
+    ? `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel} during ${model.reportingPeriod.title}.`
+    : `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel}.`;
 
   let composer = createComposer(doc, regular, bold, theme);
 
   composer = drawHeaderLogo(composer, logo);
-  composer = drawCenteredTextBlock(composer, "MyLearna", {
-    font: bold,
-    fontSize: 12.5,
-    color: theme.heading,
-    lineHeight: 14,
-    spacingAfter: 6,
-  });
   composer = drawCenteredTextBlock(composer, "MyLearna Learning Record", {
     font: bold,
-    fontSize: 24,
-    lineHeight: 28,
+    fontSize: 25,
+    lineHeight: 29,
     color: theme.title,
-    spacingAfter: 10,
+    spacingAfter: 8,
     maxWidth: 420,
+  });
+  composer = drawCenteredTextBlock(composer, model.report.title || "Untitled report", {
+    font: bold,
+    fontSize: 17,
+    lineHeight: 21,
+    color: theme.heading,
+    spacingAfter: 8,
+    maxWidth: 430,
   });
   composer = drawCenteredTextBlock(
     composer,
-    "Prepared as a family learning record to support home education reporting.",
+    model.reportingPeriod
+      ? `Family learning record for ${model.learnerLabel} covering ${model.reportingPeriod.title}.`
+      : `Family learning record for ${model.learnerLabel}.`,
     {
-      fontSize: 11.5,
+      fontSize: 11.25,
       lineHeight: 16,
-      spacingAfter: 12,
+      spacingAfter: 6,
+      color: theme.heading,
+      maxWidth: 420,
+    },
+  );
+  composer = drawCenteredTextBlock(
+    composer,
+    "Prepared as a calm, practical learning record to support home education reporting and family record keeping.",
+    {
+      fontSize: 10.75,
+      lineHeight: 15,
+      spacingAfter: 14,
       color: theme.body,
       maxWidth: 420,
     },
@@ -900,28 +1029,36 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     { label: "Dates", value: formatDateRange(model.reportingPeriod) },
     { label: "Prepared on", value: model.preparedOnLabel },
     { label: "Status", value: model.statusLabel },
-    { label: "Report title", value: model.report.title || "Untitled report" },
   ]);
   composer = drawInfoCard(
     composer,
     "Overview",
-    "This report brings together the selected portfolio evidence and written sections for the reporting period.",
+    overviewText,
     {
       fill: rgb(0.98, 0.99, 1),
       border: theme.accent,
     },
   );
-  composer = drawDivider(composer);
-
-  composer = drawHeading(composer, "Summary", 2);
-  composer = drawSummaryCard(composer, "Reporting snapshot", [
-    `Portfolio evidence: ${model.evidenceItems.length}`,
-    `Report sections: ${model.sections.length}`,
-    `Report title: ${model.report.title}`,
-    `Learning areas: ${learningAreas.length ? learningAreas.join(", ") : "Not recorded"}`,
+  composer = drawSummaryCard(composer, "Learning record snapshot", [
+    `${model.evidenceItems.length} selected ${model.evidenceItems.length === 1 ? "evidence entry supports" : "evidence entries support"} this learning record.`,
+    `${model.sections.length} written ${model.sections.length === 1 ? "section shapes" : "sections shape"} the narrative of the report.`,
+    `Learning areas represented: ${learningAreas.length ? learningAreas.join(", ") : "Not recorded"}.`,
   ]);
 
-  composer = drawHeading(composer, "Evidence summary", 2);
+  composer = startNewPage(composer);
+  composer = drawHeading(composer, "Evidence summary", 2, {
+    minFollowingSpace: model.evidenceItems.length ? 120 : 40,
+  });
+  composer = drawTextBlock(
+    composer,
+    "A quick view of the selected evidence included in this learning record.",
+    {
+      fontSize: 10.75,
+      lineHeight: 15,
+      spacingAfter: 8,
+      color: theme.muted,
+    },
+  );
   if (model.evidenceItems.length) {
     composer = drawEvidenceSummaryCard(composer, model.evidenceItems);
   } else {
@@ -935,7 +1072,9 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     );
   }
 
-  composer = drawHeading(composer, "Report sections", 2);
+  composer = drawHeading(composer, "Report sections", 2, {
+    minFollowingSpace: model.sections.length ? 140 : 40,
+  });
   if (model.sections.length) {
     model.sections
       .slice()
@@ -947,13 +1086,15 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     composer = drawTextBlock(composer, "No report sections have been saved yet.", {
       fontSize: 10.5,
       lineHeight: 14,
-    });
+      });
   }
 
-  composer = drawHeading(composer, "Selected evidence details", 2);
+  composer = drawHeading(composer, "Selected evidence details", 2, {
+    minFollowingSpace: model.evidenceItems.length ? 180 : 40,
+  });
   composer = drawTextBlock(
     composer,
-    "These evidence notes sit alongside the written report sections and show the source records selected for this period.",
+    "These notes show the selected evidence that sits behind the written report and helps trace the learning record back to the source entries.",
     {
       fontSize: 10.75,
       lineHeight: 15,
