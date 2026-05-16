@@ -471,7 +471,6 @@ function CleanReportsWorkspaceBody() {
   const [showCustomReportTitle, setShowCustomReportTitle] = useState(false);
   const [showSectionComposer, setShowSectionComposer] = useState(false);
   const [showSectionAdvanced, setShowSectionAdvanced] = useState(false);
-  const [showCustomSectionOptions, setShowCustomSectionOptions] = useState(false);
   const [showEvidencePanel, setShowEvidencePanel] = useState(false);
   const [showOtherReports, setShowOtherReports] = useState(false);
 
@@ -561,7 +560,6 @@ function CleanReportsWorkspaceBody() {
   const sectionDraftStarted = Boolean(
     selectedSectionKey || sectionHeading.trim() || sectionContent.trim(),
   );
-  const hasSectionStructure = sections.length > 0;
   const hasSectionWriting = sections.some((section) => section.content.trim());
   const guidedReportParts = useMemo(
     () =>
@@ -581,6 +579,16 @@ function CleanReportsWorkspaceBody() {
         };
       }),
     [sections],
+  );
+  const hasStartedPreparedParts = guidedReportParts.some((part) => part.started);
+  const allPreparedPartsComplete =
+    hasStartedPreparedParts && guidedReportParts.every((part) => part.complete);
+  const additionalReportParts = useMemo(
+    () =>
+      sections.filter(
+        (section) => !guidedReportParts.some((part) => part.section?.id === section.id),
+      ),
+    [guidedReportParts, sections],
   );
   const otherReports = useMemo(
     () => reports.filter((report) => report.id !== selectedReport?.id),
@@ -609,12 +617,14 @@ function CleanReportsWorkspaceBody() {
       },
       {
         key: "sections",
-        label: "Guided report started",
-        done: hasSectionStructure,
+        label: "Prepared report parts started",
+        done: hasStartedPreparedParts,
         detail:
-          hasSectionStructure
-            ? `${sections.length} ${sections.length === 1 ? "report part is" : "report parts are"} in place.`
-            : "Start the guided report structure.",
+          allPreparedPartsComplete
+            ? "All prepared report parts are complete."
+            : hasStartedPreparedParts
+              ? "The prepared report parts are underway."
+              : "Start the prepared report parts.",
       },
       {
         key: "content",
@@ -622,15 +632,15 @@ function CleanReportsWorkspaceBody() {
         done: hasSectionWriting,
         detail: hasSectionWriting
           ? "At least one part of the report includes written content."
-          : "Continue writing in the guided report parts.",
+          : "Continue writing in the prepared report parts.",
       },
     ];
   }, [
-    hasSectionStructure,
+    allPreparedPartsComplete,
+    hasStartedPreparedParts,
     hasSectionWriting,
     highlightedPortfolioCount,
     portfolioItems.length,
-    sections.length,
     selectedPeriod,
     selectedReport,
   ]);
@@ -659,16 +669,22 @@ function CleanReportsWorkspaceBody() {
       return "Review the learning evidence already available from My Portfolio, then bring it into the report where it helps.";
     }
 
-    if (!hasSectionStructure) {
-      return "Start the guided report. MyLearna will open the first suggested part for you.";
+    if (!hasStartedPreparedParts) {
+      return "Start the guided report. MyLearna will open the first prepared part for you.";
     }
 
-    if (!hasSectionWriting) {
-      return "Continue writing through the guided report parts, then review the preview below.";
+    if (!allPreparedPartsComplete) {
+      return "Continue writing through the prepared report parts, then review the preview below.";
     }
 
     return "Review the preview and mark the report ready when the wording feels complete.";
-  }, [hasSectionStructure, hasSectionWriting, portfolioItems.length, selectedPeriod, selectedReport]);
+  }, [
+    allPreparedPartsComplete,
+    hasStartedPreparedParts,
+    portfolioItems.length,
+    selectedPeriod,
+    selectedReport,
+  ]);
 
   const scrollToRef = useCallback((target: React.RefObject<HTMLDivElement | null>) => {
     target.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -895,10 +911,9 @@ function CleanReportsWorkspaceBody() {
       return;
     }
 
-    if (!sections.length) {
-      setShowSectionComposer(true);
-    }
-  }, [sections.length, selectedReport]);
+    setShowSectionComposer(false);
+    setShowSectionAdvanced(false);
+  }, [selectedReport]);
 
   useEffect(() => {
     if (
@@ -1188,14 +1203,14 @@ function CleanReportsWorkspaceBody() {
       const savedSectionKey =
         selectedSectionKey || sectionHeading.toLowerCase().replace(/\s+/g, "-");
       setSelectedSectionKey(savedSectionKey);
-      setMessage("Report section saved.");
+      setMessage("Report part saved.");
       await reloadSections();
       openPreview();
     } catch (error) {
       setActionError(
         normalizeCleanErrorMessage(
           error,
-          "We could not save the report section.",
+          "We could not save the report part.",
         ),
       );
     } finally {
@@ -1208,7 +1223,7 @@ function CleanReportsWorkspaceBody() {
     setSectionHeading(section.heading);
     setSectionContent(section.content);
     setSectionSortOrder(String(section.sortOrder));
-    openSectionComposer(true);
+    openSectionComposer();
     setMessage(null);
     setActionError(null);
   }
@@ -1225,7 +1240,7 @@ function CleanReportsWorkspaceBody() {
     );
     openSectionComposer();
     setShowEvidencePanel(true);
-    setMessage("Evidence note added to the section editor. Save the section when you're ready.");
+    setMessage("Evidence note added to this part. Save it when you're ready.");
     setActionError(null);
   }
 
@@ -1237,7 +1252,7 @@ function CleanReportsWorkspaceBody() {
 
     try {
       await navigator.clipboard.writeText(note);
-      setMessage("Evidence note copied. You can paste it into any section.");
+      setMessage("Evidence note copied. You can paste it into any report part.");
       setActionError(null);
     } catch {
       setActionError("We could not copy that evidence note just now.");
@@ -1250,18 +1265,30 @@ function CleanReportsWorkspaceBody() {
     setSectionContent(template.starterText);
     setSectionSortOrder(String(nextSectionSortOrder));
     openSectionComposer();
-    setMessage(`Started a new "${template.label}" section.`);
+    setMessage(`Started "${template.label}".`);
     setActionError(null);
   }
 
-  function handleStartBlankSection() {
-    setSelectedSectionKey("");
-    setSectionHeading("");
-    setSectionContent("");
-    setSectionSortOrder(String(nextSectionSortOrder));
-    openSectionComposer();
-    setMessage("Started a blank report section.");
-    setActionError(null);
+  function handleOpenPreparedPart(
+    template: ReportSectionTemplate,
+    section: CleanReportSection | null,
+    complete: boolean,
+  ) {
+    if (!selectedReport || !selectedPeriod) {
+      openReportBuilder();
+      return;
+    }
+
+    if (section) {
+      handleEditSection(section);
+      setMessage(
+        complete ? `Reviewing "${template.label}".` : `Continuing "${template.label}".`,
+      );
+      setActionError(null);
+      return;
+    }
+
+    handleStartTemplate(template);
   }
 
   function handleStartGuidedReport() {
@@ -1293,9 +1320,16 @@ function CleanReportsWorkspaceBody() {
       return;
     }
 
-    openSectionComposer();
-    setMessage("Continue writing your report.");
-    setActionError(null);
+    if (guidedReportParts[0]?.section) {
+      handleOpenPreparedPart(
+        guidedReportParts[0].template,
+        guidedReportParts[0].section,
+        guidedReportParts[0].complete,
+      );
+      return;
+    }
+
+    openPreview();
   }
 
   const introPrimaryAction = !selectedReport ? (
@@ -1335,9 +1369,9 @@ function CleanReportsWorkspaceBody() {
       : "Step 2 incomplete - review the learning evidence for this report.";
   const step3Tone: CompletionTone = !selectedPeriod
     ? "locked"
-    : !hasSectionStructure
+    : !hasStartedPreparedParts
       ? "incomplete"
-      : hasSectionWriting
+      : allPreparedPartsComplete
         ? "complete"
         : "in-progress";
   const step4Tone: CompletionTone = !hasSectionWriting
@@ -1346,7 +1380,7 @@ function CleanReportsWorkspaceBody() {
       ? "complete"
       : "in-progress";
   const step4Text = !hasSectionWriting
-    ? "Step 4 locked - finish your report sections first."
+    ? "Step 4 locked - finish your report parts first."
     : selectedReport?.status === "ready"
       ? "Step 4 complete - preview reviewed and ready for output."
       : "Step 4 in progress - preview your report before output.";
@@ -1360,6 +1394,8 @@ function CleanReportsWorkspaceBody() {
     : reportIsReadyToMark
       ? "Step 5 in progress - preview your report, then mark it ready for output."
       : "Step 5 locked - preview your report before output.";
+  const showPreparedPartWriter = showSectionComposer || sectionDraftStarted;
+  const currentPreparedPartLabel = sectionHeading.trim() || "This part";
   const readinessSummaryItems = [
     ...reportChecklist.map((item) => ({
       label: item.label,
@@ -1370,7 +1406,7 @@ function CleanReportsWorkspaceBody() {
       label: "Preview report",
       detail: hasSectionWriting
         ? "Preview is available so you can review the full learning record."
-        : "Finish your report sections first.",
+        : "Finish your report parts first.",
       tone: hasSectionWriting
         ? selectedReport?.status === "ready"
           ? ("complete" as const)
@@ -1464,7 +1500,7 @@ function CleanReportsWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Guided report builder</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    MyLearna guides you through each step. Complete one section, then move
+                    MyLearna guides you through each step. Complete one part, then move
                     to the next until your report is ready for preview and output.
                   </p>
                 </div>
@@ -1672,7 +1708,7 @@ function CleanReportsWorkspaceBody() {
                       <button type="button" style={buttonStyle} onClick={openPreview}>
                         Preview report
                       </button>
-                    ) : !hasSectionStructure ? (
+                    ) : !hasStartedPreparedParts ? (
                       <button
                         type="button"
                         style={buttonStyle}
@@ -2321,7 +2357,7 @@ function CleanReportsWorkspaceBody() {
                                     }}
                                     onClick={() => handleAddEvidenceToSection(item)}
                                   >
-                                    Add note to section
+                                    Add note to report part
                                   </button>
                                   <button
                                     type="button"
@@ -2355,32 +2391,44 @@ function CleanReportsWorkspaceBody() {
                 <ReportBuildStepCard
                   stepNumber={3}
                   title="Complete your report"
-                  helperText="MyLearna prepares a simple report structure for you. Work through each part, then preview the report below."
+                  helperText="MyLearna has prepared the main parts of your learning record. Work through each part, then preview the report below."
                   completionTone={step3Tone}
                   completionText={
-                    !hasSectionStructure
-                      ? "Step 3 incomplete - start the guided report."
-                      : hasSectionWriting
-                        ? "Step 3 complete - report sections are ready."
-                        : "Step 3 in progress - continue writing your report."
+                    !selectedPeriod
+                      ? "Step 3 locked - finish Step 1 first."
+                      : !hasStartedPreparedParts
+                        ? "Step 3 incomplete - start the prepared report parts."
+                        : allPreparedPartsComplete
+                          ? "Step 3 complete - report parts are ready."
+                          : "Step 3 in progress - continue the prepared report parts."
                   }
                   action={
-                    !hasSectionStructure ? (
+                    !selectedPeriod ? (
+                      <button type="button" style={buttonStyle} onClick={openReportBuilder}>
+                        Check current learning record
+                      </button>
+                    ) : !hasStartedPreparedParts ? (
                       <button
                         type="button"
                         style={buttonStyle}
                         onClick={handleStartGuidedReport}
+                        disabled={submitting}
                       >
                         Start guided report
                       </button>
-                    ) : (
-                      <button type="button" style={buttonStyle} onClick={handleStartGuidedReport}>
+                    ) : !allPreparedPartsComplete ? (
+                      <button
+                        type="button"
+                        style={buttonStyle}
+                        onClick={handleStartGuidedReport}
+                        disabled={submitting}
+                      >
                         Continue writing
                       </button>
-                    )
+                    ) : undefined
                   }
                 >
-                  <div style={{ display: "grid", gap: 14 }}>
+                  <div style={{ display: "grid", gap: 16 }}>
                     <div
                       style={{
                         ...helperCardStyle,
@@ -2388,336 +2436,436 @@ function CleanReportsWorkspaceBody() {
                         borderColor: "#dbeafe",
                       }}
                     >
-                      <strong style={{ color: "#0f172a" }}>Guided report parts</strong>
+                      <strong style={{ color: "#0f172a" }}>Prepared report parts</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        MyLearna uses these report parts to prepare a clear learning record. Start the guided report and it will open the next part for you.
+                        MyLearna has already prepared these parts for you. Open each one when you are ready to add or review your wording.
                       </p>
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {guidedReportParts.map((part, index) => (
-                          <CompletionRow
-                            key={part.template.key}
-                            tone={
-                              part.complete
-                                ? "complete"
-                                : part.started
-                                  ? "in-progress"
-                                  : "locked"
-                            }
-                            text={`Part ${index + 1} - ${part.template.label}${part.complete ? " is ready." : part.started ? " is underway." : " is prepared for you."}`}
-                          />
-                        ))}
-                      </div>
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          style={buttonStyle}
-                          onClick={handleStartGuidedReport}
-                          disabled={submitting}
-                        >
-                          {!hasSectionStructure ? "Start guided report" : "Continue writing"}
-                        </button>
-                        <button
-                          type="button"
-                          style={secondaryButtonStyle}
-                          onClick={() => setShowCustomSectionOptions((current) => !current)}
-                          disabled={submitting}
-                          aria-expanded={showCustomSectionOptions}
-                        >
-                          {showCustomSectionOptions
-                            ? "Hide advanced report customisation"
-                            : "Advanced report customisation"}
-                        </button>
-                      </div>
                     </div>
 
-                    {showCustomSectionOptions ? (
-                      <div
-                        style={{
-                          ...helperCardStyle,
-                          background: "#ffffff",
-                          borderColor: "#e2e8f0",
-                        }}
-                      >
-                        <strong style={{ color: "#0f172a" }}>Advanced report customisation</strong>
-                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                          Add a custom section or jump straight into a specific report part when you want more control.
-                        </p>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          {reportSectionTemplates.map((template) => (
-                            <button
-                              key={template.key}
-                              type="button"
-                              style={{
-                                ...secondaryButtonStyle,
-                                borderColor: "#cbd5e1",
-                              }}
-                              onClick={() => handleStartTemplate(template)}
-                              disabled={submitting}
-                            >
-                              {template.label}
-                            </button>
-                          ))}
-                          <button
-                            type="button"
-                            style={{
-                              ...secondaryButtonStyle,
-                              borderColor: "#cbd5e1",
-                            }}
-                            onClick={handleStartBlankSection}
-                            disabled={submitting}
-                          >
-                            Add custom section
-                          </button>
-                        </div>
-                      </div>
-                    ) : null}
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {guidedReportParts.map((part, index) => {
+                        const partTone: CompletionTone = part.complete
+                          ? "complete"
+                          : part.started
+                            ? "in-progress"
+                            : "incomplete";
+                        const partStatusLabel = part.complete
+                          ? "Complete"
+                          : part.started
+                            ? "In progress"
+                            : "Not started";
+                        const partActionLabel = part.complete
+                          ? "Review"
+                          : part.started
+                            ? "Continue"
+                            : "Start";
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 20,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                        alignItems: "start",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: 16 }}>
-                        <section
-                          ref={sectionComposerRef}
-                          style={{
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 16,
-                            padding: 16,
-                            background: "#ffffff",
-                            display: "grid",
-                            gap: 14,
-                          }}
-                        >
-                          <div
+                        return (
+                          <section
+                            key={part.template.key}
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "flex-start",
+                              border: "1px solid #dbeafe",
+                              borderRadius: 16,
+                              padding: 16,
+                              background: "#ffffff",
+                              display: "grid",
                               gap: 12,
-                              flexWrap: "wrap",
                             }}
                           >
-                            <div style={{ display: "grid", gap: 6 }}>
-                              <strong style={{ color: "#0f172a" }}>
-                                {selectedSectionKey ? "Editing this section" : "Section editor"}
-                              </strong>
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                {selectedSectionKey
-                                  ? `You are editing "${sectionHeading || "this section"}". Save when the wording feels right.`
-                                  : showSectionComposer
-                                    ? "Use the heading and writing space below. MyLearna keeps the section order for you unless you choose to change it."
-                                    : "The section editor stays tucked away until you start the guided report, open a section below, or add learning evidence."}
-                              </p>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                gap: 12,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: 12,
+                                  alignItems: "flex-start",
+                                  flex: "1 1 320px",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    width: 34,
+                                    height: 34,
+                                    borderRadius: 999,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    background: "#eff6ff",
+                                    color: "#1d4ed8",
+                                    fontWeight: 800,
+                                    flexShrink: 0,
+                                  }}
+                                >
+                                  {index + 1}
+                                </div>
+                                <div style={{ display: "grid", gap: 6 }}>
+                                  <strong style={{ color: "#0f172a" }}>{part.template.label}</strong>
+                                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                    {part.complete
+                                      ? `${part.template.label} is complete and ready to review.`
+                                      : part.started
+                                        ? `${part.template.label} is in progress.`
+                                        : `${part.template.label} is prepared for you.`}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span
+                                style={{
+                                  ...completionToneStyles(partTone),
+                                  borderRadius: 999,
+                                  padding: "8px 12px",
+                                  fontSize: 13,
+                                  fontWeight: 800,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {partStatusLabel}
+                              </span>
                             </div>
 
-                            {showSectionComposer ? (
+                            <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                              {part.section?.content.trim()
+                                ? summarizeSectionContent(part.section.content)
+                                : "Starter prompts are ready when you open this part."}
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
                               <button
                                 type="button"
                                 style={secondaryButtonStyle}
-                                onClick={() => {
-                                  resetSectionForm();
-                                  setShowSectionComposer(false);
-                                }}
-                                disabled={submitting}
+                                onClick={() =>
+                                  handleOpenPreparedPart(
+                                    part.template,
+                                    part.section,
+                                    part.complete,
+                                  )
+                                }
+                                disabled={submitting || !selectedPeriod}
                               >
-                                Hide editor
+                                {partActionLabel}
                               </button>
-                            ) : null}
-                          </div>
-
-                          {showSectionComposer ? (
-                            <form onSubmit={handleSectionSubmit} style={{ display: "grid", gap: 12 }}>
-                              <div>
-                                <label style={fieldLabelStyle}>Section heading</label>
-                                <input
-                                  value={sectionHeading}
-                                  onChange={(event) => setSectionHeading(event.target.value)}
-                                  placeholder="Learning highlights"
-                                  style={inputStyle}
-                                />
-                              </div>
-
-                              <div>
-                                <label style={fieldLabelStyle}>Write the section</label>
-                                <textarea
-                                  value={sectionContent}
-                                  onChange={(event) => setSectionContent(event.target.value)}
-                                  placeholder="Write the section in your own words. Pull in learning evidence only when it helps the report."
-                                  style={textAreaStyle}
-                                />
-                              </div>
-
-                              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                <button type="submit" style={buttonStyle} disabled={submitting}>
-                                  {submitting ? "Saving..." : "Save section"}
-                                </button>
-                                <button
-                                  type="button"
-                                  style={secondaryButtonStyle}
-                                  onClick={() => setShowSectionAdvanced((current) => !current)}
-                                  disabled={submitting}
-                                >
-                                  {showSectionAdvanced ? "Hide advanced section options" : "Show advanced section options"}
-                                </button>
-                                <button
-                                  type="button"
-                                  style={secondaryButtonStyle}
-                                  onClick={() => {
-                                    resetSectionForm();
-                                    setShowSectionComposer(false);
-                                  }}
-                                  disabled={submitting}
-                                >
-                                  Close editor
-                                </button>
-                              </div>
-
-                              {showSectionAdvanced ? (
-                                <div
-                                  style={{
-                                    ...helperCardStyle,
-                                    background: "#ffffff",
-                                    borderColor: "#e2e8f0",
-                                  }}
-                                >
-                                  <strong style={{ color: "#0f172a" }}>Advanced section options</strong>
-                                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                    MyLearna fills in the section order automatically. Only change it if you want this section to appear in a different place.
-                                  </p>
-                                  <input
-                                    type="number"
-                                    value={sectionSortOrder}
-                                    onChange={(event) => setSectionSortOrder(event.target.value)}
-                                    placeholder="Section order"
-                                    style={inputStyle}
-                                  />
-                                </div>
-                              ) : null}
-                            </form>
-                          ) : (
-                            <div style={helperCardStyle}>
-                              <strong style={{ color: "#0f172a" }}>The full editor stays hidden until you need it</strong>
-                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                Start the guided report, open a section from the list below, or add a learning note to begin writing.
-                              </p>
                             </div>
-                          )}
-                        </section>
+                          </section>
+                        );
+                      })}
+                    </div>
 
-                        <section
-                          style={{
-                            border: "1px solid #e2e8f0",
-                            borderRadius: 16,
-                            padding: 16,
-                            background: "#ffffff",
-                            display: "grid",
-                            gap: 12,
-                          }}
-                        >
-                          <div style={{ display: "grid", gap: 4 }}>
-                            <strong style={{ color: "#0f172a" }}>Sections so far</strong>
-                            <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                              {sections.length
-                                ? `${sections.length} ${sections.length === 1 ? "section is" : "sections are"} already shaping the report.`
-                                : "No sections yet. Start the guided report and MyLearna will open the first part for you."}
-                            </div>
-                          </div>
-
-                          {sectionsLoading ? (
-                            <p style={{ margin: 0, color: "#475569" }}>Loading report sections...</p>
-                          ) : null}
-
-                          {!sectionsLoading && sections.length ? (
-                            <div style={{ display: "grid", gap: 12 }}>
-                              {sections.map((section) => (
-                                <div
-                                  key={section.id}
-                                  style={{
-                                    border: "1px solid #e2e8f0",
-                                    borderRadius: 14,
-                                    padding: 14,
-                                    display: "grid",
-                                    gap: 8,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      gap: 12,
-                                      flexWrap: "wrap",
-                                      alignItems: "center",
-                                    }}
-                                  >
-                                    <div style={{ display: "grid", gap: 4 }}>
-                                      <strong>
-                                        Section {section.sortOrder}: {section.heading}
-                                      </strong>
-                                      <div style={{ color: "#64748b", fontSize: 13 }}>
-                                        {section.content.trim() ? "Writing added" : "Heading saved, writing still to add"}
-                                      </div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      style={secondaryButtonStyle}
-                                      onClick={() => handleEditSection(section)}
-                                      disabled={submitting}
-                                    >
-                                      Edit section
-                                    </button>
-                                  </div>
-                                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                                    {summarizeSectionContent(section.content)}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </section>
-                      </div>
-
-                      <aside
+                    {showPreparedPartWriter ? (
+                      <section
+                        ref={sectionComposerRef}
                         style={{
                           border: "1px solid #e2e8f0",
                           borderRadius: 16,
                           padding: 16,
+                          background: "#ffffff",
                           display: "grid",
-                          gap: 12,
-                          background: "#f8fafc",
+                          gap: 14,
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>Learning evidence stays ready above</strong>
-                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                          Open Step 2 whenever you want to pull a learning note into the section editor or copy it into your own wording.
-                        </p>
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: 12,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div style={{ display: "grid", gap: 6 }}>
+                            <strong style={{ color: "#0f172a" }}>Write this part</strong>
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              Add your wording for this part of the learning record. MyLearna keeps the report structure in order.
+                            </p>
+                          </div>
+
                           <button
                             type="button"
                             style={secondaryButtonStyle}
-                            onClick={() => setShowEvidencePanel(true)}
+                            onClick={() => {
+                              resetSectionForm();
+                              setShowSectionComposer(false);
+                            }}
                             disabled={submitting}
                           >
-                            Review learning evidence
+                            Hide writer
                           </button>
-                          <Link
-                            href={portfolioPathBase}
+                        </div>
+
+                        <form onSubmit={handleSectionSubmit} style={{ display: "grid", gap: 12 }}>
+                          <div>
+                            <label style={fieldLabelStyle}>Report part</label>
+                            <input
+                              value={currentPreparedPartLabel}
+                              readOnly
+                              style={{
+                                ...inputStyle,
+                                background: "#f8fafc",
+                                color: "#334155",
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label style={fieldLabelStyle}>Your wording</label>
+                            <textarea
+                              value={sectionContent}
+                              onChange={(event) => setSectionContent(event.target.value)}
+                              placeholder="Write this part in your own words. Bring in learning evidence when it helps the learning record read clearly."
+                              style={textAreaStyle}
+                            />
+                          </div>
+
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button type="submit" style={buttonStyle} disabled={submitting}>
+                              {submitting ? "Saving..." : "Save part"}
+                            </button>
+                            <button
+                              type="button"
+                              style={secondaryButtonStyle}
+                              onClick={() => setShowSectionAdvanced((current) => !current)}
+                              disabled={submitting}
+                            >
+                              {showSectionAdvanced ? "Hide advanced part options" : "Show advanced part options"}
+                            </button>
+                            <button
+                              type="button"
+                              style={secondaryButtonStyle}
+                              onClick={() => {
+                                resetSectionForm();
+                                setShowSectionComposer(false);
+                              }}
+                              disabled={submitting}
+                            >
+                              Close writer
+                            </button>
+                          </div>
+
+                          {showSectionAdvanced ? (
+                            <div
+                              style={{
+                                ...helperCardStyle,
+                                background: "#ffffff",
+                                borderColor: "#e2e8f0",
+                              }}
+                            >
+                              <strong style={{ color: "#0f172a" }}>Advanced part options</strong>
+                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                MyLearna keeps the report structure in order. Only change these details if you need this part to read differently.
+                              </p>
+                              <div style={{ display: "grid", gap: 12 }}>
+                                <div>
+                                  <label style={fieldLabelStyle}>Part title</label>
+                                  <input
+                                    value={sectionHeading}
+                                    onChange={(event) => setSectionHeading(event.target.value)}
+                                    placeholder="Learning overview"
+                                    style={inputStyle}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={fieldLabelStyle}>Part order</label>
+                                  <input
+                                    type="number"
+                                    value={sectionSortOrder}
+                                    onChange={(event) => setSectionSortOrder(event.target.value)}
+                                    placeholder="Part order"
+                                    style={inputStyle}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </form>
+                      </section>
+                    ) : null}
+
+                    {additionalReportParts.length ? (
+                      <section
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 16,
+                          padding: 16,
+                          background: "#ffffff",
+                          display: "grid",
+                          gap: 12,
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: 4 }}>
+                          <strong style={{ color: "#0f172a" }}>Additional saved report parts</strong>
+                          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                            These saved parts still appear in the preview and can be reviewed here if you need them.
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 12 }}>
+                          {additionalReportParts.map((section) => (
+                            <div
+                              key={section.id}
+                              style={{
+                                border: "1px solid #e2e8f0",
+                                borderRadius: 14,
+                                padding: 14,
+                                display: "grid",
+                                gap: 8,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  flexWrap: "wrap",
+                                  alignItems: "center",
+                                }}
+                              >
+                                <div style={{ display: "grid", gap: 4 }}>
+                                  <strong>{section.heading}</strong>
+                                  <div style={{ color: "#64748b", fontSize: 13 }}>
+                                    {section.content.trim() ? "Saved writing is in place." : "Saved as a title only."}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  style={secondaryButtonStyle}
+                                  onClick={() => handleEditSection(section)}
+                                  disabled={submitting}
+                                >
+                                  Review
+                                </button>
+                              </div>
+                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                {summarizeSectionContent(section.content)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ) : null}
+
+                    <aside
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        padding: 16,
+                        display: "grid",
+                        gap: 12,
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>Learning evidence is ready</strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        Use learning evidence when it helps your wording. Evidence is managed in My Capture and My Portfolio.
+                      </p>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          style={secondaryButtonStyle}
+                          onClick={() => setShowEvidencePanel(true)}
+                          disabled={submitting}
+                        >
+                          Review learning evidence
+                        </button>
+                        <Link
+                          href={portfolioPathBase}
+                          style={{
+                            ...secondaryButtonStyle,
+                            textDecoration: "none",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          Open My Portfolio
+                        </Link>
+                      </div>
+                    </aside>
+
+                    <section
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        padding: 16,
+                        background: "#f8fafc",
+                        display: "grid",
+                        gap: 14,
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <strong style={{ color: "#0f172a" }}>Advanced report customisation</strong>
+                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                          Custom sections and alternative report structures are planned for a later release. This phase keeps reports simple and guided.
+                        </p>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 12,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                        }}
+                      >
+                        {[
+                          {
+                            title: "Add custom section",
+                            detail: "Create extra report parts beyond the guided learning record.",
+                          },
+                          {
+                            title: "Change report structure",
+                            detail: "Adjust the order or shape of the full report.",
+                          },
+                          {
+                            title: "Alternative templates",
+                            detail: "Switch to different report styles or proformas later on.",
+                          },
+                        ].map((item) => (
+                          <div
+                            key={item.title}
                             style={{
-                              ...secondaryButtonStyle,
-                              textDecoration: "none",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
+                              border: "1px dashed #cbd5e1",
+                              borderRadius: 14,
+                              padding: 14,
+                              background: "#ffffff",
+                              display: "grid",
+                              gap: 8,
                             }}
                           >
-                            Open My Portfolio
-                          </Link>
-                        </div>
-                      </aside>
-                    </div>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                              <span
+                                style={{
+                                  borderRadius: 999,
+                                  padding: "6px 10px",
+                                  background: "#eef2ff",
+                                  color: "#4338ca",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                Coming later
+                              </span>
+                            </div>
+                            <div style={{ color: "#64748b", lineHeight: 1.6 }}>{item.detail}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   </div>
                 </ReportBuildStepCard>
 
@@ -2745,7 +2893,7 @@ function CleanReportsWorkspaceBody() {
                     <div style={helperCardStyle}>
                       <strong style={{ color: "#0f172a" }}>Draft report preview</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        This preview shows the learner, current reporting year, learning evidence, and the sections you have written so far.
+                        This preview shows the learner, current reporting year, learning evidence, and the report parts you have written so far.
                       </p>
                     </div>
 
@@ -3092,7 +3240,7 @@ function CleanReportsWorkspaceBody() {
                         ? "Go to My Outputs when you want to work with the finished learning record, or return the report to draft if you need more edits."
                         : reportIsReadyToMark
                           ? "Preview the report once more, then mark it ready when the wording feels complete."
-                          : "Keep moving through the reporting period, evidence, and section steps above. MyLearna will point you here when the report is ready."}
+                          : "Keep moving through the reporting period, evidence, and report part steps above. MyLearna will point you here when the report is ready."}
                     </p>
                   </div>
                 </ReportBuildStepCard>
