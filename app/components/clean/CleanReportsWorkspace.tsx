@@ -94,6 +94,14 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
+const quietButtonStyle: React.CSSProperties = {
+  ...secondaryButtonStyle,
+  background: "#f8fafc",
+  borderColor: "#cbd5e1",
+  color: "#475569",
+  fontWeight: 600,
+};
+
 const successButtonStyle: React.CSSProperties = {
   ...buttonStyle,
   background: "#166534",
@@ -1321,7 +1329,7 @@ function CleanReportsWorkspaceBody() {
               >
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>No report started yet</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Start with one learner and one reporting period. Once the first report exists,
+                  Start with one learner and one current reporting year. Once the first report exists,
                   MyLearna will guide the rest step by step.
                 </p>
               </section>
@@ -1332,7 +1340,7 @@ function CleanReportsWorkspaceBody() {
               title="Current learning record"
               helperText={
                 selectedReport
-                  ? "MyLearna uses the learner's current school year to prepare this report. You only need to change these details if the year or dates are wrong."
+                  ? "This learning record is already linked to the current school year. You only need to change these details if the year or dates are wrong."
                   : "MyLearna uses the learner and current school year to prepare this report. Start here only if the year or dates need attention."
               }
               completionTone={step1Tone}
@@ -1344,7 +1352,7 @@ function CleanReportsWorkspaceBody() {
               action={
                 <button
                   type="button"
-                  style={secondaryButtonStyle}
+                  style={selectedReport ? quietButtonStyle : secondaryButtonStyle}
                   onClick={() => {
                     if (showReportBuilder) {
                       setShowReportBuilder(false);
@@ -1354,13 +1362,13 @@ function CleanReportsWorkspaceBody() {
                   }}
                   disabled={submitting}
                 >
-                  {showReportBuilder ? "Hide report details" : selectedReport ? "Edit report details" : "Start report"}
+                  {showReportBuilder ? "Hide report details" : selectedReport ? "Check report details" : "Start report"}
                 </button>
               }
               secondaryAction={
                 <button
                   type="button"
-                  style={secondaryButtonStyle}
+                  style={quietButtonStyle}
                   onClick={() => {
                     if (showPeriodManager) {
                       setShowPeriodManager(false);
@@ -1387,6 +1395,9 @@ function CleanReportsWorkspaceBody() {
                     }}
                   >
                     <strong style={{ color: "#0f172a" }}>Current learning record</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      This learning record is already linked to the current school year.
+                    </p>
                     <div
                       style={{
                         display: "grid",
@@ -1415,20 +1426,23 @@ function CleanReportsWorkspaceBody() {
                 {showReportBuilder || !selectedReport ? (
                   <div
                     style={{
-                      border: "1px solid #e2e8f0",
+                      border: "1px solid #dbe4f0",
+                      borderStyle: selectedReport ? "dashed" : "solid",
                       borderRadius: 16,
                       padding: 16,
-                      background: "#f8fafc",
+                      background: selectedReport ? "#fcfdff" : "#f8fafc",
                       display: "grid",
                       gap: 14,
                     }}
                   >
                     <div style={{ display: "grid", gap: 6 }}>
                       <strong style={{ color: "#0f172a" }}>
-                        {editingReportId ? "Edit this report" : "Start this report"}
+                        {selectedReport ? "Report details" : editingReportId ? "Edit this report" : "Start this report"}
                       </strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Use the learner and reporting period the page already knows. Only edit the title if you want a different name.
+                        {selectedReport
+                          ? "These details are already in place. Only change them if the learner, year, dates, or title need correcting."
+                          : "Choose the learner and current reporting year. Only edit the title if you want a different name."}
                       </p>
                     </div>
 
@@ -1484,7 +1498,13 @@ function CleanReportsWorkspaceBody() {
                           />
                         </div>
                       ) : (
-                        <div style={helperCardStyle}>
+                        <div
+                          style={{
+                            ...helperCardStyle,
+                            background: "#ffffff",
+                            borderColor: "#e2e8f0",
+                          }}
+                        >
                           <strong style={{ color: "#0f172a" }}>Suggested title</strong>
                           <div style={{ color: "#475569", lineHeight: 1.6 }}>
                             {suggestedReportTitle || "Choose the learner and reporting period to build the title automatically."}
@@ -1521,9 +1541,9 @@ function CleanReportsWorkspaceBody() {
                   </div>
                 ) : (
                   <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Report details are tucked away</strong>
+                    <strong style={{ color: "#0f172a" }}>This learning record is already linked</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Open this only when you want to change the learner, reporting period, or title.
+                      Open report details only when the learner, reporting year, or title need attention.
                     </p>
                   </div>
                 )}
@@ -1531,10 +1551,10 @@ function CleanReportsWorkspaceBody() {
                 <div
                   ref={periodManagerRef}
                   style={{
-                    border: "1px solid #e2e8f0",
+                    border: "1px dashed #dbe4f0",
                     borderRadius: 16,
                     padding: 16,
-                    background: "#ffffff",
+                    background: "#fcfdff",
                     display: "grid",
                     gap: 14,
                   }}
@@ -1551,13 +1571,13 @@ function CleanReportsWorkspaceBody() {
                     <div style={{ display: "grid", gap: 6 }}>
                       <strong style={{ color: "#0f172a" }}>Advanced date and reporting-period tools</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Add or adjust reporting periods only when the school year, dates, or report window need attention.
+                        Only open this if the school year, dates, or report window need adjusting.
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <button
                         type="button"
-                        style={secondaryButtonStyle}
+                        style={quietButtonStyle}
                         onClick={() => setShowPeriodManager((current) => !current)}
                         disabled={submitting}
                         aria-expanded={showPeriodManager}
@@ -1568,7 +1588,7 @@ function CleanReportsWorkspaceBody() {
                       </button>
                       <button
                         type="button"
-                        style={secondaryButtonStyle}
+                        style={quietButtonStyle}
                         onClick={() => {
                           void reloadPeriods();
                           void reloadReports();
@@ -1740,19 +1760,13 @@ function CleanReportsWorkspaceBody() {
                   helperText="Check the prepared learning record before you send it to My Outputs or export PDF."
                   completionTone={step2Tone}
                   completionText={step2Text}
-                  action={
-                    reportCanPreview ? (
-                      <button type="button" style={buttonStyle} onClick={openPreview}>
-                        Preview learning record
-                      </button>
-                    ) : undefined
-                  }
+                  emphasis
                 >
                   <div
                     ref={reportPreviewRef}
                     style={{
                       display: "grid",
-                      gap: 16,
+                      gap: 20,
                     }}
                   >
                     <div style={helperCardStyle}>
@@ -1764,15 +1778,15 @@ function CleanReportsWorkspaceBody() {
 
                     <div
                       style={{
-                        maxWidth: 860,
+                        maxWidth: 900,
                         margin: "0 auto",
-                        border: "1px solid #dbe4f0",
-                        borderRadius: 22,
+                        border: "1px solid #cfdceb",
+                        borderRadius: 24,
                         background: "#ffffff",
-                        boxShadow: "0 20px 48px rgba(15,23,42,0.08)",
-                        padding: "28px clamp(20px, 4vw, 40px)",
+                        boxShadow: "0 24px 56px rgba(15,23,42,0.08)",
+                        padding: "34px clamp(22px, 4vw, 46px)",
                         display: "grid",
-                        gap: 26,
+                        gap: 30,
                       }}
                     >
                       <header
@@ -2068,7 +2082,7 @@ function CleanReportsWorkspaceBody() {
                   completionText={step3Text}
                   emphasis={selectedReport.status === "ready" || reportCanMoveToOutput}
                   action={
-                    reportCanPreview ? (
+                    selectedReport.status !== "ready" && reportCanPreview ? (
                       <button type="button" style={buttonStyle} onClick={openPreview}>
                         Preview learning record
                       </button>
@@ -2136,13 +2150,13 @@ function CleanReportsWorkspaceBody() {
                     </div>
                     <button
                       type="button"
-                      style={secondaryButtonStyle}
+                      style={quietButtonStyle}
                       onClick={() => setShowAdvancedCustomisation((current) => !current)}
                       aria-expanded={showAdvancedCustomisation}
                     >
                       {showAdvancedCustomisation
                         ? "Hide advanced report customisation"
-                        : "Advanced report customisation — Coming later"}
+                        : "Advanced report customisation - Coming later"}
                     </button>
                   </div>
 
