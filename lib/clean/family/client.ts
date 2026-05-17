@@ -1,4 +1,8 @@
 import { supabase } from "@/lib/supabaseClient";
+import {
+  encodeAuthorityReportingModeForSave,
+  getCanonicalAuthorityReportingMode,
+} from "@/lib/clean/authority/brent";
 import type {
   CreateCleanFamilyProfileInput,
   FamilyMember,
@@ -8,7 +12,7 @@ import type {
 } from "@/lib/clean/family/types";
 
 export const CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE =
-  "This part of MyLearna is not available yet.";
+  "MyLearna could not open this family workspace right now.";
 
 type FamilyProfileRow = {
   id: string;
@@ -46,14 +50,23 @@ function normalizeNullString(value: unknown) {
 }
 
 function toFamilyProfile(row: FamilyProfileRow): FamilyProfile {
+  const countryCode = normalizeNullString(row.country_code);
+  const jurisdictionCode = normalizeNullString(row.jurisdiction_code);
+  const reportingMode =
+    getCanonicalAuthorityReportingMode({
+      countryCode,
+      jurisdictionCode,
+      reportingMode: row.reporting_mode,
+    }) || "family-summary";
+
   return {
     id: safe(row.id),
     createdByUserId: safe(row.created_by_user_id),
     displayName: safe(row.display_name),
-    countryCode: normalizeNullString(row.country_code),
-    jurisdictionCode: normalizeNullString(row.jurisdiction_code),
+    countryCode,
+    jurisdictionCode,
     curriculumFrameworkId: normalizeNullString(row.curriculum_framework_id),
-    reportingMode: safe(row.reporting_mode) || "family-summary",
+    reportingMode,
     weekStart: safe(row.week_start) || "monday",
     privacyDefault: safe(row.privacy_default) || "family",
     exportStyle: safe(row.export_style) || "calm",
@@ -124,23 +137,36 @@ export function normalizeCleanErrorMessage(
 function sanitizeFamilyProfileInput(
   input: CreateCleanFamilyProfileInput | UpdateCleanFamilyProfileInput,
 ) {
+  const countryCode =
+    "countryCode" in input ? normalizeNullString(input.countryCode) : undefined;
+  const jurisdictionCode =
+    "jurisdictionCode" in input
+      ? normalizeNullString(input.jurisdictionCode)
+      : undefined;
+  const curriculumFrameworkId =
+    "curriculumFrameworkId" in input
+      ? normalizeNullString(input.curriculumFrameworkId)
+      : undefined;
+  const reportingMode =
+    "reportingMode" in input
+      ? normalizeNullString(
+          encodeAuthorityReportingModeForSave({
+            countryCode,
+            jurisdictionCode,
+            reportingMode: input.reportingMode,
+          }),
+        )
+      : undefined;
+
   return {
     display_name:
       "displayName" in input && input.displayName !== undefined
         ? safe(input.displayName) || null
         : undefined,
-    country_code:
-      "countryCode" in input ? normalizeNullString(input.countryCode) : undefined,
-    jurisdiction_code:
-      "jurisdictionCode" in input
-        ? normalizeNullString(input.jurisdictionCode)
-        : undefined,
-    curriculum_framework_id:
-      "curriculumFrameworkId" in input
-        ? normalizeNullString(input.curriculumFrameworkId)
-        : undefined,
-    reporting_mode:
-      "reportingMode" in input ? normalizeNullString(input.reportingMode) : undefined,
+    country_code: countryCode,
+    jurisdiction_code: jurisdictionCode,
+    curriculum_framework_id: curriculumFrameworkId,
+    reporting_mode: reportingMode,
     week_start: "weekStart" in input ? normalizeNullString(input.weekStart) : undefined,
     privacy_default:
       "privacyDefault" in input ? normalizeNullString(input.privacyDefault) : undefined,

@@ -47,6 +47,11 @@ export const BRENT_REPORTING_PATHWAY_OPTION: SelectOption = {
   description: BRENT_REPORTING_HELPER_COPY,
 };
 
+type AuthoritySelectionLike = Pick<
+  FamilyProfile,
+  "countryCode" | "jurisdictionCode" | "reportingMode"
+>;
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -118,12 +123,64 @@ export function isBrentLocalAuthoritySelection(input: {
   );
 }
 
+export function getCanonicalAuthorityReportingMode(
+  input:
+    | Partial<AuthoritySelectionLike>
+    | {
+        countryCode?: string | null | undefined;
+        jurisdictionCode?: string | null | undefined;
+        reportingMode?: string | null | undefined;
+      }
+    | null
+    | undefined,
+) {
+  const reportingMode = safe(input?.reportingMode);
+
+  if (
+    isBrentLocalAuthoritySelection({
+      countryCode: input?.countryCode,
+      jurisdictionCode: input?.jurisdictionCode,
+    }) &&
+    reportingMode === BRENT_REPORTING_MODE_STORAGE_CODE
+  ) {
+    return BRENT_REPORTING_PATHWAY_CODE;
+  }
+
+  return reportingMode;
+}
+
+export function encodeAuthorityReportingModeForSave(
+  input:
+    | Partial<AuthoritySelectionLike>
+    | {
+        countryCode?: string | null | undefined;
+        jurisdictionCode?: string | null | undefined;
+        reportingMode?: string | null | undefined;
+      }
+    | null
+    | undefined,
+) {
+  const reportingMode = safe(input?.reportingMode);
+
+  if (
+    reportingMode === BRENT_REPORTING_PATHWAY_CODE &&
+    isBrentLocalAuthoritySelection({
+      countryCode: input?.countryCode,
+      jurisdictionCode: input?.jurisdictionCode,
+    })
+  ) {
+    return BRENT_REPORTING_MODE_STORAGE_CODE;
+  }
+
+  return reportingMode;
+}
+
 export function isBrentReportingPathwayMode(reportingMode: string | null | undefined) {
   const mode = safe(reportingMode);
   return mode === BRENT_REPORTING_PATHWAY_CODE || mode === BRENT_REPORTING_MODE_STORAGE_CODE;
 }
 
-export function isBrentAuthorityTemplateActive(
+export function isBrentEhcpPathway(
   profile:
     | Pick<FamilyProfile, "countryCode" | "jurisdictionCode" | "reportingMode">
     | null
@@ -133,11 +190,13 @@ export function isBrentAuthorityTemplateActive(
 
   return (
     isBrentLocalAuthoritySelection(profile) &&
-    isBrentReportingPathwayMode(profile.reportingMode)
+    getCanonicalAuthorityReportingMode(profile) === BRENT_REPORTING_PATHWAY_CODE
   );
 }
 
-export function getBrentPathwaySelectionSummary(
+export const isBrentAuthorityTemplateActive = isBrentEhcpPathway;
+
+export function getAuthorityDisplayValues(
   profile:
     | Pick<FamilyProfile, "countryCode" | "jurisdictionCode" | "reportingMode">
     | null
@@ -147,8 +206,11 @@ export function getBrentPathwaySelectionSummary(
   const localAuthorityCode = decodeUnitedKingdomLocalAuthorityCode(
     profile?.jurisdictionCode,
   );
+  const reportingModeCode = getCanonicalAuthorityReportingMode(profile);
+  const brentPathwayActive = isBrentEhcpPathway(profile);
 
   return {
+    countryCode: safe(profile?.countryCode).toUpperCase(),
     countryLabel:
       safe(profile?.countryCode).toUpperCase() === BRENT_COUNTRY_CODE
         ? BRENT_COUNTRY_LABEL
@@ -157,11 +219,30 @@ export function getBrentPathwaySelectionSummary(
     nationLabel: getUnitedKingdomNationLabel(nationCode),
     localAuthorityCode,
     localAuthorityLabel: getUnitedKingdomLocalAuthorityLabel(localAuthorityCode),
-    reportingPathwayCode: safe(profile?.reportingMode),
-    reportingPathwayLabel:
-      isBrentAuthorityTemplateActive(profile)
-        ? BRENT_REPORTING_PATHWAY_LABEL
-        : safe(profile?.reportingMode) || "Not set",
-    isBrentAuthorityTemplateActive: isBrentAuthorityTemplateActive(profile),
+    reportingModeCode,
+    reportingModeLabel: brentPathwayActive
+      ? BRENT_REPORTING_PATHWAY_LABEL
+      : reportingModeCode || "Not set",
+    isBrentEhcpPathway: brentPathwayActive,
+  };
+}
+
+export function getBrentPathwaySelectionSummary(
+  profile:
+    | Pick<FamilyProfile, "countryCode" | "jurisdictionCode" | "reportingMode">
+    | null
+    | undefined,
+) {
+  const authorityDisplayValues = getAuthorityDisplayValues(profile);
+
+  return {
+    countryLabel: authorityDisplayValues.countryLabel,
+    nationCode: authorityDisplayValues.nationCode,
+    nationLabel: authorityDisplayValues.nationLabel,
+    localAuthorityCode: authorityDisplayValues.localAuthorityCode,
+    localAuthorityLabel: authorityDisplayValues.localAuthorityLabel,
+    reportingPathwayCode: authorityDisplayValues.reportingModeCode,
+    reportingPathwayLabel: authorityDisplayValues.reportingModeLabel,
+    isBrentAuthorityTemplateActive: authorityDisplayValues.isBrentEhcpPathway,
   };
 }

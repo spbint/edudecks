@@ -19,8 +19,10 @@ import {
   BRENT_REPORTING_PATHWAY_LABEL,
   decodeUnitedKingdomLocalAuthorityCode,
   decodeUnitedKingdomNationCode,
+  encodeAuthorityReportingModeForSave,
   encodeUnitedKingdomJurisdictionCode,
-  getBrentPathwaySelectionSummary,
+  getAuthorityDisplayValues,
+  getCanonicalAuthorityReportingMode,
   getUnitedKingdomLocalAuthorityOptions,
   getUnitedKingdomNationLabel,
   isBrentAuthorityTemplateActive,
@@ -297,21 +299,17 @@ function decodeReportingModeForForm(
   jurisdictionCode: string | null,
   reportingMode: string | null,
 ) {
-  if (
-    isBrentLocalAuthoritySelection({
-      countryCode,
-      jurisdictionCode,
-    }) &&
-    safe(reportingMode) === BRENT_REPORTING_MODE_STORAGE_CODE
-  ) {
-    return BRENT_REPORTING_PATHWAY_CODE;
-  }
+  const canonicalReportingMode = getCanonicalAuthorityReportingMode({
+    countryCode,
+    jurisdictionCode,
+    reportingMode,
+  });
 
-  if (countryCode === "INTL" && reportingMode === "family-summary") {
+  if (countryCode === "INTL" && canonicalReportingMode === "family-summary") {
     return "standard-learning-portfolio-report";
   }
 
-  return safe(reportingMode) || defaultReportingMode(safe(countryCode));
+  return canonicalReportingMode || defaultReportingMode(safe(countryCode));
 }
 
 function encodeReportingModeForSave(
@@ -319,21 +317,15 @@ function encodeReportingModeForSave(
   jurisdictionCode: string | null,
   reportingMode: string,
 ) {
-  if (
-    reportingMode === BRENT_REPORTING_PATHWAY_CODE &&
-    isBrentLocalAuthoritySelection({
-      countryCode,
-      jurisdictionCode,
-    })
-  ) {
-    return BRENT_REPORTING_MODE_STORAGE_CODE;
-  }
-
   if (reportingMode === "standard-learning-portfolio-report") {
     return "family-summary";
   }
 
-  return reportingMode;
+  return encodeAuthorityReportingModeForSave({
+    countryCode,
+    jurisdictionCode,
+    reportingMode,
+  });
 }
 
 function normalizeDraft(nextDraft: SettingsDraft) {
@@ -534,6 +526,10 @@ function CleanSettingsWorkspaceBody() {
     () => isBrentAuthorityTemplateActive(workspace.profile),
     [workspace.profile],
   );
+  const authorityDisplayValues = useMemo(
+    () => getAuthorityDisplayValues(workspace.profile),
+    [workspace.profile],
+  );
 
   function updateCountry(countryCode: string) {
     setDraft((current) => {
@@ -655,7 +651,12 @@ function CleanSettingsWorkspaceBody() {
         exportStyle: safe(draft.exportStyle) || "calm",
       });
 
-      setMessage("Family settings updated.");
+      setMessage(
+        safe(draft.reportingMode) === BRENT_REPORTING_PATHWAY_CODE &&
+          isBrentLocalAuthoritySelection({ countryCode, jurisdictionCode })
+          ? "Settings saved. Brent-aligned outputs are ready for this family."
+          : "Family settings updated.",
+      );
       await workspace.reload();
     } catch (nextError) {
       setError(
@@ -726,28 +727,19 @@ function CleanSettingsWorkspaceBody() {
                 These settings shape how MyLearna frames planning, portfolios, and reports for your family.
               </p>
               <div style={{ display: "grid", gap: 10, color: "#334155" }}>
-                {(() => {
-                  const brentSelectionSummary = getBrentPathwaySelectionSummary(
-                    workspace.profile,
-                  );
-
-                  return (
-                    <>
                 <div>
                   <strong>Country / region:</strong> {getCountryLabel(workspace.profile.countryCode)}
                 </div>
                 {workspace.profile.countryCode === BRENT_COUNTRY_CODE ? (
-                  <div>
-                    <strong>State / jurisdiction:</strong>{" "}
-                    {[
-                      brentSelectionSummary.nationLabel,
-                      brentSelectionSummary.localAuthorityCode
-                        ? brentSelectionSummary.localAuthorityLabel
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" / ")}
-                  </div>
+                  <>
+                    <div>
+                      <strong>Nation:</strong> {authorityDisplayValues.nationLabel}
+                    </div>
+                    <div>
+                      <strong>Local authority:</strong>{" "}
+                      {authorityDisplayValues.localAuthorityLabel}
+                    </div>
+                  </>
                 ) : (
                   <div>
                     <strong>State / jurisdiction:</strong>{" "}
@@ -767,12 +759,12 @@ function CleanSettingsWorkspaceBody() {
                 <div>
                   <strong>
                     {workspace.profile.countryCode === BRENT_COUNTRY_CODE
-                      ? "Reporting mode"
+                      ? "Reporting pathway"
                       : "Reporting mode"}
                     :
                   </strong>{" "}
                   {workspace.profile.countryCode === BRENT_COUNTRY_CODE &&
-                  brentSelectionSummary.isBrentAuthorityTemplateActive
+                  authorityDisplayValues.isBrentEhcpPathway
                     ? BRENT_REPORTING_PATHWAY_LABEL
                     : getReportingModeLabel(
                         workspace.profile.countryCode,
@@ -792,9 +784,6 @@ function CleanSettingsWorkspaceBody() {
                   <strong>Export style:</strong>{" "}
                   {getOptionLabel(EXPORT_STYLE_OPTIONS, workspace.profile.exportStyle)}
                 </div>
-                    </>
-                  );
-                })()}
               </div>
             </section>
 
@@ -1131,14 +1120,21 @@ function CleanSettingsWorkspaceBody() {
             ) : null}
 
             <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>My Day setup status</h2>
-              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                {brentModeActive
-                  ? "Authority template ready - Brent EHCP Annual Review Evidence Pack selected."
-                  : myDayContextReady
-                  ? "Country, curriculum, and reporting context are ready for My Day guidance."
-                  : "Finish country, state or jurisdiction, and curriculum settings to complete this part of setup."}
-              </p>
+              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Setup status</h2>
+              {brentModeActive ? (
+                <div style={{ display: "grid", gap: 8 }}>
+                  <strong style={{ color: "#0f172a" }}>Authority template ready</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Brent EHCP Annual Review Evidence Pack is selected. MyLearna will prepare Brent-aligned outputs for this family.
+                  </p>
+                </div>
+              ) : (
+                <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {myDayContextReady
+                    ? "Country, curriculum, and reporting context are ready for My Day guidance."
+                    : "Finish country, state or jurisdiction, and curriculum settings to complete this part of setup."}
+                </p>
+              )}
             </section>
           </>
         ) : null}
