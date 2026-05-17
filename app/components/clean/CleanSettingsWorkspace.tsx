@@ -14,6 +14,7 @@ import type { FamilyProfile } from "@/lib/clean/family/types";
 import {
   BRENT_COUNTRY_CODE,
   BRENT_REPORTING_HELPER_COPY,
+  BRENT_REPORTING_MODE_STORAGE_CODE,
   BRENT_REPORTING_PATHWAY_CODE,
   BRENT_REPORTING_PATHWAY_LABEL,
   decodeUnitedKingdomLocalAuthorityCode,
@@ -22,6 +23,7 @@ import {
   getBrentPathwaySelectionSummary,
   getUnitedKingdomLocalAuthorityOptions,
   getUnitedKingdomNationLabel,
+  isBrentAuthorityTemplateActive,
   isBrentLocalAuthoritySelection,
   UNITED_KINGDOM_NATION_OPTIONS,
 } from "@/lib/clean/authority/brent";
@@ -275,7 +277,9 @@ function getReportingOptionsForSelection(
         label: BRENT_REPORTING_PATHWAY_LABEL,
         description: BRENT_REPORTING_HELPER_COPY,
       },
-      ...generalOptions,
+      ...generalOptions.filter(
+        (option) => option.value !== BRENT_REPORTING_MODE_STORAGE_CODE,
+      ),
     ];
   }
 
@@ -290,8 +294,19 @@ function defaultReportingMode(countryCode: string) {
 
 function decodeReportingModeForForm(
   countryCode: string | null,
+  jurisdictionCode: string | null,
   reportingMode: string | null,
 ) {
+  if (
+    isBrentLocalAuthoritySelection({
+      countryCode,
+      jurisdictionCode,
+    }) &&
+    safe(reportingMode) === BRENT_REPORTING_MODE_STORAGE_CODE
+  ) {
+    return BRENT_REPORTING_PATHWAY_CODE;
+  }
+
   if (countryCode === "INTL" && reportingMode === "family-summary") {
     return "standard-learning-portfolio-report";
   }
@@ -299,7 +314,21 @@ function decodeReportingModeForForm(
   return safe(reportingMode) || defaultReportingMode(safe(countryCode));
 }
 
-function encodeReportingModeForSave(reportingMode: string) {
+function encodeReportingModeForSave(
+  countryCode: string | null,
+  jurisdictionCode: string | null,
+  reportingMode: string,
+) {
+  if (
+    reportingMode === BRENT_REPORTING_PATHWAY_CODE &&
+    isBrentLocalAuthoritySelection({
+      countryCode,
+      jurisdictionCode,
+    })
+  ) {
+    return BRENT_REPORTING_MODE_STORAGE_CODE;
+  }
+
   if (reportingMode === "standard-learning-portfolio-report") {
     return "family-summary";
   }
@@ -347,6 +376,7 @@ function buildDraft(profile: FamilyProfile): SettingsDraft {
     curriculumFrameworkId: safe(profile.curriculumFrameworkId),
     reportingMode: decodeReportingModeForForm(
       profile.countryCode,
+      profile.jurisdictionCode,
       profile.reportingMode,
     ),
     weekStart: safe(profile.weekStart) || "monday",
@@ -390,7 +420,11 @@ function getReportingModeLabel(
   jurisdictionCode: string | null,
   reportingMode: string | null,
 ) {
-  const formValue = decodeReportingModeForForm(countryCode, reportingMode);
+  const formValue = decodeReportingModeForForm(
+    countryCode,
+    jurisdictionCode,
+    reportingMode,
+  );
   return getOptionLabel(
     getReportingOptionsForSelection(
       safe(countryCode),
@@ -494,6 +528,10 @@ function CleanSettingsWorkspaceBody() {
 
   const myDayContextReady = useMemo(
     () => hasMyDayContext(workspace.profile),
+    [workspace.profile],
+  );
+  const brentModeActive = useMemo(
+    () => isBrentAuthorityTemplateActive(workspace.profile),
     [workspace.profile],
   );
 
@@ -607,7 +645,11 @@ function CleanSettingsWorkspaceBody() {
         countryCode,
         jurisdictionCode: jurisdictionCode || null,
         curriculumFrameworkId: safe(draft.curriculumFrameworkId) || null,
-        reportingMode: encodeReportingModeForSave(draft.reportingMode),
+        reportingMode: encodeReportingModeForSave(
+          countryCode,
+          jurisdictionCode,
+          draft.reportingMode,
+        ),
         weekStart: safe(draft.weekStart) || "monday",
         privacyDefault: safe(draft.privacyDefault) || "family",
         exportStyle: safe(draft.exportStyle) || "calm",
@@ -684,25 +726,28 @@ function CleanSettingsWorkspaceBody() {
                 These settings shape how MyLearna frames planning, portfolios, and reports for your family.
               </p>
               <div style={{ display: "grid", gap: 10, color: "#334155" }}>
+                {(() => {
+                  const brentSelectionSummary = getBrentPathwaySelectionSummary(
+                    workspace.profile,
+                  );
+
+                  return (
+                    <>
                 <div>
                   <strong>Country / region:</strong> {getCountryLabel(workspace.profile.countryCode)}
                 </div>
                 {workspace.profile.countryCode === BRENT_COUNTRY_CODE ? (
-                  <>
-                    <div>
-                      <strong>Nation:</strong>{" "}
-                      {
-                        getBrentPathwaySelectionSummary(workspace.profile).nationLabel
-                      }
-                    </div>
-                    <div>
-                      <strong>Local authority:</strong>{" "}
-                      {
-                        getBrentPathwaySelectionSummary(workspace.profile)
-                          .localAuthorityLabel
-                      }
-                    </div>
-                  </>
+                  <div>
+                    <strong>State / jurisdiction:</strong>{" "}
+                    {[
+                      brentSelectionSummary.nationLabel,
+                      brentSelectionSummary.localAuthorityCode
+                        ? brentSelectionSummary.localAuthorityLabel
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" / ")}
+                  </div>
                 ) : (
                   <div>
                     <strong>State / jurisdiction:</strong>{" "}
@@ -722,12 +767,12 @@ function CleanSettingsWorkspaceBody() {
                 <div>
                   <strong>
                     {workspace.profile.countryCode === BRENT_COUNTRY_CODE
-                      ? "Reporting pathway"
+                      ? "Reporting mode"
                       : "Reporting mode"}
                     :
                   </strong>{" "}
                   {workspace.profile.countryCode === BRENT_COUNTRY_CODE &&
-                  workspace.profile.reportingMode === BRENT_REPORTING_PATHWAY_CODE
+                  brentSelectionSummary.isBrentAuthorityTemplateActive
                     ? BRENT_REPORTING_PATHWAY_LABEL
                     : getReportingModeLabel(
                         workspace.profile.countryCode,
@@ -747,6 +792,9 @@ function CleanSettingsWorkspaceBody() {
                   <strong>Export style:</strong>{" "}
                   {getOptionLabel(EXPORT_STYLE_OPTIONS, workspace.profile.exportStyle)}
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             </section>
 
@@ -1085,7 +1133,9 @@ function CleanSettingsWorkspaceBody() {
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>My Day setup status</h2>
               <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
-                {myDayContextReady
+                {brentModeActive
+                  ? "Authority template ready - Brent EHCP Annual Review Evidence Pack selected."
+                  : myDayContextReady
                   ? "Country, curriculum, and reporting context are ready for My Day guidance."
                   : "Finish country, state or jurisdiction, and curriculum settings to complete this part of setup."}
               </p>

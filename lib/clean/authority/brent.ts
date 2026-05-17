@@ -14,6 +14,7 @@ export const BRENT_LOCAL_AUTHORITY_CODE = "brent-council";
 export const BRENT_LOCAL_AUTHORITY_LABEL = "Brent Council";
 export const BRENT_JURISDICTION_CODE = "england-brent-council";
 export const BRENT_REPORTING_PATHWAY_CODE = "brent-ehcp-annual-review-evidence-pack";
+export const BRENT_REPORTING_MODE_STORAGE_CODE = "compliance-support";
 export const BRENT_REPORTING_PATHWAY_LABEL = "Brent EHCP Annual Review Evidence Pack";
 export const BRENT_REPORTING_HELPER_COPY =
   "Choose this if you want MyLearna to prepare outputs using Brent-aligned annual review evidence prompts.";
@@ -117,6 +118,11 @@ export function isBrentLocalAuthoritySelection(input: {
   );
 }
 
+export function isBrentReportingPathwayMode(reportingMode: string | null | undefined) {
+  const mode = safe(reportingMode);
+  return mode === BRENT_REPORTING_PATHWAY_CODE || mode === BRENT_REPORTING_MODE_STORAGE_CODE;
+}
+
 export function isBrentAuthorityTemplateActive(
   profile:
     | Pick<FamilyProfile, "countryCode" | "jurisdictionCode" | "reportingMode">
@@ -127,7 +133,7 @@ export function isBrentAuthorityTemplateActive(
 
   return (
     isBrentLocalAuthoritySelection(profile) &&
-    safe(profile.reportingMode) === BRENT_REPORTING_PATHWAY_CODE
+    isBrentReportingPathwayMode(profile.reportingMode)
   );
 }
 
@@ -153,7 +159,7 @@ export function getBrentPathwaySelectionSummary(
     localAuthorityLabel: getUnitedKingdomLocalAuthorityLabel(localAuthorityCode),
     reportingPathwayCode: safe(profile?.reportingMode),
     reportingPathwayLabel:
-      safe(profile?.reportingMode) === BRENT_REPORTING_PATHWAY_CODE
+      isBrentAuthorityTemplateActive(profile)
         ? BRENT_REPORTING_PATHWAY_LABEL
         : safe(profile?.reportingMode) || "Not set",
     isBrentAuthorityTemplateActive: isBrentAuthorityTemplateActive(profile),
