@@ -40,6 +40,16 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import {
+  listCleanMasterTemplates,
+  listCleanTemplateBlocks,
+} from "@/lib/clean/templates/client";
+import {
+  buildCleanWeeklyPlannerEntriesFromCalendarItems,
+  buildCleanWeeklyPlannerEntriesFromTemplateBlocks,
+  buildCleanWeeklyPlannerPdfFilename,
+  generateCleanWeeklyPlannerPdfBytes,
+} from "@/lib/clean/outputs/weeklyPlanner";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -117,6 +127,30 @@ function formatDateRange(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
 }
 
+function addDays(dateValue: string, dayOffset: number) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateValue;
+  date.setDate(date.getDate() + dayOffset);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getTodayDate() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function getWeekStart(dateValue = getTodayDate()) {
+  const date = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return getTodayDate();
+  const weekday = date.getDay();
+  const diff = weekday === 0 ? -6 : 1 - weekday;
+  date.setDate(date.getDate() + diff);
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
 function downloadPdf(bytes: Uint8Array, filename: string) {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -180,6 +214,7 @@ function CleanOutputsWorkspaceBody() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [plannerSubmitting, setPlannerSubmitting] = useState(false);
 
   const learnerOptions = useMemo(
     () =>
@@ -232,6 +267,12 @@ function CleanOutputsWorkspaceBody() {
     ? learnerOptions.find((option) => option.value === selectedReport.learnerId)?.label ??
       "Unknown learner"
     : null;
+  const currentWeekStart = useMemo(() => getWeekStart(), []);
+  const currentWeekEnd = useMemo(() => addDays(currentWeekStart, 6), [currentWeekStart]);
+  const currentWeekLabel = useMemo(
+    () => formatDateRange(currentWeekStart, currentWeekEnd),
+    [currentWeekEnd, currentWeekStart],
+  );
   const previewEvidenceItems = useMemo<CleanReportPdfEvidenceItem[]>(
     () =>
       portfolioItems.map((item) => {
@@ -526,6 +567,118 @@ function CleanOutputsWorkspaceBody() {
     }
   }
 
+  async function handleDownloadWeeklyPlanner() {
+    if (!workspace.profile) return;
+
+    setPlannerSubmitting(true);
+    setActionError(null);
+    setMessage(null);
+
+    try {
+      const [weekItems, nextPrograms, nextTemplates] = await Promise.all([
+        listCleanCalendarItems(workspace.profile.id, {
+          fromDate: currentWeekStart,
+          toDate: currentWeekEnd,
+          limit: 100,
+        }),
+        listCleanPrograms(workspace.profile.id, { limit: 60 }),
+        listCleanMasterTemplates(workspace.profile.id, { limit: 20 }),
+      ]);
+
+      const nextProgramSegments = (
+        await Promise.all(
+          nextPrograms.map((program) =>
+            listCleanProgramSegments(workspace.profile!.id, program.id),
+          ),
+        )
+      ).flat();
+
+      const learnerLabelById = new Map(
+        learnerOptions.map((option) => [option.value, option.label]),
+      );
+      const programLabelById = new Map(
+        nextPrograms.map((program) => [program.id, program.title]),
+      );
+      const segmentLabelById = new Map(
+        nextProgramSegments.map((segment) => [segment.id, segment.title]),
+      );
+
+      let entries = buildCleanWeeklyPlannerEntriesFromCalendarItems(weekItems, {
+        learnerLabelById,
+        programLabelById,
+        segmentLabelById,
+      });
+      let sourceLabel = "Built from this week's live calendar";
+      let learnerLabel: string | null = null;
+
+      if (!entries.length) {
+        const preferredTemplate =
+          nextTemplates.find(
+            (template) =>
+              template.scopeType === "learner" &&
+              template.learnerId &&
+              template.learnerId === selectedLearnerId,
+          ) ??
+          nextTemplates.find((template) => template.scopeType === "family") ??
+          nextTemplates[0] ??
+          null;
+
+        if (preferredTemplate) {
+          const fallbackBlocks = await listCleanTemplateBlocks(
+            workspace.profile.id,
+            preferredTemplate.id,
+          );
+
+          entries = buildCleanWeeklyPlannerEntriesFromTemplateBlocks(
+            currentWeekStart,
+            fallbackBlocks,
+            {
+              learnerLabelById,
+              programLabelById,
+              segmentLabelById,
+            },
+          );
+          sourceLabel = fallbackBlocks.length
+            ? "Built from your master week"
+            : "Built as an open weekly layout";
+          learnerLabel =
+            preferredTemplate.scopeType === "learner" && preferredTemplate.learnerId
+              ? learnerLabelById.get(preferredTemplate.learnerId) ?? learnerLabel
+              : learnerLabel;
+        } else {
+          sourceLabel = "Built as an open weekly layout";
+        }
+      }
+
+      const pdfBytes = await generateCleanWeeklyPlannerPdfBytes({
+        familyName: workspace.profile.displayName || null,
+        learnerLabel,
+        weekStartsOn: currentWeekStart,
+        weekEndsOn: currentWeekEnd,
+        sourceLabel,
+        entries,
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanWeeklyPlannerPdfFilename(
+          workspace.profile.displayName || null,
+          currentWeekStart,
+        ),
+      );
+      setMessage("Weekly planner downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the weekly planner. Please try again.",
+        ),
+      );
+    } finally {
+      setPlannerSubmitting(false);
+    }
+  }
+
   const readyForOutputs =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
@@ -596,6 +749,53 @@ function CleanOutputsWorkspaceBody() {
 
         {readyForOutputs && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>Calendar outputs</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Print a simple weekly homeschool plan for your fridge, wall, or family noticeboard.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  padding: 16,
+                  background: "#f8fbff",
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: "grid", gap: 4 }}>
+                  <strong style={{ color: "#0f172a", fontSize: 20 }}>
+                    Weekly Fridge Planner
+                  </strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Print this week&apos;s homeschool rhythm for your fridge, wall, or family noticeboard.
+                  </div>
+                </div>
+
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Current week: {currentWeekLabel}
+                </div>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  Uses your live week first, then your master week if the live week is still empty.
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void handleDownloadWeeklyPlanner()}
+                    disabled={plannerSubmitting}
+                  >
+                    {plannerSubmitting ? "Preparing planner..." : "Download weekly planner"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Choose a ready report</h2>

@@ -36,6 +36,7 @@ import type {
 import {
   createCleanMasterTemplate,
   createCleanTemplateBlock,
+  deleteCleanTemplateBlock,
   listCleanMasterTemplates,
   listCleanTemplateBlocks,
   updateCleanTemplateBlock,
@@ -59,6 +60,12 @@ import type {
   CleanLearningPeriod,
   CleanLearningPeriodType,
 } from "@/lib/clean/terms/types";
+import {
+  buildCleanWeeklyPlannerEntriesFromCalendarItems,
+  buildCleanWeeklyPlannerEntriesFromTemplateBlocks,
+  buildCleanWeeklyPlannerPdfFilename,
+  generateCleanWeeklyPlannerPdfBytes,
+} from "@/lib/clean/outputs/weeklyPlanner";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -341,6 +348,19 @@ function formatClockRangeLabel(startsAt: string | null, endsAt: string | null) {
   return start || end || "Any time";
 }
 
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+}
+
 function formatPeriodTypeLabel(periodType: CleanLearningPeriodType, isBreak: boolean) {
   if (isBreak || periodType === "break") return "Break / holiday";
 
@@ -421,6 +441,7 @@ function CleanRhythmBlockPopover({
   onChangeSessionLabel,
   onChangeNotes,
   onClose,
+  onDelete,
   onSave,
   saving,
 }: {
@@ -449,6 +470,7 @@ function CleanRhythmBlockPopover({
   onChangeSessionLabel: (value: string) => void;
   onChangeNotes: (value: string) => void;
   onClose: () => void;
+  onDelete?: () => void;
   onSave: () => void;
   saving: boolean;
 }) {
@@ -719,6 +741,16 @@ function CleanRhythmBlockPopover({
           >
             Cancel
           </button>
+          {mode === "edit" && onDelete ? (
+            <button
+              type="button"
+              style={dangerButtonStyle}
+              onClick={onDelete}
+              disabled={saving}
+            >
+              Delete block
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -818,6 +850,7 @@ function CleanCalendarWorkspaceBody() {
 
   const [previewSuggestions, setPreviewSuggestions] = useState<CleanGeneratedWeekSuggestion[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [plannerDownloading, setPlannerDownloading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeSurfaceId, setActiveSurfaceId] = useState<string | null>(null);
@@ -843,6 +876,18 @@ function CleanCalendarWorkspaceBody() {
       })),
     [programs],
   );
+  const learnerLabelById = useMemo(
+    () => new Map(learnerOptions.map((option) => [option.value, option.label])),
+    [learnerOptions],
+  );
+  const programLabelById = useMemo(
+    () => new Map(programOptions.map((option) => [option.value, option.label])),
+    [programOptions],
+  );
+  const segmentLabelById = useMemo(
+    () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
+    [programSegments],
+  );
 
   const selectedAcademicYear = useMemo(
     () => academicYears.find((year) => year.id === selectedAcademicYearId) ?? null,
@@ -857,6 +902,10 @@ function CleanCalendarWorkspaceBody() {
   const selectedLearningPeriod = useMemo(
     () => learningPeriods.find((period) => period.id === selectedLearningPeriodId) ?? null,
     [learningPeriods, selectedLearningPeriodId],
+  );
+  const editingTemplateBlock = useMemo(
+    () => templateBlocks.find((block) => block.id === editingTemplateBlockId) ?? null,
+    [editingTemplateBlockId, templateBlocks],
   );
 
   const selectedWeekEnd = useMemo(() => addDays(selectedWeekStart, 6), [selectedWeekStart]);
@@ -1703,6 +1752,33 @@ function CleanCalendarWorkspaceBody() {
     }
   }
 
+  async function handleTemplateBlockDelete(block: CleanTemplateBlock) {
+    if (!workspace.profile) return;
+    if (!window.confirm("Delete this block from the master week?")) {
+      return;
+    }
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      await deleteCleanTemplateBlock(workspace.profile.id, block.id);
+      closeRhythmPopover();
+      setMessage("Block deleted.");
+      await reloadTemplateBlocks();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not delete this block. Please try again.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function buildWeekPreview() {
     return buildCleanGeneratedWeekPreview({
       weekStartsOn: selectedWeekStart,
@@ -1886,6 +1962,63 @@ function CleanCalendarWorkspaceBody() {
       );
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleWeeklyPlannerDownload() {
+    if (!workspace.profile) return;
+
+    setPlannerDownloading(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      const entries = items.length
+        ? buildCleanWeeklyPlannerEntriesFromCalendarItems(items, {
+            learnerLabelById,
+            programLabelById,
+            segmentLabelById,
+          })
+        : buildCleanWeeklyPlannerEntriesFromTemplateBlocks(selectedWeekStart, templateBlocks, {
+            learnerLabelById,
+            programLabelById,
+            segmentLabelById,
+          });
+      const learnerLabel =
+        selectedTemplate?.scopeType === "learner" && selectedTemplate.learnerId
+          ? learnerLabelById.get(selectedTemplate.learnerId) ?? null
+          : null;
+      const sourceLabel = items.length
+        ? "Built from this week's live calendar"
+        : templateBlocks.length
+          ? "Built from your master week"
+          : "Built as an open weekly layout";
+      const pdfBytes = await generateCleanWeeklyPlannerPdfBytes({
+        familyName: workspace.profile.displayName || null,
+        learnerLabel,
+        weekStartsOn: selectedWeekStart,
+        weekEndsOn: selectedWeekEnd,
+        sourceLabel,
+        entries,
+      });
+
+      downloadPdf(
+        pdfBytes,
+        buildCleanWeeklyPlannerPdfFilename(
+          workspace.profile.displayName || null,
+          selectedWeekStart,
+        ),
+      );
+      setMessage("Weekly planner downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the weekly planner. Please try again.",
+        ),
+      );
+    } finally {
+      setPlannerDownloading(false);
     }
   }
 
@@ -3306,6 +3439,19 @@ function CleanCalendarWorkspaceBody() {
                           >
                             Next week
                           </button>
+                          <button
+                            type="button"
+                            style={mutedButtonStyle}
+                            onClick={() => void handleWeeklyPlannerDownload()}
+                            disabled={
+                              plannerDownloading ||
+                              itemsLoading ||
+                              templateBlocksLoading ||
+                              setupLoading
+                            }
+                          >
+                            {plannerDownloading ? "Preparing planner..." : "Print weekly planner"}
+                          </button>
                         </div>
                       </div>
 
@@ -4027,6 +4173,11 @@ function CleanCalendarWorkspaceBody() {
         onChangeSessionLabel={setBlockSessionLabel}
         onChangeNotes={setBlockNotes}
         onClose={closeRhythmPopover}
+        onDelete={
+          editingTemplateBlock
+            ? () => void handleTemplateBlockDelete(editingTemplateBlock)
+            : undefined
+        }
         onSave={() => void handleTemplateBlockSubmit()}
         saving={submitting}
       />
