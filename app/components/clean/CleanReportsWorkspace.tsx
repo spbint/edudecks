@@ -30,6 +30,7 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { isBrentAuthorityTemplateActive } from "@/lib/clean/authority/brent";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -416,6 +417,10 @@ function CleanReportsWorkspaceBody() {
     : "/my-outputs";
   const readyForReports =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const brentModeActive = useMemo(
+    () => isBrentAuthorityTemplateActive(workspace.profile),
+    [workspace.profile],
+  );
 
   const learnerOptions = useMemo(
     () =>
@@ -1032,6 +1037,19 @@ function CleanReportsWorkspaceBody() {
 
         {readyForReports && workspace.profile && workspace.learners.length ? (
           <>
+            {brentModeActive ? (
+              <section style={cardStyle}>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>
+                    Brent evidence pathway active
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    This learner is set to Brent Council. MyLearna will prepare a Brent-aligned evidence pack using learning evidence, portfolio highlights, and report notes collected through the year.
+                  </p>
+                </div>
+              </section>
+            ) : null}
+
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 12 }}>
                 <div>

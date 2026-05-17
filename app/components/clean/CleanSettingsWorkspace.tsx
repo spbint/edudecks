@@ -11,6 +11,20 @@ import {
   updateCleanFamilyProfile,
 } from "@/lib/clean/family/client";
 import type { FamilyProfile } from "@/lib/clean/family/types";
+import {
+  BRENT_COUNTRY_CODE,
+  BRENT_REPORTING_HELPER_COPY,
+  BRENT_REPORTING_PATHWAY_CODE,
+  BRENT_REPORTING_PATHWAY_LABEL,
+  decodeUnitedKingdomLocalAuthorityCode,
+  decodeUnitedKingdomNationCode,
+  encodeUnitedKingdomJurisdictionCode,
+  getBrentPathwaySelectionSummary,
+  getUnitedKingdomLocalAuthorityOptions,
+  getUnitedKingdomNationLabel,
+  isBrentLocalAuthoritySelection,
+  UNITED_KINGDOM_NATION_OPTIONS,
+} from "@/lib/clean/authority/brent";
 
 type SelectOption = {
   value: string;
@@ -160,12 +174,7 @@ const UNITED_STATES_JURISDICTIONS: SelectOption[] = [
   { value: "WY", label: "Wyoming" },
 ];
 
-const UNITED_KINGDOM_JURISDICTIONS: SelectOption[] = [
-  { value: "england", label: "England" },
-  { value: "scotland", label: "Scotland" },
-  { value: "wales", label: "Wales" },
-  { value: "northern-ireland", label: "Northern Ireland" },
-];
+const UNITED_KINGDOM_JURISDICTIONS: SelectOption[] = UNITED_KINGDOM_NATION_OPTIONS;
 
 const AUSTRALIA_CURRICULUM_OPTIONS: SelectOption[] = [
   { value: "australian-curriculum", label: "Australian Curriculum" },
@@ -248,6 +257,31 @@ function getReportingOptions(countryCode: string) {
     : GENERAL_REPORTING_OPTIONS;
 }
 
+function getReportingOptionsForSelection(
+  countryCode: string,
+  jurisdictionCode: string,
+) {
+  const generalOptions = getReportingOptions(countryCode);
+
+  if (
+    isBrentLocalAuthoritySelection({
+      countryCode,
+      jurisdictionCode,
+    })
+  ) {
+    return [
+      {
+        value: BRENT_REPORTING_PATHWAY_CODE,
+        label: BRENT_REPORTING_PATHWAY_LABEL,
+        description: BRENT_REPORTING_HELPER_COPY,
+      },
+      ...generalOptions,
+    ];
+  }
+
+  return generalOptions;
+}
+
 function defaultReportingMode(countryCode: string) {
   return countryCode === "INTL"
     ? "standard-learning-portfolio-report"
@@ -276,7 +310,10 @@ function encodeReportingModeForSave(reportingMode: string) {
 function normalizeDraft(nextDraft: SettingsDraft) {
   const countryCode = safe(nextDraft.countryCode);
   const curriculumOptions = getCurriculumOptions(countryCode);
-  const reportingOptions = getReportingOptions(countryCode);
+  const reportingOptions = getReportingOptionsForSelection(
+    countryCode,
+    nextDraft.jurisdictionCode,
+  );
   const needsFixedJurisdiction = countryCode === "AU" || countryCode === "US" || countryCode === "UK";
 
   const curriculumFrameworkId = curriculumOptions.some(
@@ -333,6 +370,11 @@ function getCountryLabel(countryCode: string | null) {
 
 function getJurisdictionLabel(countryCode: string | null, jurisdictionCode: string | null) {
   if (!safe(jurisdictionCode)) return "Not set";
+  if (safe(countryCode) === BRENT_COUNTRY_CODE) {
+    return getUnitedKingdomNationLabel(
+      decodeUnitedKingdomNationCode(jurisdictionCode),
+    );
+  }
   return getOptionLabel(getJurisdictionOptions(safe(countryCode)), jurisdictionCode, safe(jurisdictionCode));
 }
 
@@ -343,9 +385,19 @@ function getCurriculumLabel(countryCode: string | null, curriculumFrameworkId: s
   );
 }
 
-function getReportingModeLabel(countryCode: string | null, reportingMode: string | null) {
+function getReportingModeLabel(
+  countryCode: string | null,
+  jurisdictionCode: string | null,
+  reportingMode: string | null,
+) {
   const formValue = decodeReportingModeForForm(countryCode, reportingMode);
-  return getOptionLabel(getReportingOptions(safe(countryCode)), formValue);
+  return getOptionLabel(
+    getReportingOptionsForSelection(
+      safe(countryCode),
+      safe(jurisdictionCode),
+    ),
+    formValue,
+  );
 }
 
 function getReportingModeDescription(reportingMode: string) {
@@ -363,6 +415,10 @@ function getReportingModeDescription(reportingMode: string) {
 
   if (reportingMode === "standard-learning-portfolio-report") {
     return "This keeps the learning record clear and flexible when you are not working inside one fixed state or country model.";
+  }
+
+  if (reportingMode === BRENT_REPORTING_PATHWAY_CODE) {
+    return BRENT_REPORTING_HELPER_COPY;
   }
 
   return "Choose the reporting approach that best fits how you want MyLearna to frame your records.";
@@ -413,9 +469,28 @@ function CleanSettingsWorkspaceBody() {
   );
 
   const reportingOptions = useMemo(
-    () => getReportingOptions(draft?.countryCode || ""),
-    [draft?.countryCode],
+    () => getReportingOptionsForSelection(draft?.countryCode || "", draft?.jurisdictionCode || ""),
+    [draft?.countryCode, draft?.jurisdictionCode],
   );
+  const countryIsUnitedKingdom = draft?.countryCode === BRENT_COUNTRY_CODE;
+  const draftNationCode = useMemo(
+    () => decodeUnitedKingdomNationCode(draft?.jurisdictionCode || ""),
+    [draft?.jurisdictionCode],
+  );
+  const draftLocalAuthorityCode = useMemo(
+    () => decodeUnitedKingdomLocalAuthorityCode(draft?.jurisdictionCode || ""),
+    [draft?.jurisdictionCode],
+  );
+  const localAuthorityOptions = useMemo(
+    () => getUnitedKingdomLocalAuthorityOptions(draftNationCode),
+    [draftNationCode],
+  );
+  const draftBrentAuthoritySelection =
+    Boolean(draft) &&
+    isBrentLocalAuthoritySelection({
+      countryCode: draft?.countryCode || "",
+      jurisdictionCode: draft?.jurisdictionCode || "",
+    });
 
   const myDayContextReady = useMemo(
     () => hasMyDayContext(workspace.profile),
@@ -436,6 +511,31 @@ function CleanSettingsWorkspaceBody() {
         ...current,
         countryCode: nextCountryCode,
         jurisdictionCode: requiresFixedJurisdiction ? "" : "",
+      });
+    });
+  }
+
+  function updateUnitedKingdomNation(nationCode: string) {
+    setDraft((current) => {
+      if (!current) return current;
+
+      return normalizeDraft({
+        ...current,
+        jurisdictionCode: encodeUnitedKingdomJurisdictionCode(nationCode, ""),
+      });
+    });
+  }
+
+  function updateUnitedKingdomLocalAuthority(localAuthorityCode: string) {
+    setDraft((current) => {
+      if (!current) return current;
+
+      return normalizeDraft({
+        ...current,
+        jurisdictionCode: encodeUnitedKingdomJurisdictionCode(
+          decodeUnitedKingdomNationCode(current.jurisdictionCode),
+          localAuthorityCode,
+        ),
       });
     });
   }
@@ -465,7 +565,23 @@ function CleanSettingsWorkspaceBody() {
       (countryCode === "AU" || countryCode === "US" || countryCode === "UK") &&
       !jurisdictionCode
     ) {
-      setError("Choose your state or jurisdiction before saving.");
+      setError(
+        countryCode === BRENT_COUNTRY_CODE
+          ? "Choose your nation before saving."
+          : "Choose your state or jurisdiction before saving.",
+      );
+      setMessage(null);
+      return;
+    }
+
+    if (
+      safe(draft.reportingMode) === BRENT_REPORTING_PATHWAY_CODE &&
+      !isBrentLocalAuthoritySelection({
+        countryCode,
+        jurisdictionCode,
+      })
+    ) {
+      setError("Choose England and Brent Council before selecting the Brent pathway.");
       setMessage(null);
       return;
     }
@@ -569,15 +685,33 @@ function CleanSettingsWorkspaceBody() {
               </p>
               <div style={{ display: "grid", gap: 10, color: "#334155" }}>
                 <div>
-                  <strong>Country:</strong> {getCountryLabel(workspace.profile.countryCode)}
+                  <strong>Country / region:</strong> {getCountryLabel(workspace.profile.countryCode)}
                 </div>
-                <div>
-                  <strong>State / jurisdiction:</strong>{" "}
-                  {getJurisdictionLabel(
-                    workspace.profile.countryCode,
-                    workspace.profile.jurisdictionCode,
-                  )}
-                </div>
+                {workspace.profile.countryCode === BRENT_COUNTRY_CODE ? (
+                  <>
+                    <div>
+                      <strong>Nation:</strong>{" "}
+                      {
+                        getBrentPathwaySelectionSummary(workspace.profile).nationLabel
+                      }
+                    </div>
+                    <div>
+                      <strong>Local authority:</strong>{" "}
+                      {
+                        getBrentPathwaySelectionSummary(workspace.profile)
+                          .localAuthorityLabel
+                      }
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <strong>State / jurisdiction:</strong>{" "}
+                    {getJurisdictionLabel(
+                      workspace.profile.countryCode,
+                      workspace.profile.jurisdictionCode,
+                    )}
+                  </div>
+                )}
                 <div>
                   <strong>Curriculum framework:</strong>{" "}
                   {getCurriculumLabel(
@@ -586,11 +720,20 @@ function CleanSettingsWorkspaceBody() {
                   )}
                 </div>
                 <div>
-                  <strong>Reporting mode:</strong>{" "}
-                  {getReportingModeLabel(
-                    workspace.profile.countryCode,
-                    workspace.profile.reportingMode,
-                  )}
+                  <strong>
+                    {workspace.profile.countryCode === BRENT_COUNTRY_CODE
+                      ? "Reporting pathway"
+                      : "Reporting mode"}
+                    :
+                  </strong>{" "}
+                  {workspace.profile.countryCode === BRENT_COUNTRY_CODE &&
+                  workspace.profile.reportingMode === BRENT_REPORTING_PATHWAY_CODE
+                    ? BRENT_REPORTING_PATHWAY_LABEL
+                    : getReportingModeLabel(
+                        workspace.profile.countryCode,
+                        workspace.profile.jurisdictionCode,
+                        workspace.profile.reportingMode,
+                      )}
                 </div>
                 <div>
                   <strong>Week start:</strong>{" "}
@@ -616,7 +759,9 @@ function CleanSettingsWorkspaceBody() {
 
                 <form onSubmit={handleSave} style={{ display: "grid", gap: 18 }}>
                   <div style={{ display: "grid", gap: 8 }}>
-                    <label style={{ color: "#334155", fontWeight: 700 }}>Country</label>
+                    <label style={{ color: "#334155", fontWeight: 700 }}>
+                      Country / region
+                    </label>
                     <select
                       value={draft.countryCode}
                       onChange={(event) => updateCountry(event.target.value)}
@@ -634,7 +779,7 @@ function CleanSettingsWorkspaceBody() {
 
                   <div style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
-                      State / jurisdiction
+                      {countryIsUnitedKingdom ? "Nation" : "State / jurisdiction"}
                     </label>
                     {draft.countryCode === "INTL" ? (
                       <>
@@ -655,6 +800,20 @@ function CleanSettingsWorkspaceBody() {
                           Leave this blank if you do not need a state or regional label.
                         </p>
                       </>
+                    ) : countryIsUnitedKingdom ? (
+                      <select
+                        value={draftNationCode}
+                        onChange={(event) => updateUnitedKingdomNation(event.target.value)}
+                        style={inputStyle}
+                        disabled={saving || !draft.countryCode}
+                      >
+                        <option value="">Choose nation</option>
+                        {jurisdictionOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     ) : (
                       <select
                         value={draft.jurisdictionCode}
@@ -677,6 +836,28 @@ function CleanSettingsWorkspaceBody() {
                       </select>
                     )}
                   </div>
+
+                  {countryIsUnitedKingdom && draftNationCode === "england" ? (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <label style={{ color: "#334155", fontWeight: 700 }}>
+                        Local authority
+                      </label>
+                      <select
+                        value={draftLocalAuthorityCode}
+                        onChange={(event) =>
+                          updateUnitedKingdomLocalAuthority(event.target.value)
+                        }
+                        style={inputStyle}
+                        disabled={saving}
+                      >
+                        {localAuthorityOptions.map((option) => (
+                          <option key={option.value || "none"} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
 
                   <div style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
@@ -705,7 +886,7 @@ function CleanSettingsWorkspaceBody() {
 
                   <div style={{ display: "grid", gap: 8 }}>
                     <label style={{ color: "#334155", fontWeight: 700 }}>
-                      Reporting mode
+                      {countryIsUnitedKingdom ? "Reporting pathway" : "Reporting mode"}
                     </label>
                     <select
                       value={draft.reportingMode}
@@ -726,11 +907,13 @@ function CleanSettingsWorkspaceBody() {
                       ))}
                     </select>
                     <div style={helperCardStyle}>
-                      <strong style={{ color: "#0f172a" }}>Reporting mode</strong>
+                      <strong style={{ color: "#0f172a" }}>
+                        {countryIsUnitedKingdom ? "Reporting pathway" : "Reporting mode"}
+                      </strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Reporting mode sets how MyLearna frames your records and reporting
-                        flow. It helps shape the structure without locking you into one style
-                        of homeschooling.
+                        {countryIsUnitedKingdom
+                          ? "Reporting pathway sets how MyLearna prepares outputs for this family context. Leave Brent unselected if you want the normal generic learning-record flow."
+                          : "Reporting mode sets how MyLearna frames your records and reporting flow. It helps shape the structure without locking you into one style of homeschooling."}
                       </p>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                         <strong>
@@ -738,6 +921,11 @@ function CleanSettingsWorkspaceBody() {
                         </strong>{" "}
                         {getReportingModeDescription(draft.reportingMode)}
                       </p>
+                      {draftBrentAuthoritySelection ? (
+                        <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                          {BRENT_REPORTING_HELPER_COPY}
+                        </p>
+                      ) : null}
                       <div
                         style={{
                           display: "grid",
@@ -755,10 +943,15 @@ function CleanSettingsWorkspaceBody() {
                             gap: 6,
                           }}
                         >
-                          <strong style={{ color: "#0f172a" }}>Family summary</strong>
+                          <strong style={{ color: "#0f172a" }}>
+                            {draftBrentAuthoritySelection
+                              ? BRENT_REPORTING_PATHWAY_LABEL
+                              : "Family summary"}
+                          </strong>
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                            Family summary gives a quick overview across the family&apos;s
-                            records.
+                            {draftBrentAuthoritySelection
+                              ? BRENT_REPORTING_HELPER_COPY
+                              : "Family summary gives a quick overview across the family&apos;s records."}
                           </p>
                         </div>
                         <div

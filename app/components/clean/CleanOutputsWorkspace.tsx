@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanBrentEvidencePackPreview from "@/app/components/clean/CleanBrentEvidencePackPreview";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
@@ -41,9 +42,22 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import {
+  BRENT_EMPTY_EVIDENCE_COPY,
+  BRENT_OUTPUT_COPY,
+  BRENT_OUTPUT_SECONDARY_COPY,
+  BRENT_OUTPUT_TITLE,
+  isBrentAuthorityTemplateActive,
+} from "@/lib/clean/authority/brent";
+import {
   listCleanMasterTemplates,
   listCleanTemplateBlocks,
 } from "@/lib/clean/templates/client";
+import {
+  buildBrentEvidencePackModel,
+  buildBrentEvidencePackPdfFilename,
+  generateBrentEvidencePackPdfBytes,
+  type BrentEvidencePackModel,
+} from "@/lib/clean/outputs/brentEvidencePackPdf";
 import {
   buildCleanWeeklyPlannerEntriesFromCalendarItems,
   buildCleanWeeklyPlannerEntriesFromTemplateBlocks,
@@ -215,6 +229,11 @@ function CleanOutputsWorkspaceBody() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [plannerSubmitting, setPlannerSubmitting] = useState(false);
+  const [brentPackSubmittingAction, setBrentPackSubmittingAction] = useState<
+    "preview" | "download" | null
+  >(null);
+  const [brentPackModel, setBrentPackModel] = useState<BrentEvidencePackModel | null>(null);
+  const [brentPackLearnerId, setBrentPackLearnerId] = useState<string | null>(null);
 
   const learnerOptions = useMemo(
     () =>
@@ -267,11 +286,17 @@ function CleanOutputsWorkspaceBody() {
     ? learnerOptions.find((option) => option.value === selectedReport.learnerId)?.label ??
       "Unknown learner"
     : null;
+  const selectedLearner =
+    workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null;
   const currentWeekStart = useMemo(() => getWeekStart(), []);
   const currentWeekEnd = useMemo(() => addDays(currentWeekStart, 6), [currentWeekStart]);
   const currentWeekLabel = useMemo(
     () => formatDateRange(currentWeekStart, currentWeekEnd),
     [currentWeekEnd, currentWeekStart],
+  );
+  const brentModeActive = useMemo(
+    () => isBrentAuthorityTemplateActive(workspace.profile),
+    [workspace.profile],
   );
   const previewEvidenceItems = useMemo<CleanReportPdfEvidenceItem[]>(
     () =>
@@ -514,6 +539,17 @@ function CleanOutputsWorkspaceBody() {
     void reloadReportContext();
   }, [reloadExports, reloadReportContext, reloadSections]);
 
+  useEffect(() => {
+    setBrentPackModel(null);
+    setBrentPackLearnerId(null);
+  }, [selectedLearnerId]);
+
+  useEffect(() => {
+    if (brentModeActive) return;
+    setBrentPackModel(null);
+    setBrentPackLearnerId(null);
+  }, [brentModeActive]);
+
   async function handleDownloadPdf() {
     if (!workspace.profile || !selectedReport || !selectedLearnerLabel) return;
 
@@ -679,6 +715,124 @@ function CleanOutputsWorkspaceBody() {
     }
   }
 
+  async function loadBrentEvidencePackModel() {
+    if (!workspace.profile || !selectedLearner) {
+      throw new Error("Add learner details before creating this pack.");
+    }
+
+    if (brentPackModel && brentPackLearnerId === selectedLearner.id) {
+      return brentPackModel;
+    }
+
+    const learnerReports = reports.filter((report) => report.learnerId === selectedLearner.id);
+    const sourceReport =
+      selectedReport && selectedReport.learnerId === selectedLearner.id
+        ? selectedReport
+        : learnerReports[0] ?? null;
+    const learnerPeriods = periods.filter((period) => period.learnerId === selectedLearner.id);
+    const sourcePeriod = sourceReport
+      ? learnerPeriods.find((period) => period.id === sourceReport.reportingPeriodId) ?? null
+      : learnerPeriods[0] ?? null;
+    const sourceSections =
+      sourceReport && selectedReport && sourceReport.id === selectedReport.id
+        ? sections
+        : sourceReport
+          ? await listCleanReportSections(workspace.profile.id, sourceReport.id)
+          : [];
+
+    const [nextPortfolioItems, nextPrograms, nextCalendarItems] = await Promise.all([
+      listCleanPortfolioItems(workspace.profile.id, {
+        learnerId: selectedLearner.id,
+        fromDate: sourcePeriod?.startsOn ?? null,
+        toDate: sourcePeriod?.endsOn ?? null,
+        limit: 160,
+      }),
+      listCleanPrograms(workspace.profile.id, { limit: 60 }),
+      listCleanCalendarItems(workspace.profile.id, {
+        learnerId: selectedLearner.id,
+        fromDate: sourcePeriod?.startsOn ?? null,
+        toDate: sourcePeriod?.endsOn ?? null,
+        limit: 240,
+      }),
+    ]);
+
+    const nextProgramSegments = (
+      await Promise.all(
+        nextPrograms.map((program) =>
+          listCleanProgramSegments(workspace.profile!.id, program.id),
+        ),
+      )
+    ).flat();
+
+    const model = buildBrentEvidencePackModel({
+      profile: workspace.profile,
+      learner: selectedLearner,
+      reportingPeriods: learnerPeriods,
+      sourceReport,
+      sourceReportSections: sourceSections,
+      portfolioItems: nextPortfolioItems,
+      calendarItems: nextCalendarItems,
+      learnerLabelById,
+      programLabelById: new Map(nextPrograms.map((program) => [program.id, program.title])),
+      segmentLabelById: new Map(
+        nextProgramSegments.map((segment) => [segment.id, segment.title]),
+      ),
+      generatedOn: new Date().toISOString().slice(0, 10),
+    });
+
+    setBrentPackModel(model);
+    setBrentPackLearnerId(selectedLearner.id);
+    return model;
+  }
+
+  async function handlePreviewBrentPack() {
+    setBrentPackSubmittingAction("preview");
+    setActionError(null);
+    setMessage(null);
+
+    try {
+      const model = await loadBrentEvidencePackModel();
+      if (!selectedLearner) return;
+      setMessage(
+        model.hasEvidence ? "Brent pack preview ready." : BRENT_EMPTY_EVIDENCE_COPY,
+      );
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the Brent evidence pack. Please try again.",
+        ),
+      );
+    } finally {
+      setBrentPackSubmittingAction(null);
+    }
+  }
+
+  async function handleDownloadBrentPack() {
+    setBrentPackSubmittingAction("download");
+    setActionError(null);
+    setMessage(null);
+
+    try {
+      const model = await loadBrentEvidencePackModel();
+      const pdfBytes = await generateBrentEvidencePackPdfBytes(model);
+      downloadPdf(
+        pdfBytes,
+        buildBrentEvidencePackPdfFilename(model.learnerName, model.generatedOnLabel),
+      );
+      setMessage("Brent evidence pack downloaded.");
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the Brent evidence pack. Please try again.",
+        ),
+      );
+    } finally {
+      setBrentPackSubmittingAction(null);
+    }
+  }
+
   const readyForOutputs =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
 
@@ -736,6 +890,80 @@ function CleanOutputsWorkspaceBody() {
               Outputs are stored at the family level. Create the family profile first on My Profile.
             </p>
           </section>
+        ) : null}
+
+        {readyForOutputs && workspace.profile && brentModeActive ? (
+          <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>{BRENT_OUTPUT_TITLE}</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {BRENT_OUTPUT_COPY}
+                </p>
+                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                  {BRENT_OUTPUT_SECONDARY_COPY}
+                </p>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  padding: 16,
+                  background: "#f8fbff",
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                {selectedLearner ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Preparing this pack for <strong style={{ color: "#0f172a" }}>{getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)}</strong>.
+                  </div>
+                ) : (
+                  <div style={{ color: "#92400e", lineHeight: 1.6 }}>
+                    Add learner details before creating this pack.
+                  </div>
+                )}
+
+                {brentPackModel && !brentPackModel.hasEvidence ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {BRENT_EMPTY_EVIDENCE_COPY}
+                  </div>
+                ) : null}
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void handlePreviewBrentPack()}
+                    disabled={!selectedLearner || brentPackSubmittingAction !== null}
+                  >
+                    {brentPackSubmittingAction === "preview"
+                      ? "Preparing preview..."
+                      : "Preview Brent pack"}
+                  </button>
+                  <button
+                    type="button"
+                    style={{
+                      ...buttonStyle,
+                      background: "#ffffff",
+                      color: "#0f172a",
+                    }}
+                    onClick={() => void handleDownloadBrentPack()}
+                    disabled={!selectedLearner || brentPackSubmittingAction !== null}
+                  >
+                    {brentPackSubmittingAction === "download"
+                      ? "Preparing pack..."
+                      : "Download Brent evidence pack"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {brentPackModel ? (
+              <CleanBrentEvidencePackPreview model={brentPackModel} />
+            ) : null}
+          </>
         ) : null}
 
         {readyForOutputs && !workspace.learners.length ? (
