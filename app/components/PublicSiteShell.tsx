@@ -45,6 +45,26 @@ const FOOTER_LINKS = [
   { href: "/terms", label: "Terms" },
 ] as const;
 
+const YOUTUBE_URL = "https://www.youtube.com/@MyLearna";
+const FACEBOOK_URL = "#";
+const INSTAGRAM_URL = "#";
+const PINTEREST_URL = "#";
+
+type SocialPlatform = "facebook" | "youtube" | "instagram" | "pinterest";
+
+type SocialLink = {
+  platform: SocialPlatform;
+  label: string;
+  href: string;
+};
+
+const SOCIAL_LINKS: SocialLink[] = [
+  { platform: "facebook", label: "Facebook", href: FACEBOOK_URL },
+  { platform: "youtube", label: "YouTube", href: YOUTUBE_URL },
+  { platform: "instagram", label: "Instagram", href: INSTAGRAM_URL },
+  { platform: "pinterest", label: "Pinterest", href: PINTEREST_URL },
+];
+
 const C = {
   bgApp: "#f6f8fc",
   bgSurface: "#ffffff",
@@ -69,6 +89,11 @@ const C = {
   warningBg: "#fff7ed",
   warningBorder: "#fed7aa",
   warningText: "#9a3412",
+
+  footerNavy: "#0f172a",
+  footerNavySoft: "#1e293b",
+  footerIconDisabled: "#94a3b8",
+  footerFocus: "#bfdbfe",
 };
 
 function isActive(pathname: string, href: string) {
@@ -135,6 +160,65 @@ function shellPillStyle(
   };
 }
 
+function isActiveSocialLink(href: string) {
+  return href.trim() !== "#";
+}
+
+function SocialIcon({ platform }: { platform: SocialPlatform }) {
+  const svgProps = {
+    width: 20,
+    height: 20,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+
+  if (platform === "youtube") {
+    return (
+      <svg {...svgProps}>
+        <rect x="3.5" y="6.5" width="17" height="11" rx="3.8" />
+        <path d="M10 9.4 15 12l-5 2.6Z" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (platform === "instagram") {
+    return (
+      <svg {...svgProps}>
+        <rect x="4.5" y="4.5" width="15" height="15" rx="4.2" />
+        <circle cx="12" cy="12" r="3.3" />
+        <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
+  if (platform === "facebook") {
+    return (
+      <svg {...svgProps} viewBox="0 0 24 24">
+        <path
+          d="M13.8 20v-6.1h2.4l.4-2.7h-2.8V9.5c0-.8.3-1.4 1.6-1.4h1.3V5.8c-.2 0-1-.1-1.9-.1-2 0-3.3 1.2-3.3 3.4v2.1H9.4v2.7h2.4V20Z"
+          fill="currentColor"
+          stroke="none"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...svgProps} viewBox="0 0 24 24">
+      <path
+        d="M12 4.8c-3.5 0-5.9 2.4-5.9 5.6 0 2.1 1 3.4 2.3 4l.8-2.8c-.2-.5-.3-1-.3-1.6 0-1.6 1.1-2.8 2.4-2.8 1.1 0 1.6.8 1.6 1.8 0 1.1-.7 2.7-1 4.3-.2 1.3.6 2.2 1.8 2.2 2.3 0 3.8-2.7 3.8-6.1 0-2.5-1.8-4.6-4.9-4.6Zm0 14.5c-.9 0-1.8-.4-2.4-1l-.9 3.2c-.2.8-.6 1.6-1 2.3.8.2 1.6.3 2.5.3 4.8 0 8.3-3.7 8.3-8.3 0-4.2-3-7.2-7.3-7.2-5.1 0-8.1 3.6-8.1 7.5 0 2.1.9 4 2.8 4.7.3.1.5 0 .6-.2l.4-1.5c.1-.2 0-.4-.2-.6-.4-.5-.7-1.4-.7-2.4 0-2.4 1.8-4.9 5.1-4.9 2.8 0 4.3 1.9 4.3 4.1 0 3.1-1.3 5.7-3.4 5.7-1.1 0-1.9-.9-1.7-2.1.3-1.4.9-2.8.9-3.9 0-.9-.5-1.7-1.6-1.7-1.2 0-2.2 1.3-2.2 2.9 0 1 .3 1.8.3 1.8l-1.2 5c.5.1 1 .2 1.6.2Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </svg>
+  );
+}
+
 export default function PublicSiteShell({
   title = "MyLearna",
   eyebrow = "",
@@ -159,6 +243,8 @@ export default function PublicSiteShell({
   const pathname = usePathname();
   const isTablet = useIsMobile(1080);
   const isMobile = useIsMobile(720);
+  const activeSocialLinks = SOCIAL_LINKS.filter((item) => isActiveSocialLink(item.href));
+  const inactiveSocialLinks = SOCIAL_LINKS.filter((item) => !isActiveSocialLink(item.href));
 
   const workflowRibbon = showWorkflowStrip ? (
     <section style={{ marginBottom: isMobile ? 18 : 20 }}>
@@ -493,6 +579,55 @@ export default function PublicSiteShell({
             alignItems: "center",
           }}
         >
+          <style jsx>{`
+            .public-social-button {
+              width: 46px;
+              height: 46px;
+              border-radius: 999px;
+              border: 1px solid rgba(255, 255, 255, 0.42);
+              background: rgba(15, 23, 42, 0.14);
+              color: #ffffff;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              text-decoration: none;
+              transition:
+                transform 140ms ease,
+                border-color 140ms ease,
+                background 140ms ease,
+                box-shadow 140ms ease;
+            }
+
+            .public-social-button:hover {
+              transform: translateY(-1px);
+              background: rgba(37, 99, 235, 0.18);
+              border-color: rgba(191, 219, 254, 0.82);
+            }
+
+            .public-social-button:focus-visible {
+              outline: none;
+              border-color: #ffffff;
+              box-shadow: 0 0 0 3px rgba(191, 219, 254, 0.6);
+            }
+
+            .public-social-button--disabled {
+              color: ${C.footerIconDisabled};
+              border-color: rgba(148, 163, 184, 0.36);
+              background: rgba(15, 23, 42, 0.08);
+            }
+
+            .public-social-sr {
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
+            }
+          `}</style>
           <div>
             <div
               style={{
@@ -536,6 +671,77 @@ export default function PublicSiteShell({
                   {item.label}
                 </Link>
               ))}
+            </div>
+
+            <div
+              style={{
+                marginTop: 16,
+                borderRadius: 18,
+                padding: isMobile ? "16px 14px" : "18px 18px 16px",
+                background: `linear-gradient(135deg, ${C.footerNavy} 0%, ${C.footerNavySoft} 100%)`,
+                border: "1px solid rgba(148,163,184,0.18)",
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "grid", gap: 4 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#cbd5e1",
+                  }}
+                >
+                  Connect with MyLearna
+                </div>
+                <div
+                  style={{
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "#e2e8f0",
+                  }}
+                >
+                  MyLearna — Plan. Capture. Grow.
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                {activeSocialLinks.map((item) => (
+                  <a
+                    key={item.platform}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Visit MyLearna on ${item.label}`}
+                    title={`Visit MyLearna on ${item.label}`}
+                    className="public-social-button"
+                  >
+                    <SocialIcon platform={item.platform} />
+                    <span className="public-social-sr">{item.label}</span>
+                  </a>
+                ))}
+
+                {inactiveSocialLinks.map((item) => (
+                  <span
+                    key={item.platform}
+                    className="public-social-button public-social-button--disabled"
+                    role="img"
+                    aria-label={`${item.label} coming soon`}
+                    title={`${item.label} coming soon`}
+                  >
+                    <SocialIcon platform={item.platform} />
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
