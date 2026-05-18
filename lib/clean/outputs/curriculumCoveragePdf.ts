@@ -9,6 +9,9 @@ import {
 
 import {
   buildCurriculumCoverageSummary,
+  type CurriculumCoverageLinkedEvidence,
+  type CurriculumCoverageMatchSummary,
+  type CurriculumCoverageStatus,
   type CurriculumCoverageSummary,
 } from "@/lib/clean/curriculum/coverageSummary";
 import {
@@ -27,7 +30,7 @@ const CURRICULUM_COVERAGE_PURPOSE_NOTE =
   "This record shows how captured learning evidence is building across curriculum areas and reporting expectations.";
 const CURRICULUM_COVERAGE_DISCLAIMER =
   "This record is designed to support family record keeping and reporting preparation. Families should check their local authority, state, or registration requirements before submitting records.";
-const CURRICULUM_COVERAGE_FOOTER = "MyLearna — Plan. Capture. Grow.";
+const CURRICULUM_COVERAGE_FOOTER = "MyLearna \u2014 Plan. Capture. Grow.";
 const LOGO_PATH = "/branding/mylearna-logo.png";
 const NOT_RECORDED_YET = "Not recorded in MyLearna yet.";
 
@@ -74,6 +77,11 @@ type PdfComposer = {
   regular: PDFFont;
   bold: PDFFont;
   theme: PdfTheme;
+};
+
+type LabelValueItem = {
+  label: string;
+  value: string;
 };
 
 function safe(value: unknown) {
@@ -154,6 +162,15 @@ function getEvidenceItemLabel(count: number) {
 function buildLatestEvidenceLine(entry: CleanEvidenceEntry | null) {
   if (!entry) return "Latest evidence: No evidence linked yet.";
   return `Latest evidence: ${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
+}
+
+function buildLatestEvidenceLabel(entry: CleanEvidenceEntry | null) {
+  if (!entry) return "No evidence linked yet.";
+  return `${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
+}
+
+function buildEvidenceExampleLabel(entry: CleanEvidenceEntry) {
+  return `${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
 }
 
 function splitCountryAndAuthorityLabels(model: ResolvedCurriculumFrameworkMap) {
@@ -429,10 +446,18 @@ function drawCenteredTextBlock(
   return next;
 }
 
-function drawHeading(composer: PdfComposer, text: string, level: 1 | 2 | 3 = 1) {
+function drawHeading(
+  composer: PdfComposer,
+  text: string,
+  level: 1 | 2 | 3 = 1,
+  options?: { minFollowingSpace?: number },
+) {
   const fontSize = level === 1 ? 18 : level === 2 ? 13.5 : 11.5;
   const spacingBefore = level === 1 ? 16 : 12;
-  const next = ensureSpace(composer, fontSize + spacingBefore + 14);
+  const next = ensureSpace(
+    composer,
+    fontSize + spacingBefore + 14 + (options?.minFollowingSpace ?? 0),
+  );
   next.y -= spacingBefore;
   next.page.drawText(text, {
     x: next.margin,
@@ -574,6 +599,161 @@ function drawCard(
   return next;
 }
 
+function drawMetaCard(
+  composer: PdfComposer,
+  title: string,
+  items: LabelValueItem[],
+  options?: {
+    fill?: ReturnType<typeof rgb>;
+    border?: ReturnType<typeof rgb>;
+  },
+) {
+  const width = composer.width - composer.margin * 2;
+  const paddingX = 18;
+  const paddingTop = 18;
+  const rowGap = 12;
+  const colGap = 16;
+  const titleGap = 16;
+  const labelFontSize = 8.5;
+  const valueFontSize = 10.75;
+  const valueLineHeight = 14.5;
+  const titleHeight = 14;
+  const columnWidth = (width - paddingX * 2 - colGap) / 2;
+  const rows: Array<
+    Array<{
+      label: string;
+      valueLines: string[];
+      cellHeight: number;
+    }>
+  > = [];
+
+  for (let index = 0; index < items.length; index += 2) {
+    rows.push(
+      items.slice(index, index + 2).map((item) => {
+        const valueLines = wrapText(
+          item.value || NOT_RECORDED_YET,
+          composer.regular,
+          valueFontSize,
+          columnWidth,
+        );
+        const valueHeight = measureWrappedLines(valueLines, valueLineHeight);
+
+        return {
+          label: item.label,
+          valueLines,
+          cellHeight: 12 + 4 + valueHeight,
+        };
+      }),
+    );
+  }
+
+  const rowHeights = rows.map((row) =>
+    Math.max(...row.map((item) => item.cellHeight)),
+  );
+  const contentHeight =
+    rowHeights.reduce((sum, height) => sum + height, 0) +
+    Math.max(0, rows.length - 1) * rowGap;
+  const totalHeight = paddingTop + titleHeight + titleGap + contentHeight + 18;
+  const next = ensureSpace(composer, totalHeight + 10);
+  const top = next.y;
+
+  drawPanel(next, top, totalHeight, {
+    fill: options?.fill || next.theme.surface,
+    border: options?.border || next.theme.accent,
+  });
+
+  next.page.drawText(title, {
+    x: next.margin + paddingX,
+    y: top - paddingTop,
+    size: 11,
+    font: next.bold,
+    color: next.theme.heading,
+  });
+
+  let cursorY = top - paddingTop - titleGap;
+  rows.forEach((row, rowIndex) => {
+    const rowHeight = rowHeights[rowIndex] || 0;
+
+    row.forEach((item, columnIndex) => {
+      const columnX = next.margin + paddingX + columnIndex * (columnWidth + colGap);
+
+      next.page.drawText(item.label.toUpperCase(), {
+        x: columnX,
+        y: cursorY,
+        size: labelFontSize,
+        font: next.bold,
+        color: next.theme.muted,
+      });
+
+      drawPreparedLines(next, item.valueLines, {
+        x: columnX,
+        y: cursorY - 15,
+        font: next.regular,
+        fontSize: valueFontSize,
+        lineHeight: valueLineHeight,
+        color: next.theme.body,
+      });
+    });
+
+    if (rowIndex < rows.length - 1) {
+      next.page.drawLine({
+        start: { x: next.margin + paddingX, y: cursorY - rowHeight - 6 },
+        end: { x: next.margin + width - paddingX, y: cursorY - rowHeight - 6 },
+        thickness: 1,
+        color: next.theme.line,
+      });
+    }
+
+    cursorY -= rowHeight + rowGap;
+  });
+
+  next.y = top - totalHeight - 8;
+  return next;
+}
+
+function drawInfoCard(
+  composer: PdfComposer,
+  title: string,
+  body: string,
+  options?: {
+    fill?: ReturnType<typeof rgb>;
+    border?: ReturnType<typeof rgb>;
+  },
+) {
+  const width = composer.width - composer.margin * 2 - 32;
+  const bodyLines = wrapText(body, composer.regular, 10.5, width);
+  const titleHeight = 14;
+  const bodyHeight = measureWrappedLines(bodyLines, 15);
+  const totalHeight = 18 + titleHeight + 10 + bodyHeight + 16;
+  const next = ensureSpace(composer, totalHeight + 10);
+  const top = next.y;
+
+  drawPanel(next, top, totalHeight, {
+    fill: options?.fill || next.theme.surface,
+    border: options?.border || next.theme.line,
+  });
+
+  next.page.drawText(title, {
+    x: next.margin + 16,
+    y: top - 18,
+    size: 11,
+    font: next.bold,
+    color: next.theme.heading,
+  });
+
+  drawPreparedLines(next, bodyLines, {
+    x: next.margin + 16,
+    y: top - 38,
+    font: next.regular,
+    fontSize: 10.5,
+    lineHeight: 15,
+    color: next.theme.body,
+  });
+
+  next.y = top - totalHeight - 8;
+  return next;
+}
+
 function drawFooter(
   composer: PdfComposer,
   footerLine: string,
@@ -596,8 +776,10 @@ function drawFooter(
     color: composer.theme.muted,
   });
 
-  composer.page.drawText(`${pageIndex + 1} / ${pageCount}`, {
-    x: composer.width - composer.margin - 24,
+  const pageLabel = `${pageIndex + 1} / ${pageCount}`;
+  const pageLabelWidth = composer.regular.widthOfTextAtSize(pageLabel, 8);
+  composer.page.drawText(pageLabel, {
+    x: composer.width - composer.margin - pageLabelWidth,
     y: footerY,
     size: 8,
     font: composer.regular,
@@ -605,26 +787,197 @@ function drawFooter(
   });
 }
 
+function buildCoverageStatusCounts<TSummary extends { status: CurriculumCoverageStatus }>(
+  summaries: TSummary[],
+) {
+  return summaries.reduce(
+    (totals, summary) => {
+      if (summary.status === "Evidence building") {
+        totals.buildingCount += 1;
+      } else if (summary.status === "Evidence started") {
+        totals.startedCount += 1;
+      } else {
+        totals.noEvidenceCount += 1;
+      }
+
+      return totals;
+    },
+    {
+      noEvidenceCount: 0,
+      startedCount: 0,
+      buildingCount: 0,
+    },
+  );
+}
+
+function buildAreaCoverageLines(summary: {
+  count: number;
+  status: CurriculumCoverageStatus;
+  latestEntry: CleanEvidenceEntry | null;
+  matchedEntries: CleanEvidenceEntry[];
+  elementSummaries: Array<{ count: number }>;
+}) {
+  const elementsWithEvidenceCount = summary.elementSummaries.filter(
+    (item) => item.count > 0,
+  ).length;
+  const exampleEntries = summary.matchedEntries.slice(0, 2);
+  const lines = [
+    `Status: ${summary.status}`,
+    `Evidence count: ${getEvidenceItemLabel(summary.count)}`,
+    `Elements with evidence: ${elementsWithEvidenceCount} of ${summary.elementSummaries.length}`,
+    buildLatestEvidenceLine(summary.latestEntry),
+  ];
+
+  if (!exampleEntries.length) {
+    lines.push("Evidence examples: No evidence linked yet.");
+    return lines;
+  }
+
+  exampleEntries.forEach((entry, index) => {
+    lines.push(`Evidence example ${index + 1}: ${buildEvidenceExampleLabel(entry)}`);
+  });
+
+  return lines;
+}
+
+function buildElementCoverageLines(
+  summary: Pick<
+    CurriculumCoverageMatchSummary,
+    "count" | "status" | "latestEntry" | "matchedEntries"
+  >,
+) {
+  const lines = [
+    `Status: ${summary.status}`,
+    `Linked evidence: ${getEvidenceItemLabel(summary.count)}`,
+    buildLatestEvidenceLine(summary.latestEntry),
+  ];
+  const exampleEntry = summary.matchedEntries[0] ?? null;
+
+  lines.push(
+    exampleEntry
+      ? `Example evidence: ${buildEvidenceExampleLabel(exampleEntry)}`
+      : "Example evidence: No evidence linked yet.",
+  );
+
+  return lines;
+}
+
+function buildStatusGuideLines() {
+  return [
+    "No evidence yet: no linked evidence has been captured in MyLearna for this area yet.",
+    "Evidence started: one linked evidence example has been captured for this area.",
+    "Evidence building: two or more linked evidence examples are now on record for this area.",
+  ];
+}
+
+function buildSectionGuideLines(model: CurriculumCoveragePdfModel) {
+  const lines = [
+    "Coverage summary: calm headline counts and a quick scan across the current framework.",
+    "Learning area coverage: broad areas showing where evidence is starting to build.",
+    "Curriculum element breakdown: wider elements sitting under each learning area.",
+  ];
+
+  if (model.coverageSummary.supplementaryAreaSummaries.length) {
+    lines.push(
+      `${model.resolvedFramework.supplementarySectionTitle}: additional support and reporting areas linked to the active framework.`,
+    );
+  }
+
+  lines.push(
+    "Evidence appendix: linked evidence entries grouped by learning area for easier review.",
+  );
+
+  return lines;
+}
+
+function buildQuickAreaScanLines(
+  summaries: Array<{
+    area: { label: string };
+    status: CurriculumCoverageStatus;
+    count: number;
+  }>,
+) {
+  return summaries.map(
+    (summary) =>
+      `${summary.area.label}: ${summary.status} (${getEvidenceItemLabel(summary.count)})`,
+  );
+}
+
+function buildAppendixGroups(model: CurriculumCoveragePdfModel) {
+  const areaOrder = new Map(
+    model.coverageSummary.areaSummaries.map((summary, index) => [summary.area.label, index]),
+  );
+  const groups = new Map<string, CurriculumCoverageLinkedEvidence[]>();
+
+  model.coverageSummary.linkedEvidenceEntries.forEach((entry) => {
+    const title = safe(entry.learningAreaLabel) || NOT_RECORDED_YET;
+    const existing = groups.get(title) ?? [];
+    existing.push(entry);
+    groups.set(title, existing);
+  });
+
+  return [...groups.entries()]
+    .sort((left, right) => {
+      const leftOrder = areaOrder.get(left[0]);
+      const rightOrder = areaOrder.get(right[0]);
+
+      if (typeof leftOrder === "number" && typeof rightOrder === "number") {
+        return leftOrder - rightOrder;
+      }
+
+      if (typeof leftOrder === "number") return -1;
+      if (typeof rightOrder === "number") return 1;
+      return left[0].localeCompare(right[0]);
+    })
+    .map(([title, entries]) => ({
+      title,
+      entries,
+    }));
+}
+
+function buildCoverMetaItems(model: CurriculumCoveragePdfModel): LabelValueItem[] {
+  return [
+    { label: "Learner", value: model.learnerName },
+    { label: "Family", value: model.familyName },
+    { label: "Selected framework", value: model.frameworkLabel },
+    { label: "Country / region", value: model.countryLabel },
+    { label: "Authority / jurisdiction", value: model.authorityLabel },
+    { label: "Date generated", value: model.generatedOnLabel },
+  ];
+}
+
 function buildSummaryMetricCards(model: CurriculumCoveragePdfModel) {
+  const areaStatusCounts = buildCoverageStatusCounts(model.coverageSummary.areaSummaries);
+  const supplementaryStatusCounts = buildCoverageStatusCounts(
+    model.coverageSummary.supplementaryAreaSummaries,
+  );
+  const latestLinkedEvidence = model.coverageSummary.linkedEvidenceEntries[0]?.entry ?? null;
   const cards = [
     {
       title: "Learning areas with evidence",
-      description: `${model.coverageSummary.learningAreasWithEvidenceCount} of ${model.coverageSummary.areaSummaries.length} learning areas are building evidence.`,
-      lines: ["Evidence building across the current curriculum map."],
+      description: `${model.coverageSummary.learningAreasWithEvidenceCount} of ${model.coverageSummary.areaSummaries.length} learning areas have linked evidence.`,
+      lines: [
+        `${areaStatusCounts.buildingCount} areas are in Evidence building.`,
+        `${areaStatusCounts.startedCount} areas are in Evidence started.`,
+        `${areaStatusCounts.noEvidenceCount} areas are still showing No evidence yet.`,
+      ],
     },
     {
       title: "Total linked evidence entries",
       description: `${model.coverageSummary.totalLinkedEvidenceCount} linked evidence entries`,
       lines: [
         model.coverageSummary.hasLinkedEvidence
-          ? "Evidence is building across your learning record."
+          ? `Latest linked evidence: ${buildLatestEvidenceLabel(latestLinkedEvidence)}`
           : CURRICULUM_COVERAGE_EMPTY_COPY,
       ],
     },
     {
       title: "Areas to revisit",
       description: `${model.coverageSummary.areasToRevisitCount} areas may need more evidence.`,
-      lines: ["Use this as a calm prompt for where you may want to capture more next."],
+      lines: [
+        "Use this as a calm prompt for where you may want to capture more next.",
+        "A revisit area simply means no linked evidence has been captured there yet.",
+      ],
     },
   ];
 
@@ -632,7 +985,10 @@ function buildSummaryMetricCards(model: CurriculumCoveragePdfModel) {
     cards.push({
       title: model.resolvedFramework.supplementaryMetricLabel,
       description: `${model.coverageSummary.supplementaryAreasWithEvidenceCount} of ${model.coverageSummary.supplementaryAreaSummaries.length} areas have linked evidence.`,
-      lines: [model.resolvedFramework.supplementaryMetricCopy],
+      lines: [
+        model.resolvedFramework.supplementaryMetricCopy,
+        `${supplementaryStatusCounts.buildingCount} building, ${supplementaryStatusCounts.startedCount} started, ${supplementaryStatusCounts.noEvidenceCount} with no evidence yet.`,
+      ],
     });
   }
 
@@ -680,18 +1036,10 @@ export async function generateCurriculumCoveragePdfBytes(
     spacingAfter: 18,
   });
 
-  composer = drawCard(
+  composer = drawMetaCard(
     composer,
-    "Coverage overview",
-    null,
-    [
-      `Learner: ${model.learnerName}`,
-      `Family: ${model.familyName}`,
-      `Selected framework: ${model.frameworkLabel}`,
-      `Country / region: ${model.countryLabel}`,
-      `Authority / jurisdiction: ${model.authorityLabel}`,
-      `Date generated: ${model.generatedOnLabel}`,
-    ],
+    "At a glance",
+    buildCoverMetaItems(model),
     {
       fill: theme.surface,
       border: theme.accent,
@@ -699,10 +1047,28 @@ export async function generateCurriculumCoveragePdfBytes(
   );
   composer = drawCard(
     composer,
-    "How to use this record",
+    "How to read the language in this record",
+    null,
+    buildStatusGuideLines(),
+  );
+  composer = drawCard(
+    composer,
+    "What is included",
+    null,
+    buildSectionGuideLines(model),
+  );
+  composer = drawInfoCard(
+    composer,
+    "Family record keeping note",
     model.disclaimer,
+  );
+  composer = drawCard(
+    composer,
+    "Using this record",
+    null,
     [
-      "Use this record to see which learning areas have evidence, which areas are still building, and which areas you may want to revisit next.",
+      "Use this record to see which learning areas already have evidence, which areas are beginning to build, and which areas you may want to revisit next.",
+      "This is designed to support calm family review and reporting preparation rather than assessment scoring.",
     ],
   );
 
@@ -718,6 +1084,23 @@ export async function generateCurriculumCoveragePdfBytes(
   });
 
   composer = drawDivider(composer);
+  composer = drawCard(
+    composer,
+    "Quick area scan",
+    "A simple scan of the current learning areas and their current evidence status.",
+    buildQuickAreaScanLines(model.coverageSummary.areaSummaries),
+  );
+
+  if (model.coverageSummary.supplementaryAreaSummaries.length) {
+    composer = drawCard(
+      composer,
+      model.resolvedFramework.supplementarySectionTitle,
+      "These support areas are included because they are active for this framework.",
+      buildQuickAreaScanLines(model.coverageSummary.supplementaryAreaSummaries),
+    );
+  }
+
+  composer = startNewPage(composer);
   composer = drawHeading(composer, "Learning area coverage");
   composer = drawTextBlock(
     composer,
@@ -732,15 +1115,11 @@ export async function generateCurriculumCoveragePdfBytes(
       composer,
       summary.area.label,
       summary.area.shortDescription,
-      [
-        `Status: ${summary.status}`,
-        `Evidence count: ${getEvidenceItemLabel(summary.count)}`,
-        buildLatestEvidenceLine(summary.latestEntry),
-      ],
+      buildAreaCoverageLines(summary),
     );
   });
 
-  composer = drawDivider(composer);
+  composer = startNewPage(composer);
   composer = drawHeading(composer, "Curriculum element breakdown");
   composer = drawTextBlock(
     composer,
@@ -751,28 +1130,32 @@ export async function generateCurriculumCoveragePdfBytes(
   );
 
   model.coverageSummary.areaSummaries.forEach((areaSummary) => {
-    composer = drawHeading(composer, areaSummary.area.label, 2);
+    composer = drawHeading(composer, areaSummary.area.label, 2, {
+      minFollowingSpace: 84,
+    });
     composer = drawTextBlock(composer, areaSummary.area.shortDescription, {
       color: theme.muted,
       spacingAfter: 8,
     });
+    composer = drawCard(
+      composer,
+      "Area overview",
+      null,
+      buildAreaCoverageLines(areaSummary),
+    );
 
     areaSummary.elementSummaries.forEach((elementSummary) => {
       composer = drawCard(
         composer,
         elementSummary.element.label,
         elementSummary.element.shortDescription,
-        [
-          `Status: ${elementSummary.status}`,
-          `Linked evidence: ${getEvidenceItemLabel(elementSummary.count)}`,
-          buildLatestEvidenceLine(elementSummary.latestEntry),
-        ],
+        buildElementCoverageLines(elementSummary),
       );
     });
   });
 
   if (model.coverageSummary.supplementaryAreaSummaries.length) {
-    composer = drawDivider(composer);
+    composer = startNewPage(composer);
     composer = drawHeading(composer, model.resolvedFramework.supplementarySectionTitle);
     composer = drawTextBlock(composer, model.resolvedFramework.supplementarySectionCopy, {
       spacingAfter: 10,
@@ -783,48 +1166,67 @@ export async function generateCurriculumCoveragePdfBytes(
         composer,
         summary.area.label,
         summary.area.shortDescription,
-        [
-          `Status: ${summary.status}`,
-          `Evidence count: ${getEvidenceItemLabel(summary.count)}`,
-          buildLatestEvidenceLine(summary.latestEntry),
-        ],
+        buildElementCoverageLines(summary),
       );
     });
   }
 
-  composer = drawDivider(composer);
+  composer = startNewPage(composer);
   composer = drawHeading(composer, "Evidence appendix");
+  composer = drawTextBlock(
+    composer,
+    "This appendix groups linked evidence by learning area so it is easier to review when preparing reports, portfolio selections, or authority records.",
+    {
+      spacingAfter: 10,
+    },
+  );
 
   if (!model.coverageSummary.linkedEvidenceEntries.length) {
     composer = drawTextBlock(composer, CURRICULUM_COVERAGE_EMPTY_COPY);
   } else {
-    model.coverageSummary.linkedEvidenceEntries.forEach((linkedEntry) => {
-      const appendixLines = [
-        `Date: ${formatDateLabel(linkedEntry.entry.observedOn)}`,
-        `Learner: ${model.learnerName}`,
-        `Learning area: ${linkedEntry.learningAreaLabel || NOT_RECORDED_YET}`,
-      ];
-
-      if (safe(linkedEntry.curriculumElementLabel)) {
-        appendixLines.push(
-          `Curriculum element: ${safe(linkedEntry.curriculumElementLabel)}`,
-        );
-      }
-
-      if (safe(linkedEntry.authorityEvidenceAreaLabel)) {
-        appendixLines.push(
-          `Authority evidence area: ${safe(linkedEntry.authorityEvidenceAreaLabel)}`,
-        );
-      }
-
-      appendixLines.push(`Note: ${getEvidenceSnippet(linkedEntry.entry)}`);
-
-      composer = drawCard(
+    buildAppendixGroups(model).forEach((group) => {
+      composer = drawHeading(composer, group.title, 2, {
+        minFollowingSpace: 72,
+      });
+      composer = drawTextBlock(
         composer,
-        getEvidenceTitle(linkedEntry.entry),
-        null,
-        appendixLines,
+        `${group.entries.length} linked evidence ${
+          group.entries.length === 1 ? "entry" : "entries"
+        } in this learning area.`,
+        {
+          color: theme.muted,
+          spacingAfter: 8,
+        },
       );
+
+      group.entries.forEach((linkedEntry) => {
+        const appendixLines = [
+          `Date: ${formatDateLabel(linkedEntry.entry.observedOn)}`,
+          `Learner: ${model.learnerName}`,
+          `Learning area: ${linkedEntry.learningAreaLabel || NOT_RECORDED_YET}`,
+        ];
+
+        if (safe(linkedEntry.curriculumElementLabel)) {
+          appendixLines.push(
+            `Curriculum element: ${safe(linkedEntry.curriculumElementLabel)}`,
+          );
+        }
+
+        if (safe(linkedEntry.authorityEvidenceAreaLabel)) {
+          appendixLines.push(
+            `Authority evidence area: ${safe(linkedEntry.authorityEvidenceAreaLabel)}`,
+          );
+        }
+
+        appendixLines.push(`Note: ${getEvidenceSnippet(linkedEntry.entry)}`);
+
+        composer = drawCard(
+          composer,
+          getEvidenceTitle(linkedEntry.entry),
+          `${formatDateLabel(linkedEntry.entry.observedOn)} | ${model.learnerName}`,
+          appendixLines,
+        );
+      });
     });
   }
 
