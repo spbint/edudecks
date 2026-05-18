@@ -109,6 +109,39 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
+const eyebrowStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  color: "#64748b",
+  textTransform: "uppercase",
+};
+
+const compactCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  background: "#f8fafc",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+};
+
+const summaryStripStyle: React.CSSProperties = {
+  display: "grid",
+  gap: 14,
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+};
+
+const summaryCardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 16,
+  background: "#ffffff",
+  padding: 16,
+  display: "grid",
+  gap: 8,
+  boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
+};
+
 const frameworkLabelById: Record<string, string> = {
   "australian-curriculum": "Australian Curriculum",
   "state-standards": "State standards",
@@ -357,6 +390,14 @@ function formatEvidenceTitle(entry: CleanEvidenceEntry) {
   return safe(entry.title) || safe(entry.whatHappened).slice(0, 72) || "Untitled evidence";
 }
 
+function formatLatestEvidenceLine(entry: CleanEvidenceEntry | null, emptyText = "No evidence linked yet.") {
+  return entry ? formatEvidenceTitle(entry) : emptyText;
+}
+
+function getEvidenceItemLabel(count: number) {
+  return `${count} evidence ${count === 1 ? "item" : "items"}`;
+}
+
 function evidenceSortValue(entry: CleanEvidenceEntry) {
   return Date.parse(`${entry.observedOn}T00:00:00`) || Date.parse(entry.updatedAt || "") || 0;
 }
@@ -427,6 +468,7 @@ function CurriculumWorkspaceBody() {
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
+  const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
 
   const capturePathBase = pathname.startsWith("/clean-my-curriculum")
     ? "/clean-my-capture"
@@ -610,6 +652,27 @@ function CurriculumWorkspaceBody() {
     });
   }, [entries]);
 
+  const learningAreasWithEvidenceCount = useMemo(
+    () => areaSummaries.filter((summary) => summary.count > 0).length,
+    [areaSummaries],
+  );
+
+  const areasToRevisitCount = useMemo(
+    () => areaSummaries.filter((summary) => summary.count === 0).length,
+    [areaSummaries],
+  );
+
+  const authorityAreasWithEvidenceCount = useMemo(
+    () => authorityAreaSummaries.filter((summary) => summary.count > 0).length,
+    [authorityAreaSummaries],
+  );
+
+  useEffect(() => {
+    if (brentModeActive) {
+      setShowAuthorityAreas(true);
+    }
+  }, [brentModeActive]);
+
   function buildCaptureHref(learningAreaLabel: string, curriculumElementId: string) {
     const params = new URLSearchParams();
     if (selectedLearnerId) {
@@ -625,26 +688,75 @@ function CurriculumWorkspaceBody() {
       <div style={wrapStyle}>
         <CleanAppHeader />
 
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 10 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                color: "#64748b",
-                textTransform: "uppercase",
-              }}
-            >
-              Learning areas and evidence
+        <section style={{ ...cardStyle, padding: 24 }}>
+          <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Learning areas and evidence</div>
+              <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Curriculum</h1>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
+                See what learning areas are being covered, where evidence is building, and where you may want to capture more.
+              </p>
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
+                This is a supporting layer. It does not replace My Capture, My Portfolio, My Reports, or My Outputs.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Curriculum</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-              See how your learning evidence connects to curriculum areas, reporting expectations, and your child&apos;s learning record.
-            </p>
-            <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-              Use this page to see which learning areas are being covered and where evidence is starting to build. This is a supporting layer. It does not replace My Capture, My Portfolio, My Reports, or My Outputs.
-            </p>
+
+            <div style={helperCardStyle}>
+              <strong style={{ color: "#0f172a" }}>What does this learning show?</strong>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Use My Curriculum to connect everyday learning with curriculum areas, reporting expectations, and your child&apos;s learning record.
+              </p>
+            </div>
+
+            {!workspace.loading &&
+            !workspace.schemaMissing &&
+            !workspace.requiresFamilyCreation &&
+            workspace.profile &&
+            workspace.learners.length ? (
+              <div
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                }}
+              >
+                <div style={compactCardStyle}>
+                  <div style={eyebrowStyle}>Current framework</div>
+                  <strong style={{ color: "#0f172a", fontSize: 16 }}>{frameworkLabel}</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Country / authority:{" "}
+                    {countryAuthorityLabel || "Framework details will connect to My Settings in a later pass."}
+                  </div>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>Status: Foundation view</div>
+                  {!safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId) ? (
+                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                      Framework details will connect to My Settings in a later pass.
+                    </div>
+                  ) : null}
+                </div>
+
+                <div style={compactCardStyle}>
+                  <div style={eyebrowStyle}>Current learner</div>
+                  <label style={{ color: "#334155", fontWeight: 700 }}>
+                    Viewing learning record for
+                  </label>
+                  <select
+                    value={selectedLearnerId}
+                    onChange={(event) => setSelectedLearnerId(event.target.value)}
+                    style={inputStyle}
+                  >
+                    {learnerOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    Coverage stays exploratory here. Your capture and portfolio workflow remains unchanged.
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -700,86 +812,6 @@ function CurriculumWorkspaceBody() {
         workspace.profile &&
         workspace.learners.length ? (
           <>
-            <section
-              style={{
-                display: "grid",
-                gap: 20,
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              }}
-            >
-              <div style={cardStyle}>
-                <div style={{ display: "grid", gap: 14 }}>
-                  <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Current framework</h2>
-                    <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      A friendly foundation view of the learning framework around this learner&apos;s evidence.
-                    </p>
-                  </div>
-
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div>
-                      <strong style={{ color: "#0f172a" }}>Framework:</strong>{" "}
-                      <span style={{ color: "#475569" }}>{frameworkLabel}</span>
-                    </div>
-                    <div>
-                      <strong style={{ color: "#0f172a" }}>Country / authority:</strong>{" "}
-                      <span style={{ color: "#475569" }}>
-                        {countryAuthorityLabel || "Framework details will connect to My Settings in a later pass."}
-                      </span>
-                    </div>
-                    <div>
-                      <strong style={{ color: "#0f172a" }}>Status:</strong>{" "}
-                      <span style={{ color: "#475569" }}>Foundation view</span>
-                    </div>
-                  </div>
-
-                  {!safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId) ? (
-                    <div style={helperCardStyle}>
-                      <strong style={{ color: "#0f172a" }}>Framework details</strong>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Framework details will connect to My Settings in a later pass.
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <div style={cardStyle}>
-                <div style={{ display: "grid", gap: 14 }}>
-                  <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Coverage view</h2>
-                    <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      What does this learning show? Use this view to notice where evidence is already building and where you may want to capture more.
-                    </p>
-                  </div>
-
-                  <div style={{ display: "grid", gap: 8 }}>
-                    <label style={{ color: "#334155", fontWeight: 700 }}>
-                      Current learner
-                    </label>
-                    <select
-                      value={selectedLearnerId}
-                      onChange={(event) => setSelectedLearnerId(event.target.value)}
-                      style={inputStyle}
-                    >
-                      {learnerOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>Foundation view</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      This page helps you explore coverage without turning curriculum mapping into a heavy required step.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {entriesError ? (
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Evidence loading note</strong>
@@ -787,19 +819,97 @@ function CurriculumWorkspaceBody() {
               </section>
             ) : null}
 
+            <section style={summaryStripStyle}>
+              <div style={summaryCardStyle}>
+                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                  Learning areas with evidence
+                </div>
+                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                  {learningAreasWithEvidenceCount}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Evidence building across {learningAreas.length} broad learning areas.
+                </div>
+              </div>
+
+              <div style={summaryCardStyle}>
+                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                  Evidence entries linked
+                </div>
+                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                  {entriesLoading ? "..." : entries.length}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {entries.length
+                    ? "Ready for reports as evidence continues to build."
+                    : "Foundation view while evidence begins to build."}
+                </div>
+              </div>
+
+              <div style={summaryCardStyle}>
+                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                  Areas to revisit
+                </div>
+                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                  {areasToRevisitCount}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Learning areas with no evidence yet for this learner.
+                </div>
+              </div>
+
+              <div style={summaryCardStyle}>
+                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                  Authority evidence areas
+                </div>
+                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                  {brentModeActive ? authorityAreasWithEvidenceCount : authorityEvidenceAreas.length}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {brentModeActive
+                    ? "Evidence building for authority-aligned reporting support."
+                    : "Available when you need authority-aligned review support."}
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
-                <div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Learning area coverage</h2>
-                  <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    See broad learning areas first, then open one area to look at what the evidence is starting to cover.
-                  </p>
-                </div>
-                {selectedLearner ? (
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    Viewing <strong style={{ color: "#0f172a" }}>{getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)}</strong>.
+                <div style={eyebrowStyle}>Coverage map</div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "flex-end",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 8 }}>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Learning area coverage</h2>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Scan the broad learning areas first, then open one area to decide where you may want to capture more.
+                    </p>
                   </div>
-                ) : null}
+
+                  {selectedLearner ? (
+                    <div
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 999,
+                        padding: "8px 12px",
+                        background: "#f8fafc",
+                        color: "#475569",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Viewing{" "}
+                      <strong style={{ color: "#0f172a" }}>
+                        {getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)}
+                      </strong>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {entriesLoading ? (
@@ -819,16 +929,49 @@ function CurriculumWorkspaceBody() {
                     style={{
                       border: summary.area.id === selectedAreaId ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
                       borderRadius: 16,
-                      padding: 16,
+                      padding: 14,
                       background: summary.area.id === selectedAreaId ? "#f8fbff" : "#ffffff",
                       display: "grid",
-                      gap: 12,
+                      gap: 10,
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        alignItems: "flex-start",
+                      }}
+                    >
                       <div style={{ display: "grid", gap: 6 }}>
-                        <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
-                        <div style={{ color: "#475569", lineHeight: 1.6 }}>{summary.area.description}</div>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
+                          {summary.area.id === selectedAreaId ? (
+                            <span
+                              style={{
+                                border: "1px solid #bfdbfe",
+                                background: "#eff6ff",
+                                color: "#1d4ed8",
+                                borderRadius: 999,
+                                padding: "4px 8px",
+                                fontSize: 11,
+                                fontWeight: 800,
+                              }}
+                            >
+                              Selected area
+                            </span>
+                          ) : null}
+                        </div>
+                        <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 14 }}>
+                          {summary.area.description}
+                        </div>
                       </div>
                       <span
                         style={{
@@ -846,19 +989,16 @@ function CurriculumWorkspaceBody() {
 
                     <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
                       <div>
-                        <strong style={{ color: "#0f172a" }}>{summary.count}</strong>{" "}
-                        evidence {summary.count === 1 ? "item" : "items"}
+                        <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                       </div>
-                      <div>
-                        {summary.latestEntry
-                          ? `Latest evidence: ${formatEvidenceTitle(summary.latestEntry)}`
-                          : "Latest evidence: No evidence linked yet."}
+                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                        Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      style={secondaryButtonStyle}
+                      style={summary.area.id === selectedAreaId ? buttonStyle : secondaryButtonStyle}
                       onClick={() => setSelectedAreaId(summary.area.id)}
                     >
                       View area
@@ -870,27 +1010,57 @@ function CurriculumWorkspaceBody() {
 
             {selectedAreaSummary ? (
               <section style={cardStyle}>
-                <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      letterSpacing: "0.08em",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Area detail
-                  </div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>{selectedAreaSummary.area.title}</h2>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                    {selectedAreaSummary.area.description}
-                  </p>
-                  <div style={helperCardStyle}>
-                    <strong style={{ color: "#0f172a" }}>What does this learning show?</strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Look across the elements below to see where evidence is already forming a useful learning record, and where you may want to capture more.
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 18,
+                    alignItems: "flex-start",
+                    flexWrap: "wrap",
+                    marginBottom: 20,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
+                    <div style={eyebrowStyle}>Selected area</div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>
+                      Area detail: {selectedAreaSummary.area.title}
+                    </h2>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                      Look across the elements below to see where evidence is already forming and where you may want to capture more.
                     </p>
+                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                      {selectedAreaSummary.area.description}
+                    </div>
+                  </div>
+
+                  <div style={{ ...compactCardStyle, minWidth: 240, maxWidth: 320 }}>
+                    <span
+                      style={{
+                        ...coverageBadgeStyle(selectedAreaSummary.status),
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        justifySelf: "start",
+                      }}
+                    >
+                      {selectedAreaSummary.status}
+                    </span>
+                    <div style={{ color: "#0f172a", fontWeight: 800 }}>
+                      {getEvidenceItemLabel(selectedAreaSummary.count)}
+                    </div>
+                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                      Latest evidence: {formatLatestEvidenceLine(selectedAreaSummary.latestEntry)}
+                    </div>
+                    <Link
+                      href={buildCaptureHref(
+                        selectedAreaSummary.area.title,
+                        selectedAreaSummary.area.id,
+                      )}
+                      style={buttonStyle}
+                    >
+                      Capture evidence
+                    </Link>
                   </div>
                 </div>
 
@@ -930,19 +1100,16 @@ function CurriculumWorkspaceBody() {
                           </span>
                         </div>
 
-                        <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                           {summary.element.description}
                         </div>
 
                         <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
                           <div>
-                            <strong style={{ color: "#0f172a" }}>{summary.count}</strong>{" "}
-                            evidence {summary.count === 1 ? "item" : "items"}
+                            <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                           </div>
-                          <div>
-                            {summary.latestEntry
-                              ? `Latest evidence: ${formatEvidenceTitle(summary.latestEntry)}`
-                              : "Latest evidence: No evidence linked yet."}
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                            Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
                           </div>
                         </div>
 
@@ -974,10 +1141,13 @@ function CurriculumWorkspaceBody() {
               </section>
             ) : null}
 
-            <section style={cardStyle}>
+            <section style={{ ...cardStyle, background: "#fcfdff" }}>
               <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Authority / support evidence areas</h2>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={eyebrowStyle}>Reporting support</div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Authority / support evidence areas</h2>
+                  </div>
                   <span
                     style={{
                       border: brentModeActive ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
@@ -998,66 +1168,104 @@ function CurriculumWorkspaceBody() {
                 </p>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gap: 14,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-                }}
-              >
-                {authorityAreaSummaries.map((summary) => (
-                  <article
-                    key={summary.area.id}
+              {brentModeActive ? (
+                <div style={{ ...helperCardStyle, marginBottom: 16 }}>
+                  <strong style={{ color: "#0f172a" }}>Authority pathway active</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Brent-aligned reporting support is active for this family, so these areas are shown as part of the evidence map.
+                  </p>
+                </div>
+              ) : null}
+
+              {!brentModeActive && !showAuthorityAreas ? (
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Available when selected in My Settings</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Open these areas when you want to explore how evidence can support authority-aligned review and reporting expectations.
+                  </p>
+                  <div>
+                    <button
+                      type="button"
+                      style={secondaryButtonStyle}
+                      onClick={() => setShowAuthorityAreas(true)}
+                    >
+                      Show support areas
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {!brentModeActive ? (
+                    <div style={{ marginBottom: 16 }}>
+                      <button
+                        type="button"
+                        style={secondaryButtonStyle}
+                        onClick={() => setShowAuthorityAreas(false)}
+                      >
+                        Hide support areas
+                      </button>
+                    </div>
+                  ) : null}
+
+                  <div
                     style={{
-                      border: "1px solid #e2e8f0",
-                      borderRadius: 16,
-                      padding: 16,
                       display: "grid",
-                      gap: 12,
-                      background: "#ffffff",
+                      gap: 14,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                      <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
-                      <span
+                    {authorityAreaSummaries.map((summary) => (
+                      <article
+                        key={summary.area.id}
                         style={{
-                          ...coverageBadgeStyle(summary.status),
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 16,
+                          padding: 16,
+                          display: "grid",
+                          gap: 12,
+                          background: "#ffffff",
                         }}
                       >
-                        {summary.status}
-                      </span>
-                    </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
+                          <span
+                            style={{
+                              ...coverageBadgeStyle(summary.status),
+                              borderRadius: 999,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {summary.status}
+                          </span>
+                        </div>
 
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      {summary.area.description}
-                    </div>
+                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                          {summary.area.description}
+                        </div>
 
-                    <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
-                      <div>
-                        <strong style={{ color: "#0f172a" }}>{summary.count}</strong>{" "}
-                        evidence {summary.count === 1 ? "item" : "items"}
-                      </div>
-                      <div>
-                        {summary.latestEntry
-                          ? `Latest evidence: ${formatEvidenceTitle(summary.latestEntry)}`
-                          : "Latest evidence: No evidence linked yet."}
-                      </div>
-                    </div>
+                        <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
+                          <div>
+                            <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
+                          </div>
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                            Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
+                          </div>
+                        </div>
 
-                    <Link
-                      href={buildCaptureHref("Authority evidence", summary.area.id)}
-                      style={buttonStyle}
-                    >
-                      Capture evidence
-                    </Link>
-                  </article>
-                ))}
-              </div>
+                        <Link
+                          href={buildCaptureHref("Authority evidence", summary.area.id)}
+                          style={secondaryButtonStyle}
+                        >
+                          Capture evidence
+                        </Link>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
 
             <section style={cardStyle}>
@@ -1066,7 +1274,7 @@ function CurriculumWorkspaceBody() {
                   <div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage PDF</h2>
                     <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      Export a curriculum coverage record showing learning areas, evidence links, and gaps. This will be useful for reporting, review, and portfolio preparation.
+                      Export a curriculum coverage record showing learning areas, evidence links, and areas to revisit. Useful for reporting, review, and portfolio preparation.
                     </p>
                   </div>
                   <span
