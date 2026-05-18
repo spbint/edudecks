@@ -9,6 +9,7 @@ import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import CleanReportPreview from "@/app/components/clean/CleanReportPreview";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCleanReportPdfFilename,
   generateCleanReportPdfBytes,
@@ -64,6 +65,12 @@ import {
   buildCleanWeeklyPlannerPdfFilename,
   generateCleanWeeklyPlannerPdfBytes,
 } from "@/lib/clean/outputs/weeklyPlanner";
+import {
+  buildCurriculumCoveragePdfFilename,
+  buildCurriculumCoveragePdfModel,
+  CURRICULUM_COVERAGE_EMPTY_COPY,
+  generateCurriculumCoveragePdfBytes,
+} from "@/lib/clean/outputs/curriculumCoveragePdf";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -229,6 +236,7 @@ function CleanOutputsWorkspaceBody() {
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [plannerSubmitting, setPlannerSubmitting] = useState(false);
+  const [coverageSubmitting, setCoverageSubmitting] = useState(false);
   const [brentPackSubmittingAction, setBrentPackSubmittingAction] = useState<
     "preview" | "download" | null
   >(null);
@@ -288,6 +296,23 @@ function CleanOutputsWorkspaceBody() {
     : null;
   const selectedLearner =
     workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null;
+  const coverageLearner = useMemo(() => {
+    if (selectedLearner) {
+      return selectedLearner;
+    }
+
+    const defaultLearnerId = workspace.profile?.defaultLearnerId;
+    if (defaultLearnerId) {
+      const defaultLearner = workspace.learners.find(
+        (learner) => learner.id === defaultLearnerId,
+      );
+      if (defaultLearner) {
+        return defaultLearner;
+      }
+    }
+
+    return workspace.learners[0] ?? null;
+  }, [selectedLearner, workspace.learners, workspace.profile?.defaultLearnerId]);
   const currentWeekStart = useMemo(() => getWeekStart(), []);
   const currentWeekEnd = useMemo(() => addDays(currentWeekStart, 6), [currentWeekStart]);
   const currentWeekLabel = useMemo(
@@ -715,6 +740,51 @@ function CleanOutputsWorkspaceBody() {
     }
   }
 
+  async function handleDownloadCoverageRecord() {
+    if (!workspace.profile || !coverageLearner) {
+      setActionError("Add a learner before creating this coverage record.");
+      setMessage(null);
+      return;
+    }
+
+    setCoverageSubmitting(true);
+    setActionError(null);
+    setMessage(null);
+
+    try {
+      const evidenceEntries = await listCleanEvidenceEntries(workspace.profile.id, {
+        learnerId: coverageLearner.id,
+        limit: 300,
+      });
+      const model = buildCurriculumCoveragePdfModel({
+        profile: workspace.profile,
+        learner: coverageLearner,
+        entries: evidenceEntries,
+        generatedOn: new Date().toISOString().slice(0, 10),
+      });
+      const pdfBytes = await generateCurriculumCoveragePdfBytes(model);
+
+      downloadPdf(
+        pdfBytes,
+        buildCurriculumCoveragePdfFilename(model.learnerName, model.generatedOnLabel),
+      );
+      setMessage(
+        model.coverageSummary.hasLinkedEvidence
+          ? "Curriculum coverage record downloaded."
+          : CURRICULUM_COVERAGE_EMPTY_COPY,
+      );
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the curriculum coverage record. Please try again.",
+        ),
+      );
+    } finally {
+      setCoverageSubmitting(false);
+    }
+  }
+
   async function loadBrentEvidencePackModel() {
     if (!workspace.profile || !selectedLearner) {
       throw new Error("Add learner details before creating this pack.");
@@ -977,6 +1047,63 @@ function CleanOutputsWorkspaceBody() {
 
         {readyForOutputs && workspace.profile && workspace.learners.length ? (
           <>
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage Record</h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  Export a curriculum coverage record showing learning areas, evidence links, and areas to revisit.
+                </p>
+                <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                  This uses My Curriculum evidence links and your selected framework from My Settings.
+                </p>
+              </div>
+
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  padding: 16,
+                  background: "#f8fbff",
+                  display: "grid",
+                  gap: 10,
+                }}
+              >
+                {coverageLearner ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Preparing this record for{" "}
+                    <strong style={{ color: "#0f172a" }}>
+                      {getLearnerLabel(
+                        coverageLearner.firstName,
+                        coverageLearner.preferredName,
+                      )}
+                    </strong>
+                    .
+                  </div>
+                ) : (
+                  <div style={{ color: "#92400e", lineHeight: 1.6 }}>
+                    Add a learner before creating this coverage record.
+                  </div>
+                )}
+
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  Still available even if evidence is just beginning.
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void handleDownloadCoverageRecord()}
+                    disabled={!coverageLearner || coverageSubmitting}
+                  >
+                    {coverageSubmitting
+                      ? "Preparing record..."
+                      : "Download coverage record"}
+                  </button>
+                </div>
+              </div>
+            </section>
+
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>Calendar outputs</h2>

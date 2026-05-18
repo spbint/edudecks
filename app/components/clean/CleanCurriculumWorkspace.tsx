@@ -12,36 +12,23 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   buildCurriculumCaptureContext,
   buildCurriculumCaptureSearchParams,
-  parseCurriculumContextFromNodeIds,
   type CleanCurriculumCaptureContext,
 } from "@/lib/clean/evidence/curriculumContext";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import {
-  resolveCurriculumFrameworkMap,
-  type CurriculumFrameworkElement,
-  type CurriculumFrameworkEvidenceArea,
-  type CurriculumFrameworkLearningArea,
-} from "@/lib/clean/curriculum/frameworkMaps";
-
-type CoverageStatus = "No evidence yet" | "Evidence started" | "Evidence building";
-
-type EvidenceMatchSummary = {
-  count: number;
-  status: CoverageStatus;
-  latestEntry: CleanEvidenceEntry | null;
-};
-
-type DetailedEvidenceMatchSummary = EvidenceMatchSummary & {
-  matchedEntries: CleanEvidenceEntry[];
-};
-
-type EvidenceEntryWithCurriculumContext = {
-  entry: CleanEvidenceEntry;
-  curriculumContext: CleanCurriculumCaptureContext | null;
-};
+  buildCurriculumCoverageSummary,
+  type CurriculumCoverageStatus,
+} from "@/lib/clean/curriculum/coverageSummary";
+import {
+  buildCurriculumCoveragePdfFilename,
+  buildCurriculumCoveragePdfModel,
+  CURRICULUM_COVERAGE_EMPTY_COPY,
+  generateCurriculumCoveragePdfBytes,
+} from "@/lib/clean/outputs/curriculumCoveragePdf";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -172,17 +159,7 @@ function getEvidenceItemLabel(count: number) {
   return `${count} evidence ${count === 1 ? "item" : "items"}`;
 }
 
-function evidenceSortValue(entry: CleanEvidenceEntry) {
-  return Date.parse(`${entry.observedOn}T00:00:00`) || Date.parse(entry.updatedAt || "") || 0;
-}
-
-function getCoverageStatus(count: number): CoverageStatus {
-  if (count <= 0) return "No evidence yet";
-  if (count <= 2) return "Evidence started";
-  return "Evidence building";
-}
-
-function coverageBadgeStyle(status: CoverageStatus): React.CSSProperties {
+function coverageBadgeStyle(status: CurriculumCoverageStatus): React.CSSProperties {
   if (status === "Evidence building") {
     return {
       border: "1px solid #bfdbfe",
@@ -210,126 +187,17 @@ function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
 
-function buildEvidenceSearchText(entry: CleanEvidenceEntry) {
-  return [
-    safe(entry.learningArea),
-    safe(entry.title),
-    safe(entry.whatHappened),
-    safe(entry.reflection),
-  ]
-    .join(" ")
-    .toLowerCase();
-}
-
-function matchesAnyKeyword(text: string, keywords: string[]) {
-  return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
-}
-
-function buildDetailedMatchSummary(entries: CleanEvidenceEntry[]): DetailedEvidenceMatchSummary {
-  const matchedEntries = [...entries].sort(
-    (left, right) => evidenceSortValue(right) - evidenceSortValue(left),
-  );
-
-  return {
-    matchedEntries,
-    count: matchedEntries.length,
-    status: getCoverageStatus(matchedEntries.length),
-    latestEntry: matchedEntries[0] ?? null,
-  };
-}
-
-function matchesLearningAreaConfig(
-  entry: CleanEvidenceEntry,
-  curriculumContext: CleanCurriculumCaptureContext | null,
-  area: CurriculumFrameworkLearningArea,
-) {
-  if (safe(curriculumContext?.learningAreaKey)) {
-    const learningAreaKey = safe(curriculumContext?.learningAreaKey);
-    return (
-      learningAreaKey === area.key ||
-      area.legacyKeys?.includes(learningAreaKey) === true
-    );
-  }
-
-  if (safe(curriculumContext?.learningAreaLabel)) {
-    const learningAreaLabel = safe(curriculumContext?.learningAreaLabel);
-    return (
-      learningAreaLabel === area.label ||
-      area.legacyLabels?.includes(learningAreaLabel) === true
-    );
-  }
-
-  if (curriculumContext) {
-    return false;
-  }
-
-  if (
-    safe(entry.learningArea).toLowerCase() === area.label.toLowerCase() ||
-    area.legacyLabels?.some(
-      (legacyLabel) => safe(entry.learningArea).toLowerCase() === legacyLabel.toLowerCase(),
-    )
-  ) {
-    return true;
-  }
-
-  return matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords);
-}
-
-function matchesCurriculumElementConfig(
-  entry: CleanEvidenceEntry,
-  curriculumContext: CleanCurriculumCaptureContext | null,
-  area: CurriculumFrameworkLearningArea,
-  element: CurriculumFrameworkElement,
-) {
-  if (safe(curriculumContext?.curriculumElementKey)) {
-    const curriculumElementKey = safe(curriculumContext?.curriculumElementKey);
-    return (
-      curriculumElementKey === element.key ||
-      element.legacyKeys?.includes(curriculumElementKey) === true
-    );
-  }
-
-  if (safe(curriculumContext?.curriculumElementLabel)) {
-    const curriculumElementLabel = safe(curriculumContext?.curriculumElementLabel);
-    return (
-      curriculumElementLabel === element.label ||
-      element.legacyLabels?.includes(curriculumElementLabel) === true
-    );
-  }
-
-  if (!matchesLearningAreaConfig(entry, curriculumContext, area)) {
-    return false;
-  }
-
-  return matchesAnyKeyword(buildEvidenceSearchText(entry), element.keywords);
-}
-
-function matchesAuthorityEvidenceAreaConfig(
-  entry: CleanEvidenceEntry,
-  curriculumContext: CleanCurriculumCaptureContext | null,
-  area: CurriculumFrameworkEvidenceArea,
-) {
-  if (safe(curriculumContext?.authorityEvidenceAreaKey)) {
-    const authorityEvidenceAreaKey = safe(curriculumContext?.authorityEvidenceAreaKey);
-    return (
-      authorityEvidenceAreaKey === area.key ||
-      area.legacyKeys?.includes(authorityEvidenceAreaKey) === true
-    );
-  }
-
-  if (safe(curriculumContext?.authorityEvidenceAreaLabel)) {
-    const authorityEvidenceAreaLabel = safe(curriculumContext?.authorityEvidenceAreaLabel);
-    return (
-      authorityEvidenceAreaLabel === area.label ||
-      area.legacyLabels?.includes(authorityEvidenceAreaLabel) === true
-    );
-  }
-
-  if (curriculumContext) {
-    return false;
-  }
-
-  return matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords);
+function downloadPdf(bytes: Uint8Array, filename: string) {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  const blob = new Blob([buffer], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.rel = "noopener";
+  anchor.click();
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
 function CurriculumWorkspaceBody() {
@@ -341,6 +209,9 @@ function CurriculumWorkspaceBody() {
   const [entriesError, setEntriesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
+  const [coverageSubmitting, setCoverageSubmitting] = useState(false);
+  const [coverageMessage, setCoverageMessage] = useState<string | null>(null);
+  const [coverageError, setCoverageError] = useState<string | null>(null);
 
   const capturePathBase = pathname.startsWith("/clean-my-curriculum")
     ? "/clean-my-capture"
@@ -427,30 +298,15 @@ function CurriculumWorkspaceBody() {
       workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
     [selectedLearnerId, workspace.learners],
   );
-  const entriesWithCurriculumContext = useMemo<EvidenceEntryWithCurriculumContext[]>(
+  const coverageSummary = useMemo(
     () =>
-      entries.map((entry) => ({
-        entry,
-        curriculumContext: parseCurriculumContextFromNodeIds(entry.curriculumNodeIds),
-      })),
-    [entries],
+      buildCurriculumCoverageSummary({
+        resolvedFramework,
+        entries,
+      }),
+    [entries, resolvedFramework],
   );
-
-  const areaSummaries = useMemo(() => {
-    return activeLearningAreas.map((area) => {
-      const matchedEntries = entriesWithCurriculumContext
-        .filter(({ entry, curriculumContext }) =>
-          matchesLearningAreaConfig(entry, curriculumContext, area),
-        )
-        .map(({ entry }) => entry);
-      const summary = buildDetailedMatchSummary(matchedEntries);
-
-      return {
-        area,
-        ...summary,
-      };
-    });
-  }, [activeLearningAreas, entriesWithCurriculumContext]);
+  const areaSummaries = coverageSummary.areaSummaries;
 
   useEffect(() => {
     if (!areaSummaries.length) {
@@ -468,55 +324,12 @@ function CurriculumWorkspaceBody() {
   const selectedAreaSummary =
     areaSummaries.find((item) => item.area.key === selectedAreaId) ?? areaSummaries[0] ?? null;
 
-  const selectedAreaElementSummaries = useMemo(() => {
-    if (!selectedAreaSummary) return [];
-
-    return selectedAreaSummary.area.elements.map((element) => {
-      const matchedEntries = entriesWithCurriculumContext
-        .filter(({ entry, curriculumContext }) =>
-          matchesCurriculumElementConfig(
-            entry,
-            curriculumContext,
-            selectedAreaSummary.area,
-            element,
-          ),
-        )
-        .map(({ entry }) => entry);
-      return {
-        element,
-        ...buildDetailedMatchSummary(matchedEntries),
-      };
-    });
-  }, [entriesWithCurriculumContext, selectedAreaSummary]);
-
-  const authorityAreaSummaries = useMemo(() => {
-    return supplementaryEvidenceAreas.map((area) => {
-      const matchedEntries = entriesWithCurriculumContext
-        .filter(({ entry, curriculumContext }) =>
-          matchesAuthorityEvidenceAreaConfig(entry, curriculumContext, area),
-        )
-        .map(({ entry }) => entry);
-      return {
-        area,
-        ...buildDetailedMatchSummary(matchedEntries),
-      };
-    });
-  }, [entriesWithCurriculumContext, supplementaryEvidenceAreas]);
-
-  const learningAreasWithEvidenceCount = useMemo(
-    () => areaSummaries.filter((summary) => summary.count > 0).length,
-    [areaSummaries],
-  );
-
-  const areasToRevisitCount = useMemo(
-    () => areaSummaries.filter((summary) => summary.count === 0).length,
-    [areaSummaries],
-  );
-
-  const authorityAreasWithEvidenceCount = useMemo(
-    () => authorityAreaSummaries.filter((summary) => summary.count > 0).length,
-    [authorityAreaSummaries],
-  );
+  const selectedAreaElementSummaries = selectedAreaSummary?.elementSummaries ?? [];
+  const authorityAreaSummaries = coverageSummary.supplementaryAreaSummaries;
+  const learningAreasWithEvidenceCount = coverageSummary.learningAreasWithEvidenceCount;
+  const areasToRevisitCount = coverageSummary.areasToRevisitCount;
+  const authorityAreasWithEvidenceCount =
+    coverageSummary.supplementaryAreasWithEvidenceCount;
   const reportingEvidenceAreasActive = Boolean(
     resolvedFramework.map.reportingEvidenceAreas?.length,
   );
@@ -525,12 +338,19 @@ function CurriculumWorkspaceBody() {
   const selectedLearnerDisplayName = selectedLearner
     ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
     : "Learner";
+  const linkedEvidenceCount = coverageSummary.totalLinkedEvidenceCount;
+  const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
 
   useEffect(() => {
     if (brentModeActive || reportingEvidenceAreasActive) {
       setShowAuthorityAreas(true);
     }
   }, [brentModeActive, reportingEvidenceAreasActive]);
+
+  useEffect(() => {
+    setCoverageError(null);
+    setCoverageMessage(null);
+  }, [selectedLearnerId]);
 
   function buildCaptureHref(context: Partial<CleanCurriculumCaptureContext>) {
     const nextContext = buildCurriculumCaptureContext(context);
@@ -543,6 +363,47 @@ function CurriculumWorkspaceBody() {
     });
 
     return `${capturePathBase}?${params.toString()}`;
+  }
+
+  async function handleDownloadCoverageRecord() {
+    if (!workspace.profile || !selectedLearner) {
+      setCoverageError("Add a learner before creating this coverage record.");
+      setCoverageMessage(null);
+      return;
+    }
+
+    setCoverageSubmitting(true);
+    setCoverageError(null);
+    setCoverageMessage(null);
+
+    try {
+      const model = buildCurriculumCoveragePdfModel({
+        profile: workspace.profile,
+        learner: selectedLearner,
+        entries,
+        generatedOn: new Date().toISOString().slice(0, 10),
+      });
+      const pdfBytes = await generateCurriculumCoveragePdfBytes(model);
+
+      downloadPdf(
+        pdfBytes,
+        buildCurriculumCoveragePdfFilename(model.learnerName, model.generatedOnLabel),
+      );
+      setCoverageMessage(
+        model.coverageSummary.hasLinkedEvidence
+          ? "Curriculum coverage record downloaded."
+          : CURRICULUM_COVERAGE_EMPTY_COPY,
+      );
+    } catch (error) {
+      setCoverageError(
+        normalizeCleanErrorMessage(
+          error,
+          "Could not create the curriculum coverage record. Please try again.",
+        ),
+      );
+    } finally {
+      setCoverageSubmitting(false);
+    }
   }
 
   return (
@@ -731,10 +592,10 @@ function CurriculumWorkspaceBody() {
                   Evidence entries linked
                 </div>
                 <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {entriesLoading ? "..." : entries.length}
+                  {entriesLoading ? "..." : linkedEvidenceCount}
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {entries.length
+                  {linkedEvidenceCount
                     ? "Ready for reports as evidence continues to build."
                     : "Foundation view while evidence begins to build."}
                 </div>
@@ -1269,31 +1130,38 @@ function CurriculumWorkspaceBody() {
               <div style={{ display: "grid", gap: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                   <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage PDF</h2>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage Record</h2>
                     <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
                       Export a curriculum coverage record showing learning areas, evidence links, and areas to revisit. Useful for reporting, review, and portfolio preparation.
                     </p>
                   </div>
-                  <span
-                    style={{
-                      border: "1px solid #c7d2fe",
-                      background: "#eef2ff",
-                      color: "#4338ca",
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Coming later
-                  </span>
                 </div>
                 <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>Coming later</strong>
+                  <strong style={{ color: "#0f172a" }}>Download coverage record</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Curriculum coverage export will arrive in a later pass once the evidence view and area mapping have settled into a stronger family workflow.
+                    This uses My Curriculum evidence links and your selected framework from My Settings.
                   </p>
+                  {!hasLinkedEvidence ? (
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      {CURRICULUM_COVERAGE_EMPTY_COPY}
+                    </div>
+                  ) : null}
+                  {coverageError ? (
+                    <div style={{ color: "#b91c1c", lineHeight: 1.6 }}>{coverageError}</div>
+                  ) : null}
+                  {coverageMessage ? (
+                    <div style={{ color: "#1d4ed8", lineHeight: 1.6 }}>{coverageMessage}</div>
+                  ) : null}
+                  <div>
+                    <button
+                      type="button"
+                      style={buttonStyle}
+                      onClick={() => void handleDownloadCoverageRecord()}
+                      disabled={!selectedLearner || coverageSubmitting}
+                    >
+                      {coverageSubmitting ? "Preparing record..." : "Download coverage record"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
