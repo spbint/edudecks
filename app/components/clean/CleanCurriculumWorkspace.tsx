@@ -20,33 +20,13 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import {
-  getAuthorityDisplayValues,
-  isBrentAuthorityTemplateActive,
-} from "@/lib/clean/authority/brent";
+  resolveCurriculumFrameworkMap,
+  type CurriculumFrameworkElement,
+  type CurriculumFrameworkEvidenceArea,
+  type CurriculumFrameworkLearningArea,
+} from "@/lib/clean/curriculum/frameworkMaps";
 
 type CoverageStatus = "No evidence yet" | "Evidence started" | "Evidence building";
-
-type CurriculumElementConfig = {
-  id: string;
-  title: string;
-  description: string;
-  keywords: string[];
-};
-
-type LearningAreaConfig = {
-  id: string;
-  title: string;
-  description: string;
-  keywords: string[];
-  elements: CurriculumElementConfig[];
-};
-
-type AuthorityEvidenceAreaConfig = {
-  id: string;
-  title: string;
-  description: string;
-  keywords: string[];
-};
 
 type EvidenceMatchSummary = {
   count: number;
@@ -157,246 +137,6 @@ const summaryCardStyle: React.CSSProperties = {
   boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
 };
 
-const frameworkLabelById: Record<string, string> = {
-  "australian-curriculum": "Australian Curriculum",
-  "state-standards": "State standards",
-  "common-core-aligned": "Common Core aligned",
-  custom: "Custom",
-  "national-curriculum": "National Curriculum",
-  "custom-international": "Custom / International",
-  "parent-selected-curriculum": "Parent-selected curriculum",
-  "international-blended-curriculum": "International / blended curriculum",
-};
-
-const countryLabelByCode: Record<string, string> = {
-  AU: "Australia",
-  US: "United States",
-  UK: "United Kingdom",
-  INTL: "Other / International",
-};
-
-const learningAreas: LearningAreaConfig[] = [
-  {
-    id: "english",
-    title: "English",
-    description: "Reading, writing, discussion, and making sense of texts over time.",
-    keywords: ["english", "literacy", "reading", "writing", "spelling", "vocabulary"],
-    elements: [
-      {
-        id: "reading-comprehension",
-        title: "Reading comprehension",
-        description: "Understanding what has been read and talking about the meaning.",
-        keywords: ["reading", "read", "comprehension", "book", "story", "novel"],
-      },
-      {
-        id: "writing-sentences-and-paragraphs",
-        title: "Writing sentences and paragraphs",
-        description: "Turning ideas into clear sentences, short responses, and longer pieces.",
-        keywords: ["writing", "sentence", "paragraph", "journal", "response", "essay"],
-      },
-      {
-        id: "spelling-and-vocabulary",
-        title: "Spelling and vocabulary",
-        description: "Growing confidence with words, spelling patterns, and word meaning.",
-        keywords: ["spelling", "vocabulary", "word study", "phonics", "dictionary"],
-      },
-      {
-        id: "speaking-and-listening",
-        title: "Speaking and listening",
-        description: "Explaining ideas, listening carefully, and joining discussion.",
-        keywords: ["discussion", "speaking", "listening", "presentation", "conversation"],
-      },
-      {
-        id: "text-response",
-        title: "Text response",
-        description: "Responding to stories, information texts, and media in a thoughtful way.",
-        keywords: ["text response", "response", "character", "theme", "author"],
-      },
-    ],
-  },
-  {
-    id: "mathematics",
-    title: "Mathematics",
-    description: "Number sense, patterns, problem solving, and using maths in everyday life.",
-    keywords: ["mathematics", "maths", "math", "numeracy", "number", "calculation"],
-    elements: [
-      {
-        id: "number-and-place-value",
-        title: "Number and place value",
-        description: "Understanding how numbers work and how they are built.",
-        keywords: ["number", "place value", "digit", "counting", "numeracy"],
-      },
-      {
-        id: "addition-and-subtraction",
-        title: "Addition and subtraction",
-        description: "Using addition and subtraction with confidence in practical situations.",
-        keywords: ["addition", "subtraction", "add", "subtract", "sum", "difference"],
-      },
-      {
-        id: "multiplication-and-division",
-        title: "Multiplication and division",
-        description: "Grouping, sharing, and building fluency with multiplication ideas.",
-        keywords: ["multiplication", "division", "times tables", "grouping", "sharing"],
-      },
-      {
-        id: "fractions",
-        title: "Fractions",
-        description: "Working with parts, wholes, and equal sharing.",
-        keywords: ["fraction", "half", "quarter", "third", "decimal"],
-      },
-      {
-        id: "measurement",
-        title: "Measurement",
-        description: "Using length, time, money, mass, and capacity meaningfully.",
-        keywords: ["measurement", "measure", "time", "money", "length", "mass", "capacity"],
-      },
-      {
-        id: "shape-and-geometry",
-        title: "Shape and geometry",
-        description: "Recognising shape, space, direction, and position.",
-        keywords: ["shape", "geometry", "angle", "space", "position", "pattern block"],
-      },
-      {
-        id: "statistics-and-data",
-        title: "Statistics and data",
-        description: "Collecting information, sorting it, and talking about what it shows.",
-        keywords: ["data", "graph", "statistics", "survey", "chart", "table"],
-      },
-    ],
-  },
-  {
-    id: "science",
-    title: "Science",
-    description: "Curiosity, investigation, observation, and understanding how the world works.",
-    keywords: ["science", "experiment", "investigation", "hypothesis", "observation"],
-    elements: [
-      {
-        id: "scientific-investigation",
-        title: "Scientific investigation",
-        description: "Asking questions, testing ideas, and noticing patterns in results.",
-        keywords: ["investigation", "experiment", "hypothesis", "observe", "observation"],
-      },
-      {
-        id: "living-things",
-        title: "Living things",
-        description: "Exploring plants, animals, habitats, and how living things grow.",
-        keywords: ["living things", "animal", "plant", "habitat", "life cycle", "biology"],
-      },
-      {
-        id: "materials",
-        title: "Materials",
-        description: "Comparing materials and noticing their properties and uses.",
-        keywords: ["material", "property", "solid", "liquid", "gas", "matter"],
-      },
-      {
-        id: "forces-and-motion",
-        title: "Forces and motion",
-        description: "Looking at movement, pushes, pulls, and how things change direction.",
-        keywords: ["force", "motion", "push", "pull", "speed", "gravity"],
-      },
-      {
-        id: "earth-and-space",
-        title: "Earth and space",
-        description: "Learning about weather, seasons, the Earth, and the wider universe.",
-        keywords: ["earth", "space", "planet", "weather", "season", "solar system"],
-      },
-    ],
-  },
-  {
-    id: "humanities-and-social-sciences",
-    title: "Humanities and Social Sciences",
-    description: "History, geography, civics, inquiry, and understanding community life.",
-    keywords: ["history", "geography", "hass", "humanities", "social science", "civics", "community"],
-    elements: [],
-  },
-  {
-    id: "the-arts",
-    title: "The Arts",
-    description: "Creative expression through music, drama, movement, visual art, and making.",
-    keywords: ["art", "arts", "music", "drama", "dance", "drawing", "painting", "craft"],
-    elements: [],
-  },
-  {
-    id: "technologies-computing",
-    title: "Technologies / Computing",
-    description: "Digital tools, design thinking, coding, and practical making with technology.",
-    keywords: ["technology", "technologies", "computing", "digital", "coding", "robotics", "design"],
-    elements: [],
-  },
-  {
-    id: "health-and-physical-education",
-    title: "Health and Physical Education",
-    description: "Movement, sport, wellbeing, health routines, and staying active.",
-    keywords: ["health", "physical", "pe", "sport", "movement", "wellbeing", "exercise"],
-    elements: [],
-  },
-  {
-    id: "languages",
-    title: "Languages",
-    description: "Building confidence in listening, speaking, reading, and writing in another language.",
-    keywords: ["language", "languages", "french", "spanish", "japanese", "latin", "german"],
-    elements: [],
-  },
-  {
-    id: "life-skills-practical-learning",
-    title: "Life Skills / Practical Learning",
-    description: "Daily living, independence, practical tasks, and learning that supports real life.",
-    keywords: ["life skills", "practical", "cooking", "baking", "money", "chores", "garden", "independence"],
-    elements: [],
-  },
-];
-
-const authorityEvidenceAreas: AuthorityEvidenceAreaConfig[] = [
-  {
-    id: "communication-and-interaction",
-    title: "Communication and interaction",
-    description: "What supports communication, shared understanding, and interaction with others.",
-    keywords: ["communication", "interaction", "conversation", "language support", "social communication"],
-  },
-  {
-    id: "cognition-and-learning",
-    title: "Cognition and learning",
-    description: "How the learner processes ideas, remembers steps, and approaches learning.",
-    keywords: ["cognition", "learning support", "processing", "memory", "thinking"],
-  },
-  {
-    id: "social-emotional-and-mental-health",
-    title: "Social, emotional and mental health",
-    description: "Emotional regulation, confidence, relationships, and mental wellbeing.",
-    keywords: ["emotional", "mental health", "wellbeing", "confidence", "regulation", "anxiety"],
-  },
-  {
-    id: "physical-and-sensory",
-    title: "Physical and sensory",
-    description: "Physical needs, sensory access, comfort, movement, and adaptations.",
-    keywords: ["physical", "sensory", "movement", "motor", "adaptation", "access"],
-  },
-  {
-    id: "progress-against-outcomes",
-    title: "Progress against outcomes",
-    description: "What the evidence is beginning to show about progress over time.",
-    keywords: ["outcome", "progress", "goal", "target", "review"],
-  },
-  {
-    id: "young-person-views",
-    title: "Young person views",
-    description: "The learner's own voice about what is working, what matters, and what they hope for.",
-    keywords: ["young person", "learner voice", "what i like", "aspiration", "hope"],
-  },
-  {
-    id: "parent-carer-views",
-    title: "Parent / carer views",
-    description: "Family observations, concerns, and what support feels most useful.",
-    keywords: ["parent", "carer", "family view", "concern", "support needed"],
-  },
-  {
-    id: "next-support-planning",
-    title: "Next support planning",
-    description: "Next steps, support ideas, and what to keep building next.",
-    keywords: ["next step", "support plan", "review note", "future outcome"],
-  },
-];
-
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -501,21 +241,34 @@ function buildDetailedMatchSummary(entries: CleanEvidenceEntry[]): DetailedEvide
 function matchesLearningAreaConfig(
   entry: CleanEvidenceEntry,
   curriculumContext: CleanCurriculumCaptureContext | null,
-  area: LearningAreaConfig,
+  area: CurriculumFrameworkLearningArea,
 ) {
   if (safe(curriculumContext?.learningAreaKey)) {
-    return curriculumContext?.learningAreaKey === area.id;
+    const learningAreaKey = safe(curriculumContext?.learningAreaKey);
+    return (
+      learningAreaKey === area.key ||
+      area.legacyKeys?.includes(learningAreaKey) === true
+    );
   }
 
   if (safe(curriculumContext?.learningAreaLabel)) {
-    return curriculumContext?.learningAreaLabel === area.title;
+    const learningAreaLabel = safe(curriculumContext?.learningAreaLabel);
+    return (
+      learningAreaLabel === area.label ||
+      area.legacyLabels?.includes(learningAreaLabel) === true
+    );
   }
 
   if (curriculumContext) {
     return false;
   }
 
-  if (safe(entry.learningArea).toLowerCase() === area.title.toLowerCase()) {
+  if (
+    safe(entry.learningArea).toLowerCase() === area.label.toLowerCase() ||
+    area.legacyLabels?.some(
+      (legacyLabel) => safe(entry.learningArea).toLowerCase() === legacyLabel.toLowerCase(),
+    )
+  ) {
     return true;
   }
 
@@ -525,11 +278,23 @@ function matchesLearningAreaConfig(
 function matchesCurriculumElementConfig(
   entry: CleanEvidenceEntry,
   curriculumContext: CleanCurriculumCaptureContext | null,
-  area: LearningAreaConfig,
-  element: CurriculumElementConfig,
+  area: CurriculumFrameworkLearningArea,
+  element: CurriculumFrameworkElement,
 ) {
   if (safe(curriculumContext?.curriculumElementKey)) {
-    return curriculumContext?.curriculumElementKey === element.id;
+    const curriculumElementKey = safe(curriculumContext?.curriculumElementKey);
+    return (
+      curriculumElementKey === element.key ||
+      element.legacyKeys?.includes(curriculumElementKey) === true
+    );
+  }
+
+  if (safe(curriculumContext?.curriculumElementLabel)) {
+    const curriculumElementLabel = safe(curriculumContext?.curriculumElementLabel);
+    return (
+      curriculumElementLabel === element.label ||
+      element.legacyLabels?.includes(curriculumElementLabel) === true
+    );
   }
 
   if (!matchesLearningAreaConfig(entry, curriculumContext, area)) {
@@ -542,14 +307,22 @@ function matchesCurriculumElementConfig(
 function matchesAuthorityEvidenceAreaConfig(
   entry: CleanEvidenceEntry,
   curriculumContext: CleanCurriculumCaptureContext | null,
-  area: AuthorityEvidenceAreaConfig,
+  area: CurriculumFrameworkEvidenceArea,
 ) {
   if (safe(curriculumContext?.authorityEvidenceAreaKey)) {
-    return curriculumContext?.authorityEvidenceAreaKey === area.id;
+    const authorityEvidenceAreaKey = safe(curriculumContext?.authorityEvidenceAreaKey);
+    return (
+      authorityEvidenceAreaKey === area.key ||
+      area.legacyKeys?.includes(authorityEvidenceAreaKey) === true
+    );
   }
 
   if (safe(curriculumContext?.authorityEvidenceAreaLabel)) {
-    return curriculumContext?.authorityEvidenceAreaLabel === area.title;
+    const authorityEvidenceAreaLabel = safe(curriculumContext?.authorityEvidenceAreaLabel);
+    return (
+      authorityEvidenceAreaLabel === area.label ||
+      area.legacyLabels?.includes(authorityEvidenceAreaLabel) === true
+    );
   }
 
   if (curriculumContext) {
@@ -572,14 +345,13 @@ function CurriculumWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-curriculum")
     ? "/clean-my-capture"
     : "/my-capture";
-  const brentModeActive = useMemo(
-    () => isBrentAuthorityTemplateActive(workspace.profile),
+  const resolvedFramework = useMemo(
+    () => resolveCurriculumFrameworkMap(workspace.profile),
     [workspace.profile],
   );
-  const authorityDisplayValues = useMemo(
-    () => getAuthorityDisplayValues(workspace.profile),
-    [workspace.profile],
-  );
+  const brentModeActive = resolvedFramework.authorityOverlayActive;
+  const activeLearningAreas = resolvedFramework.map.learningAreas;
+  const supplementaryEvidenceAreas = resolvedFramework.supplementaryEvidenceAreas;
 
   const learnerOptions = useMemo(
     () =>
@@ -650,44 +422,6 @@ function CurriculumWorkspaceBody() {
     workspace.schemaMissing,
   ]);
 
-  const frameworkLabel = useMemo(() => {
-    const frameworkId = safe(workspace.profile?.curriculumFrameworkId);
-    return frameworkLabelById[frameworkId] || "Broad homeschool curriculum map";
-  }, [workspace.profile?.curriculumFrameworkId]);
-
-  const countryAuthorityLabel = useMemo(() => {
-    if (
-      authorityDisplayValues.countryCode === "UK" &&
-      (safe(authorityDisplayValues.nationLabel) !== "Not set" ||
-        safe(authorityDisplayValues.localAuthorityLabel) !== "Not set")
-    ) {
-      return [
-        authorityDisplayValues.countryLabel,
-        authorityDisplayValues.nationLabel,
-        authorityDisplayValues.localAuthorityLabel,
-      ]
-        .filter((value) => safe(value) && value !== "Not set")
-        .join(" / ");
-    }
-
-    const countryCode = safe(workspace.profile?.countryCode);
-    const jurisdictionCode = safe(workspace.profile?.jurisdictionCode);
-    const countryLabel = countryLabelByCode[countryCode] || countryCode;
-
-    if (!countryLabel && !jurisdictionCode) {
-      return "Framework details will connect to My Settings in a later pass.";
-    }
-
-    return [countryLabel, jurisdictionCode].filter(Boolean).join(" / ");
-  }, [
-    authorityDisplayValues.countryLabel,
-    authorityDisplayValues.countryCode,
-    authorityDisplayValues.localAuthorityLabel,
-    authorityDisplayValues.nationLabel,
-    workspace.profile?.countryCode,
-    workspace.profile?.jurisdictionCode,
-  ]);
-
   const selectedLearner = useMemo(
     () =>
       workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
@@ -703,7 +437,7 @@ function CurriculumWorkspaceBody() {
   );
 
   const areaSummaries = useMemo(() => {
-    return learningAreas.map((area) => {
+    return activeLearningAreas.map((area) => {
       const matchedEntries = entriesWithCurriculumContext
         .filter(({ entry, curriculumContext }) =>
           matchesLearningAreaConfig(entry, curriculumContext, area),
@@ -716,7 +450,7 @@ function CurriculumWorkspaceBody() {
         ...summary,
       };
     });
-  }, [entriesWithCurriculumContext]);
+  }, [activeLearningAreas, entriesWithCurriculumContext]);
 
   useEffect(() => {
     if (!areaSummaries.length) {
@@ -724,15 +458,15 @@ function CurriculumWorkspaceBody() {
       return;
     }
 
-    const hasCurrentSelection = areaSummaries.some((item) => item.area.id === selectedAreaId);
+    const hasCurrentSelection = areaSummaries.some((item) => item.area.key === selectedAreaId);
     if (hasCurrentSelection) return;
 
     const firstWithEvidence = areaSummaries.find((item) => item.count > 0);
-    setSelectedAreaId(firstWithEvidence?.area.id || areaSummaries[0]?.area.id || "");
+    setSelectedAreaId(firstWithEvidence?.area.key || areaSummaries[0]?.area.key || "");
   }, [areaSummaries, selectedAreaId]);
 
   const selectedAreaSummary =
-    areaSummaries.find((item) => item.area.id === selectedAreaId) ?? areaSummaries[0] ?? null;
+    areaSummaries.find((item) => item.area.key === selectedAreaId) ?? areaSummaries[0] ?? null;
 
   const selectedAreaElementSummaries = useMemo(() => {
     if (!selectedAreaSummary) return [];
@@ -756,7 +490,7 @@ function CurriculumWorkspaceBody() {
   }, [entriesWithCurriculumContext, selectedAreaSummary]);
 
   const authorityAreaSummaries = useMemo(() => {
-    return authorityEvidenceAreas.map((area) => {
+    return supplementaryEvidenceAreas.map((area) => {
       const matchedEntries = entriesWithCurriculumContext
         .filter(({ entry, curriculumContext }) =>
           matchesAuthorityEvidenceAreaConfig(entry, curriculumContext, area),
@@ -767,7 +501,7 @@ function CurriculumWorkspaceBody() {
         ...buildDetailedMatchSummary(matchedEntries),
       };
     });
-  }, [entriesWithCurriculumContext]);
+  }, [entriesWithCurriculumContext, supplementaryEvidenceAreas]);
 
   const learningAreasWithEvidenceCount = useMemo(
     () => areaSummaries.filter((summary) => summary.count > 0).length,
@@ -783,15 +517,20 @@ function CurriculumWorkspaceBody() {
     () => authorityAreaSummaries.filter((summary) => summary.count > 0).length,
     [authorityAreaSummaries],
   );
+  const reportingEvidenceAreasActive = Boolean(
+    resolvedFramework.map.reportingEvidenceAreas?.length,
+  );
+  const supplementaryAreasExpanded =
+    brentModeActive || reportingEvidenceAreasActive || showAuthorityAreas;
   const selectedLearnerDisplayName = selectedLearner
     ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
     : "Learner";
 
   useEffect(() => {
-    if (brentModeActive) {
+    if (brentModeActive || reportingEvidenceAreasActive) {
       setShowAuthorityAreas(true);
     }
-  }, [brentModeActive]);
+  }, [brentModeActive, reportingEvidenceAreasActive]);
 
   function buildCaptureHref(context: Partial<CleanCurriculumCaptureContext>) {
     const nextContext = buildCurriculumCaptureContext(context);
@@ -845,15 +584,26 @@ function CurriculumWorkspaceBody() {
               >
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Current framework</div>
-                  <strong style={{ color: "#0f172a", fontSize: 16 }}>{frameworkLabel}</strong>
+                  <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                    {resolvedFramework.frameworkDisplayLabel}
+                  </strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    {resolvedFramework.map.description}
+                  </div>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     Country / authority:{" "}
-                    {countryAuthorityLabel || "Framework details will connect to My Settings in a later pass."}
+                    {resolvedFramework.countryAuthorityLabel ||
+                      "Framework details can be adjusted in My Settings."}
                   </div>
-                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>Status: Foundation view</div>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    Map type: {resolvedFramework.mapTypeLabel}
+                  </div>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    {resolvedFramework.helperCopy}
+                  </div>
                   {!safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId) ? (
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      Framework details will connect to My Settings in a later pass.
+                      Framework details can be adjusted in My Settings.
                     </div>
                   ) : null}
                 </div>
@@ -878,6 +628,27 @@ function CurriculumWorkspaceBody() {
                     Coverage stays exploratory here. Your capture and portfolio workflow remains unchanged.
                   </div>
                 </div>
+              </div>
+            ) : null}
+
+            {!workspace.loading && resolvedFramework.brentContextCard ? (
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>
+                  {resolvedFramework.brentContextCard.title}
+                </strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  {resolvedFramework.brentContextCard.copy}
+                </p>
+              </div>
+            ) : null}
+
+            {!workspace.loading &&
+            !workspace.schemaMissing &&
+            !workspace.requiresFamilyCreation &&
+            workspace.profile &&
+            workspace.learners.length ? (
+              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                {resolvedFramework.helperCopy} {resolvedFramework.settingsHint}
               </div>
             ) : null}
           </div>
@@ -951,7 +722,7 @@ function CurriculumWorkspaceBody() {
                   {learningAreasWithEvidenceCount}
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Evidence building across {learningAreas.length} broad learning areas.
+                  Evidence building across {activeLearningAreas.length} broad learning areas.
                 </div>
               </div>
 
@@ -983,15 +754,13 @@ function CurriculumWorkspaceBody() {
 
               <div style={summaryCardStyle}>
                 <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Authority evidence areas
+                  {resolvedFramework.supplementaryMetricLabel}
                 </div>
                 <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {brentModeActive ? authorityAreasWithEvidenceCount : authorityEvidenceAreas.length}
+                  {supplementaryEvidenceAreas.length ? authorityAreasWithEvidenceCount : 0}
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {brentModeActive
-                    ? "Evidence building for authority-aligned reporting support."
-                    : "Available when you need authority-aligned review support."}
+                  {resolvedFramework.supplementaryMetricCopy}
                 </div>
               </div>
             </section>
@@ -1048,12 +817,12 @@ function CurriculumWorkspaceBody() {
               >
                 {areaSummaries.map((summary) => (
                   <article
-                    key={summary.area.id}
+                    key={summary.area.key}
                     style={{
-                      border: summary.area.id === selectedAreaId ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                      border: summary.area.key === selectedAreaId ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
                       borderRadius: 16,
                       padding: 14,
-                      background: summary.area.id === selectedAreaId ? "#f8fbff" : "#ffffff",
+                      background: summary.area.key === selectedAreaId ? "#f8fbff" : "#ffffff",
                       display: "grid",
                       gap: 10,
                     }}
@@ -1075,8 +844,8 @@ function CurriculumWorkspaceBody() {
                             flexWrap: "wrap",
                           }}
                         >
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
-                          {summary.area.id === selectedAreaId ? (
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.label}</strong>
+                          {summary.area.key === selectedAreaId ? (
                             <span
                               style={{
                                 border: "1px solid #bfdbfe",
@@ -1093,7 +862,7 @@ function CurriculumWorkspaceBody() {
                           ) : null}
                         </div>
                         <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 14 }}>
-                          {summary.area.description}
+                          {summary.area.shortDescription}
                         </div>
                       </div>
                       <span
@@ -1124,8 +893,8 @@ function CurriculumWorkspaceBody() {
 
                     <button
                       type="button"
-                      style={summary.area.id === selectedAreaId ? buttonStyle : secondaryButtonStyle}
-                      onClick={() => setSelectedAreaId(summary.area.id)}
+                      style={summary.area.key === selectedAreaId ? buttonStyle : secondaryButtonStyle}
+                      onClick={() => setSelectedAreaId(summary.area.key)}
                     >
                       View area
                     </button>
@@ -1149,13 +918,13 @@ function CurriculumWorkspaceBody() {
                   <div style={{ display: "grid", gap: 10, maxWidth: 720 }}>
                     <div style={eyebrowStyle}>Selected area</div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>
-                      Area detail: {selectedAreaSummary.area.title}
+                      Area detail: {selectedAreaSummary.area.label}
                     </h2>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                       Look across the elements below to see where evidence is already forming and where you may want to capture more.
                     </p>
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      {selectedAreaSummary.area.description}
+                      {selectedAreaSummary.area.shortDescription}
                     </div>
                   </div>
 
@@ -1183,8 +952,8 @@ function CurriculumWorkspaceBody() {
                     </div>
                     <Link
                       href={buildCaptureHref({
-                        learningAreaKey: selectedAreaSummary.area.id,
-                        learningAreaLabel: selectedAreaSummary.area.title,
+                        learningAreaKey: selectedAreaSummary.area.key,
+                        learningAreaLabel: selectedAreaSummary.area.label,
                       })}
                       style={buttonStyle}
                     >
@@ -1203,7 +972,7 @@ function CurriculumWorkspaceBody() {
                   >
                     {selectedAreaElementSummaries.map((summary) => (
                       <article
-                        key={summary.element.id}
+                        key={summary.element.key}
                         style={{
                           border: "1px solid #e2e8f0",
                           borderRadius: 16,
@@ -1214,7 +983,7 @@ function CurriculumWorkspaceBody() {
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.element.title}</strong>
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.element.label}</strong>
                           <span
                             style={{
                               ...coverageBadgeStyle(summary.status),
@@ -1230,7 +999,7 @@ function CurriculumWorkspaceBody() {
                         </div>
 
                         <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                          {summary.element.description}
+                          {summary.element.shortDescription}
                         </div>
 
                         <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
@@ -1285,10 +1054,10 @@ function CurriculumWorkspaceBody() {
 
                         <Link
                           href={buildCaptureHref({
-                            learningAreaKey: selectedAreaSummary.area.id,
-                            learningAreaLabel: selectedAreaSummary.area.title,
-                            curriculumElementKey: summary.element.id,
-                            curriculumElementLabel: summary.element.title,
+                            learningAreaKey: selectedAreaSummary.area.key,
+                            learningAreaLabel: selectedAreaSummary.area.label,
+                            curriculumElementKey: summary.element.key,
+                            curriculumElementLabel: summary.element.label,
                           })}
                           style={buttonStyle}
                         >
@@ -1306,8 +1075,8 @@ function CurriculumWorkspaceBody() {
                     <div>
                       <Link
                         href={buildCaptureHref({
-                          learningAreaKey: selectedAreaSummary.area.id,
-                          learningAreaLabel: selectedAreaSummary.area.title,
+                          learningAreaKey: selectedAreaSummary.area.key,
+                          learningAreaLabel: selectedAreaSummary.area.label,
                         })}
                         style={buttonStyle}
                       >
@@ -1319,12 +1088,13 @@ function CurriculumWorkspaceBody() {
               </section>
             ) : null}
 
+            {supplementaryEvidenceAreas.length ? (
             <section style={{ ...cardStyle, background: "#fcfdff" }}>
               <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                   <div style={{ display: "grid", gap: 6 }}>
                     <div style={eyebrowStyle}>Reporting support</div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Authority / support evidence areas</h2>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>{resolvedFramework.supplementarySectionTitle}</h2>
                   </div>
                   <span
                     style={{
@@ -1338,11 +1108,15 @@ function CurriculumWorkspaceBody() {
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {brentModeActive ? "Active for this family" : "Available when selected in My Settings"}
+                    {brentModeActive
+                      ? "Active for this family"
+                      : reportingEvidenceAreasActive
+                        ? "Included in this framework"
+                        : "Available when selected in My Settings"}
                   </span>
                 </div>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  These areas help you see how evidence can support authority-aligned review and reporting expectations without changing the core family workflow.
+                  {resolvedFramework.supplementarySectionCopy}
                 </p>
               </div>
 
@@ -1355,7 +1129,7 @@ function CurriculumWorkspaceBody() {
                 </div>
               ) : null}
 
-              {!brentModeActive && !showAuthorityAreas ? (
+              {!supplementaryAreasExpanded ? (
                 <div style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>Available when selected in My Settings</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
@@ -1373,7 +1147,7 @@ function CurriculumWorkspaceBody() {
                 </div>
               ) : (
                 <>
-                  {!brentModeActive ? (
+                  {!brentModeActive && !reportingEvidenceAreasActive ? (
                     <div style={{ marginBottom: 16 }}>
                       <button
                         type="button"
@@ -1394,7 +1168,7 @@ function CurriculumWorkspaceBody() {
                   >
                     {authorityAreaSummaries.map((summary) => (
                       <article
-                        key={summary.area.id}
+                        key={summary.area.key}
                         style={{
                           border: "1px solid #e2e8f0",
                           borderRadius: 16,
@@ -1405,7 +1179,7 @@ function CurriculumWorkspaceBody() {
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.title}</strong>
+                          <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.label}</strong>
                           <span
                             style={{
                               ...coverageBadgeStyle(summary.status),
@@ -1421,7 +1195,7 @@ function CurriculumWorkspaceBody() {
                         </div>
 
                         <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                          {summary.area.description}
+                          {summary.area.shortDescription}
                         </div>
 
                         <div style={{ display: "grid", gap: 4, color: "#475569", lineHeight: 1.6 }}>
@@ -1476,8 +1250,8 @@ function CurriculumWorkspaceBody() {
 
                         <Link
                           href={buildCaptureHref({
-                            authorityEvidenceAreaKey: summary.area.id,
-                            authorityEvidenceAreaLabel: summary.area.title,
+                            authorityEvidenceAreaKey: summary.area.key,
+                            authorityEvidenceAreaLabel: summary.area.label,
                           })}
                           style={secondaryButtonStyle}
                         >
@@ -1489,6 +1263,7 @@ function CurriculumWorkspaceBody() {
                 </>
               )}
             </section>
+            ) : null}
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 12 }}>
