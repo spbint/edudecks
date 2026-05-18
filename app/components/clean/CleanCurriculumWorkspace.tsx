@@ -10,6 +10,12 @@ import CleanFamilyWorkspaceProvider, {
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
+  buildCurriculumCaptureContext,
+  buildCurriculumCaptureSearchParams,
+  parseCurriculumContextFromNodeIds,
+  type CleanCurriculumCaptureContext,
+} from "@/lib/clean/evidence/curriculumContext";
+import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
@@ -46,6 +52,15 @@ type EvidenceMatchSummary = {
   count: number;
   status: CoverageStatus;
   latestEntry: CleanEvidenceEntry | null;
+};
+
+type DetailedEvidenceMatchSummary = EvidenceMatchSummary & {
+  matchedEntries: CleanEvidenceEntry[];
+};
+
+type EvidenceEntryWithCurriculumContext = {
+  entry: CleanEvidenceEntry;
+  curriculumContext: CleanCurriculumCaptureContext | null;
 };
 
 const shellStyle: React.CSSProperties = {
@@ -390,8 +405,27 @@ function formatEvidenceTitle(entry: CleanEvidenceEntry) {
   return safe(entry.title) || safe(entry.whatHappened).slice(0, 72) || "Untitled evidence";
 }
 
-function formatLatestEvidenceLine(entry: CleanEvidenceEntry | null, emptyText = "No evidence linked yet.") {
-  return entry ? formatEvidenceTitle(entry) : emptyText;
+function formatEvidenceDateLabel(value: string) {
+  const normalizedValue = safe(value);
+  if (!normalizedValue) return "Date not recorded";
+
+  const date = new Date(`${normalizedValue}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return normalizedValue;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatEvidenceSnippet(entry: CleanEvidenceEntry) {
+  const snippet = safe(entry.whatHappened) || safe(entry.reflection);
+  if (!snippet) return "No short note recorded yet.";
+  if (snippet.length <= 110) return snippet;
+  return `${snippet.slice(0, 107)}...`;
 }
 
 function getEvidenceItemLabel(count: number) {
@@ -451,13 +485,78 @@ function matchesAnyKeyword(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
 }
 
-function buildMatchSummary(entries: CleanEvidenceEntry[]): EvidenceMatchSummary {
-  const sortedEntries = [...entries].sort((left, right) => evidenceSortValue(right) - evidenceSortValue(left));
+function buildDetailedMatchSummary(entries: CleanEvidenceEntry[]): DetailedEvidenceMatchSummary {
+  const matchedEntries = [...entries].sort(
+    (left, right) => evidenceSortValue(right) - evidenceSortValue(left),
+  );
+
   return {
-    count: sortedEntries.length,
-    status: getCoverageStatus(sortedEntries.length),
-    latestEntry: sortedEntries[0] ?? null,
+    matchedEntries,
+    count: matchedEntries.length,
+    status: getCoverageStatus(matchedEntries.length),
+    latestEntry: matchedEntries[0] ?? null,
   };
+}
+
+function matchesLearningAreaConfig(
+  entry: CleanEvidenceEntry,
+  curriculumContext: CleanCurriculumCaptureContext | null,
+  area: LearningAreaConfig,
+) {
+  if (safe(curriculumContext?.learningAreaKey)) {
+    return curriculumContext?.learningAreaKey === area.id;
+  }
+
+  if (safe(curriculumContext?.learningAreaLabel)) {
+    return curriculumContext?.learningAreaLabel === area.title;
+  }
+
+  if (curriculumContext) {
+    return false;
+  }
+
+  if (safe(entry.learningArea).toLowerCase() === area.title.toLowerCase()) {
+    return true;
+  }
+
+  return matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords);
+}
+
+function matchesCurriculumElementConfig(
+  entry: CleanEvidenceEntry,
+  curriculumContext: CleanCurriculumCaptureContext | null,
+  area: LearningAreaConfig,
+  element: CurriculumElementConfig,
+) {
+  if (safe(curriculumContext?.curriculumElementKey)) {
+    return curriculumContext?.curriculumElementKey === element.id;
+  }
+
+  if (!matchesLearningAreaConfig(entry, curriculumContext, area)) {
+    return false;
+  }
+
+  return matchesAnyKeyword(buildEvidenceSearchText(entry), element.keywords);
+}
+
+function matchesAuthorityEvidenceAreaConfig(
+  entry: CleanEvidenceEntry,
+  curriculumContext: CleanCurriculumCaptureContext | null,
+  area: AuthorityEvidenceAreaConfig,
+) {
+  if (safe(curriculumContext?.authorityEvidenceAreaKey)) {
+    return curriculumContext?.authorityEvidenceAreaKey === area.id;
+  }
+
+  if (safe(curriculumContext?.authorityEvidenceAreaLabel)) {
+    return curriculumContext?.authorityEvidenceAreaLabel === area.title;
+  }
+
+  if (curriculumContext) {
+    return false;
+  }
+
+  return matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords);
 }
 
 function CurriculumWorkspaceBody() {
@@ -594,21 +693,30 @@ function CurriculumWorkspaceBody() {
       workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
     [selectedLearnerId, workspace.learners],
   );
+  const entriesWithCurriculumContext = useMemo<EvidenceEntryWithCurriculumContext[]>(
+    () =>
+      entries.map((entry) => ({
+        entry,
+        curriculumContext: parseCurriculumContextFromNodeIds(entry.curriculumNodeIds),
+      })),
+    [entries],
+  );
 
   const areaSummaries = useMemo(() => {
     return learningAreas.map((area) => {
-      const matchedEntries = entries.filter((entry) =>
-        matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords),
-      );
-      const summary = buildMatchSummary(matchedEntries);
+      const matchedEntries = entriesWithCurriculumContext
+        .filter(({ entry, curriculumContext }) =>
+          matchesLearningAreaConfig(entry, curriculumContext, area),
+        )
+        .map(({ entry }) => entry);
+      const summary = buildDetailedMatchSummary(matchedEntries);
 
       return {
         area,
-        matchedEntries,
         ...summary,
       };
     });
-  }, [entries]);
+  }, [entriesWithCurriculumContext]);
 
   useEffect(() => {
     if (!areaSummaries.length) {
@@ -630,27 +738,36 @@ function CurriculumWorkspaceBody() {
     if (!selectedAreaSummary) return [];
 
     return selectedAreaSummary.area.elements.map((element) => {
-      const matchedEntries = selectedAreaSummary.matchedEntries.filter((entry) =>
-        matchesAnyKeyword(buildEvidenceSearchText(entry), element.keywords),
-      );
+      const matchedEntries = entriesWithCurriculumContext
+        .filter(({ entry, curriculumContext }) =>
+          matchesCurriculumElementConfig(
+            entry,
+            curriculumContext,
+            selectedAreaSummary.area,
+            element,
+          ),
+        )
+        .map(({ entry }) => entry);
       return {
         element,
-        ...buildMatchSummary(matchedEntries),
+        ...buildDetailedMatchSummary(matchedEntries),
       };
     });
-  }, [selectedAreaSummary]);
+  }, [entriesWithCurriculumContext, selectedAreaSummary]);
 
   const authorityAreaSummaries = useMemo(() => {
     return authorityEvidenceAreas.map((area) => {
-      const matchedEntries = entries.filter((entry) =>
-        matchesAnyKeyword(buildEvidenceSearchText(entry), area.keywords),
-      );
+      const matchedEntries = entriesWithCurriculumContext
+        .filter(({ entry, curriculumContext }) =>
+          matchesAuthorityEvidenceAreaConfig(entry, curriculumContext, area),
+        )
+        .map(({ entry }) => entry);
       return {
         area,
-        ...buildMatchSummary(matchedEntries),
+        ...buildDetailedMatchSummary(matchedEntries),
       };
     });
-  }, [entries]);
+  }, [entriesWithCurriculumContext]);
 
   const learningAreasWithEvidenceCount = useMemo(
     () => areaSummaries.filter((summary) => summary.count > 0).length,
@@ -666,6 +783,9 @@ function CurriculumWorkspaceBody() {
     () => authorityAreaSummaries.filter((summary) => summary.count > 0).length,
     [authorityAreaSummaries],
   );
+  const selectedLearnerDisplayName = selectedLearner
+    ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
+    : "Learner";
 
   useEffect(() => {
     if (brentModeActive) {
@@ -673,13 +793,16 @@ function CurriculumWorkspaceBody() {
     }
   }, [brentModeActive]);
 
-  function buildCaptureHref(learningAreaLabel: string, curriculumElementId: string) {
-    const params = new URLSearchParams();
-    if (selectedLearnerId) {
-      params.set("learner_id", selectedLearnerId);
+  function buildCaptureHref(context: Partial<CleanCurriculumCaptureContext>) {
+    const nextContext = buildCurriculumCaptureContext(context);
+    if (!nextContext) {
+      return capturePathBase;
     }
-    params.set("learningArea", learningAreaLabel);
-    params.set("curriculumElement", curriculumElementId);
+
+    const params = buildCurriculumCaptureSearchParams(nextContext, {
+      learnerId: selectedLearnerId || null,
+    });
+
     return `${capturePathBase}?${params.toString()}`;
   }
 
@@ -992,7 +1115,10 @@ function CurriculumWorkspaceBody() {
                         <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                       </div>
                       <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                        Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
+                        Latest evidence:{" "}
+                        {summary.latestEntry
+                          ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
+                          : "No evidence linked yet."}
                       </div>
                     </div>
 
@@ -1050,13 +1176,16 @@ function CurriculumWorkspaceBody() {
                       {getEvidenceItemLabel(selectedAreaSummary.count)}
                     </div>
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      Latest evidence: {formatLatestEvidenceLine(selectedAreaSummary.latestEntry)}
+                      Latest evidence:{" "}
+                      {selectedAreaSummary.latestEntry
+                        ? `${formatEvidenceTitle(selectedAreaSummary.latestEntry)} - ${formatEvidenceDateLabel(selectedAreaSummary.latestEntry.observedOn)}`
+                        : "No evidence linked yet."}
                     </div>
                     <Link
-                      href={buildCaptureHref(
-                        selectedAreaSummary.area.title,
-                        selectedAreaSummary.area.id,
-                      )}
+                      href={buildCaptureHref({
+                        learningAreaKey: selectedAreaSummary.area.id,
+                        learningAreaLabel: selectedAreaSummary.area.title,
+                      })}
                       style={buttonStyle}
                     >
                       Capture evidence
@@ -1109,12 +1238,58 @@ function CurriculumWorkspaceBody() {
                             <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                           </div>
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
+                            Latest evidence:{" "}
+                            {summary.latestEntry
+                              ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
+                              : "No evidence linked yet."}
                           </div>
                         </div>
 
+                        {summary.matchedEntries.length ? (
+                          <div
+                            style={{
+                              borderTop: "1px solid #e2e8f0",
+                              paddingTop: 10,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a", fontSize: 13 }}>
+                              Linked evidence
+                            </strong>
+                            {summary.matchedEntries.slice(0, 2).map((entry) => (
+                              <div
+                                key={entry.id}
+                                style={{
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 12,
+                                  padding: 10,
+                                  background: "#f8fafc",
+                                  display: "grid",
+                                  gap: 4,
+                                }}
+                              >
+                                <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                                  {formatEvidenceTitle(entry)}
+                                </div>
+                                <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                                  {formatEvidenceDateLabel(entry.observedOn)} - {selectedLearnerDisplayName}
+                                </div>
+                                <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.5 }}>
+                                  {formatEvidenceSnippet(entry)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
                         <Link
-                          href={buildCaptureHref(selectedAreaSummary.area.title, summary.element.id)}
+                          href={buildCaptureHref({
+                            learningAreaKey: selectedAreaSummary.area.id,
+                            learningAreaLabel: selectedAreaSummary.area.title,
+                            curriculumElementKey: summary.element.id,
+                            curriculumElementLabel: summary.element.title,
+                          })}
                           style={buttonStyle}
                         >
                           Capture evidence
@@ -1130,7 +1305,10 @@ function CurriculumWorkspaceBody() {
                     </p>
                     <div>
                       <Link
-                        href={buildCaptureHref(selectedAreaSummary.area.title, selectedAreaSummary.area.id)}
+                        href={buildCaptureHref({
+                          learningAreaKey: selectedAreaSummary.area.id,
+                          learningAreaLabel: selectedAreaSummary.area.title,
+                        })}
                         style={buttonStyle}
                       >
                         Capture evidence
@@ -1251,12 +1429,56 @@ function CurriculumWorkspaceBody() {
                             <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                           </div>
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            Latest evidence: {formatLatestEvidenceLine(summary.latestEntry)}
+                            Latest evidence:{" "}
+                            {summary.latestEntry
+                              ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
+                              : "No evidence linked yet."}
                           </div>
                         </div>
 
+                        {summary.matchedEntries.length ? (
+                          <div
+                            style={{
+                              borderTop: "1px solid #e2e8f0",
+                              paddingTop: 10,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a", fontSize: 13 }}>
+                              Linked evidence
+                            </strong>
+                            {summary.matchedEntries.slice(0, 2).map((entry) => (
+                              <div
+                                key={entry.id}
+                                style={{
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 12,
+                                  padding: 10,
+                                  background: "#f8fafc",
+                                  display: "grid",
+                                  gap: 4,
+                                }}
+                              >
+                                <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                                  {formatEvidenceTitle(entry)}
+                                </div>
+                                <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                                  {formatEvidenceDateLabel(entry.observedOn)} - {selectedLearnerDisplayName}
+                                </div>
+                                <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.5 }}>
+                                  {formatEvidenceSnippet(entry)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+
                         <Link
-                          href={buildCaptureHref("Authority evidence", summary.area.id)}
+                          href={buildCaptureHref({
+                            authorityEvidenceAreaKey: summary.area.id,
+                            authorityEvidenceAreaLabel: summary.area.title,
+                          })}
                           style={secondaryButtonStyle}
                         >
                           Capture evidence

@@ -16,6 +16,14 @@ import {
 } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
+  buildCurriculumCaptureContext,
+  encodeCurriculumContextNodeIds,
+  MY_CURRICULUM_SOURCE,
+  parseCurriculumCaptureContextFromSearchParams,
+  parseCurriculumContextFromNodeIds,
+  type CleanCurriculumCaptureContext,
+} from "@/lib/clean/evidence/curriculumContext";
+import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
@@ -111,6 +119,37 @@ function humanizeQuerySlug(value: string) {
     .join(" ");
 }
 
+function buildCurriculumTitleSuggestion(
+  context: CleanCurriculumCaptureContext | null,
+) {
+  if (!context) return "";
+
+  const priorityLabel =
+    context.curriculumElementLabel ||
+    context.authorityEvidenceAreaLabel ||
+    context.learningAreaLabel ||
+    "";
+
+  return priorityLabel ? `Evidence for ${priorityLabel}` : "";
+}
+
+function getCurriculumContextRows(context: CleanCurriculumCaptureContext) {
+  return [
+    context.learningAreaLabel
+      ? { label: "Learning area", value: context.learningAreaLabel }
+      : null,
+    context.curriculumElementLabel
+      ? { label: "Curriculum element", value: context.curriculumElementLabel }
+      : null,
+    context.authorityEvidenceAreaLabel
+      ? {
+          label: "Authority evidence area",
+          value: context.authorityEvidenceAreaLabel,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+}
+
 function CleanCaptureWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
@@ -134,6 +173,10 @@ function CleanCaptureWorkspaceBody() {
   const [programId, setProgramId] = useState("");
   const [calendarItemId, setCalendarItemId] = useState("");
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [formCurriculumContext, setFormCurriculumContext] =
+    useState<CleanCurriculumCaptureContext | null>(null);
+  const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
+    useState<CleanCurriculumCaptureContext | null>(null);
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -156,9 +199,20 @@ function CleanCaptureWorkspaceBody() {
   const programSegmentIdFromQuery = safeQueryValue(searchParams.get("program_segment_id"));
   const learningAreaFromQuery = safeQueryValue(searchParams.get("learningArea"));
   const curriculumElementFromQuery = safeQueryValue(searchParams.get("curriculumElement"));
+  const curriculumElementLabelFromQuery = safeQueryValue(
+    searchParams.get("curriculumElementLabel"),
+  );
+  const learningAreaLabelFromQuery = safeQueryValue(searchParams.get("learningAreaLabel"));
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
+  const curriculumContextFromQuery = useMemo(
+    () => parseCurriculumCaptureContextFromSearchParams(searchParams),
+    [searchParams],
+  );
+  const curriculumReturnPath = pathname.startsWith("/clean-my-capture")
+    ? "/clean-my-curriculum"
+    : "/my-curriculum";
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === programId) ?? null,
@@ -298,7 +352,15 @@ function CleanCaptureWorkspaceBody() {
     }
   }, [calendarItemId, filteredCalendarItems, filteredPrograms, programId]);
 
-  function resetForm(nextLearnerId?: string) {
+  const editingEntry = useMemo(
+    () => entries.find((entry) => entry.id === editingEntryId) ?? null,
+    [editingEntryId, entries],
+  );
+
+  function resetForm(
+    nextLearnerId?: string,
+    options: { keepCurriculumContext?: boolean } = {},
+  ) {
     setEditingEntryId(null);
     setObservedOn(getTodayDate());
     setTitle("");
@@ -307,6 +369,9 @@ function CleanCaptureWorkspaceBody() {
     setLearningArea("");
     setProgramId("");
     setCalendarItemId("");
+    if (!options.keepCurriculumContext) {
+      setFormCurriculumContext(null);
+    }
     setLearnerId(nextLearnerId ?? workspace.profile?.defaultLearnerId ?? workspace.learners[0]?.id ?? "");
   }
 
@@ -330,6 +395,9 @@ function CleanCaptureWorkspaceBody() {
       const existingEntry = entries.find((entry) => entry.id === evidenceEntryIdFromQuery);
       if (!existingEntry) return;
 
+      const existingEntryCurriculumContext = parseCurriculumContextFromNodeIds(
+        existingEntry.curriculumNodeIds,
+      );
       setEditingEntryId(existingEntry.id);
       setLearnerId(existingEntry.learnerId);
       setObservedOn(existingEntry.observedOn);
@@ -339,8 +407,10 @@ function CleanCaptureWorkspaceBody() {
       setLearningArea(existingEntry.learningArea || "");
       setProgramId(existingEntry.programId || "");
       setCalendarItemId(existingEntry.calendarItemId || calendarItemIdFromQuery || "");
+      setFormCurriculumContext(existingEntryCurriculumContext);
       setMessage(null);
       setActionError(null);
+      setLastSavedCurriculumContext(null);
       setLastAppliedContextKey(captureContextKey);
       return;
     }
@@ -354,6 +424,8 @@ function CleanCaptureWorkspaceBody() {
     const linkedSegment = programSegmentIdFromQuery
       ? programSegments.find((segment) => segment.id === programSegmentIdFromQuery) ?? null
       : null;
+    const nextCurriculumContext = curriculumContextFromQuery;
+    const curriculumTitleSuggestion = buildCurriculumTitleSuggestion(nextCurriculumContext);
 
     const nextLearnerId =
       learnerIdFromQuery ||
@@ -368,32 +440,44 @@ function CleanCaptureWorkspaceBody() {
     setLearnerId(nextLearnerId);
     setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
     setTitle(
-      linkedCalendarItem?.title ||
+      curriculumTitleSuggestion ||
+        linkedCalendarItem?.title ||
         linkedSegment?.title ||
         linkedProgram?.title ||
+        curriculumElementLabelFromQuery ||
         humanizeQuerySlug(curriculumElementFromQuery) ||
         "",
     );
     setWhatHappened("");
     setReflection("");
     setLearningArea(
-      learningAreaFromQuery || linkedCalendarItem?.learningArea || linkedProgram?.learningArea || "",
+      nextCurriculumContext?.learningAreaLabel ||
+        learningAreaLabelFromQuery ||
+        learningAreaFromQuery ||
+        linkedCalendarItem?.learningArea ||
+        linkedProgram?.learningArea ||
+        "",
     );
     setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
     setCalendarItemId(calendarItemIdFromQuery || "");
+    setFormCurriculumContext(nextCurriculumContext);
     setMessage(null);
     setActionError(null);
+    setLastSavedCurriculumContext(null);
     setLastAppliedContextKey(captureContextKey);
   }, [
     calendarItemIdFromQuery,
     calendarItems,
     captureContextKey,
+    curriculumContextFromQuery,
     entries,
     entriesLoading,
     evidenceEntryIdFromQuery,
     curriculumElementFromQuery,
+    curriculumElementLabelFromQuery,
     lastAppliedContextKey,
     learningAreaFromQuery,
+    learningAreaLabelFromQuery,
     learnerIdFromQuery,
     linkingLoading,
     observedOnFromQuery,
@@ -415,25 +499,41 @@ function CleanCaptureWorkspaceBody() {
     setActionError(null);
 
     try {
+      const nextCurriculumContext = buildCurriculumCaptureContext(formCurriculumContext || {});
+      const existingCurriculumNodeIds = editingEntry?.curriculumNodeIds ?? [];
+      const curriculumNodeIds = encodeCurriculumContextNodeIds(
+        existingCurriculumNodeIds,
+        nextCurriculumContext,
+      );
       const payload = {
         learnerId,
         observedOn,
         title: title || null,
         whatHappened,
         reflection: reflection || null,
-        learningArea: learningArea || null,
+        learningArea: learningArea || nextCurriculumContext?.learningAreaLabel || null,
         programId: programId || null,
         calendarItemId: calendarItemId || null,
+        curriculumNodeIds,
       };
 
       if (editingEntryId) {
         await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
-        setMessage("Capture note updated.");
+        setMessage(
+          nextCurriculumContext
+            ? "Evidence saved to My Curriculum."
+            : "Capture note updated.",
+        );
       } else {
         await createCleanEvidenceEntry(workspace.profile.id, payload);
-        setMessage("Capture note saved.");
+        setMessage(
+          nextCurriculumContext
+            ? "Evidence saved to My Curriculum."
+            : "Capture note saved.",
+        );
       }
 
+      setLastSavedCurriculumContext(nextCurriculumContext);
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
       if (captureContextKey) {
@@ -479,6 +579,9 @@ function CleanCaptureWorkspaceBody() {
   }
 
   function handleEdit(entry: CleanEvidenceEntry) {
+    const entryCurriculumContext = parseCurriculumContextFromNodeIds(
+      entry.curriculumNodeIds,
+    );
     setEditingEntryId(entry.id);
     setLearnerId(entry.learnerId);
     setObservedOn(entry.observedOn);
@@ -488,12 +591,26 @@ function CleanCaptureWorkspaceBody() {
     setLearningArea(entry.learningArea || "");
     setProgramId(entry.programId || "");
     setCalendarItemId(entry.calendarItemId || "");
+    setFormCurriculumContext(entryCurriculumContext);
     setMessage(null);
     setActionError(null);
+    setLastSavedCurriculumContext(null);
   }
 
   const readyForCapture =
     !workspace.loading && !workspace.schemaMissing && !workspace.requiresFamilyCreation;
+  const curriculumContextRows = useMemo(
+    () => (formCurriculumContext ? getCurriculumContextRows(formCurriculumContext) : []),
+    [formCurriculumContext],
+  );
+  const curriculumCaptureActive =
+    formCurriculumContext?.source === MY_CURRICULUM_SOURCE;
+  const curriculumWhatHappenedPlaceholder = curriculumCaptureActive
+    ? "What did the learner do, and what does this learning show?"
+    : "What happened";
+  const reflectionPlaceholder = curriculumCaptureActive
+    ? "What stood out, what support helped, or what could come next? (optional)"
+    : "Reflection, next step, or what stood out (optional)";
 
   return (
     <div style={shellStyle}>
@@ -593,6 +710,35 @@ function CleanCaptureWorkspaceBody() {
                 </button>
               </div>
 
+              {curriculumCaptureActive && curriculumContextRows.length ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fbff",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Curriculum evidence</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    You are capturing evidence for:
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    {curriculumContextRows.map((row) => (
+                      <div key={row.label} style={{ color: "#334155", lineHeight: 1.6 }}>
+                        <strong style={{ color: "#0f172a" }}>{row.label}:</strong> {row.value}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    This evidence will help build your My Curriculum coverage and support reports later.
+                  </div>
+                </div>
+              ) : null}
+
               {selectedCalendarItem || selectedProgram || selectedProgramSegment ? (
                 <div
                   style={{
@@ -653,21 +799,30 @@ function CleanCaptureWorkspaceBody() {
                 <input
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Title (optional)"
+                  placeholder={
+                    curriculumCaptureActive
+                      ? buildCurriculumTitleSuggestion(formCurriculumContext) || "Title (optional)"
+                      : "Title (optional)"
+                  }
                   style={inputStyle}
                 />
 
                 <textarea
                   value={whatHappened}
                   onChange={(event) => setWhatHappened(event.target.value)}
-                  placeholder="What happened"
+                  placeholder={curriculumWhatHappenedPlaceholder}
                   style={textAreaStyle}
                 />
+                {curriculumCaptureActive ? (
+                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                    What does this learning show?
+                  </div>
+                ) : null}
 
                 <textarea
                   value={reflection}
                   onChange={(event) => setReflection(event.target.value)}
-                  placeholder="Reflection, next step, or what stood out (optional)"
+                  placeholder={reflectionPlaceholder}
                   style={textAreaStyle}
                 />
 
@@ -749,6 +904,47 @@ function CleanCaptureWorkspaceBody() {
                   <p style={{ margin: 0, color: "#b91c1c" }}>{linkingError}</p>
                 ) : null}
               </form>
+
+              {message ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #99f6e4",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f0fdfa",
+                    display: "grid",
+                    gap: 10,
+                  }}
+                >
+                  <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                  {lastSavedCurriculumContext ? (
+                    <div>
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => router.push(curriculumReturnPath)}
+                      >
+                        Back to My Curriculum
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {actionError ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #fecaca",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#fef2f2",
+                  }}
+                >
+                  <p style={{ margin: 0, color: "#b91c1c" }}>{actionError}</p>
+                </div>
+              ) : null}
             </section>
 
             <section style={cardStyle}>
@@ -818,6 +1014,9 @@ function CleanCaptureWorkspaceBody() {
                       null;
                     const linkedCalendarItem =
                       calendarItems.find((item) => item.id === entry.calendarItemId) ?? null;
+                    const entryCurriculumContext = parseCurriculumContextFromNodeIds(
+                      entry.curriculumNodeIds,
+                    );
                     const linkedSegment =
                       linkedCalendarItem?.programSegmentId
                         ? programSegments.find(
@@ -878,6 +1077,18 @@ function CleanCaptureWorkspaceBody() {
                             {entry.reflection}
                           </p>
                         ) : null}
+                        {entryCurriculumContext ? (
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                            Curriculum link:{" "}
+                            {[
+                              entryCurriculumContext.learningAreaLabel,
+                              entryCurriculumContext.curriculumElementLabel,
+                              entryCurriculumContext.authorityEvidenceAreaLabel,
+                            ]
+                              .filter(Boolean)
+                              .join(" - ")}
+                          </div>
+                        ) : null}
                         {linkedProgram || linkedCalendarItem ? (
                           <div style={{ color: "#64748b", fontSize: 13 }}>
                             {linkedProgram ? `Program: ${linkedProgram}` : ""}
@@ -896,17 +1107,6 @@ function CleanCaptureWorkspaceBody() {
           </>
         ) : null}
 
-        {message ? (
-          <section style={cardStyle}>
-            <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
-          </section>
-        ) : null}
-
-        {actionError ? (
-          <section style={cardStyle}>
-            <p style={{ margin: 0, color: "#b91c1c" }}>{actionError}</p>
-          </section>
-        ) : null}
       </div>
     </div>
   );
