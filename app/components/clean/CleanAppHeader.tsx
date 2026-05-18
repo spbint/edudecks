@@ -51,6 +51,11 @@ const coreNavItems: HeaderNavItem[] = [
     href: "/my-programs",
     matches: ["/my-programs", "/clean-my-programs"],
   },
+  {
+    label: "My Curriculum",
+    href: "/my-curriculum",
+    matches: ["/my-curriculum", "/clean-my-curriculum"],
+  },
 ];
 
 const outputNavItems: HeaderNavItem[] = [
@@ -113,6 +118,7 @@ const suggestContextItems: SuggestContextItem[] = [
   { key: "my-day", label: "My Day", matches: ["/my-day", "/clean-my-day"] },
   { key: "my-calendar", label: "My Calendar", matches: ["/my-calendar", "/clean-my-calendar"] },
   { key: "my-programs", label: "My Programs", matches: ["/my-programs", "/clean-my-programs"] },
+  { key: "my-curriculum", label: "My Curriculum", matches: ["/my-curriculum", "/clean-my-curriculum"] },
   { key: "my-capture", label: "My Capture", matches: ["/my-capture", "/clean-my-capture"] },
   { key: "my-portfolio", label: "My Portfolio", matches: ["/my-portfolio", "/clean-my-portfolio"] },
   { key: "my-reports", label: "My Reports", matches: ["/my-reports", "/clean-my-reports"] },

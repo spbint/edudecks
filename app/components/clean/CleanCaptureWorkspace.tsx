@@ -100,6 +100,17 @@ function safeQueryValue(value: string | null) {
   return String(value ?? "").trim();
 }
 
+function humanizeQuerySlug(value: string) {
+  const normalized = safeQueryValue(value);
+  if (!normalized) return "";
+
+  return normalized
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 function CleanCaptureWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
@@ -143,6 +154,8 @@ function CleanCaptureWorkspaceBody() {
   const learnerIdFromQuery = safeQueryValue(searchParams.get("learner_id"));
   const programIdFromQuery = safeQueryValue(searchParams.get("program_id"));
   const programSegmentIdFromQuery = safeQueryValue(searchParams.get("program_segment_id"));
+  const learningAreaFromQuery = safeQueryValue(searchParams.get("learningArea"));
+  const curriculumElementFromQuery = safeQueryValue(searchParams.get("curriculumElement"));
   const observedOnFromQuery =
     safeQueryValue(searchParams.get("observed_on")) ||
     safeQueryValue(searchParams.get("planned_date"));
@@ -354,11 +367,17 @@ function CleanCaptureWorkspaceBody() {
     setEditingEntryId(null);
     setLearnerId(nextLearnerId);
     setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
-    setTitle(linkedCalendarItem?.title || linkedSegment?.title || linkedProgram?.title || "");
+    setTitle(
+      linkedCalendarItem?.title ||
+        linkedSegment?.title ||
+        linkedProgram?.title ||
+        humanizeQuerySlug(curriculumElementFromQuery) ||
+        "",
+    );
     setWhatHappened("");
     setReflection("");
     setLearningArea(
-      linkedCalendarItem?.learningArea || linkedProgram?.learningArea || "",
+      learningAreaFromQuery || linkedCalendarItem?.learningArea || linkedProgram?.learningArea || "",
     );
     setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
     setCalendarItemId(calendarItemIdFromQuery || "");
@@ -372,7 +391,9 @@ function CleanCaptureWorkspaceBody() {
     entries,
     entriesLoading,
     evidenceEntryIdFromQuery,
+    curriculumElementFromQuery,
     lastAppliedContextKey,
+    learningAreaFromQuery,
     learnerIdFromQuery,
     linkingLoading,
     observedOnFromQuery,
