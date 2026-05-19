@@ -6,6 +6,18 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import {
+  listCleanAssessmentSkillStatuses,
+  upsertCleanAssessmentSkillStatus,
+} from "@/lib/clean/assessments/client";
+import {
+  CLEAN_ASSESSMENT_STAGE_KEYS,
+  CLEAN_ASSESSMENT_STATUS_VALUES,
+  type CleanAssessmentSkillStatus,
+  type CleanAssessmentStageKey,
+  type CleanAssessmentStatusValue,
+  type CleanAssessmentSubjectKey,
+} from "@/lib/clean/assessments/types";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import type { Learner } from "@/lib/clean/learners/types";
 
@@ -67,6 +79,13 @@ const inputStyle: React.CSSProperties = {
   background: "#ffffff",
 };
 
+const textareaStyle: React.CSSProperties = {
+  ...inputStyle,
+  minHeight: 110,
+  resize: "vertical",
+  fontFamily: "inherit",
+};
+
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
@@ -103,25 +122,12 @@ const disabledButtonStyle: React.CSSProperties = {
   opacity: 0.72,
 };
 
-const ASSESSMENT_STAGES = [
-  "Foundation",
-  "Lower Primary",
-  "Middle Primary",
-  "Upper Primary",
-  "Lower Secondary",
-] as const;
+const ASSESSMENT_STAGES = CLEAN_ASSESSMENT_STAGE_KEYS;
+const ASSESSMENT_STATUSES = CLEAN_ASSESSMENT_STATUS_VALUES;
 
-const ASSESSMENT_STATUSES = [
-  "Not assessed yet",
-  "Still developing",
-  "Developing",
-  "Secure",
-  "Strong",
-] as const;
-
-type AssessmentStage = (typeof ASSESSMENT_STAGES)[number];
-type AssessmentStatus = (typeof ASSESSMENT_STATUSES)[number];
-type AssessmentSubjectKey = "mathematics" | "english";
+type AssessmentStage = CleanAssessmentStageKey;
+type AssessmentStatus = CleanAssessmentStatusValue;
+type AssessmentSubjectKey = CleanAssessmentSubjectKey;
 
 type AssessmentSkillRow = {
   skillArea: string;
@@ -156,9 +162,15 @@ type StatusMeta = {
 
 type AssessmentTileSelection = {
   subjectKey: AssessmentSubjectKey;
+  skillKey: string;
   skillArea: string;
   stage: AssessmentStage;
-  status: AssessmentStatus;
+  draftStatus: AssessmentStatus;
+  draftNote: string;
+  feedback: {
+    tone: "success" | "error";
+    message: string;
+  } | null;
 };
 
 const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
@@ -603,8 +615,49 @@ const SUBJECTS: Record<AssessmentSubjectKey, AssessmentSubject> = {
   },
 };
 
+function getAssessmentRow(
+  subjectKey: AssessmentSubjectKey,
+  skillArea: string,
+) {
+  return SUBJECTS[subjectKey].rows.find((row) => row.skillArea === skillArea) ?? null;
+}
+
+function getAssessmentDemoStatus(
+  subjectKey: AssessmentSubjectKey,
+  skillArea: string,
+  stage: AssessmentStage,
+): AssessmentStatus {
+  return getAssessmentRow(subjectKey, skillArea)?.stages[stage] ?? "Not assessed yet";
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function toAssessmentSkillKey(skillArea: string) {
+  return safe(skillArea)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildAssessmentStatusLookupKey(
+  subjectKey: AssessmentSubjectKey,
+  skillKey: string,
+  stage: AssessmentStage,
+) {
+  return `${subjectKey}::${skillKey}::${stage}`;
+}
+
+function formatAssessmentSavedAt(value: string | null) {
+  const parsed = Date.parse(value || "");
+  if (Number.isNaN(parsed)) return null;
+
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(parsed);
 }
 
 function getLearnerLabel(learner: Learner | null) {
@@ -711,6 +764,10 @@ function AssessmentsWorkspaceBody() {
     learnerId: string;
     stage: AssessmentStage;
   } | null>(null);
+  const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
+  const [assessmentStatusesLoading, setAssessmentStatusesLoading] = useState(false);
+  const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
+  const [isSavingAssessmentStatus, setIsSavingAssessmentStatus] = useState(false);
   const [selectedTile, setSelectedTile] = useState<AssessmentTileSelection | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -773,7 +830,92 @@ function AssessmentsWorkspaceBody() {
     };
   }, [selectedTile]);
 
+  const selectedFamilyId = workspace.profile?.id || "";
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadAssessmentStatuses() {
+      if (!selectedFamilyId || !selectedLearnerId) {
+        if (!isCurrent) return;
+        setAssessmentStatuses([]);
+        setAssessmentStatusesError(null);
+        setAssessmentStatusesLoading(false);
+        return;
+      }
+
+      setAssessmentStatusesLoading(true);
+      setAssessmentStatusesError(null);
+
+      try {
+        const nextStatuses = await listCleanAssessmentSkillStatuses(
+          selectedFamilyId,
+          selectedLearnerId,
+        );
+
+        if (!isCurrent) return;
+        setAssessmentStatuses(nextStatuses);
+      } catch (error) {
+        if (!isCurrent) return;
+
+        setAssessmentStatuses([]);
+        setAssessmentStatusesError(
+          String(
+            (error as { message?: unknown })?.message ??
+              "Saved skill statuses could not be loaded right now.",
+          ).trim(),
+        );
+      } finally {
+        if (isCurrent) {
+          setAssessmentStatusesLoading(false);
+        }
+      }
+    }
+
+    void loadAssessmentStatuses();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedFamilyId, selectedLearnerId]);
+
   const selectedSubject = SUBJECTS[selectedSubjectKey];
+  const savedAssessmentStatusMap = useMemo(() => {
+    const next = new Map<string, CleanAssessmentSkillStatus>();
+
+    assessmentStatuses.forEach((item) => {
+      next.set(
+        buildAssessmentStatusLookupKey(item.subjectKey, item.skillKey, item.stageKey),
+        item,
+      );
+    });
+
+    return next;
+  }, [assessmentStatuses]);
+
+  function getSavedAssessmentStatusRecord(
+    subjectKey: AssessmentSubjectKey,
+    skillArea: string,
+    stage: AssessmentStage,
+  ) {
+    return (
+      savedAssessmentStatusMap.get(
+        buildAssessmentStatusLookupKey(subjectKey, toAssessmentSkillKey(skillArea), stage),
+      ) ?? null
+    );
+  }
+
+  function getDisplayedAssessmentStatus(
+    subjectKey: AssessmentSubjectKey,
+    skillArea: string,
+    stage: AssessmentStage,
+  ) {
+    return (
+      getSavedAssessmentStatusRecord(subjectKey, skillArea, stage)?.status ??
+      getAssessmentDemoStatus(subjectKey, skillArea, stage)
+    );
+  }
+
   const stageFocusAdjustedForView = useMemo(() => {
     const selectedLearnerKey = selectedLearner?.id || "";
     return (
@@ -786,7 +928,14 @@ function AssessmentsWorkspaceBody() {
     () =>
       selectedSubject.rows.reduce(
         (totals, row) => {
-          const status = row.stages[stageFocus];
+          const status =
+            savedAssessmentStatusMap.get(
+              buildAssessmentStatusLookupKey(
+                selectedSubject.key,
+                toAssessmentSkillKey(row.skillArea),
+                stageFocus,
+              ),
+            )?.status ?? getAssessmentDemoStatus(selectedSubject.key, row.skillArea, stageFocus);
 
           if (status === "Secure" || status === "Strong") {
             totals.secureOrStrong += 1;
@@ -813,7 +962,7 @@ function AssessmentsWorkspaceBody() {
           notAssessedYet: 0,
         },
       ),
-    [selectedSubject.rows, stageFocus],
+    [selectedSubject, stageFocus, savedAssessmentStatusMap],
   );
   const resolvedFramework = useMemo(() => resolveCurriculumFrameworkMap(workspace.profile), [
     workspace.profile,
@@ -852,12 +1001,148 @@ function AssessmentsWorkspaceBody() {
     ? SUBJECTS[selectedTile.subjectKey].skillDetails[selectedTile.skillArea]
     : null;
   const selectedTileSubject = selectedTile ? SUBJECTS[selectedTile.subjectKey] : null;
-  const selectedTileStatusMeta = selectedTile ? STATUS_META[selectedTile.status] : null;
+  const selectedTileStatusRecord = selectedTile
+    ? getSavedAssessmentStatusRecord(
+        selectedTile.subjectKey,
+        selectedTile.skillArea,
+        selectedTile.stage,
+      )
+    : null;
+  const selectedTileDisplayedStatus = selectedTile
+    ? getDisplayedAssessmentStatus(
+        selectedTile.subjectKey,
+        selectedTile.skillArea,
+        selectedTile.stage,
+      )
+    : null;
+  const selectedTileStatusMeta = selectedTileDisplayedStatus
+    ? STATUS_META[selectedTileDisplayedStatus]
+    : null;
+  const selectedTileLastUpdatedLabel = formatAssessmentSavedAt(
+    selectedTileStatusRecord?.updatedAt || selectedTileStatusRecord?.createdAt || null,
+  );
   const selectedTileStageMessage = selectedTile
     ? selectedTile.stage === stageFocus
       ? "This skill sits within the learner's current stage focus. At this stage, the focus is on building confidence, applying the skill in different contexts, and preparing for the next progression step."
       : `This skill sits within the wider progression around ${stageFocus}. It helps show what came before or what comes next as confidence builds over time.`
     : "";
+
+  function openAssessmentTile(row: AssessmentSkillRow, stage: AssessmentStage) {
+    const displayedStatus = getDisplayedAssessmentStatus(selectedSubject.key, row.skillArea, stage);
+    const savedStatusRecord = getSavedAssessmentStatusRecord(
+      selectedSubject.key,
+      row.skillArea,
+      stage,
+    );
+
+    setSelectedTile({
+      subjectKey: selectedSubject.key,
+      skillKey: toAssessmentSkillKey(row.skillArea),
+      skillArea: row.skillArea,
+      stage,
+      draftStatus: displayedStatus,
+      draftNote: savedStatusRecord?.note || "",
+      feedback: null,
+    });
+  }
+
+  function updateSelectedTileDraftStatus(status: AssessmentStatus) {
+    setSelectedTile((current) =>
+      current
+        ? {
+            ...current,
+            draftStatus: status,
+            feedback: null,
+          }
+        : current,
+    );
+  }
+
+  function updateSelectedTileDraftNote(note: string) {
+    setSelectedTile((current) =>
+      current
+        ? {
+            ...current,
+            draftNote: note,
+            feedback: null,
+          }
+        : current,
+    );
+  }
+
+  async function saveSelectedTileStatus() {
+    if (!selectedTile || !selectedLearner || !selectedFamilyId) {
+      setSelectedTile((current) =>
+        current
+          ? {
+              ...current,
+              feedback: {
+                tone: "error",
+                message: "Add a learner before saving a skill status.",
+              },
+            }
+          : current,
+      );
+      return;
+    }
+
+    setIsSavingAssessmentStatus(true);
+
+    try {
+      const savedStatus = await upsertCleanAssessmentSkillStatus(selectedFamilyId, {
+        learnerId: selectedLearner.id,
+        subjectKey: selectedTile.subjectKey,
+        skillKey: selectedTile.skillKey,
+        stageKey: selectedTile.stage,
+        status: selectedTile.draftStatus,
+        note: selectedTile.draftNote,
+      });
+
+      setAssessmentStatuses((current) => {
+        const next = current.filter(
+          (item) =>
+            !(
+              item.familyId === savedStatus.familyId &&
+              item.learnerId === savedStatus.learnerId &&
+              item.subjectKey === savedStatus.subjectKey &&
+              item.skillKey === savedStatus.skillKey &&
+              item.stageKey === savedStatus.stageKey
+            ),
+        );
+
+        next.push(savedStatus);
+        return next;
+      });
+
+      setSelectedTile((current) =>
+        current
+          ? {
+              ...current,
+              draftStatus: savedStatus.status,
+              draftNote: savedStatus.note || "",
+              feedback: {
+                tone: "success",
+                message: "Skill status saved.",
+              },
+            }
+          : current,
+      );
+    } catch {
+      setSelectedTile((current) =>
+        current
+          ? {
+              ...current,
+              feedback: {
+                tone: "error",
+                message: "Could not save this skill status. Please try again.",
+              },
+            }
+          : current,
+      );
+    } finally {
+      setIsSavingAssessmentStatus(false);
+    }
+  }
 
   return (
     <div style={shellStyle}>
@@ -904,7 +1189,7 @@ function AssessmentsWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Prototype view - saved assessment checks and results will come later.
+                  Manual status tracking is now available. Assessment checks will come later.
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -933,7 +1218,10 @@ function AssessmentsWorkspaceBody() {
                       </label>
                       <select
                         value={selectedLearnerId}
-                        onChange={(event) => setSelectedLearnerIdOverride(event.target.value)}
+                        onChange={(event) => {
+                          setSelectedLearnerIdOverride(event.target.value);
+                          setSelectedTile(null);
+                        }}
                         style={inputStyle}
                       >
                         {learnerOptions.map((option) => (
@@ -981,7 +1269,10 @@ function AssessmentsWorkspaceBody() {
                       <button
                         key={subject.key}
                         type="button"
-                        onClick={() => setSelectedSubjectKey(subject.key)}
+                        onClick={() => {
+                          setSelectedSubjectKey(subject.key);
+                          setSelectedTile(null);
+                        }}
                         aria-pressed={active}
                         style={{
                           border: active ? "1px solid #1d4ed8" : "1px solid #dbeafe",
@@ -1207,7 +1498,7 @@ function AssessmentsWorkspaceBody() {
                 <div style={eyebrowStyle}>{stageFocus} snapshot</div>
                 <strong style={{ color: "#0f172a" }}>Current stage</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Using the current demo statuses in the selected stage column for {selectedSubject.title}.
+                  Using the displayed statuses in the selected stage column for {selectedSubject.title}.
                 </div>
               </div>
               <div style={{ ...summaryCardStyle, padding: 14 }}>
@@ -1235,6 +1526,23 @@ function AssessmentsWorkspaceBody() {
                 <div style={{ color: "#475569", lineHeight: 1.5 }}>not assessed yet</div>
               </div>
             </div>
+
+            {assessmentStatusesLoading ? (
+              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                Loading saved skill statuses...
+              </div>
+            ) : null}
+
+            {assessmentStatusesError ? (
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>
+                  Saved skill statuses could not be loaded right now.
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Demo statuses are still showing while manual tracking reconnects.
+                </div>
+              </div>
+            ) : null}
 
             <div
               style={{
@@ -1364,7 +1672,16 @@ function AssessmentsWorkspaceBody() {
                     </div>
 
                     {ASSESSMENT_STAGES.map((stage) => {
-                      const status = row.stages[stage];
+                      const status = getDisplayedAssessmentStatus(
+                        selectedSubject.key,
+                        row.skillArea,
+                        stage,
+                      );
+                      const savedStatusRecord = getSavedAssessmentStatusRecord(
+                        selectedSubject.key,
+                        row.skillArea,
+                        stage,
+                      );
                       const meta = STATUS_META[status];
                       const isFocusedStage = stage === stageFocus;
 
@@ -1373,14 +1690,7 @@ function AssessmentsWorkspaceBody() {
                           key={`${row.skillArea}-${stage}`}
                           type="button"
                           aria-label={`${row.skillArea}, ${stage}, ${status}`}
-                          onClick={() =>
-                            setSelectedTile({
-                              subjectKey: selectedSubject.key,
-                              skillArea: row.skillArea,
-                              stage,
-                              status,
-                            })
-                          }
+                          onClick={() => openAssessmentTile(row, stage)}
                           style={{
                             border: isFocusedStage
                               ? "2px solid #60a5fa"
@@ -1433,23 +1743,48 @@ function AssessmentsWorkspaceBody() {
                                 {meta.cellLabel}
                               </strong>
                             </span>
-                            {isFocusedStage ? (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                flexWrap: "wrap",
+                                justifyContent: "flex-end",
+                              }}
+                            >
                               <span
                                 style={{
-                                  border: "1px solid #bfdbfe",
+                                  border: "1px solid #e2e8f0",
                                   background: "#ffffff",
-                                  color: "#1d4ed8",
+                                  color: "#475569",
                                   borderRadius: 999,
                                   padding: "4px 7px",
                                   fontSize: 10,
-                                  fontWeight: 800,
+                                  fontWeight: 700,
                                   letterSpacing: "0.04em",
                                   textTransform: "uppercase",
                                 }}
                               >
-                                Focus
+                                {savedStatusRecord ? "Saved" : "Demo"}
                               </span>
-                            ) : null}
+                              {isFocusedStage ? (
+                                <span
+                                  style={{
+                                    border: "1px solid #bfdbfe",
+                                    background: "#ffffff",
+                                    color: "#1d4ed8",
+                                    borderRadius: 999,
+                                    padding: "4px 7px",
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    letterSpacing: "0.04em",
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  Focus
+                                </span>
+                              ) : null}
+                            </span>
                           </div>
                           <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
                             {status}
@@ -1655,10 +1990,17 @@ function AssessmentsWorkspaceBody() {
                     gap: 8,
                   }}
                 >
-                  <div style={eyebrowStyle}>Status</div>
+                  <div style={eyebrowStyle}>
+                    {selectedTileStatusRecord ? "Saved status" : "Displayed status"}
+                  </div>
                   <strong style={{ color: selectedTileStatusMeta.text }}>
-                    {selectedTile.status}
+                    {selectedTileDisplayedStatus}
                   </strong>
+                  {selectedTileLastUpdatedLabel ? (
+                    <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.6 }}>
+                      Last updated: {selectedTileLastUpdatedLabel}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -1697,6 +2039,15 @@ function AssessmentsWorkspaceBody() {
                 </ul>
               </section>
 
+              {selectedTileStatusRecord?.note ? (
+                <section style={compactCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Saved note</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileStatusRecord.note}
+                  </p>
+                </section>
+              ) : null}
+
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>What comes next</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
@@ -1706,11 +2057,101 @@ function AssessmentsWorkspaceBody() {
               </section>
 
               <section style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>Update this skill status</strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                  Use this to record your current judgement for this learner. Formal
+                  assessment checks will come later.
+                </p>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {ASSESSMENT_STATUSES.map((status) => {
+                    const meta = STATUS_META[status];
+                    const active = selectedTile.draftStatus === status;
+
+                    return (
+                      <button
+                        key={`draft-status-${status}`}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => updateSelectedTileDraftStatus(status)}
+                        style={{
+                          border: active ? `1px solid ${meta.dot}` : `1px solid ${meta.border}`,
+                          background: active ? meta.fill : "#ffffff",
+                          color: active ? meta.text : "#334155",
+                          borderRadius: 999,
+                          padding: "9px 12px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {status}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label style={{ color: "#334155", fontWeight: 700 }}>Optional note</label>
+                  <textarea
+                    value={selectedTile.draftNote}
+                    onChange={(event) => updateSelectedTileDraftNote(event.target.value)}
+                    placeholder="Optional note about what you observed or want to revisit."
+                    style={textareaStyle}
+                  />
+                </div>
+
+                {selectedTile.feedback ? (
+                  <div
+                    style={{
+                      border:
+                        selectedTile.feedback.tone === "success"
+                          ? "1px solid #bbf7d0"
+                          : "1px solid #fecaca",
+                      background:
+                        selectedTile.feedback.tone === "success" ? "#f0fdf4" : "#fef2f2",
+                      color:
+                        selectedTile.feedback.tone === "success" ? "#166534" : "#b91c1c",
+                      borderRadius: 14,
+                      padding: "10px 12px",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {selectedTile.feedback.message}
+                  </div>
+                ) : null}
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTile(null)}
+                    style={secondaryButtonStyle}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void saveSelectedTileStatus()}
+                    disabled={isSavingAssessmentStatus || !selectedLearner || !selectedFamilyId}
+                    style={isSavingAssessmentStatus ? disabledButtonStyle : buttonStyle}
+                  >
+                    {isSavingAssessmentStatus ? "Saving..." : "Save status"}
+                  </button>
+                </div>
+              </section>
+
+              <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Future assessment actions</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                   Assessment checks, saved results, and evidence links will come later.
-                  This prototype cell is only showing how the skill tracker detail view
-                  could feel.
+                  This view is starting with manual status tracking first.
                 </p>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>
