@@ -641,25 +641,6 @@ function splitCountryAndAuthorityLabels(countryAuthorityLabel: string, countryLa
   };
 }
 
-function buildStatusTotals(rows: AssessmentSkillRow[]) {
-  return rows.reduce(
-    (totals, row) => {
-      ASSESSMENT_STAGES.forEach((stage) => {
-        totals[row.stages[stage]] += 1;
-      });
-
-      return totals;
-    },
-    {
-      "Not assessed yet": 0,
-      "Still developing": 0,
-      Developing: 0,
-      Secure: 0,
-      Strong: 0,
-    } satisfies Record<AssessmentStatus, number>,
-  );
-}
-
 function inferStageFocusFromYearLevel(yearLevel: string | null | undefined): AssessmentStage {
   const normalized = safe(yearLevel).toLowerCase();
 
@@ -793,10 +774,6 @@ function AssessmentsWorkspaceBody() {
   }, [selectedTile]);
 
   const selectedSubject = SUBJECTS[selectedSubjectKey];
-  const statusTotals = useMemo(
-    () => buildStatusTotals(selectedSubject.rows),
-    [selectedSubject.rows],
-  );
   const stageFocusAdjustedForView = useMemo(() => {
     const selectedLearnerKey = selectedLearner?.id || "";
     return (
@@ -838,10 +815,9 @@ function AssessmentsWorkspaceBody() {
       ),
     [selectedSubject.rows, stageFocus],
   );
-  const resolvedFramework = useMemo(
-    () => resolveCurriculumFrameworkMap(workspace.profile),
-    [workspace.profile],
-  );
+  const resolvedFramework = useMemo(() => resolveCurriculumFrameworkMap(workspace.profile), [
+    workspace.profile,
+  ]);
 
   const frameworkDetails = useMemo(() => {
     if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
@@ -871,14 +847,6 @@ function AssessmentsWorkspaceBody() {
 
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
-  const currentStageFocusCount = useMemo(
-    () =>
-      selectedSubject.rows.filter((row) => {
-        const status = row.stages[stageFocus];
-        return status === "Secure" || status === "Strong";
-      }).length,
-    [selectedSubject.rows, stageFocus],
-  );
 
   const selectedTileDetail = selectedTile
     ? SUBJECTS[selectedTile.subjectKey].skillDetails[selectedTile.skillArea]
@@ -904,129 +872,43 @@ function AssessmentsWorkspaceBody() {
               "linear-gradient(180deg, rgba(248,251,255,1) 0%, rgba(255,255,255,1) 100%)",
           }}
         >
-          <div style={{ display: "grid", gap: 18 }}>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Assessment layer prototype</div>
-              <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Assessments</h1>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                My Assessments will help families see how learners are developing across
-                core skills in mathematics and English. This first view is a visual
-                prototype of the assessment tracker.
-              </p>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-                Track assessed skill confidence across My Mathematics and My English
-                using a universal skills framework that can later be mapped to major
-                curriculum expectations.
-              </p>
-            </div>
-
-            <div style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>Framework positioning</strong>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Built around a universal skills framework and designed to be crosswalked
-                against major curriculum expectations, including the Australian
-                Curriculum, UK National Curriculum, DoDEA-aligned US expectations, and
-                selected US state standards.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 18 }}>
-            <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
-              <div style={eyebrowStyle}>Stage focus</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>
-                {selectedLearner
-                  ? `Viewing assessment map for ${selectedLearnerLabel}`
-                  : "Stage focus for this assessment map"}
-              </h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                This view highlights the learner&apos;s current stage while still showing the
-                wider progression before and after it.
-              </p>
-            </div>
-
+          <div style={{ display: "grid", gap: 16 }}>
             <div
               style={{
-                border: "1px solid #bfdbfe",
-                borderRadius: 20,
-                background:
-                  "linear-gradient(135deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 100%)",
-                padding: 18,
-                display: "grid",
+                display: "flex",
+                justifyContent: "space-between",
                 gap: 14,
+                alignItems: "flex-start",
+                flexWrap: "wrap",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "flex-start",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={eyebrowStyle}>Stage focus summary</div>
-                  <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                    Stage focus: {stageFocus}
-                  </strong>
-                  <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                    This view highlights the learner&apos;s current stage while still showing
-                    the wider progression before and after it.
-                  </div>
-                </div>
+              <div style={{ display: "grid", gap: 10, maxWidth: 760 }}>
+                <div style={eyebrowStyle}>Assessment dashboard</div>
+                <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Assessments</h1>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
+                  See assessed skill confidence across the learner&apos;s current stage and
+                  wider progression.
+                </p>
+              </div>
 
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <span
                   style={{
                     border: "1px solid #bfdbfe",
                     background: "#ffffff",
                     color: "#1d4ed8",
                     borderRadius: 999,
-                    padding: "7px 12px",
+                    padding: "8px 12px",
                     fontSize: 13,
                     fontWeight: 700,
-                    whiteSpace: "nowrap",
+                    lineHeight: 1.4,
                   }}
                 >
-                  {stageFocusAdjustedForView
-                    ? "Adjusted for this view"
-                    : "Based on year level where available"}
+                  Prototype view - saved assessment checks and results will come later.
                 </span>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                }}
-              >
-                <div style={summaryCardStyle}>
-                  <div style={eyebrowStyle}>Selected learner</div>
-                  <strong style={{ color: "#0f172a" }}>{selectedLearnerLabel}</strong>
-                </div>
-                <div style={summaryCardStyle}>
-                  <div style={eyebrowStyle}>Current stage focus</div>
-                  <strong style={{ color: "#0f172a" }}>{stageFocus}</strong>
-                </div>
-                <div style={summaryCardStyle}>
-                  <div style={eyebrowStyle}>Subject currently viewed</div>
-                  <strong style={{ color: "#0f172a" }}>{selectedSubject.title}</strong>
-                </div>
-                <div style={summaryCardStyle}>
-                  <div style={eyebrowStyle}>Framework context</div>
-                  <strong style={{ color: "#0f172a" }}>
-                    {frameworkDetails?.frameworkLabel || "Connects to My Settings later"}
-                  </strong>
-                </div>
-              </div>
-
-              <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                {stageFocusAdjustedForView
-                  ? "Stage focus is currently adjusted for this view only. This does not change the learner profile yet."
-                  : "Based on the learner's year level where available."}
+                <Link href="/my-settings" style={secondaryButtonStyle}>
+                  My Settings
+                </Link>
               </div>
             </div>
 
@@ -1067,7 +949,7 @@ function AssessmentsWorkspaceBody() {
                         {selectedLearnerLabel}
                       </strong>
                       <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        One learner is currently available in this family workspace.
+                        Learner context for the current assessment dashboard.
                       </div>
                     </>
                   )
@@ -1077,8 +959,8 @@ function AssessmentsWorkspaceBody() {
                       Add a learner before tracking assessments.
                     </strong>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      You can still explore the prototype tracker below while learner
-                      details are being set up.
+                      You can still explore the prototype tracker while learner details are
+                      being set up.
                     </div>
                     <div>
                       <Link href="/my-profile" style={secondaryButtonStyle}>
@@ -1090,7 +972,40 @@ function AssessmentsWorkspaceBody() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Stage focus</div>
+                <div style={eyebrowStyle}>Subject view</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {(Object.values(SUBJECTS) as AssessmentSubject[]).map((subject) => {
+                    const active = subject.key === selectedSubjectKey;
+
+                    return (
+                      <button
+                        key={subject.key}
+                        type="button"
+                        onClick={() => setSelectedSubjectKey(subject.key)}
+                        aria-pressed={active}
+                        style={{
+                          border: active ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                          background: active ? "#eff6ff" : "#ffffff",
+                          color: active ? "#1d4ed8" : "#0f172a",
+                          borderRadius: 999,
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          transition: "border-color 140ms ease, box-shadow 140ms ease",
+                        }}
+                      >
+                        {subject.title}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>{selectedSubject.summaryCopy}</div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Current stage focus</div>
+                <strong style={{ color: "#0f172a", fontSize: 20 }}>{stageFocus}</strong>
                 <label style={{ color: "#334155", fontWeight: 700 }}>Stage focus</label>
                 <select
                   value={stageFocus}
@@ -1109,455 +1024,234 @@ function AssessmentsWorkspaceBody() {
                   ))}
                 </select>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  Use this to explore a different stage view. This does not change the
-                  learner profile yet.
+                  {stageFocusAdjustedForView
+                    ? "Stage focus is adjusted for this view only."
+                    : "Based on the learner's year level where available."}
                 </div>
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Subject currently viewed</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>{selectedSubject.title}</strong>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>{selectedSubject.helper}</div>
-              </div>
-
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Framework</div>
+                <div style={eyebrowStyle}>Framework context</div>
                 <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails?.frameworkLabel || "Framework details will connect to My Settings"}
+                  {frameworkDetails?.frameworkLabel || "Framework details will connect to My Settings later."}
                 </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {frameworkDetails
+                    ? `${frameworkDetails.countryLabel}${
+                        frameworkDetails.authorityLabel !== "Not recorded in MyLearna yet."
+                          ? ` · ${frameworkDetails.authorityLabel}`
+                          : ""
+                      }`.replace("Â·", "/")
+                    : "Selected framework context will connect to My Settings as this layer develops."}
+                </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {frameworkDetails?.countryLabel || "My Settings will shape later framework mapping."}
+                  {frameworkDetails?.settingsHint ||
+                    "The assessment pathway will later map back to the framework selected in My Settings."}
                 </div>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Progression pathway</div>
-              <div
+        <section style={{ ...cardStyle, padding: 18 }}>
+          <div style={{ display: "grid", gap: 14 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                alignItems: "center",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "grid", gap: 6, maxWidth: 720 }}>
+                <div style={eyebrowStyle}>Legend and progression</div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Current stage stays highlighted while the wider progression remains visible.
+                </div>
+              </div>
+              <span
                 style={{
-                  display: "grid",
-                  gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                  border: "1px solid #dbeafe",
+                  background: "#ffffff",
+                  color: "#1d4ed8",
+                  borderRadius: 999,
+                  padding: "6px 10px",
+                  fontSize: 12,
+                  fontWeight: 700,
                 }}
               >
-                {ASSESSMENT_STAGES.map((stage) => {
-                  const isFocusedStage = stage === stageFocus;
-                  const progressionMeta = getStageProgressionMeta(stage, stageFocus);
+                Current stage: {stageFocus}
+              </span>
+            </div>
 
-                  return (
-                    <div
-                      key={`progression-${stage}`}
-                      style={{
-                        border: isFocusedStage ? "1px solid #93c5fd" : "1px solid #e2e8f0",
-                        borderRadius: 16,
-                        background: isFocusedStage ? "#eff6ff" : "#ffffff",
-                        padding: 14,
-                        display: "grid",
-                        gap: 8,
-                        boxShadow: isFocusedStage
-                          ? "0 10px 24px rgba(59,130,246,0.10)"
-                          : "0 4px 10px rgba(15,23,42,0.03)",
-                      }}
-                    >
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              }}
+            >
+              <div style={{ ...helperCardStyle, padding: 14 }}>
+                <div style={eyebrowStyle}>Status legend</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {ASSESSMENT_STATUSES.map((status) => {
+                    const meta = STATUS_META[status];
+
+                    return (
                       <div
+                        key={status}
+                        title={meta.helper}
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 8,
+                          border: `1px solid ${meta.border}`,
+                          borderRadius: 999,
+                          background: meta.fill,
+                          padding: "8px 10px",
+                          display: "inline-flex",
                           alignItems: "center",
-                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 999,
+                            background: meta.dot,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                  Open any skill tile for fuller status detail.
+                </div>
+              </div>
+
+              <div style={{ ...compactCardStyle, padding: 14 }}>
+                <div style={eyebrowStyle}>Progression strip</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {ASSESSMENT_STAGES.map((stage) => {
+                    const isFocusedStage = stage === stageFocus;
+                    const progressionMeta = getStageProgressionMeta(stage, stageFocus);
+
+                    return (
+                      <div
+                        key={`progression-${stage}`}
+                        style={{
+                          border: isFocusedStage ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                          borderRadius: 999,
+                          background: isFocusedStage ? "#eff6ff" : "#ffffff",
+                          padding: "8px 12px",
+                          display: "grid",
+                          gap: 4,
+                          boxShadow: isFocusedStage
+                            ? "0 8px 18px rgba(59,130,246,0.10)"
+                            : "0 2px 8px rgba(15,23,42,0.03)",
                         }}
                       >
                         <span
                           style={{
                             color: isFocusedStage ? "#1d4ed8" : "#64748b",
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: 800,
-                            letterSpacing: "0.08em",
+                            letterSpacing: "0.06em",
                             textTransform: "uppercase",
                           }}
                         >
                           {progressionMeta.badge}
                         </span>
-                        {isFocusedStage ? (
-                          <span
-                            style={{
-                              border: "1px solid #bfdbfe",
-                              background: "#ffffff",
-                              color: "#1d4ed8",
-                              borderRadius: 999,
-                              padding: "4px 8px",
-                              fontSize: 10,
-                              fontWeight: 800,
-                              letterSpacing: "0.04em",
-                              textTransform: "uppercase",
-                            }}
-                          >
-                            Current focus
-                          </span>
-                        ) : null}
+                        <strong style={{ color: "#0f172a", fontSize: 13 }}>{stage}</strong>
                       </div>
-                      <strong style={{ color: "#0f172a", fontSize: 15 }}>{stage}</strong>
-                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        {progressionMeta.helper}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 18,
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-              marginBottom: 18,
-            }}
-          >
-            <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-              <div style={eyebrowStyle}>Framework context</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>Assessment pathway context</h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                The goal is one MyLearna assessment pathway that can report against the
-                framework selected in My Settings.
-              </p>
-            </div>
-
-            <Link href="/my-settings" style={secondaryButtonStyle}>
-              Open My Settings
-            </Link>
-          </div>
-
-          {workspace.loading ? (
-            <div style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>Loading framework context...</strong>
-              <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                My Assessments is checking the current family settings.
-              </div>
-            </div>
-          ) : frameworkDetails ? (
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Country / region</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails.countryLabel}
-                </strong>
-              </div>
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Curriculum framework</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails.frameworkLabel}
-                </strong>
-              </div>
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Authority / jurisdiction</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails.authorityLabel}
-                </strong>
-              </div>
-              <div style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>Framework mapping note</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {frameworkDetails.settingsHint}
+                    );
+                  })}
                 </div>
               </div>
             </div>
-          ) : (
-            <div style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>
-                Framework details will connect to My Settings as this assessment layer develops.
-              </strong>
-              <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                The goal is one MyLearna assessment pathway that can report against the
-                framework selected in My Settings.
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Subject view</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>My Mathematics and My English</h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                Switch between the two prototype trackers to see how a universal
-                assessment view could later sit alongside My Curriculum, My Reports, and
-                My Outputs.
-              </p>
-              <div style={{ color: "#334155", lineHeight: 1.7 }}>
-                {selectedSubject.summaryCopy}
-              </div>
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                More assessment areas can be added later.
-              </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {(Object.values(SUBJECTS) as AssessmentSubject[]).map((subject) => {
-                const active = subject.key === selectedSubjectKey;
-
-                return (
-                  <button
-                    key={subject.key}
-                    type="button"
-                    onClick={() => setSelectedSubjectKey(subject.key)}
-                    aria-pressed={active}
-                    style={{
-                      border: active ? "1px solid #1d4ed8" : "1px solid #dbeafe",
-                      background: active ? "#eff6ff" : "#ffffff",
-                      color: active ? "#1d4ed8" : "#0f172a",
-                      borderRadius: 14,
-                      padding: "12px 16px",
-                      cursor: "pointer",
-                      display: "grid",
-                      gap: 4,
-                      minWidth: 190,
-                      textAlign: "left",
-                    }}
-                  >
-                    <strong style={{ fontSize: 16 }}>{subject.title}</strong>
-                    <span style={{ color: active ? "#1d4ed8" : "#64748b", fontSize: 13 }}>
-                      {subject.helper}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
         </section>
 
-        <section style={cardStyle}>
+        <section style={{ ...cardStyle, padding: 18 }}>
           <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Status legend</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>Parent-friendly assessment statuses</h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                This prototype uses calm language for assessed skill confidence. A later
-                scoring model can sit behind the same tracker without changing how the
-                page feels to families.
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              }}
-            >
-              {ASSESSMENT_STATUSES.map((status) => {
-                const meta = STATUS_META[status];
-
-                return (
-                  <article
-                    key={status}
-                    style={{
-                      border: `1px solid ${meta.border}`,
-                      borderRadius: 16,
-                      background: meta.fill,
-                      padding: 16,
-                      display: "grid",
-                      gap: 8,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          width: 12,
-                          height: 12,
-                          borderRadius: 999,
-                          background: meta.dot,
-                          border: `1px solid ${meta.border}`,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <strong style={{ color: meta.text }}>{status}</strong>
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>{meta.helper}</div>
-                    <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                      {meta.scoringHint}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 18 }}>
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                gap: 16,
+                gap: 14,
                 alignItems: "flex-start",
                 flexWrap: "wrap",
               }}
             >
-              <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+              <div style={{ display: "grid", gap: 8, maxWidth: 700 }}>
                 <div style={eyebrowStyle}>Visual tracker</div>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>{selectedSubject.title}</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  {selectedSubject.summaryCopy} This first view uses static demo statuses
-                  only so families can see how the tracker could feel before assessment
-                  checks and saved results are introduced.
+                  Click any skill tile to explore how confidence looks across the learner&apos;s
+                  current stage and wider progression.
                 </p>
               </div>
-
-              <div style={{ ...helperCardStyle, minWidth: 250, maxWidth: 340 }}>
-                <strong style={{ color: "#0f172a" }}>Current stage focus: {stageFocus}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  This view highlights the learner&apos;s current stage while still showing the
-                  wider progression.
-                </div>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {selectedSubject.prototypeCopy}
-                </div>
-              </div>
             </div>
 
             <div
               style={{
                 display: "grid",
-                gap: 14,
-                gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
-              }}
-            >
-              <div style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>{stageFocus} snapshot</strong>
-                <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                  This prototype snapshot shows the current stage column for {selectedSubject.title}.
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 10,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                  }}
-                >
-                  <div style={summaryCardStyle}>
-                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                      {currentStageSnapshot.secureOrStrong}
-                    </strong>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      skills secure or strong
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                      {currentStageSnapshot.developing}
-                    </strong>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      skills developing
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                      {currentStageSnapshot.stillDeveloping}
-                    </strong>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      skills still developing
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                      {currentStageSnapshot.notAssessedYet}
-                    </strong>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      skills not assessed yet
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Prototype note</div>
-                <strong style={{ color: "#0f172a" }}>Prototype view</strong>
-                <div style={{ color: "#475569", lineHeight: 1.7 }}>
-                  Saved assessment results will come later. This snapshot is using the
-                  current demo statuses in the selected stage column only.
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
+                gap: 10,
                 gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               }}
             >
-              <div style={summaryCardStyle}>
-                <div style={eyebrowStyle}>Skill areas</div>
-                <strong style={{ color: "#0f172a", fontSize: 24 }}>
-                  {selectedSubject.rows.length}
+              <div style={{ ...compactCardStyle, background: "#ffffff" }}>
+                <div style={eyebrowStyle}>{stageFocus} snapshot</div>
+                <strong style={{ color: "#0f172a" }}>Current stage</strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Using the current demo statuses in the selected stage column for {selectedSubject.title}.
+                </div>
+              </div>
+              <div style={{ ...summaryCardStyle, padding: 14 }}>
+                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                  {currentStageSnapshot.secureOrStrong}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Universal skill areas in this prototype view
-                </div>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>secure or strong</div>
               </div>
-              <div style={summaryCardStyle}>
-                <div style={eyebrowStyle}>Selected learner</div>
-                <strong style={{ color: "#0f172a", fontSize: 24 }}>{selectedLearnerLabel}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Learner context for the current assessment map
-                </div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={eyebrowStyle}>Current stage focus</div>
-                <strong style={{ color: "#0f172a", fontSize: 24 }}>{stageFocus}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {currentStageFocusCount} skill areas are secure or strong in this stage
-                </div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={eyebrowStyle}>Not assessed yet</div>
-                <strong style={{ color: "#0f172a", fontSize: 24 }}>
-                  {statusTotals["Not assessed yet"]}
+              <div style={{ ...summaryCardStyle, padding: 14 }}>
+                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                  {currentStageSnapshot.developing}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Areas where checks could be added later
-                </div>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>developing</div>
+              </div>
+              <div style={{ ...summaryCardStyle, padding: 14 }}>
+                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                  {currentStageSnapshot.stillDeveloping}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>still developing</div>
+              </div>
+              <div style={{ ...summaryCardStyle, padding: 14 }}>
+                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                  {currentStageSnapshot.notAssessedYet}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>not assessed yet</div>
               </div>
             </div>
 
             <div
               style={{
-                border: "1px solid #e2e8f0",
-                borderRadius: 18,
-                background: "#f8fafc",
-                padding: 14,
+                border: "1px solid #dbeafe",
+                borderRadius: 20,
+                background:
+                  "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
+                padding: 12,
                 overflowX: "auto",
               }}
             >
-              <div style={{ minWidth: 920, display: "grid", gap: 10 }}>
+              <div style={{ minWidth: 920, display: "grid", gap: 8 }}>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "240px repeat(5, minmax(120px, 1fr))",
-                    gap: 10,
+                    gridTemplateColumns: "220px repeat(5, minmax(120px, 1fr))",
+                    gap: 8,
                     alignItems: "stretch",
                   }}
                 >
@@ -1568,9 +1262,10 @@ function AssessmentsWorkspaceBody() {
                       left: 0,
                       zIndex: 2,
                       background: "#ffffff",
+                      padding: 14,
                     }}
                   >
-                    <div style={eyebrowStyle}>Universal skill area</div>
+                    <div style={eyebrowStyle}>Skill area</div>
                     <strong style={{ color: "#0f172a" }}>{selectedSubject.title}</strong>
                     <div style={{ color: "#64748b", lineHeight: 1.5 }}>
                       {selectedSubject.helper}
@@ -1588,14 +1283,15 @@ function AssessmentsWorkspaceBody() {
                           ...compactCardStyle,
                           alignContent: "center",
                           justifyItems: "start",
+                          padding: 12,
                           background: isFocusedStage ? "#eff6ff" : "#ffffff",
                           border: isFocusedStage
                             ? "1px solid #93c5fd"
                             : "1px solid #e2e8f0",
                           boxShadow: isFocusedStage
-                            ? "0 8px 18px rgba(59,130,246,0.10)"
-                            : "none",
-                          opacity: isFocusedStage ? 1 : 0.88,
+                            ? "0 10px 22px rgba(59,130,246,0.12)"
+                            : "0 2px 8px rgba(15,23,42,0.03)",
+                          opacity: isFocusedStage ? 1 : 0.9,
                         }}
                       >
                         <div
@@ -1635,9 +1331,6 @@ function AssessmentsWorkspaceBody() {
                           ) : null}
                         </div>
                         <strong style={{ color: "#0f172a", fontSize: 15 }}>{stage}</strong>
-                        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                          {isFocusedStage ? "Highlighted for the selected learner" : progressionMeta.helper}
-                        </div>
                       </div>
                     );
                   })}
@@ -1648,8 +1341,8 @@ function AssessmentsWorkspaceBody() {
                     key={row.skillArea}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "240px repeat(5, minmax(120px, 1fr))",
-                      gap: 10,
+                      gridTemplateColumns: "220px repeat(5, minmax(120px, 1fr))",
+                      gap: 8,
                       alignItems: "stretch",
                     }}
                   >
@@ -1661,10 +1354,11 @@ function AssessmentsWorkspaceBody() {
                         zIndex: 1,
                         background: "#ffffff",
                         justifyContent: "center",
+                        padding: 14,
                       }}
                     >
                       <strong style={{ color: "#0f172a", fontSize: 15 }}>{row.skillArea}</strong>
-                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                      <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
                         Universal skill area
                       </div>
                     </div>
@@ -1691,19 +1385,21 @@ function AssessmentsWorkspaceBody() {
                             border: isFocusedStage
                               ? "2px solid #60a5fa"
                               : `1px solid ${meta.border}`,
-                            borderRadius: 16,
+                            borderRadius: 14,
                             background: meta.fill,
-                            padding: 14,
-                            minHeight: 92,
+                            padding: 12,
+                            minHeight: 86,
                             display: "grid",
                             gap: 8,
                             alignContent: "start",
                             boxShadow: isFocusedStage
-                              ? "0 10px 24px rgba(59,130,246,0.12)"
-                              : "0 4px 10px rgba(15,23,42,0.03)",
+                              ? "0 12px 24px rgba(59,130,246,0.12)"
+                              : "0 3px 8px rgba(15,23,42,0.03)",
                             cursor: "pointer",
                             textAlign: "left",
-                            opacity: isFocusedStage ? 1 : 0.86,
+                            opacity: isFocusedStage ? 1 : 0.9,
+                            transition:
+                              "box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease",
                           }}
                         >
                           <div
@@ -1759,7 +1455,7 @@ function AssessmentsWorkspaceBody() {
                             {status}
                           </div>
                           <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 700 }}>
-                            View detail
+                            Open detail
                           </div>
                         </button>
                       );
