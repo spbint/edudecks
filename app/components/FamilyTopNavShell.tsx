@@ -52,20 +52,22 @@ const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-programs", label: "My Programs" },
+  { href: "/my-curriculum", label: "My Curriculum" },
+  { href: "/my-assessments", label: "My Assessments" },
 ] as const;
 
 const SECONDARY_NAV = [
-  { href: "/curriculum", label: "My Curriculum" },
-  { href: "/my-assessments", label: "My Assessments" },
+  { href: "/my-capture", label: "My Capture" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-reports", label: "My Reports" },
+  { href: "/my-outputs", label: "My Outputs" },
 ] as const;
 
 function normalizeOutputRoute(pathname: string) {
-  if (pathname === "/curriculum" || pathname === "/curriculum-map") return "/curriculum";
-  if (pathname === "/my-assessments") return "/my-assessments";
+  if (pathname === "/capture" || pathname === "/my-capture") return "/my-capture";
   if (pathname === "/my-portfolio" || pathname === "/portfolio") return "/my-portfolio";
   if (pathname === "/my-reports" || pathname.startsWith("/reports")) return "/my-reports";
+  if (pathname === "/my-outputs") return "/my-outputs";
   return "";
 }
 
@@ -77,6 +79,14 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
+  if (
+    pathname === "/curriculum" ||
+    pathname === "/curriculum-map" ||
+    pathname === "/my-curriculum"
+  ) {
+    return "/my-curriculum";
+  }
+  if (pathname === "/my-assessments") return "/my-assessments";
   return "";
 }
 
@@ -84,13 +94,20 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/my-day" || pathname === "/home" || pathname === "/dashboard") return "My Day";
   if (pathname === "/my-month") return "My Calendar";
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
-  if (pathname === "/capture") return "My Capture";
+  if (pathname === "/capture" || pathname === "/my-capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
-  if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
+  if (
+    pathname === "/curriculum-map" ||
+    pathname === "/curriculum" ||
+    pathname === "/my-curriculum"
+  ) {
+    return "My Curriculum";
+  }
   if (pathname === "/my-assessments") return "My Assessments";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
+  if (pathname === "/my-outputs") return "My Outputs";
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
@@ -116,11 +133,18 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/my-programs") {
     return "Shape longer sequences before they land in the live week";
   }
-  if (pathname === "/capture") {
+  if (pathname === "/capture" || pathname === "/my-capture") {
     return "Curate evidence while the learning is still fresh";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
     return "See the week clearly before it fills up";
+  }
+  if (
+    pathname === "/curriculum" ||
+    pathname === "/curriculum-map" ||
+    pathname === "/my-curriculum"
+  ) {
+    return "See how evidence is building across the broader learning map";
   }
   if (pathname === "/my-assessments") {
     return "See assessed skill confidence in a calm, visual way";
@@ -150,11 +174,18 @@ function routeHeroText(pathname: string) {
   if (pathname === "/my-programs") {
     return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
   }
-  if (pathname === "/capture") {
+  if (pathname === "/capture" || pathname === "/my-capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
+  }
+  if (
+    pathname === "/curriculum" ||
+    pathname === "/curriculum-map" ||
+    pathname === "/my-curriculum"
+  ) {
+    return "See how learning evidence is spreading across curriculum and reporting areas without interrupting the capture flow.";
   }
   if (pathname === "/my-assessments") {
     return "Use visual skill tracking to see where confidence is building across mathematics and English without turning the workflow into a test dashboard.";
