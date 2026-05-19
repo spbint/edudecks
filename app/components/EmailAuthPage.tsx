@@ -271,6 +271,7 @@ function nextPathLabel(nextPath: string) {
   if (nextPath.startsWith("/my-day")) return "My Day";
   if (nextPath.startsWith("/my-calendar")) return "My Calendar";
   if (nextPath.startsWith("/my-programs")) return "My Programs";
+  if (nextPath.startsWith("/my-assessments")) return "My Assessments";
   if (nextPath.startsWith("/my-capture")) return "My Capture";
   if (nextPath.startsWith("/my-portfolio")) return "My Portfolio";
   if (nextPath.startsWith("/my-reports") || nextPath.startsWith("/my-outputs")) {

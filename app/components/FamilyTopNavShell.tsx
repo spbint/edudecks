@@ -56,12 +56,14 @@ const PRIMARY_NAV = [
 
 const SECONDARY_NAV = [
   { href: "/curriculum", label: "My Curriculum" },
+  { href: "/my-assessments", label: "My Assessments" },
   { href: "/my-portfolio", label: "My Portfolio" },
   { href: "/my-reports", label: "My Reports" },
 ] as const;
 
 function normalizeOutputRoute(pathname: string) {
   if (pathname === "/curriculum" || pathname === "/curriculum-map") return "/curriculum";
+  if (pathname === "/my-assessments") return "/my-assessments";
   if (pathname === "/my-portfolio" || pathname === "/portfolio") return "/my-portfolio";
   if (pathname === "/my-reports" || pathname.startsWith("/reports")) return "/my-reports";
   return "";
@@ -86,6 +88,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/my-programs") return "My Programs";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (pathname === "/curriculum-map" || pathname === "/curriculum") return "My Curriculum";
+  if (pathname === "/my-assessments") return "My Assessments";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
   if (pathname === "/reports" || pathname === "/my-reports") return "My Reports";
   if (pathname === "/settings") return "My Settings";
@@ -119,6 +122,9 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/planner" || pathname === "/my-plan") {
     return "See the week clearly before it fills up";
   }
+  if (pathname === "/my-assessments") {
+    return "See assessed skill confidence in a calm, visual way";
+  }
   if (pathname === "/portfolio" || pathname === "/my-portfolio") {
     return "Keep a visible story of progress as it grows";
   }
@@ -149,6 +155,9 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/planner" || pathname === "/my-plan") {
     return "Place learning moments into the week so the family workflow stays practical and visible.";
+  }
+  if (pathname === "/my-assessments") {
+    return "Use visual skill tracking to see where confidence is building across mathematics and English without turning the workflow into a test dashboard.";
   }
   if (pathname === "/portfolio" || pathname === "/my-portfolio") {
     return "Review the moments that matter and keep the story of progress easy to see and share.";

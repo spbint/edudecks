@@ -137,6 +137,7 @@ const SUGGEST_SOURCE_PAGE_LABELS: Record<string, string> = {
   "my-calendar": "My Calendar",
   "my-programs": "My Programs",
   "my-curriculum": "My Curriculum",
+  "my-assessments": "My Assessments",
   "my-capture": "My Capture",
   "my-portfolio": "My Portfolio",
   "my-reports": "My Reports",
