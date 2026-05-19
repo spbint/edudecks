@@ -46,3 +46,13 @@ export type UpsertCleanAssessmentSkillStatusInput = {
   status: CleanAssessmentStatusValue;
   note?: string | null;
 };
+
+export type CleanAssessmentEvidenceLink = {
+  sourceContext: "my-assessments";
+  statusRecordId: string;
+  statusSavedAt: string | null;
+  subjectKey: CleanAssessmentSubjectKey;
+  skillKey: string;
+  stageKey: CleanAssessmentStageKey;
+  assessmentStatus: CleanAssessmentStatusValue;
+};

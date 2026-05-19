@@ -8,6 +8,7 @@ import {
   CLEAN_ASSESSMENT_STAGE_KEYS,
   CLEAN_ASSESSMENT_STATUS_VALUES,
   CLEAN_ASSESSMENT_SUBJECT_KEYS,
+  type CleanAssessmentEvidenceLink,
   type CleanAssessmentSkillStatus,
   type CleanAssessmentStageKey,
   type CleanAssessmentStatusValue,
@@ -30,6 +31,25 @@ type AssessmentSkillStatusRow = {
   updated_at?: string | null;
 };
 
+const ASSESSMENT_SOURCE_CONTEXT = "my-assessments" as const;
+const ASSESSMENT_SOURCE_PREFIX = "assessment-source:";
+const ASSESSMENT_STATUS_RECORD_PREFIX = "assessment-status-record:";
+const ASSESSMENT_STATUS_SAVED_AT_PREFIX = "assessment-status-saved-at:";
+const ASSESSMENT_SUBJECT_PREFIX = "assessment-subject:";
+const ASSESSMENT_SKILL_PREFIX = "assessment-skill:";
+const ASSESSMENT_STAGE_PREFIX = "assessment-stage:";
+const ASSESSMENT_STATUS_PREFIX = "assessment-status:";
+
+const ASSESSMENT_EVIDENCE_PREFIXES = [
+  ASSESSMENT_SOURCE_PREFIX,
+  ASSESSMENT_STATUS_RECORD_PREFIX,
+  ASSESSMENT_STATUS_SAVED_AT_PREFIX,
+  ASSESSMENT_SUBJECT_PREFIX,
+  ASSESSMENT_SKILL_PREFIX,
+  ASSESSMENT_STAGE_PREFIX,
+  ASSESSMENT_STATUS_PREFIX,
+];
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -37,6 +57,22 @@ function safe(value: unknown) {
 function normalizeNullString(value: unknown) {
   const text = safe(value);
   return text || null;
+}
+
+function encodeNodeValue(value: string) {
+  return encodeURIComponent(value);
+}
+
+function decodeNodeValue(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function dedupeNodeIds(nodeIds: string[]) {
+  return [...new Set(nodeIds.map((nodeId) => safe(nodeId)).filter(Boolean))];
 }
 
 function normalizeSubjectKey(value: unknown): CleanAssessmentSubjectKey {
@@ -58,6 +94,134 @@ function normalizeStatusValue(value: unknown): CleanAssessmentStatusValue {
   return CLEAN_ASSESSMENT_STATUS_VALUES.includes(status as CleanAssessmentStatusValue)
     ? (status as CleanAssessmentStatusValue)
     : "Not assessed yet";
+}
+
+export function buildAssessmentEvidenceLinkKey(
+  statusRecordId: string,
+  statusSavedAt: string | null,
+) {
+  const normalizedStatusRecordId = safe(statusRecordId);
+  if (!normalizedStatusRecordId) return "";
+
+  return `${normalizedStatusRecordId}::${safe(statusSavedAt)}`;
+}
+
+export function encodeAssessmentEvidenceNodeIds(
+  existingNodeIds: string[],
+  link: CleanAssessmentEvidenceLink,
+) {
+  const preservedNodeIds = existingNodeIds.filter(
+    (nodeId) =>
+      !ASSESSMENT_EVIDENCE_PREFIXES.some((prefix) => safe(nodeId).startsWith(prefix)),
+  );
+
+  const nextNodeIds = [...preservedNodeIds, `${ASSESSMENT_SOURCE_PREFIX}${ASSESSMENT_SOURCE_CONTEXT}`];
+
+  if (safe(link.statusRecordId)) {
+    nextNodeIds.push(
+      `${ASSESSMENT_STATUS_RECORD_PREFIX}${encodeNodeValue(safe(link.statusRecordId))}`,
+    );
+  }
+
+  if (safe(link.statusSavedAt)) {
+    nextNodeIds.push(
+      `${ASSESSMENT_STATUS_SAVED_AT_PREFIX}${encodeNodeValue(safe(link.statusSavedAt))}`,
+    );
+  }
+
+  if (safe(link.subjectKey)) {
+    nextNodeIds.push(`${ASSESSMENT_SUBJECT_PREFIX}${encodeNodeValue(safe(link.subjectKey))}`);
+  }
+
+  if (safe(link.skillKey)) {
+    nextNodeIds.push(`${ASSESSMENT_SKILL_PREFIX}${encodeNodeValue(safe(link.skillKey))}`);
+  }
+
+  if (safe(link.stageKey)) {
+    nextNodeIds.push(`${ASSESSMENT_STAGE_PREFIX}${encodeNodeValue(safe(link.stageKey))}`);
+  }
+
+  if (safe(link.assessmentStatus)) {
+    nextNodeIds.push(
+      `${ASSESSMENT_STATUS_PREFIX}${encodeNodeValue(safe(link.assessmentStatus))}`,
+    );
+  }
+
+  return dedupeNodeIds(nextNodeIds);
+}
+
+export function parseAssessmentEvidenceLinkFromNodeIds(nodeIds: string[]) {
+  let sourceContext = "";
+  let statusRecordId = "";
+  let statusSavedAt: string | null = null;
+  let subjectKey = "";
+  let skillKey = "";
+  let stageKey = "";
+  let assessmentStatus = "";
+
+  for (const nodeId of nodeIds) {
+    const normalizedNodeId = safe(nodeId);
+    if (!normalizedNodeId) continue;
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_SOURCE_PREFIX)) {
+      sourceContext = safe(normalizedNodeId.slice(ASSESSMENT_SOURCE_PREFIX.length));
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_STATUS_RECORD_PREFIX)) {
+      statusRecordId = decodeNodeValue(
+        normalizedNodeId.slice(ASSESSMENT_STATUS_RECORD_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_STATUS_SAVED_AT_PREFIX)) {
+      statusSavedAt = normalizeNullString(
+        decodeNodeValue(normalizedNodeId.slice(ASSESSMENT_STATUS_SAVED_AT_PREFIX.length)),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_SUBJECT_PREFIX)) {
+      subjectKey = decodeNodeValue(normalizedNodeId.slice(ASSESSMENT_SUBJECT_PREFIX.length));
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_SKILL_PREFIX)) {
+      skillKey = decodeNodeValue(normalizedNodeId.slice(ASSESSMENT_SKILL_PREFIX.length));
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_STAGE_PREFIX)) {
+      stageKey = decodeNodeValue(normalizedNodeId.slice(ASSESSMENT_STAGE_PREFIX.length));
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(ASSESSMENT_STATUS_PREFIX)) {
+      assessmentStatus = decodeNodeValue(normalizedNodeId.slice(ASSESSMENT_STATUS_PREFIX.length));
+    }
+  }
+
+  if (
+    sourceContext !== ASSESSMENT_SOURCE_CONTEXT ||
+    !safe(statusRecordId) ||
+    !safe(subjectKey) ||
+    !safe(skillKey) ||
+    !safe(stageKey) ||
+    !safe(assessmentStatus)
+  ) {
+    return null;
+  }
+
+  return {
+    sourceContext: ASSESSMENT_SOURCE_CONTEXT,
+    statusRecordId: safe(statusRecordId),
+    statusSavedAt,
+    subjectKey: normalizeSubjectKey(subjectKey),
+    skillKey: safe(skillKey),
+    stageKey: normalizeStageKey(stageKey),
+    assessmentStatus: normalizeStatusValue(assessmentStatus),
+  } satisfies CleanAssessmentEvidenceLink;
 }
 
 function toCleanAssessmentSkillStatus(

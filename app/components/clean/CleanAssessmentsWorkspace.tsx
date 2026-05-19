@@ -1,24 +1,40 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import {
+  buildAssessmentEvidenceLinkKey,
+  encodeAssessmentEvidenceNodeIds,
   listCleanAssessmentSkillStatuses,
+  parseAssessmentEvidenceLinkFromNodeIds,
   upsertCleanAssessmentSkillStatus,
 } from "@/lib/clean/assessments/client";
 import {
   CLEAN_ASSESSMENT_STAGE_KEYS,
   CLEAN_ASSESSMENT_STATUS_VALUES,
+  type CleanAssessmentEvidenceLink,
   type CleanAssessmentSkillStatus,
   type CleanAssessmentStageKey,
   type CleanAssessmentStatusValue,
   type CleanAssessmentSubjectKey,
 } from "@/lib/clean/assessments/types";
-import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
+import {
+  resolveCurriculumFrameworkMap,
+  type CurriculumFrameworkElement,
+  type CurriculumFrameworkLearningArea,
+  type ResolvedCurriculumFrameworkMap,
+} from "@/lib/clean/curriculum/frameworkMaps";
+import { createCleanEvidenceEntry, listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import {
+  buildCurriculumCaptureContext,
+  encodeCurriculumContextNodeIds,
+} from "@/lib/clean/evidence/curriculumContext";
+import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { Learner } from "@/lib/clean/learners/types";
 
 const shellStyle: React.CSSProperties = {
@@ -754,8 +770,155 @@ function getStageProgressionMeta(stage: AssessmentStage, currentStage: Assessmen
   };
 }
 
+function normalizeAssessmentMatchText(value: unknown) {
+  return safe(value)
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function toAssessmentMatchTokens(values: Array<string | null | undefined>) {
+  return [...new Set(
+    values
+      .flatMap((value) => normalizeAssessmentMatchText(value).split(/\s+/))
+      .map((token) => token.trim())
+      .filter((token) => token.length > 2),
+  )];
+}
+
+function getCurriculumMatchValues(item: {
+  key: string;
+  label: string;
+  keywords: string[];
+  legacyKeys?: string[];
+  legacyLabels?: string[];
+}) {
+  return [
+    item.key,
+    item.label,
+    ...item.keywords,
+    ...(item.legacyKeys || []),
+    ...(item.legacyLabels || []),
+  ];
+}
+
+function scoreCurriculumMatch(
+  item: {
+    key: string;
+    label: string;
+    keywords: string[];
+    legacyKeys?: string[];
+    legacyLabels?: string[];
+  },
+  tokens: string[],
+) {
+  const normalizedLabel = normalizeAssessmentMatchText(item.label);
+  const normalizedValues = getCurriculumMatchValues(item)
+    .map((value) => normalizeAssessmentMatchText(value))
+    .filter(Boolean);
+
+  return tokens.reduce((score, token) => {
+    if (normalizedLabel === token) {
+      return score + 6;
+    }
+
+    if (normalizedValues.some((value) => value === token)) {
+      return score + 4;
+    }
+
+    if (normalizedValues.some((value) => value.includes(token))) {
+      return score + 2;
+    }
+
+    return score;
+  }, 0);
+}
+
+function findAssessmentLearningArea(
+  resolvedFramework: ResolvedCurriculumFrameworkMap,
+  subjectKey: AssessmentSubjectKey,
+): CurriculumFrameworkLearningArea | null {
+  const subjectTokens =
+    subjectKey === "mathematics"
+      ? ["mathematics", "maths", "math", "numeracy", "number"]
+      : ["english", "literacy", "reading", "writing", "language"];
+
+  let bestMatch: CurriculumFrameworkLearningArea | null = null;
+  let bestScore = 0;
+
+  resolvedFramework.map.learningAreas.forEach((area) => {
+    const score = scoreCurriculumMatch(area, subjectTokens);
+    if (score > bestScore) {
+      bestMatch = area;
+      bestScore = score;
+    }
+  });
+
+  return bestScore > 0 ? bestMatch : null;
+}
+
+function findAssessmentCurriculumElement(
+  learningArea: CurriculumFrameworkLearningArea | null,
+  skillArea: string,
+  skillDetail: AssessmentSkillDetail | null,
+): CurriculumFrameworkElement | null {
+  if (!learningArea) return null;
+
+  const skillTokens = toAssessmentMatchTokens([
+    skillArea,
+    skillDetail?.summary || "",
+    ...(skillDetail?.bullets || []),
+  ]);
+
+  let bestMatch: CurriculumFrameworkElement | null = null;
+  let bestScore = 0;
+
+  learningArea.elements.forEach((element) => {
+    const score = scoreCurriculumMatch(element, skillTokens);
+    if (score > bestScore) {
+      bestMatch = element;
+      bestScore = score;
+    }
+  });
+
+  return bestScore > 0 ? bestMatch : null;
+}
+
+function getAssessmentStatusNarrative(status: AssessmentStatus) {
+  if (status === "Not assessed yet") {
+    return "has a saved assessment judgement ready to begin or revisit";
+  }
+
+  if (status === "Still developing") {
+    return "is showing early confidence";
+  }
+
+  if (status === "Developing") {
+    return "is building confidence";
+  }
+
+  if (status === "Secure") {
+    return "is showing secure confidence";
+  }
+
+  return "is showing strong confidence";
+}
+
+function getAssessmentEvidenceObservedOn(record: CleanAssessmentSkillStatus | null) {
+  const timestamp = safe(record?.updatedAt || record?.createdAt);
+  if (/^\d{4}-\d{2}-\d{2}/.test(timestamp)) {
+    return timestamp.slice(0, 10);
+  }
+
+  const now = new Date();
+  const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 10);
+}
+
 function AssessmentsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
+  const pathname = usePathname();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
   const [selectedSubjectKey, setSelectedSubjectKey] =
     useState<AssessmentSubjectKey>("mathematics");
@@ -764,15 +927,24 @@ function AssessmentsWorkspaceBody() {
     stage: AssessmentStage;
   } | null>(null);
   const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
+  const [assessmentEvidenceEntries, setAssessmentEvidenceEntries] = useState<CleanEvidenceEntry[]>(
+    [],
+  );
   const [assessmentStatusesLoading, setAssessmentStatusesLoading] = useState(false);
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [isSavingAssessmentStatus, setIsSavingAssessmentStatus] = useState(false);
+  const [isCreatingAssessmentEvidence, setIsCreatingAssessmentEvidence] = useState(false);
   const [selectedTile, setSelectedTile] = useState<AssessmentTileSelection | null>(null);
   const [selectedTileDraftStatus, setSelectedTileDraftStatus] =
     useState<AssessmentStatus>("Not assessed yet");
   const [selectedTileDraftNote, setSelectedTileDraftNote] = useState("");
   const [selectedTileFeedback, setSelectedTileFeedback] = useState<AssessmentTileFeedback>(null);
+  const [selectedTileEvidenceFeedback, setSelectedTileEvidenceFeedback] =
+    useState<AssessmentTileFeedback>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const capturePathBase = pathname.startsWith("/clean-my-assessments")
+    ? "/clean-my-capture"
+    : "/my-capture";
 
   const learnerOptions = useMemo(
     () =>
@@ -893,6 +1065,36 @@ function AssessmentsWorkspaceBody() {
     };
   }, [selectedFamilyId, selectedLearnerId]);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadAssessmentEvidenceEntries() {
+      if (!selectedFamilyId || !selectedLearnerId) {
+        if (!isCurrent) return;
+        setAssessmentEvidenceEntries([]);
+        return;
+      }
+
+      try {
+        const nextEntries = await listCleanEvidenceEntries(selectedFamilyId, {
+          learnerId: selectedLearnerId,
+        });
+
+        if (!isCurrent) return;
+        setAssessmentEvidenceEntries(nextEntries);
+      } catch {
+        if (!isCurrent) return;
+        setAssessmentEvidenceEntries([]);
+      }
+    }
+
+    void loadAssessmentEvidenceEntries();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedFamilyId, selectedLearnerId]);
+
   const selectedSubject = SUBJECTS[selectedSubjectKey];
   const savedAssessmentStatusMap = useMemo(() => {
     const next = new Map<string, CleanAssessmentSkillStatus>();
@@ -906,6 +1108,32 @@ function AssessmentsWorkspaceBody() {
 
     return next;
   }, [assessmentStatuses]);
+  const linkedAssessmentEvidenceMap = useMemo(() => {
+    const next = new Map<string, CleanEvidenceEntry>();
+
+    assessmentEvidenceEntries.forEach((entry) => {
+      const link = parseAssessmentEvidenceLinkFromNodeIds(entry.curriculumNodeIds);
+      if (!link) return;
+
+      const linkKey = buildAssessmentEvidenceLinkKey(link.statusRecordId, link.statusSavedAt);
+      if (!linkKey) return;
+
+      const existing = next.get(linkKey);
+      if (!existing) {
+        next.set(linkKey, entry);
+        return;
+      }
+
+      const existingTime = Date.parse(existing.updatedAt || existing.createdAt || "");
+      const entryTime = Date.parse(entry.updatedAt || entry.createdAt || "");
+
+      if (Number.isNaN(existingTime) || entryTime > existingTime) {
+        next.set(linkKey, entry);
+      }
+    });
+
+    return next;
+  }, [assessmentEvidenceEntries]);
 
   function getSavedAssessmentStatusRecord(
     subjectKey: AssessmentSubjectKey,
@@ -1035,6 +1263,21 @@ function AssessmentsWorkspaceBody() {
   const selectedTileLastUpdatedLabel = formatAssessmentSavedAt(
     selectedTileStatusRecord?.updatedAt || selectedTileStatusRecord?.createdAt || null,
   );
+  const selectedTileSavedAt =
+    selectedTileStatusRecord?.updatedAt || selectedTileStatusRecord?.createdAt || null;
+  const selectedTileHasUnsavedChanges = selectedTileStatusRecord
+    ? selectedTileDraftStatus !== selectedTileStatusRecord.status ||
+      selectedTileDraftNote !== (selectedTileStatusRecord.note || "")
+    : false;
+  const selectedTileEvidenceLinkKey = selectedTileStatusRecord
+    ? buildAssessmentEvidenceLinkKey(selectedTileStatusRecord.id, selectedTileSavedAt)
+    : "";
+  const selectedTileLinkedEvidenceEntry = selectedTileEvidenceLinkKey
+    ? linkedAssessmentEvidenceMap.get(selectedTileEvidenceLinkKey) ?? null
+    : null;
+  const selectedTileLinkedEvidenceLabel = formatAssessmentSavedAt(
+    selectedTileLinkedEvidenceEntry?.createdAt || selectedTileLinkedEvidenceEntry?.observedOn || null,
+  );
   const selectedTileStageMessage = selectedTile
     ? selectedTile.stage === stageFocus
       ? "This skill sits within the learner's current stage focus. At this stage, the focus is on building confidence, applying the skill in different contexts, and preparing for the next progression step."
@@ -1058,16 +1301,19 @@ function AssessmentsWorkspaceBody() {
     setSelectedTileDraftStatus(displayedStatus);
     setSelectedTileDraftNote(savedStatusRecord?.note || "");
     setSelectedTileFeedback(null);
+    setSelectedTileEvidenceFeedback(null);
   }
 
   function updateSelectedTileDraftStatus(status: AssessmentStatus) {
     setSelectedTileDraftStatus(status);
     setSelectedTileFeedback(null);
+    setSelectedTileEvidenceFeedback(null);
   }
 
   function updateSelectedTileDraftNote(note: string) {
     setSelectedTileDraftNote(note);
     setSelectedTileFeedback(null);
+    setSelectedTileEvidenceFeedback(null);
   }
 
   async function saveSelectedTileStatus() {
@@ -1080,6 +1326,7 @@ function AssessmentsWorkspaceBody() {
     }
 
     setIsSavingAssessmentStatus(true);
+    setSelectedTileEvidenceFeedback(null);
 
     try {
       const savedStatus = await upsertCleanAssessmentSkillStatus(selectedFamilyId, {
@@ -1120,6 +1367,99 @@ function AssessmentsWorkspaceBody() {
       });
     } finally {
       setIsSavingAssessmentStatus(false);
+    }
+  }
+
+  async function createEvidenceFromSavedStatus() {
+    if (
+      !selectedTile ||
+      !selectedTileDetail ||
+      !selectedTileSubject ||
+      !selectedTileStatusRecord ||
+      !selectedLearner ||
+      !selectedFamilyId
+    ) {
+      setSelectedTileEvidenceFeedback({
+        tone: "error",
+        message: "Save this skill status before creating an evidence note.",
+      });
+      return;
+    }
+
+    if (selectedTileHasUnsavedChanges) {
+      setSelectedTileEvidenceFeedback({
+        tone: "error",
+        message: "Save the latest status changes before creating an evidence note.",
+      });
+      return;
+    }
+
+    if (selectedTileLinkedEvidenceEntry) {
+      setSelectedTileEvidenceFeedback({
+        tone: "success",
+        message: "Evidence already linked for this saved status.",
+      });
+      return;
+    }
+
+    setIsCreatingAssessmentEvidence(true);
+    setSelectedTileEvidenceFeedback(null);
+
+    try {
+      const learningArea = findAssessmentLearningArea(resolvedFramework, selectedTile.subjectKey);
+      const curriculumElement = findAssessmentCurriculumElement(
+        learningArea,
+        selectedTile.skillArea,
+        selectedTileDetail,
+      );
+      const curriculumContext = buildCurriculumCaptureContext({
+        learningAreaKey: learningArea?.key || null,
+        learningAreaLabel: learningArea?.label || null,
+        curriculumElementKey: curriculumElement?.key || null,
+        curriculumElementLabel: curriculumElement?.label || null,
+      });
+      const evidenceLink = {
+        sourceContext: "my-assessments",
+        statusRecordId: selectedTileStatusRecord.id,
+        statusSavedAt: selectedTileSavedAt,
+        subjectKey: selectedTile.subjectKey,
+        skillKey: selectedTile.skillKey,
+        stageKey: selectedTile.stage,
+        assessmentStatus: selectedTileStatusRecord.status,
+      } satisfies CleanAssessmentEvidenceLink;
+      const curriculumNodeIds = encodeAssessmentEvidenceNodeIds(
+        encodeCurriculumContextNodeIds([], curriculumContext),
+        evidenceLink,
+      );
+
+      const createdEvidence = await createCleanEvidenceEntry(selectedFamilyId, {
+        learnerId: selectedLearner.id,
+        observedOn: getAssessmentEvidenceObservedOn(selectedTileStatusRecord),
+        title: `Assessment evidence - ${selectedTile.skillArea}`,
+        whatHappened: `${selectedLearnerLabel} ${getAssessmentStatusNarrative(
+          selectedTileStatusRecord.status,
+        )} in ${selectedTile.skillArea} at ${selectedTile.stage} stage in ${
+          selectedTileSubject.title
+        }.`,
+        reflection: selectedTileStatusRecord.note || null,
+        learningArea: learningArea?.label || selectedTileSubject.title,
+        curriculumNodeIds,
+        includeInPortfolio: true,
+        includeInReport: true,
+      });
+
+      setAssessmentEvidenceEntries((current) => [createdEvidence, ...current]);
+      setSelectedTileEvidenceFeedback({
+        tone: "success",
+        message: "Added to learning evidence.",
+      });
+    } catch {
+      setSelectedTileEvidenceFeedback({
+        tone: "error",
+        message: "Could not create this evidence note. Please try again.",
+      });
+    } finally {
+      setIsCreatingAssessmentEvidence(false);
     }
   }
 
@@ -2124,6 +2464,91 @@ function AssessmentsWorkspaceBody() {
                     {isSavingAssessmentStatus ? "Saving..." : "Save status"}
                   </button>
                 </div>
+
+                {selectedTileStatusRecord ? (
+                  <div
+                    style={{
+                      border: "1px solid #dbeafe",
+                      background: "#ffffff",
+                      borderRadius: 14,
+                      padding: 14,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <strong style={{ color: "#0f172a" }}>
+                      {selectedTileLinkedEvidenceEntry
+                        ? "Added to learning evidence"
+                        : "Create evidence note"}
+                    </strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                      Use this to add the current assessment judgement into your learning
+                      evidence and reports.
+                    </p>
+
+                    {selectedTileHasUnsavedChanges ? (
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        Save this status to create an evidence note from the latest judgement.
+                      </div>
+                    ) : selectedTileLinkedEvidenceEntry ? (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div style={{ color: "#166534", lineHeight: 1.6 }}>
+                          Evidence already linked for this saved status.
+                          {selectedTileLinkedEvidenceLabel
+                            ? ` Added ${selectedTileLinkedEvidenceLabel}.`
+                            : ""}
+                        </div>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <Link
+                            href={`${capturePathBase}?evidence_entry_id=${selectedTileLinkedEvidenceEntry.id}`}
+                            style={secondaryButtonStyle}
+                          >
+                            Open evidence
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          onClick={() => void createEvidenceFromSavedStatus()}
+                          disabled={isCreatingAssessmentEvidence}
+                          style={
+                            isCreatingAssessmentEvidence ? disabledButtonStyle : secondaryButtonStyle
+                          }
+                        >
+                          {isCreatingAssessmentEvidence
+                            ? "Creating evidence..."
+                            : "Create evidence note"}
+                        </button>
+                      </div>
+                    )}
+
+                    {selectedTileEvidenceFeedback ? (
+                      <div
+                        style={{
+                          border:
+                            selectedTileEvidenceFeedback.tone === "success"
+                              ? "1px solid #bbf7d0"
+                              : "1px solid #fecaca",
+                          background:
+                            selectedTileEvidenceFeedback.tone === "success"
+                              ? "#f0fdf4"
+                              : "#fef2f2",
+                          color:
+                            selectedTileEvidenceFeedback.tone === "success"
+                              ? "#166534"
+                              : "#b91c1c",
+                          borderRadius: 14,
+                          padding: "10px 12px",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {selectedTileEvidenceFeedback.message}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <section style={helperCardStyle}>
