@@ -137,6 +137,7 @@ type AssessmentSubject = {
   key: AssessmentSubjectKey;
   title: string;
   helper: string;
+  summaryCopy: string;
   rows: AssessmentSkillRow[];
   prototypeCopy: string;
   skillDetails: Record<string, AssessmentSkillDetail>;
@@ -582,6 +583,8 @@ const SUBJECTS: Record<AssessmentSubjectKey, AssessmentSubject> = {
     key: "mathematics",
     title: "My Mathematics",
     helper: "Number and core mathematical skills",
+    summaryCopy:
+      "My Mathematics focuses on number, operations, problem solving, reasoning, measurement, geometry, and data skills across the learner's stage progression.",
     rows: MATHEMATICS_ROWS,
     prototypeCopy:
       "This is a visual prototype. Assessment checks and saved results will come later.",
@@ -591,6 +594,8 @@ const SUBJECTS: Record<AssessmentSubjectKey, AssessmentSubject> = {
     key: "english",
     title: "My English",
     helper: "Reading, writing, language, and communication skills",
+    summaryCopy:
+      "My English focuses on reading, vocabulary, spelling, writing, grammar, speaking and listening, and text response across the learner's stage progression.",
     rows: ENGLISH_ROWS,
     prototypeCopy:
       "This is a visual prototype. Assessment checks and saved results will come later.",
@@ -685,6 +690,37 @@ function inferStageFocusFromYearLevel(yearLevel: string | null | undefined): Ass
   return "Middle Primary";
 }
 
+function getStageProgressionMeta(stage: AssessmentStage, currentStage: AssessmentStage) {
+  const currentStageIndex = ASSESSMENT_STAGES.indexOf(currentStage);
+  const stageIndex = ASSESSMENT_STAGES.indexOf(stage);
+
+  if (stageIndex === currentStageIndex) {
+    return {
+      badge: "Current focus",
+      helper: "Highlighted for this learner right now",
+    };
+  }
+
+  if (stageIndex < currentStageIndex) {
+    return {
+      badge: "Before",
+      helper: "Earlier foundations",
+    };
+  }
+
+  if (stageIndex === currentStageIndex + 1) {
+    return {
+      badge: "Later",
+      helper: "Next progression",
+    };
+  }
+
+  return {
+    badge: "Later",
+    helper: "Later progression",
+  };
+}
+
 function AssessmentsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
@@ -761,6 +797,47 @@ function AssessmentsWorkspaceBody() {
     () => buildStatusTotals(selectedSubject.rows),
     [selectedSubject.rows],
   );
+  const stageFocusAdjustedForView = useMemo(() => {
+    const selectedLearnerKey = selectedLearner?.id || "";
+    return (
+      Boolean(selectedLearnerKey) &&
+      stageFocusOverride?.learnerId === selectedLearnerKey &&
+      stageFocusOverride.stage !== inferredStageFocus
+    );
+  }, [inferredStageFocus, selectedLearner?.id, stageFocusOverride]);
+  const currentStageSnapshot = useMemo(
+    () =>
+      selectedSubject.rows.reduce(
+        (totals, row) => {
+          const status = row.stages[stageFocus];
+
+          if (status === "Secure" || status === "Strong") {
+            totals.secureOrStrong += 1;
+            return totals;
+          }
+
+          if (status === "Developing") {
+            totals.developing += 1;
+            return totals;
+          }
+
+          if (status === "Still developing") {
+            totals.stillDeveloping += 1;
+            return totals;
+          }
+
+          totals.notAssessedYet += 1;
+          return totals;
+        },
+        {
+          secureOrStrong: 0,
+          developing: 0,
+          stillDeveloping: 0,
+          notAssessedYet: 0,
+        },
+      ),
+    [selectedSubject.rows, stageFocus],
+  );
   const resolvedFramework = useMemo(
     () => resolveCurriculumFrameworkMap(workspace.profile),
     [workspace.profile],
@@ -808,6 +885,11 @@ function AssessmentsWorkspaceBody() {
     : null;
   const selectedTileSubject = selectedTile ? SUBJECTS[selectedTile.subjectKey] : null;
   const selectedTileStatusMeta = selectedTile ? STATUS_META[selectedTile.status] : null;
+  const selectedTileStageMessage = selectedTile
+    ? selectedTile.stage === stageFocus
+      ? "This skill sits within the learner's current stage focus. At this stage, the focus is on building confidence, applying the skill in different contexts, and preparing for the next progression step."
+      : `This skill sits within the wider progression around ${stageFocus}. It helps show what came before or what comes next as confidence builds over time.`
+    : "";
 
   return (
     <div style={shellStyle}>
@@ -851,144 +933,277 @@ function AssessmentsWorkspaceBody() {
         </section>
 
         <section style={cardStyle}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 18,
-              alignItems: "flex-start",
-              flexWrap: "wrap",
-              marginBottom: 18,
-            }}
-          >
-            <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-              <div style={eyebrowStyle}>Learner focus</div>
+          <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 8, maxWidth: 780 }}>
+              <div style={eyebrowStyle}>Stage focus</div>
               <h2 style={{ margin: 0, color: "#0f172a" }}>
                 {selectedLearner
                   ? `Viewing assessment map for ${selectedLearnerLabel}`
-                  : "Learner focus for this assessment map"}
+                  : "Stage focus for this assessment map"}
               </h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 This view highlights the learner&apos;s current stage while still showing the
-                wider progression.
+                wider progression before and after it.
               </p>
             </div>
 
-            {selectedLearner ? (
-              <span
+            <div
+              style={{
+                border: "1px solid #bfdbfe",
+                borderRadius: 20,
+                background:
+                  "linear-gradient(135deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 100%)",
+                padding: 18,
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div
                 style={{
-                  border: "1px solid #bfdbfe",
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  borderRadius: 999,
-                  padding: "7px 12px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
                 }}
               >
-                Current stage focus: {stageFocus}
-              </span>
-            ) : null}
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gap: 14,
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            }}
-          >
-            <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Selected learner</div>
-              {workspace.loading ? (
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Loading learner details...
-                </div>
-              ) : selectedLearner ? (
-                hasMultipleLearners ? (
-                  <>
-                    <label style={{ color: "#334155", fontWeight: 700 }}>
-                      Viewing assessment map for
-                    </label>
-                    <select
-                      value={selectedLearnerId}
-                      onChange={(event) => setSelectedLearnerIdOverride(event.target.value)}
-                      style={inputStyle}
-                    >
-                      {learnerOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </>
-                ) : (
-                  <>
-                    <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                      {selectedLearnerLabel}
-                    </strong>
-                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      One learner is currently available in this family workspace.
-                    </div>
-                  </>
-                )
-              ) : (
-                <>
-                  <strong style={{ color: "#0f172a" }}>
-                    Add a learner before tracking assessments.
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div style={eyebrowStyle}>Stage focus summary</div>
+                  <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                    Stage focus: {stageFocus}
                   </strong>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    You can still explore the prototype tracker below while learner
-                    details are being set up.
+                  <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                    This view highlights the learner&apos;s current stage while still showing
+                    the wider progression before and after it.
                   </div>
-                  <div>
-                    <Link href="/my-profile" style={secondaryButtonStyle}>
-                      Open My Profile
-                    </Link>
-                  </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Stage focus</div>
-              <label style={{ color: "#334155", fontWeight: 700 }}>Current stage focus</label>
-              <select
-                value={stageFocus}
-                onChange={(event) =>
-                  setStageFocusOverride({
-                    learnerId: selectedLearner?.id || "",
-                    stage: event.target.value as AssessmentStage,
-                  })
-                }
-                style={inputStyle}
+                <span
+                  style={{
+                    border: "1px solid #bfdbfe",
+                    background: "#ffffff",
+                    color: "#1d4ed8",
+                    borderRadius: 999,
+                    padding: "7px 12px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {stageFocusAdjustedForView
+                    ? "Adjusted for this view"
+                    : "Based on year level where available"}
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                }}
               >
-                {ASSESSMENT_STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
-                  </option>
-                ))}
-              </select>
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                Based on learner year level when available, with a local-only prototype
-                override for this view.
+                <div style={summaryCardStyle}>
+                  <div style={eyebrowStyle}>Selected learner</div>
+                  <strong style={{ color: "#0f172a" }}>{selectedLearnerLabel}</strong>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={eyebrowStyle}>Current stage focus</div>
+                  <strong style={{ color: "#0f172a" }}>{stageFocus}</strong>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={eyebrowStyle}>Subject currently viewed</div>
+                  <strong style={{ color: "#0f172a" }}>{selectedSubject.title}</strong>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={eyebrowStyle}>Framework context</div>
+                  <strong style={{ color: "#0f172a" }}>
+                    {frameworkDetails?.frameworkLabel || "Connects to My Settings later"}
+                  </strong>
+                </div>
+              </div>
+
+              <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                {stageFocusAdjustedForView
+                  ? "Stage focus is currently adjusted for this view only. This does not change the learner profile yet."
+                  : "Based on the learner's year level where available."}
               </div>
             </div>
 
-            <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Subject currently viewed</div>
-              <strong style={{ color: "#0f172a", fontSize: 16 }}>{selectedSubject.title}</strong>
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>{selectedSubject.helper}</div>
+            <div
+              style={{
+                display: "grid",
+                gap: 14,
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              }}
+            >
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Selected learner</div>
+                {workspace.loading ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Loading learner details...
+                  </div>
+                ) : selectedLearner ? (
+                  hasMultipleLearners ? (
+                    <>
+                      <label style={{ color: "#334155", fontWeight: 700 }}>
+                        Viewing assessment map for
+                      </label>
+                      <select
+                        value={selectedLearnerId}
+                        onChange={(event) => setSelectedLearnerIdOverride(event.target.value)}
+                        style={inputStyle}
+                      >
+                        {learnerOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </>
+                  ) : (
+                    <>
+                      <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                        {selectedLearnerLabel}
+                      </strong>
+                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        One learner is currently available in this family workspace.
+                      </div>
+                    </>
+                  )
+                ) : (
+                  <>
+                    <strong style={{ color: "#0f172a" }}>
+                      Add a learner before tracking assessments.
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      You can still explore the prototype tracker below while learner
+                      details are being set up.
+                    </div>
+                    <div>
+                      <Link href="/my-profile" style={secondaryButtonStyle}>
+                        Open My Profile
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Stage focus</div>
+                <label style={{ color: "#334155", fontWeight: 700 }}>Stage focus</label>
+                <select
+                  value={stageFocus}
+                  onChange={(event) =>
+                    setStageFocusOverride({
+                      learnerId: selectedLearner?.id || "",
+                      stage: event.target.value as AssessmentStage,
+                    })
+                  }
+                  style={inputStyle}
+                >
+                  {ASSESSMENT_STAGES.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  Use this to explore a different stage view. This does not change the
+                  learner profile yet.
+                </div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Subject currently viewed</div>
+                <strong style={{ color: "#0f172a", fontSize: 16 }}>{selectedSubject.title}</strong>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>{selectedSubject.helper}</div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Framework</div>
+                <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                  {frameworkDetails?.frameworkLabel || "Framework details will connect to My Settings"}
+                </strong>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  {frameworkDetails?.countryLabel || "My Settings will shape later framework mapping."}
+                </div>
+              </div>
             </div>
 
-            <div style={compactCardStyle}>
-              <div style={eyebrowStyle}>Framework</div>
-              <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                {frameworkDetails?.frameworkLabel || "Framework details will connect to My Settings"}
-              </strong>
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                {frameworkDetails?.countryLabel || "My Settings will shape later framework mapping."}
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Progression pathway</div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                }}
+              >
+                {ASSESSMENT_STAGES.map((stage) => {
+                  const isFocusedStage = stage === stageFocus;
+                  const progressionMeta = getStageProgressionMeta(stage, stageFocus);
+
+                  return (
+                    <div
+                      key={`progression-${stage}`}
+                      style={{
+                        border: isFocusedStage ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        background: isFocusedStage ? "#eff6ff" : "#ffffff",
+                        padding: 14,
+                        display: "grid",
+                        gap: 8,
+                        boxShadow: isFocusedStage
+                          ? "0 10px 24px rgba(59,130,246,0.10)"
+                          : "0 4px 10px rgba(15,23,42,0.03)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: 8,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            color: isFocusedStage ? "#1d4ed8" : "#64748b",
+                            fontSize: 11,
+                            fontWeight: 800,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {progressionMeta.badge}
+                        </span>
+                        {isFocusedStage ? (
+                          <span
+                            style={{
+                              border: "1px solid #bfdbfe",
+                              background: "#ffffff",
+                              color: "#1d4ed8",
+                              borderRadius: 999,
+                              padding: "4px 8px",
+                              fontSize: 10,
+                              fontWeight: 800,
+                              letterSpacing: "0.04em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            Current focus
+                          </span>
+                        ) : null}
+                      </div>
+                      <strong style={{ color: "#0f172a", fontSize: 15 }}>{stage}</strong>
+                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        {progressionMeta.helper}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1082,6 +1297,9 @@ function AssessmentsWorkspaceBody() {
                 assessment view could later sit alongside My Curriculum, My Reports, and
                 My Outputs.
               </p>
+              <div style={{ color: "#334155", lineHeight: 1.7 }}>
+                {selectedSubject.summaryCopy}
+              </div>
               <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                 More assessment areas can be added later.
               </div>
@@ -1202,9 +1420,9 @@ function AssessmentsWorkspaceBody() {
                 <div style={eyebrowStyle}>Visual tracker</div>
                 <h2 style={{ margin: 0, color: "#0f172a" }}>{selectedSubject.title}</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  {selectedSubject.helper}. This first view uses static demo statuses only
-                  so families can see how the tracker could feel before assessment checks
-                  and saved results are introduced.
+                  {selectedSubject.summaryCopy} This first view uses static demo statuses
+                  only so families can see how the tracker could feel before assessment
+                  checks and saved results are introduced.
                 </p>
               </div>
 
@@ -1216,6 +1434,70 @@ function AssessmentsWorkspaceBody() {
                 </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {selectedSubject.prototypeCopy}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 14,
+                gridTemplateColumns: "minmax(0, 1.15fr) minmax(280px, 0.85fr)",
+              }}
+            >
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>{stageFocus} snapshot</strong>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  This prototype snapshot shows the current stage column for {selectedSubject.title}.
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 10,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                  }}
+                >
+                  <div style={summaryCardStyle}>
+                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                      {currentStageSnapshot.secureOrStrong}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      skills secure or strong
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                      {currentStageSnapshot.developing}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      skills developing
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                      {currentStageSnapshot.stillDeveloping}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      skills still developing
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <strong style={{ color: "#0f172a", fontSize: 22 }}>
+                      {currentStageSnapshot.notAssessedYet}
+                    </strong>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      skills not assessed yet
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Prototype note</div>
+                <strong style={{ color: "#0f172a" }}>Prototype view</strong>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  Saved assessment results will come later. This snapshot is using the
+                  current demo statuses in the selected stage column only.
                 </div>
               </div>
             </div>
@@ -1297,6 +1579,7 @@ function AssessmentsWorkspaceBody() {
 
                   {ASSESSMENT_STAGES.map((stage) => {
                     const isFocusedStage = stage === stageFocus;
+                    const progressionMeta = getStageProgressionMeta(stage, stageFocus);
 
                     return (
                       <div
@@ -1315,14 +1598,45 @@ function AssessmentsWorkspaceBody() {
                           opacity: isFocusedStage ? 1 : 0.88,
                         }}
                       >
-                        <div style={eyebrowStyle}>
-                          {isFocusedStage ? "Stage focus" : "Stage"}
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 8,
+                            alignItems: "center",
+                            width: "100%",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <div
+                            style={{
+                              ...eyebrowStyle,
+                              color: isFocusedStage ? "#1d4ed8" : "#64748b",
+                            }}
+                          >
+                            {progressionMeta.badge}
+                          </div>
+                          {isFocusedStage ? (
+                            <span
+                              style={{
+                                border: "1px solid #bfdbfe",
+                                background: "#ffffff",
+                                color: "#1d4ed8",
+                                borderRadius: 999,
+                                padding: "4px 8px",
+                                fontSize: 10,
+                                fontWeight: 800,
+                                letterSpacing: "0.04em",
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              Current focus
+                            </span>
+                          ) : null}
                         </div>
                         <strong style={{ color: "#0f172a", fontSize: 15 }}>{stage}</strong>
                         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                          {isFocusedStage
-                            ? "Highlighted for the selected learner"
-                            : "Still visible in the wider progression"}
+                          {isFocusedStage ? "Highlighted for the selected learner" : progressionMeta.helper}
                         </div>
                       </div>
                     );
@@ -1659,6 +1973,13 @@ function AssessmentsWorkspaceBody() {
                 </p>
               </section>
 
+              <section style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>Why this stage matters</strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                  {selectedTileStageMessage}
+                </p>
+              </section>
+
               <section style={compactCardStyle}>
                 <strong style={{ color: "#0f172a" }}>What this skill may include</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
@@ -1678,6 +1999,14 @@ function AssessmentsWorkspaceBody() {
                     <li key={bullet}>{bullet}</li>
                   ))}
                 </ul>
+              </section>
+
+              <section style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>What comes next</strong>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                  Assessment checks will later help confirm whether this skill is still
+                  developing, developing, secure, or strong.
+                </p>
               </section>
 
               <section style={helperCardStyle}>
