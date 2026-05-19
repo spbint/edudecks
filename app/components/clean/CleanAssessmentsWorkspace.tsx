@@ -165,13 +165,12 @@ type AssessmentTileSelection = {
   skillKey: string;
   skillArea: string;
   stage: AssessmentStage;
-  draftStatus: AssessmentStatus;
-  draftNote: string;
-  feedback: {
-    tone: "success" | "error";
-    message: string;
-  } | null;
 };
+
+type AssessmentTileFeedback = {
+  tone: "success" | "error";
+  message: string;
+} | null;
 
 const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
   "Not assessed yet": {
@@ -769,6 +768,10 @@ function AssessmentsWorkspaceBody() {
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [isSavingAssessmentStatus, setIsSavingAssessmentStatus] = useState(false);
   const [selectedTile, setSelectedTile] = useState<AssessmentTileSelection | null>(null);
+  const [selectedTileDraftStatus, setSelectedTileDraftStatus] =
+    useState<AssessmentStatus>("Not assessed yet");
+  const [selectedTileDraftNote, setSelectedTileDraftNote] = useState("");
+  const [selectedTileFeedback, setSelectedTileFeedback] = useState<AssessmentTileFeedback>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const learnerOptions = useMemo(
@@ -812,8 +815,19 @@ function AssessmentsWorkspaceBody() {
     return inferredStageFocus;
   }, [inferredStageFocus, selectedLearner?.id, stageFocusOverride]);
 
+  const selectedTileIdentity = useMemo(() => {
+    if (!selectedTile) return "";
+
+    return [
+      selectedLearner?.id || "no-learner",
+      selectedTile.subjectKey,
+      selectedTile.skillKey,
+      selectedTile.stage,
+    ].join(":");
+  }, [selectedLearner?.id, selectedTile]);
+
   useEffect(() => {
-    if (!selectedTile) return;
+    if (!selectedTileIdentity) return;
 
     closeButtonRef.current?.focus();
 
@@ -828,7 +842,7 @@ function AssessmentsWorkspaceBody() {
     return () => {
       document.removeEventListener("keydown", handleEscape);
     };
-  }, [selectedTile]);
+  }, [selectedTileIdentity]);
 
   const selectedFamilyId = workspace.profile?.id || "";
 
@@ -1040,49 +1054,28 @@ function AssessmentsWorkspaceBody() {
       skillKey: toAssessmentSkillKey(row.skillArea),
       skillArea: row.skillArea,
       stage,
-      draftStatus: displayedStatus,
-      draftNote: savedStatusRecord?.note || "",
-      feedback: null,
     });
+    setSelectedTileDraftStatus(displayedStatus);
+    setSelectedTileDraftNote(savedStatusRecord?.note || "");
+    setSelectedTileFeedback(null);
   }
 
   function updateSelectedTileDraftStatus(status: AssessmentStatus) {
-    setSelectedTile((current) =>
-      current
-        ? {
-            ...current,
-            draftStatus: status,
-            feedback: null,
-          }
-        : current,
-    );
+    setSelectedTileDraftStatus(status);
+    setSelectedTileFeedback(null);
   }
 
   function updateSelectedTileDraftNote(note: string) {
-    setSelectedTile((current) =>
-      current
-        ? {
-            ...current,
-            draftNote: note,
-            feedback: null,
-          }
-        : current,
-    );
+    setSelectedTileDraftNote(note);
+    setSelectedTileFeedback(null);
   }
 
   async function saveSelectedTileStatus() {
     if (!selectedTile || !selectedLearner || !selectedFamilyId) {
-      setSelectedTile((current) =>
-        current
-          ? {
-              ...current,
-              feedback: {
-                tone: "error",
-                message: "Add a learner before saving a skill status.",
-              },
-            }
-          : current,
-      );
+      setSelectedTileFeedback({
+        tone: "error",
+        message: "Add a learner before saving a skill status.",
+      });
       return;
     }
 
@@ -1094,8 +1087,8 @@ function AssessmentsWorkspaceBody() {
         subjectKey: selectedTile.subjectKey,
         skillKey: selectedTile.skillKey,
         stageKey: selectedTile.stage,
-        status: selectedTile.draftStatus,
-        note: selectedTile.draftNote,
+        status: selectedTileDraftStatus,
+        note: selectedTileDraftNote,
       });
 
       setAssessmentStatuses((current) => {
@@ -1114,31 +1107,17 @@ function AssessmentsWorkspaceBody() {
         return next;
       });
 
-      setSelectedTile((current) =>
-        current
-          ? {
-              ...current,
-              draftStatus: savedStatus.status,
-              draftNote: savedStatus.note || "",
-              feedback: {
-                tone: "success",
-                message: "Skill status saved.",
-              },
-            }
-          : current,
-      );
+      setSelectedTileDraftStatus(savedStatus.status);
+      setSelectedTileDraftNote(savedStatus.note || "");
+      setSelectedTileFeedback({
+        tone: "success",
+        message: "Skill status saved.",
+      });
     } catch {
-      setSelectedTile((current) =>
-        current
-          ? {
-              ...current,
-              feedback: {
-                tone: "error",
-                message: "Could not save this skill status. Please try again.",
-              },
-            }
-          : current,
-      );
+      setSelectedTileFeedback({
+        tone: "error",
+        message: "Could not save this skill status. Please try again.",
+      });
     } finally {
       setIsSavingAssessmentStatus(false);
     }
@@ -2066,7 +2045,7 @@ function AssessmentsWorkspaceBody() {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {ASSESSMENT_STATUSES.map((status) => {
                     const meta = STATUS_META[status];
-                    const active = selectedTile.draftStatus === status;
+                    const active = selectedTileDraftStatus === status;
 
                     return (
                       <button
@@ -2094,30 +2073,30 @@ function AssessmentsWorkspaceBody() {
                 <div style={{ display: "grid", gap: 8 }}>
                   <label style={{ color: "#334155", fontWeight: 700 }}>Optional note</label>
                   <textarea
-                    value={selectedTile.draftNote}
+                    value={selectedTileDraftNote}
                     onChange={(event) => updateSelectedTileDraftNote(event.target.value)}
                     placeholder="Optional note about what you observed or want to revisit."
                     style={textareaStyle}
                   />
                 </div>
 
-                {selectedTile.feedback ? (
+                {selectedTileFeedback ? (
                   <div
                     style={{
                       border:
-                        selectedTile.feedback.tone === "success"
+                        selectedTileFeedback.tone === "success"
                           ? "1px solid #bbf7d0"
                           : "1px solid #fecaca",
                       background:
-                        selectedTile.feedback.tone === "success" ? "#f0fdf4" : "#fef2f2",
+                        selectedTileFeedback.tone === "success" ? "#f0fdf4" : "#fef2f2",
                       color:
-                        selectedTile.feedback.tone === "success" ? "#166534" : "#b91c1c",
+                        selectedTileFeedback.tone === "success" ? "#166534" : "#b91c1c",
                       borderRadius: 14,
                       padding: "10px 12px",
                       lineHeight: 1.6,
                     }}
                   >
-                    {selectedTile.feedback.message}
+                    {selectedTileFeedback.message}
                   </div>
                 ) : null}
 
