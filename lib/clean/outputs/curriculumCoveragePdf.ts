@@ -84,6 +84,13 @@ type LabelValueItem = {
   value: string;
 };
 
+type StatusBadge = {
+  label: string;
+  fill: ReturnType<typeof rgb>;
+  border: ReturnType<typeof rgb>;
+  text: ReturnType<typeof rgb>;
+};
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -526,10 +533,19 @@ function drawCard(
   options?: {
     fill?: ReturnType<typeof rgb>;
     border?: ReturnType<typeof rgb>;
+    badge?: StatusBadge | null;
   },
 ) {
   const innerWidth = composer.width - composer.margin * 2 - 28;
-  const titleLines = wrapText(title, composer.bold, 12.5, innerWidth);
+  const badgeFontSize = 8.5;
+  const badgeWidth = options?.badge
+    ? Math.max(
+        86,
+        composer.bold.widthOfTextAtSize(options.badge.label, badgeFontSize) + 18,
+      )
+    : 0;
+  const titleWidth = options?.badge ? Math.max(160, innerWidth - badgeWidth - 12) : innerWidth;
+  const titleLines = wrapText(title, composer.bold, 12.5, titleWidth);
   const descriptionLines = description
     ? wrapText(description, composer.regular, 10.25, innerWidth)
     : [];
@@ -556,6 +572,27 @@ function drawCard(
     fill: options?.fill || next.theme.surface,
     border: options?.border || next.theme.line,
   });
+
+  if (options?.badge) {
+    const badgeX = next.margin + 14 + innerWidth - badgeWidth;
+    const badgeTop = top - 16;
+    next.page.drawRectangle({
+      x: badgeX,
+      y: badgeTop - 18,
+      width: badgeWidth,
+      height: 18,
+      color: options.badge.fill,
+      borderColor: options.badge.border,
+      borderWidth: 1,
+    });
+    next.page.drawText(options.badge.label, {
+      x: badgeX + 9,
+      y: badgeTop - 12,
+      size: badgeFontSize,
+      font: next.bold,
+      color: options.badge.text,
+    });
+  }
 
   let cursor = drawPreparedLines(next, titleLines, {
     x: next.margin + 14,
@@ -810,6 +847,54 @@ function buildCoverageStatusCounts<TSummary extends { status: CurriculumCoverage
   );
 }
 
+function getStatusBadge(status: CurriculumCoverageStatus): StatusBadge {
+  if (status === "Evidence building") {
+    return {
+      label: status,
+      fill: rgb(0.93, 0.97, 1),
+      border: rgb(0.74, 0.84, 0.98),
+      text: rgb(0.12, 0.31, 0.71),
+    };
+  }
+
+  if (status === "Evidence started") {
+    return {
+      label: status,
+      fill: rgb(0.94, 0.95, 1),
+      border: rgb(0.78, 0.8, 0.98),
+      text: rgb(0.27, 0.24, 0.73),
+    };
+  }
+
+  return {
+    label: status,
+    fill: rgb(0.97, 0.98, 0.99),
+    border: rgb(0.87, 0.9, 0.94),
+    text: rgb(0.38, 0.45, 0.55),
+  };
+}
+
+function getStatusCardStyle(status: CurriculumCoverageStatus) {
+  if (status === "Evidence building") {
+    return {
+      fill: rgb(0.97, 0.99, 1),
+      border: rgb(0.76, 0.86, 0.98),
+    };
+  }
+
+  if (status === "Evidence started") {
+    return {
+      fill: rgb(0.98, 0.98, 1),
+      border: rgb(0.82, 0.83, 0.98),
+    };
+  }
+
+  return {
+    fill: rgb(0.99, 0.99, 1),
+    border: rgb(0.88, 0.91, 0.95),
+  };
+}
+
 function buildAreaCoverageLines(summary: {
   count: number;
   status: CurriculumCoverageStatus;
@@ -822,7 +907,6 @@ function buildAreaCoverageLines(summary: {
   ).length;
   const exampleEntries = summary.matchedEntries.slice(0, 2);
   const lines = [
-    `Status: ${summary.status}`,
     `Evidence count: ${getEvidenceItemLabel(summary.count)}`,
     `Elements with evidence: ${elementsWithEvidenceCount} of ${summary.elementSummaries.length}`,
     buildLatestEvidenceLine(summary.latestEntry),
@@ -847,7 +931,6 @@ function buildElementCoverageLines(
   >,
 ) {
   const lines = [
-    `Status: ${summary.status}`,
     `Linked evidence: ${getEvidenceItemLabel(summary.count)}`,
     buildLatestEvidenceLine(summary.latestEntry),
   ];
@@ -1111,11 +1194,17 @@ export async function generateCurriculumCoveragePdfBytes(
   );
 
   model.coverageSummary.areaSummaries.forEach((summary) => {
+    const statusStyle = getStatusCardStyle(summary.status);
     composer = drawCard(
       composer,
       summary.area.label,
       summary.area.shortDescription,
       buildAreaCoverageLines(summary),
+      {
+        fill: statusStyle.fill,
+        border: statusStyle.border,
+        badge: getStatusBadge(summary.status),
+      },
     );
   });
 
@@ -1130,6 +1219,7 @@ export async function generateCurriculumCoveragePdfBytes(
   );
 
   model.coverageSummary.areaSummaries.forEach((areaSummary) => {
+    const areaStatusStyle = getStatusCardStyle(areaSummary.status);
     composer = drawHeading(composer, areaSummary.area.label, 2, {
       minFollowingSpace: 84,
     });
@@ -1142,14 +1232,25 @@ export async function generateCurriculumCoveragePdfBytes(
       "Area overview",
       null,
       buildAreaCoverageLines(areaSummary),
+      {
+        fill: areaStatusStyle.fill,
+        border: areaStatusStyle.border,
+        badge: getStatusBadge(areaSummary.status),
+      },
     );
 
     areaSummary.elementSummaries.forEach((elementSummary) => {
+      const elementStatusStyle = getStatusCardStyle(elementSummary.status);
       composer = drawCard(
         composer,
         elementSummary.element.label,
         elementSummary.element.shortDescription,
         buildElementCoverageLines(elementSummary),
+        {
+          fill: elementStatusStyle.fill,
+          border: elementStatusStyle.border,
+          badge: getStatusBadge(elementSummary.status),
+        },
       );
     });
   });
@@ -1162,11 +1263,17 @@ export async function generateCurriculumCoveragePdfBytes(
     });
 
     model.coverageSummary.supplementaryAreaSummaries.forEach((summary) => {
+      const supplementaryStatusStyle = getStatusCardStyle(summary.status);
       composer = drawCard(
         composer,
         summary.area.label,
         summary.area.shortDescription,
         buildElementCoverageLines(summary),
+        {
+          fill: supplementaryStatusStyle.fill,
+          border: supplementaryStatusStyle.border,
+          badge: getStatusBadge(summary.status),
+        },
       );
     });
   }
