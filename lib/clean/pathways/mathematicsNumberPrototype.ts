@@ -27,6 +27,12 @@ export type NumberPathwayStep = {
   id: number;
   title: string;
   meaning: string;
+  skillFocus?: string;
+  learningIntention?: string;
+  successCriteria?: string[];
+  practiceActivity?: string;
+  evidenceExamples?: string[];
+  assessmentCheck?: string;
 };
 
 export type NumberPathwayStage = {
@@ -34,6 +40,16 @@ export type NumberPathwayStage = {
   title: string;
   helper: string;
   steps: NumberPathwayStep[];
+};
+
+export type NumberPathwayStepGuidance = {
+  whatThisMeans: string;
+  skillFocus: string;
+  learningIntention: string;
+  successCriteria: string[];
+  practiceActivity: string;
+  evidenceExamples: string[];
+  assessmentCheck: string;
 };
 
 export const PATHWAY_STAGE_ORDER: PathwayStageKey[] = [
@@ -571,4 +587,332 @@ export function getDemoPathwayStatus(
   }
 
   return stepId % 7 === 0 ? "Practising" : "Not started";
+}
+
+type StepGuidanceCategory =
+  | "counting"
+  | "place-value"
+  | "calculation"
+  | "multiplicative"
+  | "fractions-and-proportion"
+  | "estimation"
+  | "real-world"
+  | "abstract-number"
+  | "reasoning";
+
+function normalizeStepPhrase(title: string) {
+  const trimmed = title.trim().replace(/[.]+$/, "");
+  return trimmed ? trimmed.charAt(0).toLowerCase() + trimmed.slice(1) : "use this number skill";
+}
+
+function detectStepGuidanceCategory(step: NumberPathwayStep): StepGuidanceCategory {
+  const text = `${step.title} ${step.meaning}`.toLowerCase();
+
+  if (
+    text.includes("justify") ||
+    text.includes("communicate") ||
+    text.includes("explain") ||
+    text.includes("reasoning") ||
+    text.includes("algebraic thinking")
+  ) {
+    return "reasoning";
+  }
+
+  if (
+    text.includes("money") ||
+    text.includes("financial") ||
+    text.includes("real-world") ||
+    text.includes("practical number problems") ||
+    text.includes("modelling")
+  ) {
+    return "real-world";
+  }
+
+  if (
+    text.includes("estimate") ||
+    text.includes("round") ||
+    text.includes("bounds") ||
+    text.includes("reasonableness")
+  ) {
+    return "estimation";
+  }
+
+  if (
+    text.includes("fraction") ||
+    text.includes("decimal") ||
+    text.includes("percentage") ||
+    text.includes("ratio") ||
+    text.includes("proportion") ||
+    text.includes("rate")
+  ) {
+    return "fractions-and-proportion";
+  }
+
+  if (
+    text.includes("multiply") ||
+    text.includes("divide") ||
+    text.includes("array") ||
+    text.includes("equal groups") ||
+    text.includes("grouping") ||
+    text.includes("sharing") ||
+    text.includes("share small collections")
+  ) {
+    return "multiplicative";
+  }
+
+  if (
+    text.includes("add") ||
+    text.includes("subtract") ||
+    text.includes("joining") ||
+    text.includes("taking away")
+  ) {
+    return "calculation";
+  }
+
+  if (
+    text.includes("place value") ||
+    text.includes("tens") ||
+    text.includes("ones") ||
+    text.includes("hundreds") ||
+    text.includes("digit") ||
+    text.includes("placeholder") ||
+    text.includes("standard form")
+  ) {
+    return "place-value";
+  }
+
+  if (
+    text.includes("negative") ||
+    text.includes("integer") ||
+    text.includes("prime") ||
+    text.includes("factor") ||
+    text.includes("multiple") ||
+    text.includes("divisibility") ||
+    text.includes("index") ||
+    text.includes("power") ||
+    text.includes("root")
+  ) {
+    return "abstract-number";
+  }
+
+  return "counting";
+}
+
+function getDefaultSkillFocus(category: StepGuidanceCategory) {
+  switch (category) {
+    case "place-value":
+      return "Place value and number structure.";
+    case "calculation":
+      return "Calculation using number relationships and efficient strategies.";
+    case "multiplicative":
+      return "Multiplicative thinking through grouping, sharing, arrays, and known facts.";
+    case "fractions-and-proportion":
+      return "Part-whole understanding and proportional reasoning.";
+    case "estimation":
+      return "Estimating, checking, and judging whether answers make sense.";
+    case "real-world":
+      return "Applying number understanding in practical and real-life situations.";
+    case "abstract-number":
+      return "Working with more abstract number relationships, notation, and structure.";
+    case "reasoning":
+      return "Explaining mathematical thinking and choosing sensible strategies.";
+    default:
+      return "Counting, quantity, and early number confidence.";
+  }
+}
+
+function getDefaultSuccessCriteria(category: StepGuidanceCategory) {
+  switch (category) {
+    case "place-value":
+      return [
+        "can read, build, or represent the number clearly",
+        "can explain the value of each digit or part",
+        "can partition or regroup the number in a sensible way",
+        "can compare or check the number using place-value thinking",
+      ];
+    case "calculation":
+      return [
+        "can choose a sensible strategy for the calculation",
+        "can solve the problem with growing accuracy",
+        "can explain how the strategy worked",
+        "can check whether the answer makes sense",
+      ];
+    case "multiplicative":
+      return [
+        "can show the groups, sharing, or array clearly",
+        "can connect the model to the numbers in the problem",
+        "can use known facts or repeated patterns to help",
+        "can explain what the answer means in context",
+      ];
+    case "fractions-and-proportion":
+      return [
+        "can represent the amount clearly using drawings, models, or numbers",
+        "can compare or connect different forms of the same amount",
+        "can explain what each part means",
+        "can use the idea in a short practical example",
+      ];
+    case "estimation":
+      return [
+        "can make a sensible estimate before or after solving",
+        "can explain why the estimate is reasonable",
+        "can compare the exact answer with the estimate",
+        "can notice when an answer does not look right",
+      ];
+    case "real-world":
+      return [
+        "can identify the important numbers in the situation",
+        "can choose a method that fits the task",
+        "can explain the decision or conclusion clearly",
+        "can connect the answer back to the real context",
+      ];
+    case "abstract-number":
+      return [
+        "can represent the idea using correct notation where appropriate",
+        "can use the number relationship accurately",
+        "can explain what the notation or structure means",
+        "can apply the idea in a short example",
+      ];
+    case "reasoning":
+      return [
+        "can explain the mathematical idea in their own words",
+        "can justify the chosen method or conclusion",
+        "can compare approaches or notice patterns",
+        "can check whether the thinking is sensible",
+      ];
+    default:
+      return [
+        "can show the quantity or count accurately",
+        "can match the number to objects, words, or symbols",
+        "can explain what the number or pattern means",
+        "can use the idea in a short practical example",
+      ];
+  }
+}
+
+function getDefaultPracticeActivity(category: StepGuidanceCategory, step: NumberPathwayStep) {
+  switch (category) {
+    case "place-value":
+      return `Use a place-value chart, base-ten materials, quick sketches, or bundled objects to explore how to ${normalizeStepPhrase(
+        step.title,
+      )}. Ask the learner to build an example, explain it, and then change part of it to describe what changed.`;
+    case "calculation":
+      return `Use counters, drawings, an open number line, or small written examples to practise how to ${normalizeStepPhrase(
+        step.title,
+      )}. Ask the learner to talk through the method and check the answer afterwards.`;
+    case "multiplicative":
+      return `Use equal groups, sharing tasks, counters, or arrays to practise how to ${normalizeStepPhrase(
+        step.title,
+      )}. Keep the numbers small at first, then vary the example and ask the learner to explain the pattern.`;
+    case "fractions-and-proportion":
+      return `Use fraction strips, food, measuring tools, drawings, or everyday comparisons to explore how to ${normalizeStepPhrase(
+        step.title,
+      )}. Ask the learner to show the idea in more than one way and explain what stays the same.`;
+    case "estimation":
+      return `Before solving a short problem, ask the learner to make a rough estimate connected to ${normalizeStepPhrase(
+        step.title,
+      )}. Solve the task together, then compare the exact answer with the estimate and discuss why it was sensible or not.`;
+    case "real-world":
+      return `Use a simple real-life scenario to practise how to ${normalizeStepPhrase(
+        step.title,
+      )}. This could be shopping, measuring, budgeting, planning, or comparing options. Ask the learner to explain the decision as well as the answer.`;
+    case "abstract-number":
+      return `Use a few carefully chosen examples to practise how to ${normalizeStepPhrase(
+        step.title,
+      )}. Encourage the learner to write the notation clearly, explain what it means, and compare different examples side by side.`;
+    case "reasoning":
+      return `Set up one short problem or statement connected to ${normalizeStepPhrase(
+        step.title,
+      )}. Ask the learner to explain their thinking aloud, justify the method, and say how they know the answer is sensible.`;
+    default:
+      return `Use small objects, number cards, dot patterns, or drawings to practise how to ${normalizeStepPhrase(
+        step.title,
+      )}. Ask the learner to show the idea, say it aloud, and repeat it in a slightly different example.`;
+  }
+}
+
+function getDefaultEvidenceExamples(category: StepGuidanceCategory) {
+  switch (category) {
+    case "place-value":
+      return [
+        "photo of a place-value model, chart, or worked example",
+        "parent note describing how the learner explained each part",
+        "short written example showing partitioning or regrouping",
+      ];
+    case "calculation":
+      return [
+        "worked example showing the chosen strategy",
+        "parent note about how the learner explained the calculation",
+        "photo of number-line, drawing, or equipment used to solve it",
+      ];
+    case "multiplicative":
+      return [
+        "photo of arrays, groups, or sharing materials",
+        "short written or oral explanation of the grouping pattern",
+        "parent note about how the learner used facts or repeated reasoning",
+      ];
+    case "fractions-and-proportion":
+      return [
+        "photo or drawing showing the fraction, decimal, or ratio model",
+        "parent note describing how the learner compared or explained the parts",
+        "short written example connecting two forms of the same amount",
+      ];
+    case "estimation":
+      return [
+        "photo or note showing the estimate and the exact answer",
+        "parent reflection about how the learner judged reasonableness",
+        "short written comparison of what was close and what changed",
+      ];
+    case "real-world":
+      return [
+        "photo or note from a real-life maths task",
+        "brief explanation of the learner's decision or comparison",
+        "written example showing how the mathematics was applied in context",
+      ];
+    case "abstract-number":
+      return [
+        "short worked example using the correct notation",
+        "parent note describing how the learner explained the structure",
+        "photo of a comparison or pattern the learner noticed",
+      ];
+    case "reasoning":
+      return [
+        "audio, note, or written explanation of the learner's thinking",
+        "example showing how the learner justified an answer",
+        "parent reflection on how clearly the reasoning was communicated",
+      ];
+    default:
+      return [
+        "photo of objects, cards, or drawings used during the task",
+        "parent note describing how the learner counted or compared",
+        "short written or spoken example showing the idea clearly",
+      ];
+  }
+}
+
+export function getNumberPathwayStepGuidance(
+  step: NumberPathwayStep,
+): NumberPathwayStepGuidance {
+  const category = detectStepGuidanceCategory(step);
+  const successCriteria =
+    step.successCriteria?.filter((item) => item.trim().length > 0) ||
+    getDefaultSuccessCriteria(category);
+  const evidenceExamples =
+    step.evidenceExamples?.filter((item) => item.trim().length > 0) ||
+    getDefaultEvidenceExamples(category);
+
+  return {
+    whatThisMeans: step.meaning,
+    skillFocus: step.skillFocus || getDefaultSkillFocus(category),
+    learningIntention:
+      step.learningIntention ||
+      `The learner is learning to ${normalizeStepPhrase(step.title)}.`,
+    successCriteria,
+    practiceActivity: step.practiceActivity || getDefaultPracticeActivity(category, step),
+    evidenceExamples,
+    assessmentCheck:
+      step.assessmentCheck ||
+      `A future assessment check could ask the learner to ${normalizeStepPhrase(
+        step.title,
+      )} independently and explain their thinking.`,
+  };
 }

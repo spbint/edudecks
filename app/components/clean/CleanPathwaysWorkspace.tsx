@@ -17,6 +17,7 @@ import {
   type PathwayProgressStatus,
   type PathwayStageKey,
   getDemoPathwayStatus,
+  getNumberPathwayStepGuidance,
   getStageProgressionLabel,
   inferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
@@ -1043,8 +1044,14 @@ function NumberStepCard({
   assessmentPathBase: string;
   capturePathBase: string;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
   const status = getDemoPathwayStatus(step.id, stageKey, currentStage);
   const meta = statusMeta[status];
+  const guidance = useMemo(() => getNumberPathwayStepGuidance(step), [step]);
+  const detailPanelId = `pathway-step-${stageKey}-${step.id}`;
+  const practiceButtonLabel = `Practise this pathway step`;
+  const assessButtonLabel = `Assess this pathway step in My Assessments`;
+  const captureButtonLabel = `Capture evidence for this pathway step`;
 
   return (
     <article
@@ -1086,47 +1093,191 @@ function NumberStepCard({
           <div style={{ color: "#475569", lineHeight: 1.7 }}>{step.meaning}</div>
         </div>
 
-        <div
-          title={meta.helper}
-          style={{
-            border: `1px solid ${meta.border}`,
-            borderRadius: 999,
-            background: meta.fill,
-            padding: "8px 12px",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <span
-            aria-hidden="true"
+        <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
+          <div
+            title={meta.helper}
             style={{
-              width: 10,
-              height: 10,
+              border: `1px solid ${meta.border}`,
               borderRadius: 999,
-              background: meta.dot,
-              flexShrink: 0,
+              background: meta.fill,
+              padding: "8px 12px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
             }}
-          />
-          <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                background: meta.dot,
+                flexShrink: 0,
+              }}
+            />
+            <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsOpen((current) => !current)}
+            aria-expanded={isOpen}
+            aria-controls={detailPanelId}
+            style={{
+              border: "1px solid #dbeafe",
+              background: "#ffffff",
+              color: "#1d4ed8",
+              borderRadius: 999,
+              padding: "8px 12px",
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span>{isOpen ? "Hide guidance" : "View guidance"}</span>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 22,
+                height: 22,
+                borderRadius: 999,
+                border: "1px solid #dbeafe",
+                background: "#eff6ff",
+                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 140ms ease",
+                fontSize: 11,
+              }}
+            >
+              v
+            </span>
+          </button>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" style={disabledButtonStyle} disabled>
+        <button
+          type="button"
+          style={disabledButtonStyle}
+          disabled
+          title="Parent-guided practice for this pathway step will be added later."
+          aria-label={practiceButtonLabel}
+        >
           Practise
         </button>
-        <Link href={assessmentPathBase} style={secondaryButtonStyle}>
+        <Link
+          href={assessmentPathBase}
+          style={secondaryButtonStyle}
+          title="Open My Assessments to check understanding for this pathway step."
+          aria-label={assessButtonLabel}
+        >
           Assess
         </Link>
-        <Link href={capturePathBase} style={secondaryButtonStyle}>
+        <Link
+          href={capturePathBase}
+          style={secondaryButtonStyle}
+          title="Open My Capture to record evidence for this pathway step."
+          aria-label={captureButtonLabel}
+        >
           Capture evidence
         </Link>
-        <button type="button" style={disabledButtonStyle} disabled>
-          Create program
-        </button>
+      </div>
+
+      <div
+        id={detailPanelId}
+        hidden={!isOpen}
+        style={
+          isOpen
+            ? {
+                border: "1px solid #dbeafe",
+                borderRadius: 16,
+                background: "#f8fbff",
+                padding: 16,
+                display: "grid",
+                gap: 14,
+              }
+            : { display: "none" }
+        }
+      >
+        <PathwayStepGuidanceSection
+          title="What this means"
+          content={guidance.whatThisMeans}
+        />
+        <PathwayStepGuidanceSection
+          title="Skill being developed"
+          content={guidance.skillFocus}
+        />
+        <PathwayStepGuidanceSection
+          title="Learning intention"
+          content={guidance.learningIntention}
+        />
+        <PathwayStepGuidanceListSection
+          title="Success looks like"
+          items={guidance.successCriteria}
+        />
+        <PathwayStepGuidanceSection
+          title="Try this activity"
+          content={guidance.practiceActivity}
+        />
+        <PathwayStepGuidanceListSection
+          title="Evidence you could capture"
+          items={guidance.evidenceExamples}
+        />
+        <PathwayStepGuidanceSection
+          title="Assessment check later"
+          content={guidance.assessmentCheck}
+        />
       </div>
     </article>
+  );
+}
+
+function PathwayStepGuidanceSection({
+  title,
+  content,
+}: {
+  title: string;
+  content: string;
+}) {
+  return (
+    <section style={{ display: "grid", gap: 6 }}>
+      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
+      <div style={{ color: "#475569", lineHeight: 1.7 }}>{content}</div>
+    </section>
+  );
+}
+
+function PathwayStepGuidanceListSection({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}) {
+  return (
+    <section style={{ display: "grid", gap: 8 }}>
+      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
+      <ul
+        style={{
+          margin: 0,
+          paddingLeft: 18,
+          color: "#475569",
+          lineHeight: 1.7,
+          display: "grid",
+          gap: 6,
+        }}
+      >
+        {items.map((item) => (
+          <li key={`${title}-${item}`}>{item}</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
