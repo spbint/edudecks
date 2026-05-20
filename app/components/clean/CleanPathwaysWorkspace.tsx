@@ -183,6 +183,13 @@ const LOOP_STEPS = [
   },
 ];
 
+type StageSummaryCounts = {
+  steps: number;
+  secure: number;
+  readyToAssess: number;
+  evidenceStarted: number;
+};
+
 function safe(value: string | null | undefined) {
   return (value || "").trim();
 }
@@ -249,10 +256,40 @@ function getStageTone(stage: PathwayStageKey, currentStage: PathwayStageKey) {
   };
 }
 
+function buildStageSummaryCounts(
+  stage: NumberPathwayStage,
+  currentStage: PathwayStageKey,
+): StageSummaryCounts {
+  return stage.steps.reduce(
+    (totals, step) => {
+      const status = getDemoPathwayStatus(step.id, stage.key, currentStage);
+
+      if (status === "Secure") {
+        totals.secure += 1;
+      } else if (status === "Ready to assess") {
+        totals.readyToAssess += 1;
+      } else if (status === "Evidence started") {
+        totals.evidenceStarted += 1;
+      }
+
+      return totals;
+    },
+    {
+      steps: stage.steps.length,
+      secure: 0,
+      readyToAssess: 0,
+      evidenceStarted: 0,
+    },
+  );
+}
+
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
+  const [stageOpenOverrides, setStageOpenOverrides] = useState<
+    Partial<Record<PathwayStageKey, boolean>>
+  >({});
 
   const learnerOptions = useMemo(
     () =>
@@ -737,6 +774,13 @@ function PathwaysWorkspaceBody() {
                   key={stage.key}
                   stage={stage}
                   currentStage={currentStageFocus}
+                  isOpen={stageOpenOverrides[stage.key] ?? stage.key === currentStageFocus}
+                  onToggle={() =>
+                    setStageOpenOverrides((current) => ({
+                      ...current,
+                      [stage.key]: !(current[stage.key] ?? stage.key === currentStageFocus),
+                    }))
+                  }
                   assessmentPathBase={assessmentPathBase}
                   capturePathBase={capturePathBase}
                 />
@@ -796,15 +840,63 @@ function PathwaysWorkspaceBody() {
 function NumberStageCard({
   stage,
   currentStage,
+  isOpen,
+  onToggle,
   assessmentPathBase,
   capturePathBase,
 }: {
   stage: NumberPathwayStage;
   currentStage: PathwayStageKey;
+  isOpen: boolean;
+  onToggle: () => void;
   assessmentPathBase: string;
   capturePathBase: string;
 }) {
   const tone = getStageTone(stage.key, currentStage);
+  const summary = buildStageSummaryCounts(stage, currentStage);
+  const panelId = `number-pathway-stage-${stage.key}`;
+  const summaryChips = [
+    {
+      key: "steps",
+      label: `${summary.steps} steps`,
+      border: "#e2e8f0",
+      background: "#ffffff",
+      color: "#475569",
+    },
+    summary.secure > 0
+      ? {
+          key: "secure",
+          label: `${summary.secure} secure`,
+          border: "#bbf7d0",
+          background: "#ecfdf5",
+          color: "#166534",
+        }
+      : null,
+    summary.readyToAssess > 0
+      ? {
+          key: "ready",
+          label: `${summary.readyToAssess} ready to assess`,
+          border: "#ddd6fe",
+          background: "#f5f3ff",
+          color: "#6d28d9",
+        }
+      : null,
+    summary.evidenceStarted > 0
+      ? {
+          key: "evidence",
+          label: `${summary.evidenceStarted} evidence started`,
+          border: "#bfdbfe",
+          background: "#eff6ff",
+          color: "#1d4ed8",
+        }
+      : null,
+  ].filter(Boolean) as Array<{
+    key: string;
+    label: string;
+    border: string;
+    background: string;
+    color: string;
+  }>;
 
   return (
     <section
@@ -818,47 +910,111 @@ function NumberStageCard({
         boxShadow: tone.shadow,
       }}
     >
-      <div
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        aria-label={`${isOpen ? "Collapse" : "Expand"} stage ${stage.title}`}
         style={{
-          display: "flex",
-          justifyContent: "space-between",
+          width: "100%",
+          border: "none",
+          background: "transparent",
+          padding: 0,
+          textAlign: "left",
+          cursor: "pointer",
+          display: "grid",
           gap: 12,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
+          outlineOffset: 3,
         }}
       >
-        <div style={{ display: "grid", gap: 6, maxWidth: 700 }}>
-          <span
-            style={{
-              color: tone.text,
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-            }}
-          >
-            {tone.badge}
-          </span>
-          <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>{stage.title}</h3>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{stage.helper}</p>
-        </div>
-
-        <span
+        <div
           style={{
-            border: `1px solid ${tone.border}`,
-            background: "#ffffff",
-            color: tone.text,
-            borderRadius: 999,
-            padding: "8px 12px",
-            fontSize: 12,
-            fontWeight: 800,
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "flex-start",
+            flexWrap: "wrap",
           }}
         >
-          {stage.steps.length} pathway steps
-        </span>
-      </div>
+          <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
+            <span
+              style={{
+                color: tone.text,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {tone.badge}
+            </span>
+            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>{stage.title}</h3>
+          </div>
 
-      <div style={{ display: "grid", gap: 10 }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              color: tone.text,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            <span>{isOpen ? "Collapse stage" : "Expand stage"}</span>
+            <span
+              aria-hidden="true"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 30,
+                height: 30,
+                borderRadius: 999,
+                border: `1px solid ${tone.border}`,
+                background: "#ffffff",
+                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 140ms ease",
+                boxShadow: "0 4px 12px rgba(15,23,42,0.05)",
+              }}
+            >
+              v
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 10 }}>
+          {isOpen ? (
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>{stage.helper}</div>
+          ) : null}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            {summaryChips.map((chip) => (
+              <span
+                key={chip.key}
+                style={{
+                  border: `1px solid ${chip.border}`,
+                  background: chip.background,
+                  color: chip.color,
+                  borderRadius: 999,
+                  padding: "7px 10px",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  lineHeight: 1.3,
+                }}
+              >
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </button>
+
+      <div
+        id={panelId}
+        hidden={!isOpen}
+        style={isOpen ? { display: "grid", gap: 10 } : { display: "none" }}
+      >
         {stage.steps.map((step) => (
           <NumberStepCard
             key={`${stage.key}-${step.id}`}
