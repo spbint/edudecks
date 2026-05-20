@@ -85,6 +85,13 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const PATHWAY_OBSERVED_SKILL_STATUS_OPTIONS = [
+  "Still developing",
+  "Developing",
+  "Secure",
+  "Strong",
+] as const;
+
 function getTodayDate() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -254,6 +261,7 @@ function CleanCaptureWorkspaceBody() {
     useState<CleanCurriculumCaptureContext | null>(null);
   const [formPathwayContext, setFormPathwayContext] =
     useState<CleanPathwayCaptureContext | null>(null);
+  const [pathwayObservedSkillStatus, setPathwayObservedSkillStatus] = useState("");
   const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
   const [lastSavedPathwayContext, setLastSavedPathwayContext] =
@@ -459,6 +467,7 @@ function CleanCaptureWorkspaceBody() {
     setLearningArea("");
     setProgramId("");
     setCalendarItemId("");
+    setPathwayObservedSkillStatus("");
     if (!options.keepCurriculumContext) {
       setFormCurriculumContext(null);
     }
@@ -505,6 +514,9 @@ function CleanCaptureWorkspaceBody() {
       setCalendarItemId(existingEntry.calendarItemId || calendarItemIdFromQuery || "");
       setFormCurriculumContext(existingEntryCurriculumContext);
       setFormPathwayContext(existingEntryPathwayContext);
+      setPathwayObservedSkillStatus(
+        safeQueryValue(existingEntryPathwayContext?.observedSkillStatus),
+      );
       setMessage(null);
       setActionError(null);
       setLastSavedCurriculumContext(null);
@@ -578,6 +590,7 @@ function CleanCaptureWorkspaceBody() {
     setCalendarItemId(calendarItemIdFromQuery || "");
     setFormCurriculumContext(derivedPathwayCurriculumContext || nextCurriculumContext);
     setFormPathwayContext(nextPathwayContext);
+    setPathwayObservedSkillStatus(safeQueryValue(nextPathwayContext?.observedSkillStatus));
     setMessage(null);
     setActionError(null);
     setLastSavedCurriculumContext(null);
@@ -619,7 +632,10 @@ function CleanCaptureWorkspaceBody() {
 
     try {
       const nextCurriculumContext = buildCurriculumCaptureContext(formCurriculumContext || {});
-      const nextPathwayContext = buildPathwayCaptureContext(formPathwayContext || {});
+      const nextPathwayContext = buildPathwayCaptureContext({
+        ...(formPathwayContext || {}),
+        observedSkillStatus: safeQueryValue(pathwayObservedSkillStatus) || null,
+      });
       const existingCurriculumNodeIds = editingEntry?.curriculumNodeIds ?? [];
       const curriculumNodeIds = encodeCurriculumContextNodeIds(
         existingCurriculumNodeIds,
@@ -723,6 +739,7 @@ function CleanCaptureWorkspaceBody() {
     setCalendarItemId(entry.calendarItemId || "");
     setFormCurriculumContext(entryCurriculumContext);
     setFormPathwayContext(entryPathwayContext);
+    setPathwayObservedSkillStatus(safeQueryValue(entryPathwayContext?.observedSkillStatus));
     setMessage(null);
     setActionError(null);
     setLastSavedCurriculumContext(null);
@@ -745,6 +762,9 @@ function CleanCaptureWorkspaceBody() {
   );
   const pathwayCaptureActive =
     formPathwayContext?.source === MY_PATHWAYS_SOURCE;
+  const pathwayObservedStatusFieldVisible =
+    pathwayCaptureActive &&
+    Boolean(pathwayContextFromQuery || safeQueryValue(formPathwayContext?.observedSkillStatus));
   const curriculumCaptureActive =
     !pathwayCaptureActive && formCurriculumContext?.source === MY_CURRICULUM_SOURCE;
   const curriculumWhatHappenedPlaceholder = pathwayCaptureActive
@@ -1003,6 +1023,30 @@ function CleanCaptureWorkspaceBody() {
                   placeholder={reflectionPlaceholder}
                   style={textAreaStyle}
                 />
+
+                {pathwayObservedStatusFieldVisible ? (
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                      How did this skill look?
+                    </span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                      This is your observation from this evidence. Formal assessment checks can
+                      come later.
+                    </span>
+                    <select
+                      value={pathwayObservedSkillStatus}
+                      onChange={(event) => setPathwayObservedSkillStatus(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Not selected</option>
+                      {PATHWAY_OBSERVED_SKILL_STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
 
                 <input
                   value={learningArea}
@@ -1291,6 +1335,11 @@ function CleanCaptureWorkspaceBody() {
                             ]
                               .filter(Boolean)
                               .join(" - ")}
+                          </div>
+                        ) : null}
+                        {entryPathwayContext?.observedSkillStatus ? (
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                            Observed skill status: {entryPathwayContext.observedSkillStatus}
                           </div>
                         ) : null}
                         {linkedProgram || linkedCalendarItem ? (

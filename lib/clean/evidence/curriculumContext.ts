@@ -19,6 +19,7 @@ const PATHWAY_STEP_NUMBER_PREFIX = "pathway-step-number:";
 const PATHWAY_STEP_TITLE_PREFIX = "pathway-step-title:";
 const PATHWAY_STEP_MEANING_PREFIX = "pathway-step-meaning:";
 const PATHWAY_SKILL_FOCUS_PREFIX = "pathway-skill-focus:";
+const PATHWAY_STATUS_PREFIX = "pathway-status:";
 
 const CURRICULUM_CONTEXT_PREFIXES = [
   LEARNING_AREA_KEY_PREFIX,
@@ -42,6 +43,7 @@ const PATHWAY_CONTEXT_PREFIXES = [
   PATHWAY_STEP_TITLE_PREFIX,
   PATHWAY_STEP_MEANING_PREFIX,
   PATHWAY_SKILL_FOCUS_PREFIX,
+  PATHWAY_STATUS_PREFIX,
 ];
 
 export type CleanCurriculumCaptureContext = {
@@ -66,6 +68,7 @@ export type CleanPathwayCaptureContext = {
   stepTitle?: string | null;
   stepMeaning?: string | null;
   skillFocus?: string | null;
+  observedSkillStatus?: string | null;
 };
 
 type SearchParamsReader = {
@@ -115,7 +118,8 @@ function hasPathwayContextValue(context: Partial<CleanPathwayCaptureContext>) {
       safe(context.stepNumber) ||
       safe(context.stepTitle) ||
       safe(context.stepMeaning) ||
-      safe(context.skillFocus),
+      safe(context.skillFocus) ||
+      safe(context.observedSkillStatus),
   );
 }
 
@@ -158,6 +162,7 @@ export function buildPathwayCaptureContext(
     stepTitle: normalizeNullString(input.stepTitle),
     stepMeaning: normalizeNullString(input.stepMeaning),
     skillFocus: normalizeNullString(input.skillFocus),
+    observedSkillStatus: normalizeNullString(input.observedSkillStatus),
   };
 
   if (!hasPathwayContextValue(nextContext)) {
@@ -210,6 +215,7 @@ export function parsePathwayCaptureContextFromSearchParams(
     stepTitle: searchParams.get("stepTitle"),
     stepMeaning: searchParams.get("stepMeaning"),
     skillFocus: searchParams.get("skillFocus"),
+    observedSkillStatus: searchParams.get("pathwayStatus"),
   });
 }
 
@@ -329,6 +335,10 @@ export function buildPathwayCaptureSearchParams(
 
   if (safe(context.skillFocus)) {
     params.set("skillFocus", safe(context.skillFocus));
+  }
+
+  if (safe(context.observedSkillStatus)) {
+    params.set("pathwayStatus", safe(context.observedSkillStatus));
   }
 
   return params;
@@ -462,6 +472,12 @@ export function encodePathwayContextNodeIds(
   if (safe(context.skillFocus)) {
     pathwayNodeIds.push(
       `${PATHWAY_SKILL_FOCUS_PREFIX}${encodeNodeValue(safe(context.skillFocus))}`,
+    );
+  }
+
+  if (safe(context.observedSkillStatus)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STATUS_PREFIX}${encodeNodeValue(safe(context.observedSkillStatus))}`,
     );
   }
 
@@ -613,6 +629,13 @@ export function parsePathwayContextFromNodeIds(nodeIds: string[]) {
     if (normalizedNodeId.startsWith(PATHWAY_SKILL_FOCUS_PREFIX)) {
       parsed.skillFocus = decodeNodeValue(
         normalizedNodeId.slice(PATHWAY_SKILL_FOCUS_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STATUS_PREFIX)) {
+      parsed.observedSkillStatus = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STATUS_PREFIX.length),
       );
     }
   }
