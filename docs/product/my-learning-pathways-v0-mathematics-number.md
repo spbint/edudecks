@@ -2,6 +2,8 @@
 
 This document defines MyLearna's first guided pathway specification for mathematics. It is a product and education specification only. It does not add UI, routes, schema, storage, or runtime behavior.
 
+MyLearna is not intended to be only a homeschool LMS, curriculum viewer or assessment tracker. Its differentiator is guided pathways for homeschool parents. The pathway layer should help a non-teacher parent understand where a learner is starting, what likely comes next, why it matters, how to practise it, how to capture evidence and how that learning later connects to assessment, planning, reporting and outputs.
+
 This pathway framework is MyLearna-owned language, informed by and crosswalked against:
 
 - Australian Curriculum: Mathematics F-10
@@ -35,6 +37,14 @@ My Learning Pathways is intended to solve that translation problem. It turns com
 
 In the wider product, pathways are the layer that connects "what matters educationally" to "what should happen next in real family planning."
 
+The core pathway promise is:
+
+- standards become sequences
+- sequences become next steps
+- next steps become practice
+- practice becomes evidence
+- evidence supports assessment, reporting and outputs
+
 ## 2. Relationship to existing MyLearna layers
 
 Each MyLearna layer answers a different question:
@@ -58,6 +68,8 @@ Productly, pathways should become the educational spine that sits between covera
 ## 3. Full Mathematics F-10 / K-10 domain map
 
 MyLearna should use a broad, parent-readable mathematics map that can later be crosswalked to the selected curriculum framework in My Settings.
+
+This domain map is intentionally broader than Number. Number is the first detailed strand because it is the clearest early backbone, but it is only one part of the full mathematics picture. The product should make that distinction obvious so parents do not mistake "the first detailed pathway" for "the whole of maths."
 
 ### Number and place value
 
@@ -173,6 +185,96 @@ Design rules for pathway steps:
 - a step should support different teaching styles and materials
 - a step should connect forward to planning, assessment and evidence
 - a step should remain framework-neutral at the parent surface, even when a crosswalk exists underneath
+
+### 5.1 Parent-facing step template
+
+For future product implementation, a pathway step should usually render in parent-facing labels like this:
+
+- Step title
+- Parent-friendly meaning
+- Learner can...
+- Before this
+- Next step
+- Practice ideas
+- Evidence examples
+- Future assessment check
+- Crosswalk notes
+
+The detailed Number pathway below already supports this structure, even where some fields are phrased in slightly more technical specification language.
+
+### 5.2 Sample fully-developed pathway steps
+
+These examples show the intended level of detail for future flagship pathway cards or drawers.
+
+#### Sample step A. Count objects accurately to 20
+
+| Field | Example |
+| --- | --- |
+| Step title | Count objects accurately to 20 |
+| Parent-friendly meaning | The learner is moving beyond very small groups and can keep track of a count without losing one-to-one matching. |
+| Learner can... | count a collection to 20, touch or move each item once, and say how many altogether at the end |
+| Before this | can identify numerals to 10 and count smaller groups reliably |
+| Next step | compare groups and order small number sequences |
+| Practice ideas | count toy cars into a parking line, count snack items into a bowl, count steps or jumps, use ten frames and double ten frames |
+| Evidence examples | short video of counting 17 counters, photo of counted collection with parent note, whiteboard recording of the final total |
+| Future assessment check | present 14-20 objects in a mixed arrangement and ask the learner to count and explain the total |
+| Crosswalk notes | early counting, quantity and cardinality expectations across Australian Foundation, UK KS1 entry work and Florida K number benchmarks |
+
+#### Sample step B. Partition two-digit numbers into tens and ones
+
+| Field | Example |
+| --- | --- |
+| Step title | Partition two-digit numbers into tens and ones |
+| Parent-friendly meaning | The learner understands that a two-digit number is built from tens and ones, not just read as two separate digits. |
+| Learner can... | show 46 as 4 tens and 6 ones using bundles, blocks, drawings or equations |
+| Before this | understands that ten ones make one ten |
+| Next step | rename two-digit numbers in more than one way |
+| Practice ideas | build numbers with straws and bundles, use place-value mats, draw tens rods and ones, play "make this number another way" |
+| Evidence examples | photo of base-ten blocks, short note explaining 58 as 5 tens and 8 ones, written partitioning task |
+| Future assessment check | ask the learner to build or explain a number such as 73 or 58 using tens and ones |
+| Crosswalk notes | place-value structure across Australian Years 1-2, UK Year 2 place value and Florida Grade 2 NSO |
+
+#### Sample step C. Add and subtract two- and three-digit numbers using place value
+
+| Field | Example |
+| --- | --- |
+| Step title | Add and subtract two- and three-digit numbers using place value |
+| Parent-friendly meaning | The learner is no longer only counting by ones and is using number structure to calculate more efficiently. |
+| Learner can... | solve calculations using partitioning, compensation, regrouping materials, open number lines or supported written methods |
+| Before this | understands hundreds, tens and ones, regrouping, and zero as a placeholder |
+| Next step | build multiplication recall and wider multiplicative reasoning |
+| Practice ideas | solve shopping totals, use base-ten blocks for regrouping, compare two methods for the same problem, estimate first and then calculate |
+| Evidence examples | annotated number-line method, written regrouping example, parent note about strategy choice in a practical problem |
+| Future assessment check | give a problem such as 236 + 147 or 402 - 185 and ask the learner to show and explain a method |
+| Crosswalk notes | additive strategies and modelling in Australian Years 3-4, lower KS2 calculation methods and Florida procedural reliability into fluency |
+
+#### Sample step D. Compare, order and generate equivalent fractions
+
+| Field | Example |
+| --- | --- |
+| Step title | Compare, order and generate equivalent fractions |
+| Parent-friendly meaning | The learner understands that fractions are numbers with size and that different fraction names can describe the same amount. |
+| Learner can... | compare familiar fractions, place them in order and explain equivalence such as one half and two quarters |
+| Before this | can represent unit fractions and recognise simple equal parts |
+| Next step | add and subtract fractions with related denominators |
+| Practice ideas | use fraction strips, folded paper, food-sharing examples, order fraction cards on a number line |
+| Evidence examples | fraction strip photo, ordered fraction card task, voice note explaining why two fractions are equivalent |
+| Future assessment check | ask the learner to compare two fractions and justify the choice using a model or number reasoning |
+| Crosswalk notes | fraction magnitude and equivalence work across Australian upper primary, UK upper KS2 and Florida upper elementary fraction development |
+
+#### Sample step E. Work with percentage change
+
+| Field | Example |
+| --- | --- |
+| Step title | Work with percentage change, growth and decay |
+| Parent-friendly meaning | The learner treats percentage as multiplicative change, not just a label on a calculator button. |
+| Learner can... | calculate increase and decrease, explain percentage change and interpret growth or reduction in a real context |
+| Before this | connects fractions, decimals and percentages and can reason proportionally |
+| Next step | apply ratio, proportion and rates of change in more formal contexts |
+| Practice ideas | sale-price comparisons, savings growth examples, population-change scenarios, repeated percentage stories |
+| Evidence examples | worked percentage-change task, spreadsheet or table, capture note from a financial example |
+| Future assessment check | give a realistic increase or decrease problem and ask for the result and an explanation of what changed |
+| Crosswalk notes | percentage and consumer-maths ideas across Australian Years 9-10, UK KS4 number and Florida real-world number application |
 
 ## 6. MyLearna Number Pathway - parent-followable sequence
 
@@ -497,15 +599,15 @@ Design rules for pathway steps:
 - Future assessment check idea: ask for an estimate before solving a calculation or money problem and then compare estimate to exact result.
 - Crosswalk notes: aligns with Australian reasoning and fluency expectations, UK KS2 checking strategies and Florida emphasis on estimation and method choice.
 
-#### Step 29. Represent unit fractions and simple equivalent fractions
+#### Step 29. Recognise and represent unit fractions and simple fractions
 
-- What it means: the learner understands fractions as numbers that can represent equal parts and relationships.
-- The learner should be able to do: represent unit fractions, compare simple fractions and notice basic equivalence such as two quarters equals one half.
+- What it means: the learner understands that fractions name equal parts of a whole or collection and can begin to treat them as numbers.
+- The learner should be able to do: represent halves, thirds, quarters and other simple fractions in familiar models and talk about equal parts accurately.
 - Prerequisite: Step 28.
 - Next likely step: Step 30 - Solve practical number problems including money.
 - Practice ideas: folded paper, fraction strips, food-sharing contexts, equal-part diagrams.
 - Evidence examples: fraction strip work, photo of partitioned shapes, capture note using fraction language.
-- Future assessment check idea: ask the learner to show one half in two different ways and explain whether two quarters is the same amount.
+- Future assessment check idea: ask the learner to show one half, one quarter or one third in a model and explain why the parts are equal.
 - Crosswalk notes: aligns with Australian fraction interpretation, UK lower KS2 fractions and Florida fraction benchmarks as rational-number foundations.
 
 #### Step 30. Solve practical number problems including money
@@ -565,15 +667,15 @@ Design rules for pathway steps:
 - Future assessment check idea: ask the learner to order several decimals and justify the placement of each.
 - Crosswalk notes: maps to Australian Year 4-6 decimals, UK upper KS2 decimal comparison and Florida decimal-number benchmarks.
 
-#### Step 35. Work with equivalent fractions
+#### Step 35. Compare, order and generate equivalent fractions
 
-- What it means: the learner understands that different fraction names can represent the same amount.
-- The learner should be able to do: generate and recognise equivalent fractions using models, factors or common sense checks.
+- What it means: the learner understands that fractions have size, can be placed in order and can be renamed without changing value.
+- The learner should be able to do: compare familiar fractions, order them and generate equivalent fractions using models, factors or common-sense checks.
 - Prerequisite: Step 34.
 - Next likely step: Step 36 - Add and subtract fractions with related denominators.
 - Practice ideas: fraction strips, folding paper, shade-and-compare diagrams, equivalent fraction matching.
 - Evidence examples: fraction strip photo, written matching task, parent note on simplification or expansion.
-- Future assessment check idea: ask whether two fractions are equivalent and how the learner can prove it.
+- Future assessment check idea: ask the learner to compare two fractions or show why two fractions are equivalent using a model or number reasoning.
 - Crosswalk notes: aligns with Australian fraction equivalence, UK upper KS2 fractions and Florida fraction-development expectations.
 
 #### Step 36. Add and subtract fractions with related denominators
@@ -855,11 +957,31 @@ Design rules for pathway steps:
 - Future assessment check idea: ask the learner to solve a complex problem and then explain why the method and answer are reasonable.
 - Crosswalk notes: aligns with Australian reasoning and communication aims, UK KS4 mathematical argument and Florida Mathematical Thinking and Reasoning expectations.
 
-## 7. Crosswalk principles
+## 7. Pathway status logic
+
+My Assessments statuses should not only describe confidence. They should also influence pathway guidance.
+
+| Assessment status | What it usually means in pathway guidance | Typical MyLearna response |
+| --- | --- | --- |
+| Not assessed yet | The family has not yet recorded a judgement for this step. | show the current step, its prerequisite, simple practice ideas and a gentle prompt to observe or try a first check |
+| Still developing | Early understanding is visible but not yet settled. | keep the learner on the current step, suggest hands-on practice, and surface one earlier support step if needed |
+| Developing | Confidence is building but not yet consistent across contexts. | keep the current step active, increase varied practice, and start previewing the next step without fully moving on |
+| Secure | The learner usually shows the skill with confidence. | suggest the next likely step while keeping light review of the current step |
+| Strong | The learner shows repeated confidence, efficient strategy use or standout performance. | move forward to the next step, offer extension or richer application, and encourage evidence capture that shows transfer |
+
+Guidance rules for later product behavior:
+
+- a status should guide the next step, not replace parent judgement
+- a learner can be secure in one step and still need support in an earlier related step
+- pathway movement should not depend on a single score or one-off check
+- the pathway layer should encourage review loops, not only forward movement
+- evidence capture should be prompted most strongly when a learner is moving from developing toward secure, or from secure toward strong
+
+## 8. Crosswalk principles
 
 MyLearna should later map pathway steps to frameworks using the following principles.
 
-### 7.1 MyLearna steps stay parent-facing and framework-neutral
+### 8.1 MyLearna steps stay parent-facing and framework-neutral
 
 Parents should see calm, actionable step language such as:
 
@@ -869,7 +991,7 @@ Parents should see calm, actionable step language such as:
 
 They should not need to navigate curriculum codes or benchmark databases to understand what to do next.
 
-### 7.2 Crosswalks are one-to-many, not one-to-one
+### 8.2 Crosswalks are one-to-many, not one-to-one
 
 One MyLearna pathway step may connect to:
 
@@ -881,7 +1003,7 @@ One MyLearna pathway step may connect to:
 
 The crosswalk should therefore be concept-based, not code-first.
 
-### 7.3 Sequence comes before code matching
+### 8.3 Sequence comes before code matching
 
 MyLearna should protect the learning sequence even when frameworks organise content differently. For example:
 
@@ -891,7 +1013,7 @@ MyLearna should protect the learning sequence even when frameworks organise cont
 
 The internal crosswalk should not break a parent-friendly learning sequence just to mirror a standards index.
 
-### 7.4 Australian Curriculum mapping principle
+### 8.4 Australian Curriculum mapping principle
 
 Each pathway step can later be mapped to:
 
@@ -901,7 +1023,7 @@ Each pathway step can later be mapped to:
 
 The Number pathway will most often anchor in the Number strand, while later steps also connect outward to Algebra, Measurement and modelling.
 
-### 7.5 Australian Numeracy progression mapping principle
+### 8.5 Australian Numeracy progression mapping principle
 
 Each pathway step can later be tagged against Numeracy progression sub-elements such as:
 
@@ -916,7 +1038,7 @@ Each pathway step can later be tagged against Numeracy progression sub-elements 
 
 This progression can help MyLearna estimate "what usually comes next" even when a learner is uneven across age bands.
 
-### 7.6 UK National Curriculum mapping principle
+### 8.6 UK National Curriculum mapping principle
 
 Each pathway step can later map to:
 
@@ -927,7 +1049,7 @@ Each pathway step can later map to:
 
 Appendix 1 should also inform the later calculation-method guidance for operations steps, especially when MyLearna eventually specifies formal written method expectations.
 
-### 7.7 Florida B.E.S.T. mapping principle
+### 8.7 Florida B.E.S.T. mapping principle
 
 Each pathway step can later map to:
 
@@ -937,7 +1059,7 @@ Each pathway step can later map to:
 
 The Florida design language of exploration, procedural reliability, procedural fluency and automaticity is especially useful when MyLearna later writes progression-sensitive practice and assessment checks.
 
-### 7.8 Later selected US state and DoDEA-informed mapping principle
+### 8.8 Later selected US state and DoDEA-informed mapping principle
 
 MyLearna should not hardcode a state-by-state standards engine in V0. Instead it should:
 
@@ -947,7 +1069,7 @@ MyLearna should not hardcode a state-by-state standards engine in V0. Instead it
 
 This keeps the product maintainable while still supporting credible framework-aware reporting later.
 
-### 7.9 Product implementation principle for later phases
+### 8.9 Product implementation principle for later phases
 
 When this specification becomes product logic later:
 
@@ -959,3 +1081,69 @@ When this specification becomes product logic later:
 - My Reports and My Outputs should explain progress using pathway language plus framework crosswalks where needed
 
 The parent experience should stay simple even when the backend crosswalk becomes sophisticated.
+
+## 9. Future integration notes
+
+This V0 document does not build the product layer yet, but it should be specific enough to guide later implementation.
+
+### 9.1 Pathway step to assessment tile
+
+- each pathway step should later have a stable product key
+- My Assessments can then show status against a real pathway step instead of only against a broad subject-stage cell
+- the assessment tile should surface the current step, its prerequisite and its likely next step
+- assessment notes should be able to reference the pathway step title directly
+
+### 9.2 Pathway step to program creation
+
+- a parent should later be able to turn a pathway step into a program objective or short learning block
+- the program item should inherit the step title, current focus wording and suggested practice ideas
+- pathways should support both one-step planning and small grouped sequences
+
+### 9.3 Pathway step to calendar block
+
+- a future calendar block could be created from a pathway step with suggested titles such as `Number pathway - Partition two-digit numbers`
+- the block could include a short practice prompt and a reminder of the evidence to look for
+- My Day could then show which pathway step is being practised today
+
+### 9.4 Pathway step to capture prompt
+
+- My Capture should later be able to prefill evidence prompts from a selected pathway step
+- example prompts:
+  - what did the learner do?
+  - what did they say that showed understanding?
+  - what still needs revisit?
+- pathway-linked capture should make evidence more meaningful than a generic note
+
+### 9.5 Pathway step to reports and outputs
+
+- report wording can later draw on pathway language such as `developing confidence in place value` or `secure with equivalent fractions in familiar contexts`
+- outputs could later show pathway progress alongside curriculum coverage and assessment status
+- pathway wording should remain calmer and more parent-friendly than a standards-code export
+
+## 10. Non-goals for this V0 spec
+
+This specification does not propose:
+
+- an official compliance guarantee
+- a full copied standards database
+- automatic lesson-plan generation
+- AI-generated pathway sequencing
+- schema or database changes
+- app route or UI changes
+- automatic progression decisions without parent judgement
+- a complete mathematics implementation beyond the first detailed Number strand
+
+The intent is to define the educational blueprint clearly enough that future builds can stay consistent.
+
+## 11. Open decisions for later phases
+
+The following product decisions remain open:
+
+- page naming: `My Learning Pathways` versus `My Pathways`
+- whether pathways become their own page or begin inside `My Curriculum`
+- whether the first live release should show only Number or also one additional maths strand
+- how quickly the remaining mathematics domains should move from domain-map status to detailed strands
+- whether parent-facing pathway steps should be editable, fixed, or lightly customisable
+- whether pathway guidance is fully free, partly premium, or bundled into assessment/reporting value later
+- how much of the pathway should be visible by default versus progressively disclosed
+- whether learner age, year level and assessment status should all influence suggested next steps equally, or whether one should lead
