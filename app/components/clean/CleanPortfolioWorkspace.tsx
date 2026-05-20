@@ -249,7 +249,7 @@ function CleanPortfolioWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Portfolio</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Review captured evidence and choose what belongs in the portfolio.
+              Portfolio is where you choose the strongest examples from your captured evidence.
             </p>
           </div>
         </section>
@@ -307,16 +307,19 @@ function CleanPortfolioWorkspaceBody() {
                 <div style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>Portfolio</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Portfolio is where you keep the strongest examples of learning from your
-                    captured notes. It is a selected record, not every note you have taken.
+                    Portfolio is where you choose the strongest examples from your captured evidence. It is not every note - it is the evidence you may want to use in reports, reviews, or authority records.
                   </p>
                 </div>
                 <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>What happens next</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Selected portfolio evidence can be used in My Reports to support the
-                    learner&apos;s story and the written report.
-                  </p>
+                  <strong style={{ color: "#0f172a" }}>What should go into Portfolio?</strong>
+                  <ul style={{ margin: 0, paddingLeft: 18, color: "#475569", lineHeight: 1.7 }}>
+                    <li>Shows clear progress</li>
+                    <li>Demonstrates independence</li>
+                    <li>Links to an important pathway or curriculum area</li>
+                    <li>Includes a strong parent observation</li>
+                    <li>Supports reporting or review</li>
+                    <li>Shows a meaningful piece of work</li>
+                  </ul>
                 </div>
               </div>
             </section>
@@ -335,7 +338,7 @@ function CleanPortfolioWorkspaceBody() {
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Portfolio filters</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569" }}>
                     Start from captured evidence, then add the strongest pieces to the
-                    portfolio.
+                    portfolio rather than every note.
                   </p>
                 </div>
                 <button

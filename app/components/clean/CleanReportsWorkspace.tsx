@@ -31,6 +31,8 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import { isBrentAuthorityTemplateActive } from "@/lib/clean/authority/brent";
+import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
+import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -150,6 +152,117 @@ function formatDateLabel(value: string) {
 
 function formatDateRange(startsOn: string, endsOn: string) {
   return `${formatDateLabel(startsOn)} to ${formatDateLabel(endsOn)}`;
+}
+
+function getTodayDate() {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
+
+function isDateWithinRange(dateValue: string, startsOn: string, endsOn: string) {
+  return dateValue >= startsOn && dateValue <= endsOn;
+}
+
+function rangesOverlap(
+  leftStartsOn: string,
+  leftEndsOn: string,
+  rightStartsOn: string,
+  rightEndsOn: string,
+) {
+  return leftStartsOn <= rightEndsOn && leftEndsOn >= rightStartsOn;
+}
+
+function findSuggestedLearningPeriod(
+  learningPeriods: CleanLearningPeriod[],
+  todayDate: string,
+) {
+  const activePeriod =
+    learningPeriods.find(
+      (period) =>
+        !period.isBreak && isDateWithinRange(todayDate, period.startsOn, period.endsOn),
+    ) ?? null;
+
+  if (activePeriod) return activePeriod;
+
+  const nextPeriod =
+    learningPeriods.find((period) => !period.isBreak && period.startsOn >= todayDate) ?? null;
+
+  if (nextPeriod) return nextPeriod;
+
+  return (
+    [...learningPeriods]
+      .filter((period) => !period.isBreak)
+      .sort((left, right) => right.endsOn.localeCompare(left.endsOn))[0] ?? null
+  );
+}
+
+function findDefaultReportingPeriod(
+  periods: CleanReportingPeriod[],
+  learningPeriod: CleanLearningPeriod | null,
+  todayDate: string,
+) {
+  if (!periods.length) return null;
+
+  if (learningPeriod) {
+    const overlappingPeriods = periods.filter((period) =>
+      rangesOverlap(
+        period.startsOn,
+        period.endsOn,
+        learningPeriod.startsOn,
+        learningPeriod.endsOn,
+      ),
+    );
+
+    const activeOverlap =
+      overlappingPeriods.find((period) =>
+        isDateWithinRange(todayDate, period.startsOn, period.endsOn),
+      ) ?? null;
+
+    if (activeOverlap) return activeOverlap;
+
+    const titleMatch =
+      overlappingPeriods.find(
+        (period) =>
+          period.title.trim().toLowerCase() === learningPeriod.title.trim().toLowerCase(),
+      ) ?? null;
+
+    if (titleMatch) return titleMatch;
+
+    if (overlappingPeriods.length) {
+      return [...overlappingPeriods].sort((left, right) =>
+        right.endsOn.localeCompare(left.endsOn),
+      )[0];
+    }
+  }
+
+  const currentPeriod =
+    periods.find((period) => isDateWithinRange(todayDate, period.startsOn, period.endsOn)) ?? null;
+
+  if (currentPeriod) return currentPeriod;
+
+  return [...periods].sort((left, right) => right.endsOn.localeCompare(left.endsOn))[0] ?? null;
+}
+
+function buildSuggestedReportingPeriodDraft(
+  learningPeriod: CleanLearningPeriod | null,
+  todayDate: string,
+) {
+  if (learningPeriod) {
+    return {
+      title: learningPeriod.title || "Current learning period",
+      startsOn: learningPeriod.startsOn,
+      endsOn: learningPeriod.endsOn,
+    };
+  }
+
+  const currentYear = todayDate.slice(0, 4);
+
+  return {
+    title: "Current learning year",
+    startsOn: `${currentYear}-01-01`,
+    endsOn: `${currentYear}-12-31`,
+  };
 }
 
 function portfolioEvidenceTitle(item: CleanPortfolioItem) {
@@ -376,6 +489,7 @@ function CleanReportsWorkspaceBody() {
   const [reports, setReports] = useState<CleanReport[]>([]);
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
+  const [learningPeriods, setLearningPeriods] = useState<CleanLearningPeriod[]>([]);
   const [periodsLoading, setPeriodsLoading] = useState(false);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [sectionsLoading, setSectionsLoading] = useState(false);
@@ -435,16 +549,38 @@ function CleanReportsWorkspaceBody() {
     reports.find((report) => report.id === selectedReportId) ?? null;
   const selectedPeriod =
     periods.find((period) => period.id === selectedReport?.reportingPeriodId) ?? null;
+  const todayDate = useMemo(() => getTodayDate(), []);
 
   const filteredPeriodsForReport = useMemo(() => {
     if (!reportLearnerId) return periods;
     return periods.filter((period) => period.learnerId === reportLearnerId);
   }, [periods, reportLearnerId]);
 
+  const suggestedLearningPeriod = useMemo(
+    () => findSuggestedLearningPeriod(learningPeriods, todayDate),
+    [learningPeriods, todayDate],
+  );
+  const defaultReportingPeriodForReport = useMemo(
+    () =>
+      findDefaultReportingPeriod(
+        filteredPeriodsForReport,
+        suggestedLearningPeriod,
+        todayDate,
+      ),
+    [filteredPeriodsForReport, suggestedLearningPeriod, todayDate],
+  );
+  const suggestedReportingPeriodDraft = useMemo(
+    () => buildSuggestedReportingPeriodDraft(suggestedLearningPeriod, todayDate),
+    [suggestedLearningPeriod, todayDate],
+  );
+
   const activeLearnerId = selectedReport?.learnerId || reportLearnerId || "";
   const activePeriod =
     selectedPeriod ||
-    filteredPeriodsForReport.find((period) => period.id === reportingPeriodId) ||
+    (!selectedReport
+      ? filteredPeriodsForReport.find((period) => period.id === reportingPeriodId) ||
+        defaultReportingPeriodForReport
+      : null) ||
     null;
   const selectedReportLearnerLabel =
     learnerOptions.find((option) => option.value === selectedReport?.learnerId)?.label ||
@@ -462,8 +598,12 @@ function CleanReportsWorkspaceBody() {
     });
   }, [evidenceEntryIdFromQuery, portfolioItems]);
   const suggestedReportTitle = useMemo(
-    () => buildDefaultReportTitle(draftReportLearnerLabel, activePeriod?.title ?? ""),
-    [activePeriod?.title, draftReportLearnerLabel],
+    () =>
+      buildDefaultReportTitle(
+        draftReportLearnerLabel,
+        activePeriod?.title || suggestedReportingPeriodDraft.title,
+      ),
+    [activePeriod?.title, draftReportLearnerLabel, suggestedReportingPeriodDraft.title],
   );
   const otherReports = useMemo(
     () => reports.filter((report) => report.id !== selectedReport?.id),
@@ -473,7 +613,7 @@ function CleanReportsWorkspaceBody() {
   const reportCanMoveToOutput = Boolean(selectedReport && selectedPeriod);
   const nextReportGuidance = useMemo(() => {
     if (!selectedReport) {
-      return "Choose the learner and current reporting year first. Then review the prepared learning record before you send it to My Outputs.";
+      return "Reports use your current learning period by default. Review the selected portfolio evidence and written reflections, then move the learning record to My Outputs when you are ready.";
     }
 
     if (selectedReport.status === "archived") {
@@ -485,11 +625,11 @@ function CleanReportsWorkspaceBody() {
     }
 
     if (!selectedPeriod) {
-      return "Check the learner and current reporting year so the learning record lines up correctly.";
+      return "Check the learner and reporting period so the learning record lines up correctly.";
     }
 
     if (!portfolioItems.length) {
-      return "Preview the prepared learning record. If you need more evidence later, return to My Portfolio and add highlights there.";
+      return "Preview the prepared learning record. If you need more evidence later, return to My Portfolio and choose stronger highlights first.";
     }
 
     return "Preview the prepared learning record, then send it to My Outputs when you are ready.";
@@ -542,6 +682,19 @@ function CleanReportsWorkspaceBody() {
       );
     } finally {
       setPeriodsLoading(false);
+    }
+  }, [workspace.profile]);
+
+  const reloadLearningPeriods = useCallback(async () => {
+    if (!workspace.profile) return;
+
+    try {
+      const nextLearningPeriods = await listCleanLearningPeriods(workspace.profile.id, {
+        limit: 100,
+      });
+      setLearningPeriods(nextLearningPeriods);
+    } catch {
+      setLearningPeriods([]);
     }
   }, [workspace.profile]);
 
@@ -635,14 +788,17 @@ function CleanReportsWorkspaceBody() {
       setReports([]);
       setSections([]);
       setPortfolioItems([]);
+      setLearningPeriods([]);
       setPortfolioError(null);
       setSelectedReportId(null);
       return;
     }
 
     void reloadPeriods();
+    void reloadLearningPeriods();
     void reloadReports();
   }, [
+    reloadLearningPeriods,
     reloadPeriods,
     reloadReports,
     workspace.profile,
@@ -706,12 +862,17 @@ function CleanReportsWorkspaceBody() {
     if (
       reportLearnerId &&
       !reportingPeriodId &&
-      filteredPeriodsForReport.length === 1 &&
+      defaultReportingPeriodForReport &&
       !editingReportId
     ) {
-      setReportingPeriodId(filteredPeriodsForReport[0]?.id ?? "");
+      setReportingPeriodId(defaultReportingPeriodForReport.id);
     }
-  }, [editingReportId, filteredPeriodsForReport, reportLearnerId, reportingPeriodId]);
+  }, [
+    defaultReportingPeriodForReport,
+    editingReportId,
+    reportLearnerId,
+    reportingPeriodId,
+  ]);
 
   function resetPeriodForm() {
     setEditingPeriodId(null);
@@ -817,10 +978,33 @@ function CleanReportsWorkspaceBody() {
     setActionError(null);
 
     try {
-      const nextTitle = reportTitle.trim() || suggestedReportTitle;
+      let effectiveReportingPeriodId = reportingPeriodId;
+
+      if (
+        !effectiveReportingPeriodId &&
+        reportLearnerId &&
+        filteredPeriodsForReport.length === 0
+      ) {
+        const createdPeriod = await createCleanReportingPeriod(workspace.profile.id, {
+          learnerId: reportLearnerId,
+          title: suggestedReportingPeriodDraft.title,
+          startsOn: suggestedReportingPeriodDraft.startsOn,
+          endsOn: suggestedReportingPeriodDraft.endsOn,
+        });
+
+        effectiveReportingPeriodId = createdPeriod.id;
+      }
+
+      const effectivePeriodTitle =
+        activePeriod?.title ||
+        defaultReportingPeriodForReport?.title ||
+        suggestedReportingPeriodDraft.title;
+      const nextTitle =
+        reportTitle.trim() ||
+        buildDefaultReportTitle(draftReportLearnerLabel, effectivePeriodTitle);
       const payload = {
         learnerId: reportLearnerId,
-        reportingPeriodId,
+        reportingPeriodId: effectiveReportingPeriodId,
         title: nextTitle,
       };
 
@@ -835,6 +1019,7 @@ function CleanReportsWorkspaceBody() {
 
       resetReportForm();
       setShowReportBuilder(false);
+      await reloadPeriods();
       await reloadReports();
     } catch (error) {
       setActionError(
@@ -990,7 +1175,7 @@ function CleanReportsWorkspaceBody() {
             </div>
             <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Reports</h1>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Review the prepared learning record for this learner, then move it to My Outputs when you are ready.
+              Reports bring together your selected portfolio evidence and written reflections into a learning record.
             </p>
           </div>
         </section>
@@ -1055,7 +1240,7 @@ function CleanReportsWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Output preparation</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    Choose the learner and current reporting year, preview the prepared learning record, then send it to My Outputs when you are ready.
+                    Reports use your current learning period by default. You can adjust this if needed.
                   </p>
                 </div>
                 <div
@@ -1070,9 +1255,18 @@ function CleanReportsWorkspaceBody() {
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     {selectedReport
                       ? nextReportGuidance
-                      : "Start with one learner and one current reporting year. MyLearna will keep the next useful action in front of you."}
+                      : "Start with one learner and one current learning period. MyLearna will keep the next useful action in front of you."}
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{introPrimaryAction}</div>
+                </div>
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>How reports are built</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Reports bring together your selected portfolio evidence, written summary sections, and learner context into one learning record.
+                  </p>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Not every capture needs to be in a report. Choose the strongest evidence in My Portfolio first.
+                  </p>
                 </div>
               </div>
             </section>
@@ -1114,7 +1308,7 @@ function CleanReportsWorkspaceBody() {
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                         {selectedPeriod
                           ? `${selectedReport.title} is the report for ${selectedReportLearnerLabel} during ${selectedPeriod.title}.`
-                          : `This report belongs to ${selectedReportLearnerLabel}. Link the current reporting year first so the preview and output stay lined up.`}
+                          : `This report belongs to ${selectedReportLearnerLabel}. Link the current reporting period first so the preview and output stay lined up.`}
                       </p>
                     </div>
 
@@ -1165,7 +1359,7 @@ function CleanReportsWorkspaceBody() {
                           marginBottom: 4,
                         }}
                       >
-                        Current school year / reporting year
+                        Reporting period
                       </div>
                       <div style={{ color: "#0f172a", fontWeight: 700 }}>
                         {selectedPeriod ? selectedPeriod.title : "Choose one"}
@@ -1347,7 +1541,7 @@ function CleanReportsWorkspaceBody() {
               >
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>No report started yet</h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Start with one learner and one current reporting year. Once the first report exists,
+                  Start with one learner and one current learning period. Once the first report exists,
                   MyLearna will guide the rest step by step.
                 </p>
               </section>
@@ -1358,14 +1552,14 @@ function CleanReportsWorkspaceBody() {
               title="Current learning record"
               helperText={
                 selectedReport
-                  ? "This learning record is already linked to the current school year. You only need to change these details if the year or dates are wrong."
-                  : "MyLearna uses the learner and current school year to prepare this report. Start here only if the year or dates need attention."
+                  ? "This learning record is already linked to the current reporting period. You only need to change these details if the dates or learner need attention."
+                  : "MyLearna uses the learner and current learning period to prepare this report. Start here only if the dates or learner need attention."
               }
               completionTone={step1Tone}
               completionText={
                 selectedReport && selectedPeriod
                   ? "Step 1 complete - current learning record linked."
-                  : "Step 1 incomplete - check the learner and current school year or reporting year."
+                  : "Step 1 incomplete - check the learner and current reporting period."
               }
               action={
                 <button
@@ -1414,7 +1608,7 @@ function CleanReportsWorkspaceBody() {
                   >
                     <strong style={{ color: "#0f172a" }}>Current learning record</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      This learning record is already linked to the current school year.
+                      This learning record is already linked to the current reporting period.
                     </p>
                     <div
                       style={{
@@ -1428,7 +1622,7 @@ function CleanReportsWorkspaceBody() {
                         <div style={{ color: "#0f172a", fontWeight: 700 }}>{selectedReportLearnerLabel}</div>
                       </div>
                       <div>
-                        <div style={fieldLabelStyle}>Current school year / reporting year</div>
+                        <div style={fieldLabelStyle}>Reporting period</div>
                         <div style={{ color: "#0f172a", fontWeight: 700 }}>
                           {selectedPeriod ? selectedPeriod.title : "Not linked yet"}
                         </div>
@@ -1460,7 +1654,7 @@ function CleanReportsWorkspaceBody() {
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                         {selectedReport
                           ? "These details are already in place. Only change them if the learner, year, dates, or title need correcting."
-                          : "Choose the learner and current reporting year. Only edit the title if you want a different name."}
+                          : "Choose the learner and let MyLearna use the current learning period by default. Only edit the title if you want a different name."}
                       </p>
                     </div>
 
@@ -1495,13 +1689,28 @@ function CleanReportsWorkspaceBody() {
                             onChange={(event) => setReportingPeriodId(event.target.value)}
                             style={inputStyle}
                           >
-                            <option value="">Choose reporting period</option>
+                            <option value="">
+                              {filteredPeriodsForReport.length
+                                ? "Choose reporting period"
+                                : reportLearnerId
+                                ? `Use ${suggestedReportingPeriodDraft.title}`
+                                : "Choose learner first"}
+                            </option>
                             {filteredPeriodsForReport.map((period) => (
                               <option key={period.id} value={period.id}>
                                 {period.title}
                               </option>
                             ))}
                           </select>
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6, marginTop: 6 }}>
+                            Reports use your current learning period by default. You can adjust this if needed.
+                            {!filteredPeriodsForReport.length && reportLearnerId
+                              ? ` Default: ${suggestedReportingPeriodDraft.title} (${formatDateRange(
+                                  suggestedReportingPeriodDraft.startsOn,
+                                  suggestedReportingPeriodDraft.endsOn,
+                                )}).`
+                              : ""}
+                          </div>
                         </div>
                       </div>
 
@@ -1561,7 +1770,7 @@ function CleanReportsWorkspaceBody() {
                   <div style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>This learning record is already linked</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Open report details only when the learner, reporting year, or title need attention.
+                      Open report details only when the learner, reporting period, or title need attention.
                     </p>
                   </div>
                 )}
@@ -1589,7 +1798,7 @@ function CleanReportsWorkspaceBody() {
                     <div style={{ display: "grid", gap: 6 }}>
                       <strong style={{ color: "#0f172a" }}>Advanced date and reporting-period tools</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Only open this if the school year, dates, or report window need adjusting.
+                        Only open this if the learning period dates or report window need adjusting.
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1608,6 +1817,7 @@ function CleanReportsWorkspaceBody() {
                         type="button"
                         style={quietButtonStyle}
                         onClick={() => {
+                          void reloadLearningPeriods();
                           void reloadPeriods();
                           void reloadReports();
                           void reloadSections();
@@ -1790,7 +2000,7 @@ function CleanReportsWorkspaceBody() {
                     <div style={helperCardStyle}>
                       <strong style={{ color: "#0f172a" }}>Prepared learning record preview</strong>
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        This preview shows the learner, current reporting year, learning evidence, and any saved report content linked to this learning record.
+                        This preview shows the learner, reporting period, selected portfolio evidence, and any saved report content linked to this learning record.
                       </p>
                     </div>
 
@@ -1917,7 +2127,7 @@ function CleanReportsWorkspaceBody() {
                                 marginBottom: 6,
                               }}
                             >
-                              Current school year / reporting year
+                              Reporting period
                             </div>
                             <div style={{ color: "#0f172a", fontSize: 16, fontWeight: 700 }}>
                               {selectedPeriod ? selectedPeriod.title : "Not set"}
@@ -1925,7 +2135,7 @@ function CleanReportsWorkspaceBody() {
                             <div style={{ color: "#475569", marginTop: 4, lineHeight: 1.6 }}>
                               {selectedPeriod
                                 ? formatDateRange(selectedPeriod.startsOn, selectedPeriod.endsOn)
-                                : "Choose the current reporting year for this learning record."}
+                                : "Choose the current reporting period for this learning record."}
                             </div>
                           </div>
 
@@ -2080,7 +2290,7 @@ function CleanReportsWorkspaceBody() {
                               background: "#fcfdff",
                             }}
                           >
-                            No saved report content is linked to this learning record yet. You can still review the learner, reporting year, and evidence before sending it to My Outputs.
+                            No saved report content is linked to this learning record yet. You can still review the learner, reporting period, and evidence before sending it to My Outputs.
                           </div>
                         )}
                       </section>
@@ -2145,7 +2355,7 @@ function CleanReportsWorkspaceBody() {
                         ? "Go to My Outputs when you want to work with the finished learning record, or return the report to draft if you need more edits."
                         : reportCanMoveToOutput
                           ? "Use the preview one last time if you want, then send this learning record to My Outputs."
-                          : "Choose the learner and current reporting year first, then return here to move into output."}
+                          : "Choose the learner and current reporting period first, then return here to move into output."}
                     </p>
                   </div>
                 </ReportBuildStepCard>
