@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
-import { buildPathwayCaptureSearchParams } from "@/lib/clean/evidence/curriculumContext";
+import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
+import {
+  buildPathwayCaptureSearchParams,
+  MY_PATHWAYS_SOURCE,
+  parsePathwayContextFromNodeIds,
+} from "@/lib/clean/evidence/curriculumContext";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
   MATHEMATICS_DOMAIN_CARDS,
@@ -192,6 +197,8 @@ type StageSummaryCounts = {
   evidenceStarted: number;
 };
 
+type SavedPathwayStatusMap = Record<string, PathwayProgressStatus>;
+
 function safe(value: string | null | undefined) {
   return (value || "").trim();
 }
@@ -258,13 +265,65 @@ function getStageTone(stage: PathwayStageKey, currentStage: PathwayStageKey) {
   };
 }
 
+function buildPathwayStepKey(pathwayKey: string, stageKey: string, stepNumber: string) {
+  return `${safe(pathwayKey)}::${safe(stageKey)}::${safe(stepNumber)}`;
+}
+
+function mapObservedSkillStatusToPathwayStatus(
+  observedSkillStatus: string | null | undefined,
+): PathwayProgressStatus | null {
+  const normalizedStatus = safe(observedSkillStatus).toLowerCase();
+
+  if (normalizedStatus === "still developing") {
+    return "Practising";
+  }
+
+  if (normalizedStatus === "developing") {
+    return "Evidence started";
+  }
+
+  if (normalizedStatus === "secure" || normalizedStatus === "strong") {
+    return "Secure";
+  }
+
+  return null;
+}
+
+function getDisplayedPathwayStatus(
+  stepId: number,
+  stageKey: PathwayStageKey,
+  currentStage: PathwayStageKey,
+  savedPathwayStatuses: SavedPathwayStatusMap,
+) {
+  const savedStatus =
+    savedPathwayStatuses[buildPathwayStepKey("number", stageKey, String(stepId))];
+
+  if (savedStatus) {
+    return {
+      status: savedStatus,
+      fromSavedEvidence: true,
+    };
+  }
+
+  return {
+    status: getDemoPathwayStatus(stepId, stageKey, currentStage),
+    fromSavedEvidence: false,
+  };
+}
+
 function buildStageSummaryCounts(
   stage: NumberPathwayStage,
   currentStage: PathwayStageKey,
+  savedPathwayStatuses: SavedPathwayStatusMap,
 ): StageSummaryCounts {
   return stage.steps.reduce(
     (totals, step) => {
-      const status = getDemoPathwayStatus(step.id, stage.key, currentStage);
+      const { status } = getDisplayedPathwayStatus(
+        step.id,
+        stage.key,
+        currentStage,
+        savedPathwayStatuses,
+      );
 
       if (status === "Secure") {
         totals.secure += 1;
@@ -292,6 +351,7 @@ function PathwaysWorkspaceBody() {
   const [stageOpenOverrides, setStageOpenOverrides] = useState<
     Partial<Record<PathwayStageKey, boolean>>
   >({});
+  const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
 
   const learnerOptions = useMemo(
     () =>
@@ -358,11 +418,79 @@ function PathwaysWorkspaceBody() {
     workspace.schemaMissing,
   ]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadSavedPathwayStatuses() {
+      if (
+        !workspace.profile ||
+        workspace.schemaMissing ||
+        workspace.requiresFamilyCreation ||
+        !selectedLearnerId
+      ) {
+        setSavedPathwayStatuses({});
+        return;
+      }
+
+      try {
+        const evidenceEntries = await listCleanEvidenceEntries(workspace.profile.id, {
+          learnerId: selectedLearnerId,
+        });
+
+        if (!active) return;
+
+        const nextSavedStatuses: SavedPathwayStatusMap = {};
+
+        for (const entry of evidenceEntries) {
+          const pathwayContext = parsePathwayContextFromNodeIds(entry.curriculumNodeIds);
+          if (!pathwayContext || pathwayContext.source !== MY_PATHWAYS_SOURCE) continue;
+
+          const pathwayKey = safe(pathwayContext.pathwayKey);
+          const stageKey = safe(pathwayContext.stageKey);
+          const stepNumber = safe(pathwayContext.stepNumber);
+          const mappedStatus = mapObservedSkillStatusToPathwayStatus(
+            pathwayContext.observedSkillStatus,
+          );
+
+          if (pathwayKey !== "number" || !stageKey || !stepNumber || !mappedStatus) {
+            continue;
+          }
+
+          const statusKey = buildPathwayStepKey(pathwayKey, stageKey, stepNumber);
+          if (!nextSavedStatuses[statusKey]) {
+            nextSavedStatuses[statusKey] = mappedStatus;
+          }
+        }
+
+        setSavedPathwayStatuses(nextSavedStatuses);
+      } catch {
+        if (!active) return;
+        setSavedPathwayStatuses({});
+      }
+    }
+
+    void loadSavedPathwayStatuses();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    selectedLearnerId,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
   const currentStageSnapshot = useMemo(
     () =>
       NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)?.steps.reduce(
         (totals, step) => {
-          const status = getDemoPathwayStatus(step.id, currentStageFocus, currentStageFocus);
+          const { status } = getDisplayedPathwayStatus(
+            step.id,
+            currentStageFocus,
+            currentStageFocus,
+            savedPathwayStatuses,
+          );
 
           if (status === "Secure") {
             totals.secure += 1;
@@ -401,7 +529,7 @@ function PathwaysWorkspaceBody() {
         practising: 0,
         notStarted: 0,
       },
-    [currentStageFocus],
+    [currentStageFocus, savedPathwayStatuses],
   );
 
   const assessmentPathBase = pathname.startsWith("/clean-my-pathways")
@@ -460,7 +588,8 @@ function PathwaysWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Prototype view - pathway progress will connect to assessments and evidence later.
+                  Prototype view - saved pathway evidence can now update step badges, and
+                  broader assessment connections will keep developing.
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -672,8 +801,8 @@ function PathwaysWorkspaceBody() {
               <div style={{ display: "grid", gap: 8, minWidth: 240 }}>
                 <div style={eyebrowStyle}>Prototype note</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Placeholder statuses below are for visual guidance only. Pathway progress
-                  will connect to assessments and evidence later.
+                  Saved pathway evidence can now update step badges. Broader pathway progress
+                  will continue to connect to assessments later.
                 </div>
               </div>
             </div>
@@ -776,6 +905,7 @@ function PathwaysWorkspaceBody() {
                   key={stage.key}
                   stage={stage}
                   currentStage={currentStageFocus}
+                  savedPathwayStatuses={savedPathwayStatuses}
                   selectedLearnerId={selectedLearner?.id || ""}
                   isOpen={stageOpenOverrides[stage.key] ?? stage.key === currentStageFocus}
                   onToggle={() =>
@@ -843,6 +973,7 @@ function PathwaysWorkspaceBody() {
 function NumberStageCard({
   stage,
   currentStage,
+  savedPathwayStatuses,
   selectedLearnerId,
   isOpen,
   onToggle,
@@ -851,6 +982,7 @@ function NumberStageCard({
 }: {
   stage: NumberPathwayStage;
   currentStage: PathwayStageKey;
+  savedPathwayStatuses: SavedPathwayStatusMap;
   selectedLearnerId: string;
   isOpen: boolean;
   onToggle: () => void;
@@ -858,7 +990,7 @@ function NumberStageCard({
   capturePathBase: string;
 }) {
   const tone = getStageTone(stage.key, currentStage);
-  const summary = buildStageSummaryCounts(stage, currentStage);
+  const summary = buildStageSummaryCounts(stage, currentStage, savedPathwayStatuses);
   const panelId = `number-pathway-stage-${stage.key}`;
   const summaryChips = [
     {
@@ -1026,6 +1158,7 @@ function NumberStageCard({
               step={step}
               stageKey={stage.key}
               stageTitle={stage.title}
+              savedPathwayStatuses={savedPathwayStatuses}
               selectedLearnerId={selectedLearnerId}
               currentStage={currentStage}
               assessmentPathBase={assessmentPathBase}
@@ -1041,6 +1174,7 @@ function NumberStepCard({
   step,
   stageKey,
   stageTitle,
+  savedPathwayStatuses,
   selectedLearnerId,
   currentStage,
   assessmentPathBase,
@@ -1049,13 +1183,20 @@ function NumberStepCard({
   step: NumberPathwayStep;
   stageKey: PathwayStageKey;
   stageTitle: string;
+  savedPathwayStatuses: SavedPathwayStatusMap;
   selectedLearnerId: string;
   currentStage: PathwayStageKey;
   assessmentPathBase: string;
   capturePathBase: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const status = getDemoPathwayStatus(step.id, stageKey, currentStage);
+  const statusState = getDisplayedPathwayStatus(
+    step.id,
+    stageKey,
+    currentStage,
+    savedPathwayStatuses,
+  );
+  const status = statusState.status;
   const meta = statusMeta[status];
   const guidance = useMemo(() => getNumberPathwayStepGuidance(step), [step]);
   const detailPanelId = `pathway-step-${stageKey}-${step.id}`;
@@ -1137,29 +1278,36 @@ function NumberStepCard({
         </div>
 
         <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
-          <div
-            title={meta.helper}
-            style={{
-              border: `1px solid ${meta.border}`,
-              borderRadius: 999,
-              background: meta.fill,
-              padding: "8px 12px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span
-              aria-hidden="true"
+          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+            <div
+              title={meta.helper}
               style={{
-                width: 10,
-                height: 10,
+                border: `1px solid ${meta.border}`,
                 borderRadius: 999,
-                background: meta.dot,
-                flexShrink: 0,
+                background: meta.fill,
+                padding: "8px 12px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
               }}
-            />
-            <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  background: meta.dot,
+                  flexShrink: 0,
+                }}
+              />
+              <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
+            </div>
+            {statusState.fromSavedEvidence ? (
+              <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                Based on saved evidence
+              </div>
+            ) : null}
           </div>
 
           <button
