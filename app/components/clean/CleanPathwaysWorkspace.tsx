@@ -8,6 +8,7 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
+import { buildPathwayCaptureSearchParams } from "@/lib/clean/evidence/curriculumContext";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
   MATHEMATICS_DOMAIN_CARDS,
@@ -775,6 +776,7 @@ function PathwaysWorkspaceBody() {
                   key={stage.key}
                   stage={stage}
                   currentStage={currentStageFocus}
+                  selectedLearnerId={selectedLearner?.id || ""}
                   isOpen={stageOpenOverrides[stage.key] ?? stage.key === currentStageFocus}
                   onToggle={() =>
                     setStageOpenOverrides((current) => ({
@@ -841,6 +843,7 @@ function PathwaysWorkspaceBody() {
 function NumberStageCard({
   stage,
   currentStage,
+  selectedLearnerId,
   isOpen,
   onToggle,
   assessmentPathBase,
@@ -848,6 +851,7 @@ function NumberStageCard({
 }: {
   stage: NumberPathwayStage;
   currentStage: PathwayStageKey;
+  selectedLearnerId: string;
   isOpen: boolean;
   onToggle: () => void;
   assessmentPathBase: string;
@@ -1017,14 +1021,16 @@ function NumberStageCard({
         style={isOpen ? { display: "grid", gap: 10 } : { display: "none" }}
       >
         {stage.steps.map((step) => (
-          <NumberStepCard
-            key={`${stage.key}-${step.id}`}
-            step={step}
-            stageKey={stage.key}
-            currentStage={currentStage}
-            assessmentPathBase={assessmentPathBase}
-            capturePathBase={capturePathBase}
-          />
+            <NumberStepCard
+              key={`${stage.key}-${step.id}`}
+              step={step}
+              stageKey={stage.key}
+              stageTitle={stage.title}
+              selectedLearnerId={selectedLearnerId}
+              currentStage={currentStage}
+              assessmentPathBase={assessmentPathBase}
+              capturePathBase={capturePathBase}
+            />
         ))}
       </div>
     </section>
@@ -1034,12 +1040,16 @@ function NumberStageCard({
 function NumberStepCard({
   step,
   stageKey,
+  stageTitle,
+  selectedLearnerId,
   currentStage,
   assessmentPathBase,
   capturePathBase,
 }: {
   step: NumberPathwayStep;
   stageKey: PathwayStageKey;
+  stageTitle: string;
+  selectedLearnerId: string;
   currentStage: PathwayStageKey;
   assessmentPathBase: string;
   capturePathBase: string;
@@ -1052,6 +1062,39 @@ function NumberStepCard({
   const practiceButtonLabel = `Practise this pathway step`;
   const assessButtonLabel = `Assess this pathway step in My Assessments`;
   const captureButtonLabel = `Capture evidence for this pathway step`;
+  const captureHref = useMemo(() => {
+    const params = buildPathwayCaptureSearchParams(
+      {
+        source: "my-pathways",
+        subjectKey: "mathematics",
+        subjectLabel: "My Mathematics",
+        pathwayKey: "number",
+        pathwayLabel: "Number pathway",
+        stageKey,
+        stageLabel: stageTitle,
+        stepNumber: String(step.id),
+        stepTitle: step.title,
+        stepMeaning: step.meaning,
+        skillFocus: guidance.skillFocus,
+      },
+      {
+        learnerId: selectedLearnerId || null,
+        learningAreaKey: "mathematics",
+        learningAreaLabel: "Mathematics",
+      },
+    );
+
+    return `${capturePathBase}?${params.toString()}`;
+  }, [
+    capturePathBase,
+    guidance.skillFocus,
+    selectedLearnerId,
+    stageKey,
+    stageTitle,
+    step.id,
+    step.meaning,
+    step.title,
+  ]);
 
   return (
     <article
@@ -1180,9 +1223,9 @@ function NumberStepCard({
           Assess
         </Link>
         <Link
-          href={capturePathBase}
+          href={captureHref}
           style={secondaryButtonStyle}
-          title="Open My Capture to record evidence for this pathway step."
+          title="Open My Capture with this pathway step already connected."
           aria-label={captureButtonLabel}
         >
           Capture evidence

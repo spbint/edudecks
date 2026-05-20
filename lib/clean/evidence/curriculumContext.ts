@@ -1,4 +1,5 @@
 export const MY_CURRICULUM_SOURCE = "my-curriculum" as const;
+export const MY_PATHWAYS_SOURCE = "my-pathways" as const;
 
 const LEARNING_AREA_KEY_PREFIX = "learning-area:";
 const LEARNING_AREA_LABEL_PREFIX = "learning-area-label:";
@@ -7,6 +8,17 @@ const CURRICULUM_ELEMENT_LABEL_PREFIX = "curriculum-element-label:";
 const AUTHORITY_AREA_KEY_PREFIX = "authority-evidence-area:";
 const AUTHORITY_AREA_LABEL_PREFIX = "authority-evidence-area-label:";
 const SOURCE_PREFIX = "source:";
+const PATHWAY_SOURCE_PREFIX = "pathway-source:";
+const PATHWAY_SUBJECT_KEY_PREFIX = "pathway-subject-key:";
+const PATHWAY_SUBJECT_LABEL_PREFIX = "pathway-subject-label:";
+const PATHWAY_KEY_PREFIX = "pathway-key:";
+const PATHWAY_LABEL_PREFIX = "pathway-label:";
+const PATHWAY_STAGE_KEY_PREFIX = "pathway-stage-key:";
+const PATHWAY_STAGE_LABEL_PREFIX = "pathway-stage-label:";
+const PATHWAY_STEP_NUMBER_PREFIX = "pathway-step-number:";
+const PATHWAY_STEP_TITLE_PREFIX = "pathway-step-title:";
+const PATHWAY_STEP_MEANING_PREFIX = "pathway-step-meaning:";
+const PATHWAY_SKILL_FOCUS_PREFIX = "pathway-skill-focus:";
 
 const CURRICULUM_CONTEXT_PREFIXES = [
   LEARNING_AREA_KEY_PREFIX,
@@ -18,6 +30,20 @@ const CURRICULUM_CONTEXT_PREFIXES = [
   SOURCE_PREFIX,
 ];
 
+const PATHWAY_CONTEXT_PREFIXES = [
+  PATHWAY_SOURCE_PREFIX,
+  PATHWAY_SUBJECT_KEY_PREFIX,
+  PATHWAY_SUBJECT_LABEL_PREFIX,
+  PATHWAY_KEY_PREFIX,
+  PATHWAY_LABEL_PREFIX,
+  PATHWAY_STAGE_KEY_PREFIX,
+  PATHWAY_STAGE_LABEL_PREFIX,
+  PATHWAY_STEP_NUMBER_PREFIX,
+  PATHWAY_STEP_TITLE_PREFIX,
+  PATHWAY_STEP_MEANING_PREFIX,
+  PATHWAY_SKILL_FOCUS_PREFIX,
+];
+
 export type CleanCurriculumCaptureContext = {
   source: typeof MY_CURRICULUM_SOURCE;
   learningAreaKey?: string | null;
@@ -26,6 +52,20 @@ export type CleanCurriculumCaptureContext = {
   curriculumElementLabel?: string | null;
   authorityEvidenceAreaKey?: string | null;
   authorityEvidenceAreaLabel?: string | null;
+};
+
+export type CleanPathwayCaptureContext = {
+  source: typeof MY_PATHWAYS_SOURCE;
+  subjectKey?: string | null;
+  subjectLabel?: string | null;
+  pathwayKey?: string | null;
+  pathwayLabel?: string | null;
+  stageKey?: string | null;
+  stageLabel?: string | null;
+  stepNumber?: string | null;
+  stepTitle?: string | null;
+  stepMeaning?: string | null;
+  skillFocus?: string | null;
 };
 
 type SearchParamsReader = {
@@ -64,6 +104,21 @@ function hasContextValue(context: Partial<CleanCurriculumCaptureContext>) {
   );
 }
 
+function hasPathwayContextValue(context: Partial<CleanPathwayCaptureContext>) {
+  return Boolean(
+    safe(context.subjectKey) ||
+      safe(context.subjectLabel) ||
+      safe(context.pathwayKey) ||
+      safe(context.pathwayLabel) ||
+      safe(context.stageKey) ||
+      safe(context.stageLabel) ||
+      safe(context.stepNumber) ||
+      safe(context.stepTitle) ||
+      safe(context.stepMeaning) ||
+      safe(context.skillFocus),
+  );
+}
+
 function dedupeNodeIds(nodeIds: string[]) {
   return [...new Set(nodeIds.filter((nodeId) => Boolean(safe(nodeId))))];
 }
@@ -82,6 +137,30 @@ export function buildCurriculumCaptureContext(
   };
 
   if (!hasContextValue(nextContext)) {
+    return null;
+  }
+
+  return nextContext;
+}
+
+export function buildPathwayCaptureContext(
+  input: Partial<CleanPathwayCaptureContext>,
+): CleanPathwayCaptureContext | null {
+  const nextContext: CleanPathwayCaptureContext = {
+    source: MY_PATHWAYS_SOURCE,
+    subjectKey: normalizeNullString(input.subjectKey),
+    subjectLabel: normalizeNullString(input.subjectLabel),
+    pathwayKey: normalizeNullString(input.pathwayKey),
+    pathwayLabel: normalizeNullString(input.pathwayLabel),
+    stageKey: normalizeNullString(input.stageKey),
+    stageLabel: normalizeNullString(input.stageLabel),
+    stepNumber: normalizeNullString(input.stepNumber),
+    stepTitle: normalizeNullString(input.stepTitle),
+    stepMeaning: normalizeNullString(input.stepMeaning),
+    skillFocus: normalizeNullString(input.skillFocus),
+  };
+
+  if (!hasPathwayContextValue(nextContext)) {
     return null;
   }
 
@@ -110,6 +189,28 @@ export function parseCurriculumCaptureContextFromSearchParams(
   }
 
   return nextContext;
+}
+
+export function parsePathwayCaptureContextFromSearchParams(
+  searchParams: SearchParamsReader,
+) {
+  const source = safe(searchParams.get("source"));
+  if (source !== MY_PATHWAYS_SOURCE) {
+    return null;
+  }
+
+  return buildPathwayCaptureContext({
+    subjectKey: searchParams.get("subjectKey") || searchParams.get("subject"),
+    subjectLabel: searchParams.get("subjectLabel"),
+    pathwayKey: searchParams.get("pathwayKey") || searchParams.get("pathway"),
+    pathwayLabel: searchParams.get("pathwayLabel"),
+    stageKey: searchParams.get("stageKey") || searchParams.get("stage"),
+    stageLabel: searchParams.get("stageLabel"),
+    stepNumber: searchParams.get("stepNumber"),
+    stepTitle: searchParams.get("stepTitle"),
+    stepMeaning: searchParams.get("stepMeaning"),
+    skillFocus: searchParams.get("skillFocus"),
+  });
 }
 
 export function buildCurriculumCaptureSearchParams(
@@ -162,6 +263,72 @@ export function buildCurriculumCaptureSearchParams(
 
   if (safe(context.authorityEvidenceAreaLabel)) {
     params.set("authorityEvidenceAreaLabel", safe(context.authorityEvidenceAreaLabel));
+  }
+
+  return params;
+}
+
+export function buildPathwayCaptureSearchParams(
+  context: CleanPathwayCaptureContext,
+  options: {
+    learnerId?: string | null;
+    learningAreaKey?: string | null;
+    learningAreaLabel?: string | null;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  params.set("source", MY_PATHWAYS_SOURCE);
+
+  if (safe(options.learnerId)) {
+    params.set("learnerId", safe(options.learnerId));
+  }
+
+  if (safe(options.learningAreaKey)) {
+    params.set("learningArea", safe(options.learningAreaKey));
+  }
+
+  if (safe(options.learningAreaLabel)) {
+    params.set("learningAreaLabel", safe(options.learningAreaLabel));
+  }
+
+  if (safe(context.subjectKey)) {
+    params.set("subjectKey", safe(context.subjectKey));
+  }
+
+  if (safe(context.subjectLabel)) {
+    params.set("subjectLabel", safe(context.subjectLabel));
+  }
+
+  if (safe(context.pathwayKey)) {
+    params.set("pathwayKey", safe(context.pathwayKey));
+  }
+
+  if (safe(context.pathwayLabel)) {
+    params.set("pathwayLabel", safe(context.pathwayLabel));
+  }
+
+  if (safe(context.stageKey)) {
+    params.set("stageKey", safe(context.stageKey));
+  }
+
+  if (safe(context.stageLabel)) {
+    params.set("stageLabel", safe(context.stageLabel));
+  }
+
+  if (safe(context.stepNumber)) {
+    params.set("stepNumber", safe(context.stepNumber));
+  }
+
+  if (safe(context.stepTitle)) {
+    params.set("stepTitle", safe(context.stepTitle));
+  }
+
+  if (safe(context.stepMeaning)) {
+    params.set("stepMeaning", safe(context.stepMeaning));
+  }
+
+  if (safe(context.skillFocus)) {
+    params.set("skillFocus", safe(context.skillFocus));
   }
 
   return params;
@@ -221,6 +388,84 @@ export function encodeCurriculumContextNodeIds(
   }
 
   return dedupeNodeIds(curriculumNodeIds);
+}
+
+export function encodePathwayContextNodeIds(
+  existingNodeIds: string[],
+  context: CleanPathwayCaptureContext | null,
+) {
+  const preservedNodeIds = existingNodeIds.filter(
+    (nodeId) =>
+      !PATHWAY_CONTEXT_PREFIXES.some((prefix) => safe(nodeId).startsWith(prefix)),
+  );
+
+  if (!context) {
+    return dedupeNodeIds(preservedNodeIds);
+  }
+
+  const pathwayNodeIds = [...preservedNodeIds, `${PATHWAY_SOURCE_PREFIX}${MY_PATHWAYS_SOURCE}`];
+
+  if (safe(context.subjectKey)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_SUBJECT_KEY_PREFIX}${encodeNodeValue(safe(context.subjectKey))}`,
+    );
+  }
+
+  if (safe(context.subjectLabel)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_SUBJECT_LABEL_PREFIX}${encodeNodeValue(safe(context.subjectLabel))}`,
+    );
+  }
+
+  if (safe(context.pathwayKey)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_KEY_PREFIX}${encodeNodeValue(safe(context.pathwayKey))}`,
+    );
+  }
+
+  if (safe(context.pathwayLabel)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_LABEL_PREFIX}${encodeNodeValue(safe(context.pathwayLabel))}`,
+    );
+  }
+
+  if (safe(context.stageKey)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STAGE_KEY_PREFIX}${encodeNodeValue(safe(context.stageKey))}`,
+    );
+  }
+
+  if (safe(context.stageLabel)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STAGE_LABEL_PREFIX}${encodeNodeValue(safe(context.stageLabel))}`,
+    );
+  }
+
+  if (safe(context.stepNumber)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STEP_NUMBER_PREFIX}${encodeNodeValue(safe(context.stepNumber))}`,
+    );
+  }
+
+  if (safe(context.stepTitle)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STEP_TITLE_PREFIX}${encodeNodeValue(safe(context.stepTitle))}`,
+    );
+  }
+
+  if (safe(context.stepMeaning)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STEP_MEANING_PREFIX}${encodeNodeValue(safe(context.stepMeaning))}`,
+    );
+  }
+
+  if (safe(context.skillFocus)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_SKILL_FOCUS_PREFIX}${encodeNodeValue(safe(context.skillFocus))}`,
+    );
+  }
+
+  return dedupeNodeIds(pathwayNodeIds);
 }
 
 export function parseCurriculumContextFromNodeIds(nodeIds: string[]) {
@@ -287,4 +532,98 @@ export function parseCurriculumContextFromNodeIds(nodeIds: string[]) {
   }
 
   return buildCurriculumCaptureContext(parsed);
+}
+
+export function parsePathwayContextFromNodeIds(nodeIds: string[]) {
+  let source = "";
+  const parsed: Partial<CleanPathwayCaptureContext> = {};
+
+  for (const nodeId of nodeIds) {
+    const normalizedNodeId = safe(nodeId);
+    if (!normalizedNodeId) continue;
+
+    if (normalizedNodeId.startsWith(PATHWAY_SOURCE_PREFIX)) {
+      source = safe(normalizedNodeId.slice(PATHWAY_SOURCE_PREFIX.length));
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_SUBJECT_KEY_PREFIX)) {
+      parsed.subjectKey = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_SUBJECT_KEY_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_SUBJECT_LABEL_PREFIX)) {
+      parsed.subjectLabel = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_SUBJECT_LABEL_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_KEY_PREFIX)) {
+      parsed.pathwayKey = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_KEY_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_LABEL_PREFIX)) {
+      parsed.pathwayLabel = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_LABEL_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STAGE_KEY_PREFIX)) {
+      parsed.stageKey = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STAGE_KEY_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STAGE_LABEL_PREFIX)) {
+      parsed.stageLabel = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STAGE_LABEL_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STEP_NUMBER_PREFIX)) {
+      parsed.stepNumber = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STEP_NUMBER_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STEP_TITLE_PREFIX)) {
+      parsed.stepTitle = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STEP_TITLE_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STEP_MEANING_PREFIX)) {
+      parsed.stepMeaning = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STEP_MEANING_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_SKILL_FOCUS_PREFIX)) {
+      parsed.skillFocus = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_SKILL_FOCUS_PREFIX.length),
+      );
+    }
+  }
+
+  if (!hasPathwayContextValue(parsed)) {
+    return null;
+  }
+
+  if (source && source !== MY_PATHWAYS_SOURCE) {
+    return null;
+  }
+
+  return buildPathwayCaptureContext(parsed);
 }

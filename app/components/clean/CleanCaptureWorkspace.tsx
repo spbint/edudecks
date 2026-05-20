@@ -17,11 +17,17 @@ import {
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
   buildCurriculumCaptureContext,
+  buildPathwayCaptureContext,
   encodeCurriculumContextNodeIds,
+  encodePathwayContextNodeIds,
   MY_CURRICULUM_SOURCE,
+  MY_PATHWAYS_SOURCE,
   parseCurriculumCaptureContextFromSearchParams,
   parseCurriculumContextFromNodeIds,
+  parsePathwayCaptureContextFromSearchParams,
+  parsePathwayContextFromNodeIds,
   type CleanCurriculumCaptureContext,
+  type CleanPathwayCaptureContext,
 } from "@/lib/clean/evidence/curriculumContext";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
@@ -104,7 +110,7 @@ function buildCalendarOptionLabel(item: CleanCalendarItem, learnerLabel: string)
   return `${formatDateLabel(item.plannedDate)} - ${item.title} - ${learnerLabel}`;
 }
 
-function safeQueryValue(value: string | null) {
+function safeQueryValue(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
 
@@ -133,6 +139,56 @@ function buildCurriculumTitleSuggestion(
   return priorityLabel ? `Evidence for ${priorityLabel}` : "";
 }
 
+function buildPathwayTitleSuggestion(
+  context: CleanPathwayCaptureContext | null,
+) {
+  if (!context) return "";
+
+  const stepNumber = safeQueryValue(context.stepNumber);
+  const stepTitle = safeQueryValue(context.stepTitle);
+
+  if (stepNumber && stepTitle) {
+    return `Evidence for Step ${stepNumber} - ${stepTitle}`;
+  }
+
+  if (stepTitle) {
+    return `Evidence for ${stepTitle}`;
+  }
+
+  return "";
+}
+
+function lowerCaseFirstLetter(value: string) {
+  const text = safeQueryValue(value);
+  if (!text) return "";
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
+
+function buildPathwayWhatHappenedSuggestion(
+  context: CleanPathwayCaptureContext | null,
+  learnerLabel: string,
+) {
+  if (!context) return "";
+
+  const stepNumber = safeQueryValue(context.stepNumber);
+  const stepTitle = safeQueryValue(context.stepTitle);
+  const pathwayLabel = safeQueryValue(context.pathwayLabel) || "pathway";
+  const stepMeaning = lowerCaseFirstLetter(safeQueryValue(context.stepMeaning));
+  const learnerPrefix = safeQueryValue(learnerLabel) || "The learner";
+  const stepLabel =
+    stepNumber && stepTitle
+      ? `Step ${stepNumber} - ${stepTitle}`
+      : stepTitle || "this pathway step";
+
+  const parts = [`${learnerPrefix} worked on ${stepLabel} in the ${pathwayLabel}.`];
+
+  if (stepMeaning) {
+    parts.push(`This step focuses on: ${safeQueryValue(context.stepMeaning)}`);
+  }
+
+  return parts.join(" ");
+}
+
 function getCurriculumContextRows(context: CleanCurriculumCaptureContext) {
   return [
     context.learningAreaLabel
@@ -147,6 +203,27 @@ function getCurriculumContextRows(context: CleanCurriculumCaptureContext) {
           value: context.authorityEvidenceAreaLabel,
         }
       : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+}
+
+function buildPathwayStepLabel(context: CleanPathwayCaptureContext | null) {
+  if (!context) return "";
+
+  const stepNumber = safeQueryValue(context.stepNumber);
+  const stepTitle = safeQueryValue(context.stepTitle);
+
+  if (stepNumber && stepTitle) {
+    return `Step ${stepNumber} - ${stepTitle}`;
+  }
+
+  return stepTitle || "Pathway step";
+}
+
+function getPathwayContextRows(context: CleanPathwayCaptureContext) {
+  return [
+    context.pathwayLabel ? { label: "Pathway", value: context.pathwayLabel } : null,
+    context.stageLabel ? { label: "Stage", value: context.stageLabel } : null,
+    context.subjectLabel ? { label: "Subject", value: context.subjectLabel } : null,
   ].filter(Boolean) as Array<{ label: string; value: string }>;
 }
 
@@ -175,8 +252,12 @@ function CleanCaptureWorkspaceBody() {
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [formCurriculumContext, setFormCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
+  const [formPathwayContext, setFormPathwayContext] =
+    useState<CleanPathwayCaptureContext | null>(null);
   const [lastSavedCurriculumContext, setLastSavedCurriculumContext] =
     useState<CleanCurriculumCaptureContext | null>(null);
+  const [lastSavedPathwayContext, setLastSavedPathwayContext] =
+    useState<CleanPathwayCaptureContext | null>(null);
   const [lastAppliedContextKey, setLastAppliedContextKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -194,7 +275,9 @@ function CleanCaptureWorkspaceBody() {
   const captureContextKey = searchParams.toString();
   const evidenceEntryIdFromQuery = safeQueryValue(searchParams.get("evidence_entry_id"));
   const calendarItemIdFromQuery = safeQueryValue(searchParams.get("calendar_item_id"));
-  const learnerIdFromQuery = safeQueryValue(searchParams.get("learner_id"));
+  const learnerIdFromQuery =
+    safeQueryValue(searchParams.get("learner_id")) ||
+    safeQueryValue(searchParams.get("learnerId"));
   const programIdFromQuery = safeQueryValue(searchParams.get("program_id"));
   const programSegmentIdFromQuery = safeQueryValue(searchParams.get("program_segment_id"));
   const learningAreaFromQuery = safeQueryValue(searchParams.get("learningArea"));
@@ -210,9 +293,16 @@ function CleanCaptureWorkspaceBody() {
     () => parseCurriculumCaptureContextFromSearchParams(searchParams),
     [searchParams],
   );
+  const pathwayContextFromQuery = useMemo(
+    () => parsePathwayCaptureContextFromSearchParams(searchParams),
+    [searchParams],
+  );
   const curriculumReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-curriculum"
     : "/my-curriculum";
+  const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")
+    ? "/clean-my-pathways"
+    : "/my-pathways";
 
   const selectedProgram = useMemo(
     () => programs.find((program) => program.id === programId) ?? null,
@@ -359,7 +449,7 @@ function CleanCaptureWorkspaceBody() {
 
   function resetForm(
     nextLearnerId?: string,
-    options: { keepCurriculumContext?: boolean } = {},
+    options: { keepCurriculumContext?: boolean; keepPathwayContext?: boolean } = {},
   ) {
     setEditingEntryId(null);
     setObservedOn(getTodayDate());
@@ -371,6 +461,9 @@ function CleanCaptureWorkspaceBody() {
     setCalendarItemId("");
     if (!options.keepCurriculumContext) {
       setFormCurriculumContext(null);
+    }
+    if (!options.keepPathwayContext) {
+      setFormPathwayContext(null);
     }
     setLearnerId(nextLearnerId ?? workspace.profile?.defaultLearnerId ?? workspace.learners[0]?.id ?? "");
   }
@@ -398,6 +491,9 @@ function CleanCaptureWorkspaceBody() {
       const existingEntryCurriculumContext = parseCurriculumContextFromNodeIds(
         existingEntry.curriculumNodeIds,
       );
+      const existingEntryPathwayContext = parsePathwayContextFromNodeIds(
+        existingEntry.curriculumNodeIds,
+      );
       setEditingEntryId(existingEntry.id);
       setLearnerId(existingEntry.learnerId);
       setObservedOn(existingEntry.observedOn);
@@ -408,9 +504,11 @@ function CleanCaptureWorkspaceBody() {
       setProgramId(existingEntry.programId || "");
       setCalendarItemId(existingEntry.calendarItemId || calendarItemIdFromQuery || "");
       setFormCurriculumContext(existingEntryCurriculumContext);
+      setFormPathwayContext(existingEntryPathwayContext);
       setMessage(null);
       setActionError(null);
       setLastSavedCurriculumContext(null);
+      setLastSavedPathwayContext(null);
       setLastAppliedContextKey(captureContextKey);
       return;
     }
@@ -425,7 +523,15 @@ function CleanCaptureWorkspaceBody() {
       ? programSegments.find((segment) => segment.id === programSegmentIdFromQuery) ?? null
       : null;
     const nextCurriculumContext = curriculumContextFromQuery;
+    const nextPathwayContext = pathwayContextFromQuery;
+    const derivedPathwayCurriculumContext = nextPathwayContext
+      ? buildCurriculumCaptureContext({
+          learningAreaKey: learningAreaFromQuery || "mathematics",
+          learningAreaLabel: learningAreaLabelFromQuery || "Mathematics",
+        })
+      : null;
     const curriculumTitleSuggestion = buildCurriculumTitleSuggestion(nextCurriculumContext);
+    const pathwayTitleSuggestion = buildPathwayTitleSuggestion(nextPathwayContext);
 
     const nextLearnerId =
       learnerIdFromQuery ||
@@ -435,11 +541,20 @@ function CleanCaptureWorkspaceBody() {
       workspace.profile.defaultLearnerId ||
       workspace.learners[0]?.id ||
       "";
+    const nextLearner = workspace.learners.find((learner) => learner.id === nextLearnerId) ?? null;
+    const nextLearnerLabel = nextLearner
+      ? getLearnerLabel(nextLearner.firstName, nextLearner.preferredName)
+      : "The learner";
+    const pathwayWhatHappenedSuggestion = buildPathwayWhatHappenedSuggestion(
+      nextPathwayContext,
+      nextLearnerLabel,
+    );
 
     setEditingEntryId(null);
     setLearnerId(nextLearnerId);
     setObservedOn(observedOnFromQuery || linkedCalendarItem?.plannedDate || getTodayDate());
     setTitle(
+      pathwayTitleSuggestion ||
       curriculumTitleSuggestion ||
         linkedCalendarItem?.title ||
         linkedSegment?.title ||
@@ -448,10 +563,11 @@ function CleanCaptureWorkspaceBody() {
         humanizeQuerySlug(curriculumElementFromQuery) ||
         "",
     );
-    setWhatHappened("");
+    setWhatHappened(pathwayWhatHappenedSuggestion || "");
     setReflection("");
     setLearningArea(
-      nextCurriculumContext?.learningAreaLabel ||
+      derivedPathwayCurriculumContext?.learningAreaLabel ||
+        nextCurriculumContext?.learningAreaLabel ||
         learningAreaLabelFromQuery ||
         learningAreaFromQuery ||
         linkedCalendarItem?.learningArea ||
@@ -460,16 +576,19 @@ function CleanCaptureWorkspaceBody() {
     );
     setProgramId(programIdFromQuery || linkedCalendarItem?.programId || linkedProgram?.id || "");
     setCalendarItemId(calendarItemIdFromQuery || "");
-    setFormCurriculumContext(nextCurriculumContext);
+    setFormCurriculumContext(derivedPathwayCurriculumContext || nextCurriculumContext);
+    setFormPathwayContext(nextPathwayContext);
     setMessage(null);
     setActionError(null);
     setLastSavedCurriculumContext(null);
+    setLastSavedPathwayContext(null);
     setLastAppliedContextKey(captureContextKey);
   }, [
     calendarItemIdFromQuery,
     calendarItems,
     captureContextKey,
     curriculumContextFromQuery,
+    pathwayContextFromQuery,
     entries,
     entriesLoading,
     evidenceEntryIdFromQuery,
@@ -500,10 +619,15 @@ function CleanCaptureWorkspaceBody() {
 
     try {
       const nextCurriculumContext = buildCurriculumCaptureContext(formCurriculumContext || {});
+      const nextPathwayContext = buildPathwayCaptureContext(formPathwayContext || {});
       const existingCurriculumNodeIds = editingEntry?.curriculumNodeIds ?? [];
       const curriculumNodeIds = encodeCurriculumContextNodeIds(
         existingCurriculumNodeIds,
         nextCurriculumContext,
+      );
+      const evidenceNodeIds = encodePathwayContextNodeIds(
+        curriculumNodeIds,
+        nextPathwayContext,
       );
       const payload = {
         learnerId,
@@ -514,26 +638,31 @@ function CleanCaptureWorkspaceBody() {
         learningArea: learningArea || nextCurriculumContext?.learningAreaLabel || null,
         programId: programId || null,
         calendarItemId: calendarItemId || null,
-        curriculumNodeIds,
+        curriculumNodeIds: evidenceNodeIds,
       };
 
       if (editingEntryId) {
         await updateCleanEvidenceEntry(workspace.profile.id, editingEntryId, payload);
         setMessage(
-          nextCurriculumContext
+          nextPathwayContext
+            ? "Evidence saved for this pathway step."
+            : nextCurriculumContext
             ? "Evidence saved to My Curriculum."
             : "Capture note updated.",
         );
       } else {
         await createCleanEvidenceEntry(workspace.profile.id, payload);
         setMessage(
-          nextCurriculumContext
+          nextPathwayContext
+            ? "Evidence saved for this pathway step."
+            : nextCurriculumContext
             ? "Evidence saved to My Curriculum."
             : "Capture note saved.",
         );
       }
 
-      setLastSavedCurriculumContext(nextCurriculumContext);
+      setLastSavedCurriculumContext(nextPathwayContext ? null : nextCurriculumContext);
+      setLastSavedPathwayContext(nextPathwayContext);
       const nextLearnerId = learnerId;
       resetForm(nextLearnerId);
       if (captureContextKey) {
@@ -582,6 +711,7 @@ function CleanCaptureWorkspaceBody() {
     const entryCurriculumContext = parseCurriculumContextFromNodeIds(
       entry.curriculumNodeIds,
     );
+    const entryPathwayContext = parsePathwayContextFromNodeIds(entry.curriculumNodeIds);
     setEditingEntryId(entry.id);
     setLearnerId(entry.learnerId);
     setObservedOn(entry.observedOn);
@@ -592,9 +722,11 @@ function CleanCaptureWorkspaceBody() {
     setProgramId(entry.programId || "");
     setCalendarItemId(entry.calendarItemId || "");
     setFormCurriculumContext(entryCurriculumContext);
+    setFormPathwayContext(entryPathwayContext);
     setMessage(null);
     setActionError(null);
     setLastSavedCurriculumContext(null);
+    setLastSavedPathwayContext(null);
   }
 
   const readyForCapture =
@@ -603,12 +735,26 @@ function CleanCaptureWorkspaceBody() {
     () => (formCurriculumContext ? getCurriculumContextRows(formCurriculumContext) : []),
     [formCurriculumContext],
   );
+  const pathwayContextRows = useMemo(
+    () => (formPathwayContext ? getPathwayContextRows(formPathwayContext) : []),
+    [formPathwayContext],
+  );
+  const pathwayStepLabel = useMemo(
+    () => buildPathwayStepLabel(formPathwayContext),
+    [formPathwayContext],
+  );
+  const pathwayCaptureActive =
+    formPathwayContext?.source === MY_PATHWAYS_SOURCE;
   const curriculumCaptureActive =
-    formCurriculumContext?.source === MY_CURRICULUM_SOURCE;
-  const curriculumWhatHappenedPlaceholder = curriculumCaptureActive
+    !pathwayCaptureActive && formCurriculumContext?.source === MY_CURRICULUM_SOURCE;
+  const curriculumWhatHappenedPlaceholder = pathwayCaptureActive
+    ? "What happened while working on this pathway step?"
+    : curriculumCaptureActive
     ? "What did the learner do, and what does this learning show?"
     : "What happened";
-  const reflectionPlaceholder = curriculumCaptureActive
+  const reflectionPlaceholder = pathwayCaptureActive
+    ? "What did you notice? How independently did the learner complete the task? What might come next?"
+    : curriculumCaptureActive
     ? "What stood out, what support helped, or what could come next? (optional)"
     : "Reflection, next step, or what stood out (optional)";
 
@@ -709,6 +855,38 @@ function CleanCaptureWorkspaceBody() {
                   {entriesLoading || linkingLoading ? "Refreshing..." : "Refresh"}
                 </button>
               </div>
+
+              {pathwayCaptureActive && formPathwayContext ? (
+                <div
+                  style={{
+                    marginTop: 16,
+                    border: "1px solid #bfdbfe",
+                    borderRadius: 14,
+                    padding: 14,
+                    background: "#f8fbff",
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Pathway evidence</strong>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    You are capturing evidence for:
+                  </div>
+                  <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
+                    {pathwayStepLabel}
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    {pathwayContextRows.map((row) => (
+                      <div key={row.label} style={{ color: "#334155", lineHeight: 1.6 }}>
+                        <strong style={{ color: "#0f172a" }}>{row.label}:</strong> {row.value}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    This evidence can help show progress through My Pathways and support curriculum coverage, reports, and outputs.
+                  </div>
+                </div>
+              ) : null}
 
               {curriculumCaptureActive && curriculumContextRows.length ? (
                 <div
@@ -918,6 +1096,17 @@ function CleanCaptureWorkspaceBody() {
                   }}
                 >
                   <p style={{ margin: 0, color: "#0f766e" }}>{message}</p>
+                  {lastSavedPathwayContext ? (
+                    <div>
+                      <button
+                        type="button"
+                        style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                        onClick={() => router.push(pathwaysReturnPath)}
+                      >
+                        Back to My Pathways
+                      </button>
+                    </div>
+                  ) : null}
                   {lastSavedCurriculumContext ? (
                     <div>
                       <button
@@ -1017,6 +1206,9 @@ function CleanCaptureWorkspaceBody() {
                     const entryCurriculumContext = parseCurriculumContextFromNodeIds(
                       entry.curriculumNodeIds,
                     );
+                    const entryPathwayContext = parsePathwayContextFromNodeIds(
+                      entry.curriculumNodeIds,
+                    );
                     const linkedSegment =
                       linkedCalendarItem?.programSegmentId
                         ? programSegments.find(
@@ -1084,6 +1276,18 @@ function CleanCaptureWorkspaceBody() {
                               entryCurriculumContext.learningAreaLabel,
                               entryCurriculumContext.curriculumElementLabel,
                               entryCurriculumContext.authorityEvidenceAreaLabel,
+                            ]
+                              .filter(Boolean)
+                              .join(" - ")}
+                          </div>
+                        ) : null}
+                        {entryPathwayContext ? (
+                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                            Pathway link:{" "}
+                            {[
+                              entryPathwayContext.pathwayLabel,
+                              entryPathwayContext.stageLabel,
+                              buildPathwayStepLabel(entryPathwayContext),
                             ]
                               .filter(Boolean)
                               .join(" - ")}
