@@ -2554,8 +2554,9 @@ function AssessmentsWorkspaceBody() {
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Future assessment actions</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Assessment checks, saved results, and evidence links will come later.
-                  This view is starting with manual status tracking first.
+                  Manual status tracking and evidence links are now available. Next,
+                  MyLearna will add formal assessment checks, saved results, and
+                  assessment summaries.
                 </p>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>
