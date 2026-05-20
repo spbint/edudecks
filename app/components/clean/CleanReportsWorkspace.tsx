@@ -13,12 +13,10 @@ import {
   createCleanReport,
   createCleanReportingPeriod,
   deleteCleanReport,
-  deleteCleanReportingPeriod,
   listCleanReports,
   listCleanReportSections,
   listCleanReportingPeriods,
   updateCleanReport,
-  updateCleanReportingPeriod,
 } from "@/lib/clean/reports/client";
 import type {
   CleanReport,
@@ -490,26 +488,15 @@ function CleanReportsWorkspaceBody() {
   const [sections, setSections] = useState<CleanReportSection[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<CleanPortfolioItem[]>([]);
   const [learningPeriods, setLearningPeriods] = useState<CleanLearningPeriod[]>([]);
-  const [periodsLoading, setPeriodsLoading] = useState(false);
-  const [reportsLoading, setReportsLoading] = useState(false);
-  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
-  const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
-  const [showPeriodManager, setShowPeriodManager] = useState(false);
   const [showReportBuilder, setShowReportBuilder] = useState(false);
-  const [showReportingYearSettings, setShowReportingYearSettings] = useState(false);
   const [showCustomReportTitle, setShowCustomReportTitle] = useState(false);
   const [showAdvancedCustomisation, setShowAdvancedCustomisation] = useState(false);
   const [showOtherReports, setShowOtherReports] = useState(false);
-
-  const [periodLearnerId, setPeriodLearnerId] = useState("");
-  const [periodTitle, setPeriodTitle] = useState("");
-  const [periodStartsOn, setPeriodStartsOn] = useState("");
-  const [periodEndsOn, setPeriodEndsOn] = useState("");
 
   const [reportLearnerId, setReportLearnerId] = useState("");
   const [reportingPeriodId, setReportingPeriodId] = useState("");
@@ -520,7 +507,6 @@ function CleanReportsWorkspaceBody() {
   const [actionError, setActionError] = useState<string | null>(null);
   const activeReportRef = useRef<HTMLDivElement>(null);
   const reportSetupRef = useRef<HTMLDivElement>(null);
-  const periodManagerRef = useRef<HTMLDivElement>(null);
   const reportPreviewRef = useRef<HTMLDivElement>(null);
   const evidenceEntryIdFromQuery = searchParams.get("evidence_entry_id") ?? "";
   const learnerIdFromQuery = searchParams.get("learner_id") ?? "";
@@ -654,11 +640,22 @@ function CleanReportsWorkspaceBody() {
     () => reports.filter((report) => report.id !== selectedReport?.id),
     [reports, selectedReport?.id],
   );
+  const currentLearningYearReport = useMemo(() => {
+    if (!reportLearnerId || !defaultReportingPeriodForReport) return null;
+
+    return (
+      reports.find(
+        (report) =>
+          report.learnerId === reportLearnerId &&
+          report.reportingPeriodId === defaultReportingPeriodForReport.id,
+      ) ?? null
+    );
+  }, [defaultReportingPeriodForReport, reportLearnerId, reports]);
   const reportCanPreview = Boolean(selectedReport && selectedPeriod);
   const reportCanMoveToOutput = Boolean(selectedReport && selectedPeriod);
   const nextReportGuidance = useMemo(() => {
     if (!selectedReport) {
-      return "Reports use your current learning year by default. Review the selected portfolio evidence and written reflections, then move the learning record to My Outputs when you are ready.";
+      return "Reports use your current learning year automatically. Review the selected portfolio evidence and written reflections, then move the learning record to My Outputs when you are ready.";
     }
 
     if (selectedReport.status === "archived") {
@@ -693,7 +690,6 @@ function CleanReportsWorkspaceBody() {
       setReportLearnerId(selectedReport.learnerId);
       setReportingPeriodId(selectedReport.reportingPeriodId);
       setReportTitle(selectedReport.title);
-      setShowReportingYearSettings(!selectedReport.reportingPeriodId);
       setShowCustomReportTitle(false);
     }
     setShowReportBuilder(true);
@@ -701,13 +697,6 @@ function CleanReportsWorkspaceBody() {
       scrollToRef(reportSetupRef);
     });
   }, [editingReportId, scrollToRef, selectedReport]);
-
-  const openPeriodManager = useCallback(() => {
-    setShowPeriodManager(true);
-    window.requestAnimationFrame(() => {
-      scrollToRef(periodManagerRef);
-    });
-  }, [scrollToRef]);
 
   const openPreview = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -718,7 +707,6 @@ function CleanReportsWorkspaceBody() {
   const reloadPeriods = useCallback(async () => {
     if (!workspace.profile) return;
 
-    setPeriodsLoading(true);
     setDataError(null);
     try {
       const nextPeriods = await listCleanReportingPeriods(workspace.profile.id, {
@@ -729,11 +717,9 @@ function CleanReportsWorkspaceBody() {
       setDataError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load the reporting periods just now.",
+          "We could not load the learning year details just now.",
         ),
       );
-    } finally {
-      setPeriodsLoading(false);
     }
   }, [workspace.profile]);
 
@@ -753,7 +739,6 @@ function CleanReportsWorkspaceBody() {
   const reloadReports = useCallback(async () => {
     if (!workspace.profile) return;
 
-    setReportsLoading(true);
     setDataError(null);
     try {
       const nextReports = await listCleanReports(workspace.profile.id, {
@@ -763,7 +748,7 @@ function CleanReportsWorkspaceBody() {
       setSelectedReportId((current) =>
         current && nextReports.some((report) => report.id === current)
           ? current
-          : nextReports[0]?.id ?? null,
+          : null,
       );
     } catch (error) {
       setDataError(
@@ -772,8 +757,6 @@ function CleanReportsWorkspaceBody() {
           "We could not load the reports just now.",
         ),
       );
-    } finally {
-      setReportsLoading(false);
     }
   }, [workspace.profile]);
 
@@ -783,7 +766,6 @@ function CleanReportsWorkspaceBody() {
       return;
     }
 
-    setSectionsLoading(true);
     setDataError(null);
     try {
       const nextSections = await listCleanReportSections(
@@ -798,8 +780,6 @@ function CleanReportsWorkspaceBody() {
           "We could not load the report sections just now.",
         ),
       );
-    } finally {
-      setSectionsLoading(false);
     }
   }, [selectedReportId, workspace.profile]);
 
@@ -886,18 +866,13 @@ function CleanReportsWorkspaceBody() {
     if (!readyForReports) return;
     if (!reports.length) {
       setShowReportBuilder(true);
-      setShowPeriodManager(false);
       return;
     }
 
     if (editingReportId) {
       setShowReportBuilder(true);
     }
-
-    if (editingPeriodId) {
-      setShowPeriodManager(true);
-    }
-  }, [editingPeriodId, editingReportId, readyForReports, reports.length]);
+  }, [editingReportId, readyForReports, reports.length]);
 
   useEffect(() => {
     if (
@@ -926,100 +901,27 @@ function CleanReportsWorkspaceBody() {
     reportingPeriodId,
   ]);
 
-  function resetPeriodForm() {
-    setEditingPeriodId(null);
-    setPeriodLearnerId("");
-    setPeriodTitle("");
-    setPeriodStartsOn("");
-    setPeriodEndsOn("");
-  }
+  useEffect(() => {
+    if (!readyForReports || editingReportId || !reportLearnerId) return;
+    if (selectedReportId) return;
+
+    if (currentLearningYearReport) {
+      setSelectedReportId(currentLearningYearReport.id);
+    }
+  }, [
+    currentLearningYearReport,
+    editingReportId,
+    readyForReports,
+    reportLearnerId,
+    selectedReportId,
+  ]);
 
   function resetReportForm() {
     setEditingReportId(null);
     setReportLearnerId("");
     setReportingPeriodId("");
     setReportTitle("");
-    setShowReportingYearSettings(false);
     setShowCustomReportTitle(false);
-  }
-
-  async function handlePeriodSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!workspace.profile) return;
-
-    setSubmitting(true);
-    setMessage(null);
-    setActionError(null);
-
-    try {
-      const payload = {
-        learnerId: periodLearnerId,
-        title: periodTitle,
-        startsOn: periodStartsOn,
-        endsOn: periodEndsOn,
-      };
-
-      if (editingPeriodId) {
-        await updateCleanReportingPeriod(
-          workspace.profile.id,
-          editingPeriodId,
-          payload,
-        );
-        setMessage("Reporting period updated.");
-      } else {
-        await createCleanReportingPeriod(workspace.profile.id, payload);
-        setMessage("Reporting period created.");
-      }
-
-      resetPeriodForm();
-      await reloadPeriods();
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not save the reporting period.",
-        ),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDeletePeriod(period: CleanReportingPeriod) {
-    if (!workspace.profile) return;
-
-    setSubmitting(true);
-    setMessage(null);
-    setActionError(null);
-
-    try {
-      await deleteCleanReportingPeriod(workspace.profile.id, period.id);
-      if (editingPeriodId === period.id) {
-        resetPeriodForm();
-      }
-      setMessage("Reporting period deleted.");
-      await reloadPeriods();
-      await reloadReports();
-    } catch (error) {
-      setActionError(
-        normalizeCleanErrorMessage(
-          error,
-          "We could not delete the reporting period.",
-        ),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function handleEditPeriod(period: CleanReportingPeriod) {
-    setEditingPeriodId(period.id);
-    setPeriodLearnerId(period.learnerId);
-    setPeriodTitle(period.title);
-    setPeriodStartsOn(period.startsOn);
-    setPeriodEndsOn(period.endsOn);
-    setMessage(null);
-    setActionError(null);
   }
 
   async function handleReportSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -1031,17 +933,13 @@ function CleanReportsWorkspaceBody() {
     setActionError(null);
 
     try {
-      let effectiveReportingPeriodId = reportingPeriodId;
-
-      if (!effectiveReportingPeriodId && reportLearnerId && filteredPeriodsForReport.length) {
-        effectiveReportingPeriodId =
-          defaultReportingPeriodForReport?.id || filteredPeriodsForReport[0]?.id || "";
-      }
+      let effectiveReportingPeriodId =
+        reportingPeriodId || defaultReportingPeriodForReport?.id || "";
 
       if (
         !effectiveReportingPeriodId &&
         reportLearnerId &&
-        filteredPeriodsForReport.length === 0
+        !defaultReportingPeriodForReport
       ) {
         const createdPeriod = await createCleanReportingPeriod(workspace.profile.id, {
           learnerId: reportLearnerId,
@@ -1118,7 +1016,6 @@ function CleanReportsWorkspaceBody() {
     setReportTitle(report.title);
     setSelectedReportId(report.id);
     setShowReportBuilder(true);
-    setShowReportingYearSettings(!report.reportingPeriodId);
     setShowCustomReportTitle(true);
     setMessage(null);
     setActionError(null);
@@ -1220,9 +1117,9 @@ function CleanReportsWorkspaceBody() {
         <CleanWorkflowRibbon />
 
         <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 8 }}>
-            <div
-              style={{
+            <div style={{ display: "grid", gap: 8 }}>
+              <div
+                style={{
                 fontSize: 12,
                 fontWeight: 800,
                 letterSpacing: "0.08em",
@@ -1231,13 +1128,13 @@ function CleanReportsWorkspaceBody() {
               }}
             >
               Prepare a report
+              </div>
+              <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Reports</h1>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Your report brings together selected portfolio evidence and written reflections for this learner.
+              </p>
             </div>
-            <h1 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>My Reports</h1>
-            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Reports bring together your selected portfolio evidence and written reflections into a learning record.
-            </p>
-          </div>
-        </section>
+          </section>
 
         {workspace.loading ? (
         <section style={cardStyle}>Loading your family workspace...</section>
@@ -1299,7 +1196,7 @@ function CleanReportsWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Output preparation</h2>
                   <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                    Reports use your current learning year by default. You can adjust this if needed.
+                    Reports use your current learning year automatically.
                   </p>
                 </div>
                 <div
@@ -1321,7 +1218,7 @@ function CleanReportsWorkspaceBody() {
                 <div style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>How reports are built</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Reports bring together your selected portfolio evidence, written summary sections, and learner context into one learning record.
+                    Your report brings together selected portfolio evidence, written reflections, and learner context into one learning record.
                   </p>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                     Not every capture needs to be in a report. Choose the strongest evidence in My Portfolio first.
@@ -1335,8 +1232,8 @@ function CleanReportsWorkspaceBody() {
               title="Choose learner"
               helperText={
                 selectedReport
-                  ? "This learning record is already linked to the current learning year. You only need to change these details if the year, dates, or learner need attention."
-                  : "Choose the learner first. MyLearna will use the current learning year by default so you can move straight into the report."
+                  ? "This learning record is already linked to a saved learning year. You only need to change these details if the year, dates, or learner need attention."
+                  : "Choose the learner first. Reports use your current learning year automatically so you can move straight into the record."
               }
               completionTone={step1Tone}
               completionText={
@@ -1360,25 +1257,6 @@ function CleanReportsWorkspaceBody() {
                   {showReportBuilder ? "Hide report details" : selectedReport ? "Check report details" : "Start report"}
                 </button>
               }
-              secondaryAction={
-                <button
-                  type="button"
-                  style={quietButtonStyle}
-                  onClick={() => {
-                    if (showPeriodManager) {
-                      setShowPeriodManager(false);
-                    } else {
-                      openPeriodManager();
-                    }
-                  }}
-                  disabled={submitting}
-                  aria-expanded={showPeriodManager}
-                >
-                  {showPeriodManager
-                    ? "Hide advanced report settings"
-                    : "Advanced report settings"}
-                </button>
-              }
             >
               <div ref={reportSetupRef} style={{ display: "grid", gap: 16 }}>
                 {selectedReport ? (
@@ -1391,7 +1269,7 @@ function CleanReportsWorkspaceBody() {
                   >
                     <strong style={{ color: "#0f172a" }}>Current learning record</strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      This learning record is already linked to the current learning year.
+                      This learning record is already linked to a saved learning year.
                     </p>
                     <div
                       style={{
@@ -1437,7 +1315,7 @@ function CleanReportsWorkspaceBody() {
                       <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
                         {selectedReport
                           ? "These details are already in place. Only change them if the learner, learning year, dates, or title need correcting."
-                          : "Choose the learner and let MyLearna use the current learning year by default. Only edit the title if you want a different name."}
+                          : "Choose the learner and let MyLearna use the current learning year automatically. Only edit the title if you want a different name."}
                       </p>
                     </div>
 
@@ -1453,7 +1331,13 @@ function CleanReportsWorkspaceBody() {
                           <label style={fieldLabelStyle}>Choose learner</label>
                           <select
                             value={reportLearnerId}
-                            onChange={(event) => setReportLearnerId(event.target.value)}
+                            onChange={(event) => {
+                              setReportLearnerId(event.target.value);
+                              setSelectedReportId(null);
+                              setReportingPeriodId("");
+                              setReportTitle("");
+                              setShowCustomReportTitle(false);
+                            }}
                             style={inputStyle}
                           >
                             <option value="">Choose learner</option>
@@ -1493,55 +1377,13 @@ function CleanReportsWorkspaceBody() {
                                     currentLearningYearSummary.startsOn,
                                     currentLearningYearSummary.endsOn,
                                   )}. ${currentLearningYearSummary.isExisting
-                                    ? "MyLearna will use this by default."
+                                    ? "Reports use this automatically."
                                     : "MyLearna will create this current learning year automatically when you start the report."}`
-                                : "Reports use the learner's current learning year by default. You can change it later if needed."}
+                                : "Based on your family settings."}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            style={quietButtonStyle}
-                            onClick={() => setShowReportingYearSettings((current) => !current)}
-                            disabled={submitting || !reportLearnerId}
-                            aria-expanded={showReportingYearSettings}
-                          >
-                            {showReportingYearSettings ? "Hide reporting-year settings" : "Change reporting year"}
-                          </button>
                         </div>
                       </div>
-
-                      {showReportingYearSettings ? (
-                        <div>
-                          <label style={fieldLabelStyle}>Change reporting year</label>
-                          <select
-                            value={reportingPeriodId}
-                            onChange={(event) => setReportingPeriodId(event.target.value)}
-                            style={inputStyle}
-                          >
-                            <option value="">
-                              {filteredPeriodsForReport.length
-                                ? "Use current learning year"
-                                : reportLearnerId
-                                ? `Use ${suggestedReportingPeriodDraft.title}`
-                                : "Choose learner first"}
-                            </option>
-                            {filteredPeriodsForReport.map((period) => (
-                              <option key={period.id} value={period.id}>
-                                {period.title}
-                              </option>
-                            ))}
-                          </select>
-                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6, marginTop: 6 }}>
-                            Reports use your current learning year by default. Change this only if you need a different year or date range.
-                            {!filteredPeriodsForReport.length && reportLearnerId
-                              ? ` Default: ${suggestedReportingPeriodDraft.title} (${formatDateRange(
-                                  suggestedReportingPeriodDraft.startsOn,
-                                  suggestedReportingPeriodDraft.endsOn,
-                                )}).`
-                              : ""}
-                          </div>
-                        </div>
-                      ) : null}
 
                       {showCustomReportTitle || editingReportId ? (
                         <div>
@@ -1607,209 +1449,6 @@ function CleanReportsWorkspaceBody() {
                     </p>
                   </div>
                 )}
-
-                <div
-                  ref={periodManagerRef}
-                  style={{
-                    border: "1px dashed #dbe4f0",
-                    borderRadius: 16,
-                    padding: 16,
-                    background: "#fcfdff",
-                    display: "grid",
-                    gap: 14,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <strong style={{ color: "#0f172a" }}>Advanced report settings</strong>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Use this only if you need to manage learning-year dates or create a different report window.
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        style={quietButtonStyle}
-                        onClick={() => setShowPeriodManager((current) => !current)}
-                        disabled={submitting}
-                        aria-expanded={showPeriodManager}
-                      >
-                        {showPeriodManager
-                          ? "Hide advanced report settings"
-                          : "Advanced report settings"}
-                      </button>
-                      <button
-                        type="button"
-                        style={quietButtonStyle}
-                        onClick={() => {
-                          void reloadLearningPeriods();
-                          void reloadPeriods();
-                          void reloadReports();
-                          void reloadSections();
-                        }}
-                        disabled={periodsLoading || reportsLoading || sectionsLoading || submitting}
-                      >
-                        {periodsLoading || reportsLoading || sectionsLoading ? "Refreshing..." : "Refresh"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {showPeriodManager || !periods.length ? (
-                    <>
-                      <form onSubmit={handlePeriodSubmit} style={{ display: "grid", gap: 12 }}>
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: 12,
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                          }}
-                        >
-                          <div>
-                            <label style={fieldLabelStyle}>Choose learner</label>
-                            <select
-                              value={periodLearnerId}
-                              onChange={(event) => setPeriodLearnerId(event.target.value)}
-                              style={inputStyle}
-                            >
-                              <option value="">Choose learner</option>
-                              {learnerOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style={fieldLabelStyle}>Reporting period title</label>
-                            <input
-                              value={periodTitle}
-                              onChange={(event) => setPeriodTitle(event.target.value)}
-                              placeholder="Term 2, Semester 1, Spring report"
-                              style={inputStyle}
-                            />
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            display: "grid",
-                            gap: 12,
-                            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                          }}
-                        >
-                          <div>
-                            <label style={fieldLabelStyle}>Starts on</label>
-                            <input
-                              type="date"
-                              value={periodStartsOn}
-                              onChange={(event) => setPeriodStartsOn(event.target.value)}
-                              style={inputStyle}
-                            />
-                          </div>
-
-                          <div>
-                            <label style={fieldLabelStyle}>Ends on</label>
-                            <input
-                              type="date"
-                              value={periodEndsOn}
-                              onChange={(event) => setPeriodEndsOn(event.target.value)}
-                              style={inputStyle}
-                            />
-                          </div>
-                        </div>
-
-                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                          <button type="submit" style={buttonStyle} disabled={submitting}>
-                            {submitting ? "Saving..." : editingPeriodId ? "Save period" : "Add reporting period"}
-                          </button>
-                          {editingPeriodId ? (
-                            <button
-                              type="button"
-                              style={secondaryButtonStyle}
-                              onClick={resetPeriodForm}
-                              disabled={submitting}
-                            >
-                              Cancel edit
-                            </button>
-                          ) : null}
-                        </div>
-                      </form>
-
-                      <div style={{ display: "grid", gap: 12 }}>
-                        {periods.map((period) => {
-                          const learnerLabel =
-                            learnerOptions.find((option) => option.value === period.learnerId)?.label ||
-                            "Unknown learner";
-
-                          return (
-                            <div
-                              key={period.id}
-                              style={{
-                                border: "1px solid #e2e8f0",
-                                borderRadius: 14,
-                                padding: 14,
-                                display: "grid",
-                                gap: 8,
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: 12,
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <div>
-                                  <strong>{period.title}</strong>
-                                  <div style={{ color: "#64748b", marginTop: 4 }}>
-                                    {learnerLabel} - {formatDateLabel(period.startsOn)} to {formatDateLabel(period.endsOn)}
-                                  </div>
-                                </div>
-                                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                                  <button
-                                    type="button"
-                                    style={secondaryButtonStyle}
-                                    onClick={() => handleEditPeriod(period)}
-                                    disabled={submitting}
-                                  >
-                                    Edit reporting period
-                                  </button>
-                                  <button
-                                    type="button"
-                                    style={destructiveButtonStyle}
-                                    onClick={() => void handleDeletePeriod(period)}
-                                    disabled={submitting}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={helperCardStyle}>
-                      <strong style={{ color: "#0f172a" }}>
-                        {periods.length} reporting {periods.length === 1 ? "period is" : "periods are"} ready
-                      </strong>
-                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                        Keep this closed unless you need to add a different reporting year or edit dates for an existing one.
-                      </p>
-                    </div>
-                  )}
-                </div>
               </div>
             </ReportBuildStepCard>
 
@@ -2489,9 +2128,9 @@ function CleanReportsWorkspaceBody() {
                   }}
                 >
                   <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Other reports</h2>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Historical reports</h2>
                     <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      Keep the active report above. Open this list only when you want to switch to another report.
+                      Previous learning records stay here if you need them. Keep the current learning year flow above as the main parent view.
                     </p>
                   </div>
                   <button
@@ -2500,7 +2139,9 @@ function CleanReportsWorkspaceBody() {
                     onClick={() => setShowOtherReports((current) => !current)}
                     aria-expanded={showOtherReports}
                   >
-                    {showOtherReports ? "Hide other reports" : `Show other reports (${otherReports.length})`}
+                    {showOtherReports
+                      ? "Hide historical reports"
+                      : `Show historical reports (${otherReports.length})`}
                   </button>
                 </div>
 
@@ -2603,10 +2244,10 @@ function CleanReportsWorkspaceBody() {
                 ) : (
                   <div style={{ ...helperCardStyle, marginTop: 16 }}>
                     <strong style={{ color: "#0f172a" }}>
-                      {otherReports.length} other {otherReports.length === 1 ? "report is" : "reports are"} waiting
+                      {otherReports.length} earlier {otherReports.length === 1 ? "report is" : "reports are"} still available
                     </strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Keep the focus on the active report above, then open this list only when you want to switch.
+                      Keep the focus on the current learning year flow above, then open this list only when you need an older record.
                     </p>
                   </div>
                 )}
