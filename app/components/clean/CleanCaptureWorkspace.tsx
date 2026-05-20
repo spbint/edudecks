@@ -1062,43 +1062,52 @@ function CleanCaptureWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  <select
-                    value={programId}
-                    onChange={(event) => setProgramId(event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">No program link</option>
-                    {filteredPrograms.map((program) => {
-                      const learnerLabel =
-                        learnerOptions.find((option) => option.value === program.learnerId)?.label ||
-                        "Family / all learners";
+                  {!pathwayCaptureActive ? (
+                    <select
+                      value={programId}
+                      onChange={(event) => setProgramId(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">No program link</option>
+                      {filteredPrograms.map((program) => {
+                        const learnerLabel =
+                          learnerOptions.find((option) => option.value === program.learnerId)
+                            ?.label || "Family / all learners";
 
-                      return (
-                        <option key={program.id} value={program.id}>
-                          {program.title} - {learnerLabel}
-                        </option>
-                      );
-                    })}
-                  </select>
+                        return (
+                          <option key={program.id} value={program.id}>
+                            {program.title} - {learnerLabel}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : null}
 
-                  <select
-                    value={calendarItemId}
-                    onChange={(event) => setCalendarItemId(event.target.value)}
-                    style={inputStyle}
-                  >
-                    <option value="">No calendar link</option>
-                    {filteredCalendarItems.map((item) => {
-                      const learnerLabel =
-                        learnerOptions.find((option) => option.value === item.learnerId)?.label ||
-                        "Family / all learners";
+                  <label style={{ display: "grid", gap: pathwayCaptureActive ? 6 : 0 }}>
+                    <select
+                      value={calendarItemId}
+                      onChange={(event) => setCalendarItemId(event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">No calendar link</option>
+                      {filteredCalendarItems.map((item) => {
+                        const learnerLabel =
+                          learnerOptions.find((option) => option.value === item.learnerId)
+                            ?.label || "Family / all learners";
 
-                      return (
-                        <option key={item.id} value={item.id}>
-                          {buildCalendarOptionLabel(item, learnerLabel)}
-                        </option>
-                      );
-                    })}
-                  </select>
+                        return (
+                          <option key={item.id} value={item.id}>
+                            {buildCalendarOptionLabel(item, learnerLabel)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {pathwayCaptureActive ? (
+                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                        Use this if the evidence belongs to a planned calendar block.
+                      </span>
+                    ) : null}
+                  </label>
                 </div>
 
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
