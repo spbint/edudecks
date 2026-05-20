@@ -38,7 +38,6 @@ const linkStyle = {
 const previewRoutes = [
   { href: "/clean-my-day", label: "My Day" },
   { href: "/clean-my-calendar", label: "My Calendar" },
-  { href: "/clean-my-programs", label: "My Programs" },
   { href: "/clean-my-pathways", label: "My Pathways" },
   { href: "/clean-my-assessments", label: "My Assessments" },
   { href: "/clean-my-capture", label: "My Capture" },

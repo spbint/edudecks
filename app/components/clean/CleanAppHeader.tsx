@@ -47,11 +47,6 @@ const coreNavItems: HeaderNavItem[] = [
     matches: ["/my-calendar", "/clean-my-calendar"],
   },
   {
-    label: "My Programs",
-    href: "/my-programs",
-    matches: ["/my-programs", "/clean-my-programs"],
-  },
-  {
     label: "My Pathways",
     href: "/my-pathways",
     matches: ["/my-pathways", "/clean-my-pathways"],

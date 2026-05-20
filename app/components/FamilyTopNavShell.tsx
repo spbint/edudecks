@@ -51,7 +51,6 @@ function cx(...parts: Array<string | false | null | undefined>) {
 const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
-  { href: "/my-programs", label: "My Programs" },
   { href: "/my-pathways", label: "My Pathways" },
   { href: "/my-curriculum", label: "My Curriculum" },
   { href: "/my-assessments", label: "My Assessments" },
