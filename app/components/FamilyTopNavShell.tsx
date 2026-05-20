@@ -52,6 +52,7 @@ const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-programs", label: "My Programs" },
+  { href: "/my-pathways", label: "My Pathways" },
   { href: "/my-curriculum", label: "My Curriculum" },
   { href: "/my-assessments", label: "My Assessments" },
 ] as const;
@@ -79,6 +80,7 @@ function normalizeRoute(pathname: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") return "/my-calendar";
   if (pathname === "/planner" || pathname === "/my-plan") return "/my-calendar";
   if (pathname === "/my-programs") return "/my-programs";
+  if (pathname === "/my-pathways") return "/my-pathways";
   if (
     pathname === "/curriculum" ||
     pathname === "/curriculum-map" ||
@@ -96,6 +98,7 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/calendar" || pathname === "/my-calendar") return "My Calendar";
   if (pathname === "/capture" || pathname === "/my-capture") return "My Capture";
   if (pathname === "/my-programs") return "My Programs";
+  if (pathname === "/my-pathways") return "My Pathways";
   if (pathname === "/planner" || pathname === "/my-plan") return "My Calendar";
   if (
     pathname === "/curriculum-map" ||
@@ -132,6 +135,9 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   }
   if (pathname === "/my-programs") {
     return "Shape longer sequences before they land in the live week";
+  }
+  if (pathname === "/my-pathways") {
+    return "Follow the next useful learning step with more confidence";
   }
   if (pathname === "/capture" || pathname === "/my-capture") {
     return "Curate evidence while the learning is still fresh";
@@ -173,6 +179,9 @@ function routeHeroText(pathname: string) {
   }
   if (pathname === "/my-programs") {
     return "Build reusable sequences, units, and term plans here, then let them flow into the weekly rhythm without starting from scratch each time.";
+  }
+  if (pathname === "/my-pathways") {
+    return "Use guided pathways to see what comes next, what to practise, and how progress can later become evidence and reporting.";
   }
   if (pathname === "/capture" || pathname === "/my-capture") {
     return "One useful learning note at the right moment can build a stronger record than a large system left untouched.";
