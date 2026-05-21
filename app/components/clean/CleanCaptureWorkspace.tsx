@@ -394,7 +394,7 @@ function CleanCaptureWorkspaceBody() {
       setLinkingError(
         normalizeCleanErrorMessage(
           error,
-          "We could not load the program and calendar links just now.",
+          "We could not load the optional calendar links just now.",
         ),
       );
     } finally {
@@ -988,12 +988,18 @@ function CleanCaptureWorkspaceBody() {
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="date"
-                    value={observedOn}
-                    onChange={(event) => setObservedOn(event.target.value)}
-                    style={inputStyle}
-                  />
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>Date of learning</span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                      Choose the day this learning happened.
+                    </span>
+                    <input
+                      type="date"
+                      value={observedOn}
+                      onChange={(event) => setObservedOn(event.target.value)}
+                      style={inputStyle}
+                    />
+                  </label>
                 </div>
 
                 <input
@@ -1064,34 +1070,19 @@ function CleanCaptureWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   }}
                 >
-                  {!pathwayCaptureActive ? (
-                    <select
-                      value={programId}
-                      onChange={(event) => setProgramId(event.target.value)}
-                      style={inputStyle}
-                    >
-                      <option value="">No program link</option>
-                      {filteredPrograms.map((program) => {
-                        const learnerLabel =
-                          learnerOptions.find((option) => option.value === program.learnerId)
-                            ?.label || "Family / all learners";
-
-                        return (
-                          <option key={program.id} value={program.id}>
-                            {program.title} - {learnerLabel}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  ) : null}
-
-                  <label style={{ display: "grid", gap: pathwayCaptureActive ? 6 : 0 }}>
+                  <label style={{ display: "grid", gap: 6 }}>
+                    <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                      Optional calendar block
+                    </span>
+                    <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                      Link this evidence to a planned calendar block if it belongs to one.
+                    </span>
                     <select
                       value={calendarItemId}
                       onChange={(event) => setCalendarItemId(event.target.value)}
                       style={inputStyle}
                     >
-                      <option value="">No calendar link</option>
+                      <option value="">No optional calendar block</option>
                       {filteredCalendarItems.map((item) => {
                         const learnerLabel =
                           learnerOptions.find((option) => option.value === item.learnerId)
@@ -1104,11 +1095,6 @@ function CleanCaptureWorkspaceBody() {
                         );
                       })}
                     </select>
-                    {pathwayCaptureActive ? (
-                      <span style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                        Use this if the evidence belongs to a planned calendar block.
-                      </span>
-                    ) : null}
                   </label>
                 </div>
 
