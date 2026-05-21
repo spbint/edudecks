@@ -10,6 +10,9 @@ import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanCalendarItems } from "@/lib/clean/calendar/client";
 import type { CleanCalendarItem } from "@/lib/clean/calendar/types";
 import {
+  deleteCleanEvidenceEntry,
+} from "@/lib/clean/evidence/client";
+import {
   createCleanPortfolioHighlight,
   deleteCleanPortfolioHighlight,
   listCleanPortfolioItems,
@@ -101,6 +104,28 @@ function portfolioCardTitle(item: CleanPortfolioItem) {
   return item.evidence.title || item.evidence.whatHappened;
 }
 
+function sortPortfolioItems(items: CleanPortfolioItem[]) {
+  return [...items].sort((left, right) => {
+    if (left.isHighlighted !== right.isHighlighted) {
+      return left.isHighlighted ? 1 : -1;
+    }
+
+    const observedCompare = right.evidence.observedOn.localeCompare(left.evidence.observedOn);
+    if (observedCompare !== 0) return observedCompare;
+
+    const leftCreated = Date.parse(left.evidence.createdAt || left.evidence.updatedAt || "");
+    const rightCreated = Date.parse(right.evidence.createdAt || right.evidence.updatedAt || "");
+
+    if (!Number.isNaN(leftCreated) || !Number.isNaN(rightCreated)) {
+      if (Number.isNaN(leftCreated)) return 1;
+      if (Number.isNaN(rightCreated)) return -1;
+      if (leftCreated !== rightCreated) return rightCreated - leftCreated;
+    }
+
+    return left.evidence.id.localeCompare(right.evidence.id);
+  });
+}
+
 type PathwayStepEvidenceMeta = {
   key: string;
   label: string;
@@ -140,6 +165,7 @@ function CleanPortfolioWorkspaceBody() {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<CleanPortfolioItem | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -248,6 +274,10 @@ function CleanPortfolioWorkspaceBody() {
     selectedLearningArea,
     selectionFilter,
   ]);
+  const sortedFilteredItems = useMemo(
+    () => sortPortfolioItems(filteredItems),
+    [filteredItems],
+  );
   const filteredPathwayEvidenceSummary = useMemo(() => {
     const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
     const stepCounts = new Map<string, { label: string; count: number }>();
@@ -354,6 +384,41 @@ function CleanPortfolioWorkspaceBody() {
         normalizeCleanErrorMessage(
           error,
           "We could not update this portfolio selection.",
+        ),
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleConfirmDeleteEvidence() {
+    if (!workspace.profile || !pendingDeleteItem) return;
+
+    setSubmitting(true);
+    setMessage(null);
+    setActionError(null);
+
+    try {
+      if (pendingDeleteItem.highlight) {
+        await deleteCleanPortfolioHighlight(
+          workspace.profile.id,
+          pendingDeleteItem.highlight.id,
+        );
+      }
+
+      await deleteCleanEvidenceEntry(
+        workspace.profile.id,
+        pendingDeleteItem.evidence.id,
+      );
+
+      setPendingDeleteItem(null);
+      setMessage("Evidence deleted.");
+      await reloadItems();
+    } catch (error) {
+      setActionError(
+        normalizeCleanErrorMessage(
+          error,
+          "We could not delete this evidence note.",
         ),
       );
     } finally {
@@ -573,6 +638,10 @@ function CleanPortfolioWorkspaceBody() {
 
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
+              <p style={{ marginTop: 0, color: "#64748b", lineHeight: 1.6 }}>
+                Unselected evidence is shown first so you can choose what belongs in the
+                portfolio.
+              </p>
               {filteredPathwayEvidenceSummary.repeatedSteps.length ? (
                 <div style={{ ...helperCardStyle, marginBottom: 16 }}>
                   <strong style={{ color: "#0f172a" }}>
@@ -600,9 +669,9 @@ function CleanPortfolioWorkspaceBody() {
                 </p>
               ) : null}
 
-              {!itemsLoading && !itemsError && filteredItems.length ? (
+              {!itemsLoading && !itemsError && sortedFilteredItems.length ? (
                 <div style={{ display: "grid", gap: 12 }}>
-                  {filteredItems.map((item) => {
+                  {sortedFilteredItems.map((item) => {
                     const learnerLabel =
                       learnerOptions.find(
                         (option) => option.value === item.evidence.learnerId,
@@ -655,18 +724,6 @@ function CleanPortfolioWorkspaceBody() {
                                 : ""}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            style={{
-                              ...buttonStyle,
-                              background: item.isHighlighted ? "#1d4ed8" : "#0f172a",
-                              borderColor: item.isHighlighted ? "#1d4ed8" : "#0f172a",
-                            }}
-                            onClick={() => void handleToggleHighlight(item)}
-                            disabled={submitting}
-                          >
-                            {item.isHighlighted ? "Remove from portfolio" : "Add to portfolio"}
-                          </button>
                         </div>
                         {!item.evidence.title ? (
                           <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
@@ -717,6 +774,18 @@ function CleanPortfolioWorkspaceBody() {
                           </div>
                         ) : null}
                         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            style={{
+                              ...buttonStyle,
+                              background: item.isHighlighted ? "#1d4ed8" : "#0f172a",
+                              borderColor: item.isHighlighted ? "#1d4ed8" : "#0f172a",
+                            }}
+                            onClick={() => void handleToggleHighlight(item)}
+                            disabled={submitting}
+                          >
+                            {item.isHighlighted ? "Remove from portfolio" : "Add to portfolio"}
+                          </button>
                           <Link
                             href={`${capturePathBase}?evidence_entry_id=${item.evidence.id}`}
                             style={{ color: "#1d4ed8", fontWeight: 700, textDecoration: "none" }}
@@ -731,6 +800,18 @@ function CleanPortfolioWorkspaceBody() {
                               Use in report
                             </Link>
                           ) : null}
+                          <button
+                            type="button"
+                            style={{
+                              ...buttonStyle,
+                              background: "#b91c1c",
+                              borderColor: "#b91c1c",
+                            }}
+                            onClick={() => setPendingDeleteItem(item)}
+                            disabled={submitting}
+                          >
+                            Delete evidence
+                          </button>
                           {item.isHighlighted ? (
                             <span style={{ color: "#0f766e", fontWeight: 700 }}>
                               In portfolio
@@ -756,6 +837,70 @@ function CleanPortfolioWorkspaceBody() {
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#b91c1c" }}>{actionError}</p>
           </section>
+        ) : null}
+
+        {pendingDeleteItem ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(15,23,42,0.35)",
+              display: "grid",
+              placeItems: "center",
+              padding: 20,
+              zIndex: 50,
+            }}
+          >
+            <div
+              style={{
+                width: "min(100%, 520px)",
+                border: "1px solid #fecaca",
+                borderRadius: 18,
+                background: "#ffffff",
+                padding: 20,
+                boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
+                display: "grid",
+                gap: 14,
+              }}
+            >
+              <div style={{ display: "grid", gap: 8 }}>
+                <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                  Delete this evidence note?
+                </h2>
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                  This removes it from My Capture, Portfolio, Reports, and Outputs. This
+                  cannot be undone.
+                </p>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  {portfolioCardTitle(pendingDeleteItem)}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => setPendingDeleteItem(null)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...buttonStyle,
+                    background: "#b91c1c",
+                    borderColor: "#b91c1c",
+                  }}
+                  onClick={() => void handleConfirmDeleteEvidence()}
+                  disabled={submitting}
+                >
+                  {submitting ? "Deleting..." : "Delete evidence"}
+                </button>
+              </div>
+            </div>
+          </div>
         ) : null}
       </div>
     </div>
