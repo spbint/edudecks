@@ -247,6 +247,7 @@ function CleanCaptureWorkspaceBody() {
   const [calendarItems, setCalendarItems] = useState<CleanCalendarItem[]>([]);
   const [linkingLoading, setLinkingLoading] = useState(false);
   const [linkingError, setLinkingError] = useState<string | null>(null);
+  const [recentNotesOpen, setRecentNotesOpen] = useState(false);
 
   const [learnerId, setLearnerId] = useState("");
   const [observedOn, setObservedOn] = useState(getTodayDate);
@@ -777,6 +778,7 @@ function CleanCaptureWorkspaceBody() {
     : curriculumCaptureActive
     ? "What stood out, what support helped, or what could come next? (optional)"
     : "Reflection, next step, or what stood out (optional)";
+  const recentNotesPanelId = "clean-capture-recent-notes";
 
   return (
     <div style={shellStyle}>
@@ -1233,138 +1235,213 @@ function CleanCaptureWorkspaceBody() {
             </section>
 
             <section style={cardStyle}>
-              <h2 style={{ marginTop: 0, color: "#0f172a" }}>Recent capture notes</h2>
-              {entriesLoading ? (
-                <p style={{ margin: 0, color: "#475569" }}>Loading capture notes...</p>
-              ) : null}
-              {entriesError ? <p style={{ margin: 0, color: "#b91c1c" }}>{entriesError}</p> : null}
-
-              {!entriesLoading && !entriesError && !entries.length ? (
-                <p style={{ margin: 0, color: "#475569" }}>
-                  No capture notes yet.
-                </p>
-              ) : null}
-
-              {!entriesLoading && !entriesError && entries.length ? (
-                <div style={{ display: "grid", gap: 12 }}>
-                  {entries.map((entry) => {
-                    const learnerLabel =
-                      learnerOptions.find((option) => option.value === entry.learnerId)?.label ||
-                      "Unknown learner";
-                    const linkedProgram =
-                      programs.find((program) => program.id === entry.programId)?.title ||
-                      null;
-                    const linkedCalendarItem =
-                      calendarItems.find((item) => item.id === entry.calendarItemId) ?? null;
-                    const entryCurriculumContext = parseCurriculumContextFromNodeIds(
-                      entry.curriculumNodeIds,
-                    );
-                    const entryPathwayContext = parsePathwayContextFromNodeIds(
-                      entry.curriculumNodeIds,
-                    );
-                    const linkedSegment =
-                      linkedCalendarItem?.programSegmentId
-                        ? programSegments.find(
-                            (segment) => segment.id === linkedCalendarItem.programSegmentId,
-                          )?.title ?? null
-                        : null;
-
-                    return (
-                      <div
-                        key={entry.id}
+              <div style={{ display: "grid", gap: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setRecentNotesOpen((current) => !current)}
+                  aria-expanded={recentNotesOpen}
+                  aria-controls={recentNotesPanelId}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    padding: 14,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                      <h2 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
+                        Recent capture notes
+                      </h2>
+                      <span
                         style={{
                           border: "1px solid #e2e8f0",
-                          borderRadius: 14,
-                          padding: 14,
-                          display: "grid",
-                          gap: 8,
+                          background: "#ffffff",
+                          color: "#475569",
+                          borderRadius: 999,
+                          padding: "4px 8px",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 12,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div>
-                            <strong>{entry.title || "Untitled note"}</strong>
-                            <div style={{ color: "#64748b", marginTop: 4 }}>
-                              {formatDateLabel(entry.observedOn)} - {learnerLabel}
-                              {entry.learningArea ? ` - ${entry.learningArea}` : ""}
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button
-                              type="button"
-                              style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
-                              onClick={() => handleEdit(entry)}
-                              disabled={submitting}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
-                              onClick={() => void handleDelete(entry)}
-                              disabled={submitting}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                        <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
-                          {entry.whatHappened}
-                        </p>
-                        {entry.reflection ? (
-                          <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                            {entry.reflection}
-                          </p>
-                        ) : null}
-                        {entryCurriculumContext ? (
-                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                            Curriculum link:{" "}
-                            {[
-                              entryCurriculumContext.learningAreaLabel,
-                              entryCurriculumContext.curriculumElementLabel,
-                              entryCurriculumContext.authorityEvidenceAreaLabel,
-                            ]
-                              .filter(Boolean)
-                              .join(" - ")}
-                          </div>
-                        ) : null}
-                        {entryPathwayContext ? (
-                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                            Pathway link:{" "}
-                            {[
-                              entryPathwayContext.pathwayLabel,
-                              entryPathwayContext.stageLabel,
-                              buildPathwayStepLabel(entryPathwayContext),
-                            ]
-                              .filter(Boolean)
-                              .join(" - ")}
-                          </div>
-                        ) : null}
-                        {entryPathwayContext?.observedSkillStatus ? (
-                          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                            Observed skill status: {entryPathwayContext.observedSkillStatus}
-                          </div>
-                        ) : null}
-                        {linkedProgram || linkedCalendarItem ? (
-                          <div style={{ color: "#64748b", fontSize: 13 }}>
-                            {linkedProgram ? `Program: ${linkedProgram}` : ""}
-                            {linkedProgram && linkedSegment ? " | " : ""}
-                            {linkedSegment ? `Week / segment: ${linkedSegment}` : ""}
-                            {(linkedProgram || linkedSegment) && linkedCalendarItem ? " | " : ""}
-                            {linkedCalendarItem ? `Block: ${linkedCalendarItem.title}` : ""}
-                          </div>
-                        ) : null}
+                        {entries.length} {entries.length === 1 ? "note" : "notes"}
+                      </span>
+                    </div>
+                    {!recentNotesOpen ? (
+                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        Review or edit recent evidence when needed.
                       </div>
-                    );
-                  })}
+                    ) : null}
+                  </div>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 30,
+                      height: 30,
+                      borderRadius: 999,
+                      border: "1px solid #dbeafe",
+                      background: "#ffffff",
+                      color: "#1d4ed8",
+                      fontSize: 12,
+                      fontWeight: 800,
+                      transform: recentNotesOpen ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 140ms ease",
+                      flexShrink: 0,
+                    }}
+                  >
+                    v
+                  </span>
+                </button>
+
+                <div
+                  id={recentNotesPanelId}
+                  hidden={!recentNotesOpen}
+                  style={recentNotesOpen ? { display: "grid", gap: 12 } : { display: "none" }}
+                >
+                  {entriesLoading ? (
+                    <p style={{ margin: 0, color: "#475569" }}>Loading capture notes...</p>
+                  ) : null}
+                  {entriesError ? <p style={{ margin: 0, color: "#b91c1c" }}>{entriesError}</p> : null}
+
+                  {!entriesLoading && !entriesError && !entries.length ? (
+                    <p style={{ margin: 0, color: "#475569" }}>
+                      No capture notes yet.
+                    </p>
+                  ) : null}
+
+                  {!entriesLoading && !entriesError && entries.length ? (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {entries.map((entry) => {
+                        const learnerLabel =
+                          learnerOptions.find((option) => option.value === entry.learnerId)?.label ||
+                          "Unknown learner";
+                        const linkedProgram =
+                          programs.find((program) => program.id === entry.programId)?.title ||
+                          null;
+                        const linkedCalendarItem =
+                          calendarItems.find((item) => item.id === entry.calendarItemId) ?? null;
+                        const entryCurriculumContext = parseCurriculumContextFromNodeIds(
+                          entry.curriculumNodeIds,
+                        );
+                        const entryPathwayContext = parsePathwayContextFromNodeIds(
+                          entry.curriculumNodeIds,
+                        );
+                        const linkedSegment =
+                          linkedCalendarItem?.programSegmentId
+                            ? programSegments.find(
+                                (segment) => segment.id === linkedCalendarItem.programSegmentId,
+                              )?.title ?? null
+                            : null;
+
+                        return (
+                          <div
+                            key={entry.id}
+                            style={{
+                              border: "1px solid #e2e8f0",
+                              borderRadius: 14,
+                              padding: 14,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                gap: 12,
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <div>
+                                <strong>{entry.title || "Untitled note"}</strong>
+                                <div style={{ color: "#64748b", marginTop: 4 }}>
+                                  {formatDateLabel(entry.observedOn)} - {learnerLabel}
+                                  {entry.learningArea ? ` - ${entry.learningArea}` : ""}
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
+                                  onClick={() => handleEdit(entry)}
+                                  disabled={submitting}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  style={{ ...buttonStyle, background: "#b91c1c", borderColor: "#b91c1c" }}
+                                  onClick={() => void handleDelete(entry)}
+                                  disabled={submitting}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                            <p style={{ margin: 0, color: "#334155", lineHeight: 1.6 }}>
+                              {entry.whatHappened}
+                            </p>
+                            {entry.reflection ? (
+                              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                                {entry.reflection}
+                              </p>
+                            ) : null}
+                            {entryCurriculumContext ? (
+                              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                Curriculum link:{" "}
+                                {[
+                                  entryCurriculumContext.learningAreaLabel,
+                                  entryCurriculumContext.curriculumElementLabel,
+                                  entryCurriculumContext.authorityEvidenceAreaLabel,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" - ")}
+                              </div>
+                            ) : null}
+                            {entryPathwayContext ? (
+                              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                Pathway link:{" "}
+                                {[
+                                  entryPathwayContext.pathwayLabel,
+                                  entryPathwayContext.stageLabel,
+                                  buildPathwayStepLabel(entryPathwayContext),
+                                ]
+                                  .filter(Boolean)
+                                  .join(" - ")}
+                              </div>
+                            ) : null}
+                            {entryPathwayContext?.observedSkillStatus ? (
+                              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                Observed skill status: {entryPathwayContext.observedSkillStatus}
+                              </div>
+                            ) : null}
+                            {linkedProgram || linkedCalendarItem ? (
+                              <div style={{ color: "#64748b", fontSize: 13 }}>
+                                {linkedProgram ? `Program: ${linkedProgram}` : ""}
+                                {linkedProgram && linkedSegment ? " | " : ""}
+                                {linkedSegment ? `Week / segment: ${linkedSegment}` : ""}
+                                {(linkedProgram || linkedSegment) && linkedCalendarItem ? " | " : ""}
+                                {linkedCalendarItem ? `Block: ${linkedCalendarItem.title}` : ""}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
             </section>
           </>
         ) : null}
