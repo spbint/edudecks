@@ -29,6 +29,7 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import { isBrentAuthorityTemplateActive } from "@/lib/clean/authority/brent";
+import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import { listCleanLearningPeriods } from "@/lib/clean/terms/client";
 import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
 
@@ -271,6 +272,26 @@ function summarizeEvidence(item: CleanPortfolioItem) {
   const text = item.evidence.whatHappened.trim();
   if (text.length <= 180) return text;
   return `${text.slice(0, 177).trimEnd()}...`;
+}
+
+type PathwayStepEvidenceMeta = {
+  key: string;
+  label: string;
+};
+
+function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEvidenceMeta | null {
+  const context = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
+  if (!context?.stepNumber || !context.stepTitle) return null;
+
+  return {
+    key: [
+      item.evidence.learnerId,
+      context.pathwayKey || context.pathwayLabel || "pathway",
+      context.stageKey || context.stageLabel || "stage",
+      context.stepNumber,
+    ].join("::"),
+    label: `Step ${context.stepNumber} - ${context.stepTitle}`,
+  };
 }
 
 function buildDefaultReportTitle(learnerLabel: string, periodTitle: string) {
@@ -584,6 +605,30 @@ function CleanReportsWorkspaceBody() {
       return rightFocused - leftFocused;
     });
   }, [evidenceEntryIdFromQuery, portfolioItems]);
+  const selectedPathwayEvidenceSummary = useMemo(() => {
+    const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
+    const repeatedStepsByKey = new Map<string, { label: string; count: number }>();
+
+    for (const item of portfolioItems) {
+      const meta = getPathwayStepEvidenceMeta(item);
+      if (!meta) continue;
+
+      stepByEvidenceId.set(item.evidence.id, meta);
+      const current = repeatedStepsByKey.get(meta.key);
+      repeatedStepsByKey.set(meta.key, {
+        label: meta.label,
+        count: current ? current.count + 1 : 1,
+      });
+    }
+
+    const repeatedSteps = [...repeatedStepsByKey.values()].filter((step) => step.count > 1);
+
+    return {
+      stepByEvidenceId,
+      repeatedStepsByKey,
+      repeatedSteps,
+    };
+  }, [portfolioItems]);
   const suggestedReportTitle = useMemo(
     () =>
       buildDefaultReportTitle(
@@ -1628,7 +1673,9 @@ function CleanReportsWorkspaceBody() {
                               {portfolioItems.length} {portfolioItems.length === 1 ? "learning evidence entry" : "learning evidence entries"}
                             </div>
                             <div style={{ color: "#475569", marginTop: 4, lineHeight: 1.6 }}>
-                              Included highlights ready to support this report.
+                              {selectedPathwayEvidenceSummary.repeatedSteps.length
+                                ? "Several notes for the same pathway step are included. You may want to keep the clearest example in My Portfolio."
+                                : "Included highlights ready to support this report."}
                             </div>
                           </div>
                         </div>
@@ -1655,6 +1702,32 @@ function CleanReportsWorkspaceBody() {
                         >
                           Evidence summary
                         </div>
+                        {selectedPathwayEvidenceSummary.repeatedSteps.length ? (
+                          <div
+                            style={{
+                              border: "1px solid #dbeafe",
+                              borderRadius: 14,
+                              background: "#f8fbff",
+                              padding: 14,
+                              display: "grid",
+                              gap: 8,
+                            }}
+                          >
+                            <strong style={{ color: "#0f172a" }}>
+                              Several notes for the same pathway step are included
+                            </strong>
+                            <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                              You may want to keep the strongest example in My Portfolio before sending this learning record to output.
+                            </p>
+                            <div style={{ display: "grid", gap: 6 }}>
+                              {selectedPathwayEvidenceSummary.repeatedSteps.map((step) => (
+                                <div key={step.label} style={{ color: "#475569", lineHeight: 1.6 }}>
+                                  {step.label} - {step.count} selected evidence {step.count === 1 ? "entry" : "entries"}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                         {portfolioLoading ? (
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                             Loading learning evidence...
@@ -1665,31 +1738,69 @@ function CleanReportsWorkspaceBody() {
                           </p>
                         ) : portfolioItems.length ? (
                           <div style={{ display: "grid", gap: 10 }}>
-                            {focusedPortfolioItems.slice(0, 5).map((item) => (
-                              <div
-                                key={item.evidence.id}
-                                style={{
-                                  display: "grid",
-                                  gap: 4,
-                                  paddingLeft: 14,
-                                  borderLeft:
-                                    evidenceEntryIdFromQuery === item.evidence.id
-                                      ? "3px solid #1d4ed8"
-                                      : "3px solid #cbd5e1",
-                                }}
-                              >
-                                <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                                  {portfolioEvidenceTitle(item)}
+                            {focusedPortfolioItems.slice(0, 5).map((item) => {
+                              const pathwayMeta =
+                                selectedPathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ?? null;
+                              const repeatedPathwayStep = pathwayMeta
+                                ? (selectedPathwayEvidenceSummary.repeatedStepsByKey.get(pathwayMeta.key)?.count ?? 0) > 1
+                                : false;
+
+                              return (
+                                <div
+                                  key={item.evidence.id}
+                                  style={{
+                                    display: "grid",
+                                    gap: 4,
+                                    paddingLeft: 14,
+                                    borderLeft:
+                                      evidenceEntryIdFromQuery === item.evidence.id
+                                        ? "3px solid #1d4ed8"
+                                        : "3px solid #cbd5e1",
+                                  }}
+                                >
+                                  <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                                    {portfolioEvidenceTitle(item)}
+                                  </div>
+                                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                                    {formatDateLabel(item.evidence.observedOn)}
+                                    {item.evidence.learningArea ? ` | ${item.evidence.learningArea}` : ""}
+                                  </div>
+                                  {pathwayMeta ? (
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: 8,
+                                        flexWrap: "wrap",
+                                        alignItems: "center",
+                                        color: "#475569",
+                                        fontSize: 13,
+                                        lineHeight: 1.6,
+                                      }}
+                                    >
+                                      <span>Pathway: {pathwayMeta.label}</span>
+                                      {repeatedPathwayStep ? (
+                                        <span
+                                          style={{
+                                            borderRadius: 999,
+                                            padding: "4px 10px",
+                                            background: "#eef2ff",
+                                            color: "#4338ca",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            whiteSpace: "nowrap",
+                                          }}
+                                        >
+                                          Several notes for this step
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                                    {summarizeEvidence(item)}
+                                  </div>
                                 </div>
-                                <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                                  {formatDateLabel(item.evidence.observedOn)}
-                                  {item.evidence.learningArea ? ` | ${item.evidence.learningArea}` : ""}
-                                </div>
-                                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                                  {summarizeEvidence(item)}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         ) : (
                           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>

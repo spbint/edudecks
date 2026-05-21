@@ -19,6 +19,7 @@ import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
+import { parsePathwayContextFromNodeIds } from "@/lib/clean/evidence/curriculumContext";
 import {
   listCleanProgramSegments,
   listCleanPrograms,
@@ -93,6 +94,26 @@ function portfolioCardTitle(item: CleanPortfolioItem) {
   return item.evidence.title || item.evidence.whatHappened;
 }
 
+type PathwayStepEvidenceMeta = {
+  key: string;
+  label: string;
+};
+
+function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEvidenceMeta | null {
+  const context = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
+  if (!context?.stepNumber || !context.stepTitle) return null;
+
+  return {
+    key: [
+      item.evidence.learnerId,
+      context.pathwayKey || context.pathwayLabel || "pathway",
+      context.stageKey || context.stageLabel || "stage",
+      context.stepNumber,
+    ].join("::"),
+    label: `Step ${context.stepNumber} - ${context.stepTitle}`,
+  };
+}
+
 function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
@@ -137,6 +158,30 @@ function CleanPortfolioWorkspaceBody() {
     () => new Map(calendarItems.map((item) => [item.id, item])),
     [calendarItems],
   );
+  const pathwayEvidenceSummary = useMemo(() => {
+    const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
+    const stepCounts = new Map<string, { label: string; count: number }>();
+
+    for (const item of items) {
+      const meta = getPathwayStepEvidenceMeta(item);
+      if (!meta) continue;
+
+      stepByEvidenceId.set(item.evidence.id, meta);
+      const current = stepCounts.get(meta.key);
+      stepCounts.set(meta.key, {
+        label: meta.label,
+        count: current ? current.count + 1 : 1,
+      });
+    }
+
+    const repeatedSteps = [...stepCounts.values()].filter((step) => step.count > 1);
+
+    return {
+      stepByEvidenceId,
+      stepCounts,
+      repeatedSteps,
+    };
+  }, [items]);
 
   const reloadItems = useCallback(async () => {
     if (!workspace.profile) return;
@@ -369,6 +414,16 @@ function CleanPortfolioWorkspaceBody() {
 
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
+              {pathwayEvidenceSummary.repeatedSteps.length ? (
+                <div style={{ ...helperCardStyle, marginBottom: 16 }}>
+                  <strong style={{ color: "#0f172a" }}>
+                    Choose the clearest evidence for repeated pathway steps
+                  </strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    You have several evidence notes for the same pathway step. Choose the strongest example for your report.
+                  </p>
+                </div>
+              ) : null}
               {itemsLoading ? (
                 <p style={{ margin: 0, color: "#475569" }}>Loading portfolio cards...</p>
               ) : null}
@@ -387,6 +442,11 @@ function CleanPortfolioWorkspaceBody() {
                       learnerOptions.find(
                         (option) => option.value === item.evidence.learnerId,
                       )?.label || "Unknown learner";
+                    const pathwayMeta =
+                      pathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ?? null;
+                    const repeatedPathwayStep = pathwayMeta
+                      ? (pathwayEvidenceSummary.stepCounts.get(pathwayMeta.key)?.count ?? 0) > 1
+                      : false;
                     const linkedProgram = item.evidence.programId
                       ? programLabelById.get(item.evidence.programId) ?? null
                       : null;
@@ -450,6 +510,36 @@ function CleanPortfolioWorkspaceBody() {
                             {item.evidence.whatHappened}
                           </p>
                         )}
+                        {pathwayMeta ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              flexWrap: "wrap",
+                              alignItems: "center",
+                              color: "#475569",
+                              fontSize: 13,
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            <span>Pathway: {pathwayMeta.label}</span>
+                            {repeatedPathwayStep ? (
+                              <span
+                                style={{
+                                  borderRadius: 999,
+                                  padding: "4px 10px",
+                                  background: "#eef2ff",
+                                  color: "#4338ca",
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                Multiple notes for this step
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
                         {linkedProgram || linkedSegment || linkedCalendarItem ? (
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
                             {linkedProgram ? `Program: ${linkedProgram}` : ""}
