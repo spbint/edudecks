@@ -37,7 +37,7 @@ import {
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "linear-gradient(180deg, #f8fafc 0%, #fdfefe 45%, #f8fafc 100%)",
-  padding: "28px 18px 44px",
+  padding: "clamp(18px, 4vw, 28px) clamp(12px, 4vw, 18px) 44px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -858,7 +858,7 @@ function CleanDayWorkspaceBody() {
                       flexWrap: "wrap",
                     }}
                   >
-                    <div style={{ display: "grid", gap: 8, flex: 1, minWidth: 220 }}>
+                    <div style={{ display: "grid", gap: 8, flex: "1 1 280px", minWidth: 0 }}>
                       <div
                         style={{
                           fontSize: 12,
@@ -892,7 +892,8 @@ function CleanDayWorkspaceBody() {
                       style={{
                         display: "grid",
                         gap: 8,
-                        minWidth: 220,
+                        flex: "1 1 240px",
+                        minWidth: 0,
                         padding: 14,
                         borderRadius: 16,
                         background: "rgba(255,255,255,0.9)",
@@ -1285,7 +1286,7 @@ function CleanDayWorkspaceBody() {
                         >
                           <div
                             style={{
-                              minWidth: 96,
+                              minWidth: 88,
                               display: "grid",
                               gap: 4,
                               color: "#1d4ed8",

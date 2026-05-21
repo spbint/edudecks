@@ -36,7 +36,7 @@ import type { CleanLearningPeriod } from "@/lib/clean/terms/types";
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "32px 20px 48px",
+  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -1523,6 +1523,7 @@ function CleanReportsWorkspaceBody() {
 
                     <div
                       style={{
+                        width: "100%",
                         maxWidth: 900,
                         margin: "0 auto",
                         border: "1px solid #cfdceb",

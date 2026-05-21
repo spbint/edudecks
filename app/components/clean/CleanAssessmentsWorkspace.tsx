@@ -40,7 +40,7 @@ import type { Learner } from "@/lib/clean/learners/types";
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "32px 20px 48px",
+  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -1907,13 +1907,17 @@ function AssessmentsWorkspaceBody() {
                   "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
                 padding: 12,
                 overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
               }}
             >
-              <div style={{ minWidth: 920, display: "grid", gap: 8 }}>
+              <div style={{ minWidth: 820, display: "grid", gap: 8 }}>
+                <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+                  Swipe across on smaller screens to compare stages.
+                </div>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "220px repeat(5, minmax(120px, 1fr))",
+                    gridTemplateColumns: "200px repeat(5, minmax(116px, 1fr))",
                     gap: 8,
                     alignItems: "stretch",
                   }}
@@ -2005,7 +2009,7 @@ function AssessmentsWorkspaceBody() {
                     key={row.skillArea}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "220px repeat(5, minmax(120px, 1fr))",
+                      gridTemplateColumns: "200px repeat(5, minmax(116px, 1fr))",
                       gap: 8,
                       alignItems: "stretch",
                     }}

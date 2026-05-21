@@ -32,7 +32,7 @@ import type { CleanProgram, CleanProgramSegment } from "@/lib/clean/programs/typ
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "32px 20px 48px",
+  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -501,7 +501,7 @@ function CleanPortfolioWorkspaceBody() {
                 style={{
                   display: "grid",
                   gap: 12,
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 }}
               >
                 <div style={helperCardStyle}>

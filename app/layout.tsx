@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 import { AuthUserProvider } from "@/app/components/AuthUserProvider";
@@ -11,12 +11,45 @@ const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-4MRBYZ
 export const metadata: Metadata = {
   metadataBase: new URL(PUBLIC_SITE_URL),
   applicationName: "MyLearna",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      {
+        url: "/branding/mylearna-watermark-150.png",
+        sizes: "150x150",
+        type: "image/png",
+      },
+    ],
+    apple: [
+      {
+        url: "/branding/mylearna-watermark-150.png",
+        sizes: "150x150",
+        type: "image/png",
+      },
+    ],
+    shortcut: ["/branding/mylearna-watermark-150.png"],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "MyLearna",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   ...buildPublicMetadata({
     title: "Homeschool Record Keeping and Reporting for Families | MyLearna",
     description:
       "MyLearna helps homeschooling families plan learning, capture evidence, build portfolios, and prepare homeschool reports from connected learning records.",
     path: "/",
   }),
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#1d4ed8",
 };
 
 export default function RootLayout({

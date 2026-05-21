@@ -33,7 +33,7 @@ import {
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "32px 20px 48px",
+  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -932,7 +932,8 @@ function CurriculumWorkspaceBody() {
                   <div
                     style={{
                       ...compactCardStyle,
-                      minWidth: 240,
+                      minWidth: 0,
+                      width: "min(320px, 100%)",
                       maxWidth: 320,
                       border: `1px solid ${selectedAreaTone?.border ?? "#bfdbfe"}`,
                       background: selectedAreaTone?.selectedBackground ?? "#f8fbff",

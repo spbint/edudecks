@@ -31,7 +31,7 @@ import {
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
-  padding: "32px 20px 48px",
+  padding: "clamp(18px, 4vw, 32px) clamp(12px, 4vw, 20px) 48px",
 };
 
 const wrapStyle: React.CSSProperties = {
@@ -768,7 +768,7 @@ function PathwaysWorkspaceBody() {
                 </p>
               </div>
 
-              <div style={{ display: "grid", gap: 8, minWidth: 240 }}>
+              <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
                 <div style={eyebrowStyle}>Prototype note</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   Saved pathway evidence can now update step badges. Broader pathway progress
@@ -1285,10 +1285,10 @@ function NumberStepCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
         <button
           type="button"
-          style={disabledButtonStyle}
+          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
           disabled
           title="Parent-guided practice for this pathway step will be added later."
           aria-label={practiceButtonLabel}
@@ -1297,7 +1297,7 @@ function NumberStepCard({
         </button>
         <button
           type="button"
-          style={disabledButtonStyle}
+          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
           disabled
           title="Assessment checks coming later"
           aria-label={assessButtonLabel}
@@ -1306,7 +1306,7 @@ function NumberStepCard({
         </button>
         <Link
           href={captureHref}
-          style={buttonStyle}
+          style={{ ...buttonStyle, flex: "1 1 160px" }}
           title="Open My Capture with this pathway step already connected."
           aria-label={captureButtonLabel}
         >

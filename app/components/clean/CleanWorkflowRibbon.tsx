@@ -27,7 +27,7 @@ const sectionStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 20,
   background: "#ffffff",
-  padding: 16,
+  padding: "clamp(12px, 3vw, 16px)",
   boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
 };
 
@@ -35,7 +35,7 @@ const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
   borderRadius: 18,
   background: "#f8fbff",
-  padding: 16,
+  padding: "clamp(12px, 3vw, 16px)",
   boxShadow: "0 8px 20px rgba(59,130,246,0.06)",
 };
 
@@ -176,13 +176,22 @@ export default function CleanWorkflowRibbon({
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
               Move through the next useful step without losing the broader learning record.
             </div>
-            <nav aria-label="Guided flow steps" style={{ overflowX: "auto", paddingBottom: 4 }}>
+            <nav
+              aria-label="Guided flow steps"
+              style={{
+                overflowX: "auto",
+                paddingBottom: 4,
+                WebkitOverflowScrolling: "touch",
+                scrollbarWidth: "thin",
+              }}
+            >
               <div
                 style={{
                   display: "flex",
                   alignItems: "stretch",
                   gap: 10,
                   minWidth: "max-content",
+                  scrollSnapType: "x proximity",
                 }}
               >
                 {steps.map((step, index) => {
@@ -198,10 +207,10 @@ export default function CleanWorkflowRibbon({
                         title={`${step.label} - ${step.helper}`}
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "36px minmax(0, 1fr)",
+                          gridTemplateColumns: "34px minmax(0, 1fr)",
                           alignItems: "center",
                           gap: 10,
-                          minWidth: 176,
+                          minWidth: 148,
                           padding: "10px 12px",
                           borderRadius: 16,
                           border: isCurrent
@@ -215,12 +224,13 @@ export default function CleanWorkflowRibbon({
                               ? "#f8fbff"
                               : "#ffffff",
                           textDecoration: "none",
+                          scrollSnapAlign: "start",
                         }}
                       >
                         <span
                           style={{
-                            width: 36,
-                            height: 36,
+                            width: 34,
+                            height: 34,
                             borderRadius: 999,
                             display: "inline-flex",
                             alignItems: "center",
@@ -239,7 +249,7 @@ export default function CleanWorkflowRibbon({
                           {index + 1}
                         </span>
                         <span style={{ display: "grid", gap: 2 }}>
-                          <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>
+                          <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 700 }}>
                             {step.label}
                           </span>
                           <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
@@ -264,6 +274,9 @@ export default function CleanWorkflowRibbon({
                 })}
               </div>
             </nav>
+            <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
+              Swipe across on smaller screens to follow the full flow.
+            </div>
           </div>
         </section>
       ) : null}

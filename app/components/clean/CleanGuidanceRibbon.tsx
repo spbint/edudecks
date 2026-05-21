@@ -48,10 +48,10 @@ export default function CleanGuidanceRibbon({
   const sectionStyle: React.CSSProperties = compact
     ? {
         ...cardStyle,
-        padding: 14,
-        borderRadius: 20,
-        background: "#f8fafc",
-        boxShadow: "none",
+      padding: 14,
+      borderRadius: 20,
+      background: "#f8fafc",
+      boxShadow: "none",
       }
     : cardStyle;
 
@@ -84,8 +84,8 @@ export default function CleanGuidanceRibbon({
           display: "grid",
           gap: compact ? 10 : 12,
           gridTemplateColumns: compact
-            ? "repeat(auto-fit, minmax(200px, 1fr))"
-            : "repeat(auto-fit, minmax(240px, 1fr))",
+            ? "repeat(auto-fit, minmax(180px, 1fr))"
+            : "repeat(auto-fit, minmax(220px, 1fr))",
         }}
       >
         {cards.map((card) => {

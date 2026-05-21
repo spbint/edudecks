@@ -31,7 +31,7 @@ const sectionStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 20,
   background: "#ffffff",
-  padding: 16,
+  padding: "clamp(12px, 3vw, 16px)",
   boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
 };
 
@@ -260,6 +260,7 @@ export default function CleanAppHeader() {
               gap: 10,
               flexWrap: "wrap",
               minWidth: 0,
+              flex: "1 1 220px",
             }}
           >
             <Link
@@ -279,7 +280,7 @@ export default function CleanAppHeader() {
                 height={821}
                 priority
                 style={{
-                  width: "clamp(132px, 19vw, 172px)",
+                  width: "clamp(116px, 30vw, 172px)",
                   maxWidth: "100%",
                   height: "auto",
                   display: "block",
@@ -296,6 +297,7 @@ export default function CleanAppHeader() {
               justifyContent: "flex-end",
               gap: 12,
               flexWrap: "wrap",
+              flex: "1 1 260px",
             }}
           >
             <button
@@ -309,7 +311,8 @@ export default function CleanAppHeader() {
                 border: "1px solid #dbeafe",
                 background: "#ffffff",
                 color: "#0f172a",
-                padding: "8px 12px",
+                padding: "10px 14px",
+                minHeight: 40,
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: "pointer",
@@ -323,7 +326,15 @@ export default function CleanAppHeader() {
           </div>
         </div>
 
-        <nav aria-label="App sections" style={{ overflowX: "auto", paddingBottom: 2 }}>
+        <nav
+          aria-label="App sections"
+          style={{
+            overflowX: "auto",
+            paddingBottom: 4,
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "thin",
+          }}
+        >
           <div
             style={{
               display: "flex",
@@ -331,6 +342,7 @@ export default function CleanAppHeader() {
               minWidth: "max-content",
               flexWrap: "nowrap",
               alignItems: "center",
+              scrollSnapType: "x proximity",
             }}
           >
             {coreNavItems.map((item) => {
@@ -349,11 +361,13 @@ export default function CleanAppHeader() {
                     border: isCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
                     background: isCurrent ? "#eff6ff" : "#ffffff",
                     color: isCurrent ? "#1d4ed8" : "#334155",
-                    padding: "8px 12px",
+                    padding: "10px 14px",
+                    minHeight: 40,
                     fontSize: 13,
                     fontWeight: 700,
                     textDecoration: "none",
                     whiteSpace: "nowrap",
+                    scrollSnapAlign: "start",
                   }}
                 >
                   {item.label}
@@ -377,11 +391,13 @@ export default function CleanAppHeader() {
                   border: outputsCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
                   background: outputsCurrent ? "#eff6ff" : "#ffffff",
                   color: outputsCurrent ? "#1d4ed8" : "#334155",
-                  padding: "8px 12px",
+                  padding: "10px 14px",
+                  minHeight: 40,
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
+                  scrollSnapAlign: "start",
                 }}
               >
                 Outputs
@@ -463,11 +479,13 @@ export default function CleanAppHeader() {
                     border: isCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
                     background: isCurrent ? "#eff6ff" : "#ffffff",
                     color: isCurrent ? "#1d4ed8" : "#334155",
-                    padding: "8px 12px",
+                    padding: "10px 14px",
+                    minHeight: 40,
                     fontSize: 13,
                     fontWeight: 700,
                     textDecoration: "none",
                     whiteSpace: "nowrap",
+                    scrollSnapAlign: "start",
                   }}
                 >
                   {communityNavItem.label}
@@ -501,12 +519,12 @@ export default function CleanAppHeader() {
                 aria-labelledby="suggest-improvement-heading"
                 onClick={(event) => event.stopPropagation()}
                 style={{
-                  width: "min(680px, 100%)",
+                  width: "min(680px, calc(100vw - 24px))",
                   border: "1px solid #dbeafe",
                   borderRadius: 22,
                   background: "#ffffff",
                   boxShadow: "0 24px 60px rgba(15,23,42,0.18)",
-                  padding: 22,
+                  padding: "clamp(16px, 4vw, 22px)",
                   display: "grid",
                   gap: 18,
                 }}
