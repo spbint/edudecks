@@ -302,6 +302,40 @@ function wait(milliseconds: number) {
   });
 }
 
+async function waitForServerSessionReadiness() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const startedAt = Date.now();
+  const timeoutMs = 5000;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const response = await fetch(`/api/auth/session-ready?ts=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: {
+          "x-mylearna-auth-probe": "1",
+        },
+      });
+
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // Ignore transient probe failures while the browser and server session catch up.
+    }
+
+    await wait(250);
+  }
+
+  throw new Error(
+    "Your sign-in was accepted, but MyLearna could not finish the secure handoff yet. Please try again.",
+  );
+}
+
 export default function EmailAuthPage({ mode = "login" }: EmailAuthPageProps) {
   return (
     <Suspense fallback={null}>
@@ -459,12 +493,13 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       successMessage,
       "password",
     );
+    setIsRedirecting(true);
+    await waitForBrowserSessionPropagation();
+    await waitForServerSessionReadiness();
 
     if (redirectStarted.current) return;
     redirectStarted.current = true;
-    setIsRedirecting(true);
     router.replace(targetPath);
-    router.refresh();
   }
 
   async function handlePasswordSignIn() {
@@ -513,7 +548,6 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         return;
       }
 
-      await waitForBrowserSessionPropagation();
       await redirectAfterSession(
         "Signed in",
         "Signed in. Taking you to MyLearna...",
@@ -589,7 +623,6 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       }
 
       const resolvedPath = await resolveFirstAppPath(nextPath);
-      await waitForBrowserSessionPropagation();
       await redirectAfterSession(
         "Account created",
         "Account created. Taking you to your first setup step...",
@@ -732,6 +765,9 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     : `After sign-in, we will take you to ${destinationLabel}.`;
   const passwordButtonLabel = isSignup ? "Create account with password" : "Continue with password";
   const passwordSavingLabel = isSignup ? "Creating your account..." : "Signing you in...";
+  const passwordRedirectingLabel = isSignup
+    ? "Taking you to your first setup step..."
+    : "Taking you to MyLearna...";
   const emailLinkButtonLabel = "Email me a sign-in link";
   const emailLinkHelperText = isSignup
     ? "Prefer less typing? We can email you a secure sign-in link and bring you straight into your first setup step."
@@ -969,8 +1005,10 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               isBusy,
           )}
         >
-          {isBusy && authAction === "password"
-            ? passwordSavingLabel
+          {authAction === "password" && isRedirecting
+            ? passwordRedirectingLabel
+            : isBusy && authAction === "password"
+              ? passwordSavingLabel
             : passwordButtonLabel}
         </button>
       </form>
