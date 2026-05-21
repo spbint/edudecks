@@ -296,6 +296,12 @@ function buildAlternateAuthHref(mode: EmailAuthPageMode, nextPath: string) {
   return nextPath ? `${base}?next=${encodeURIComponent(nextPath)}` : base;
 }
 
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+}
+
 export default function EmailAuthPage({ mode = "login" }: EmailAuthPageProps) {
   return (
     <Suspense fallback={null}>
@@ -314,6 +320,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const [authAction, setAuthAction] = useState<AuthAction>("none");
   const [message, setMessage] = useState("");
   const [statusTitle, setStatusTitle] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const redirectStarted = useRef(false);
 
   const isSignup = mode === "signup";
@@ -330,12 +337,14 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   );
   const destinationLabel = useMemo(() => nextPathLabel(nextPath), [nextPath]);
   const alternateAuthHref = useMemo(() => buildAlternateAuthHref(mode, nextPath), [mode, nextPath]);
+  const isBusy = saveState === "saving" || isRedirecting;
 
   function clearFeedback() {
     setSaveState("idle");
     setAuthAction("none");
     setMessage("");
     setStatusTitle("");
+    setIsRedirecting(false);
   }
 
   function setStatus(
@@ -381,6 +390,68 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     clearFeedback();
   }, [isSignup, searchParams]);
 
+  async function waitForBrowserSessionPropagation() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const currentSession = (await supabase.auth.getSession()).data.session ?? null;
+    if (currentSession?.user) {
+      await wait(200);
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+
+      const finish = (error?: unknown) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutHandle);
+        subscription.unsubscribe();
+
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      };
+
+      const timeoutHandle = window.setTimeout(async () => {
+        try {
+          const fallbackSession = (await supabase.auth.getSession()).data.session ?? null;
+          if (fallbackSession?.user) {
+            await wait(200);
+            finish();
+            return;
+          }
+
+          finish(
+            new Error(
+              "Your sign-in was accepted, but we could not confirm the session in the browser yet.",
+            ),
+          );
+        } catch (error) {
+          finish(error);
+        }
+      }, 2500);
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (
+          (event === "SIGNED_IN" ||
+            event === "TOKEN_REFRESHED" ||
+            event === "INITIAL_SESSION") &&
+          session?.user
+        ) {
+          window.setTimeout(() => finish(), 200);
+        }
+      });
+    });
+  }
+
   async function redirectAfterSession(successTitle: string, successMessage: string, targetPath: string) {
     setStatus(
       isSignup ? "signed-up" : "signed-in",
@@ -391,17 +462,13 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
 
     if (redirectStarted.current) return;
     redirectStarted.current = true;
-
-    if (typeof window !== "undefined") {
-      window.location.replace(targetPath);
-      return;
-    }
-
+    setIsRedirecting(true);
     router.replace(targetPath);
+    router.refresh();
   }
 
   async function handlePasswordSignIn() {
-    if (saveState === "saving") return;
+    if (isBusy) return;
 
     if (!hasSupabaseEnv) {
       setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
@@ -446,18 +513,20 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         return;
       }
 
+      await waitForBrowserSessionPropagation();
       await redirectAfterSession(
         "Signed in",
         "Signed in. Taking you to MyLearna...",
         nextPath,
       );
     } catch (error) {
+      setIsRedirecting(false);
       setStatus("error", "We could not sign you in", authErrorMessage(error, "login"), "password");
     }
   }
 
   async function handleCreateAccount() {
-    if (saveState === "saving") return;
+    if (isBusy) return;
 
     if (!hasSupabaseEnv) {
       setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
@@ -520,12 +589,14 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
       }
 
       const resolvedPath = await resolveFirstAppPath(nextPath);
+      await waitForBrowserSessionPropagation();
       await redirectAfterSession(
         "Account created",
         "Account created. Taking you to your first setup step...",
         resolvedPath,
       );
     } catch (error) {
+      setIsRedirecting(false);
       setStatus(
         "error",
         "We could not create your account",
@@ -536,7 +607,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   }
 
   async function handleForgotPassword() {
-    if (saveState === "saving") return;
+    if (isBusy) return;
 
     if (!hasSupabaseEnv) {
       setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
@@ -590,7 +661,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   }
 
   async function handleEmailLink() {
-    if (saveState === "saving") return;
+    if (isBusy) return;
 
     if (!hasSupabaseEnv) {
       setStatus("error", "Configuration needed", MISSING_PUBLIC_SUPABASE_ENV_MESSAGE);
@@ -738,7 +809,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
             style={inputStyle(safe(email) !== "" && !emailValid)}
             autoComplete="email"
             inputMode="email"
-            disabled={!hasSupabaseEnv || saveState === "saving"}
+            disabled={!hasSupabaseEnv || isBusy}
           />
           {safe(email) && !emailValid ? (
             <div
@@ -769,7 +840,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               <button
                 type="button"
                 onClick={() => void handleForgotPassword()}
-                disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
+                disabled={!hasSupabaseEnv || !emailValid || isBusy}
                 style={{
                   border: "none",
                   background: "transparent",
@@ -778,11 +849,11 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
                   fontWeight: 800,
                   textAlign: "center",
                   cursor:
-                    !hasSupabaseEnv || !emailValid || saveState === "saving"
+                    !hasSupabaseEnv || !emailValid || isBusy
                       ? "not-allowed"
                       : "pointer",
                   opacity:
-                    !hasSupabaseEnv || !emailValid || saveState === "saving" ? 0.7 : 1,
+                    !hasSupabaseEnv || !emailValid || isBusy ? 0.7 : 1,
                   padding: 0,
                 }}
               >
@@ -800,7 +871,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
             placeholder={isSignup ? "Create a password" : "Enter your password"}
             style={inputStyle(safe(password) !== "" && !passwordValid)}
             autoComplete={isSignup ? "new-password" : "current-password"}
-            disabled={!hasSupabaseEnv || saveState === "saving"}
+            disabled={!hasSupabaseEnv || isBusy}
           />
           {safe(password) && !passwordValid ? (
             <div
@@ -829,7 +900,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
               placeholder="Confirm your password"
               style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
               autoComplete="new-password"
-              disabled={!hasSupabaseEnv || saveState === "saving"}
+              disabled={!hasSupabaseEnv || isBusy}
             />
             {safe(confirmPassword) && !confirmPasswordValid ? (
               <div
@@ -888,17 +959,17 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
             !emailValid ||
             !passwordValid ||
             (isSignup && !confirmPasswordValid) ||
-            saveState === "saving"
+            isBusy
           }
           style={primaryButtonStyle(
             !hasSupabaseEnv ||
               !emailValid ||
               !passwordValid ||
               (isSignup && !confirmPasswordValid) ||
-              saveState === "saving",
+              isBusy,
           )}
         >
-          {saveState === "saving" && authAction === "password"
+          {isBusy && authAction === "password"
             ? passwordSavingLabel
             : passwordButtonLabel}
         </button>
@@ -962,9 +1033,9 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
           <button
             type="button"
             onClick={() => void handleEmailLink()}
-            disabled={!hasSupabaseEnv || !emailValid || saveState === "saving"}
+            disabled={!hasSupabaseEnv || !emailValid || isBusy}
             style={secondaryButtonStyle(
-              !hasSupabaseEnv || !emailValid || saveState === "saving",
+              !hasSupabaseEnv || !emailValid || isBusy,
             )}
           >
             {saveState === "saving" && authAction === "email-link"
