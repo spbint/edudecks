@@ -6,12 +6,13 @@ import React from "react";
 import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 
 type CleanWorkflowStepKey =
-  | "today"
-  | "plan"
-  | "programs"
+  | "calendar"
+  | "pathways"
+  | "assessments"
   | "capture"
   | "portfolio"
-  | "reports";
+  | "reports"
+  | "outputs";
 
 type CleanWorkflowStep = {
   key: CleanWorkflowStepKey;
@@ -30,30 +31,38 @@ const sectionStyle: React.CSSProperties = {
   boxShadow: "0 10px 24px rgba(15,23,42,0.04)",
 };
 
+const helperCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 18,
+  background: "#f8fbff",
+  padding: 16,
+  boxShadow: "0 8px 20px rgba(59,130,246,0.06)",
+};
+
 const steps: CleanWorkflowStep[] = [
   {
-    key: "today",
-    label: "Today",
-    helper: "Run today",
-    href: "/my-day",
-    cleanHref: "/clean-my-day",
-    matches: ["/my-day", "/clean-my-day"],
-  },
-  {
-    key: "plan",
-    label: "Plan",
-    helper: "Build the week",
+    key: "calendar",
+    label: "Calendar",
+    helper: "Plan the week",
     href: "/my-calendar",
     cleanHref: "/clean-my-calendar",
     matches: ["/my-calendar", "/clean-my-calendar"],
   },
   {
-    key: "programs",
-    label: "Programs",
-    helper: "Shape learning",
-    href: "/my-programs",
-    cleanHref: "/clean-my-programs",
-    matches: ["/my-programs", "/clean-my-programs"],
+    key: "pathways",
+    label: "Pathways",
+    helper: "Follow the next step",
+    href: "/my-pathways",
+    cleanHref: "/clean-my-pathways",
+    matches: ["/my-pathways", "/clean-my-pathways"],
+  },
+  {
+    key: "assessments",
+    label: "Assessments",
+    helper: "Check understanding",
+    href: "/my-assessments",
+    cleanHref: "/clean-my-assessments",
+    matches: ["/my-assessments", "/clean-my-assessments"],
   },
   {
     key: "capture",
@@ -74,12 +83,54 @@ const steps: CleanWorkflowStep[] = [
   {
     key: "reports",
     label: "Reports",
-    helper: "Prepare outputs",
+    helper: "Build the learning record",
     href: "/my-reports",
     cleanHref: "/clean-my-reports",
-    matches: ["/my-reports", "/my-outputs", "/clean-my-reports", "/clean-my-outputs"],
+    matches: ["/my-reports", "/clean-my-reports"],
+  },
+  {
+    key: "outputs",
+    label: "Outputs",
+    helper: "Download the record",
+    href: "/my-outputs",
+    cleanHref: "/clean-my-outputs",
+    matches: ["/my-outputs", "/clean-my-outputs"],
   },
 ];
+
+const workflowGuidance: Record<
+  CleanWorkflowStepKey,
+  { title: string; copy: string }
+> = {
+  calendar: {
+    title: "New here? Start here",
+    copy: "Use your calendar to plan when learning happens. Evidence can later link back to the day or block.",
+  },
+  pathways: {
+    title: "What to do next",
+    copy: "Choose a pathway step, practise it, then capture evidence or check understanding.",
+  },
+  assessments: {
+    title: "What to do next",
+    copy: "Start with the current focus stage first, then use earlier and later stages as context when you need them.",
+  },
+  capture: {
+    title: "What to do next",
+    copy: "Record what happened. Strong notes can later become portfolio evidence and support reports.",
+  },
+  portfolio: {
+    title: "What to do next",
+    copy: "Choose the strongest examples from your captured evidence. Not every capture needs to go into a report.",
+  },
+  reports: {
+    title: "What to do next",
+    copy: "Reports use your current learning year automatically and bring together selected portfolio evidence with written reflections.",
+  },
+  outputs: {
+    title: "What to do next",
+    copy: "Download outputs when the learning record feels clear, evidence-backed, and ready to share.",
+  },
+};
 
 function matchesPath(pathname: string, candidate: string) {
   return pathname === candidate || pathname.startsWith(`${candidate}/`);
@@ -100,18 +151,127 @@ export default function CleanWorkflowRibbon({
 }) {
   const pathname = usePathname();
   const currentStep = getCurrentStep(pathname);
-
-  if (!currentStep) return null;
-
   const currentIndex = steps.findIndex((step) => step.key === currentStep);
   const useCleanLinks = pathname.startsWith("/clean-");
+  const defaultGuidance = currentStep ? workflowGuidance[currentStep] : null;
 
   return (
     <div style={{ display: "grid", gap: 12 }}>
       <CleanAppHeader />
 
-      <section style={sectionStyle}>
-        <div style={{ display: "grid", gap: 10 }}>
+      {currentStep ? (
+        <section style={sectionStyle}>
+          <div style={{ display: "grid", gap: 10 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: "0.08em",
+                color: "#64748b",
+                textTransform: "uppercase",
+              }}
+            >
+              Guided flow
+            </div>
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+              Move through the next useful step without losing the broader learning record.
+            </div>
+            <nav aria-label="Guided flow steps" style={{ overflowX: "auto", paddingBottom: 4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "stretch",
+                  gap: 10,
+                  minWidth: "max-content",
+                }}
+              >
+                {steps.map((step, index) => {
+                  const isCurrent = step.key === currentStep;
+                  const isPast = index < currentIndex;
+                  const href = useCleanLinks ? step.cleanHref : step.href;
+
+                  return (
+                    <React.Fragment key={step.key}>
+                      <Link
+                        href={href}
+                        aria-current={isCurrent ? "step" : undefined}
+                        title={`${step.label} - ${step.helper}`}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "36px minmax(0, 1fr)",
+                          alignItems: "center",
+                          gap: 10,
+                          minWidth: 176,
+                          padding: "10px 12px",
+                          borderRadius: 16,
+                          border: isCurrent
+                            ? "1px solid #1d4ed8"
+                            : isPast
+                              ? "1px solid #bfdbfe"
+                              : "1px solid #e2e8f0",
+                          background: isCurrent
+                            ? "#eff6ff"
+                            : isPast
+                              ? "#f8fbff"
+                              : "#ffffff",
+                          textDecoration: "none",
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 13,
+                            fontWeight: 800,
+                            color: isCurrent ? "#ffffff" : isPast ? "#1d4ed8" : "#64748b",
+                            background: isCurrent ? "#1d4ed8" : isPast ? "#dbeafe" : "#f8fafc",
+                            border: isCurrent
+                              ? "1px solid #1d4ed8"
+                              : isPast
+                                ? "1px solid #bfdbfe"
+                                : "1px solid #e2e8f0",
+                          }}
+                        >
+                          {index + 1}
+                        </span>
+                        <span style={{ display: "grid", gap: 2 }}>
+                          <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>
+                            {step.label}
+                          </span>
+                          <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
+                            {step.helper}
+                          </span>
+                        </span>
+                      </Link>
+                      {index < steps.length - 1 ? (
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            alignSelf: "center",
+                            width: 14,
+                            height: 1,
+                            background: index < currentIndex ? "#93c5fd" : "#e2e8f0",
+                            flexShrink: 0,
+                          }}
+                        />
+                      ) : null}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </nav>
+          </div>
+        </section>
+      ) : null}
+
+      {guidanceSlot ? (
+        <div>{guidanceSlot}</div>
+      ) : defaultGuidance ? (
+        <section style={helperCardStyle}>
           <div
             style={{
               fontSize: 12,
@@ -121,101 +281,11 @@ export default function CleanWorkflowRibbon({
               textTransform: "uppercase",
             }}
           >
-            Journey
+            {defaultGuidance.title}
           </div>
-          <nav aria-label="Journey steps" style={{ overflowX: "auto", paddingBottom: 4 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "stretch",
-                gap: 10,
-                minWidth: "max-content",
-              }}
-            >
-              {steps.map((step, index) => {
-                const isCurrent = step.key === currentStep;
-                const isPast = index < currentIndex;
-                const href = useCleanLinks ? step.cleanHref : step.href;
-
-                return (
-                  <React.Fragment key={step.key}>
-                    <Link
-                      href={href}
-                      aria-current={isCurrent ? "step" : undefined}
-                      title={`${step.label} - ${step.helper}`}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "36px minmax(0, 1fr)",
-                        alignItems: "center",
-                        gap: 10,
-                        minWidth: 168,
-                        padding: "10px 12px",
-                        borderRadius: 16,
-                        border: isCurrent
-                          ? "1px solid #1d4ed8"
-                          : isPast
-                            ? "1px solid #bfdbfe"
-                            : "1px solid #e2e8f0",
-                        background: isCurrent
-                          ? "#eff6ff"
-                          : isPast
-                            ? "#f8fbff"
-                            : "#ffffff",
-                        textDecoration: "none",
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: 999,
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 13,
-                          fontWeight: 800,
-                          color: isCurrent ? "#ffffff" : isPast ? "#1d4ed8" : "#64748b",
-                          background: isCurrent ? "#1d4ed8" : isPast ? "#dbeafe" : "#f8fafc",
-                          border: isCurrent
-                            ? "1px solid #1d4ed8"
-                            : isPast
-                              ? "1px solid #bfdbfe"
-                              : "1px solid #e2e8f0",
-                        }}
-                      >
-                        {index + 1}
-                      </span>
-                      <span style={{ display: "grid", gap: 2 }}>
-                        <span style={{ color: "#0f172a", fontSize: 15, fontWeight: 700 }}>
-                          {step.label}
-                        </span>
-                        <span style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                          {step.helper}
-                        </span>
-                      </span>
-                    </Link>
-                    {index < steps.length - 1 ? (
-                      <span
-                        aria-hidden="true"
-                        style={{
-                          alignSelf: "center",
-                          width: 14,
-                          height: 1,
-                          background: index < currentIndex ? "#93c5fd" : "#e2e8f0",
-                          flexShrink: 0,
-                        }}
-                      />
-                    ) : null}
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </nav>
-        </div>
-      </section>
-
-      {guidanceSlot ? <div>{guidanceSlot}</div> : null}
-      {/* TODO: route-specific step guidance can sit under the workflow ribbon when each page is ready. */}
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>{defaultGuidance.copy}</div>
+        </section>
+      ) : null}
     </div>
   );
 }

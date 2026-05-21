@@ -254,7 +254,6 @@ function CleanDayWorkspaceBody() {
   const [quickAddLearnerId, setQuickAddLearnerId] = useState("");
   const [quickAddTime, setQuickAddTime] = useState("");
   const [quickAddLearningArea, setQuickAddLearningArea] = useState("");
-  const [quickAddProgramId, setQuickAddProgramId] = useState("");
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [quickAddError, setQuickAddError] = useState<string | null>(null);
   const [quickAddMessage, setQuickAddMessage] = useState<string | null>(null);
@@ -361,15 +360,6 @@ function CleanDayWorkspaceBody() {
   const segmentLabelById = useMemo(
     () => new Map(programSegments.map((segment) => [segment.id, segment.title])),
     [programSegments],
-  );
-
-  const programOptions = useMemo(
-    () =>
-      programs.map((program) => ({
-        value: program.id,
-        label: program.title,
-      })),
-    [programs],
   );
 
   const evidenceByCalendarItemId = useMemo(() => {
@@ -490,8 +480,8 @@ function CleanDayWorkspaceBody() {
     ? "Add one quick block for today"
     : "Add one quick block for this day";
   const quickAddLead = isViewingToday
-    ? "Quick add stays on My Day. Use My Calendar when you want the fuller planning view."
-    : "Quick add stays on this page. Use My Calendar when you want the fuller planning view.";
+    ? "Add today's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view."
+    : "Add this day's learning block here, then capture evidence later when something useful happens. Use My Calendar when you want the fuller planning view.";
 
   useEffect(() => {
     if (!workspace.learners.length) {
@@ -684,7 +674,6 @@ function CleanDayWorkspaceBody() {
     setQuickAddLearnerId(selectedLearnerId);
     setQuickAddTime("");
     setQuickAddLearningArea("");
-    setQuickAddProgramId("");
     setQuickAddError(null);
   }
 
@@ -713,7 +702,7 @@ function CleanDayWorkspaceBody() {
         learnerId: quickAddLearnerId || null,
         startsAt: toTimestampFromDateAndTime(selectedDate, quickAddTime),
         learningArea: String(quickAddLearningArea ?? "").trim() || null,
-        programId: quickAddProgramId || null,
+        programId: null,
         sourceType: "manual",
       });
 
@@ -723,7 +712,6 @@ function CleanDayWorkspaceBody() {
       setQuickAddTitle("");
       setQuickAddTime("");
       setQuickAddLearningArea("");
-      setQuickAddProgramId("");
       setQuickAddOpen(false);
     } catch (error) {
       setQuickAddError(
@@ -997,6 +985,33 @@ function CleanDayWorkspaceBody() {
                       {sortedVisibleItems.length} block{sortedVisibleItems.length === 1 ? "" : "s"}
                     </span>
                   </div>
+
+                  <div
+                    style={{
+                      border: "1px solid #dbeafe",
+                      borderRadius: 18,
+                      background: "rgba(248,251,255,0.92)",
+                      padding: 16,
+                      display: "grid",
+                      gap: 6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#64748b",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      What to do next
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                      Add today&apos;s learning block, then capture evidence when something useful
+                      happens.
+                    </div>
+                  </div>
                 </div>
 
                 <div
@@ -1124,23 +1139,6 @@ function CleanDayWorkspaceBody() {
                       />
                     </label>
 
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
-                        Program
-                      </span>
-                      <select
-                        value={quickAddProgramId}
-                        onChange={(event) => setQuickAddProgramId(event.target.value)}
-                        style={inputStyle}
-                      >
-                        <option value="">None</option>
-                        {programOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
                   </div>
 
                   {quickAddError ? (

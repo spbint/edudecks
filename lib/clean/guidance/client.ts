@@ -129,22 +129,23 @@ export function buildCleanGuidanceCards(
     });
   }
 
-  if (input.hasMasterTemplate && !input.hasPrograms) {
+  if (input.hasMasterTemplate && !input.hasEvidence) {
     openCards.push({
-      key: "programs",
-      title: "Add a first program",
-      description: "Programs can later feed your Master week and calendar.",
-      actionLabel: "Open My Programs",
-      actionHref: "/my-programs",
+      key: "pathways",
+      title: "Open My Pathways",
+      description:
+        "Use guided pathway steps to see what comes next before you capture evidence.",
+      actionLabel: "Open My Pathways",
+      actionHref: "/my-pathways",
     });
   }
 
-  if (input.hasPrograms && !input.hasCurrentWeekItems) {
+  if ((input.hasMasterTemplate || input.hasPrograms) && !input.hasCurrentWeekItems) {
     openCards.push({
       key: "generate-week",
-      title: "Add a program to your Master week",
+      title: "Plan this week",
       description:
-        "You already have programs. Link one into your Master week, then plan this week from it.",
+        "Place a few learning blocks into this week so My Day has something useful to run.",
       actionLabel: "Open My Calendar",
       actionHref: "/my-calendar",
     });

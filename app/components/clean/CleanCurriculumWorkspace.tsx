@@ -183,6 +183,125 @@ function coverageBadgeStyle(status: CurriculumCoverageStatus): React.CSSProperti
   };
 }
 
+function getLearningAreaTone(areaKey: string, areaLabel: string) {
+  const normalized = `${safe(areaKey)} ${safe(areaLabel)}`.toLowerCase();
+
+  if (normalized.includes("math")) {
+    return {
+      accent: "#2563eb",
+      border: "#93c5fd",
+      mutedBorder: "#dbeafe",
+      softBackground: "#f8fbff",
+      selectedBackground: "#eff6ff",
+      badgeBackground: "#dbeafe",
+      badgeText: "#1d4ed8",
+      shadow: "0 10px 24px rgba(37,99,235,0.10)",
+    };
+  }
+
+  if (normalized.includes("english") || normalized.includes("literacy")) {
+    return {
+      accent: "#be185d",
+      border: "#f9a8d4",
+      mutedBorder: "#fbcfe8",
+      softBackground: "#fff8fb",
+      selectedBackground: "#fdf2f8",
+      badgeBackground: "#fce7f3",
+      badgeText: "#be185d",
+      shadow: "0 10px 24px rgba(190,24,93,0.08)",
+    };
+  }
+
+  if (normalized.includes("science")) {
+    return {
+      accent: "#0f766e",
+      border: "#99f6e4",
+      mutedBorder: "#ccfbf1",
+      softBackground: "#f4fffd",
+      selectedBackground: "#ecfeff",
+      badgeBackground: "#ccfbf1",
+      badgeText: "#0f766e",
+      shadow: "0 10px 24px rgba(15,118,110,0.08)",
+    };
+  }
+
+  if (normalized.includes("humanities") || normalized.includes("history") || normalized.includes("geography")) {
+    return {
+      accent: "#b45309",
+      border: "#fcd34d",
+      mutedBorder: "#fde68a",
+      softBackground: "#fffdf6",
+      selectedBackground: "#fffbeb",
+      badgeBackground: "#fef3c7",
+      badgeText: "#b45309",
+      shadow: "0 10px 24px rgba(180,83,9,0.08)",
+    };
+  }
+
+  if (normalized.includes("art") || normalized.includes("music") || normalized.includes("drama")) {
+    return {
+      accent: "#7c3aed",
+      border: "#c4b5fd",
+      mutedBorder: "#ddd6fe",
+      softBackground: "#faf8ff",
+      selectedBackground: "#f5f3ff",
+      badgeBackground: "#ede9fe",
+      badgeText: "#6d28d9",
+      shadow: "0 10px 24px rgba(124,58,237,0.08)",
+    };
+  }
+
+  if (normalized.includes("language")) {
+    return {
+      accent: "#15803d",
+      border: "#86efac",
+      mutedBorder: "#bbf7d0",
+      softBackground: "#f7fff9",
+      selectedBackground: "#f0fdf4",
+      badgeBackground: "#dcfce7",
+      badgeText: "#15803d",
+      shadow: "0 10px 24px rgba(21,128,61,0.08)",
+    };
+  }
+
+  if (normalized.includes("health") || normalized.includes("physical")) {
+    return {
+      accent: "#dc2626",
+      border: "#fca5a5",
+      mutedBorder: "#fecaca",
+      softBackground: "#fff8f8",
+      selectedBackground: "#fef2f2",
+      badgeBackground: "#fee2e2",
+      badgeText: "#b91c1c",
+      shadow: "0 10px 24px rgba(220,38,38,0.08)",
+    };
+  }
+
+  if (normalized.includes("technolog")) {
+    return {
+      accent: "#334155",
+      border: "#cbd5e1",
+      mutedBorder: "#e2e8f0",
+      softBackground: "#f8fafc",
+      selectedBackground: "#f1f5f9",
+      badgeBackground: "#e2e8f0",
+      badgeText: "#334155",
+      shadow: "0 10px 24px rgba(51,65,85,0.08)",
+    };
+  }
+
+  return {
+    accent: "#475569",
+    border: "#cbd5e1",
+    mutedBorder: "#e2e8f0",
+    softBackground: "#fafcff",
+    selectedBackground: "#f8fafc",
+    badgeBackground: "#e2e8f0",
+    badgeText: "#475569",
+    shadow: "0 10px 24px rgba(71,85,105,0.06)",
+  };
+}
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -323,6 +442,9 @@ function CurriculumWorkspaceBody() {
 
   const selectedAreaSummary =
     areaSummaries.find((item) => item.area.key === selectedAreaId) ?? areaSummaries[0] ?? null;
+  const selectedAreaTone = selectedAreaSummary
+    ? getLearningAreaTone(selectedAreaSummary.area.key, selectedAreaSummary.area.label)
+    : null;
 
   const selectedAreaElementSummaries = selectedAreaSummary?.elementSummaries ?? [];
   const authorityAreaSummaries = coverageSummary.supplementaryAreaSummaries;
@@ -628,6 +750,13 @@ function CurriculumWorkspaceBody() {
 
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What to do next</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Start with one learning area at a time, then use captured evidence to see
+                    where coverage is already building and where you may want to revisit.
+                  </p>
+                </div>
                 <div style={eyebrowStyle}>Coverage map</div>
                 <div
                   style={{
@@ -676,18 +805,25 @@ function CurriculumWorkspaceBody() {
                   gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 }}
               >
-                {areaSummaries.map((summary) => (
-                  <article
-                    key={summary.area.key}
-                    style={{
-                      border: summary.area.key === selectedAreaId ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                      borderRadius: 16,
-                      padding: 14,
-                      background: summary.area.key === selectedAreaId ? "#f8fbff" : "#ffffff",
-                      display: "grid",
-                      gap: 10,
-                    }}
-                  >
+                {areaSummaries.map((summary) => {
+                  const tone = getLearningAreaTone(summary.area.key, summary.area.label);
+                  const isSelected = summary.area.key === selectedAreaId;
+
+                  return (
+                    <article
+                      key={summary.area.key}
+                      style={{
+                        border: isSelected
+                          ? `1px solid ${tone.border}`
+                          : `1px solid ${tone.mutedBorder}`,
+                        borderRadius: 16,
+                        padding: 14,
+                        background: isSelected ? tone.selectedBackground : tone.softBackground,
+                        display: "grid",
+                        gap: 10,
+                        boxShadow: isSelected ? tone.shadow : "none",
+                      }}
+                    >
                     <div
                       style={{
                         display: "flex",
@@ -705,13 +841,23 @@ function CurriculumWorkspaceBody() {
                             flexWrap: "wrap",
                           }}
                         >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: 999,
+                              background: tone.accent,
+                              boxShadow: `0 0 0 4px ${tone.badgeBackground}`,
+                            }}
+                          />
                           <strong style={{ color: "#0f172a", fontSize: 16 }}>{summary.area.label}</strong>
-                          {summary.area.key === selectedAreaId ? (
+                          {isSelected ? (
                             <span
                               style={{
-                                border: "1px solid #bfdbfe",
-                                background: "#eff6ff",
-                                color: "#1d4ed8",
+                                border: `1px solid ${tone.border}`,
+                                background: tone.badgeBackground,
+                                color: tone.badgeText,
                                 borderRadius: 999,
                                 padding: "4px 8px",
                                 fontSize: 11,
@@ -754,13 +900,14 @@ function CurriculumWorkspaceBody() {
 
                     <button
                       type="button"
-                      style={summary.area.key === selectedAreaId ? buttonStyle : secondaryButtonStyle}
+                      style={isSelected ? buttonStyle : secondaryButtonStyle}
                       onClick={() => setSelectedAreaId(summary.area.key)}
                     >
                       View area
                     </button>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </section>
 
@@ -789,7 +936,15 @@ function CurriculumWorkspaceBody() {
                     </div>
                   </div>
 
-                  <div style={{ ...compactCardStyle, minWidth: 240, maxWidth: 320 }}>
+                  <div
+                    style={{
+                      ...compactCardStyle,
+                      minWidth: 240,
+                      maxWidth: 320,
+                      border: `1px solid ${selectedAreaTone?.border ?? "#bfdbfe"}`,
+                      background: selectedAreaTone?.selectedBackground ?? "#f8fbff",
+                    }}
+                  >
                     <span
                       style={{
                         ...coverageBadgeStyle(selectedAreaSummary.status),

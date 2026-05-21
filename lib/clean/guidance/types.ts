@@ -5,6 +5,7 @@ export type CleanGuidanceStepKey =
   | "academic-year"
   | "learning-periods"
   | "master-template"
+  | "pathways"
   | "programs"
   | "generate-week"
   | "capture"

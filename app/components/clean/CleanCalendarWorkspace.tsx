@@ -3036,9 +3036,7 @@ function CleanCalendarWorkspaceBody() {
                           gap: 8,
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>
-                          Ready to place from My Programs
-                        </strong>
+                        <strong style={{ color: "#0f172a" }}>Ready to place into this week</strong>
                         <div style={{ color: "#475569", lineHeight: 1.6 }}>
                           {handoffSummary}. Choose a master week, then click inside a day to
                           place this reusable block without retyping it.
@@ -3470,12 +3468,10 @@ function CleanCalendarWorkspaceBody() {
                             gap: 8,
                           }}
                         >
-                          <strong style={{ color: "#0f172a" }}>
-                            Ready to place from My Programs
-                          </strong>
+                          <strong style={{ color: "#0f172a" }}>Ready to place into this week</strong>
                           <div style={{ color: "#475569", lineHeight: 1.6 }}>
                             {handoffSummary}. Click inside a day to place this into the live
-                            week with the program link already filled in.
+                            week with the planning link already filled in.
                           </div>
                           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                             <button

@@ -1806,6 +1806,14 @@ function AssessmentsWorkspaceBody() {
               </div>
             </div>
 
+            <div style={helperCardStyle}>
+              <strong style={{ color: "#0f172a" }}>What to do next</strong>
+              <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                Start with the current focus stage first. Earlier and later stages stay
+                available when you want wider progression context.
+              </div>
+            </div>
+
             <div
               style={{
                 display: "grid",
@@ -1911,14 +1919,15 @@ function AssessmentsWorkspaceBody() {
                           alignContent: "center",
                           justifyItems: "start",
                           padding: 12,
-                          background: isFocusedStage ? "#eff6ff" : "#ffffff",
+                          background: isFocusedStage ? "#eff6ff" : "#f8fafc",
                           border: isFocusedStage
                             ? "1px solid #93c5fd"
                             : "1px solid #e2e8f0",
                           boxShadow: isFocusedStage
                             ? "0 10px 22px rgba(59,130,246,0.12)"
-                            : "0 2px 8px rgba(15,23,42,0.03)",
-                          opacity: isFocusedStage ? 1 : 0.9,
+                            : "none",
+                          opacity: isFocusedStage ? 1 : 0.72,
+                          filter: isFocusedStage ? "none" : "saturate(0.68)",
                         }}
                       >
                         <div
@@ -2015,7 +2024,7 @@ function AssessmentsWorkspaceBody() {
                               ? "2px solid #60a5fa"
                               : `1px solid ${meta.border}`,
                             borderRadius: 14,
-                            background: meta.fill,
+                            background: isFocusedStage ? meta.fill : "#ffffff",
                             padding: 12,
                             minHeight: 86,
                             display: "grid",
@@ -2023,10 +2032,11 @@ function AssessmentsWorkspaceBody() {
                             alignContent: "start",
                             boxShadow: isFocusedStage
                               ? "0 12px 24px rgba(59,130,246,0.12)"
-                              : "0 3px 8px rgba(15,23,42,0.03)",
+                              : "none",
                             cursor: "pointer",
                             textAlign: "left",
-                            opacity: isFocusedStage ? 1 : 0.9,
+                            opacity: isFocusedStage ? 1 : 0.76,
+                            filter: isFocusedStage ? "none" : "saturate(0.58)",
                             transition:
                               "box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease",
                           }}

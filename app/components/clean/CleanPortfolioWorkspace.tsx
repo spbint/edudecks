@@ -75,6 +75,13 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const secondaryButtonStyle: React.CSSProperties = {
+  ...buttonStyle,
+  border: "1px solid #cbd5e1",
+  background: "#ffffff",
+  color: "#0f172a",
+};
+
 function getLearnerLabel(firstName: string, preferredName: string | null) {
   return preferredName || firstName;
 }
@@ -118,6 +125,14 @@ function CleanPortfolioWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [selectedLearningArea, setSelectedLearningArea] = useState("");
+  const [selectionFilter, setSelectionFilter] = useState<
+    "all" | "selected" | "not-selected"
+  >("all");
+  const [pathwayFilter, setPathwayFilter] = useState<
+    "all" | "pathway-only" | "repeated-step"
+  >("all");
   const [items, setItems] = useState<CleanPortfolioItem[]>([]);
   const [programs, setPrograms] = useState<CleanProgram[]>([]);
   const [programSegments, setProgramSegments] = useState<CleanProgramSegment[]>([]);
@@ -158,6 +173,12 @@ function CleanPortfolioWorkspaceBody() {
     () => new Map(calendarItems.map((item) => [item.id, item])),
     [calendarItems],
   );
+  const learningAreaOptions = useMemo(
+    () =>
+      [...new Set(items.map((item) => (item.evidence.learningArea || "").trim()).filter(Boolean))]
+        .sort((left, right) => left.localeCompare(right)),
+    [items],
+  );
   const pathwayEvidenceSummary = useMemo(() => {
     const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
     const stepCounts = new Map<string, { label: string; count: number }>();
@@ -182,6 +203,75 @@ function CleanPortfolioWorkspaceBody() {
       repeatedSteps,
     };
   }, [items]);
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = searchText.trim().toLowerCase();
+
+    return items.filter((item) => {
+      const pathwayMeta = pathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ?? null;
+      const repeatedPathwayStep = pathwayMeta
+        ? (pathwayEvidenceSummary.stepCounts.get(pathwayMeta.key)?.count ?? 0) > 1
+        : false;
+
+      if (
+        selectedLearningArea &&
+        (item.evidence.learningArea || "").trim() !== selectedLearningArea
+      ) {
+        return false;
+      }
+
+      if (selectionFilter === "selected" && !item.isHighlighted) return false;
+      if (selectionFilter === "not-selected" && item.isHighlighted) return false;
+
+      if (pathwayFilter === "pathway-only" && !pathwayMeta) return false;
+      if (pathwayFilter === "repeated-step" && !repeatedPathwayStep) return false;
+
+      if (!normalizedSearch) return true;
+
+      const searchHaystack = [
+        item.evidence.title,
+        item.evidence.whatHappened,
+        item.evidence.reflection,
+        item.evidence.learningArea,
+        pathwayMeta?.label,
+      ]
+        .map((value) => String(value ?? "").toLowerCase())
+        .join(" ");
+
+      return searchHaystack.includes(normalizedSearch);
+    });
+  }, [
+    items,
+    pathwayEvidenceSummary.stepByEvidenceId,
+    pathwayEvidenceSummary.stepCounts,
+    pathwayFilter,
+    searchText,
+    selectedLearningArea,
+    selectionFilter,
+  ]);
+  const filteredPathwayEvidenceSummary = useMemo(() => {
+    const stepByEvidenceId = new Map<string, PathwayStepEvidenceMeta>();
+    const stepCounts = new Map<string, { label: string; count: number }>();
+
+    for (const item of filteredItems) {
+      const meta = getPathwayStepEvidenceMeta(item);
+      if (!meta) continue;
+
+      stepByEvidenceId.set(item.evidence.id, meta);
+      const current = stepCounts.get(meta.key);
+      stepCounts.set(meta.key, {
+        label: meta.label,
+        count: current ? current.count + 1 : 1,
+      });
+    }
+
+    const repeatedSteps = [...stepCounts.values()].filter((step) => step.count > 1);
+
+    return {
+      stepByEvidenceId,
+      stepCounts,
+      repeatedSteps,
+    };
+  }, [filteredItems]);
 
   const reloadItems = useCallback(async () => {
     if (!workspace.profile) return;
@@ -397,24 +487,93 @@ function CleanPortfolioWorkspaceBody() {
               </div>
 
               <div style={{ marginTop: 16 }}>
-                <select
-                  value={selectedLearnerId}
-                  onChange={(event) => setSelectedLearnerId(event.target.value)}
-                  style={inputStyle}
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 12,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  }}
                 >
-                  <option value="">All family</option>
-                  {learnerOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  <input
+                    value={searchText}
+                    onChange={(event) => setSearchText(event.target.value)}
+                    placeholder="Search title, note, or pathway step"
+                    style={inputStyle}
+                  />
+                  <select
+                    value={selectedLearnerId}
+                    onChange={(event) => setSelectedLearnerId(event.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">All family</option>
+                    {learnerOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectedLearningArea}
+                    onChange={(event) => setSelectedLearningArea(event.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">All learning areas</option>
+                    {learningAreaOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={selectionFilter}
+                    onChange={(event) =>
+                      setSelectionFilter(
+                        event.target.value as "all" | "selected" | "not-selected",
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="all">All evidence</option>
+                    <option value="selected">Selected for portfolio</option>
+                    <option value="not-selected">Not selected yet</option>
+                  </select>
+                  <select
+                    value={pathwayFilter}
+                    onChange={(event) =>
+                      setPathwayFilter(
+                        event.target.value as "all" | "pathway-only" | "repeated-step",
+                      )
+                    }
+                    style={inputStyle}
+                  >
+                    <option value="all">All evidence types</option>
+                    <option value="pathway-only">Pathway-linked only</option>
+                    <option value="repeated-step">Several notes for one pathway step</option>
+                  </select>
+                  <button
+                    type="button"
+                    style={secondaryButtonStyle}
+                    onClick={() => {
+                      setSearchText("");
+                      setSelectedLearningArea("");
+                      setSelectionFilter("all");
+                      setPathwayFilter("all");
+                    }}
+                    disabled={!searchText && !selectedLearningArea && selectionFilter === "all" && pathwayFilter === "all"}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+                <div style={{ marginTop: 12, color: "#64748b", lineHeight: 1.6 }}>
+                  Showing <strong style={{ color: "#0f172a" }}>{filteredItems.length}</strong> of{" "}
+                  <strong style={{ color: "#0f172a" }}>{items.length}</strong> evidence notes.
+                </div>
               </div>
             </section>
 
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Captured evidence</h2>
-              {pathwayEvidenceSummary.repeatedSteps.length ? (
+              {filteredPathwayEvidenceSummary.repeatedSteps.length ? (
                 <div style={{ ...helperCardStyle, marginBottom: 16 }}>
                   <strong style={{ color: "#0f172a" }}>
                     Choose the clearest evidence for repeated pathway steps
@@ -435,17 +594,25 @@ function CleanPortfolioWorkspaceBody() {
                 </p>
               ) : null}
 
-              {!itemsLoading && !itemsError && items.length ? (
+              {!itemsLoading && !itemsError && items.length && !filteredItems.length ? (
+                <p style={{ margin: 0, color: "#475569" }}>
+                  No evidence matches these filters yet.
+                </p>
+              ) : null}
+
+              {!itemsLoading && !itemsError && filteredItems.length ? (
                 <div style={{ display: "grid", gap: 12 }}>
-                  {items.map((item) => {
+                  {filteredItems.map((item) => {
                     const learnerLabel =
                       learnerOptions.find(
                         (option) => option.value === item.evidence.learnerId,
                       )?.label || "Unknown learner";
                     const pathwayMeta =
-                      pathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ?? null;
+                      filteredPathwayEvidenceSummary.stepByEvidenceId.get(item.evidence.id) ??
+                      null;
                     const repeatedPathwayStep = pathwayMeta
-                      ? (pathwayEvidenceSummary.stepCounts.get(pathwayMeta.key)?.count ?? 0) > 1
+                      ? (filteredPathwayEvidenceSummary.stepCounts.get(pathwayMeta.key)?.count ??
+                          0) > 1
                       : false;
                     const linkedProgram = item.evidence.programId
                       ? programLabelById.get(item.evidence.programId) ?? null
