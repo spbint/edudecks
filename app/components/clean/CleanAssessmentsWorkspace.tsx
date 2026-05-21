@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   buildAssessmentEvidenceLinkKey,
   encodeAssessmentEvidenceNodeIds,
@@ -85,6 +85,19 @@ const summaryCardStyle: React.CSSProperties = {
   gap: 8,
   boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
 };
+
+function buildSnapshotCardStyle(
+  border: string,
+  background: string,
+): React.CSSProperties {
+  return {
+    ...summaryCardStyle,
+    padding: 14,
+    border: `1px solid ${border}`,
+    background,
+    boxShadow: "0 10px 22px rgba(15,23,42,0.05)",
+  };
+}
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -1466,7 +1479,7 @@ function AssessmentsWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
+        <CleanWorkflowRibbon />
 
         <section
           style={{
@@ -1821,36 +1834,51 @@ function AssessmentsWorkspaceBody() {
                 gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
               }}
             >
-              <div style={{ ...compactCardStyle, background: "#ffffff" }}>
+              <div
+                style={{
+                  ...compactCardStyle,
+                  background: "#eff6ff",
+                  border: "1px solid #bfdbfe",
+                  boxShadow: "0 10px 22px rgba(59,130,246,0.08)",
+                }}
+              >
                 <div style={eyebrowStyle}>{stageFocus} snapshot</div>
                 <strong style={{ color: "#0f172a" }}>Current stage</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   Using the displayed statuses in the selected stage column for {selectedSubject.title}.
                 </div>
               </div>
-              <div style={{ ...summaryCardStyle, padding: 14 }}>
-                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+              <div style={buildSnapshotCardStyle("#99f6e4", "#f0fdfa")}>
+                <strong style={{ color: "#0f766e", fontSize: 22 }}>
                   {currentStageSnapshot.secureOrStrong}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>secure or strong</div>
+                <div style={{ color: "#0f766e", lineHeight: 1.5, fontWeight: 700 }}>
+                  secure or strong
+                </div>
               </div>
-              <div style={{ ...summaryCardStyle, padding: 14 }}>
-                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+              <div style={buildSnapshotCardStyle("#bfdbfe", "#eff6ff")}>
+                <strong style={{ color: "#1d4ed8", fontSize: 22 }}>
                   {currentStageSnapshot.developing}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>developing</div>
+                <div style={{ color: "#1d4ed8", lineHeight: 1.5, fontWeight: 700 }}>
+                  developing
+                </div>
               </div>
-              <div style={{ ...summaryCardStyle, padding: 14 }}>
-                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+              <div style={buildSnapshotCardStyle("#fed7aa", "#fff7ed")}>
+                <strong style={{ color: "#c2410c", fontSize: 22 }}>
                   {currentStageSnapshot.stillDeveloping}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>still developing</div>
+                <div style={{ color: "#c2410c", lineHeight: 1.5, fontWeight: 700 }}>
+                  still developing
+                </div>
               </div>
-              <div style={{ ...summaryCardStyle, padding: 14 }}>
-                <strong style={{ color: "#0f172a", fontSize: 22 }}>
+              <div style={buildSnapshotCardStyle("#e2e8f0", "#f8fafc")}>
+                <strong style={{ color: "#64748b", fontSize: 22 }}>
                   {currentStageSnapshot.notAssessedYet}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.5 }}>not assessed yet</div>
+                <div style={{ color: "#64748b", lineHeight: 1.5, fontWeight: 700 }}>
+                  not assessed yet
+                </div>
               </div>
             </div>
 

@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
@@ -162,33 +162,6 @@ const statusMeta: Record<
     helper: "Confidence looks more settled at this step.",
   },
 };
-
-const LOOP_STEPS = [
-  {
-    title: "Choose a pathway step",
-    copy: "Start with the next useful skill instead of a long list of standards.",
-  },
-  {
-    title: "Practise the skill",
-    copy: "Use short, practical learning moments that fit family life.",
-  },
-  {
-    title: "Check understanding",
-    copy: "My Assessments will later help confirm how confidence is building.",
-  },
-  {
-    title: "Capture evidence",
-    copy: "Save a note, photo, or reflection while learning is still fresh.",
-  },
-  {
-    title: "Build curriculum coverage",
-    copy: "Evidence can later connect back to the selected framework in My Curriculum.",
-  },
-  {
-    title: "Prepare reports and outputs",
-    copy: "Reports become easier when progress and evidence already connect.",
-  },
-];
 
 type StageSummaryCounts = {
   steps: number;
@@ -532,9 +505,6 @@ function PathwaysWorkspaceBody() {
     [currentStageFocus, savedPathwayStatuses],
   );
 
-  const assessmentPathBase = pathname.startsWith("/clean-my-pathways")
-    ? "/clean-my-assessments"
-    : "/my-assessments";
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
     : "/my-capture";
@@ -542,7 +512,7 @@ function PathwaysWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
+        <CleanWorkflowRibbon />
 
         <section
           style={{
@@ -914,40 +884,8 @@ function PathwaysWorkspaceBody() {
                       [stage.key]: !(current[stage.key] ?? stage.key === currentStageFocus),
                     }))
                   }
-                  assessmentPathBase={assessmentPathBase}
                   capturePathBase={capturePathBase}
                 />
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-              <div style={eyebrowStyle}>How the pathway works</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                MyLearna guides the next step
-              </h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                The pathway loop is designed to help families move from a clear next step to
-                evidence and reporting without losing the thread.
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              }}
-            >
-              {LOOP_STEPS.map((step, index) => (
-                <article key={step.title} style={helperCardStyle}>
-                  <div style={eyebrowStyle}>Step {index + 1}</div>
-                  <strong style={{ color: "#0f172a" }}>{step.title}</strong>
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>{step.copy}</div>
-                </article>
               ))}
             </div>
           </div>
@@ -977,7 +915,6 @@ function NumberStageCard({
   selectedLearnerId,
   isOpen,
   onToggle,
-  assessmentPathBase,
   capturePathBase,
 }: {
   stage: NumberPathwayStage;
@@ -986,7 +923,6 @@ function NumberStageCard({
   selectedLearnerId: string;
   isOpen: boolean;
   onToggle: () => void;
-  assessmentPathBase: string;
   capturePathBase: string;
 }) {
   const tone = getStageTone(stage.key, currentStage);
@@ -1161,7 +1097,6 @@ function NumberStageCard({
               savedPathwayStatuses={savedPathwayStatuses}
               selectedLearnerId={selectedLearnerId}
               currentStage={currentStage}
-              assessmentPathBase={assessmentPathBase}
               capturePathBase={capturePathBase}
             />
         ))}
@@ -1177,7 +1112,6 @@ function NumberStepCard({
   savedPathwayStatuses,
   selectedLearnerId,
   currentStage,
-  assessmentPathBase,
   capturePathBase,
 }: {
   step: NumberPathwayStep;
@@ -1186,7 +1120,6 @@ function NumberStepCard({
   savedPathwayStatuses: SavedPathwayStatusMap;
   selectedLearnerId: string;
   currentStage: PathwayStageKey;
-  assessmentPathBase: string;
   capturePathBase: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -1201,7 +1134,7 @@ function NumberStepCard({
   const guidance = useMemo(() => getNumberPathwayStepGuidance(step), [step]);
   const detailPanelId = `pathway-step-${stageKey}-${step.id}`;
   const practiceButtonLabel = `Practise this pathway step`;
-  const assessButtonLabel = `Assess this pathway step in My Assessments`;
+  const assessButtonLabel = `Assessment checks coming later for this pathway step`;
   const captureButtonLabel = `Capture evidence for this pathway step`;
   const captureHref = useMemo(() => {
     const params = buildPathwayCaptureSearchParams(
@@ -1362,17 +1295,18 @@ function NumberStepCard({
         >
           Practise
         </button>
-        <Link
-          href={assessmentPathBase}
-          style={secondaryButtonStyle}
-          title="Open My Assessments to check understanding for this pathway step."
+        <button
+          type="button"
+          style={disabledButtonStyle}
+          disabled
+          title="Assessment checks coming later"
           aria-label={assessButtonLabel}
         >
           Assess
-        </Link>
+        </button>
         <Link
           href={captureHref}
-          style={secondaryButtonStyle}
+          style={buttonStyle}
           title="Open My Capture with this pathway step already connected."
           aria-label={captureButtonLabel}
         >

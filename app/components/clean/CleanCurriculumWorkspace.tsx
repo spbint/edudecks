@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
@@ -455,19 +455,12 @@ function CurriculumWorkspaceBody() {
   const reportingEvidenceAreasActive = Boolean(
     resolvedFramework.map.reportingEvidenceAreas?.length,
   );
-  const supplementaryAreasExpanded =
-    brentModeActive || reportingEvidenceAreasActive || showAuthorityAreas;
+  const supplementaryAreasExpanded = showAuthorityAreas;
   const selectedLearnerDisplayName = selectedLearner
     ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
     : "Learner";
   const linkedEvidenceCount = coverageSummary.totalLinkedEvidenceCount;
   const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
-
-  useEffect(() => {
-    if (brentModeActive || reportingEvidenceAreasActive) {
-      setShowAuthorityAreas(true);
-    }
-  }, [brentModeActive, reportingEvidenceAreasActive]);
 
   useEffect(() => {
     setCoverageError(null);
@@ -531,7 +524,7 @@ function CurriculumWorkspaceBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanAppHeader />
+        <CleanWorkflowRibbon />
 
         <section style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>
@@ -1112,66 +1105,88 @@ function CurriculumWorkspaceBody() {
                     <div style={eyebrowStyle}>Reporting support</div>
                     <h2 style={{ margin: 0, color: "#0f172a" }}>{resolvedFramework.supplementarySectionTitle}</h2>
                   </div>
-                  <span
-                    style={{
-                      border: brentModeActive ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                      background: brentModeActive ? "#eff6ff" : "#f8fafc",
-                      color: brentModeActive ? "#1d4ed8" : "#64748b",
-                      borderRadius: 999,
-                      padding: "6px 10px",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {brentModeActive
-                      ? "Active for this family"
-                      : reportingEvidenceAreasActive
-                        ? "Included in this framework"
-                        : "Available when selected in My Settings"}
-                  </span>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <span
+                      style={{
+                        border: brentModeActive ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                        background: brentModeActive ? "#eff6ff" : "#f8fafc",
+                        color: brentModeActive ? "#1d4ed8" : "#64748b",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {brentModeActive
+                        ? "Active for this family"
+                        : reportingEvidenceAreasActive
+                          ? "Included in this framework"
+                          : "Available when selected in My Settings"}
+                    </span>
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        background: "#ffffff",
+                        color: "#475569",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {authorityAreaSummaries.length} areas
+                    </span>
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        background: "#ffffff",
+                        color: "#475569",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {authorityAreasWithEvidenceCount} with evidence
+                    </span>
+                    <button
+                      type="button"
+                      style={secondaryButtonStyle}
+                      onClick={() => setShowAuthorityAreas((current) => !current)}
+                    >
+                      {supplementaryAreasExpanded ? "Collapse support areas" : "Expand support areas"}
+                    </button>
+                  </div>
                 </div>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  {resolvedFramework.supplementarySectionCopy}
-                </p>
               </div>
 
-              {brentModeActive ? (
-                <div style={{ ...helperCardStyle, marginBottom: 16 }}>
-                  <strong style={{ color: "#0f172a" }}>Authority pathway active</strong>
+              {!supplementaryAreasExpanded ? (
+                <div style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Reporting evidence areas</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Brent-aligned reporting support is active for this family, so these areas are shown as part of the evidence map.
+                    Open this section when you want to explore how evidence can support review,
+                    reporting, and authority-aligned expectations without crowding the main
+                    coverage map.
                   </p>
                 </div>
               ) : null}
 
-              {!supplementaryAreasExpanded ? (
-                <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>Available when selected in My Settings</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Open these areas when you want to explore how evidence can support authority-aligned review and reporting expectations.
-                  </p>
-                  <div>
-                    <button
-                      type="button"
-                      style={secondaryButtonStyle}
-                      onClick={() => setShowAuthorityAreas(true)}
-                    >
-                      Show support areas
-                    </button>
-                  </div>
-                </div>
-              ) : (
+              {supplementaryAreasExpanded ? (
                 <>
-                  {!brentModeActive && !reportingEvidenceAreasActive ? (
-                    <div style={{ marginBottom: 16 }}>
-                      <button
-                        type="button"
-                        style={secondaryButtonStyle}
-                        onClick={() => setShowAuthorityAreas(false)}
-                      >
-                        Hide support areas
-                      </button>
+                  <p style={{ margin: "0 0 16px", color: "#475569", lineHeight: 1.7 }}>
+                    {resolvedFramework.supplementarySectionCopy}
+                  </p>
+
+                  {brentModeActive ? (
+                    <div style={{ ...helperCardStyle, marginBottom: 16 }}>
+                      <strong style={{ color: "#0f172a" }}>Authority pathway active</strong>
+                      <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                        Brent-aligned reporting support is active for this family, so these
+                        areas are shown as part of the evidence map.
+                      </p>
                     </div>
                   ) : null}
 
@@ -1277,7 +1292,7 @@ function CurriculumWorkspaceBody() {
                     ))}
                   </div>
                 </>
-              )}
+              ) : null}
             </section>
             ) : null}
 
