@@ -355,6 +355,7 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   const [message, setMessage] = useState("");
   const [statusTitle, setStatusTitle] = useState("");
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showPasswordFallback, setShowPasswordFallback] = useState(false);
   const redirectStarted = useRef(false);
 
   const isSignup = mode === "signup";
@@ -391,6 +392,18 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     setAuthAction(nextAction);
     setStatusTitle(nextTitle);
     setMessage(nextMessage);
+  }
+
+  function togglePasswordFallback() {
+    if (isSignup || isBusy) return;
+
+    clearFeedback();
+
+    if (showPasswordFallback) {
+      setPassword("");
+    }
+
+    setShowPasswordFallback((current) => !current);
   }
 
   useEffect(() => {
@@ -749,34 +762,72 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
   }
 
   const formLabel = isSignup ? "Create account" : "Sign in";
-  const formTitle = isSignup ? "Create your MyLearna account" : "Continue your family journey";
+  const formTitle = isSignup ? "Create your MyLearna account" : "Sign in to MyLearna";
   const formText = isSignup
     ? "Create a password, or use a one-time sign-in link sent to your email to begin. After account creation, you can move straight into learner and family setup."
-    : "Continue with your MyLearna password, or use a one-time sign-in link sent to your email if that feels simpler today.";
+    : "Enter your email and we'll send you a secure sign-in link so you can get straight back into MyLearna. No password needed.";
   const introNotice = isSignup
     ? "You can create your MyLearna account with a password or by secure email link. If email confirmation is required, we'll guide you from your inbox before you continue."
-    : "You can continue with a password or use a one-time sign-in link. New to MyLearna? Create your account from the signup screen.";
-  const heroTitle = isSignup ? "Create your MyLearna account" : "Pick up your homeschool journey";
+    : "We'll email you a secure sign-in link and bring you back into MyLearna. Keep password sign-in as a fallback only if you need it.";
+  const heroTitle = isSignup ? "Create your MyLearna account" : "Sign in to MyLearna";
   const heroText = isSignup
     ? "Create your account, then move into learner setup, weekly planning, and your first learning note."
-    : "Sign in to step back into today, move through the week, and keep your family record growing in one place.";
+    : "Enter your email and we'll send you a secure sign-in link so you can get back into today, the week ahead, and your growing family record.";
   const heroMicrocopy = isSignup
     ? "Create your account here, then head into My Profile for your first setup step."
-    : `After sign-in, we will take you to ${destinationLabel}.`;
+    : `No password needed. After sign-in, we will take you to ${destinationLabel}.`;
   const passwordButtonLabel = isSignup ? "Create account with password" : "Continue with password";
   const passwordSavingLabel = isSignup ? "Creating your account..." : "Signing you in...";
   const passwordRedirectingLabel = isSignup
     ? "Taking you to your first setup step..."
     : "Taking you to MyLearna...";
-  const emailLinkButtonLabel = "Email me a sign-in link";
+  const emailLinkButtonLabel = isSignup
+    ? "Email me a secure sign-in link"
+    : "Send sign-in link";
   const emailLinkHelperText = isSignup
     ? "Prefer less typing? We can email you a secure sign-in link and bring you straight into your first setup step."
-    : "Prefer not to use your password right now? We'll email you a secure sign-in link and bring you straight back into MyLearna.";
+    : "We'll email you a secure sign-in link. Open it on this device if you can, and we'll bring you straight back into MyLearna.";
   const alternatePrompt = isSignup ? "Already have an account?" : "New to MyLearna?";
   const alternateLabel = isSignup ? "Sign in" : "Create an account";
   const footerPrimary = isSignup
     ? { label: "Back to signup", href: "/signup" }
     : { label: "Back to login", href: "/login" };
+  const passwordStatusActive = authAction === "password" || authAction === "password-reset";
+
+  const statusCard = message ? (
+    <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
+      <strong style={{ fontSize: 14 }}>
+        {statusTitle ||
+          (saveState === "signed-up"
+            ? "Account created"
+            : saveState === "signed-in"
+              ? "Signed in"
+              : saveState === "check-email"
+                ? "Check your email"
+                : saveState === "error"
+                  ? isSignup
+                    ? "We could not create your account"
+                    : "We could not sign you in"
+                  : isSignup
+                    ? "Create your account"
+                    : "Sign in to continue")}
+      </strong>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          lineHeight: 1.6,
+        }}
+      >
+        {message}
+      </div>
+      {saveState === "error" && !isSignup && authAction === "password" ? (
+        <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+          If you cannot remember your password, use <strong>Forgot password?</strong>.
+        </div>
+      ) : null}
+    </div>
+  ) : null;
 
   const formCard = (
     <div style={cardStyle()}>
@@ -822,266 +873,415 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
         {introNotice}
       </div>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (isSignup) {
-            void handleCreateAccount();
-          } else {
-            void handlePasswordSignIn();
-          }
-        }}
-        style={{ display: "grid", gap: 16 }}
-      >
-        <div>
-          <label style={labelStyle()}>Email address</label>
-          <input
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              clearFeedback();
+      {isSignup ? (
+        <>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleCreateAccount();
             }}
-            placeholder="Enter your email"
-            style={inputStyle(safe(email) !== "" && !emailValid)}
-            autoComplete="email"
-            inputMode="email"
-            disabled={!hasSupabaseEnv || isBusy}
-          />
-          {safe(email) && !emailValid ? (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 12,
-                color: "#b91c1c",
-                lineHeight: 1.5,
-              }}
-            >
-              Please enter a valid email address.
+            style={{ display: "grid", gap: 16 }}
+          >
+            <div>
+              <label style={labelStyle()}>Email address</label>
+              <input
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearFeedback();
+                }}
+                placeholder="Enter your email"
+                style={inputStyle(safe(email) !== "" && !emailValid)}
+                autoComplete="email"
+                inputMode="email"
+                disabled={!hasSupabaseEnv || isBusy}
+              />
+              {safe(email) && !emailValid ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "#b91c1c",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Please enter a valid email address.
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </div>
 
-        <div>
+            <div>
+              <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  clearFeedback();
+                }}
+                placeholder="Create a password"
+                style={inputStyle(safe(password) !== "" && !passwordValid)}
+                autoComplete="new-password"
+                disabled={!hasSupabaseEnv || isBusy}
+              />
+              {safe(password) && !passwordValid ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "#b91c1c",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Please enter your password.
+                </div>
+              ) : null}
+            </div>
+
+            <div>
+              <label style={labelStyle()}>Confirm password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value);
+                  clearFeedback();
+                }}
+                placeholder="Confirm your password"
+                style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
+                autoComplete="new-password"
+                disabled={!hasSupabaseEnv || isBusy}
+              />
+              {safe(confirmPassword) && !confirmPasswordValid ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "#b91c1c",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Confirm password must match your password.
+                </div>
+              ) : null}
+            </div>
+
+            {statusCard}
+
+            <button
+              type="submit"
+              disabled={
+                !hasSupabaseEnv ||
+                !emailValid ||
+                !passwordValid ||
+                !confirmPasswordValid ||
+                isBusy
+              }
+              style={primaryButtonStyle(
+                !hasSupabaseEnv ||
+                  !emailValid ||
+                  !passwordValid ||
+                  !confirmPasswordValid ||
+                  isBusy,
+              )}
+            >
+              {authAction === "password" && isRedirecting
+                ? passwordRedirectingLabel
+                : isBusy && authAction === "password"
+                  ? passwordSavingLabel
+                  : passwordButtonLabel}
+            </button>
+          </form>
+
           <div
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 10,
-              alignItems: "center",
-              flexWrap: "wrap",
+              display: "grid",
+              gap: 14,
+              marginTop: 18,
             }}
           >
-            <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
-            {!isSignup ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+                gap: 12,
+                alignItems: "center",
+              }}
+            >
+              <div style={{ height: 1, background: "#e2e8f0" }} />
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 900,
+                  letterSpacing: 1.05,
+                  textTransform: "uppercase",
+                  color: "#94a3b8",
+                }}
+              >
+                Or
+              </div>
+              <div style={{ height: 1, background: "#e2e8f0" }} />
+            </div>
+
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 18,
+                background: "#f8fbff",
+                padding: 18,
+                display: "grid",
+                gap: 12,
+              }}
+            >
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                  {emailLinkButtonLabel}
+                </div>
+                <div
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    color: "#475569",
+                  }}
+                >
+                  {emailLinkHelperText}
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => void handleForgotPassword()}
+                onClick={() => void handleEmailLink()}
                 disabled={!hasSupabaseEnv || !emailValid || isBusy}
+                style={secondaryButtonStyle(
+                  !hasSupabaseEnv || !emailValid || isBusy,
+                )}
+              >
+                {saveState === "saving" && authAction === "email-link"
+                  ? "Sending your sign-in link..."
+                  : emailLinkButtonLabel}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleEmailLink();
+            }}
+            style={{ display: "grid", gap: 16 }}
+          >
+            <div>
+              <label style={labelStyle()}>Email address</label>
+              <input
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  clearFeedback();
+                }}
+                placeholder="Enter your email"
+                style={inputStyle(safe(email) !== "" && !emailValid)}
+                autoComplete="email"
+                inputMode="email"
+                disabled={!hasSupabaseEnv || isBusy}
+              />
+              {safe(email) && !emailValid ? (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "#b91c1c",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Please enter a valid email address.
+                </div>
+              ) : null}
+            </div>
+
+            {!passwordStatusActive ? statusCard : null}
+
+            <button
+              type="submit"
+              disabled={!hasSupabaseEnv || !emailValid || isBusy}
+              style={primaryButtonStyle(!hasSupabaseEnv || !emailValid || isBusy)}
+            >
+              {saveState === "saving" && authAction === "email-link"
+                ? "Sending your sign-in link..."
+                : emailLinkButtonLabel}
+            </button>
+          </form>
+
+          <div
+            style={{
+              display: "grid",
+              gap: 12,
+              marginTop: 18,
+            }}
+          >
+            <div
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 18,
+                background: "#f8fbff",
+                padding: 18,
+                display: "grid",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                No password needed
+              </div>
+              <div
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  color: "#475569",
+                }}
+              >
+                {emailLinkHelperText}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 12,
+                justifyItems: "start",
+              }}
+            >
+              <button
+                type="button"
+                onClick={togglePasswordFallback}
+                disabled={!hasSupabaseEnv || isBusy}
                 style={{
                   border: "none",
                   background: "transparent",
                   color: "#2563eb",
                   fontSize: 13,
                   fontWeight: 800,
-                  textAlign: "center",
-                  cursor:
-                    !hasSupabaseEnv || !emailValid || isBusy
-                      ? "not-allowed"
-                      : "pointer",
-                  opacity:
-                    !hasSupabaseEnv || !emailValid || isBusy ? 0.7 : 1,
+                  textAlign: "left",
+                  cursor: !hasSupabaseEnv || isBusy ? "not-allowed" : "pointer",
+                  opacity: !hasSupabaseEnv || isBusy ? 0.7 : 1,
                   padding: 0,
                 }}
               >
-                Forgot password?
+                {showPasswordFallback ? "Use email sign-in instead" : "Use password instead"}
               </button>
-            ) : null}
-          </div>
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-              clearFeedback();
-            }}
-            placeholder={isSignup ? "Create a password" : "Enter your password"}
-            style={inputStyle(safe(password) !== "" && !passwordValid)}
-            autoComplete={isSignup ? "new-password" : "current-password"}
-            disabled={!hasSupabaseEnv || isBusy}
-          />
-          {safe(password) && !passwordValid ? (
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 12,
-                color: "#b91c1c",
-                lineHeight: 1.5,
-              }}
-            >
-              Please enter your password.
-            </div>
-          ) : null}
-        </div>
 
-        {isSignup ? (
-          <div>
-            <label style={labelStyle()}>Confirm password</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => {
-                setConfirmPassword(event.target.value);
-                clearFeedback();
-              }}
-              placeholder="Confirm your password"
-              style={inputStyle(safe(confirmPassword) !== "" && !confirmPasswordValid)}
-              autoComplete="new-password"
-              disabled={!hasSupabaseEnv || isBusy}
-            />
-            {safe(confirmPassword) && !confirmPasswordValid ? (
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 12,
-                  color: "#b91c1c",
-                  lineHeight: 1.5,
-                }}
-              >
-                Confirm password must match your password.
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+              {showPasswordFallback ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void handlePasswordSignIn();
+                  }}
+                  style={{
+                    width: "100%",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 18,
+                    background: "#ffffff",
+                    padding: 18,
+                    display: "grid",
+                    gap: 14,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+                      Password fallback
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                        color: "#475569",
+                      }}
+                    >
+                      Prefer your existing password today? You can still use it here.
+                    </div>
+                  </div>
 
-        {message ? (
-          <div style={statusCardStyle(saveState)} role={saveState === "error" ? "alert" : "status"}>
-            <strong style={{ fontSize: 14 }}>
-              {statusTitle ||
-                (saveState === "signed-up"
-                  ? "Account created"
-                  : saveState === "signed-in"
-                    ? "Signed in"
-                    : saveState === "check-email"
-                      ? "Check your email"
-                      : saveState === "error"
-                        ? isSignup
-                          ? "We could not create your account"
-                          : "We could not sign you in"
-                        : isSignup
-                          ? "Create your account"
-                          : "Sign in to continue")}
-            </strong>
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                lineHeight: 1.6,
-              }}
-            >
-              {message}
-            </div>
-            {saveState === "error" && !isSignup && authAction === "password" ? (
-              <div style={{ fontSize: 13, lineHeight: 1.6 }}>
-                If you cannot remember your password, use <strong>Forgot password?</strong>.
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <label style={{ ...labelStyle(), marginBottom: 0 }}>Password</label>
+                      <button
+                        type="button"
+                        onClick={() => void handleForgotPassword()}
+                        disabled={!hasSupabaseEnv || !emailValid || isBusy}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          color: "#2563eb",
+                          fontSize: 13,
+                          fontWeight: 800,
+                          textAlign: "center",
+                          cursor:
+                            !hasSupabaseEnv || !emailValid || isBusy
+                              ? "not-allowed"
+                              : "pointer",
+                          opacity:
+                            !hasSupabaseEnv || !emailValid || isBusy ? 0.7 : 1,
+                          padding: 0,
+                        }}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        clearFeedback();
+                      }}
+                      placeholder="Enter your password"
+                      style={inputStyle(safe(password) !== "" && !passwordValid)}
+                      autoComplete="current-password"
+                      disabled={!hasSupabaseEnv || isBusy}
+                    />
+                    {safe(password) && !passwordValid ? (
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 12,
+                          color: "#b91c1c",
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        Please enter your password.
+                      </div>
+                    ) : null}
+                  </div>
 
-        <button
-          type="submit"
-          disabled={
-            !hasSupabaseEnv ||
-            !emailValid ||
-            !passwordValid ||
-            (isSignup && !confirmPasswordValid) ||
-            isBusy
-          }
-          style={primaryButtonStyle(
-            !hasSupabaseEnv ||
-              !emailValid ||
-              !passwordValid ||
-              (isSignup && !confirmPasswordValid) ||
-              isBusy,
-          )}
-        >
-          {authAction === "password" && isRedirecting
-            ? passwordRedirectingLabel
-            : isBusy && authAction === "password"
-              ? passwordSavingLabel
-            : passwordButtonLabel}
-        </button>
-      </form>
+                  {passwordStatusActive ? statusCard : null}
 
-      <div
-        style={{
-          display: "grid",
-          gap: 14,
-          marginTop: 18,
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
-            gap: 12,
-            alignItems: "center",
-          }}
-        >
-          <div style={{ height: 1, background: "#e2e8f0" }} />
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 900,
-              letterSpacing: 1.05,
-              textTransform: "uppercase",
-              color: "#94a3b8",
-            }}
-          >
-            Or
-          </div>
-          <div style={{ height: 1, background: "#e2e8f0" }} />
-        </div>
-
-        <div
-          style={{
-            border: "1px solid #e2e8f0",
-            borderRadius: 18,
-            background: "#f8fbff",
-            padding: 18,
-            display: "grid",
-            gap: 12,
-          }}
-        >
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
-              {emailLinkButtonLabel}
-            </div>
-            <div
-              style={{
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "#475569",
-              }}
-            >
-              {emailLinkHelperText}
+                  <button
+                    type="submit"
+                    disabled={!hasSupabaseEnv || !emailValid || !passwordValid || isBusy}
+                    style={secondaryButtonStyle(
+                      !hasSupabaseEnv || !emailValid || !passwordValid || isBusy,
+                    )}
+                  >
+                    {authAction === "password" && isRedirecting
+                      ? passwordRedirectingLabel
+                      : isBusy && authAction === "password"
+                        ? passwordSavingLabel
+                        : passwordButtonLabel}
+                  </button>
+                </form>
+              ) : null}
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => void handleEmailLink()}
-            disabled={!hasSupabaseEnv || !emailValid || isBusy}
-            style={secondaryButtonStyle(
-              !hasSupabaseEnv || !emailValid || isBusy,
-            )}
-          >
-            {saveState === "saving" && authAction === "email-link"
-              ? "Sending your sign-in link..."
-              : emailLinkButtonLabel}
-          </button>
-        </div>
-      </div>
+        </>
+      )}
 
       <div
         style={{
@@ -1338,3 +1538,4 @@ function EmailAuthPageContent({ mode }: { mode: EmailAuthPageMode }) {
     </PublicSiteShell>
   );
 }
+
