@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import Link from "next/link";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PublicSiteShell, {
   publicButtonStyle,
@@ -84,6 +83,30 @@ function yesNoLabel(value: FormValues["currentlyHomeschooling"]) {
   return null;
 }
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+function trackBetaEvent(
+  eventName: "beta_page_view" | "beta_submit" | "beta_submit_success" | "beta_submit_error",
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") {
+    return;
+  }
+
+  const cleanedParams = Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== ""),
+  );
+
+  window.gtag("event", eventName, {
+    page_path: "/beta",
+    ...cleanedParams,
+  });
+}
+
 export default function BetaInterestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -101,8 +124,18 @@ export default function BetaInterestPage() {
     willingToTestFreeBeta: false,
     companyWebsite: "",
   });
+  const hasTrackedPageView = useRef(false);
 
   const source = useMemo(() => safe(searchParams.get("source")), [searchParams]);
+
+  useEffect(() => {
+    if (hasTrackedPageView.current) return;
+    hasTrackedPageView.current = true;
+
+    trackBetaEvent("beta_page_view", {
+      source: source || undefined,
+    });
+  }, [source]);
 
   function updateField<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -159,6 +192,13 @@ export default function BetaInterestPage() {
       return;
     }
 
+    trackBetaEvent("beta_submit", {
+      source: source || undefined,
+      country: safe(values.country) || undefined,
+      currently_homeschooling: values.currentlyHomeschooling || undefined,
+      willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
+    });
+
     const nextErrors = validateForm();
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -199,12 +239,24 @@ export default function BetaInterestPage() {
         throw error;
       }
 
+      trackBetaEvent("beta_submit_success", {
+        source: source || undefined,
+        country: safe(values.country) || undefined,
+        currently_homeschooling: values.currentlyHomeschooling || undefined,
+        willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
+      });
       router.replace("/beta/thanks");
     } catch (error) {
       const message =
         safe((error as { message?: unknown })?.message) ||
         "We could not save your beta interest just yet. Please try again.";
 
+      trackBetaEvent("beta_submit_error", {
+        source: source || undefined,
+        country: safe(values.country) || undefined,
+        currently_homeschooling: values.currentlyHomeschooling || undefined,
+        willing_to_test_free_beta: values.willingToTestFreeBeta ? "yes" : "no",
+      });
       setState("error");
       setFeedback(message);
     }
@@ -215,14 +267,17 @@ export default function BetaInterestPage() {
       title="Join the MyLearna Beta"
       eyebrow="Free beta interest"
       heroTitle="Join the MyLearna Beta"
-      heroText="MyLearna is a homeschool planning, evidence, portfolio and reporting tool. We're opening a free beta for families who are willing to test the product and help shape it."
-      heroBadges={["Free beta", "Homeschool families", "Feedback welcome", "Calm workflow"]}
+      heroText="MyLearna helps homeschool families plan learning, capture evidence, build portfolios, and prepare reports. We're opening a free beta gradually so real families can test the workflow and help shape what comes next."
+      heroMicrocopy="The beta is free. Families will be invited gradually, and feedback will help shape what comes next."
+      heroBadges={["Free beta", "Gradual invites", "Family feedback", "Calm workflow"]}
+      navItems={[]}
       primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
       headerPrimaryAction={null}
-      footerPrimaryCta={{ label: "Back to home", href: "/" }}
-      footerSecondaryCta={{ label: "How it works", href: "/#how-it-works" }}
+      footerPrimaryCta={null}
+      footerSecondaryCta={null}
+      compactHero
       asideTitle="Who this is for"
       asideText="Families who want a calmer way to plan learning, capture evidence, curate portfolio moments, and build reports over time."
     >
@@ -243,7 +298,7 @@ export default function BetaInterestPage() {
               marginBottom: 8,
             }}
           >
-            Join the MyLearna Beta
+            Request free beta access
           </div>
 
           <div
@@ -478,11 +533,8 @@ export default function BetaInterestPage() {
                 style={{ ...publicButtonStyle(true), cursor: "pointer" }}
                 disabled={state === "saving"}
               >
-                {state === "saving" ? "Joining beta..." : "Join beta waitlist"}
+                {state === "saving" ? "Requesting beta access..." : "Request free beta access"}
               </button>
-              <Link href="/" style={publicButtonStyle(false)}>
-                Back to home
-              </Link>
             </div>
           </form>
         </section>
@@ -555,16 +607,13 @@ export default function BetaInterestPage() {
               <div
                 style={{
                   marginTop: 14,
-                  border: "1px solid #dbeafe",
-                  borderRadius: 12,
-                  padding: 12,
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  fontSize: 13,
+                  color: "#94a3b8",
+                  fontSize: 12,
                   fontWeight: 700,
+                  lineHeight: 1.5,
                 }}
               >
-                Source noted: {source}
+                Source noted for beta testing.
               </div>
             ) : null}
           </section>

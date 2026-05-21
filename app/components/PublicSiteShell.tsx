@@ -19,6 +19,7 @@ type PublicSiteShellProps = {
   heroMicrocopy?: React.ReactNode;
   heroBadges?: string[];
   asideItems?: string[];
+  navItems?: CtaLink[] | null;
   primaryCta?: CtaLink | null;
   secondaryCta?: CtaLink | null;
   headerAction?: CtaLink | null;
@@ -227,6 +228,7 @@ export default function PublicSiteShell({
   heroMicrocopy,
   heroBadges = [],
   asideItems = [],
+  navItems,
   primaryCta = { label: "Start Free", href: "/capture" },
   secondaryCta = { label: "See How It Works", href: "/get-started" },
   headerAction = { label: "Sign in", href: "/login" },
@@ -245,6 +247,7 @@ export default function PublicSiteShell({
   const isMobile = useIsMobile(720);
   const activeSocialLinks = SOCIAL_LINKS.filter((item) => isActiveSocialLink(item.href));
   const inactiveSocialLinks = SOCIAL_LINKS.filter((item) => !isActiveSocialLink(item.href));
+  const resolvedNavItems = navItems === undefined ? NAV_ITEMS : navItems;
 
   const workflowRibbon = showWorkflowStrip ? (
     <section style={{ marginBottom: isMobile ? 18 : 20 }}>
@@ -343,7 +346,7 @@ export default function PublicSiteShell({
             </div>
           </div>
 
-          {!isMobile ? (
+          {!isMobile && resolvedNavItems && resolvedNavItems.length > 0 ? (
             <nav
               style={{
                 display: "flex",
@@ -352,7 +355,7 @@ export default function PublicSiteShell({
                 alignItems: "center",
               }}
             >
-              {NAV_ITEMS.map((item) => (
+              {resolvedNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

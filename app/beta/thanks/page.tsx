@@ -40,14 +40,16 @@ export default function BetaThanksPage() {
       title="Thanks for joining the MyLearna Beta"
       eyebrow="Beta interest received"
       heroTitle="Thanks for joining the MyLearna Beta"
-      heroText="We have your details and we'll be inviting families into the beta gradually. This is a free beta, and we'll only contact you about access and feedback."
-      heroBadges={["Free beta", "Gradual invites", "Family feedback", "Thanks for joining"]}
-      primaryCta={{ label: "Back to home", href: "/" }}
+      heroText="Thanks - you're on the MyLearna beta list. We're inviting families gradually so we can learn from real use without overwhelming the experience. The beta is free, and your feedback will help shape MyLearna before a wider rollout."
+      heroBadges={["Free beta", "Gradual invites", "Family feedback", "You're on the list"]}
+      navItems={[]}
+      primaryCta={null}
       secondaryCta={null}
       headerAction={{ label: "Home", href: "/" }}
       headerPrimaryAction={null}
-      footerPrimaryCta={{ label: "Back to home", href: "/" }}
-      footerSecondaryCta={{ label: "How it works", href: "/#how-it-works" }}
+      footerPrimaryCta={null}
+      footerSecondaryCta={null}
+      compactHero
       asideTitle="What happens next"
       asideText="We'll review interest in small waves and invite families gradually so the beta stays useful, calm, and well supported."
     >
@@ -100,7 +102,7 @@ export default function BetaThanksPage() {
           </div>
 
           <Link href="/" style={primaryButtonStyle()}>
-            Back to the homepage
+            Back to home
           </Link>
         </div>
       </section>
