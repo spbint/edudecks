@@ -250,9 +250,13 @@ export default function BetaInterestPage() {
       });
       router.replace("/beta/thanks");
     } catch (error) {
+      const rawMessage = safe((error as { message?: unknown })?.message).toLowerCase();
       const message =
-        safe((error as { message?: unknown })?.message) ||
-        "We could not save your beta interest just yet. Please try again.";
+        rawMessage.includes("timed out") ||
+        rawMessage.includes("network") ||
+        rawMessage.includes("fetch")
+          ? "We could not reach the beta sign-up service just now. Please try again in a moment."
+          : "We could not save your beta interest just yet. Please try again in a moment.";
 
       trackBetaEvent("beta_submit_error", {
         source: source || undefined,
@@ -372,6 +376,7 @@ export default function BetaInterestPage() {
             <div>
               <label style={labelStyle()}>Email</label>
               <input
+                type="email"
                 value={values.email}
                 onChange={(event) => updateField("email", event.target.value)}
                 placeholder="you@example.com"
@@ -486,7 +491,12 @@ export default function BetaInterestPage() {
               />
               {errors.biggestHomeschoolChallenge ? (
                 <div style={errorTextStyle()}>{errors.biggestHomeschoolChallenge}</div>
-              ) : null}
+              ) : (
+                <div style={helperStyle()}>
+                  Keep this high-level. Please do not include private child, medical, or
+                  identifying details.
+                </div>
+              )}
             </div>
 
             <label

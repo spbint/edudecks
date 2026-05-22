@@ -13,6 +13,10 @@ export const metadata: Metadata = buildPublicMetadata({
 
 const INFO_CATEGORIES = [
   {
+    title: "Beta interest submissions",
+    text: "If you join the beta list before creating an account, we may store your name, email address, country or region, homeschool status, and the beta feedback details you choose to share with us.",
+  },
+  {
     title: "Account and sign-in information",
     text: "We may store your email address and the authentication details needed to help you sign in and manage your account.",
   },
@@ -31,6 +35,7 @@ const INFO_CATEGORIES = [
 ] as const;
 
 const USES = [
+  "to contact families who join the beta list about beta access and feedback",
   "to create and secure accounts",
   "to store and show your family learning records inside the product",
   "to provide Community features and respond to feedback",
