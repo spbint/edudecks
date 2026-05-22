@@ -5,6 +5,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -531,6 +532,82 @@ function CleanSettingsWorkspaceBody() {
     [workspace.profile],
   );
 
+  const exampleSetupCopy = useMemo(() => {
+    if (draft?.countryCode === "US") {
+      return "Example: United States, your state, State standards, Family summary, Monday week start.";
+    }
+
+    if (draft?.countryCode === "UK") {
+      return "Example: United Kingdom, your nation, National Curriculum, Family summary, Monday week start.";
+    }
+
+    if (draft?.countryCode === "INTL") {
+      return "Example: Other / International, optional region, Parent-selected curriculum, Standard learning portfolio report.";
+    }
+
+    return "Example: Australia, Tasmania, Australian Curriculum, Family summary, Monday week start.";
+  }, [draft?.countryCode]);
+
+  const guidanceItems = useMemo(() => {
+    if (workspace.requiresFamilyCreation) {
+      return [
+        {
+          key: "why",
+          label: "Why this matters",
+          title: "Settings shape how MyLearna frames your records",
+          description:
+            "Country, curriculum, reporting, and week settings help MyLearna present planning, portfolio evidence, and reports in a way that fits your family context.",
+        },
+        {
+          key: "start",
+          label: "What to do first",
+          title: "Create the family profile before settings",
+          description:
+            "Settings belong to the family record, so create that once first and then return here.",
+          actionHref: "/my-profile",
+          actionLabel: "Open My Profile",
+        },
+      ];
+    }
+
+    return [
+      {
+        key: "why",
+        label: "Why this matters",
+        title: "These choices quietly shape the rest of the app",
+        description:
+          "Your learning year, reporting language, weekly planning, and outputs all lean on the context you set here.",
+      },
+      {
+        key: "start",
+        label: "What to do first",
+        title: "Keep the first pass simple",
+        description:
+          "Choose country or region first, then state or jurisdiction, then curriculum. Leave the other preferences basic until they become useful.",
+        actionHref: "#edit-family-settings",
+        actionLabel: "Edit family settings",
+      },
+      {
+        key: "example",
+        label: "Good example",
+        title: "A good setup is clear, not perfect",
+        description: exampleSetupCopy,
+      },
+      {
+        key: "next",
+        label: "Next best step",
+        title: myDayContextReady
+          ? "Use the workflow once this context is saved"
+          : "Finish the core family context first",
+        description: myDayContextReady
+          ? "After saving, head to My Day or My Pathways and let this context guide planning, evidence, and reporting."
+          : "Save country, curriculum, and reporting context first. That gives the rest of MyLearna a clearer frame to work with.",
+        actionHref: myDayContextReady ? "/my-day" : "#edit-family-settings",
+        actionLabel: myDayContextReady ? "Open My Day" : "Finish settings",
+      },
+    ];
+  }, [exampleSetupCopy, myDayContextReady, workspace.requiresFamilyCreation]);
+
   function updateCountry(countryCode: string) {
     setDraft((current) => {
       if (!current) return current;
@@ -698,6 +775,12 @@ function CleanSettingsWorkspaceBody() {
           </div>
         </section>
 
+        <CleanPageGuidance
+          title="Set the family context once, then let planning and reporting feel more natural"
+          copy="My Settings is where you tell MyLearna which family context to use before it helps you plan weeks, frame evidence, and build reports."
+          items={guidanceItems}
+        />
+
         {workspace.loading ? <section style={cardStyle}>Loading family settings...</section> : null}
 
         {!workspace.loading && workspace.schemaMissing ? (
@@ -714,7 +797,7 @@ function CleanSettingsWorkspaceBody() {
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
           <section style={cardStyle}>
             <p style={{ margin: 0, color: "#475569" }}>
-              Create a family profile first. Settings live with the family profile.
+              Create a family profile first. Settings live with the family profile and shape the rest of the workflow after that.
             </p>
           </section>
         ) : null}
@@ -788,7 +871,7 @@ function CleanSettingsWorkspaceBody() {
             </section>
 
             {draft ? (
-              <section style={cardStyle}>
+              <section id="edit-family-settings" style={cardStyle}>
                 <h2 style={{ marginTop: 0, color: "#0f172a" }}>Edit family settings</h2>
                 <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
                   Keep this simple: choose your family context, how you want weeks to start, and how MyLearna should frame reports.
@@ -1119,7 +1202,7 @@ function CleanSettingsWorkspaceBody() {
               </section>
             ) : null}
 
-            <section style={cardStyle}>
+            <section id="setup-status" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Setup status</h2>
               {brentModeActive ? (
                 <div style={{ display: "grid", gap: 8 }}>

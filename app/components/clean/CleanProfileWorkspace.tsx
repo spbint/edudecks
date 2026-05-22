@@ -5,6 +5,7 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPageGuidance from "@/app/components/clean/CleanPageGuidance";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   createCleanFamilyProfile,
@@ -129,6 +130,81 @@ function CleanProfileWorkspaceBody() {
     );
     return learner ? formatLearnerDisplayName(learner) : null;
   }, [workspace.learners, workspace.profile?.defaultLearnerId]);
+
+  const setupContextReady = Boolean(
+    workspace.profile?.countryCode && workspace.profile?.curriculumFrameworkId,
+  );
+
+  const guidanceItems = useMemo(() => {
+    if (workspace.requiresFamilyCreation) {
+      return [
+        {
+          key: "why",
+          label: "Why this matters",
+          title: "Everything starts with one family record",
+          description:
+            "Your family profile gives MyLearna the shared home base for learners, planning, capture, reports, and outputs.",
+        },
+        {
+          key: "start",
+          label: "What to do first",
+          title: "Create a simple family name",
+          description:
+            "A short label such as Smith family is enough. You can keep this practical and update it later if needed.",
+          actionHref: "#create-family-profile",
+          actionLabel: "Create family profile",
+        },
+        {
+          key: "example",
+          label: "Good example",
+          title: "Keep the first setup light",
+          description:
+            "Example: Smith family, then add one learner such as Maya. Preferred name and year level can stay optional.",
+        },
+      ];
+    }
+
+    return [
+      {
+        key: "why",
+        label: "Why this matters",
+        title: "Learners and defaults flow through the rest of MyLearna",
+        description:
+          "The names you set here appear across planning, pathways, capture, portfolio, reports, and outputs.",
+      },
+      {
+        key: "start",
+        label: "What to do first",
+        title: workspace.learners.length
+          ? "Keep one learner ready to use first"
+          : "Add the first learner you plan for",
+        description: workspace.learners.length
+          ? "If one child usually comes first, set them as the default learner so planning and evidence choices feel quicker."
+          : "Start with a first name, then add a preferred name or year level only if that helps your records.",
+        actionHref: workspace.learners.length ? "#learners" : "#add-learner",
+        actionLabel: workspace.learners.length ? "Review learners" : "Add learner",
+      },
+      {
+        key: "example",
+        label: "Good example",
+        title: "A good learner record stays simple",
+        description:
+          "Example: Maya, preferred name optional, Year 4 optional. Add notes only when they will genuinely help you later.",
+      },
+      {
+        key: "next",
+        label: "Next best step",
+        title: setupContextReady
+          ? "Move into planning once this looks right"
+          : "Finish family settings after learners are ready",
+        description: setupContextReady
+          ? "Once names and the default learner feel right, head to My Day or My Pathways and start using the learning workflow."
+          : "After learner details are in place, open My Settings to choose country, curriculum, and reporting context.",
+        actionHref: setupContextReady ? "/my-day" : "/my-settings",
+        actionLabel: setupContextReady ? "Open My Day" : "Open My Settings",
+      },
+    ];
+  }, [setupContextReady, workspace.learners.length, workspace.requiresFamilyCreation]);
 
   async function handleCreateFamilyProfile(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -261,7 +337,7 @@ function CleanProfileWorkspaceBody() {
     if (!workspace.profile) return;
 
     const confirmed = window.confirm(
-      "Delete this learner? This may also remove this learner’s clean programs, calendar items, evidence, portfolio highlights, and reports. This cannot be undone.",
+      "Delete this learner? This may also remove this learner's clean programs, calendar items, evidence, portfolio highlights, and reports. This cannot be undone.",
     );
 
     if (!confirmed) return;
@@ -317,6 +393,12 @@ function CleanProfileWorkspaceBody() {
           </div>
         </section>
 
+        <CleanPageGuidance
+          title="Set up the family basics once, then let the rest of MyLearna build from there"
+          copy="My Profile is where you make the learner list feel clear and usable before you start planning, capturing evidence, or building reports."
+          items={guidanceItems}
+        />
+
         {workspace.loading ? (
           <section style={cardStyle}>Loading clean family workspace...</section>
         ) : null}
@@ -340,18 +422,21 @@ function CleanProfileWorkspaceBody() {
         ) : null}
 
         {!workspace.loading && !workspace.schemaMissing && workspace.requiresFamilyCreation ? (
-          <section style={cardStyle}>
+          <section id="create-family-profile" style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile</h2>
             <p style={{ color: "#475569", lineHeight: 1.6 }}>
-              No family profile exists yet. Creation happens only when you submit this form.
+              No family profile exists yet. Start with a simple family name so MyLearna has a shared home for learners and records.
             </p>
             <form onSubmit={handleCreateFamilyProfile} style={{ display: "grid", gap: 12 }}>
               <input
                 value={familyName}
                 onChange={(event) => setFamilyName(event.target.value)}
-                placeholder="Family display name"
+                placeholder="Example: Smith family"
                 style={inputStyle}
               />
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                Keep this practical. You can change it later if you want a different family label.
+              </p>
               <div>
                 <button type="submit" style={buttonStyle} disabled={submitting}>
                   {submitting ? "Creating..." : "Create family profile"}
@@ -390,7 +475,7 @@ function CleanProfileWorkspaceBody() {
             <section style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Learners</h2>
               {workspace.learners.length ? (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div id="learners" style={{ display: "grid", gap: 12 }}>
                   {workspace.learners.map((learner) => {
                     const isDefault = workspace.profile?.defaultLearnerId === learner.id;
                     const isEditing = editingLearnerId === learner.id;
@@ -411,7 +496,7 @@ function CleanProfileWorkspaceBody() {
                           <div>
                             <strong>{formatLearnerDisplayName(learner)}</strong>
                             {learner.yearLevel ? (
-                              <span style={{ color: "#64748b" }}> · {learner.yearLevel}</span>
+                              <span style={{ color: "#64748b" }}> - {learner.yearLevel}</span>
                             ) : null}
                           </div>
                         </div>
@@ -427,7 +512,7 @@ function CleanProfileWorkspaceBody() {
                                     : current,
                                 )
                               }
-                              placeholder="First name"
+                              placeholder="Example: Maya"
                               style={inputStyle}
                             />
                             <input
@@ -439,7 +524,7 @@ function CleanProfileWorkspaceBody() {
                                     : current,
                                 )
                               }
-                              placeholder="Preferred name"
+                              placeholder="Preferred name (optional)"
                               style={inputStyle}
                             />
                             <input
@@ -451,7 +536,7 @@ function CleanProfileWorkspaceBody() {
                                     : current,
                                 )
                               }
-                              placeholder="Surname"
+                              placeholder="Surname (optional)"
                               style={inputStyle}
                             />
                             <input
@@ -463,7 +548,7 @@ function CleanProfileWorkspaceBody() {
                                     : current,
                                 )
                               }
-                              placeholder="Year level"
+                              placeholder="Example: Year 4 / Grade 3"
                               style={inputStyle}
                             />
                             <textarea
@@ -475,7 +560,7 @@ function CleanProfileWorkspaceBody() {
                                     : current,
                                 )
                               }
-                              placeholder="Notes"
+                              placeholder="Optional notes that help you remember this learner's context"
                               style={{ ...inputStyle, minHeight: 100, resize: "vertical" }}
                             />
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -553,31 +638,49 @@ function CleanProfileWorkspaceBody() {
                   })}
                 </div>
               ) : (
-                <p style={{ margin: 0, color: "#475569" }}>
-                  No learners exist yet in the clean workspace. This is an honest empty state, not a fallback.
-                </p>
+                <div
+                  style={{
+                    border: "1px dashed #cbd5e1",
+                    borderRadius: 14,
+                    padding: 14,
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <strong style={{ color: "#0f172a" }}>Start with one learner</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    No learners exist yet in the clean workspace. Add one first name now, then
+                    come back later for extra detail only if it helps.
+                  </p>
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    Good first example: Maya, preferred name optional, Year 4 optional.
+                  </p>
+                </div>
               )}
             </section>
 
-            <section style={cardStyle}>
+            <section id="add-learner" style={cardStyle}>
               <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add learner</h2>
+              <p style={{ marginTop: 0, color: "#475569", lineHeight: 1.6 }}>
+                Add only what helps right now. A first name is enough to begin planning.
+              </p>
               <form onSubmit={handleAddLearner} style={{ display: "grid", gap: 12 }}>
                 <input
                   value={learnerFirstName}
                   onChange={(event) => setLearnerFirstName(event.target.value)}
-                  placeholder="First name"
+                  placeholder="Example: Maya"
                   style={inputStyle}
                 />
                 <input
                   value={learnerPreferredName}
                   onChange={(event) => setLearnerPreferredName(event.target.value)}
-                  placeholder="Preferred name (optional)"
+                  placeholder="Preferred name, if different"
                   style={inputStyle}
                 />
                 <input
                   value={learnerYearLevel}
                   onChange={(event) => setLearnerYearLevel(event.target.value)}
-                  placeholder="Year level (optional)"
+                  placeholder="Example: Year 4 / Grade 3"
                   style={inputStyle}
                 />
                 <div>
