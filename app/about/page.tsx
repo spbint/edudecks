@@ -15,8 +15,8 @@ export default function AboutPage() {
       heroTitle="A calmer way to keep homeschool records and learning plans connected."
       heroText="MyLearna is being built for families who want a more connected way to capture learning, track evidence, plan intentionally, and prepare homeschool reports without turning home into school."
       heroBadges={["Calm", "Evidence-led", "Family-first", "Built to grow"]}
-      primaryCta={{ label: "See How It Works", href: "/get-started" }}
-      secondaryCta={{ label: "Start Free", href: "/capture" }}
+      primaryCta={{ label: "Join the free beta", href: "/beta" }}
+      secondaryCta={{ label: "See how it works", href: "/get-started" }}
       asideTitle="What this is"
       asideText="MyLearna is not just a planner, a portfolio, or a report builder on its own. It is a connected family learning workflow designed to reduce overwhelm and build confidence over time."
     >

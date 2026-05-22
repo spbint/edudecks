@@ -14,8 +14,8 @@ const STEPS = [
     title: "Capture one learning moment",
     text:
       "Start with one simple learning record. A short title, a useful summary, and one learning area are enough to begin building confidence.",
-    href: "/capture",
-    cta: "Open Quick Capture",
+    href: "/beta",
+    cta: "Join beta to try this",
     tone: { bg: "#eff6ff", bd: "#bfdbfe", fg: "#1d4ed8" },
   },
   {
@@ -23,8 +23,8 @@ const STEPS = [
     title: "Curate a simple portfolio",
     text:
       "Choose the learning moments that best represent progress so the record starts becoming clearer, stronger, and easier to work with later.",
-    href: "/my-portfolio",
-    cta: "Open Portfolio",
+    href: "/beta",
+    cta: "Join beta to try this",
     tone: { bg: "#f5f3ff", bd: "#ddd6fe", fg: "#6d28d9" },
   },
   {
@@ -32,8 +32,8 @@ const STEPS = [
     title: "Plan your next week",
     text:
       "Use what you are noticing to shape a gentler weekly rhythm with a clearer sense of what to focus on next.",
-    href: "/my-calendar",
-    cta: "Open My Calendar",
+    href: "/beta",
+    cta: "Join beta to try this",
     tone: { bg: "#ecfdf5", bd: "#a7f3d0", fg: "#166534" },
   },
   {
@@ -41,17 +41,17 @@ const STEPS = [
     title: "Build your first report view",
     text:
       "Open the report builder once your evidence base has started to grow, so you can see how the record is coming together over time.",
-    href: "/my-reports",
-    cta: "Open My Reports",
+    href: "/beta",
+    cta: "Join beta to try this",
     tone: { bg: "#fff7ed", bd: "#fed7aa", fg: "#9a3412" },
   },
   {
     step: "Step 5",
-    title: "Shape your longer programs",
+    title: "Follow guided pathways",
     text:
-      "When the basics are working, shape the longer program flow so the next weeks stay clearer without becoming overwhelming.",
-    href: "/my-programs",
-    cta: "Open My Programs",
+      "When the basics are working, use guided pathways to shape what comes next without making the week feel overwhelming.",
+    href: "/beta",
+    cta: "Join beta to try this",
     tone: { bg: "#f8fafc", bd: "#e5e7eb", fg: "#334155" },
   },
 ];
@@ -61,17 +61,17 @@ export default function GetStartedPage() {
     <PublicSiteShell
       eyebrow="Your best first path"
       heroTitle="How to start homeschool record keeping with confidence."
-      heroText="Start with one learning record, then let MyLearna guide you into portfolio choices, curriculum planning, and homeschool reporting when you are ready."
+      heroText="The MyLearna beta starts with one learning record, then guides families into portfolio choices, planning, pathways, and reporting over time."
       heroBadges={[
         "Begin simply",
         "Curate gradually",
         "Plan intentionally",
         "Report when ready",
       ]}
-      primaryCta={{ label: "Open Quick Capture", href: "/capture" }}
-      secondaryCta={{ label: "Open Family Hub", href: "/family" }}
+      primaryCta={{ label: "Join the free beta", href: "/beta" }}
+      secondaryCta={{ label: "Back home", href: "/" }}
       asideTitle="Best first move"
-      asideText="One captured learning moment is enough to begin. You do not need a perfect setup before MyLearna starts becoming useful."
+      asideText="One captured learning moment is enough to begin once beta access opens for your family."
     >
       <section style={{ ...publicCardStyle(), marginBottom: 24 }}>
         <div
@@ -96,8 +96,8 @@ export default function GetStartedPage() {
           }}
         >
           Most families do not need every part of the system on day one. This is
-          the recommended path for starting simply, building useful evidence, and
-          growing into the fuller workflow over time.
+          the recommended path once beta access opens, so families can start simply,
+          build useful evidence, and grow into the fuller workflow over time.
         </div>
 
         <div
@@ -185,8 +185,8 @@ export default function GetStartedPage() {
             }}
           >
             You do not need a full system in place before MyLearna becomes
-            helpful. A simple first week is usually enough to make the workflow
-            feel real.
+            helpful. A simple first week in beta is usually enough to make the
+            workflow feel real.
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>

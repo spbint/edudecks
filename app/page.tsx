@@ -10,13 +10,13 @@ import PublicSiteShell, {
 import useIsMobile from "@/app/components/useIsMobile";
 
 const PRIMARY_CTA = {
-  label: "Start your learning record",
-  href: "/signup",
+  label: "Join the free beta",
+  href: "/beta",
 } as const;
 
 const HEADER_PRIMARY_CTA = {
-  label: "Sign up",
-  href: "/signup",
+  label: "Join beta",
+  href: "/beta",
 } as const;
 
 const LIFECYCLE_STEPS = [
@@ -106,7 +106,8 @@ export default function HomePage() {
       heroBadges={[...HERO_PILLS]}
       heroMicrocopy={
         <span>
-          Ready to start? Create your account. Want to understand the flow first? See how it works.
+          Ready to join? Request free beta access. Want to understand the flow first?
+          See how it works.
         </span>
       }
       asideTitle=""
