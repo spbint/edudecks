@@ -14,6 +14,9 @@ function cardStyle(): CSSProperties {
     background: "#ffffff",
     padding: 24,
     boxShadow: "0 10px 30px rgba(15,23,42,0.04)",
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
   };
 }
 
@@ -55,7 +58,9 @@ export default function BetaThanksPage() {
     >
       <section
         style={{
+          width: "100%",
           maxWidth: 760,
+          minWidth: 0,
           marginBottom: 24,
         }}
       >

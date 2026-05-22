@@ -6,6 +6,7 @@ import PublicSiteShell, {
   publicButtonStyle,
   publicCardStyle,
 } from "@/app/components/PublicSiteShell";
+import useIsMobile from "@/app/components/useIsMobile";
 import {
   hasSupabaseEnv,
   MISSING_PUBLIC_SUPABASE_ENV_MESSAGE,
@@ -110,6 +111,8 @@ function trackBetaEvent(
 export default function BetaInterestPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isMobileLayout = useIsMobile(820);
+  const isCompact = useIsMobile(560);
   const [state, setState] = useState<SubmitState>("idle");
   const [feedback, setFeedback] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -284,18 +287,32 @@ export default function BetaInterestPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1.05fr) minmax(320px, 0.95fr)",
-          gap: 20,
+          gridTemplateColumns: isMobileLayout
+            ? "minmax(0, 1fr)"
+            : "minmax(0, 1.05fr) minmax(300px, 0.95fr)",
+          gap: isMobileLayout ? 16 : 20,
           marginBottom: 24,
+          width: "100%",
+          maxWidth: "100%",
+          alignItems: "start",
         }}
       >
-        <section style={publicCardStyle()}>
+        <section
+          style={{
+            ...publicCardStyle(),
+            width: "100%",
+            maxWidth: "100%",
+            minWidth: 0,
+          }}
+        >
           <div
             style={{
-              fontSize: 28,
+              fontSize: isMobileLayout ? 24 : 28,
               fontWeight: 900,
               color: "#0f172a",
               marginBottom: 8,
+              lineHeight: 1.2,
+              overflowWrap: "anywhere",
             }}
           >
             Request free beta access
@@ -313,7 +330,10 @@ export default function BetaInterestPage() {
             No password or account setup is needed yet.
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: "grid", gap: 14 }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "grid", gap: 14, width: "100%", minWidth: 0 }}
+          >
             <div
               style={{
                 position: "absolute",
@@ -367,7 +387,10 @@ export default function BetaInterestPage() {
               style={{
                 display: "grid",
                 gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
+                width: "100%",
+                minWidth: 0,
               }}
             >
               <div>
@@ -400,7 +423,10 @@ export default function BetaInterestPage() {
               style={{
                 display: "grid",
                 gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(min(220px, 100%), 1fr))",
+                width: "100%",
+                minWidth: 0,
               }}
             >
               <div>
@@ -530,7 +556,14 @@ export default function BetaInterestPage() {
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
                 type="submit"
-                style={{ ...publicButtonStyle(true), cursor: "pointer" }}
+                style={{
+                  ...publicButtonStyle(true),
+                  cursor: "pointer",
+                  width: isCompact ? "100%" : undefined,
+                  maxWidth: "100%",
+                  whiteSpace: isCompact ? "normal" : "nowrap",
+                  textAlign: "center",
+                }}
                 disabled={state === "saving"}
               >
                 {state === "saving" ? "Requesting beta access..." : "Request free beta access"}
@@ -539,8 +572,15 @@ export default function BetaInterestPage() {
           </form>
         </section>
 
-        <div style={{ display: "grid", gap: 20 }}>
-          <section style={publicCardStyle()}>
+        <div style={{ display: "grid", gap: 20, width: "100%", minWidth: 0 }}>
+          <section
+            style={{
+              ...publicCardStyle(),
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
                 fontSize: 18,
@@ -570,6 +610,7 @@ export default function BetaInterestPage() {
                     fontWeight: 700,
                     color: "#334155",
                     lineHeight: 1.55,
+                    overflowWrap: "anywhere",
                   }}
                 >
                   {item}
@@ -578,7 +619,14 @@ export default function BetaInterestPage() {
             </div>
           </section>
 
-          <section style={publicCardStyle()}>
+          <section
+            style={{
+              ...publicCardStyle(),
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
                 fontSize: 12,
