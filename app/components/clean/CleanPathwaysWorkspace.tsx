@@ -31,6 +31,7 @@ import {
   OPERATIONS_AND_CALCULATION_GUIDE,
   type MathematicsDetailedStrandGuide,
 } from "@/lib/clean/pathways/mathematicsOperationsPrototype";
+import { FRACTIONS_DECIMALS_PERCENTAGES_GUIDE } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -700,8 +701,8 @@ function PathwaysWorkspaceBody() {
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Mathematics pathway overview</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 This prototype shows the wider mathematics pathway map while highlighting
-                Number as the foundational detailed strand and Operations and calculation as the
-                next detailed follow-on strand.
+                Number as the foundational detailed strand, with Operations and calculation
+                and Fractions, decimals, and percentages now added as detailed follow-on strands.
               </p>
             </div>
 
@@ -769,7 +770,21 @@ function PathwaysWorkspaceBody() {
         </section>
 
         <section style={cardStyle}>
-          <MathematicsDetailedStrandGuideSection guide={OPERATIONS_AND_CALCULATION_GUIDE} />
+          <MathematicsDetailedStrandGuideSection
+            guide={OPERATIONS_AND_CALCULATION_GUIDE}
+            eyebrow="Detailed follow-on strand"
+            relationshipTitle="Why this strand follows Number"
+            relationshipCopy="Number and place value gives learners the structure of the number system. Operations and calculation turns that structure into useful, dependable action."
+          />
+        </section>
+
+        <section style={cardStyle}>
+          <MathematicsDetailedStrandGuideSection
+            guide={FRACTIONS_DECIMALS_PERCENTAGES_GUIDE}
+            eyebrow="Next detailed strand"
+            relationshipTitle="How this grows from Number and Operations"
+            relationshipCopy="Once learners can work more confidently with number and calculation, they are better placed to reason about equal parts, proportion, tenths, hundredths, and percentages in practical life."
+          />
         </section>
 
         <section style={cardStyle}>
@@ -934,8 +949,14 @@ function PathwaysWorkspaceBody() {
 
 function MathematicsDetailedStrandGuideSection({
   guide,
+  eyebrow,
+  relationshipTitle,
+  relationshipCopy,
 }: {
   guide: MathematicsDetailedStrandGuide;
+  eyebrow: string;
+  relationshipTitle: string;
+  relationshipCopy: string;
 }) {
   return (
     <div style={{ display: "grid", gap: 18 }}>
@@ -949,17 +970,14 @@ function MathematicsDetailedStrandGuideSection({
         }}
       >
         <div style={{ display: "grid", gap: 8, maxWidth: 820 }}>
-          <div style={eyebrowStyle}>Next detailed strand</div>
+          <div style={eyebrowStyle}>{eyebrow}</div>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{guide.title}</h2>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{guide.subtitle}</p>
         </div>
 
         <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
-          <div style={eyebrowStyle}>Why this strand follows Number</div>
-          <div style={{ color: "#475569", lineHeight: 1.6 }}>
-            Number and place value gives learners the structure of the number system.
-            Operations and calculation turns that structure into useful, dependable action.
-          </div>
+          <div style={eyebrowStyle}>{relationshipTitle}</div>
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>{relationshipCopy}</div>
         </div>
       </div>
 

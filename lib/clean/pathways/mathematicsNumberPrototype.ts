@@ -88,11 +88,11 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
   },
   {
     key: "fractions-decimals-percentages",
-    title: "Fractions, decimals, percentages",
+    title: "Fractions, decimals, and percentages",
     description: "Understand parts, proportions, and equivalent ways of describing quantity.",
     whyItMatters:
       "These ideas show up in recipes, money, measurement, data, algebra, and real-world comparison.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "ratio-and-proportional-reasoning",
