@@ -84,20 +84,22 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
   },
   {
     key: "humanities",
-    title: "Humanities",
+    title: "Humanities & Social Sciences",
     description:
-      "Humanities pathways will help families track history, geography, civics, culture, identity, community understanding, and thoughtful discussion.",
+      "Humanities & Social Sciences helps families explore people, places, communities, history, geography, civics, economics, cultures, and how societies change over time. In some contexts, this area may be known as Social Studies, HASS, or Humanities.",
     guidance:
-      "This subject will later support both knowledge-building and reflective family conversations through clear strands and evidence-friendly pathway steps.",
+      "Families may also recognise this area as Social Studies. Over time, this subject will support knowledge-building, inquiry, evidence use, and reflective family conversations through calm strands and evidence-friendly pathway steps.",
     status: "coming-soon",
     futureStrands: [
       "History and change over time",
-      "Geography and place",
-      "Community, civics, and identity",
-      "Cultures and perspectives",
+      "Geography, place and environment",
+      "Civics, community and citizenship",
+      "Economics, resources and decision-making",
+      "Cultures, societies and perspectives",
+      "Inquiry, sources and evidence",
     ],
     placeholderNote:
-      "Humanities pathways are being planned as guided learning maps rather than long content lists, so families can see what to notice, discuss, and record.",
+      "Humanities & Social Sciences pathways are being prepared as guided learning maps rather than long content lists, so families can see what to notice, discuss, compare, and record over time.",
   },
   {
     key: "technologies",

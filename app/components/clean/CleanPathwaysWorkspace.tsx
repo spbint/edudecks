@@ -1270,8 +1270,8 @@ function PathwaySubjectPlaceholderSection({
             <div style={eyebrowStyle}>Current beta note</div>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-              Mathematics remains the first fully detailed subject while the wider subject
-              pathway architecture is established.
+              Mathematics, English, and Science are currently detailed while the wider subject
+              pathway architecture continues to expand.
             </div>
           </section>
         </div>
