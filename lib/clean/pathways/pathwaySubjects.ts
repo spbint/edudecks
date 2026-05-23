@@ -65,18 +65,22 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "science",
     title: "Science",
     description:
-      "Science pathways will help families track observation, investigation, explanation, living systems, physical science, Earth and space, and practical inquiry.",
+      "Science pathways help families track observation, investigation, explanation, living systems, physical science, Earth and space, materials, health, and practical inquiry through staged strand progressions.",
     guidance:
-      "The long-term goal is a guided pathway structure that supports noticing, questioning, investigating, and recording scientific understanding over time.",
-    status: "coming-soon",
+      "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support inquiry, explanation, and later science reporting.",
+    status: "detailed",
     futureStrands: [
-      "Scientific inquiry and explanation",
-      "Living systems",
-      "Physical science",
+      "Scientific inquiry and investigation",
+      "Living things and environments",
       "Earth and space",
+      "Physical sciences",
+      "Materials, matter and change",
+      "Forces, energy and motion",
+      "Human body and health",
+      "Science in society and technology",
     ],
     placeholderNote:
-      "Science pathways will develop gradually so practical inquiry and homeschool evidence capture stay stronger than content overload.",
+      "Science is now the third detailed subject pathway and follows the same calm strand -> stage -> evidence structure as Mathematics and English.",
   },
   {
     key: "humanities",

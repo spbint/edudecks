@@ -1,16 +1,8 @@
 import type { MathematicsDetailedStrandWorkspace } from "@/lib/clean/pathways/mathematicsDetailedStrands";
 import type {
-  PathwayDomainStatus,
   PathwayStageKey,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
-
-export type SubjectStrandCard = {
-  key: string;
-  title: string;
-  description: string;
-  whyItMatters: string;
-  status: PathwayDomainStatus;
-};
+import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
 
 type EnglishStepInput = {
   id: number;

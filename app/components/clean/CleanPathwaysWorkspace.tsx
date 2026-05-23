@@ -41,8 +41,13 @@ import {
   ENGLISH_DOMAIN_CARDS,
   ENGLISH_STRAND_WORKSPACE_BUILDERS,
   ENGLISH_SUBJECT_OVERVIEW,
-  type SubjectStrandCard,
 } from "@/lib/clean/pathways/englishPathways";
+import {
+  DEFAULT_SCIENCE_STRAND_KEY,
+  SCIENCE_DOMAIN_CARDS,
+  SCIENCE_STRAND_WORKSPACE_BUILDERS,
+  SCIENCE_SUBJECT_OVERVIEW,
+} from "@/lib/clean/pathways/sciencePathways";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -54,6 +59,7 @@ import type {
   MathematicsDetailedStrandStep,
   MathematicsDetailedStrandWorkspace,
 } from "@/lib/clean/pathways/mathematicsDetailedStrands";
+import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -161,6 +167,15 @@ const DETAILED_SUBJECT_CONFIGS: Partial<Record<PathwaySubjectKey, DetailedSubjec
     overviewTitle: ENGLISH_SUBJECT_OVERVIEW.title,
     overviewDescription: ENGLISH_SUBJECT_OVERVIEW.description,
     overviewHelper: ENGLISH_SUBJECT_OVERVIEW.helper,
+  },
+  science: {
+    defaultStrandKey: DEFAULT_SCIENCE_STRAND_KEY,
+    domainCards: SCIENCE_DOMAIN_CARDS,
+    workspaceBuilders: SCIENCE_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: SCIENCE_SUBJECT_OVERVIEW.eyebrow,
+    overviewTitle: SCIENCE_SUBJECT_OVERVIEW.title,
+    overviewDescription: SCIENCE_SUBJECT_OVERVIEW.description,
+    overviewHelper: SCIENCE_SUBJECT_OVERVIEW.helper,
   },
 };
 
@@ -467,6 +482,7 @@ function PathwaysWorkspaceBody() {
   >({
     mathematics: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
     english: DEFAULT_ENGLISH_STRAND_KEY,
+    science: DEFAULT_SCIENCE_STRAND_KEY,
   });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
@@ -503,7 +519,7 @@ function PathwaysWorkspaceBody() {
 
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
-  const currentNumberFocusStageKey = useMemo(
+  const currentLearnerFocusStageKey = useMemo(
     () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
   );
@@ -551,13 +567,16 @@ function PathwaysWorkspaceBody() {
   const selectedSubjectWorkspace = useMemo(() => {
     if (!selectedDetailedSubjectConfig) return null;
 
-    if (selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY && selectedStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY) {
-      return buildNumberAndPlaceValueWorkspace(currentNumberFocusStageKey);
+    if (
+      selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY &&
+      selectedStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY
+    ) {
+      return buildNumberAndPlaceValueWorkspace(currentLearnerFocusStageKey);
     }
 
     const buildWorkspace = selectedDetailedSubjectConfig.workspaceBuilders[selectedStrandKey];
-    return buildWorkspace ? buildWorkspace(currentNumberFocusStageKey) : null;
-  }, [currentNumberFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey, selectedSubjectKey]);
+    return buildWorkspace ? buildWorkspace(currentLearnerFocusStageKey) : null;
+  }, [currentLearnerFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey, selectedSubjectKey]);
 
   useEffect(() => {
     let active = true;
@@ -878,8 +897,9 @@ function PathwaysWorkspaceBody() {
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 Start with one subject, then move into strands, stages, and evidence.
-                Mathematics and English now use the detailed shared pathway engine, while
-                the remaining subjects still show calm pathway previews as they are shaped gradually.
+                Mathematics, English, and Science now use the detailed shared pathway engine,
+                while the remaining subjects still show calm pathway previews as they are shaped
+                gradually.
               </p>
             </div>
 
