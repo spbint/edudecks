@@ -5,8 +5,7 @@ export type PathwaySubjectKey =
   | "humanities"
   | "technologies"
   | "arts"
-  | "health-pe"
-  | "bible-faith";
+  | "health-pe";
 
 export type PathwaySubjectStatus = "detailed" | "coming-soon";
 
@@ -22,6 +21,8 @@ export type PathwaySubjectDefinition = {
 
 export const DEFAULT_PATHWAY_SUBJECT_KEY: PathwaySubjectKey = "mathematics";
 
+// Niche or optional program areas such as Bible / Faith can be supported later
+// through Marketplace Programs or optional packs rather than the core subject list.
 export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
   {
     key: "mathematics",
@@ -105,68 +106,57 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "technologies",
     title: "Technologies",
     description:
-      "Technologies pathways will help families track design thinking, making, digital confidence, systems understanding, and practical project work.",
+      "Technologies pathways will help families explore designing, making, digital systems, computational thinking, materials, tools, food, engineering ideas, and practical problem-solving.",
     guidance:
-      "Future pathways here will connect creating, building, testing, and reflecting so technology learning feels purposeful and evidence-ready.",
+      "Over time, this subject will support hands-on making, digital confidence, and practical problem-solving through calm strands and evidence-friendly pathway steps.",
     status: "coming-soon",
     futureStrands: [
-      "Design and making",
-      "Digital literacy",
-      "Systems and tools",
-      "Project planning and reflection",
+      "Design and production",
+      "Digital technologies and systems",
+      "Computational thinking",
+      "Materials, tools and making",
+      "Food, fibre and practical technologies",
+      "Engineering, systems and problem-solving",
     ],
     placeholderNote:
-      "Technologies pathways will be introduced gradually so practical making and digital understanding stay calm, visible, and manageable in homeschool life.",
+      "Technologies pathways are being prepared so practical making, digital systems, and hands-on problem-solving stay calm, visible, and manageable in homeschool life.",
   },
   {
     key: "arts",
     title: "Arts",
     description:
-      "Arts pathways will help families track creating, responding, performing, visual expression, music, drama, and creative confidence.",
+      "Arts pathways will help families explore creating, responding, performing, presenting, visual expression, music, drama, dance, media, and creative communication.",
     guidance:
-      "The pathway goal is to support artistic growth, reflection, and evidence collection without flattening creative work into rigid checklisting.",
+      "Over time, this subject will support creative growth, practical making, reflection, and evidence collection without flattening the arts into rigid checklisting.",
     status: "coming-soon",
     futureStrands: [
-      "Visual art and making",
+      "Visual arts and design",
       "Music and sound",
       "Drama and performance",
-      "Creative response and reflection",
+      "Dance and movement",
+      "Media arts and storytelling",
+      "Responding to artworks and creative choices",
     ],
     placeholderNote:
-      "Arts pathways are being shaped carefully so they remain flexible, creative, and portfolio-friendly rather than overly formal.",
+      "Arts pathways are being prepared carefully so they remain creative, flexible, practical, and portfolio-friendly rather than overly formal.",
   },
   {
     key: "health-pe",
     title: "Health / PE",
     description:
-      "Health and PE pathways will help families track movement, wellbeing, habits, body awareness, teamwork, safety, and practical health learning.",
+      "Health / PE pathways will help families explore movement, coordination, wellbeing, safety, relationships, healthy choices, physical activity, teamwork, and personal development.",
     guidance:
-      "These pathways will later support both everyday movement and broader wellbeing reflection in a guided, parent-readable format.",
+      "Over time, this subject will support practical movement, wellbeing, safety, and personal growth through calm strands that suit a wide range of homeschool contexts.",
     status: "coming-soon",
     futureStrands: [
       "Movement and coordination",
-      "Fitness and healthy habits",
-      "Safety and decision-making",
-      "Wellbeing and reflection",
+      "Physical activity and fitness",
+      "Health, safety and wellbeing",
+      "Relationships and personal development",
+      "Teamwork, games and fair play",
+      "Outdoor, practical and active learning",
     ],
     placeholderNote:
-      "Health / PE pathways will develop gradually so movement, wellbeing, and real family routines stay central to the learning record.",
-  },
-  {
-    key: "bible-faith",
-    title: "Bible / Faith",
-    description:
-      "Bible and faith pathways will help families track scripture engagement, worldview, memory work, discussion, character formation, and faith-informed reflection.",
-    guidance:
-      "The aim is a gentle pathway structure that supports family faith learning, reflection, and evidence of growth without forcing a formal school-style model.",
-    status: "coming-soon",
-    futureStrands: [
-      "Scripture and understanding",
-      "Memory and reflection",
-      "Discussion and worldview",
-      "Character and lived faith",
-    ],
-    placeholderNote:
-      "Bible / Faith pathways are being shaped gradually so they remain calm, family-sensitive, and aligned with the broader MyLearna guided pathway approach.",
+      "Health / PE pathways are being prepared so movement, wellbeing, relationships, and active learning stay central without becoming overly clinical or school-sport focused.",
   },
 ];
