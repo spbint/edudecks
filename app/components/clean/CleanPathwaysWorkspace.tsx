@@ -61,6 +61,12 @@ import {
   DEFAULT_ARTS_STRAND_KEY,
 } from "@/lib/clean/pathways/artsPathways";
 import {
+  DEFAULT_HEALTH_PE_STRAND_KEY,
+  HEALTH_PE_DOMAIN_CARDS,
+  HEALTH_PE_STRAND_WORKSPACE_BUILDERS,
+  HEALTH_PE_SUBJECT_OVERVIEW,
+} from "@/lib/clean/pathways/healthPePathways";
+import {
   DEFAULT_HUMANITIES_STRAND_KEY,
   HUMANITIES_DOMAIN_CARDS,
   HUMANITIES_STRAND_WORKSPACE_BUILDERS,
@@ -221,6 +227,15 @@ const DETAILED_SUBJECT_CONFIGS: Partial<Record<PathwaySubjectKey, DetailedSubjec
     overviewTitle: ARTS_SUBJECT_OVERVIEW.title,
     overviewDescription: ARTS_SUBJECT_OVERVIEW.description,
     overviewHelper: ARTS_SUBJECT_OVERVIEW.helper,
+  },
+  "health-pe": {
+    defaultStrandKey: DEFAULT_HEALTH_PE_STRAND_KEY,
+    domainCards: HEALTH_PE_DOMAIN_CARDS,
+    workspaceBuilders: HEALTH_PE_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: HEALTH_PE_SUBJECT_OVERVIEW.eyebrow,
+    overviewTitle: HEALTH_PE_SUBJECT_OVERVIEW.title,
+    overviewDescription: HEALTH_PE_SUBJECT_OVERVIEW.description,
+    overviewHelper: HEALTH_PE_SUBJECT_OVERVIEW.helper,
   },
 };
 
@@ -531,6 +546,7 @@ function PathwaysWorkspaceBody() {
     humanities: DEFAULT_HUMANITIES_STRAND_KEY,
     technologies: DEFAULT_TECHNOLOGIES_STRAND_KEY,
     arts: DEFAULT_ARTS_STRAND_KEY,
+    "health-pe": DEFAULT_HEALTH_PE_STRAND_KEY,
   });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
@@ -946,8 +962,8 @@ function PathwaysWorkspaceBody() {
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 Start with one subject, then move into strands, stages, and evidence.
                 Mathematics, English, Science, Humanities & Social Sciences, Technologies,
-                and Arts now use the detailed shared pathway engine, while the remaining
-                subjects still show calm pathway previews as they are shaped gradually.
+                Arts, and Health / PE now use the detailed shared pathway engine across the
+                full core subject map.
               </p>
             </div>
 
@@ -1319,8 +1335,8 @@ function PathwaySubjectPlaceholderSection({
             <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
               Mathematics, English, Science, Humanities & Social Sciences, Technologies,
-              and Arts are currently detailed while the wider subject pathway architecture
-              continues to expand.
+              Arts, and Health / PE are currently detailed while the wider pathway
+              architecture can still expand into future optional areas later.
             </div>
           </section>
         </div>

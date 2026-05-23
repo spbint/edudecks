@@ -144,12 +144,12 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "health-pe",
     title: "Health / PE",
     description:
-      "Health / PE pathways will help families explore movement, coordination, wellbeing, safety, relationships, healthy choices, physical activity, teamwork, and personal development.",
+      "Health / PE pathways help families explore movement, coordination, physical activity, wellbeing, safety, relationships, healthy choices, teamwork, and personal development through staged strand progressions.",
     guidance:
-      "Over time, this subject will support practical movement, wellbeing, safety, and personal growth through calm strands that suit a wide range of homeschool contexts.",
-    status: "coming-soon",
+      "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support movement confidence, wellbeing routines, respectful participation, and later reporting.",
+    status: "detailed",
     futureStrands: [
-      "Movement and coordination",
+      "Movement skills and coordination",
       "Physical activity and fitness",
       "Health, safety and wellbeing",
       "Relationships and personal development",
@@ -157,6 +157,6 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Outdoor, practical and active learning",
     ],
     placeholderNote:
-      "Health / PE pathways are being prepared so movement, wellbeing, relationships, and active learning stay central without becoming overly clinical or school-sport focused.",
+      "Health / PE is now the seventh detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
   },
 ];
