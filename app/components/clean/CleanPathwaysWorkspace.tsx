@@ -17,14 +17,8 @@ import {
 import type { Learner } from "@/lib/clean/learners/types";
 import {
   MATHEMATICS_DOMAIN_CARDS,
-  NUMBER_PATHWAY_STAGES,
-  type NumberPathwayStage,
-  type NumberPathwayStep,
   type PathwayProgressStatus,
-  type PathwayStageKey,
-  getDemoPathwayStatus,
-  getNumberPathwayStepGuidance,
-  getStageProgressionLabel,
+  buildNumberAndPlaceValueWorkspace,
   inferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
@@ -88,7 +82,7 @@ const summaryCardStyle: React.CSSProperties = {
 
 const NUMBER_AND_PLACE_VALUE_STRAND_KEY = "number-and-place-value";
 
-const MATHEMATICS_STRAND_GUIDE_CONFIG: Record<
+const MATHEMATICS_STRAND_WORKSPACE_CONFIG: Record<
   string,
   MathematicsDetailedStrandWorkspace
 > = {
@@ -187,6 +181,8 @@ type StageSummaryCounts = {
   secure: number;
   readyToAssess: number;
   evidenceStarted: number;
+  practising: number;
+  notStarted: number;
 };
 
 type SavedPathwayStatusMap = Record<string, PathwayProgressStatus>;
@@ -225,38 +221,6 @@ function splitCountryAndAuthorityLabels(countryAuthorityLabel: string, countryLa
   };
 }
 
-function getStageTone(stage: PathwayStageKey, currentStage: PathwayStageKey) {
-  const label = getStageProgressionLabel(stage, currentStage);
-
-  if (label === "Current focus") {
-    return {
-      badge: "Current focus",
-      border: "#93c5fd",
-      background: "#eff6ff",
-      shadow: "0 10px 24px rgba(59,130,246,0.10)",
-      text: "#1d4ed8",
-    };
-  }
-
-  if (label === "Next progression") {
-    return {
-      badge: "Next progression",
-      border: "#ddd6fe",
-      background: "#faf5ff",
-      shadow: "0 8px 20px rgba(109,40,217,0.06)",
-      text: "#6d28d9",
-    };
-  }
-
-  return {
-    badge: label,
-    border: "#e2e8f0",
-    background: "#ffffff",
-    shadow: "0 4px 14px rgba(15,23,42,0.04)",
-    text: "#64748b",
-  };
-}
-
 function buildPathwayStepKey(pathwayKey: string, stageKey: string, stepNumber: string) {
   return `${safe(pathwayKey)}::${safe(stageKey)}::${safe(stepNumber)}`;
 }
@@ -281,62 +245,7 @@ function mapObservedSkillStatusToPathwayStatus(
   return null;
 }
 
-function getDisplayedPathwayStatus(
-  stepId: number,
-  stageKey: PathwayStageKey,
-  currentStage: PathwayStageKey,
-  savedPathwayStatuses: SavedPathwayStatusMap,
-) {
-  const savedStatus =
-    savedPathwayStatuses[buildPathwayStepKey("number", stageKey, String(stepId))];
-
-  if (savedStatus) {
-    return {
-      status: savedStatus,
-      fromSavedEvidence: true,
-    };
-  }
-
-  return {
-    status: getDemoPathwayStatus(stepId, stageKey, currentStage),
-    fromSavedEvidence: false,
-  };
-}
-
-function buildStageSummaryCounts(
-  stage: NumberPathwayStage,
-  currentStage: PathwayStageKey,
-  savedPathwayStatuses: SavedPathwayStatusMap,
-): StageSummaryCounts {
-  return stage.steps.reduce(
-    (totals, step) => {
-      const { status } = getDisplayedPathwayStatus(
-        step.id,
-        stage.key,
-        currentStage,
-        savedPathwayStatuses,
-      );
-
-      if (status === "Secure") {
-        totals.secure += 1;
-      } else if (status === "Ready to assess") {
-        totals.readyToAssess += 1;
-      } else if (status === "Evidence started") {
-        totals.evidenceStarted += 1;
-      }
-
-      return totals;
-    },
-    {
-      steps: stage.steps.length,
-      secure: 0,
-      readyToAssess: 0,
-      evidenceStarted: 0,
-    },
-  );
-}
-
-function getDetailedStageTone(stageIndex: number, currentStageIndex: number) {
+function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
   if (stageIndex === currentStageIndex) {
     return {
       badge: "Current focus",
@@ -376,8 +285,8 @@ function getDetailedStageTone(stageIndex: number, currentStageIndex: number) {
   };
 }
 
-function getDetailedDisplayedPathwayStatus(
-  pathwayKey: string,
+function getWorkspaceDisplayedPathwayStatus(
+  workspace: MathematicsDetailedStrandWorkspace,
   stage: MathematicsDetailedStrandStage,
   stageIndex: number,
   currentStageIndex: number,
@@ -388,7 +297,9 @@ function getDetailedDisplayedPathwayStatus(
   status: PathwayProgressStatus;
   fromSavedEvidence: boolean;
 } {
-  const savedStatus = savedPathwayStatuses[buildPathwayStepKey(pathwayKey, stage.key, String(step.id))];
+  const savedStatus = savedPathwayStatuses[
+    buildPathwayStepKey(workspace.trackingKey, stage.key, String(step.id))
+  ];
 
   if (savedStatus) {
     return {
@@ -424,17 +335,17 @@ function getDetailedDisplayedPathwayStatus(
   };
 }
 
-function buildDetailedStageSummaryCounts(
-  pathwayKey: string,
+function buildWorkspaceStageSummaryCounts(
+  workspace: MathematicsDetailedStrandWorkspace,
   stage: MathematicsDetailedStrandStage,
   stageIndex: number,
   currentStageIndex: number,
   savedPathwayStatuses: SavedPathwayStatusMap,
-) {
+): StageSummaryCounts {
   return stage.steps.reduce(
     (totals, step, stepIndex) => {
-      const { status } = getDetailedDisplayedPathwayStatus(
-        pathwayKey,
+      const { status } = getWorkspaceDisplayedPathwayStatus(
+        workspace,
         stage,
         stageIndex,
         currentStageIndex,
@@ -458,6 +369,7 @@ function buildDetailedStageSummaryCounts(
       return totals;
     },
     {
+      steps: stage.steps.length,
       secure: 0,
       readyToAssess: 0,
       evidenceStarted: 0,
@@ -509,7 +421,7 @@ function PathwaysWorkspaceBody() {
 
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
-  const currentStageFocus = useMemo(
+  const currentNumberFocusStageKey = useMemo(
     () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
   );
@@ -545,8 +457,13 @@ function PathwaysWorkspaceBody() {
   const selectedMathematicsDomain =
     MATHEMATICS_DOMAIN_CARDS.find((domain) => domain.key === selectedMathematicsStrandKey) ||
     MATHEMATICS_DOMAIN_CARDS[0];
-  const selectedMathematicsWorkspace =
-    MATHEMATICS_STRAND_GUIDE_CONFIG[selectedMathematicsStrandKey] || null;
+  const selectedMathematicsWorkspace = useMemo(() => {
+    if (selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY) {
+      return buildNumberAndPlaceValueWorkspace(currentNumberFocusStageKey);
+    }
+
+    return MATHEMATICS_STRAND_WORKSPACE_CONFIG[selectedMathematicsStrandKey] || null;
+  }, [currentNumberFocusStageKey, selectedMathematicsStrandKey]);
 
   useEffect(() => {
     let active = true;
@@ -611,57 +528,7 @@ function PathwaysWorkspaceBody() {
     workspace.schemaMissing,
   ]);
 
-  const currentStageSnapshot = useMemo(
-    () =>
-      NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)?.steps.reduce(
-        (totals, step) => {
-          const { status } = getDisplayedPathwayStatus(
-            step.id,
-            currentStageFocus,
-            currentStageFocus,
-            savedPathwayStatuses,
-          );
-
-          if (status === "Secure") {
-            totals.secure += 1;
-            return totals;
-          }
-
-          if (status === "Ready to assess") {
-            totals.readyToAssess += 1;
-            return totals;
-          }
-
-          if (status === "Evidence started") {
-            totals.evidenceStarted += 1;
-            return totals;
-          }
-
-          if (status === "Practising") {
-            totals.practising += 1;
-            return totals;
-          }
-
-          totals.notStarted += 1;
-          return totals;
-        },
-        {
-          secure: 0,
-          readyToAssess: 0,
-          evidenceStarted: 0,
-          practising: 0,
-          notStarted: 0,
-        },
-      ) || {
-        secure: 0,
-        readyToAssess: 0,
-        evidenceStarted: 0,
-        practising: 0,
-        notStarted: 0,
-      },
-    [currentStageFocus, savedPathwayStatuses],
-  );
-  const selectedDetailedWorkspaceStageIndex = useMemo(() => {
+  const selectedWorkspaceStageIndex = useMemo(() => {
     if (!selectedMathematicsWorkspace) return -1;
     return Math.max(
       0,
@@ -670,23 +537,25 @@ function PathwaysWorkspaceBody() {
       ),
     );
   }, [selectedMathematicsWorkspace]);
-  const selectedDetailedWorkspaceSnapshot = useMemo(() => {
+  const selectedWorkspaceCurrentStage = useMemo(() => {
     if (!selectedMathematicsWorkspace) return null;
-    const currentStage =
-      selectedMathematicsWorkspace.stages[selectedDetailedWorkspaceStageIndex] || null;
-    if (!currentStage) return null;
+    return selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex] || null;
+  }, [selectedMathematicsWorkspace, selectedWorkspaceStageIndex]);
+  const selectedWorkspaceSnapshot = useMemo(() => {
+    if (!selectedMathematicsWorkspace || !selectedWorkspaceCurrentStage) return null;
 
-    return buildDetailedStageSummaryCounts(
-      selectedMathematicsWorkspace.key,
-      currentStage,
-      selectedDetailedWorkspaceStageIndex,
-      selectedDetailedWorkspaceStageIndex,
+    return buildWorkspaceStageSummaryCounts(
+      selectedMathematicsWorkspace,
+      selectedWorkspaceCurrentStage,
+      selectedWorkspaceStageIndex,
+      selectedWorkspaceStageIndex,
       savedPathwayStatuses,
     );
   }, [
     savedPathwayStatuses,
-    selectedDetailedWorkspaceStageIndex,
     selectedMathematicsWorkspace,
+    selectedWorkspaceCurrentStage,
+    selectedWorkspaceStageIndex,
   ]);
 
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
@@ -836,18 +705,17 @@ function PathwaysWorkspaceBody() {
 
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Current mathematics focus</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>Number pathway</strong>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                  {selectedMathematicsWorkspace?.title || "Mathematics pathways"}
+                </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Number is the first detailed MyLearna pathway because it builds the
-                  foundation for later mathematics.
+                  {selectedMathematicsWorkspace?.subtitle ||
+                    "Choose a strand to explore the next pathway focus for this learner."}
                 </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   Current stage focus:{" "}
                   <strong style={{ color: "#0f172a" }}>
-                    {
-                      NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)
-                        ?.title
-                    }
+                    {selectedWorkspaceCurrentStage?.title || "Choose a strand below"}
                   </strong>
                 </div>
               </div>
@@ -899,7 +767,7 @@ function PathwaysWorkspaceBody() {
               </p>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
                 Choose one strand to explore. The selected strand opens in the focused
-                workspace below, so the page stays calm and readable as more detailed guides
+                workspace below, so the page stays calm and readable as more detailed strands
                 are added.
               </p>
             </div>
@@ -1021,95 +889,7 @@ function PathwaysWorkspaceBody() {
           tabIndex={-1}
           style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
         >
-          {selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ? (
-            <MathematicsStrandWorkspaceShell
-              eyebrow="Selected strand"
-              title={selectedMathematicsDomain.title}
-              subtitle="Number and place value is the first detailed MyLearna strand because it builds the foundation for later mathematics."
-              relationshipTitle="Why start here"
-              relationshipCopy="This strand stays as the main number workspace. It shows the likely current stage for the selected learner, keeps step evidence visible, and supports the detailed step-by-step pathway flow."
-              stageRailItems={NUMBER_PATHWAY_STAGES.map((stage) => ({
-                key: stage.key,
-                title: stage.title,
-                tone: getStageTone(stage.key, currentStageFocus),
-              }))}
-              summaryCards={[
-                {
-                  label: "Current stage snapshot",
-                  value:
-                    NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)
-                      ?.title || "Current focus",
-                  helper: "Prototype view for the selected learner's likely pathway stage.",
-                },
-                {
-                  label: "secure steps",
-                  value: String(currentStageSnapshot.secure),
-                  valueColor: "#166534",
-                },
-                {
-                  label: "ready to assess",
-                  value: String(currentStageSnapshot.readyToAssess),
-                  valueColor: "#6d28d9",
-                },
-                {
-                  label: "evidence started",
-                  value: String(currentStageSnapshot.evidenceStarted),
-                  valueColor: "#1d4ed8",
-                },
-                {
-                  label: "practising",
-                  value: String(currentStageSnapshot.practising),
-                  valueColor: "#c2410c",
-                },
-                {
-                  label: "not started",
-                  value: String(currentStageSnapshot.notStarted),
-                  valueColor: "#64748b",
-                },
-              ]}
-              supportCards={[
-                {
-                  title: "Portfolio support",
-                  items: [
-                    "Save strong examples when a step shows clear reasoning, flexible strategy use, or a visible shift in confidence.",
-                    "A short parent note about how the learner explained the number idea can strengthen later portfolio evidence.",
-                  ],
-                },
-                {
-                  title: "Reporting support",
-                  items: [
-                    "Captured number evidence can later support calm reporting about confidence, comparison, and explanation.",
-                    "Progress over time is often easiest to see when earlier counting-based strategies are compared with later flexible reasoning.",
-                  ],
-                },
-              ]}
-            >
-              <div style={{ display: "grid", gap: 16 }}>
-                {NUMBER_PATHWAY_STAGES.map((stage) => (
-                  <NumberStageCard
-                    key={stage.key}
-                    stage={stage}
-                    currentStage={currentStageFocus}
-                    savedPathwayStatuses={savedPathwayStatuses}
-                    selectedLearnerId={selectedLearner?.id || ""}
-                    isOpen={getStageOpenState(
-                      NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-                      stage.key,
-                      stage.key === currentStageFocus,
-                    )}
-                    onToggle={() =>
-                      toggleStageOpen(
-                        NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-                        stage.key,
-                        stage.key === currentStageFocus,
-                      )
-                    }
-                    capturePathBase={capturePathBase}
-                  />
-                ))}
-              </div>
-            </MathematicsStrandWorkspaceShell>
-          ) : selectedMathematicsWorkspace ? (
+          {selectedMathematicsWorkspace ? (
             <MathematicsStrandWorkspaceShell
               eyebrow="Selected strand"
               title={selectedMathematicsWorkspace.title}
@@ -1119,39 +899,40 @@ function PathwaysWorkspaceBody() {
               stageRailItems={selectedMathematicsWorkspace.stages.map((stage, stageIndex) => ({
                 key: stage.key,
                 title: stage.title,
-                tone: getDetailedStageTone(stageIndex, selectedDetailedWorkspaceStageIndex),
+                tone: getPathwayStageTone(stageIndex, selectedWorkspaceStageIndex),
               }))}
               summaryCards={[
                 {
                   label: "Current stage snapshot",
-                  value:
-                    selectedMathematicsWorkspace.stages[selectedDetailedWorkspaceStageIndex]
-                      ?.title || "Current focus",
-                  helper: "Prototype guidance for where this strand could begin for many families.",
+                  value: selectedWorkspaceCurrentStage?.title || "Current focus",
+                  helper:
+                    selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY
+                      ? "Prototype view for the selected learner's likely pathway stage."
+                      : "Prototype guidance for where this strand could begin for many families.",
                 },
                 {
                   label: "secure steps",
-                  value: String(selectedDetailedWorkspaceSnapshot?.secure || 0),
+                  value: String(selectedWorkspaceSnapshot?.secure || 0),
                   valueColor: "#166534",
                 },
                 {
                   label: "ready to assess",
-                  value: String(selectedDetailedWorkspaceSnapshot?.readyToAssess || 0),
+                  value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
                   valueColor: "#6d28d9",
                 },
                 {
                   label: "evidence started",
-                  value: String(selectedDetailedWorkspaceSnapshot?.evidenceStarted || 0),
+                  value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
                   valueColor: "#1d4ed8",
                 },
                 {
                   label: "practising",
-                  value: String(selectedDetailedWorkspaceSnapshot?.practising || 0),
+                  value: String(selectedWorkspaceSnapshot?.practising || 0),
                   valueColor: "#c2410c",
                 },
                 {
                   label: "not started",
-                  value: String(selectedDetailedWorkspaceSnapshot?.notStarted || 0),
+                  value: String(selectedWorkspaceSnapshot?.notStarted || 0),
                   valueColor: "#64748b",
                 },
               ]}
@@ -1164,6 +945,17 @@ function PathwaysWorkspaceBody() {
                   title: "Reporting support",
                   items: selectedMathematicsWorkspace.reportingSupport,
                 },
+                {
+                  title: "What comes next",
+                  items: [
+                    selectedWorkspaceCurrentStage
+                      ? `Current pathway focus: ${selectedWorkspaceCurrentStage.title}`
+                      : "Current pathway focus will show here.",
+                    selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]
+                      ? `Next progression: ${selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
+                      : "This selected stage is currently the latest detailed progression in this strand.",
+                  ],
+                },
               ]}
             >
               <div style={{ display: "grid", gap: 16 }}>
@@ -1173,7 +965,7 @@ function PathwaysWorkspaceBody() {
                     strand={selectedMathematicsWorkspace}
                     stage={stage}
                     stageIndex={stageIndex}
-                    currentStageIndex={selectedDetailedWorkspaceStageIndex}
+                    currentStageIndex={selectedWorkspaceStageIndex}
                     savedPathwayStatuses={savedPathwayStatuses}
                     selectedLearnerId={selectedLearner?.id || ""}
                     isOpen={getStageOpenState(
@@ -1389,10 +1181,10 @@ function DetailedMathematicsStageCard({
   onToggle: () => void;
   capturePathBase: string;
 }) {
-  const tone = getDetailedStageTone(stageIndex, currentStageIndex);
+  const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const panelId = `${strand.key}-stage-${stage.key}`;
-  const summary = buildDetailedStageSummaryCounts(
-    strand.key,
+  const summary = buildWorkspaceStageSummaryCounts(
+    strand,
     stage,
     stageIndex,
     currentStageIndex,
@@ -1599,8 +1391,8 @@ function DetailedMathematicsStepCard({
   capturePathBase: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const statusState = getDetailedDisplayedPathwayStatus(
-    strand.key,
+  const statusState = getWorkspaceDisplayedPathwayStatus(
+    strand,
     stage,
     stageIndex,
     currentStageIndex,
@@ -1617,7 +1409,7 @@ function DetailedMathematicsStepCard({
         source: "my-pathways",
         subjectKey: "mathematics",
         subjectLabel: "My Mathematics",
-        pathwayKey: strand.key,
+        pathwayKey: strand.trackingKey,
         pathwayLabel: strand.pathwayLabel,
         stageKey: stage.key,
         stageLabel: stage.title,
@@ -1643,7 +1435,7 @@ function DetailedMathematicsStepCard({
     step.meaning,
     step.skillFocus,
     step.title,
-    strand.key,
+    strand.trackingKey,
     strand.pathwayLabel,
   ]);
 
@@ -1860,7 +1652,7 @@ function MathematicsComingLaterStrandSection({
               Coming later
             </span>
             <span style={{ color: "#64748b", fontSize: 13 }}>
-              This strand guide is being developed.
+              This strand workspace is being developed.
             </span>
           </div>
         </div>
@@ -1872,468 +1664,13 @@ function MathematicsComingLaterStrandSection({
       </div>
 
       <section style={helperCardStyle}>
-        <strong style={{ color: "#0f172a" }}>This strand guide is being developed.</strong>
+        <strong style={{ color: "#0f172a" }}>This strand workspace is being developed.</strong>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
           The strand stays visible in the map so families can see what is coming next in
           the mathematics sequence without the page turning into a long curriculum archive.
         </p>
       </section>
     </div>
-  );
-}
-
-function NumberStageCard({
-  stage,
-  currentStage,
-  savedPathwayStatuses,
-  selectedLearnerId,
-  isOpen,
-  onToggle,
-  capturePathBase,
-}: {
-  stage: NumberPathwayStage;
-  currentStage: PathwayStageKey;
-  savedPathwayStatuses: SavedPathwayStatusMap;
-  selectedLearnerId: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  capturePathBase: string;
-}) {
-  const tone = getStageTone(stage.key, currentStage);
-  const summary = buildStageSummaryCounts(stage, currentStage, savedPathwayStatuses);
-  const panelId = `number-pathway-stage-${stage.key}`;
-  const summaryChips = [
-    {
-      key: "steps",
-      label: `${summary.steps} steps`,
-      border: "#e2e8f0",
-      background: "#ffffff",
-      color: "#475569",
-    },
-    summary.secure > 0
-      ? {
-          key: "secure",
-          label: `${summary.secure} secure`,
-          border: "#bbf7d0",
-          background: "#ecfdf5",
-          color: "#166534",
-        }
-      : null,
-    summary.readyToAssess > 0
-      ? {
-          key: "ready",
-          label: `${summary.readyToAssess} ready to assess`,
-          border: "#ddd6fe",
-          background: "#f5f3ff",
-          color: "#6d28d9",
-        }
-      : null,
-    summary.evidenceStarted > 0
-      ? {
-          key: "evidence",
-          label: `${summary.evidenceStarted} evidence started`,
-          border: "#bfdbfe",
-          background: "#eff6ff",
-          color: "#1d4ed8",
-        }
-      : null,
-  ].filter(Boolean) as Array<{
-    key: string;
-    label: string;
-    border: string;
-    background: string;
-    color: string;
-  }>;
-
-  return (
-    <section
-      style={{
-        border: `1px solid ${tone.border}`,
-        borderRadius: 20,
-        background: tone.background,
-        padding: 18,
-        display: "grid",
-        gap: 14,
-        boxShadow: tone.shadow,
-      }}
-    >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        aria-controls={panelId}
-        aria-label={`${isOpen ? "Collapse" : "Expand"} stage ${stage.title}`}
-        style={{
-          width: "100%",
-          border: "none",
-          background: "transparent",
-          padding: 0,
-          textAlign: "left",
-          cursor: "pointer",
-          display: "grid",
-          gap: 12,
-          outlineOffset: 3,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 12,
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
-            <span
-              style={{
-                color: tone.text,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-              }}
-            >
-              {tone.badge}
-            </span>
-            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>{stage.title}</h3>
-          </div>
-
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 10,
-              color: tone.text,
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            <span>{isOpen ? "Collapse stage" : "Expand stage"}</span>
-            <span
-              aria-hidden="true"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 30,
-                height: 30,
-                borderRadius: 999,
-                border: `1px solid ${tone.border}`,
-                background: "#ffffff",
-                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 140ms ease",
-                boxShadow: "0 4px 12px rgba(15,23,42,0.05)",
-              }}
-            >
-              v
-            </span>
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gap: 10 }}>
-          {isOpen ? (
-            <div style={{ color: "#475569", lineHeight: 1.6 }}>{stage.helper}</div>
-          ) : null}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            {summaryChips.map((chip) => (
-              <span
-                key={chip.key}
-                style={{
-                  border: `1px solid ${chip.border}`,
-                  background: chip.background,
-                  color: chip.color,
-                  borderRadius: 999,
-                  padding: "7px 10px",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  lineHeight: 1.3,
-                }}
-              >
-                {chip.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      </button>
-
-      <div
-        id={panelId}
-        hidden={!isOpen}
-        style={isOpen ? { display: "grid", gap: 10 } : { display: "none" }}
-      >
-        {stage.steps.map((step) => (
-            <NumberStepCard
-              key={`${stage.key}-${step.id}`}
-              step={step}
-              stageKey={stage.key}
-              stageTitle={stage.title}
-              savedPathwayStatuses={savedPathwayStatuses}
-              selectedLearnerId={selectedLearnerId}
-              currentStage={currentStage}
-              capturePathBase={capturePathBase}
-            />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function NumberStepCard({
-  step,
-  stageKey,
-  stageTitle,
-  savedPathwayStatuses,
-  selectedLearnerId,
-  currentStage,
-  capturePathBase,
-}: {
-  step: NumberPathwayStep;
-  stageKey: PathwayStageKey;
-  stageTitle: string;
-  savedPathwayStatuses: SavedPathwayStatusMap;
-  selectedLearnerId: string;
-  currentStage: PathwayStageKey;
-  capturePathBase: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const statusState = getDisplayedPathwayStatus(
-    step.id,
-    stageKey,
-    currentStage,
-    savedPathwayStatuses,
-  );
-  const status = statusState.status;
-  const meta = statusMeta[status];
-  const guidance = useMemo(() => getNumberPathwayStepGuidance(step), [step]);
-  const detailPanelId = `pathway-step-${stageKey}-${step.id}`;
-  const practiceButtonLabel = `Practise this pathway step`;
-  const assessButtonLabel = `Assessment checks coming later for this pathway step`;
-  const captureButtonLabel = `Capture evidence for this pathway step`;
-  const captureHref = useMemo(() => {
-    const params = buildPathwayCaptureSearchParams(
-      {
-        source: "my-pathways",
-        subjectKey: "mathematics",
-        subjectLabel: "My Mathematics",
-        pathwayKey: "number",
-        pathwayLabel: "Number pathway",
-        stageKey,
-        stageLabel: stageTitle,
-        stepNumber: String(step.id),
-        stepTitle: step.title,
-        stepMeaning: step.meaning,
-        skillFocus: guidance.skillFocus,
-      },
-      {
-        learnerId: selectedLearnerId || null,
-        learningAreaKey: "mathematics",
-        learningAreaLabel: "Mathematics",
-      },
-    );
-
-    return `${capturePathBase}?${params.toString()}`;
-  }, [
-    capturePathBase,
-    guidance.skillFocus,
-    selectedLearnerId,
-    stageKey,
-    stageTitle,
-    step.id,
-    step.meaning,
-    step.title,
-  ]);
-
-  return (
-    <article
-      style={{
-        border: `1px solid ${meta.border}`,
-        borderRadius: 16,
-        background: "#ffffff",
-        padding: 16,
-        display: "grid",
-        gap: 12,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 12,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <span
-              style={{
-                border: "1px solid #dbeafe",
-                background: "#eff6ff",
-                color: "#1d4ed8",
-                borderRadius: 999,
-                padding: "4px 10px",
-                fontSize: 12,
-                fontWeight: 800,
-              }}
-            >
-              Step {step.id}
-            </span>
-            <strong style={{ color: "#0f172a", fontSize: 16 }}>{step.title}</strong>
-          </div>
-          <div style={{ color: "#475569", lineHeight: 1.7 }}>{step.meaning}</div>
-        </div>
-
-        <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
-          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
-            <div
-              title={meta.helper}
-              style={{
-                border: `1px solid ${meta.border}`,
-                borderRadius: 999,
-                background: meta.fill,
-                padding: "8px 12px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <span
-                aria-hidden="true"
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 999,
-                  background: meta.dot,
-                  flexShrink: 0,
-                }}
-              />
-              <strong style={{ color: meta.text, fontSize: 12 }}>{status}</strong>
-            </div>
-            {statusState.fromSavedEvidence ? (
-              <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                Based on saved evidence
-              </div>
-            ) : null}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsOpen((current) => !current)}
-            aria-expanded={isOpen}
-            aria-controls={detailPanelId}
-            style={{
-              border: "1px solid #dbeafe",
-              background: "#ffffff",
-              color: "#1d4ed8",
-              borderRadius: 999,
-              padding: "8px 12px",
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span>{isOpen ? "Hide guidance" : "View guidance"}</span>
-            <span
-              aria-hidden="true"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 22,
-                height: 22,
-                borderRadius: 999,
-                border: "1px solid #dbeafe",
-                background: "#eff6ff",
-                transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 140ms ease",
-                fontSize: 11,
-              }}
-            >
-              v
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
-        <button
-          type="button"
-          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
-          disabled
-          title="Parent-guided practice for this pathway step will be added later."
-          aria-label={practiceButtonLabel}
-        >
-          Practise
-        </button>
-        <button
-          type="button"
-          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
-          disabled
-          title="Assessment checks coming later"
-          aria-label={assessButtonLabel}
-        >
-          Assess
-        </button>
-        <Link
-          href={captureHref}
-          style={{ ...buttonStyle, flex: "1 1 160px" }}
-          title="Open My Capture with this pathway step already connected."
-          aria-label={captureButtonLabel}
-        >
-          Capture evidence
-        </Link>
-      </div>
-
-      <div
-        id={detailPanelId}
-        hidden={!isOpen}
-        style={
-          isOpen
-            ? {
-                border: "1px solid #dbeafe",
-                borderRadius: 16,
-                background: "#f8fbff",
-                padding: 16,
-                display: "grid",
-                gap: 14,
-              }
-            : { display: "none" }
-        }
-      >
-        <PathwayStepGuidanceSection
-          title="What this means"
-          content={guidance.whatThisMeans}
-        />
-        <PathwayStepGuidanceSection
-          title="Skill being developed"
-          content={guidance.skillFocus}
-        />
-        <PathwayStepGuidanceSection
-          title="Learning intention"
-          content={guidance.learningIntention}
-        />
-        <PathwayStepGuidanceListSection
-          title="Success looks like"
-          items={guidance.successCriteria}
-        />
-        <PathwayStepGuidanceSection
-          title="Try this activity"
-          content={guidance.practiceActivity}
-        />
-        <PathwayStepGuidanceListSection
-          title="Evidence you could capture"
-          items={guidance.evidenceExamples}
-        />
-        <PathwayStepGuidanceSection
-          title="Assessment check later"
-          content={guidance.assessmentCheck}
-        />
-      </div>
-    </article>
   );
 }
 

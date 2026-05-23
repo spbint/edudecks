@@ -1,3 +1,8 @@
+import type {
+  MathematicsDetailedStrandStep,
+  MathematicsDetailedStrandWorkspace,
+} from "@/lib/clean/pathways/mathematicsDetailedStrands";
+
 export type PathwayDomainStatus = "first-detailed" | "detailed" | "coming-later";
 
 export type PathwayProgressStatus =
@@ -1194,5 +1199,57 @@ export function getNumberPathwayStepGuidance(
     practiceActivity: step.practiceActivity || getDefaultPracticeActivity(category, step),
     evidenceExamples,
     assessmentCheck: step.assessmentCheck || getDefaultAssessmentCheck(category, step),
+  };
+}
+
+function buildNumberWorkspaceStep(step: NumberPathwayStep): MathematicsDetailedStrandStep {
+  const guidance = getNumberPathwayStepGuidance(step);
+
+  return {
+    id: step.id,
+    title: step.title,
+    meaning: step.meaning,
+    skillFocus: guidance.skillFocus,
+    learningIntention: guidance.learningIntention,
+    successCriteria: guidance.successCriteria,
+    practiceActivity: guidance.practiceActivity,
+    evidenceExamples: guidance.evidenceExamples,
+    assessmentCheck: guidance.assessmentCheck,
+    nextStep: "Follow the next pathway step when this idea begins to feel more settled.",
+    reportLanguage:
+      "Parent observations can note growing confidence, clearer explanations, and stronger number reasoning over time.",
+  };
+}
+
+export function buildNumberAndPlaceValueWorkspace(
+  currentFocusStageKey: PathwayStageKey,
+): MathematicsDetailedStrandWorkspace {
+  return {
+    key: "number-and-place-value",
+    trackingKey: "number",
+    title: "Number and place value",
+    subtitle:
+      "Number and place value is the foundation strand for later mathematics. It helps learners build confidence with quantity, counting, comparison, place value, and the structure of the number system before later ideas become more complex.",
+    pathwayLabel: "Number pathway",
+    relationshipTitle: "Why start here",
+    relationshipCopy:
+      "This strand gives the clearest starting point for most learners because it supports later calculation, fractions, proportional thinking, measurement, and practical decision-making.",
+    currentFocusStageKey,
+    stages: NUMBER_PATHWAY_STAGES.map((stage) => ({
+      key: stage.key,
+      title: stage.title,
+      helper: stage.helper,
+      steps: stage.steps.map(buildNumberWorkspaceStep),
+    })),
+    portfolioSupport: [
+      "Save strong number evidence when a learner explains a strategy clearly or shows a visible shift from counting to more confident reasoning.",
+      "Photos of worked thinking, number lines, or practical counting tasks can show progress well over time.",
+      "Short parent notes about how the learner compared, regrouped, or justified an answer can strengthen later portfolio evidence.",
+    ],
+    reportingSupport: [
+      "Reporting can highlight growing confidence with counting, place value, comparison, and flexible number strategies rather than only correct answers.",
+      "Collected evidence over time can show how the learner moved from concrete quantity work toward more fluent number reasoning.",
+      "Practical family tasks often make number understanding easier to describe clearly in a calm homeschool report.",
+    ],
   };
 }

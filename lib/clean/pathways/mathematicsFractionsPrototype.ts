@@ -2,6 +2,7 @@ import type { MathematicsDetailedStrandWorkspace } from "@/lib/clean/pathways/ma
 
 export const FRACTIONS_DECIMALS_PERCENTAGES_WORKSPACE: MathematicsDetailedStrandWorkspace = {
   key: "fractions-decimals-percentages",
+  trackingKey: "fractions-decimals-percentages",
   title: "Fractions, decimals, and percentages",
   subtitle:
     "Fractions, decimals, and percentages help learners describe parts, relationships, and proportional thinking with growing confidence. This strand builds naturally from number understanding and calculation, then opens the door to more flexible reasoning about quantity, comparison, scale, and value.",

@@ -21,6 +21,7 @@ export type MathematicsDetailedStrandStage = {
 
 export type MathematicsDetailedStrandWorkspace = {
   key: string;
+  trackingKey: string;
   title: string;
   subtitle: string;
   pathwayLabel: string;

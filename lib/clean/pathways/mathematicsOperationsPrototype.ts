@@ -2,6 +2,7 @@ import type { MathematicsDetailedStrandWorkspace } from "@/lib/clean/pathways/ma
 
 export const OPERATIONS_AND_CALCULATION_WORKSPACE: MathematicsDetailedStrandWorkspace = {
   key: "operations-and-calculation",
+  trackingKey: "operations-and-calculation",
   title: "Operations and calculation",
   subtitle:
     "Operations and calculation grows naturally out of number and place value. It helps learners move from acting out problems and counting everything to choosing dependable strategies, checking whether answers make sense, and solving richer mathematical situations with more confidence.",
