@@ -125,10 +125,10 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "arts",
     title: "Arts",
     description:
-      "Arts pathways will help families explore creating, responding, performing, presenting, visual expression, music, drama, dance, media, and creative communication.",
+      "Arts pathways help families explore creating, responding, performing, presenting, visual expression, music, drama, dance, media, and creative communication through staged strand progressions.",
     guidance:
-      "Over time, this subject will support creative growth, practical making, reflection, and evidence collection without flattening the arts into rigid checklisting.",
-    status: "coming-soon",
+      "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support creative growth, reflection, and later reporting.",
+    status: "detailed",
     futureStrands: [
       "Visual arts and design",
       "Music and sound",
@@ -138,7 +138,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Responding to artworks and creative choices",
     ],
     placeholderNote:
-      "Arts pathways are being prepared carefully so they remain creative, flexible, practical, and portfolio-friendly rather than overly formal.",
+      "Arts is now the sixth detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
   },
   {
     key: "health-pe",

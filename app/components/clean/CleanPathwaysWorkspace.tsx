@@ -55,6 +55,12 @@ import {
   TECHNOLOGIES_SUBJECT_OVERVIEW,
 } from "@/lib/clean/pathways/technologiesPathways";
 import {
+  ARTS_DOMAIN_CARDS,
+  ARTS_STRAND_WORKSPACE_BUILDERS,
+  ARTS_SUBJECT_OVERVIEW,
+  DEFAULT_ARTS_STRAND_KEY,
+} from "@/lib/clean/pathways/artsPathways";
+import {
   DEFAULT_HUMANITIES_STRAND_KEY,
   HUMANITIES_DOMAIN_CARDS,
   HUMANITIES_STRAND_WORKSPACE_BUILDERS,
@@ -206,6 +212,15 @@ const DETAILED_SUBJECT_CONFIGS: Partial<Record<PathwaySubjectKey, DetailedSubjec
     overviewTitle: TECHNOLOGIES_SUBJECT_OVERVIEW.title,
     overviewDescription: TECHNOLOGIES_SUBJECT_OVERVIEW.description,
     overviewHelper: TECHNOLOGIES_SUBJECT_OVERVIEW.helper,
+  },
+  arts: {
+    defaultStrandKey: DEFAULT_ARTS_STRAND_KEY,
+    domainCards: ARTS_DOMAIN_CARDS,
+    workspaceBuilders: ARTS_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: ARTS_SUBJECT_OVERVIEW.eyebrow,
+    overviewTitle: ARTS_SUBJECT_OVERVIEW.title,
+    overviewDescription: ARTS_SUBJECT_OVERVIEW.description,
+    overviewHelper: ARTS_SUBJECT_OVERVIEW.helper,
   },
 };
 
@@ -515,6 +530,7 @@ function PathwaysWorkspaceBody() {
     science: DEFAULT_SCIENCE_STRAND_KEY,
     humanities: DEFAULT_HUMANITIES_STRAND_KEY,
     technologies: DEFAULT_TECHNOLOGIES_STRAND_KEY,
+    arts: DEFAULT_ARTS_STRAND_KEY,
   });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
@@ -929,9 +945,9 @@ function PathwaysWorkspaceBody() {
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 Start with one subject, then move into strands, stages, and evidence.
-                Mathematics, English, Science, Humanities & Social Sciences, and Technologies
-                now use the detailed shared pathway engine, while the remaining subjects still
-                show calm pathway previews as they are shaped gradually.
+                Mathematics, English, Science, Humanities & Social Sciences, Technologies,
+                and Arts now use the detailed shared pathway engine, while the remaining
+                subjects still show calm pathway previews as they are shaped gradually.
               </p>
             </div>
 
@@ -1302,9 +1318,9 @@ function PathwaySubjectPlaceholderSection({
             <div style={eyebrowStyle}>Current beta note</div>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
             <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-              Mathematics, English, Science, Humanities & Social Sciences, and Technologies
-              are currently detailed while the wider subject pathway architecture continues
-              to expand.
+              Mathematics, English, Science, Humanities & Social Sciences, Technologies,
+              and Arts are currently detailed while the wider subject pathway architecture
+              continues to expand.
             </div>
           </section>
         </div>
