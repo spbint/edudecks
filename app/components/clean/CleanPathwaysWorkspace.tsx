@@ -26,6 +26,12 @@ import {
   buildOperationsAndCalculationWorkspace,
 } from "@/lib/clean/pathways/mathematicsOperationsPrototype";
 import { buildFractionsDecimalsPercentagesWorkspace } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
+import {
+  DEFAULT_PATHWAY_SUBJECT_KEY,
+  PATHWAY_SUBJECTS,
+  type PathwaySubjectDefinition,
+  type PathwaySubjectKey,
+} from "@/lib/clean/pathways/pathwaySubjects";
 import type {
   MathematicsDetailedStrandStage,
   MathematicsDetailedStrandStep,
@@ -383,6 +389,11 @@ function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
+  // Keep subject and strand selection explicit so later planning, capture, calendar,
+  // and reporting can point back to a stable subject -> strand -> stage -> step path.
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState<PathwaySubjectKey>(
+    DEFAULT_PATHWAY_SUBJECT_KEY,
+  );
   const [selectedMathematicsStrandKey, setSelectedMathematicsStrandKey] = useState(
     NUMBER_AND_PLACE_VALUE_STRAND_KEY,
   );
@@ -454,6 +465,9 @@ function PathwaysWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+  const selectedSubject =
+    PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) || PATHWAY_SUBJECTS[0];
+  const mathematicsSelected = selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY;
   const selectedMathematicsDomain =
     MATHEMATICS_DOMAIN_CARDS.find((domain) => domain.key === selectedMathematicsStrandKey) ||
     MATHEMATICS_DOMAIN_CARDS[0];
@@ -558,6 +572,17 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceCurrentStage,
     selectedWorkspaceStageIndex,
   ]);
+  const selectedSubjectSummaryTitle = mathematicsSelected
+    ? selectedMathematicsWorkspace?.title || "Mathematics pathways"
+    : `${selectedSubject.title} pathways`;
+  const selectedSubjectSummaryDescription = mathematicsSelected
+    ? selectedMathematicsWorkspace?.subtitle ||
+      "Choose a strand to explore the next pathway focus for this learner."
+    : selectedSubject.description;
+  const selectedSubjectSummaryHelper = mathematicsSelected
+    ? `Current stage focus: ${selectedWorkspaceCurrentStage?.title || "Choose a strand below"}`
+    : selectedSubject.guidance;
+  const selectedSubjectStatusLabel = mathematicsSelected ? "Detailed now" : "Coming gradually";
 
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
@@ -705,20 +730,26 @@ function PathwaysWorkspaceBody() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Current mathematics focus</div>
+                <div style={eyebrowStyle}>Current subject focus</div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  {selectedMathematicsWorkspace?.title || "Mathematics pathways"}
+                  {selectedSubjectSummaryTitle}
                 </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {selectedMathematicsWorkspace?.subtitle ||
-                    "Choose a strand to explore the next pathway focus for this learner."}
+                  {selectedSubjectSummaryDescription}
                 </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  Current stage focus:{" "}
+                  {mathematicsSelected ? "Current stage focus: " : "Current status: "}
                   <strong style={{ color: "#0f172a" }}>
-                    {selectedWorkspaceCurrentStage?.title || "Choose a strand below"}
+                    {mathematicsSelected
+                      ? selectedWorkspaceCurrentStage?.title || "Choose a strand below"
+                      : selectedSubjectStatusLabel}
                   </strong>
                 </div>
+                {!mathematicsSelected ? (
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    {selectedSubjectSummaryHelper}
+                  </div>
+                ) : null}
               </div>
 
               <div style={compactCardStyle}>
@@ -759,17 +790,12 @@ function PathwaysWorkspaceBody() {
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-              <div style={eyebrowStyle}>Mathematics F-10 / K-10 domain map</div>
-              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Mathematics pathway overview</h2>
+              <div style={eyebrowStyle}>Choose a subject</div>
+              <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                This prototype shows the wider mathematics pathway map while highlighting
-                Number as the foundational detailed strand, with Operations and calculation
-                and Fractions, decimals, and percentages now added as detailed follow-on strands.
-              </p>
-              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                Choose one strand to explore. The selected strand opens in the focused
-                workspace below, so the page stays calm and readable as more detailed strands
-                are added.
+                Start with one subject, then move into strands, stages, and evidence.
+                Mathematics is the first fully detailed subject for now, while other
+                subjects show calm pathway previews as they are shaped gradually.
               </p>
             </div>
 
@@ -777,225 +803,315 @@ function PathwaysWorkspaceBody() {
               style={{
                 display: "grid",
                 gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
               }}
             >
-              {MATHEMATICS_DOMAIN_CARDS.map((domain) => {
-                const detailed = domain.status !== "coming-later";
-                const firstDetailed = domain.status === "first-detailed";
-                const selected = domain.key === selectedMathematicsStrandKey;
+              <div style={compactCardStyle}>
+                <label htmlFor="pathway-subject-selector" style={{ color: "#334155", fontWeight: 700 }}>
+                  Viewing pathways for
+                </label>
+                <select
+                  id="pathway-subject-selector"
+                  value={selectedSubjectKey}
+                  onChange={(event) =>
+                    setSelectedSubjectKey(event.target.value as PathwaySubjectKey)
+                  }
+                  style={inputStyle}
+                >
+                  {PATHWAY_SUBJECTS.map((subject) => (
+                    <option key={subject.key} value={subject.key}>
+                      {subject.title}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  Choose a subject first. Detailed strand workspaces will expand from this same
+                  structure over time.
+                </div>
+              </div>
 
-                return (
-                  <button
-                    key={domain.key}
-                    type="button"
-                    onClick={() => handleSelectMathematicsStrand(domain.key)}
-                    aria-pressed={selected}
+              <div style={helperCardStyle}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={eyebrowStyle}>Selected subject</div>
+                  <span
                     style={{
-                      border: selected
-                        ? "1px solid #3b82f6"
-                        : detailed
-                          ? "1px solid #93c5fd"
-                          : "1px solid #e2e8f0",
-                      borderRadius: 18,
-                      background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
-                      padding: 18,
-                      display: "grid",
-                      gap: 10,
-                      width: "100%",
-                      minWidth: 0,
-                      textAlign: "left",
-                      cursor: "pointer",
-                      boxShadow: selected
-                        ? "0 14px 30px rgba(59,130,246,0.14)"
-                        : detailed
-                          ? "0 12px 28px rgba(59,130,246,0.08)"
-                        : "0 6px 18px rgba(15,23,42,0.04)",
-                      transition: "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
+                      border: selectedSubject.status === "detailed"
+                        ? "1px solid #bfdbfe"
+                        : "1px solid #e2e8f0",
+                      background: selectedSubject.status === "detailed" ? "#eff6ff" : "#f8fafc",
+                      color: selectedSubject.status === "detailed" ? "#1d4ed8" : "#64748b",
+                      borderRadius: 999,
+                      padding: "6px 10px",
+                      fontSize: 12,
+                      fontWeight: 800,
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        alignItems: "center",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
-                        {domain.title}
-                      </strong>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <span
-                          style={{
-                            border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                            background: detailed ? "#eff6ff" : "#f8fafc",
-                            color: detailed ? "#1d4ed8" : "#64748b",
-                            borderRadius: 999,
-                            padding: "6px 10px",
-                            fontSize: 12,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {firstDetailed
-                            ? "First detailed strand"
-                            : detailed
-                              ? "Detailed strand"
-                              : "Coming later"}
-                        </span>
-                        {selected ? (
-                          <span
-                            style={{
-                              border: "1px solid #93c5fd",
-                              background: "#ffffff",
-                              color: "#1d4ed8",
-                              borderRadius: 999,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            Selected
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.description}</div>
-                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>{domain.whyItMatters}</div>
-                    <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
-                      {selected
-                        ? "Showing this strand below"
-                        : detailed
-                          ? "Open this detailed strand"
-                          : "Preview this strand"}
-                    </div>
-                  </button>
-                );
-              })}
+                    {selectedSubjectStatusLabel}
+                  </span>
+                </div>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>{selectedSubject.title}</strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>{selectedSubject.description}</div>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>{selectedSubject.guidance}</div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section
-          ref={mathematicsDetailWorkspaceRef}
-          tabIndex={-1}
-          style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
-        >
-          {selectedMathematicsWorkspace ? (
-            <MathematicsStrandWorkspaceShell
-              eyebrow="Selected strand"
-              title={selectedMathematicsWorkspace.title}
-              subtitle={selectedMathematicsWorkspace.subtitle}
-              relationshipTitle={selectedMathematicsWorkspace.relationshipTitle}
-              relationshipCopy={selectedMathematicsWorkspace.relationshipCopy}
-              stageRailItems={selectedMathematicsWorkspace.stages.map((stage, stageIndex) => ({
-                key: stage.key,
-                title: stage.title,
-                tone: getPathwayStageTone(stageIndex, selectedWorkspaceStageIndex),
-              }))}
-              summaryCards={[
-                {
-                  label: "Current stage snapshot",
-                  value: selectedWorkspaceCurrentStage?.title || "Current focus",
-                  helper:
-                    selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY
-                      ? "Prototype view for the selected learner's likely pathway stage."
-                      : "Prototype guidance for where this strand could begin for many families.",
-                },
-                {
-                  label: "secure steps",
-                  value: String(selectedWorkspaceSnapshot?.secure || 0),
-                  valueColor: "#166534",
-                },
-                {
-                  label: "ready to assess",
-                  value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
-                  valueColor: "#6d28d9",
-                },
-                {
-                  label: "evidence started",
-                  value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
-                  valueColor: "#1d4ed8",
-                },
-                {
-                  label: "practising",
-                  value: String(selectedWorkspaceSnapshot?.practising || 0),
-                  valueColor: "#c2410c",
-                },
-                {
-                  label: "not started",
-                  value: String(selectedWorkspaceSnapshot?.notStarted || 0),
-                  valueColor: "#64748b",
-                },
-              ]}
-              supportCards={[
-                {
-                  title: "Portfolio support",
-                  items: selectedMathematicsWorkspace.portfolioSupport,
-                },
-                {
-                  title: "Reporting support",
-                  items: selectedMathematicsWorkspace.reportingSupport,
-                },
-                {
-                  title: "What comes next",
-                  items: [
-                    selectedWorkspaceCurrentStage
-                      ? `Current pathway focus: ${selectedWorkspaceCurrentStage.title}`
-                      : "Current pathway focus will show here.",
-                    selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]
-                      ? `Next progression: ${selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
-                      : "This selected stage is currently the latest detailed progression in this strand.",
-                  ],
-                },
-              ]}
-            >
+        {mathematicsSelected ? (
+          <>
+            <section style={cardStyle}>
               <div style={{ display: "grid", gap: 16 }}>
-                {selectedMathematicsWorkspace.stages.map((stage, stageIndex) => (
-                  <DetailedMathematicsStageCard
-                    key={`${selectedMathematicsWorkspace.key}-${stage.key}`}
-                    strand={selectedMathematicsWorkspace}
-                    stage={stage}
-                    stageIndex={stageIndex}
-                    currentStageIndex={selectedWorkspaceStageIndex}
-                    savedPathwayStatuses={savedPathwayStatuses}
-                    selectedLearnerId={selectedLearner?.id || ""}
-                    isOpen={getStageOpenState(
-                      selectedMathematicsWorkspace.key,
-                      stage.key,
-                      stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
-                    )}
-                    onToggle={() =>
-                      toggleStageOpen(
-                        selectedMathematicsWorkspace.key,
-                        stage.key,
-                        stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
-                      )
-                    }
-                    capturePathBase={capturePathBase}
-                  />
-                ))}
+                <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+                  <div style={eyebrowStyle}>Mathematics F-10 / K-10 domain map</div>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                    Mathematics pathway overview
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    This prototype shows the wider mathematics pathway map while highlighting
+                    Number as the foundational detailed strand, with Operations and calculation
+                    and Fractions, decimals, and percentages now added as detailed follow-on strands.
+                  </p>
+                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                    Choose one strand to explore. The selected strand opens in the focused
+                    workspace below, so the page stays calm and readable as more detailed strands
+                    are added.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 14,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  }}
+                >
+                  {MATHEMATICS_DOMAIN_CARDS.map((domain) => {
+                    const detailed = domain.status !== "coming-later";
+                    const firstDetailed = domain.status === "first-detailed";
+                    const selected = domain.key === selectedMathematicsStrandKey;
+
+                    return (
+                      <button
+                        key={domain.key}
+                        type="button"
+                        onClick={() => handleSelectMathematicsStrand(domain.key)}
+                        aria-pressed={selected}
+                        style={{
+                          border: selected
+                            ? "1px solid #3b82f6"
+                            : detailed
+                              ? "1px solid #93c5fd"
+                              : "1px solid #e2e8f0",
+                          borderRadius: 18,
+                          background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
+                          padding: 18,
+                          display: "grid",
+                          gap: 10,
+                          width: "100%",
+                          minWidth: 0,
+                          textAlign: "left",
+                          cursor: "pointer",
+                          boxShadow: selected
+                            ? "0 14px 30px rgba(59,130,246,0.14)"
+                            : detailed
+                              ? "0 12px 28px rgba(59,130,246,0.08)"
+                              : "0 6px 18px rgba(15,23,42,0.04)",
+                          transition:
+                            "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 10,
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
+                            {domain.title}
+                          </strong>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                              justifyContent: "flex-end",
+                            }}
+                          >
+                            <span
+                              style={{
+                                border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                                background: detailed ? "#eff6ff" : "#f8fafc",
+                                color: detailed ? "#1d4ed8" : "#64748b",
+                                borderRadius: 999,
+                                padding: "6px 10px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {firstDetailed
+                                ? "First detailed strand"
+                                : detailed
+                                  ? "Detailed strand"
+                                  : "Coming later"}
+                            </span>
+                            {selected ? (
+                              <span
+                                style={{
+                                  border: "1px solid #93c5fd",
+                                  background: "#ffffff",
+                                  color: "#1d4ed8",
+                                  borderRadius: 999,
+                                  padding: "6px 10px",
+                                  fontSize: 12,
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Selected
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.description}</div>
+                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>{domain.whyItMatters}</div>
+                        <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+                          {selected
+                            ? "Showing this strand below"
+                            : detailed
+                              ? "Open this detailed strand"
+                              : "Preview this strand"}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </MathematicsStrandWorkspaceShell>
-          ) : (
-            <MathematicsComingLaterStrandSection domain={selectedMathematicsDomain} />
-          )}
-        </section>
+            </section>
+
+            <section
+              ref={mathematicsDetailWorkspaceRef}
+              tabIndex={-1}
+              style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
+            >
+              {selectedMathematicsWorkspace ? (
+                <MathematicsStrandWorkspaceShell
+                  eyebrow="Selected strand"
+                  title={selectedMathematicsWorkspace.title}
+                  subtitle={selectedMathematicsWorkspace.subtitle}
+                  relationshipTitle={selectedMathematicsWorkspace.relationshipTitle}
+                  relationshipCopy={selectedMathematicsWorkspace.relationshipCopy}
+                  stageRailItems={selectedMathematicsWorkspace.stages.map((stage, stageIndex) => ({
+                    key: stage.key,
+                    title: stage.title,
+                    tone: getPathwayStageTone(stageIndex, selectedWorkspaceStageIndex),
+                  }))}
+                  summaryCards={[
+                    {
+                      label: "Current stage snapshot",
+                      value: selectedWorkspaceCurrentStage?.title || "Current focus",
+                      helper: "Prototype view for the selected learner's likely pathway stage.",
+                    },
+                    {
+                      label: "secure steps",
+                      value: String(selectedWorkspaceSnapshot?.secure || 0),
+                      valueColor: "#166534",
+                    },
+                    {
+                      label: "ready to assess",
+                      value: String(selectedWorkspaceSnapshot?.readyToAssess || 0),
+                      valueColor: "#6d28d9",
+                    },
+                    {
+                      label: "evidence started",
+                      value: String(selectedWorkspaceSnapshot?.evidenceStarted || 0),
+                      valueColor: "#1d4ed8",
+                    },
+                    {
+                      label: "practising",
+                      value: String(selectedWorkspaceSnapshot?.practising || 0),
+                      valueColor: "#c2410c",
+                    },
+                    {
+                      label: "not started",
+                      value: String(selectedWorkspaceSnapshot?.notStarted || 0),
+                      valueColor: "#64748b",
+                    },
+                  ]}
+                  supportCards={[
+                    {
+                      title: "Portfolio support",
+                      items: selectedMathematicsWorkspace.portfolioSupport,
+                    },
+                    {
+                      title: "Reporting support",
+                      items: selectedMathematicsWorkspace.reportingSupport,
+                    },
+                    {
+                      title: "What comes next",
+                      items: [
+                        selectedWorkspaceCurrentStage
+                          ? `Current pathway focus: ${selectedWorkspaceCurrentStage.title}`
+                          : "Current pathway focus will show here.",
+                        selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]
+                          ? `Next progression: ${selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
+                          : "This selected stage is currently the latest detailed progression in this strand.",
+                      ],
+                    },
+                  ]}
+                >
+                  <div style={{ display: "grid", gap: 16 }}>
+                    {selectedMathematicsWorkspace.stages.map((stage, stageIndex) => (
+                      <DetailedMathematicsStageCard
+                        key={`${selectedMathematicsWorkspace.key}-${stage.key}`}
+                        strand={selectedMathematicsWorkspace}
+                        stage={stage}
+                        stageIndex={stageIndex}
+                        currentStageIndex={selectedWorkspaceStageIndex}
+                        savedPathwayStatuses={savedPathwayStatuses}
+                        selectedLearnerId={selectedLearner?.id || ""}
+                        isOpen={getStageOpenState(
+                          selectedMathematicsWorkspace.key,
+                          stage.key,
+                          stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
+                        )}
+                        onToggle={() =>
+                          toggleStageOpen(
+                            selectedMathematicsWorkspace.key,
+                            stage.key,
+                            stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
+                          )
+                        }
+                        capturePathBase={capturePathBase}
+                      />
+                    ))}
+                  </div>
+                </MathematicsStrandWorkspaceShell>
+              ) : (
+                <MathematicsComingLaterStrandSection domain={selectedMathematicsDomain} />
+              )}
+            </section>
+          </>
+        ) : (
+          <PathwaySubjectPlaceholderSection subject={selectedSubject} />
+        )}
 
         <section style={helperCardStyle}>
           <strong style={{ color: "#0f172a" }}>Create a learning plan from a pathway</strong>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-            Later, MyLearna will help turn selected pathway steps into a simple learning
-            plan that can be placed into My Calendar and My Day.
+            {mathematicsSelected
+              ? "Later, MyLearna will help turn selected pathway steps into a simple learning plan that can be placed into My Calendar and My Day."
+              : `${selectedSubject.title} pathways will later use the same subject -> strand -> stage -> step structure to support planning in My Calendar and My Day.`}
           </p>
           <div>
             <button type="button" style={disabledButtonStyle} disabled>
@@ -1005,6 +1121,62 @@ function PathwaysWorkspaceBody() {
         </section>
       </div>
     </div>
+  );
+}
+
+function PathwaySubjectPlaceholderSection({
+  subject,
+}: {
+  subject: PathwaySubjectDefinition;
+}) {
+  return (
+    <section style={cardStyle}>
+      <div style={{ display: "grid", gap: 18 }}>
+        <div style={{ display: "grid", gap: 8, maxWidth: 820 }}>
+          <div style={eyebrowStyle}>Selected subject</div>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{subject.title} pathways</h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{subject.description}</p>
+          <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>{subject.guidance}</p>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          }}
+        >
+          <section style={helperCardStyle}>
+            <div style={eyebrowStyle}>Likely future strands</div>
+            <div style={{ display: "grid", gap: 8 }}>
+              {subject.futureStrands.map((strand) => (
+                <div key={`${subject.key}-${strand}`} style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {strand}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={summaryCardStyle}>
+            <div style={eyebrowStyle}>How this will help</div>
+            <div style={{ display: "grid", gap: 8, color: "#475569", lineHeight: 1.6 }}>
+              <div>Choose a strand or domain inside the subject.</div>
+              <div>Review current focus, next steps, and evidence ideas.</div>
+              <div>Build portfolio and reporting support over time.</div>
+            </div>
+          </section>
+
+          <section style={summaryCardStyle}>
+            <div style={eyebrowStyle}>Current beta note</div>
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>{subject.placeholderNote}</div>
+            <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+              Mathematics remains the first fully detailed subject while the wider subject
+              pathway architecture is established.
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
   );
 }
 
