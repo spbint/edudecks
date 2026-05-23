@@ -106,10 +106,10 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "technologies",
     title: "Technologies",
     description:
-      "Technologies pathways will help families explore designing, making, digital systems, computational thinking, materials, tools, food, engineering ideas, and practical problem-solving.",
+      "Technologies pathways help families explore designing, making, digital systems, computational thinking, materials, tools, food, engineering ideas, and practical problem-solving through staged strand progressions.",
     guidance:
-      "Over time, this subject will support hands-on making, digital confidence, and practical problem-solving through calm strands and evidence-friendly pathway steps.",
-    status: "coming-soon",
+      "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support hands-on making, digital confidence, problem-solving, and later reporting.",
+    status: "detailed",
     futureStrands: [
       "Design and production",
       "Digital technologies and systems",
@@ -119,7 +119,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Engineering, systems and problem-solving",
     ],
     placeholderNote:
-      "Technologies pathways are being prepared so practical making, digital systems, and hands-on problem-solving stay calm, visible, and manageable in homeschool life.",
+      "Technologies is now the fifth detailed subject pathway and follows the same calm strand -> stage -> evidence structure as the earlier detailed subjects.",
   },
   {
     key: "arts",
