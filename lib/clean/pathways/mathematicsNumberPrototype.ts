@@ -1,4 +1,4 @@
-export type PathwayDomainStatus = "first-detailed" | "coming-later";
+export type PathwayDomainStatus = "first-detailed" | "detailed" | "coming-later";
 
 export type PathwayProgressStatus =
   | "Not started"
@@ -84,7 +84,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Use addition, subtraction, multiplication, and division flexibly and accurately.",
     whyItMatters:
       "Learners need dependable calculation strategies before they can solve richer problems independently.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "fractions-decimals-percentages",

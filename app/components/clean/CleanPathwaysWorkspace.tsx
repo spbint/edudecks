@@ -27,6 +27,10 @@ import {
   getStageProgressionLabel,
   inferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import {
+  OPERATIONS_AND_CALCULATION_GUIDE,
+  type MathematicsDetailedStrandGuide,
+} from "@/lib/clean/pathways/mathematicsOperationsPrototype";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -75,6 +79,16 @@ const summaryCardStyle: React.CSSProperties = {
   display: "grid",
   gap: 8,
   boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
+};
+
+const strandGuideCardStyle: React.CSSProperties = {
+  border: "1px solid #dbeafe",
+  borderRadius: 18,
+  background: "#f8fbff",
+  padding: 18,
+  display: "grid",
+  gap: 12,
+  boxShadow: "0 10px 24px rgba(59,130,246,0.06)",
 };
 
 const inputStyle: React.CSSProperties = {
@@ -686,7 +700,8 @@ function PathwaysWorkspaceBody() {
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Mathematics pathway overview</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 This prototype shows the wider mathematics pathway map while highlighting
-                Number as the first detailed strand.
+                Number as the foundational detailed strand and Operations and calculation as the
+                next detailed follow-on strand.
               </p>
             </div>
 
@@ -698,7 +713,8 @@ function PathwaysWorkspaceBody() {
               }}
             >
               {MATHEMATICS_DOMAIN_CARDS.map((domain) => {
-                const detailed = domain.status === "first-detailed";
+                const detailed = domain.status !== "coming-later";
+                const firstDetailed = domain.status === "first-detailed";
 
                 return (
                   <article
@@ -736,7 +752,11 @@ function PathwaysWorkspaceBody() {
                           fontWeight: 800,
                         }}
                       >
-                        {detailed ? "First detailed strand" : "Coming later"}
+                        {firstDetailed
+                          ? "First detailed strand"
+                          : detailed
+                            ? "Detailed strand"
+                            : "Coming later"}
                       </span>
                     </div>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.description}</div>
@@ -746,6 +766,10 @@ function PathwaysWorkspaceBody() {
               })}
             </div>
           </div>
+        </section>
+
+        <section style={cardStyle}>
+          <MathematicsDetailedStrandGuideSection guide={OPERATIONS_AND_CALCULATION_GUIDE} />
         </section>
 
         <section style={cardStyle}>
@@ -905,6 +929,118 @@ function PathwaysWorkspaceBody() {
         </section>
       </div>
     </div>
+  );
+}
+
+function MathematicsDetailedStrandGuideSection({
+  guide,
+}: {
+  guide: MathematicsDetailedStrandGuide;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 14,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "grid", gap: 8, maxWidth: 820 }}>
+          <div style={eyebrowStyle}>Next detailed strand</div>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{guide.title}</h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{guide.subtitle}</p>
+        </div>
+
+        <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
+          <div style={eyebrowStyle}>Why this strand follows Number</div>
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+            Number and place value gives learners the structure of the number system.
+            Operations and calculation turns that structure into useful, dependable action.
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        }}
+      >
+        <MathematicsStrandGuideCard
+          title="Overview"
+          items={guide.overview}
+        />
+        <MathematicsStrandGuideCard
+          title="Why it matters"
+          items={guide.whyItMatters}
+        />
+        <MathematicsStrandGuideCard
+          title="Progression structure"
+          items={guide.progressionStructure}
+          wide
+        />
+        <MathematicsStrandGuideCard
+          title="Real homeschool examples"
+          items={guide.homeschoolExamples}
+        />
+        <MathematicsStrandGuideCard
+          title="Capture ideas"
+          items={guide.captureIdeas}
+        />
+        <MathematicsStrandGuideCard
+          title="Portfolio ideas"
+          items={guide.portfolioIdeas}
+        />
+        <MathematicsStrandGuideCard
+          title="Reporting language examples"
+          items={guide.reportingExamples}
+          wide
+        />
+        <MathematicsStrandGuideCard
+          title="Next learning connections"
+          items={guide.nextLearningConnections}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MathematicsStrandGuideCard({
+  title,
+  items,
+  wide = false,
+}: {
+  title: string;
+  items: string[];
+  wide?: boolean;
+}) {
+  return (
+    <section
+      style={{
+        ...strandGuideCardStyle,
+        gridColumn: wide ? "1 / -1" : undefined,
+      }}
+    >
+      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
+      <ul
+        style={{
+          margin: 0,
+          paddingLeft: 18,
+          color: "#475569",
+          lineHeight: 1.7,
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        {items.map((item) => (
+          <li key={`${title}-${item}`}>{item}</li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
