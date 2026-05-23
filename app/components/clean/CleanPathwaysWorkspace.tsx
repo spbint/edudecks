@@ -18,13 +18,14 @@ import type { Learner } from "@/lib/clean/learners/types";
 import {
   MATHEMATICS_DOMAIN_CARDS,
   type PathwayProgressStatus,
+  type PathwayStageKey,
   buildNumberAndPlaceValueWorkspace,
   inferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
-  OPERATIONS_AND_CALCULATION_WORKSPACE,
+  buildOperationsAndCalculationWorkspace,
 } from "@/lib/clean/pathways/mathematicsOperationsPrototype";
-import { FRACTIONS_DECIMALS_PERCENTAGES_WORKSPACE } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
+import { buildFractionsDecimalsPercentagesWorkspace } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
 import type {
   MathematicsDetailedStrandStage,
   MathematicsDetailedStrandStep,
@@ -81,13 +82,12 @@ const summaryCardStyle: React.CSSProperties = {
 };
 
 const NUMBER_AND_PLACE_VALUE_STRAND_KEY = "number-and-place-value";
-
-const MATHEMATICS_STRAND_WORKSPACE_CONFIG: Record<
+const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<
   string,
-  MathematicsDetailedStrandWorkspace
+  (currentFocusStageKey: PathwayStageKey) => MathematicsDetailedStrandWorkspace
 > = {
-  "operations-and-calculation": OPERATIONS_AND_CALCULATION_WORKSPACE,
-  "fractions-decimals-percentages": FRACTIONS_DECIMALS_PERCENTAGES_WORKSPACE,
+  "operations-and-calculation": buildOperationsAndCalculationWorkspace,
+  "fractions-decimals-percentages": buildFractionsDecimalsPercentagesWorkspace,
 };
 
 const inputStyle: React.CSSProperties = {
@@ -277,7 +277,7 @@ function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
   }
 
   return {
-    badge: "Coming next",
+    badge: "Later progression",
     border: "#e2e8f0",
     background: "#ffffff",
     shadow: "0 4px 14px rgba(15,23,42,0.04)",
@@ -462,7 +462,8 @@ function PathwaysWorkspaceBody() {
       return buildNumberAndPlaceValueWorkspace(currentNumberFocusStageKey);
     }
 
-    return MATHEMATICS_STRAND_WORKSPACE_CONFIG[selectedMathematicsStrandKey] || null;
+    const buildWorkspace = MATHEMATICS_STRAND_WORKSPACE_BUILDERS[selectedMathematicsStrandKey];
+    return buildWorkspace ? buildWorkspace(currentNumberFocusStageKey) : null;
   }, [currentNumberFocusStageKey, selectedMathematicsStrandKey]);
 
   useEffect(() => {
