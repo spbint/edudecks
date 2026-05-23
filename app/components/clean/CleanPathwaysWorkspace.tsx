@@ -37,6 +37,13 @@ import {
   buildStatisticsAndDataWorkspace,
 } from "@/lib/clean/pathways/mathematicsAdditionalStrands";
 import {
+  DEFAULT_ENGLISH_STRAND_KEY,
+  ENGLISH_DOMAIN_CARDS,
+  ENGLISH_STRAND_WORKSPACE_BUILDERS,
+  ENGLISH_SUBJECT_OVERVIEW,
+  type SubjectStrandCard,
+} from "@/lib/clean/pathways/englishPathways";
+import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
   type PathwaySubjectDefinition,
@@ -98,10 +105,21 @@ const summaryCardStyle: React.CSSProperties = {
 };
 
 const NUMBER_AND_PLACE_VALUE_STRAND_KEY = "number-and-place-value";
-const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<
-  string,
-  (currentFocusStageKey: PathwayStageKey) => MathematicsDetailedStrandWorkspace
-> = {
+type PathwayWorkspaceBuilder = (
+  currentFocusStageKey: PathwayStageKey,
+) => MathematicsDetailedStrandWorkspace;
+
+type DetailedSubjectConfig = {
+  defaultStrandKey: string;
+  domainCards: SubjectStrandCard[];
+  workspaceBuilders: Record<string, PathwayWorkspaceBuilder>;
+  overviewEyebrow: string;
+  overviewTitle: string;
+  overviewDescription: string;
+  overviewHelper: string;
+};
+
+const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<string, PathwayWorkspaceBuilder> = {
   "operations-and-calculation": buildOperationsAndCalculationWorkspace,
   "fractions-decimals-percentages": buildFractionsDecimalsPercentagesWorkspace,
   "ratio-and-proportional-reasoning": buildRatioAndProportionalReasoningWorkspace,
@@ -113,6 +131,37 @@ const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<
   "financial-and-real-world-mathematics": buildFinancialAndRealWorldMathematicsWorkspace,
   "mathematical-reasoning-modelling-and-explanation":
     buildMathematicalReasoningModellingAndExplanationWorkspace,
+};
+
+const EMPTY_STRAND_CARD: SubjectStrandCard = {
+  key: "selected-strand",
+  title: "Selected strand",
+  description: "Choose a strand to open the detailed pathway workspace.",
+  whyItMatters: "Detailed strand guidance will appear here when a populated strand is selected.",
+  status: "coming-later",
+};
+
+const DETAILED_SUBJECT_CONFIGS: Partial<Record<PathwaySubjectKey, DetailedSubjectConfig>> = {
+  mathematics: {
+    defaultStrandKey: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+    domainCards: MATHEMATICS_DOMAIN_CARDS,
+    workspaceBuilders: MATHEMATICS_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: "Mathematics F-10 / K-10 domain map",
+    overviewTitle: "Mathematics pathway overview",
+    overviewDescription:
+      "This prototype shows the wider mathematics pathway map while highlighting Number as the foundational detailed strand, with Operations and calculation and Fractions, decimals, and percentages now added as detailed follow-on strands.",
+    overviewHelper:
+      "Choose one strand to explore. The selected strand opens in the focused workspace below, so the page stays calm and readable as more detailed strands are added.",
+  },
+  english: {
+    defaultStrandKey: DEFAULT_ENGLISH_STRAND_KEY,
+    domainCards: ENGLISH_DOMAIN_CARDS,
+    workspaceBuilders: ENGLISH_STRAND_WORKSPACE_BUILDERS,
+    overviewEyebrow: ENGLISH_SUBJECT_OVERVIEW.eyebrow,
+    overviewTitle: ENGLISH_SUBJECT_OVERVIEW.title,
+    overviewDescription: ENGLISH_SUBJECT_OVERVIEW.description,
+    overviewHelper: ENGLISH_SUBJECT_OVERVIEW.helper,
+  },
 };
 
 const inputStyle: React.CSSProperties = {
@@ -413,12 +462,15 @@ function PathwaysWorkspaceBody() {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<PathwaySubjectKey>(
     DEFAULT_PATHWAY_SUBJECT_KEY,
   );
-  const [selectedMathematicsStrandKey, setSelectedMathematicsStrandKey] = useState(
-    NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-  );
+  const [selectedStrandKeyBySubject, setSelectedStrandKeyBySubject] = useState<
+    Partial<Record<PathwaySubjectKey, string>>
+  >({
+    mathematics: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+    english: DEFAULT_ENGLISH_STRAND_KEY,
+  });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
-  const mathematicsDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
+  const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   const learnerOptions = useMemo(
     () =>
@@ -486,18 +538,26 @@ function PathwaysWorkspaceBody() {
   ]);
   const selectedSubject =
     PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) || PATHWAY_SUBJECTS[0];
-  const mathematicsSelected = selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY;
-  const selectedMathematicsDomain =
-    MATHEMATICS_DOMAIN_CARDS.find((domain) => domain.key === selectedMathematicsStrandKey) ||
-    MATHEMATICS_DOMAIN_CARDS[0];
-  const selectedMathematicsWorkspace = useMemo(() => {
-    if (selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY) {
+  const selectedDetailedSubjectConfig = DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null;
+  const selectedSubjectSupportsDetailedPathways = Boolean(selectedDetailedSubjectConfig);
+  const selectedStrandKey = selectedDetailedSubjectConfig
+    ? selectedStrandKeyBySubject[selectedSubjectKey] || selectedDetailedSubjectConfig.defaultStrandKey
+    : "";
+  const selectedSubjectDomainCards = selectedDetailedSubjectConfig?.domainCards || [];
+  const selectedSubjectDomain =
+    selectedSubjectDomainCards.find((domain) => domain.key === selectedStrandKey) ||
+    selectedSubjectDomainCards[0] ||
+    EMPTY_STRAND_CARD;
+  const selectedSubjectWorkspace = useMemo(() => {
+    if (!selectedDetailedSubjectConfig) return null;
+
+    if (selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY && selectedStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY) {
       return buildNumberAndPlaceValueWorkspace(currentNumberFocusStageKey);
     }
 
-    const buildWorkspace = MATHEMATICS_STRAND_WORKSPACE_BUILDERS[selectedMathematicsStrandKey];
+    const buildWorkspace = selectedDetailedSubjectConfig.workspaceBuilders[selectedStrandKey];
     return buildWorkspace ? buildWorkspace(currentNumberFocusStageKey) : null;
-  }, [currentNumberFocusStageKey, selectedMathematicsStrandKey]);
+  }, [currentNumberFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey, selectedSubjectKey]);
 
   useEffect(() => {
     let active = true;
@@ -563,23 +623,23 @@ function PathwaysWorkspaceBody() {
   ]);
 
   const selectedWorkspaceStageIndex = useMemo(() => {
-    if (!selectedMathematicsWorkspace) return -1;
+    if (!selectedSubjectWorkspace) return -1;
     return Math.max(
       0,
-      selectedMathematicsWorkspace.stages.findIndex(
-        (stage) => stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
+      selectedSubjectWorkspace.stages.findIndex(
+        (stage) => stage.key === selectedSubjectWorkspace.currentFocusStageKey,
       ),
     );
-  }, [selectedMathematicsWorkspace]);
+  }, [selectedSubjectWorkspace]);
   const selectedWorkspaceCurrentStage = useMemo(() => {
-    if (!selectedMathematicsWorkspace) return null;
-    return selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex] || null;
-  }, [selectedMathematicsWorkspace, selectedWorkspaceStageIndex]);
+    if (!selectedSubjectWorkspace) return null;
+    return selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex] || null;
+  }, [selectedSubjectWorkspace, selectedWorkspaceStageIndex]);
   const selectedWorkspaceSnapshot = useMemo(() => {
-    if (!selectedMathematicsWorkspace || !selectedWorkspaceCurrentStage) return null;
+    if (!selectedSubjectWorkspace || !selectedWorkspaceCurrentStage) return null;
 
     return buildWorkspaceStageSummaryCounts(
-      selectedMathematicsWorkspace,
+      selectedSubjectWorkspace,
       selectedWorkspaceCurrentStage,
       selectedWorkspaceStageIndex,
       selectedWorkspaceStageIndex,
@@ -587,30 +647,35 @@ function PathwaysWorkspaceBody() {
     );
   }, [
     savedPathwayStatuses,
-    selectedMathematicsWorkspace,
+    selectedSubjectWorkspace,
     selectedWorkspaceCurrentStage,
     selectedWorkspaceStageIndex,
   ]);
-  const selectedSubjectSummaryTitle = mathematicsSelected
-    ? selectedMathematicsWorkspace?.title || "Mathematics pathways"
+  const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
+    ? selectedSubjectWorkspace?.title || `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
-  const selectedSubjectSummaryDescription = mathematicsSelected
-    ? selectedMathematicsWorkspace?.subtitle ||
+  const selectedSubjectSummaryDescription = selectedSubjectSupportsDetailedPathways
+    ? selectedSubjectWorkspace?.subtitle ||
       "Choose a strand to explore the next pathway focus for this learner."
     : selectedSubject.description;
-  const selectedSubjectSummaryHelper = mathematicsSelected
+  const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
     ? `Current stage focus: ${selectedWorkspaceCurrentStage?.title || "Choose a strand below"}`
     : selectedSubject.guidance;
-  const selectedSubjectStatusLabel = mathematicsSelected ? "Detailed now" : "Coming gradually";
+  const selectedSubjectStatusLabel = selectedSubjectSupportsDetailedPathways
+    ? "Detailed now"
+    : "Coming gradually";
 
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
     : "/my-capture";
 
-  function handleSelectMathematicsStrand(nextStrandKey: string) {
-    setSelectedMathematicsStrandKey(nextStrandKey);
+  function handleSelectSubjectStrand(nextStrandKey: string) {
+    setSelectedStrandKeyBySubject((current) => ({
+      ...current,
+      [selectedSubjectKey]: nextStrandKey,
+    }));
 
-    const workspaceEl = mathematicsDetailWorkspaceRef.current;
+    const workspaceEl = pathwayDetailWorkspaceRef.current;
     if (!workspaceEl) return;
 
     workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -757,14 +822,14 @@ function PathwaysWorkspaceBody() {
                   {selectedSubjectSummaryDescription}
                 </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {mathematicsSelected ? "Current stage focus: " : "Current status: "}
+                  {selectedSubjectSupportsDetailedPathways ? "Current stage focus: " : "Current status: "}
                   <strong style={{ color: "#0f172a" }}>
-                    {mathematicsSelected
+                    {selectedSubjectSupportsDetailedPathways
                       ? selectedWorkspaceCurrentStage?.title || "Choose a strand below"
                       : selectedSubjectStatusLabel}
                   </strong>
                 </div>
-                {!mathematicsSelected ? (
+                {!selectedSubjectSupportsDetailedPathways ? (
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                     {selectedSubjectSummaryHelper}
                   </div>
@@ -813,8 +878,8 @@ function PathwaysWorkspaceBody() {
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                 Start with one subject, then move into strands, stages, and evidence.
-                Mathematics is the first fully detailed subject for now, while other
-                subjects show calm pathway previews as they are shaped gradually.
+                Mathematics and English now use the detailed shared pathway engine, while
+                the remaining subjects still show calm pathway previews as they are shaped gradually.
               </p>
             </div>
 
@@ -884,24 +949,20 @@ function PathwaysWorkspaceBody() {
           </div>
         </section>
 
-        {mathematicsSelected ? (
+        {selectedSubjectSupportsDetailedPathways ? (
           <>
             <section style={cardStyle}>
               <div style={{ display: "grid", gap: 16 }}>
                 <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-                  <div style={eyebrowStyle}>Mathematics F-10 / K-10 domain map</div>
+                  <div style={eyebrowStyle}>{selectedDetailedSubjectConfig?.overviewEyebrow}</div>
                   <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
-                    Mathematics pathway overview
+                    {selectedDetailedSubjectConfig?.overviewTitle}
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                    This prototype shows the wider mathematics pathway map while highlighting
-                    Number as the foundational detailed strand, with Operations and calculation
-                    and Fractions, decimals, and percentages now added as detailed follow-on strands.
+                    {selectedDetailedSubjectConfig?.overviewDescription}
                   </p>
                   <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    Choose one strand to explore. The selected strand opens in the focused
-                    workspace below, so the page stays calm and readable as more detailed strands
-                    are added.
+                    {selectedDetailedSubjectConfig?.overviewHelper}
                   </p>
                 </div>
 
@@ -912,16 +973,16 @@ function PathwaysWorkspaceBody() {
                     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                   }}
                 >
-                  {MATHEMATICS_DOMAIN_CARDS.map((domain) => {
+                  {selectedSubjectDomainCards.map((domain) => {
                     const detailed = domain.status !== "coming-later";
                     const firstDetailed = domain.status === "first-detailed";
-                    const selected = domain.key === selectedMathematicsStrandKey;
+                    const selected = domain.key === selectedStrandKey;
 
                     return (
                       <button
                         key={domain.key}
                         type="button"
-                        onClick={() => handleSelectMathematicsStrand(domain.key)}
+                        onClick={() => handleSelectSubjectStrand(domain.key)}
                         aria-pressed={selected}
                         style={{
                           border: selected
@@ -1019,18 +1080,18 @@ function PathwaysWorkspaceBody() {
             </section>
 
             <section
-              ref={mathematicsDetailWorkspaceRef}
+              ref={pathwayDetailWorkspaceRef}
               tabIndex={-1}
               style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
             >
-              {selectedMathematicsWorkspace ? (
+              {selectedSubjectWorkspace ? (
                 <MathematicsStrandWorkspaceShell
                   eyebrow="Selected strand"
-                  title={selectedMathematicsWorkspace.title}
-                  subtitle={selectedMathematicsWorkspace.subtitle}
-                  relationshipTitle={selectedMathematicsWorkspace.relationshipTitle}
-                  relationshipCopy={selectedMathematicsWorkspace.relationshipCopy}
-                  stageRailItems={selectedMathematicsWorkspace.stages.map((stage, stageIndex) => ({
+                  title={selectedSubjectWorkspace.title}
+                  subtitle={selectedSubjectWorkspace.subtitle}
+                  relationshipTitle={selectedSubjectWorkspace.relationshipTitle}
+                  relationshipCopy={selectedSubjectWorkspace.relationshipCopy}
+                  stageRailItems={selectedSubjectWorkspace.stages.map((stage, stageIndex) => ({
                     key: stage.key,
                     title: stage.title,
                     tone: getPathwayStageTone(stageIndex, selectedWorkspaceStageIndex),
@@ -1070,11 +1131,11 @@ function PathwaysWorkspaceBody() {
                   supportCards={[
                     {
                       title: "Portfolio support",
-                      items: selectedMathematicsWorkspace.portfolioSupport,
+                      items: selectedSubjectWorkspace.portfolioSupport,
                     },
                     {
                       title: "Reporting support",
-                      items: selectedMathematicsWorkspace.reportingSupport,
+                      items: selectedSubjectWorkspace.reportingSupport,
                     },
                     {
                       title: "What comes next",
@@ -1082,33 +1143,33 @@ function PathwaysWorkspaceBody() {
                         selectedWorkspaceCurrentStage
                           ? `Current pathway focus: ${selectedWorkspaceCurrentStage.title}`
                           : "Current pathway focus will show here.",
-                        selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]
-                          ? `Next progression: ${selectedMathematicsWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
+                        selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]
+                          ? `Next progression: ${selectedSubjectWorkspace.stages[selectedWorkspaceStageIndex + 1]?.title}`
                           : "This selected stage is currently the latest detailed progression in this strand.",
                       ],
                     },
                   ]}
                 >
                   <div style={{ display: "grid", gap: 16 }}>
-                    {selectedMathematicsWorkspace.stages.map((stage, stageIndex) => (
+                    {selectedSubjectWorkspace.stages.map((stage, stageIndex) => (
                       <DetailedMathematicsStageCard
-                        key={`${selectedMathematicsWorkspace.key}-${stage.key}`}
-                        strand={selectedMathematicsWorkspace}
+                        key={`${selectedSubjectWorkspace.key}-${stage.key}`}
+                        strand={selectedSubjectWorkspace}
                         stage={stage}
                         stageIndex={stageIndex}
                         currentStageIndex={selectedWorkspaceStageIndex}
                         savedPathwayStatuses={savedPathwayStatuses}
                         selectedLearnerId={selectedLearner?.id || ""}
                         isOpen={getStageOpenState(
-                          selectedMathematicsWorkspace.key,
+                          selectedSubjectWorkspace.key,
                           stage.key,
-                          stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
+                          stage.key === selectedSubjectWorkspace.currentFocusStageKey,
                         )}
                         onToggle={() =>
                           toggleStageOpen(
-                            selectedMathematicsWorkspace.key,
+                            selectedSubjectWorkspace.key,
                             stage.key,
-                            stage.key === selectedMathematicsWorkspace.currentFocusStageKey,
+                            stage.key === selectedSubjectWorkspace.currentFocusStageKey,
                           )
                         }
                         capturePathBase={capturePathBase}
@@ -1117,7 +1178,7 @@ function PathwaysWorkspaceBody() {
                   </div>
                 </MathematicsStrandWorkspaceShell>
               ) : (
-                <MathematicsComingLaterStrandSection domain={selectedMathematicsDomain} />
+                <PathwayComingLaterStrandSection domain={selectedSubjectDomain} />
               )}
             </section>
           </>
@@ -1128,7 +1189,7 @@ function PathwaysWorkspaceBody() {
         <section style={helperCardStyle}>
           <strong style={{ color: "#0f172a" }}>Create a learning plan from a pathway</strong>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-            {mathematicsSelected
+            {selectedSubjectSupportsDetailedPathways
               ? "Later, MyLearna will help turn selected pathway steps into a simple learning plan that can be placed into My Calendar and My Day."
               : `${selectedSubject.title} pathways will later use the same subject -> strand -> stage -> step structure to support planning in My Calendar and My Day.`}
           </p>
@@ -1809,10 +1870,10 @@ function DetailedMathematicsStepCard({
   );
 }
 
-function MathematicsComingLaterStrandSection({
+function PathwayComingLaterStrandSection({
   domain,
 }: {
-  domain: (typeof MATHEMATICS_DOMAIN_CARDS)[number];
+  domain: SubjectStrandCard;
 }) {
   return (
     <div style={{ display: "grid", gap: 18 }}>

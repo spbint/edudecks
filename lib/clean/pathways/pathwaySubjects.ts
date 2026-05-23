@@ -44,18 +44,22 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     key: "english",
     title: "English",
     description:
-      "English pathways will help families track reading, writing, speaking, spelling, vocabulary, and language development in the same guided pathway format.",
+      "English pathways help families track reading, writing, speaking, spelling, vocabulary, language development, and literature response through staged strand progressions.",
     guidance:
-      "This subject will grow into calm, parent-readable pathways that support literacy teaching, evidence capture, and later reporting without turning into a curriculum wall.",
-    status: "coming-soon",
+      "Choose a strand, review the current stage, then use practise, assess, and capture evidence to support literacy growth, portfolio building, and later reporting.",
+    status: "detailed",
     futureStrands: [
       "Reading and comprehension",
       "Writing and composition",
       "Speaking and listening",
-      "Spelling, vocabulary, and language",
+      "Spelling and word study",
+      "Grammar, punctuation and language",
+      "Vocabulary and word meaning",
+      "Literature and text response",
+      "Research, media and digital texts",
     ],
     placeholderNote:
-      "English pathways are being shaped gradually so the first detailed strands feel practical, calm, and genuinely useful for homeschool families.",
+      "English is now the second detailed subject pathway and follows the same calm strand -> stage -> evidence structure as Mathematics.",
   },
   {
     key: "science",
