@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -90,6 +90,33 @@ const strandGuideCardStyle: React.CSSProperties = {
   display: "grid",
   gap: 12,
   boxShadow: "0 10px 24px rgba(59,130,246,0.06)",
+};
+
+const NUMBER_AND_PLACE_VALUE_STRAND_KEY = "number-and-place-value";
+
+const MATHEMATICS_STRAND_GUIDE_CONFIG: Record<
+  string,
+  {
+    guide: MathematicsDetailedStrandGuide;
+    eyebrow: string;
+    relationshipTitle: string;
+    relationshipCopy: string;
+  }
+> = {
+  "operations-and-calculation": {
+    guide: OPERATIONS_AND_CALCULATION_GUIDE,
+    eyebrow: "Detailed follow-on strand",
+    relationshipTitle: "Why this strand follows Number",
+    relationshipCopy:
+      "Number and place value gives learners the structure of the number system. Operations and calculation turns that structure into useful, dependable action.",
+  },
+  "fractions-decimals-percentages": {
+    guide: FRACTIONS_DECIMALS_PERCENTAGES_GUIDE,
+    eyebrow: "Next detailed strand",
+    relationshipTitle: "How this grows from Number and Operations",
+    relationshipCopy:
+      "Once learners can work more confidently with number and calculation, they are better placed to reason about equal parts, proportion, tenths, hundredths, and percentages in practical life.",
+  },
 };
 
 const inputStyle: React.CSSProperties = {
@@ -336,10 +363,14 @@ function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
+  const [selectedMathematicsStrandKey, setSelectedMathematicsStrandKey] = useState(
+    NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+  );
   const [stageOpenOverrides, setStageOpenOverrides] = useState<
     Partial<Record<PathwayStageKey, boolean>>
   >({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
+  const mathematicsDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   const learnerOptions = useMemo(
     () =>
@@ -405,6 +436,11 @@ function PathwaysWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+  const selectedMathematicsDomain =
+    MATHEMATICS_DOMAIN_CARDS.find((domain) => domain.key === selectedMathematicsStrandKey) ||
+    MATHEMATICS_DOMAIN_CARDS[0];
+  const selectedMathematicsGuideConfig =
+    MATHEMATICS_STRAND_GUIDE_CONFIG[selectedMathematicsStrandKey] || null;
 
   useEffect(() => {
     let active = true;
@@ -523,6 +559,16 @@ function PathwaysWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
     : "/my-capture";
+
+  function handleSelectMathematicsStrand(nextStrandKey: string) {
+    setSelectedMathematicsStrandKey(nextStrandKey);
+
+    const workspaceEl = mathematicsDetailWorkspaceRef.current;
+    if (!workspaceEl) return;
+
+    workspaceEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    workspaceEl.focus({ preventScroll: true });
+  }
 
   return (
     <div style={shellStyle}>
@@ -704,6 +750,11 @@ function PathwaysWorkspaceBody() {
                 Number as the foundational detailed strand, with Operations and calculation
                 and Fractions, decimals, and percentages now added as detailed follow-on strands.
               </p>
+              <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
+                Choose one strand to explore. The selected strand opens in the focused
+                workspace below, so the page stays calm and readable as more detailed guides
+                are added.
+              </p>
             </div>
 
             <div
@@ -716,20 +767,35 @@ function PathwaysWorkspaceBody() {
               {MATHEMATICS_DOMAIN_CARDS.map((domain) => {
                 const detailed = domain.status !== "coming-later";
                 const firstDetailed = domain.status === "first-detailed";
+                const selected = domain.key === selectedMathematicsStrandKey;
 
                 return (
-                  <article
+                  <button
                     key={domain.key}
+                    type="button"
+                    onClick={() => handleSelectMathematicsStrand(domain.key)}
+                    aria-pressed={selected}
                     style={{
-                      border: detailed ? "1px solid #93c5fd" : "1px solid #e2e8f0",
+                      border: selected
+                        ? "1px solid #3b82f6"
+                        : detailed
+                          ? "1px solid #93c5fd"
+                          : "1px solid #e2e8f0",
                       borderRadius: 18,
-                      background: detailed ? "#f8fbff" : "#ffffff",
+                      background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
                       padding: 18,
                       display: "grid",
                       gap: 10,
-                      boxShadow: detailed
-                        ? "0 12px 28px rgba(59,130,246,0.08)"
+                      width: "100%",
+                      minWidth: 0,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      boxShadow: selected
+                        ? "0 14px 30px rgba(59,130,246,0.14)"
+                        : detailed
+                          ? "0 12px 28px rgba(59,130,246,0.08)"
                         : "0 6px 18px rgba(15,23,42,0.04)",
+                      transition: "background 140ms ease, border-color 140ms ease, box-shadow 140ms ease",
                     }}
                   >
                     <div
@@ -741,193 +807,229 @@ function PathwaysWorkspaceBody() {
                         flexWrap: "wrap",
                       }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 16 }}>{domain.title}</strong>
-                      <span
+                      <strong style={{ color: "#0f172a", fontSize: 16, minWidth: 0 }}>
+                        {domain.title}
+                      </strong>
+                      <div
                         style={{
-                          border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                          background: detailed ? "#eff6ff" : "#f8fafc",
-                          color: detailed ? "#1d4ed8" : "#64748b",
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          fontWeight: 800,
+                          display: "flex",
+                          gap: 8,
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          justifyContent: "flex-end",
                         }}
                       >
-                        {firstDetailed
-                          ? "First detailed strand"
-                          : detailed
-                            ? "Detailed strand"
-                            : "Coming later"}
-                      </span>
+                        <span
+                          style={{
+                            border: detailed ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                            background: detailed ? "#eff6ff" : "#f8fafc",
+                            color: detailed ? "#1d4ed8" : "#64748b",
+                            borderRadius: 999,
+                            padding: "6px 10px",
+                            fontSize: 12,
+                            fontWeight: 800,
+                          }}
+                        >
+                          {firstDetailed
+                            ? "First detailed strand"
+                            : detailed
+                              ? "Detailed strand"
+                              : "Coming later"}
+                        </span>
+                        {selected ? (
+                          <span
+                            style={{
+                              border: "1px solid #93c5fd",
+                              background: "#ffffff",
+                              color: "#1d4ed8",
+                              borderRadius: 999,
+                              padding: "6px 10px",
+                              fontSize: 12,
+                              fontWeight: 800,
+                            }}
+                          >
+                            Selected
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.description}</div>
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>{domain.whyItMatters}</div>
-                  </article>
+                    <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
+                      {selected
+                        ? "Showing this strand below"
+                        : detailed
+                          ? "Open this detailed strand"
+                          : "Preview this strand"}
+                    </div>
+                  </button>
                 );
               })}
             </div>
           </div>
         </section>
 
-        <section style={cardStyle}>
-          <MathematicsDetailedStrandGuideSection
-            guide={OPERATIONS_AND_CALCULATION_GUIDE}
-            eyebrow="Detailed follow-on strand"
-            relationshipTitle="Why this strand follows Number"
-            relationshipCopy="Number and place value gives learners the structure of the number system. Operations and calculation turns that structure into useful, dependable action."
-          />
-        </section>
+        <section
+          ref={mathematicsDetailWorkspaceRef}
+          tabIndex={-1}
+          style={{ ...cardStyle, scrollMarginTop: 24, outline: "none" }}
+        >
+          {selectedMathematicsStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ? (
+            <div style={{ display: "grid", gap: 18 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 14,
+                  alignItems: "flex-start",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+                  <div style={eyebrowStyle}>Selected strand</div>
+                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+                    {selectedMathematicsDomain.title}
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    Number and place value is the first detailed MyLearna strand because it
+                    builds the foundation for later mathematics.
+                  </p>
+                </div>
 
-        <section style={cardStyle}>
-          <MathematicsDetailedStrandGuideSection
-            guide={FRACTIONS_DECIMALS_PERCENTAGES_GUIDE}
-            eyebrow="Next detailed strand"
-            relationshipTitle="How this grows from Number and Operations"
-            relationshipCopy="Once learners can work more confidently with number and calculation, they are better placed to reason about equal parts, proportion, tenths, hundredths, and percentages in practical life."
-          />
-        </section>
-
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 18 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 14,
-                alignItems: "flex-start",
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-                <div style={eyebrowStyle}>Number pathway</div>
-                <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Number pathway</h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Number is the first detailed MyLearna pathway because it builds the
-                  foundation for later mathematics.
-                </p>
-              </div>
-
-              <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
-                <div style={eyebrowStyle}>Prototype note</div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Saved pathway evidence can now update step badges. Broader pathway progress
-                  will continue to connect to assessments later.
+                <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
+                  <div style={eyebrowStyle}>Why start here</div>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    This strand stays as the main number workspace. It shows the likely
+                    current stage for the selected learner, keeps step evidence visible,
+                    and supports the detailed step-by-step pathway flow.
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                alignItems: "stretch",
-              }}
-            >
-              {NUMBER_PATHWAY_STAGES.map((stage) => {
-                const tone = getStageTone(stage.key, currentStageFocus);
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "stretch",
+                }}
+              >
+                {NUMBER_PATHWAY_STAGES.map((stage) => {
+                  const tone = getStageTone(stage.key, currentStageFocus);
 
-                return (
-                  <div
-                    key={`rail-${stage.key}`}
-                    style={{
-                      border: `1px solid ${tone.border}`,
-                      borderRadius: 999,
-                      background: tone.background,
-                      padding: "10px 14px",
-                      display: "grid",
-                      gap: 4,
-                      boxShadow: tone.shadow,
-                    }}
-                  >
-                    <span
+                  return (
+                    <div
+                      key={`rail-${stage.key}`}
                       style={{
-                        color: tone.text,
-                        fontSize: 10,
-                        fontWeight: 800,
-                        letterSpacing: "0.06em",
-                        textTransform: "uppercase",
+                        border: `1px solid ${tone.border}`,
+                        borderRadius: 999,
+                        background: tone.background,
+                        padding: "10px 14px",
+                        display: "grid",
+                        gap: 4,
+                        boxShadow: tone.shadow,
                       }}
                     >
-                      {tone.badge}
-                    </span>
-                    <strong style={{ color: "#0f172a", fontSize: 13 }}>{stage.title}</strong>
+                      <span
+                        style={{
+                          color: tone.text,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {tone.badge}
+                      </span>
+                      <strong style={{ color: "#0f172a", fontSize: 13 }}>{stage.title}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                }}
+              >
+                <div style={summaryCardStyle}>
+                  <div style={eyebrowStyle}>Current stage snapshot</div>
+                  <strong style={{ color: "#0f172a", fontSize: 16 }}>
+                    {
+                      NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)
+                        ?.title
+                    }
+                  </strong>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    Prototype view for the selected learner&apos;s likely pathway stage.
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={{ color: "#166534", fontWeight: 800, fontSize: 24 }}>
+                    {currentStageSnapshot.secure}
+                  </div>
+                  <div style={{ color: "#475569" }}>secure steps</div>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={{ color: "#6d28d9", fontWeight: 800, fontSize: 24 }}>
+                    {currentStageSnapshot.readyToAssess}
+                  </div>
+                  <div style={{ color: "#475569" }}>ready to assess</div>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={{ color: "#1d4ed8", fontWeight: 800, fontSize: 24 }}>
+                    {currentStageSnapshot.evidenceStarted}
+                  </div>
+                  <div style={{ color: "#475569" }}>evidence started</div>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={{ color: "#c2410c", fontWeight: 800, fontSize: 24 }}>
+                    {currentStageSnapshot.practising}
+                  </div>
+                  <div style={{ color: "#475569" }}>practising</div>
+                </div>
+                <div style={summaryCardStyle}>
+                  <div style={{ color: "#64748b", fontWeight: 800, fontSize: 24 }}>
+                    {currentStageSnapshot.notStarted}
+                  </div>
+                  <div style={{ color: "#475569" }}>not started</div>
+                </div>
+              </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 12,
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              }}
-            >
-              <div style={summaryCardStyle}>
-                <div style={eyebrowStyle}>Current stage snapshot</div>
-                <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {
-                    NUMBER_PATHWAY_STAGES.find((stage) => stage.key === currentStageFocus)
-                      ?.title
-                  }
-                </strong>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  Prototype view for the selected learner&apos;s likely pathway stage.
-                </div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#166534", fontWeight: 800, fontSize: 24 }}>
-                  {currentStageSnapshot.secure}
-                </div>
-                <div style={{ color: "#475569" }}>secure steps</div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#6d28d9", fontWeight: 800, fontSize: 24 }}>
-                  {currentStageSnapshot.readyToAssess}
-                </div>
-                <div style={{ color: "#475569" }}>ready to assess</div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#1d4ed8", fontWeight: 800, fontSize: 24 }}>
-                  {currentStageSnapshot.evidenceStarted}
-                </div>
-                <div style={{ color: "#475569" }}>evidence started</div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#c2410c", fontWeight: 800, fontSize: 24 }}>
-                  {currentStageSnapshot.practising}
-                </div>
-                <div style={{ color: "#475569" }}>practising</div>
-              </div>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#64748b", fontWeight: 800, fontSize: 24 }}>
-                  {currentStageSnapshot.notStarted}
-                </div>
-                <div style={{ color: "#475569" }}>not started</div>
+              <div style={{ display: "grid", gap: 16 }}>
+                {NUMBER_PATHWAY_STAGES.map((stage) => (
+                  <NumberStageCard
+                    key={stage.key}
+                    stage={stage}
+                    currentStage={currentStageFocus}
+                    savedPathwayStatuses={savedPathwayStatuses}
+                    selectedLearnerId={selectedLearner?.id || ""}
+                    isOpen={stageOpenOverrides[stage.key] ?? stage.key === currentStageFocus}
+                    onToggle={() =>
+                      setStageOpenOverrides((current) => ({
+                        ...current,
+                        [stage.key]: !(current[stage.key] ?? stage.key === currentStageFocus),
+                      }))
+                    }
+                    capturePathBase={capturePathBase}
+                  />
+                ))}
               </div>
             </div>
-
-            <div style={{ display: "grid", gap: 16 }}>
-              {NUMBER_PATHWAY_STAGES.map((stage) => (
-                <NumberStageCard
-                  key={stage.key}
-                  stage={stage}
-                  currentStage={currentStageFocus}
-                  savedPathwayStatuses={savedPathwayStatuses}
-                  selectedLearnerId={selectedLearner?.id || ""}
-                  isOpen={stageOpenOverrides[stage.key] ?? stage.key === currentStageFocus}
-                  onToggle={() =>
-                    setStageOpenOverrides((current) => ({
-                      ...current,
-                      [stage.key]: !(current[stage.key] ?? stage.key === currentStageFocus),
-                    }))
-                  }
-                  capturePathBase={capturePathBase}
-                />
-              ))}
-            </div>
-          </div>
+          ) : selectedMathematicsGuideConfig ? (
+            <MathematicsDetailedStrandGuideSection
+              key={selectedMathematicsGuideConfig.guide.key}
+              guide={selectedMathematicsGuideConfig.guide}
+              eyebrow={selectedMathematicsGuideConfig.eyebrow}
+              relationshipTitle={selectedMathematicsGuideConfig.relationshipTitle}
+              relationshipCopy={selectedMathematicsGuideConfig.relationshipCopy}
+              statusLabel="Detailed strand"
+            />
+          ) : (
+            <MathematicsComingLaterStrandSection domain={selectedMathematicsDomain} />
+          )}
         </section>
 
         <section style={helperCardStyle}>
@@ -952,12 +1054,59 @@ function MathematicsDetailedStrandGuideSection({
   eyebrow,
   relationshipTitle,
   relationshipCopy,
+  statusLabel,
 }: {
   guide: MathematicsDetailedStrandGuide;
   eyebrow: string;
   relationshipTitle: string;
   relationshipCopy: string;
+  statusLabel: string;
 }) {
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    overview: true,
+    why: false,
+    progression: true,
+    homeschoolExamples: false,
+    captureIdeas: false,
+    portfolioIdeas: false,
+    reportingExamples: false,
+    nextLearningConnections: false,
+  });
+  const sections = [
+    { key: "overview", title: "Overview", items: guide.overview },
+    { key: "why", title: "Why it matters", items: guide.whyItMatters },
+    {
+      key: "progression",
+      title: "Progression flow",
+      items: guide.progressionStructure,
+    },
+    {
+      key: "homeschoolExamples",
+      title: "Real homeschool examples",
+      items: guide.homeschoolExamples,
+    },
+    {
+      key: "captureIdeas",
+      title: "Capture ideas",
+      items: guide.captureIdeas,
+    },
+    {
+      key: "portfolioIdeas",
+      title: "Portfolio ideas",
+      items: guide.portfolioIdeas,
+    },
+    {
+      key: "reportingExamples",
+      title: "Reporting language",
+      items: guide.reportingExamples,
+    },
+    {
+      key: "nextLearningConnections",
+      title: "Next learning connections",
+      items: guide.nextLearningConnections,
+    },
+  ];
+
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <div
@@ -973,6 +1122,24 @@ function MathematicsDetailedStrandGuideSection({
           <div style={eyebrowStyle}>{eyebrow}</div>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{guide.title}</h2>
           <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{guide.subtitle}</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span
+              style={{
+                border: "1px solid #bfdbfe",
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              {statusLabel}
+            </span>
+            <span style={{ color: "#64748b", fontSize: 13 }}>
+              Only this selected strand is open below.
+            </span>
+          </div>
         </div>
 
         <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
@@ -981,84 +1148,172 @@ function MathematicsDetailedStrandGuideSection({
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 14,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        }}
-      >
-        <MathematicsStrandGuideCard
-          title="Overview"
-          items={guide.overview}
-        />
-        <MathematicsStrandGuideCard
-          title="Why it matters"
-          items={guide.whyItMatters}
-        />
-        <MathematicsStrandGuideCard
-          title="Progression structure"
-          items={guide.progressionStructure}
-          wide
-        />
-        <MathematicsStrandGuideCard
-          title="Real homeschool examples"
-          items={guide.homeschoolExamples}
-        />
-        <MathematicsStrandGuideCard
-          title="Capture ideas"
-          items={guide.captureIdeas}
-        />
-        <MathematicsStrandGuideCard
-          title="Portfolio ideas"
-          items={guide.portfolioIdeas}
-        />
-        <MathematicsStrandGuideCard
-          title="Reporting language examples"
-          items={guide.reportingExamples}
-          wide
-        />
-        <MathematicsStrandGuideCard
-          title="Next learning connections"
-          items={guide.nextLearningConnections}
-        />
+      <div style={{ display: "grid", gap: 12 }}>
+        {sections.map((section) => {
+          const isOpen = openSections[section.key];
+
+          return (
+            <MathematicsStrandAccordionSection
+              key={`${guide.key}-${section.key}`}
+              guideKey={guide.key}
+              sectionKey={section.key}
+              title={section.title}
+              items={section.items}
+              isOpen={isOpen}
+              onToggle={() =>
+                setOpenSections((current) => ({
+                  ...current,
+                  [section.key]: !current[section.key],
+                }))
+              }
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function MathematicsStrandGuideCard({
+function MathematicsStrandAccordionSection({
+  guideKey,
+  sectionKey,
   title,
   items,
-  wide = false,
+  isOpen,
+  onToggle,
 }: {
+  guideKey: string;
+  sectionKey: string;
   title: string;
   items: string[];
-  wide?: boolean;
+  isOpen: boolean;
+  onToggle: () => void;
 }) {
+  const panelId = `${guideKey}-${sectionKey}-panel`;
+
   return (
     <section
       style={{
         ...strandGuideCardStyle,
-        gridColumn: wide ? "1 / -1" : undefined,
+        padding: 0,
+        overflow: "hidden",
       }}
     >
-      <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
-      <ul
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={onToggle}
         style={{
-          margin: 0,
-          paddingLeft: 18,
-          color: "#475569",
-          lineHeight: 1.7,
-          display: "grid",
-          gap: 8,
+          width: "100%",
+          border: "none",
+          background: "transparent",
+          padding: "16px 18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          textAlign: "left",
+          cursor: "pointer",
         }}
       >
-        {items.map((item) => (
-          <li key={`${title}-${item}`}>{item}</li>
-        ))}
-      </ul>
+        <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+          <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>Section</div>
+          <strong style={{ color: "#0f172a", fontSize: 16 }}>{title}</strong>
+        </div>
+        <span
+          style={{
+            color: "#1d4ed8",
+            fontSize: 13,
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isOpen ? "Hide" : "Show"}
+        </span>
+      </button>
+      {isOpen ? (
+        <div
+          id={panelId}
+          style={{
+            borderTop: "1px solid #dbeafe",
+            padding: "0 18px 18px",
+          }}
+        >
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              color: "#475569",
+              lineHeight: 1.7,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            {items.map((item) => (
+              <li key={`${title}-${item}`}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function MathematicsComingLaterStrandSection({
+  domain,
+}: {
+  domain: (typeof MATHEMATICS_DOMAIN_CARDS)[number];
+}) {
+  return (
+    <div style={{ display: "grid", gap: 18 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 14,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "grid", gap: 8, maxWidth: 820 }}>
+          <div style={eyebrowStyle}>Selected strand</div>
+          <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{domain.title}</h2>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{domain.description}</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span
+              style={{
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                color: "#64748b",
+                borderRadius: 999,
+                padding: "6px 10px",
+                fontSize: 12,
+                fontWeight: 800,
+              }}
+            >
+              Coming later
+            </span>
+            <span style={{ color: "#64748b", fontSize: 13 }}>
+              This strand guide is being developed.
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
+          <div style={eyebrowStyle}>Why it matters</div>
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.whyItMatters}</div>
+        </div>
+      </div>
+
+      <section style={helperCardStyle}>
+        <strong style={{ color: "#0f172a" }}>This strand guide is being developed.</strong>
+        <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+          The strand stays visible in the map so families can see what is coming next in
+          the mathematics sequence without the page turning into a long curriculum archive.
+        </p>
+      </section>
+    </div>
   );
 }
 
