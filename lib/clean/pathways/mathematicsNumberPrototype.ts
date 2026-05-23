@@ -105,7 +105,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Compare relationships between amounts and reason about scaling, rates, and fairness.",
     whyItMatters:
       "Proportional thinking supports later algebra, graphs, percentages, and practical decision-making.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "algebra-patterns-and-functions",
@@ -113,7 +113,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Notice structure, describe patterns, and generalise mathematical relationships.",
     whyItMatters:
       "This helps learners move from specific examples to broader rules and mathematical reasoning.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "measurement",
@@ -121,7 +121,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Measure length, mass, capacity, time, money, area, and other attributes meaningfully.",
     whyItMatters:
       "Measurement connects mathematics to everyday life, practical tasks, and scientific thinking.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "geometry-and-spatial-reasoning",
@@ -129,7 +129,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Work with shape, position, direction, angles, symmetry, and spatial relationships.",
     whyItMatters:
       "Spatial thinking supports design, navigation, problem solving, and later geometry and graphs.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "statistics-and-data",
@@ -137,7 +137,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Collect, organise, interpret, and discuss information using meaningful representations.",
     whyItMatters:
       "Learners need data literacy to reason about patterns, trends, and claims in everyday life.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "probability-and-chance",
@@ -145,7 +145,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Explore likelihood, uncertainty, and how chance events can be described and compared.",
     whyItMatters:
       "This supports decision-making, data interpretation, and more mature mathematical reasoning.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "financial-and-real-world-mathematics",
@@ -153,7 +153,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Use mathematics in budgeting, comparison, planning, and everyday practical contexts.",
     whyItMatters:
       "Families often want mathematics to feel useful, visible, and connected to real decisions.",
-    status: "coming-later",
+    status: "detailed",
   },
   {
     key: "mathematical-reasoning-modelling-and-explanation",
@@ -161,7 +161,7 @@ export const MATHEMATICS_DOMAIN_CARDS: MathematicsDomainCard[] = [
     description: "Explain thinking, justify choices, and use mathematics to model meaningful situations.",
     whyItMatters:
       "Reasoning helps learners move beyond answers to confidence, communication, and transfer.",
-    status: "coming-later",
+    status: "detailed",
   },
 ];
 

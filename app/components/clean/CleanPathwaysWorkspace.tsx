@@ -27,6 +27,16 @@ import {
 } from "@/lib/clean/pathways/mathematicsOperationsPrototype";
 import { buildFractionsDecimalsPercentagesWorkspace } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
 import {
+  buildAlgebraPatternsAndFunctionsWorkspace,
+  buildFinancialAndRealWorldMathematicsWorkspace,
+  buildGeometryAndSpatialReasoningWorkspace,
+  buildMathematicalReasoningModellingAndExplanationWorkspace,
+  buildMeasurementWorkspace,
+  buildProbabilityAndChanceWorkspace,
+  buildRatioAndProportionalReasoningWorkspace,
+  buildStatisticsAndDataWorkspace,
+} from "@/lib/clean/pathways/mathematicsAdditionalStrands";
+import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
   type PathwaySubjectDefinition,
@@ -94,6 +104,15 @@ const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<
 > = {
   "operations-and-calculation": buildOperationsAndCalculationWorkspace,
   "fractions-decimals-percentages": buildFractionsDecimalsPercentagesWorkspace,
+  "ratio-and-proportional-reasoning": buildRatioAndProportionalReasoningWorkspace,
+  "algebra-patterns-and-functions": buildAlgebraPatternsAndFunctionsWorkspace,
+  measurement: buildMeasurementWorkspace,
+  "geometry-and-spatial-reasoning": buildGeometryAndSpatialReasoningWorkspace,
+  "statistics-and-data": buildStatisticsAndDataWorkspace,
+  "probability-and-chance": buildProbabilityAndChanceWorkspace,
+  "financial-and-real-world-mathematics": buildFinancialAndRealWorldMathematicsWorkspace,
+  "mathematical-reasoning-modelling-and-explanation":
+    buildMathematicalReasoningModellingAndExplanationWorkspace,
 };
 
 const inputStyle: React.CSSProperties = {
