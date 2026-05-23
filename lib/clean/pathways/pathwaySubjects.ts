@@ -89,8 +89,8 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
     description:
       "Humanities & Social Sciences helps families explore people, places, communities, history, geography, civics, economics, cultures, and how societies change over time. In some contexts, this area may be known as Social Studies, HASS, or Humanities.",
     guidance:
-      "Families may also recognise this area as Social Studies. Over time, this subject will support knowledge-building, inquiry, evidence use, and reflective family conversations through calm strands and evidence-friendly pathway steps.",
-    status: "coming-soon",
+      "Families may also recognise this area as Social Studies. Choose a strand, review the current stage, then use practise, assess, and capture evidence to support inquiry, discussion, comparison, and later reporting.",
+    status: "detailed",
     futureStrands: [
       "History and change over time",
       "Geography, place and environment",
@@ -100,7 +100,7 @@ export const PATHWAY_SUBJECTS: PathwaySubjectDefinition[] = [
       "Inquiry, sources and evidence",
     ],
     placeholderNote:
-      "Humanities & Social Sciences pathways are being prepared as guided learning maps rather than long content lists, so families can see what to notice, discuss, compare, and record over time.",
+      "Humanities & Social Sciences is now the fourth detailed subject pathway and follows the same calm strand -> stage -> evidence structure as Mathematics, English, and Science.",
   },
   {
     key: "technologies",
