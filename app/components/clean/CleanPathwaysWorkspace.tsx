@@ -424,50 +424,6 @@ function getDetailedDisplayedPathwayStatus(
   };
 }
 
-function buildDetailedStrandSummaryCounts(
-  pathwayKey: string,
-  stages: MathematicsDetailedStrandStage[],
-  currentStageIndex: number,
-  savedPathwayStatuses: SavedPathwayStatusMap,
-) {
-  return stages.reduce(
-    (totals, stage, stageIndex) => {
-      for (const [stepIndex, step] of stage.steps.entries()) {
-        const { status } = getDetailedDisplayedPathwayStatus(
-          pathwayKey,
-          stage,
-          stageIndex,
-          currentStageIndex,
-          step,
-          stepIndex,
-          savedPathwayStatuses,
-        );
-
-        if (status === "Secure") {
-          totals.secure += 1;
-        } else if (status === "Ready to assess") {
-          totals.readyToAssess += 1;
-        } else if (status === "Evidence started") {
-          totals.evidenceStarted += 1;
-        } else if (status === "Practising") {
-          totals.practising += 1;
-        } else {
-          totals.notStarted += 1;
-        }
-      }
-
-      return totals;
-    },
-    {
-      secure: 0,
-      readyToAssess: 0,
-      evidenceStarted: 0,
-      practising: 0,
-      notStarted: 0,
-    },
-  );
-}
-
 function buildDetailedStageSummaryCounts(
   pathwayKey: string,
   stage: MathematicsDetailedStrandStage,
@@ -716,9 +672,14 @@ function PathwaysWorkspaceBody() {
   }, [selectedMathematicsWorkspace]);
   const selectedDetailedWorkspaceSnapshot = useMemo(() => {
     if (!selectedMathematicsWorkspace) return null;
-    return buildDetailedStrandSummaryCounts(
+    const currentStage =
+      selectedMathematicsWorkspace.stages[selectedDetailedWorkspaceStageIndex] || null;
+    if (!currentStage) return null;
+
+    return buildDetailedStageSummaryCounts(
       selectedMathematicsWorkspace.key,
-      selectedMathematicsWorkspace.stages,
+      currentStage,
+      selectedDetailedWorkspaceStageIndex,
       selectedDetailedWorkspaceStageIndex,
       savedPathwayStatuses,
     );
@@ -1440,7 +1401,7 @@ function DetailedMathematicsStageCard({
   const summaryChips = [
     {
       key: "steps",
-      label: `${stage.steps.length} focus steps`,
+      label: `${stage.steps.length} steps`,
       border: "#e2e8f0",
       background: "#ffffff",
       color: "#475569",
@@ -1854,11 +1815,6 @@ function DetailedMathematicsStepCard({
         <PathwayStepGuidanceListSection
           title="Evidence you could capture"
           items={step.evidenceExamples}
-        />
-        <PathwayStepGuidanceSection title="Possible next step" content={step.nextStep} />
-        <PathwayStepGuidanceSection
-          title="Reporting support"
-          content={step.reportLanguage}
         />
         <PathwayStepGuidanceSection
           title="Assessment check later"
