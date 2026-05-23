@@ -2005,7 +2005,7 @@ function PathwayComingLaterStrandSection({
         <strong style={{ color: "#0f172a" }}>This strand workspace is being developed.</strong>
         <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
           The strand stays visible in the map so families can see what is coming next in
-          the mathematics sequence without the page turning into a long curriculum archive.
+          this subject without the page turning into a long curriculum archive.
         </p>
       </section>
     </div>
