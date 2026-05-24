@@ -43,7 +43,7 @@ const shellStyle: React.CSSProperties = {
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 1120,
+  maxWidth: 1320,
   margin: "0 auto",
   display: "grid",
   gap: 20,

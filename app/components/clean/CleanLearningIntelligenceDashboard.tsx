@@ -41,9 +41,9 @@ const dashboardShellStyle: React.CSSProperties = {
   background:
     "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,0.98) 100%)",
   boxShadow: "0 20px 50px rgba(15,23,42,0.08)",
-  padding: "clamp(18px, 3.2vw, 28px)",
+  padding: "clamp(16px, 2.6vw, 24px)",
   display: "grid",
-  gap: 22,
+  gap: 18,
   overflow: "hidden",
 };
 
@@ -668,9 +668,9 @@ export default function CleanLearningIntelligenceDashboard(
       <section
         style={{
           ...cardStyle,
-          padding: 14,
+          padding: 12,
           display: "grid",
-          gap: 14,
+          gap: 10,
           background:
             "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%)",
         }}
@@ -679,7 +679,7 @@ export default function CleanLearningIntelligenceDashboard(
           style={{
             display: "flex",
             justifyContent: "space-between",
-            gap: 14,
+            gap: 12,
             flexWrap: "wrap",
             alignItems: "center",
           }}
@@ -695,16 +695,16 @@ export default function CleanLearningIntelligenceDashboard(
           >
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 16,
+                width: 44,
+                height: 44,
+                borderRadius: 14,
                 display: "grid",
                 placeItems: "center",
                 background: "linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)",
                 color: "#ffffff",
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: 800,
-                boxShadow: "0 10px 24px rgba(37,99,235,0.16)",
+                boxShadow: "0 8px 18px rgba(37,99,235,0.14)",
                 flexShrink: 0,
               }}
             >
@@ -712,8 +712,8 @@ export default function CleanLearningIntelligenceDashboard(
             </div>
 
             <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
-              <strong style={{ color: "#0f172a", fontSize: 18 }}>{props.learnerName}</strong>
-              <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
+              <strong style={{ color: "#0f172a", fontSize: 17 }}>{props.learnerName}</strong>
+              <div style={{ ...secondaryTextStyle, fontSize: 12 }}>
                 {safe(props.learnerYearLevel) || "Year level not recorded"} | {currentStageTitle}
               </div>
             </div>
@@ -725,8 +725,8 @@ export default function CleanLearningIntelligenceDashboard(
                   background: "#f8fbff",
                   color: "#1e3a8a",
                   borderRadius: 999,
-                  padding: "7px 11px",
-                  fontSize: 12,
+                  padding: "6px 10px",
+                  fontSize: 11,
                   fontWeight: 700,
                 }}
               >
@@ -741,23 +741,25 @@ export default function CleanLearningIntelligenceDashboard(
                 border: "1px solid #e2e8f0",
                 background: "#f8fafc",
                 borderRadius: 999,
-                padding: "7px 11px",
+                padding: "6px 10px",
                 color: "#475569",
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 700,
               }}
             >
               Need help?
             </span>
-            <span style={disabledButtonStyle}>Help Centre</span>
+            <span style={{ ...disabledButtonStyle, padding: "7px 10px", fontSize: 12 }}>
+              Help Centre
+            </span>
           </div>
         </div>
 
         <div
           style={{
-            display: "grid",
+            display: "flex",
             gap: 8,
-            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+            flexWrap: "wrap",
           }}
         >
           {quickLinks.map((item) => (
@@ -769,15 +771,16 @@ export default function CleanLearningIntelligenceDashboard(
                 background: item.current ? "#eff6ff" : "#ffffff",
                 color: item.current ? "#1d4ed8" : "#0f172a",
                 borderRadius: 12,
-                padding: "9px 11px",
+                padding: "8px 10px",
                 textDecoration: "none",
                 fontWeight: 700,
-                fontSize: 13,
+                fontSize: 12,
                 display: "flex",
                 justifyContent: "space-between",
                 gap: 8,
                 alignItems: "center",
                 minWidth: 0,
+                flex: "0 1 auto",
               }}
             >
               <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
