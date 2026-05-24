@@ -665,123 +665,140 @@ export default function CleanLearningIntelligenceDashboard(
 
   return (
     <section style={dashboardShellStyle}>
-      <div
+      <section
         style={{
-          display: "flex",
-          gap: 20,
-          flexWrap: "wrap",
-          alignItems: "stretch",
+          ...cardStyle,
+          padding: 14,
+          display: "grid",
+          gap: 14,
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%)",
         }}
       >
-        <aside
+        <div
           style={{
-            ...cardStyle,
-            flex: "0 1 270px",
-            width: "min(100%, 290px)",
-            padding: 18,
-            display: "grid",
-            gap: 18,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 100%)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 14,
+            flexWrap: "wrap",
+            alignItems: "center",
           }}
         >
-          <div style={{ display: "grid", gap: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              flexWrap: "wrap",
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                width: 68,
-                height: 68,
-                borderRadius: 20,
+                width: 52,
+                height: 52,
+                borderRadius: 16,
                 display: "grid",
                 placeItems: "center",
                 background: "linear-gradient(135deg, #2563eb 0%, #14b8a6 100%)",
                 color: "#ffffff",
-                fontSize: 24,
+                fontSize: 18,
                 fontWeight: 800,
-                boxShadow: "0 12px 28px rgba(37,99,235,0.20)",
+                boxShadow: "0 10px 24px rgba(37,99,235,0.16)",
+                flexShrink: 0,
               }}
             >
               {buildInitials(props.learnerName)}
             </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              <div style={eyebrowStyle}>Learner</div>
-              <strong style={{ color: "#0f172a", fontSize: 22 }}>{props.learnerName}</strong>
-              <div style={secondaryTextStyle}>
+
+            <div style={{ display: "grid", gap: 4, minWidth: 0 }}>
+              <strong style={{ color: "#0f172a", fontSize: 18 }}>{props.learnerName}</strong>
+              <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
                 {safe(props.learnerYearLevel) || "Year level not recorded"} | {currentStageTitle}
               </div>
-              {safe(props.frameworkLabel) ? (
-                <div
-                  style={{
-                    border: "1px solid #dbeafe",
-                    background: "#f8fbff",
-                    color: "#1e3a8a",
-                    borderRadius: 999,
-                    padding: "8px 12px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    justifySelf: "start",
-                  }}
-                >
-                  {props.frameworkLabel}
-                </div>
-              ) : null}
             </div>
-          </div>
 
-          <div style={{ display: "grid", gap: 10 }}>
-            <div style={eyebrowStyle}>Workspace</div>
-            {quickLinks.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
+            {safe(props.frameworkLabel) ? (
+              <span
                 style={{
-                  border: item.current ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
-                  background: item.current ? "#eff6ff" : "#ffffff",
-                  color: item.current ? "#1d4ed8" : "#0f172a",
-                  borderRadius: 14,
-                  padding: "10px 12px",
-                  textDecoration: "none",
+                  border: "1px solid #dbeafe",
+                  background: "#f8fbff",
+                  color: "#1e3a8a",
+                  borderRadius: 999,
+                  padding: "7px 11px",
+                  fontSize: 12,
                   fontWeight: 700,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  alignItems: "center",
                 }}
               >
-                <span>{item.label}</span>
-                <span
-                  style={{
-                    color: item.current ? "#1d4ed8" : "#94a3b8",
-                    fontSize: 12,
-                    fontWeight: 800,
-                  }}
-                >
-                  {item.current ? "Now" : ">"}
-                </span>
-              </Link>
-            ))}
+                {props.frameworkLabel}
+              </span>
+            ) : null}
           </div>
 
-          <div
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 18,
-              padding: 14,
-              background: "#ffffff",
-              display: "grid",
-              gap: 8,
-            }}
-          >
-            <strong style={{ color: "#0f172a" }}>Need help?</strong>
-            <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
-              Guidance for pathways, evidence capture, and reporting.
-            </div>
-            <div>
-              <span style={disabledButtonStyle}>Help Centre</span>
-            </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <span
+              style={{
+                border: "1px solid #e2e8f0",
+                background: "#f8fafc",
+                borderRadius: 999,
+                padding: "7px 11px",
+                color: "#475569",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              Need help?
+            </span>
+            <span style={disabledButtonStyle}>Help Centre</span>
           </div>
-        </aside>
+        </div>
 
-        <div style={{ flex: "999 1 720px", minWidth: 0, display: "grid", gap: 18 }}>
+        <div
+          style={{
+            display: "grid",
+            gap: 8,
+            gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          }}
+        >
+          {quickLinks.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              style={{
+                border: item.current ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                background: item.current ? "#eff6ff" : "#ffffff",
+                color: item.current ? "#1d4ed8" : "#0f172a",
+                borderRadius: 12,
+                padding: "9px 11px",
+                textDecoration: "none",
+                fontWeight: 700,
+                fontSize: 13,
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 8,
+                alignItems: "center",
+                minWidth: 0,
+              }}
+            >
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {item.label}
+              </span>
+              <span
+                style={{
+                  color: item.current ? "#1d4ed8" : "#94a3b8",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  flexShrink: 0,
+                }}
+              >
+                {item.current ? "Now" : ">"}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <div style={{ display: "grid", gap: 18 }}>
           <section
             style={{
               ...cardStyle,
@@ -1789,7 +1806,6 @@ export default function CleanLearningIntelligenceDashboard(
               </div>
             </section>
           ) : null}
-        </div>
       </div>
     </section>
   );
