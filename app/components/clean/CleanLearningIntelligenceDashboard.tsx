@@ -28,6 +28,13 @@ type CleanLearningIntelligenceDashboardProps = {
   coverageError?: string | null;
 };
 
+type MetricTone = {
+  accent: string;
+  soft: string;
+  border: string;
+  text: string;
+};
+
 const dashboardShellStyle: React.CSSProperties = {
   border: "1px solid #dbe4f0",
   borderRadius: 28,
@@ -38,6 +45,13 @@ const dashboardShellStyle: React.CSSProperties = {
   display: "grid",
   gap: 22,
   overflow: "hidden",
+};
+
+const cardStyle: React.CSSProperties = {
+  border: "1px solid #e2e8f0",
+  borderRadius: 22,
+  background: "#ffffff",
+  boxShadow: "0 14px 32px rgba(15,23,42,0.05)",
 };
 
 const eyebrowStyle: React.CSSProperties = {
@@ -51,13 +65,6 @@ const eyebrowStyle: React.CSSProperties = {
 const secondaryTextStyle: React.CSSProperties = {
   color: "#64748b",
   lineHeight: 1.6,
-};
-
-const subtleCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 22,
-  background: "#ffffff",
-  boxShadow: "0 14px 32px rgba(15,23,42,0.05)",
 };
 
 const primaryButtonStyle: React.CSSProperties = {
@@ -80,6 +87,12 @@ const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   background: "#ffffff",
   color: "#0f172a",
+};
+
+const quietButtonStyle: React.CSSProperties = {
+  ...secondaryButtonStyle,
+  padding: "8px 12px",
+  fontSize: 13,
 };
 
 const disabledButtonStyle: React.CSSProperties = {
@@ -122,14 +135,18 @@ function buildInitials(value: string) {
     .join("");
 }
 
-function getSubjectTheme(subjectKey: PathwaySubjectKey) {
+function getSubjectTheme(subjectKey: PathwaySubjectKey): MetricTone & {
+  stronger: string;
+  glow: string;
+} {
   if (subjectKey === "mathematics") {
     return {
       accent: "#2563eb",
       soft: "#eff6ff",
-      stronger: "#dbeafe",
+      border: "#dbeafe",
+      stronger: "#bfdbfe",
       text: "#1d4ed8",
-      glow: "rgba(37,99,235,0.16)",
+      glow: "rgba(37,99,235,0.14)",
     };
   }
 
@@ -137,9 +154,10 @@ function getSubjectTheme(subjectKey: PathwaySubjectKey) {
     return {
       accent: "#db2777",
       soft: "#fdf2f8",
-      stronger: "#fce7f3",
+      border: "#fce7f3",
+      stronger: "#f9a8d4",
       text: "#be185d",
-      glow: "rgba(219,39,119,0.14)",
+      glow: "rgba(219,39,119,0.12)",
     };
   }
 
@@ -147,9 +165,10 @@ function getSubjectTheme(subjectKey: PathwaySubjectKey) {
     return {
       accent: "#0f766e",
       soft: "#ecfeff",
-      stronger: "#ccfbf1",
+      border: "#ccfbf1",
+      stronger: "#99f6e4",
       text: "#0f766e",
-      glow: "rgba(15,118,110,0.14)",
+      glow: "rgba(15,118,110,0.12)",
     };
   }
 
@@ -157,9 +176,10 @@ function getSubjectTheme(subjectKey: PathwaySubjectKey) {
     return {
       accent: "#b45309",
       soft: "#fffbeb",
-      stronger: "#fef3c7",
+      border: "#fef3c7",
+      stronger: "#fcd34d",
       text: "#b45309",
-      glow: "rgba(180,83,9,0.14)",
+      glow: "rgba(180,83,9,0.12)",
     };
   }
 
@@ -167,9 +187,10 @@ function getSubjectTheme(subjectKey: PathwaySubjectKey) {
     return {
       accent: "#4f46e5",
       soft: "#eef2ff",
-      stronger: "#e0e7ff",
+      border: "#e0e7ff",
+      stronger: "#c7d2fe",
       text: "#4338ca",
-      glow: "rgba(79,70,229,0.14)",
+      glow: "rgba(79,70,229,0.12)",
     };
   }
 
@@ -177,45 +198,83 @@ function getSubjectTheme(subjectKey: PathwaySubjectKey) {
     return {
       accent: "#7c3aed",
       soft: "#f5f3ff",
-      stronger: "#ede9fe",
+      border: "#ede9fe",
+      stronger: "#ddd6fe",
       text: "#6d28d9",
-      glow: "rgba(124,58,237,0.14)",
+      glow: "rgba(124,58,237,0.12)",
     };
   }
 
   return {
     accent: "#059669",
     soft: "#ecfdf5",
-    stronger: "#d1fae5",
+    border: "#d1fae5",
+    stronger: "#a7f3d0",
     text: "#047857",
-    glow: "rgba(5,150,105,0.14)",
+    glow: "rgba(5,150,105,0.12)",
+  };
+}
+
+function getMetricTone(kind: string): MetricTone {
+  if (kind === "secure") {
+    return {
+      accent: "#10b981",
+      soft: "#ecfdf5",
+      border: "#a7f3d0",
+      text: "#047857",
+    };
+  }
+
+  if (kind === "developing") {
+    return {
+      accent: "#f59e0b",
+      soft: "#fffbeb",
+      border: "#fde68a",
+      text: "#b45309",
+    };
+  }
+
+  if (kind === "evidence") {
+    return {
+      accent: "#8b5cf6",
+      soft: "#f5f3ff",
+      border: "#ddd6fe",
+      text: "#6d28d9",
+    };
+  }
+
+  return {
+    accent: "#94a3b8",
+    soft: "#f8fafc",
+    border: "#e2e8f0",
+    text: "#475569",
   };
 }
 
 function buildHeatCellStyle(
   count: number,
   totalSteps: number,
-  type: "starting" | "developing" | "secure" | "not-assessed",
+  type: "evidence" | "developing" | "secure" | "not-assessed",
 ): React.CSSProperties {
   const ratio = totalSteps > 0 ? Math.min(1, count / totalSteps) : 0;
 
   const palette =
     type === "secure"
-      ? { border: "#a7f3d0", fill: `rgba(16,185,129,${0.10 + ratio * 0.24})`, text: "#047857" }
+      ? { border: "#a7f3d0", fill: `rgba(16,185,129,${0.08 + ratio * 0.24})`, text: "#047857" }
       : type === "developing"
-        ? { border: "#fde68a", fill: `rgba(245,158,11,${0.10 + ratio * 0.22})`, text: "#b45309" }
-        : type === "starting"
-          ? { border: "#c4b5fd", fill: `rgba(99,102,241,${0.10 + ratio * 0.22})`, text: "#5b21b6" }
-          : { border: "#e2e8f0", fill: `rgba(148,163,184,${0.08 + ratio * 0.18})`, text: "#475569" };
+        ? { border: "#fde68a", fill: `rgba(245,158,11,${0.08 + ratio * 0.22})`, text: "#b45309" }
+        : type === "evidence"
+          ? { border: "#ddd6fe", fill: `rgba(139,92,246,${0.08 + ratio * 0.22})`, text: "#6d28d9" }
+          : { border: "#e2e8f0", fill: `rgba(148,163,184,${0.06 + ratio * 0.16})`, text: "#475569" };
 
   return {
     border: `1px solid ${palette.border}`,
     borderRadius: 14,
-    padding: 12,
     background: palette.fill,
+    padding: 10,
     display: "grid",
-    gap: 4,
-    minHeight: 74,
+    gap: 2,
+    minHeight: 66,
   };
 }
 
@@ -230,9 +289,9 @@ function buildReadinessStyle(readiness: LearningIntelligenceRow["readiness"]) {
 
   if (readiness === "Building") {
     return {
-      border: "1px solid #c4b5fd",
+      border: "1px solid #ddd6fe",
       background: "#f5f3ff",
-      color: "#5b21b6",
+      color: "#6d28d9",
     };
   }
 
@@ -241,6 +300,292 @@ function buildReadinessStyle(readiness: LearningIntelligenceRow["readiness"]) {
     background: "#fffbeb",
     color: "#b45309",
   };
+}
+
+function statusChipStyle(type: "evidence" | "assessment", confidenceLabel?: string | null) {
+  if (type === "assessment") {
+    const strong = confidenceLabel === "Confidence: Strong";
+    const secure = confidenceLabel === "Confidence: Secure";
+    const developing =
+      confidenceLabel === "Confidence: Developing" ||
+      confidenceLabel === "Confidence: Still developing";
+
+    if (strong || secure) {
+      return {
+        border: "1px solid #a7f3d0",
+        background: "#ecfdf5",
+        color: "#047857",
+      };
+    }
+
+    if (developing) {
+      return {
+        border: "1px solid #fde68a",
+        background: "#fffbeb",
+        color: "#b45309",
+      };
+    }
+  }
+
+  return {
+    border: "1px solid #ddd6fe",
+    background: "#f5f3ff",
+    color: "#6d28d9",
+  };
+}
+
+function MiniMetricCard(props: {
+  label: string;
+  value: string | number;
+  tone: MetricTone;
+  helper?: string | null;
+}) {
+  return (
+    <article
+      style={{
+        ...cardStyle,
+        padding: 14,
+        border: `1px solid ${props.tone.border}`,
+        background: "#ffffff",
+        display: "grid",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          color: "#64748b",
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: "0.04em",
+          textTransform: "uppercase",
+        }}
+      >
+        <span
+          aria-hidden="true"
+          style={{
+            width: 10,
+            height: 10,
+            borderRadius: 999,
+            background: props.tone.accent,
+            boxShadow: `0 0 0 4px ${props.tone.soft}`,
+          }}
+        />
+        <span>{props.label}</span>
+      </div>
+      <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+        {props.value}
+      </div>
+      {props.helper ? (
+        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>{props.helper}</div>
+      ) : null}
+    </article>
+  );
+}
+
+function SnapshotChip(props: { label: string; value: string | number; tone: MetricTone }) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${props.tone.border}`,
+        background: props.tone.soft,
+        color: props.tone.text,
+        borderRadius: 999,
+        padding: "8px 12px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        fontSize: 13,
+        fontWeight: 700,
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: 999,
+          background: props.tone.accent,
+        }}
+      />
+      <span>{props.value}</span>
+      <span style={{ color: "#475569", fontWeight: 600 }}>{props.label}</span>
+    </div>
+  );
+}
+
+function ProgressRow(props: { row: LearningIntelligenceRow }) {
+  const { row } = props;
+  const theme = getSubjectTheme(row.subjectKey);
+  const readinessStyle = buildReadinessStyle(row.readiness);
+
+  return (
+    <article
+      style={{
+        border: `1px solid ${theme.border}`,
+        borderRadius: 20,
+        padding: 14,
+        background: `radial-gradient(circle at top right, ${theme.glow}, transparent 30%), #ffffff`,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+      >
+        <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: 999,
+                background: theme.accent,
+                boxShadow: `0 0 0 5px ${theme.soft}`,
+              }}
+            />
+            <strong style={{ color: "#0f172a", fontSize: 17 }}>{row.title}</strong>
+            <span
+              style={{
+                ...readinessStyle,
+                borderRadius: 999,
+                padding: "5px 9px",
+                fontSize: 11,
+                fontWeight: 800,
+              }}
+            >
+              {row.readiness}
+            </span>
+          </div>
+          <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.4 }}>
+            {row.kind === "subject" ? "Learning area" : row.subjectTitle}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <span
+            style={{
+              border: "1px solid #e2e8f0",
+              background: "#f8fafc",
+              borderRadius: 999,
+              padding: "6px 10px",
+              color: "#475569",
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {row.evidenceLinkedCount} evidence
+          </span>
+          <Link href="/my-pathways" style={quietButtonStyle}>
+            Open Pathways
+          </Link>
+          <Link href="/my-assessments" style={quietButtonStyle}>
+            Open Assessments
+          </Link>
+        </div>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 10,
+          gridTemplateColumns: "repeat(auto-fit, minmax(92px, 1fr))",
+        }}
+      >
+        <div style={buildHeatCellStyle(row.startingEvidenceCount, row.totalSteps, "evidence")}>
+          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Evidence</div>
+          <div style={{ color: "#6d28d9", fontSize: 24, fontWeight: 800 }}>
+            {row.startingEvidenceCount}
+          </div>
+          <div style={{ color: "#6d28d9", fontSize: 11 }}>Started</div>
+        </div>
+
+        <div style={buildHeatCellStyle(row.developingCount, row.totalSteps, "developing")}>
+          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Developing</div>
+          <div style={{ color: "#b45309", fontSize: 24, fontWeight: 800 }}>
+            {row.developingCount}
+          </div>
+          <div style={{ color: "#b45309", fontSize: 11 }}>Confidence</div>
+        </div>
+
+        <div style={buildHeatCellStyle(row.secureStrongCount, row.totalSteps, "secure")}>
+          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Secure / Strong</div>
+          <div style={{ color: "#047857", fontSize: 24, fontWeight: 800 }}>
+            {row.secureStrongCount}
+          </div>
+          <div style={{ color: "#047857", fontSize: 11 }}>Confidence</div>
+        </div>
+
+        <div style={buildHeatCellStyle(row.notAssessedCount, row.totalSteps, "not-assessed")}>
+          <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Not assessed</div>
+          <div style={{ color: "#475569", fontSize: 24, fontWeight: 800 }}>
+            {row.notAssessedCount}
+          </div>
+          <div style={{ color: "#475569", fontSize: 11 }}>Ready to start</div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #e2e8f0",
+            borderRadius: 14,
+            background: "#f8fafc",
+            padding: 10,
+            display: "grid",
+            gap: 8,
+            minHeight: 66,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              alignItems: "center",
+            }}
+          >
+            <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>Progress</div>
+            <div style={{ color: "#0f172a", fontSize: 13, fontWeight: 800 }}>
+              {row.progressPercent}%
+            </div>
+          </div>
+          <div
+            style={{
+              height: 8,
+              borderRadius: 999,
+              background: "#e2e8f0",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${row.progressPercent}%`,
+                height: "100%",
+                borderRadius: 999,
+                background: `linear-gradient(90deg, ${theme.accent} 0%, #14b8a6 100%)`,
+              }}
+            />
+          </div>
+          <div style={{ color: "#64748b", fontSize: 11 }}>{row.latestActivityLabel}</div>
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export default function CleanLearningIntelligenceDashboard(
@@ -265,11 +610,58 @@ export default function CleanLearningIntelligenceDashboard(
     ],
   );
 
+  const latestActivity = summary.recentActivity[0] ?? null;
+  const leadNextStep = summary.nextLearningSteps[0] ?? null;
   const maxTrendCount = Math.max(
     1,
     ...summary.progressOverTime.map((point) => point.totalCount),
   );
   const currentStageTitle = getCleanAssessmentStageTitle(summary.learnerStageKey);
+  const activeRows = summary.scopeRows.filter(
+    (row) => row.evidenceLinkedCount > 0 || row.assessedCount > 0,
+  ).length;
+
+  const metricCards = [
+    {
+      label: selectedSubjectKey === "all" ? "Total subjects" : "Tracked strands",
+      value:
+        selectedSubjectKey === "all"
+          ? summary.totalSubjects
+          : summary.visibleRowCount,
+      tone: getMetricTone("neutral"),
+      helper: selectedSubjectKey === "all" ? null : summary.selectedSubjectTitle,
+    },
+    {
+      label: "Secure / Strong",
+      value: summary.secureStrongCount,
+      tone: getMetricTone("secure"),
+      helper: null,
+    },
+    {
+      label: "Developing",
+      value: summary.developingCount,
+      tone: getMetricTone("developing"),
+      helper: null,
+    },
+    {
+      label: "Evidence started",
+      value: summary.startingEvidenceCount,
+      tone: getMetricTone("evidence"),
+      helper: null,
+    },
+    {
+      label: "Not assessed",
+      value: summary.notAssessedCount,
+      tone: getMetricTone("neutral"),
+      helper: null,
+    },
+    {
+      label: "Readiness",
+      value: `${summary.reportingReadiness.readinessPercent}%`,
+      tone: getMetricTone("secure"),
+      helper: null,
+    },
+  ];
 
   return (
     <section style={dashboardShellStyle}>
@@ -283,9 +675,9 @@ export default function CleanLearningIntelligenceDashboard(
       >
         <aside
           style={{
-            ...subtleCardStyle,
-            flex: "0 1 280px",
-            width: "min(100%, 300px)",
+            ...cardStyle,
+            flex: "0 1 270px",
+            width: "min(100%, 290px)",
             padding: 18,
             display: "grid",
             gap: 18,
@@ -311,12 +703,10 @@ export default function CleanLearningIntelligenceDashboard(
               {buildInitials(props.learnerName)}
             </div>
             <div style={{ display: "grid", gap: 6 }}>
-              <div style={eyebrowStyle}>Learner snapshot</div>
-              <strong style={{ color: "#0f172a", fontSize: 22 }}>
-                {props.learnerName}
-              </strong>
+              <div style={eyebrowStyle}>Learner</div>
+              <strong style={{ color: "#0f172a", fontSize: 22 }}>{props.learnerName}</strong>
               <div style={secondaryTextStyle}>
-                {safe(props.learnerYearLevel) || "Year level not recorded"} · {currentStageTitle}
+                {safe(props.learnerYearLevel) || "Year level not recorded"} | {currentStageTitle}
               </div>
               {safe(props.frameworkLabel) ? (
                 <div
@@ -338,7 +728,7 @@ export default function CleanLearningIntelligenceDashboard(
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={eyebrowStyle}>Workspace links</div>
+            <div style={eyebrowStyle}>Workspace</div>
             {quickLinks.map((item) => (
               <Link
                 key={item.label}
@@ -358,20 +748,15 @@ export default function CleanLearningIntelligenceDashboard(
                 }}
               >
                 <span>{item.label}</span>
-                {item.current ? (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    Current
-                  </span>
-                ) : (
-                  <span style={{ color: "#94a3b8" }}>›</span>
-                )}
+                <span
+                  style={{
+                    color: item.current ? "#1d4ed8" : "#94a3b8",
+                    fontSize: 12,
+                    fontWeight: 800,
+                  }}
+                >
+                  {item.current ? "Now" : ">"}
+                </span>
               </Link>
             ))}
           </div>
@@ -388,7 +773,7 @@ export default function CleanLearningIntelligenceDashboard(
           >
             <strong style={{ color: "#0f172a" }}>Need help?</strong>
             <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
-              Visit our Help Centre for guidance on pathways, evidence capture, and reporting.
+              Guidance for pathways, evidence capture, and reporting.
             </div>
             <div>
               <span style={disabledButtonStyle}>Help Centre</span>
@@ -397,9 +782,9 @@ export default function CleanLearningIntelligenceDashboard(
         </aside>
 
         <div style={{ flex: "999 1 720px", minWidth: 0, display: "grid", gap: 18 }}>
-          <div
+          <section
             style={{
-              ...subtleCardStyle,
+              ...cardStyle,
               padding: 20,
               display: "grid",
               gap: 18,
@@ -416,24 +801,23 @@ export default function CleanLearningIntelligenceDashboard(
                 alignItems: "flex-start",
               }}
             >
-              <div style={{ display: "grid", gap: 8, maxWidth: 660 }}>
+              <div style={{ display: "grid", gap: 8, maxWidth: 640 }}>
                 <div style={eyebrowStyle}>Learning Intelligence</div>
                 <h2 style={{ margin: 0, color: "#0f172a", fontSize: "clamp(28px, 4vw, 40px)" }}>
-                  A clear overview of {props.learnerName}&rsquo;s learning across all areas.
+                  A clear overview of {props.learnerName}&rsquo;s learning.
                 </h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 15 }}>
-                  See pathway-linked evidence, saved confidence, coverage readiness, and calm next
-                  steps from one connected learning spine.
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
+                  Canonical pathway steps, evidence, confidence, coverage, and next steps in one
+                  calm dashboard.
                 </p>
               </div>
 
               <div
                 style={{
                   display: "grid",
-                  gap: 12,
-                  justifyItems: "stretch",
-                  minWidth: "min(100%, 260px)",
-                  width: "min(100%, 300px)",
+                  gap: 10,
+                  minWidth: "min(100%, 250px)",
+                  width: "min(100%, 290px)",
                 }}
               >
                 <label style={{ display: "grid", gap: 6, color: "#334155", fontWeight: 700 }}>
@@ -487,37 +871,6 @@ export default function CleanLearningIntelligenceDashboard(
                       : "Download coverage record"}
                   </button>
                 </div>
-
-                {props.coverageError ? (
-                  <div
-                    style={{
-                      border: "1px solid #fecaca",
-                      background: "#fef2f2",
-                      color: "#b91c1c",
-                      borderRadius: 14,
-                      padding: 10,
-                      lineHeight: 1.5,
-                      fontSize: 13,
-                    }}
-                  >
-                    {props.coverageError}
-                  </div>
-                ) : null}
-                {props.coverageMessage ? (
-                  <div
-                    style={{
-                      border: "1px solid #bfdbfe",
-                      background: "#eff6ff",
-                      color: "#1d4ed8",
-                      borderRadius: 14,
-                      padding: 10,
-                      lineHeight: 1.5,
-                      fontSize: 13,
-                    }}
-                  >
-                    {props.coverageMessage}
-                  </div>
-                ) : null}
               </div>
             </div>
 
@@ -536,92 +889,274 @@ export default function CleanLearningIntelligenceDashboard(
               </div>
             ) : null}
 
+            {props.coverageError ? (
+              <div
+                style={{
+                  border: "1px solid #fecaca",
+                  background: "#fff7f7",
+                  color: "#b91c1c",
+                  borderRadius: 16,
+                  padding: 12,
+                  lineHeight: 1.6,
+                }}
+              >
+                {props.coverageError}
+              </div>
+            ) : null}
+
+            {props.coverageMessage ? (
+              <div
+                style={{
+                  border: "1px solid #bfdbfe",
+                  background: "#eff6ff",
+                  color: "#1d4ed8",
+                  borderRadius: 16,
+                  padding: 12,
+                  lineHeight: 1.6,
+                }}
+              >
+                {props.coverageMessage}
+              </div>
+            ) : null}
+
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Learning Snapshot</div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <article
+                  style={{
+                    ...cardStyle,
+                    padding: 16,
+                    display: "grid",
+                    gap: 12,
+                    background: "#ffffff",
+                  }}
+                >
+                  <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
+                    Snapshot
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <SnapshotChip
+                      label={selectedSubjectKey === "all" ? "active areas" : "active strands"}
+                      value={activeRows}
+                      tone={getMetricTone("neutral")}
+                    />
+                    <SnapshotChip
+                      label="secure / strong"
+                      value={summary.secureStrongCount}
+                      tone={getMetricTone("secure")}
+                    />
+                    <SnapshotChip
+                      label="evidence linked"
+                      value={summary.evidenceLinkedCount}
+                      tone={getMetricTone("evidence")}
+                    />
+                    <SnapshotChip
+                      label="focus areas"
+                      value={summary.focusAreas.length}
+                      tone={getMetricTone("developing")}
+                    />
+                  </div>
+                  <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                    {summary.selectedSubjectTitle} | {summary.totalSteps} tracked steps
+                  </div>
+                </article>
+
+                <article
+                  style={{
+                    ...cardStyle,
+                    padding: 16,
+                    display: "grid",
+                    gap: 12,
+                    background:
+                      "linear-gradient(135deg, rgba(239,246,255,1) 0%, rgba(255,255,255,1) 100%)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
+                      Momentum
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 32, fontWeight: 800 }}>
+                      {summary.overallProgressPercent}%
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      height: 12,
+                      borderRadius: 999,
+                      background: "#dbeafe",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: `${summary.overallProgressPercent}%`,
+                        height: "100%",
+                        borderRadius: 999,
+                        background: "linear-gradient(90deg, #2563eb 0%, #14b8a6 100%)",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {[
+                      {
+                        label: "Confidence saved",
+                        value: summary.assessedCount,
+                        color: "#10b981",
+                      },
+                      {
+                        label: "Evidence linked",
+                        value: summary.evidenceLinkedCount,
+                        color: "#8b5cf6",
+                      },
+                      {
+                        label: "Ready for reporting",
+                        value: summary.reportingReadiness.readyCount,
+                        color: "#2563eb",
+                      },
+                    ].map((item) => (
+                      <div key={item.label} style={{ display: "grid", gap: 4 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 12,
+                            color: "#475569",
+                            fontSize: 12,
+                          }}
+                        >
+                          <span>{item.label}</span>
+                          <strong style={{ color: "#0f172a" }}>{item.value}</strong>
+                        </div>
+                        <div
+                          style={{
+                            height: 8,
+                            borderRadius: 999,
+                            background: "#e2e8f0",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${summary.totalSteps ? Math.round((item.value / summary.totalSteps) * 100) : 0}%`,
+                              height: "100%",
+                              borderRadius: 999,
+                              background: item.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+
+                <article
+                  style={{
+                    ...cardStyle,
+                    padding: 16,
+                    display: "grid",
+                    gap: 12,
+                    background: "#ffffff",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      alignItems: "center",
+                    }}
+                  >
+                    <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
+                      Next signal
+                    </div>
+                    <span
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        background: "#f8fafc",
+                        borderRadius: 999,
+                        padding: "6px 10px",
+                        color: "#475569",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Reporting {summary.reportingReadiness.readinessPercent}%
+                    </span>
+                  </div>
+                  {leadNextStep ? (
+                    <>
+                      <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 16 }}>
+                        {leadNextStep.stepTitle}
+                      </div>
+                      <div style={{ color: "#475569", fontSize: 13 }}>
+                        {leadNextStep.subjectTitle} | {leadNextStep.strandTitle}
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                        {leadNextStep.reason}
+                      </div>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <Link href={leadNextStep.href} style={quietButtonStyle}>
+                          Open Pathways
+                        </Link>
+                        {latestActivity ? (
+                          <span
+                            style={{
+                              border: "1px solid #e2e8f0",
+                              background: "#f8fafc",
+                              borderRadius: 999,
+                              padding: "8px 10px",
+                              color: "#475569",
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Recent: {latestActivity.label}
+                          </span>
+                        ) : null}
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.6 }}>
+                      Capture or assess to build the next-step view.
+                    </div>
+                  )}
+                </article>
+              </div>
+            </div>
+
             <div
               style={{
                 display: "grid",
                 gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
               }}
             >
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  {selectedSubjectKey === "all" ? "Total subjects" : "Tracked strands"}
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {selectedSubjectKey === "all"
-                    ? summary.totalSubjects
-                    : summary.visibleRowCount}
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  {selectedSubjectKey === "all"
-                    ? `${summary.totalSteps} pathway steps tracked across the full core subject set.`
-                    : `${summary.totalSteps} pathway steps inside ${summary.selectedSubjectTitle}.`}
-                </div>
-              </article>
-
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Secure / Strong
-                </div>
-                <div style={{ color: "#047857", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {summary.secureStrongCount}
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  Saved confidence showing settled strength across visible pathway steps.
-                </div>
-              </article>
-
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Developing
-                </div>
-                <div style={{ color: "#b45309", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {summary.developingCount}
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  Confidence saved as still developing or developing.
-                </div>
-              </article>
-
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Starting / Evidence started
-                </div>
-                <div style={{ color: "#5b21b6", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {summary.startingEvidenceCount}
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  Pathway steps with linked evidence but no saved confidence yet.
-                </div>
-              </article>
-
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Not assessed
-                </div>
-                <div style={{ color: "#475569", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {summary.notAssessedCount}
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  Pathway steps with no linked evidence and no saved confidence yet.
-                </div>
-              </article>
-
-              <article style={{ ...subtleCardStyle, padding: 16, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Overall progress
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {summary.overallProgressPercent}%
-                </div>
-                <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                  Weighted snapshot across saved confidence and pathway-linked evidence.
-                </div>
-              </article>
+              {metricCards.map((item) => (
+                <MiniMetricCard
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                  tone={item.tone}
+                  helper={item.helper}
+                />
+              ))}
             </div>
-          </div>
+          </section>
 
-          <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 16 }}>
+          <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 16 }}>
             <div
               style={{
                 display: "flex",
@@ -636,215 +1171,67 @@ export default function CleanLearningIntelligenceDashboard(
                 <h3 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
                   Learning area progress
                 </h3>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  Each card shows evidence starting points, developing confidence, secure or strong
-                  steps, and steps that have not been assessed yet.
-                </p>
               </div>
-              <div
-                style={{
-                  border: "1px solid #e2e8f0",
-                  background: "#f8fafc",
-                  borderRadius: 999,
-                  padding: "8px 12px",
-                  color: "#475569",
-                  fontWeight: 700,
-                }}
-              >
-                {summary.selectedSubjectTitle}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    border: "1px solid #ddd6fe",
+                    background: "#f5f3ff",
+                    color: "#6d28d9",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Evidence
+                </span>
+                <span
+                  style={{
+                    border: "1px solid #fde68a",
+                    background: "#fffbeb",
+                    color: "#b45309",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Developing
+                </span>
+                <span
+                  style={{
+                    border: "1px solid #a7f3d0",
+                    background: "#ecfdf5",
+                    color: "#047857",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Secure / Strong
+                </span>
+                <span
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#475569",
+                    borderRadius: 999,
+                    padding: "6px 10px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Not assessed
+                </span>
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-              }}
-            >
-              {summary.scopeRows.map((row) => {
-                const theme = getSubjectTheme(row.subjectKey);
-                const readinessStyle = buildReadinessStyle(row.readiness);
-
-                return (
-                  <article
-                    key={row.key}
-                    style={{
-                      border: `1px solid ${theme.stronger}`,
-                      borderRadius: 22,
-                      padding: 16,
-                      background:
-                        `radial-gradient(circle at top right, ${theme.glow}, transparent 32%), ${theme.soft}`,
-                      display: "grid",
-                      gap: 14,
-                      boxShadow: "0 10px 24px rgba(15,23,42,0.05)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 10,
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span
-                            aria-hidden="true"
-                            style={{
-                              width: 14,
-                              height: 14,
-                              borderRadius: 999,
-                              background: theme.accent,
-                              boxShadow: `0 0 0 6px ${theme.stronger}`,
-                            }}
-                          />
-                          <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                            {row.title}
-                          </strong>
-                        </div>
-                        <div style={{ ...secondaryTextStyle, fontSize: 14 }}>{row.subtitle}</div>
-                      </div>
-
-                      <span
-                        style={{
-                          ...readinessStyle,
-                          borderRadius: 999,
-                          padding: "6px 10px",
-                          fontSize: 12,
-                          fontWeight: 800,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {row.readiness}
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gap: 10,
-                        gridTemplateColumns: "repeat(auto-fit, minmax(108px, 1fr))",
-                      }}
-                    >
-                      <div style={buildHeatCellStyle(row.startingEvidenceCount, row.totalSteps, "starting")}>
-                        <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>
-                          Starting
-                        </div>
-                        <div style={{ color: "#5b21b6", fontSize: 24, fontWeight: 800 }}>
-                          {row.startingEvidenceCount}
-                        </div>
-                        <div style={{ color: "#5b21b6", fontSize: 12, lineHeight: 1.4 }}>
-                          Evidence started
-                        </div>
-                      </div>
-
-                      <div style={buildHeatCellStyle(row.developingCount, row.totalSteps, "developing")}>
-                        <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>
-                          Developing
-                        </div>
-                        <div style={{ color: "#b45309", fontSize: 24, fontWeight: 800 }}>
-                          {row.developingCount}
-                        </div>
-                        <div style={{ color: "#b45309", fontSize: 12, lineHeight: 1.4 }}>
-                          Confidence building
-                        </div>
-                      </div>
-
-                      <div style={buildHeatCellStyle(row.secureStrongCount, row.totalSteps, "secure")}>
-                        <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>
-                          Secure / Strong
-                        </div>
-                        <div style={{ color: "#047857", fontSize: 24, fontWeight: 800 }}>
-                          {row.secureStrongCount}
-                        </div>
-                        <div style={{ color: "#047857", fontSize: 12, lineHeight: 1.4 }}>
-                          Confidence saved
-                        </div>
-                      </div>
-
-                      <div style={buildHeatCellStyle(row.notAssessedCount, row.totalSteps, "not-assessed")}>
-                        <div style={{ color: "#64748b", fontSize: 11, fontWeight: 800 }}>
-                          Not assessed
-                        </div>
-                        <div style={{ color: "#475569", fontSize: 24, fontWeight: 800 }}>
-                          {row.notAssessedCount}
-                        </div>
-                        <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.4 }}>
-                          Needs a starting record
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <strong style={{ color: "#0f172a" }}>
-                          Progress {row.progressPercent}%
-                        </strong>
-                        <span style={{ color: "#64748b", fontSize: 13 }}>
-                          {row.evidenceLinkedCount} evidence-linked steps
-                        </span>
-                      </div>
-                      <div
-                        aria-hidden="true"
-                        style={{
-                          height: 10,
-                          borderRadius: 999,
-                          background: "#e2e8f0",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: `${row.progressPercent}%`,
-                            height: "100%",
-                            borderRadius: 999,
-                            background: `linear-gradient(90deg, ${theme.accent} 0%, #14b8a6 100%)`,
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          color: "#64748b",
-                          fontSize: 13,
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <span>{row.latestActivityLabel}</span>
-                        <span>{row.includeInReportCount} ready for report notes</span>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <Link href="/my-pathways" style={secondaryButtonStyle}>
-                        Open Pathways
-                      </Link>
-                      <Link href="/my-assessments" style={secondaryButtonStyle}>
-                        Open Assessments
-                      </Link>
-                    </div>
-                  </article>
-                );
-              })}
+            <div style={{ display: "grid", gap: 12 }}>
+              {summary.scopeRows.map((row) => (
+                <ProgressRow key={row.key} row={row} />
+              ))}
             </div>
           </section>
 
@@ -855,18 +1242,18 @@ export default function CleanLearningIntelligenceDashboard(
               gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             }}
           >
-            <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={eyebrowStyle}>Recent learning activity</div>
-                <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-                  Recent learning activity
-                </h3>
-              </div>
+            <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 14 }}>
+              <div style={eyebrowStyle}>Recent Learning Activity</div>
+              <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
+                Recent learning activity
+              </h3>
 
               {summary.recentActivity.length ? (
-                <div style={{ display: "grid", gap: 12 }}>
+                <div style={{ display: "grid", gap: 10 }}>
                   {summary.recentActivity.map((activity) => {
                     const theme = getSubjectTheme(activity.subjectKey);
+                    const chipStyle = statusChipStyle(activity.activityType, activity.label);
+
                     return (
                       <Link
                         key={activity.id}
@@ -891,31 +1278,46 @@ export default function CleanLearningIntelligenceDashboard(
                             flexWrap: "wrap",
                           }}
                         >
-                          <span
-                            style={{
-                              border: `1px solid ${theme.stronger}`,
-                              background: theme.soft,
-                              color: theme.text,
-                              borderRadius: 999,
-                              padding: "6px 10px",
-                              fontSize: 12,
-                              fontWeight: 800,
-                            }}
-                          >
-                            {activity.subjectTitle}
-                          </span>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: 999,
+                                background: theme.accent,
+                                boxShadow: `0 0 0 4px ${theme.soft}`,
+                              }}
+                            />
+                            <span style={{ color: "#0f172a", fontSize: 13, fontWeight: 700 }}>
+                              {activity.subjectTitle}
+                            </span>
+                            <span
+                              style={{
+                                ...chipStyle,
+                                borderRadius: 999,
+                                padding: "5px 9px",
+                                fontSize: 11,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {activity.activityType === "evidence"
+                                ? "Evidence captured"
+                                : activity.label}
+                            </span>
+                          </div>
                           <span style={{ color: "#64748b", fontSize: 12, fontWeight: 700 }}>
                             {activity.dateLabel}
                           </span>
                         </div>
                         <strong style={{ color: "#0f172a", fontSize: 15 }}>
-                          {activity.label}
-                        </strong>
-                        <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.5 }}>
                           {activity.stepTitle}
+                        </strong>
+                        <div style={{ color: "#475569", fontSize: 13 }}>
+                          {activity.strandTitle}
                         </div>
                         <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                          {activity.strandTitle} · {activity.summary}
+                          {activity.summary}
                         </div>
                       </Link>
                     );
@@ -929,22 +1331,17 @@ export default function CleanLearningIntelligenceDashboard(
                     padding: 18,
                     background: "#f8fafc",
                     color: "#64748b",
-                    lineHeight: 1.7,
+                    lineHeight: 1.6,
                   }}
                 >
-                  No recent pathway-linked activity yet. Capture evidence or save an assessment to
-                  start building the record.
+                  No recent pathway-linked activity yet.
                 </div>
               )}
             </section>
 
-            <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={eyebrowStyle}>Progress over time</div>
-                <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
-                  Progress over time
-                </h3>
-              </div>
+            <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 14 }}>
+              <div style={eyebrowStyle}>Progress Over Time</div>
+              <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>Progress over time</h3>
 
               {summary.progressOverTime.some((point) => point.totalCount > 0) ? (
                 <div style={{ display: "grid", gap: 12 }}>
@@ -954,17 +1351,17 @@ export default function CleanLearningIntelligenceDashboard(
                       gap: 10,
                       gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
                       alignItems: "end",
-                      minHeight: 160,
+                      minHeight: 150,
                     }}
                   >
                     {summary.progressOverTime.map((point) => {
                       const evidenceHeight = Math.max(
-                        8,
-                        Math.round((point.evidenceCount / maxTrendCount) * 86),
+                        point.evidenceCount > 0 ? 12 : 0,
+                        Math.round((point.evidenceCount / maxTrendCount) * 84),
                       );
                       const assessmentHeight = Math.max(
-                        point.assessmentCount > 0 ? 8 : 0,
-                        Math.round((point.assessmentCount / maxTrendCount) * 58),
+                        point.assessmentCount > 0 ? 12 : 0,
+                        Math.round((point.assessmentCount / maxTrendCount) * 52),
                       );
 
                       return (
@@ -980,8 +1377,8 @@ export default function CleanLearningIntelligenceDashboard(
                           <div
                             style={{
                               width: "100%",
-                              maxWidth: 54,
-                              minHeight: 120,
+                              maxWidth: 52,
+                              minHeight: 118,
                               display: "flex",
                               alignItems: "flex-end",
                               justifyContent: "center",
@@ -990,8 +1387,8 @@ export default function CleanLearningIntelligenceDashboard(
                             <div
                               style={{
                                 width: "100%",
-                                borderRadius: 20,
-                                background: "#eef2ff",
+                                borderRadius: 18,
+                                background: "#f1f5f9",
                                 padding: 6,
                                 display: "grid",
                                 gap: 6,
@@ -1002,7 +1399,7 @@ export default function CleanLearningIntelligenceDashboard(
                                 <div
                                   style={{
                                     height: assessmentHeight,
-                                    borderRadius: 12,
+                                    borderRadius: 10,
                                     background: "#14b8a6",
                                   }}
                                 />
@@ -1011,7 +1408,7 @@ export default function CleanLearningIntelligenceDashboard(
                                 <div
                                   style={{
                                     height: evidenceHeight,
-                                    borderRadius: 12,
+                                    borderRadius: 10,
                                     background: "#2563eb",
                                   }}
                                 />
@@ -1022,22 +1419,14 @@ export default function CleanLearningIntelligenceDashboard(
                             {point.label}
                           </div>
                           <div style={{ color: "#64748b", fontSize: 11, textAlign: "center" }}>
-                            {point.totalCount} updates
+                            {point.totalCount}
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 14,
-                      flexWrap: "wrap",
-                      color: "#64748b",
-                      fontSize: 12,
-                    }}
-                  >
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", color: "#64748b", fontSize: 12 }}>
                     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
                       <span
                         aria-hidden="true"
@@ -1048,7 +1437,7 @@ export default function CleanLearningIntelligenceDashboard(
                           background: "#2563eb",
                         }}
                       />
-                      Evidence activity
+                      Evidence
                     </span>
                     <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
                       <span
@@ -1060,7 +1449,7 @@ export default function CleanLearningIntelligenceDashboard(
                           background: "#14b8a6",
                         }}
                       />
-                      Confidence saves
+                      Confidence
                     </span>
                   </div>
                 </div>
@@ -1072,10 +1461,10 @@ export default function CleanLearningIntelligenceDashboard(
                     padding: 18,
                     background: "#f8fafc",
                     color: "#64748b",
-                    lineHeight: 1.7,
+                    lineHeight: 1.6,
                   }}
                 >
-                  Progress trend will build as more evidence and assessments are added.
+                  Progress trend will build as more evidence and confidence are added.
                 </div>
               )}
             </section>
@@ -1088,7 +1477,7 @@ export default function CleanLearningIntelligenceDashboard(
               gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
             }}
           >
-            <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 12 }}>
+            <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 12 }}>
               <div style={eyebrowStyle}>Strengths</div>
               <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>Strengths</h3>
               {summary.strengths.length ? (
@@ -1098,12 +1487,12 @@ export default function CleanLearningIntelligenceDashboard(
                     <div
                       key={item.key}
                       style={{
-                        border: `1px solid ${theme.stronger}`,
+                        border: `1px solid ${theme.border}`,
                         borderRadius: 16,
                         padding: 14,
                         background: theme.soft,
                         display: "grid",
-                        gap: 6,
+                        gap: 8,
                       }}
                     >
                       <div
@@ -1119,53 +1508,23 @@ export default function CleanLearningIntelligenceDashboard(
                           {item.progressPercent}%
                         </span>
                       </div>
-                      <div style={{ color: "#475569", fontSize: 13 }}>{item.subtitle}</div>
-                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                        {item.helper}
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
-                  Strengths will become clearer as evidence and confidence records build.
-                </div>
-              )}
-            </section>
-
-            <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 12 }}>
-              <div style={eyebrowStyle}>Focus areas</div>
-              <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>Focus areas</h3>
-              {summary.focusAreas.length ? (
-                summary.focusAreas.map((item) => {
-                  const theme = getSubjectTheme(item.subjectKey);
-                  return (
-                    <div
-                      key={item.key}
-                      style={{
-                        border: "1px solid #fde68a",
-                        borderRadius: 16,
-                        padding: 14,
-                        background:
-                          theme.soft === "#fffbeb" ? "#fffdf6" : "#fffbeb",
-                        display: "grid",
-                        gap: 6,
-                      }}
-                    >
                       <div
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 12,
-                          alignItems: "center",
+                          height: 8,
+                          borderRadius: 999,
+                          background: "#e2e8f0",
+                          overflow: "hidden",
                         }}
                       >
-                        <strong style={{ color: "#0f172a" }}>{item.title}</strong>
-                        <span style={{ color: "#b45309", fontWeight: 800 }}>
-                          {item.notAssessedCount} to revisit
-                        </span>
+                        <div
+                          style={{
+                            width: `${item.progressPercent}%`,
+                            height: "100%",
+                            borderRadius: 999,
+                            background: theme.accent,
+                          }}
+                        />
                       </div>
-                      <div style={{ color: "#475569", fontSize: 13 }}>{item.subtitle}</div>
                       <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
                         {item.helper}
                       </div>
@@ -1174,14 +1533,66 @@ export default function CleanLearningIntelligenceDashboard(
                 })
               ) : (
                 <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
-                  Focus areas will appear here when some subjects or strands need more evidence or
-                  another confidence check.
+                  Waiting for first strength signals.
                 </div>
               )}
             </section>
 
-            <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 12 }}>
-              <div style={eyebrowStyle}>Reporting readiness</div>
+            <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 12 }}>
+              <div style={eyebrowStyle}>Focus Areas</div>
+              <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>Focus areas</h3>
+              {summary.focusAreas.length ? (
+                summary.focusAreas.map((item) => (
+                  <div
+                    key={item.key}
+                    style={{
+                      border: "1px solid #fde68a",
+                      borderRadius: 16,
+                      padding: 14,
+                      background: "#fffdf6",
+                      display: "grid",
+                      gap: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "center",
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>{item.title}</strong>
+                      <span
+                        style={{
+                          border: "1px solid #fde68a",
+                          background: "#fffbeb",
+                          color: "#b45309",
+                          borderRadius: 999,
+                          padding: "5px 9px",
+                          fontSize: 11,
+                          fontWeight: 800,
+                        }}
+                      >
+                        {item.notAssessedCount > 0
+                          ? "May benefit from more evidence"
+                          : "Good next step"}
+                      </span>
+                    </div>
+                    <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                      {item.helper}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
+                  No focus areas yet.
+                </div>
+              )}
+            </section>
+
+            <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 12 }}>
+              <div style={eyebrowStyle}>Reporting Readiness</div>
               <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
                 Reporting readiness
               </h3>
@@ -1191,7 +1602,7 @@ export default function CleanLearningIntelligenceDashboard(
                   display: "grid",
                   gap: 10,
                   border: "1px solid #e2e8f0",
-                  borderRadius: 20,
+                  borderRadius: 18,
                   padding: 14,
                   background: "#f8fafc",
                 }}
@@ -1204,8 +1615,8 @@ export default function CleanLearningIntelligenceDashboard(
                     alignItems: "center",
                   }}
                 >
-                  <strong style={{ color: "#0f172a" }}>Readiness snapshot</strong>
-                  <span style={{ color: "#0f172a", fontSize: 24, fontWeight: 800 }}>
+                  <strong style={{ color: "#0f172a" }}>Readiness</strong>
+                  <span style={{ color: "#0f172a", fontSize: 28, fontWeight: 800 }}>
                     {summary.reportingReadiness.readinessPercent}%
                   </span>
                 </div>
@@ -1219,7 +1630,7 @@ export default function CleanLearningIntelligenceDashboard(
                   {
                     label: "Building",
                     value: summary.reportingReadiness.buildingCount,
-                    color: "#6366f1",
+                    color: "#8b5cf6",
                   },
                   {
                     label: "Needs more evidence",
@@ -1234,7 +1645,7 @@ export default function CleanLearningIntelligenceDashboard(
                   const width = Math.round((item.value / total) * 100);
 
                   return (
-                    <div key={item.label} style={{ display: "grid", gap: 6 }}>
+                    <div key={item.label} style={{ display: "grid", gap: 5 }}>
                       <div
                         style={{
                           display: "flex",
@@ -1249,7 +1660,7 @@ export default function CleanLearningIntelligenceDashboard(
                       </div>
                       <div
                         style={{
-                          height: 10,
+                          height: 8,
                           borderRadius: 999,
                           background: "#e2e8f0",
                           overflow: "hidden",
@@ -1269,23 +1680,18 @@ export default function CleanLearningIntelligenceDashboard(
                 })}
               </div>
 
-              <div style={{ ...secondaryTextStyle, fontSize: 13 }}>
-                Ready areas already have report-ready evidence and secure or strong confidence.
-                Building areas have some evidence or confidence, while other areas may benefit from
-                more captured learning.
+              <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                Ready means evidence and confidence are both present.
               </div>
             </section>
           </div>
 
-          <section style={{ ...subtleCardStyle, padding: 18, display: "grid", gap: 14 }}>
+          <section style={{ ...cardStyle, padding: 18, display: "grid", gap: 14 }}>
             <div style={{ display: "grid", gap: 6 }}>
-              <div style={eyebrowStyle}>Next learning steps</div>
+              <div style={eyebrowStyle}>Next Learning Steps</div>
               <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>
                 Next learning steps
               </h3>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Suggested next steps based on current pathway and evidence activity.
-              </p>
             </div>
 
             {summary.nextLearningSteps.length ? (
@@ -1296,7 +1702,7 @@ export default function CleanLearningIntelligenceDashboard(
                   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                 }}
               >
-                {summary.nextLearningSteps.map((step) => {
+                {summary.nextLearningSteps.slice(0, 4).map((step) => {
                   const theme = getSubjectTheme(step.subjectKey);
                   return (
                     <article
@@ -1304,11 +1710,10 @@ export default function CleanLearningIntelligenceDashboard(
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: 18,
-                        padding: 16,
+                        padding: 15,
                         background: "#ffffff",
                         display: "grid",
                         gap: 10,
-                        boxShadow: "0 10px 22px rgba(15,23,42,0.04)",
                       }}
                     >
                       <div
@@ -1321,7 +1726,7 @@ export default function CleanLearningIntelligenceDashboard(
                       >
                         <span
                           style={{
-                            border: `1px solid ${theme.stronger}`,
+                            border: `1px solid ${theme.border}`,
                             background: theme.soft,
                             color: theme.text,
                             borderRadius: 999,
@@ -1340,14 +1745,11 @@ export default function CleanLearningIntelligenceDashboard(
                         {step.stepTitle}
                       </strong>
                       <div style={{ color: "#475569", fontSize: 13 }}>{step.strandTitle}</div>
-                      <div style={{ color: "#64748b", lineHeight: 1.6, fontSize: 13 }}>
+                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
                         {step.reason}
                       </div>
-                      <div style={{ color: "#334155", lineHeight: 1.6, fontSize: 13 }}>
-                        {step.stepDescription}
-                      </div>
                       <div>
-                        <Link href={step.href} style={secondaryButtonStyle}>
+                        <Link href={step.href} style={quietButtonStyle}>
                           Open Pathways
                         </Link>
                       </div>
@@ -1363,11 +1765,10 @@ export default function CleanLearningIntelligenceDashboard(
                   padding: 18,
                   background: "#f8fafc",
                   color: "#64748b",
-                  lineHeight: 1.7,
+                  lineHeight: 1.6,
                 }}
               >
-                Capture evidence or save assessment confidence to begin surfacing suggested next
-                steps.
+                Capture or assess to build this view.
               </div>
             )}
           </section>
@@ -1375,17 +1776,16 @@ export default function CleanLearningIntelligenceDashboard(
           {summary.isEmpty ? (
             <section
               style={{
-                ...subtleCardStyle,
+                ...cardStyle,
                 padding: 18,
                 display: "grid",
                 gap: 8,
                 background: "#fcfdff",
               }}
             >
-              <strong style={{ color: "#0f172a" }}>Building this view</strong>
+              <strong style={{ color: "#0f172a" }}>Ready to start</strong>
               <div style={{ ...secondaryTextStyle, fontSize: 14 }}>
-                No evidence has been linked yet and no assessment confidence has been saved yet.
-                Capture evidence or save an assessment to start building Learning Intelligence.
+                No confidence saved yet. Capture or assess to build this view.
               </div>
             </section>
           ) : null}

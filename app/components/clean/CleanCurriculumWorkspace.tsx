@@ -114,22 +114,6 @@ const compactCardStyle: React.CSSProperties = {
   gap: 8,
 };
 
-const summaryStripStyle: React.CSSProperties = {
-  display: "grid",
-  gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-};
-
-const summaryCardStyle: React.CSSProperties = {
-  border: "1px solid #e2e8f0",
-  borderRadius: 16,
-  background: "#ffffff",
-  padding: 16,
-  display: "grid",
-  gap: 8,
-  boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
-};
-
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -355,7 +339,6 @@ function CurriculumWorkspaceBody() {
     [workspace.profile],
   );
   const brentModeActive = resolvedFramework.authorityOverlayActive;
-  const activeLearningAreas = resolvedFramework.map.learningAreas;
   const supplementaryEvidenceAreas = resolvedFramework.supplementaryEvidenceAreas;
 
   const learnerOptions = useMemo(
@@ -519,8 +502,6 @@ function CurriculumWorkspaceBody() {
 
   const selectedAreaElementSummaries = selectedAreaSummary?.elementSummaries ?? [];
   const authorityAreaSummaries = coverageSummary.supplementaryAreaSummaries;
-  const learningAreasWithEvidenceCount = coverageSummary.learningAreasWithEvidenceCount;
-  const areasToRevisitCount = coverageSummary.areasToRevisitCount;
   const authorityAreasWithEvidenceCount =
     coverageSummary.supplementaryAreasWithEvidenceCount;
   const reportingEvidenceAreasActive = Boolean(
@@ -530,7 +511,6 @@ function CurriculumWorkspaceBody() {
   const selectedLearnerDisplayName = selectedLearner
     ? getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)
     : "Learner";
-  const linkedEvidenceCount = coverageSummary.totalLinkedEvidenceCount;
   const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
 
   useEffect(() => {
@@ -779,68 +759,16 @@ function CurriculumWorkspaceBody() {
               coverageError={coverageError}
             />
 
-            <section style={summaryStripStyle}>
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Learning areas with evidence
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {learningAreasWithEvidenceCount}
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Evidence building across {activeLearningAreas.length} broad learning areas.
-                </div>
-              </div>
-
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Evidence entries linked
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {entriesLoading ? "..." : linkedEvidenceCount}
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {linkedEvidenceCount
-                    ? "Ready for reports as evidence continues to build."
-                    : "Foundation view while evidence begins to build."}
-                </div>
-              </div>
-
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  Areas to revisit
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {areasToRevisitCount}
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Learning areas with no evidence yet for this learner.
-                </div>
-              </div>
-
-              <div style={summaryCardStyle}>
-                <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                  {resolvedFramework.supplementaryMetricLabel}
-                </div>
-                <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                  {supplementaryEvidenceAreas.length ? authorityAreasWithEvidenceCount : 0}
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {resolvedFramework.supplementaryMetricCopy}
-                </div>
-              </div>
-            </section>
-
             <section id="coverage-map" style={cardStyle}>
               <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
                 <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>What to do next</strong>
+                  <strong style={{ color: "#0f172a" }}>Reporting support view</strong>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Start with one learning area at a time, then use captured evidence to see
-                    where coverage is already building and where you may want to revisit.
+                    Use this lower section when you want the detailed curriculum view for
+                    coverage, evidence placement, export, and reporting support.
                   </p>
                 </div>
-                <div style={eyebrowStyle}>Coverage map</div>
+                <div style={eyebrowStyle}>Detailed coverage map</div>
                 <div
                   style={{
                     display: "flex",
@@ -851,9 +779,9 @@ function CurriculumWorkspaceBody() {
                   }}
                 >
                   <div style={{ display: "grid", gap: 8 }}>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Learning area coverage</h2>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum coverage detail</h2>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Scan the broad learning areas first, then open one area to decide where you may want to capture more.
+                      Open a learning area when you want the detailed coverage and reporting view.
                     </p>
                   </div>
 
