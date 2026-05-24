@@ -1243,6 +1243,8 @@ function PathwaysWorkspaceBody() {
                         stageIndex={stageIndex}
                         currentStageIndex={selectedWorkspaceStageIndex}
                         savedPathwayStatuses={savedPathwayStatuses}
+                        selectedSubjectKey={selectedSubject.key}
+                        selectedSubjectTitle={selectedSubject.title}
                         selectedLearnerId={selectedLearner?.id || ""}
                         isOpen={getStageOpenState(
                           selectedSubjectWorkspace.key,
@@ -1504,6 +1506,8 @@ function DetailedMathematicsStageCard({
   stageIndex,
   currentStageIndex,
   savedPathwayStatuses,
+  selectedSubjectKey,
+  selectedSubjectTitle,
   selectedLearnerId,
   isOpen,
   onToggle,
@@ -1514,6 +1518,8 @@ function DetailedMathematicsStageCard({
   stageIndex: number;
   currentStageIndex: number;
   savedPathwayStatuses: SavedPathwayStatusMap;
+  selectedSubjectKey: PathwaySubjectKey;
+  selectedSubjectTitle: string;
   selectedLearnerId: string;
   isOpen: boolean;
   onToggle: () => void;
@@ -1698,6 +1704,8 @@ function DetailedMathematicsStageCard({
             step={step}
             stepIndex={stepIndex}
             savedPathwayStatuses={savedPathwayStatuses}
+            selectedSubjectKey={selectedSubjectKey}
+            selectedSubjectTitle={selectedSubjectTitle}
             selectedLearnerId={selectedLearnerId}
             capturePathBase={capturePathBase}
           />
@@ -1715,6 +1723,8 @@ function DetailedMathematicsStepCard({
   step,
   stepIndex,
   savedPathwayStatuses,
+  selectedSubjectKey,
+  selectedSubjectTitle,
   selectedLearnerId,
   capturePathBase,
 }: {
@@ -1725,6 +1735,8 @@ function DetailedMathematicsStepCard({
   step: MathematicsDetailedStrandStep;
   stepIndex: number;
   savedPathwayStatuses: SavedPathwayStatusMap;
+  selectedSubjectKey: PathwaySubjectKey;
+  selectedSubjectTitle: string;
   selectedLearnerId: string;
   capturePathBase: string;
 }) {
@@ -1745,8 +1757,8 @@ function DetailedMathematicsStepCard({
     const params = buildPathwayCaptureSearchParams(
       {
         source: "my-pathways",
-        subjectKey: "mathematics",
-        subjectLabel: "My Mathematics",
+        subjectKey: selectedSubjectKey,
+        subjectLabel: selectedSubjectTitle,
         pathwayKey: strand.trackingKey,
         pathwayLabel: strand.pathwayLabel,
         stageKey: stage.key,
@@ -1758,8 +1770,8 @@ function DetailedMathematicsStepCard({
       },
       {
         learnerId: selectedLearnerId || null,
-        learningAreaKey: "mathematics",
-        learningAreaLabel: "Mathematics",
+        learningAreaKey: selectedSubjectKey,
+        learningAreaLabel: selectedSubjectTitle,
       },
     );
 
@@ -1767,6 +1779,8 @@ function DetailedMathematicsStepCard({
   }, [
     capturePathBase,
     selectedLearnerId,
+    selectedSubjectKey,
+    selectedSubjectTitle,
     stage.key,
     stage.title,
     step.id,
