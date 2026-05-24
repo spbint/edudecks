@@ -2105,6 +2105,7 @@ function CleanCalendarWorkspaceBody() {
                     display: "grid",
                     gap: 12,
                     gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    alignItems: "start",
                   }}
                 >
                   <div style={helperCardStyle}>
@@ -2146,19 +2147,28 @@ function CleanCalendarWorkspaceBody() {
                 <div>
                   <h2 style={{ margin: 0, color: "#0f172a" }}>Learning periods</h2>
                   <p style={{ ...secondaryTextStyle, marginTop: 8 }}>
-                    A learning period is the span of time you want MyLearna to plan inside
-                    — for example Term 1, Autumn term, Semester 1, or a custom unit block.
+                    A learning period is the span of time you want MyLearna to plan inside, for example Term 1, Autumn term, Semester 1, or a custom unit block.
                   </p>
                 </div>
 
                 <div
                   style={{
-                    display: "grid",
+                    display: "flex",
                     gap: 16,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+                    flexWrap: "wrap",
+                    alignItems: "flex-start",
                   }}
                 >
-                  <div style={subCardStyle}>
+                  <div
+                    style={{
+                      ...subCardStyle,
+                      gap: 12,
+                      flex: "1 1 320px",
+                      minWidth: 0,
+                      maxWidth: 360,
+                      alignSelf: "flex-start",
+                    }}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -2253,7 +2263,7 @@ function CleanCalendarWorkspaceBody() {
                     ) : null}
 
                     {academicYears.length ? (
-                      <div style={{ display: "grid", gap: 12 }}>
+                      <div style={{ display: "grid", gap: 10 }}>
                         {academicYears.map((year) => {
                           const yearPeriods = learningPeriods.filter(
                             (period) => period.academicYearId === year.id,
@@ -2268,9 +2278,9 @@ function CleanCalendarWorkspaceBody() {
                                 border: isSelected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
                                 borderRadius: 14,
                                 background: "#ffffff",
-                                padding: 14,
+                                padding: 12,
                                 display: "grid",
-                                gap: 8,
+                                gap: 6,
                                 textAlign: "left",
                                 cursor: "pointer",
                               }}
@@ -2318,7 +2328,13 @@ function CleanCalendarWorkspaceBody() {
                     )}
                   </div>
 
-                  <div style={subCardStyle}>
+                  <div
+                    style={{
+                      ...subCardStyle,
+                      flex: "1.45 1 520px",
+                      minWidth: 0,
+                    }}
+                  >
                     <div
                       style={{
                         display: "flex",
@@ -4188,3 +4204,4 @@ export default function CleanCalendarWorkspace() {
     </CleanFamilyWorkspaceProvider>
   );
 }
+
