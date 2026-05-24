@@ -7,12 +7,11 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
-  MY_PATHWAYS_SOURCE,
-  parsePathwayContextFromNodeIds,
 } from "@/lib/clean/evidence/curriculumContext";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
@@ -26,6 +25,12 @@ import {
 import {
   buildPathwayRegistryStepKey,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
+import {
+  buildUnifiedPathwayStepStateIndex,
+  getUnifiedPathwayStepState,
+  resolveCanonicalPathwayStepIdFromParts,
+  type UnifiedPathwayStepStateIndex,
+} from "@/lib/clean/pathways/pathwayStepState";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -191,8 +196,6 @@ type StageSummaryCounts = {
   notStarted: number;
 };
 
-type SavedPathwayStatusMap = Record<string, PathwayProgressStatus>;
-
 function safe(value: string | null | undefined) {
   return (value || "").trim();
 }
@@ -225,30 +228,6 @@ function splitCountryAndAuthorityLabels(countryAuthorityLabel: string, countryLa
     countryLabel: normalizedCountry || "Not recorded in MyLearna yet.",
     authorityLabel: normalizedAuthority || "Not recorded in MyLearna yet.",
   };
-}
-
-function buildPathwayStepKey(pathwayKey: string, stageKey: string, stepNumber: string) {
-  return `${safe(pathwayKey)}::${safe(stageKey)}::${safe(stepNumber)}`;
-}
-
-function mapObservedSkillStatusToPathwayStatus(
-  observedSkillStatus: string | null | undefined,
-): PathwayProgressStatus | null {
-  const normalizedStatus = safe(observedSkillStatus).toLowerCase();
-
-  if (normalizedStatus === "still developing") {
-    return "Practising";
-  }
-
-  if (normalizedStatus === "developing") {
-    return "Evidence started";
-  }
-
-  if (normalizedStatus === "secure" || normalizedStatus === "strong") {
-    return "Secure";
-  }
-
-  return null;
 }
 
 function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
@@ -292,27 +271,37 @@ function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
 }
 
 function getWorkspaceDisplayedPathwayStatus(
+  subjectKey: PathwaySubjectKey,
   workspace: MathematicsDetailedStrandWorkspace,
   stage: MathematicsDetailedStrandStage,
   stageIndex: number,
   currentStageIndex: number,
   step: MathematicsDetailedStrandStep,
   stepIndex: number,
-  savedPathwayStatuses: SavedPathwayStatusMap,
+  unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex,
 ): {
   status: PathwayProgressStatus;
   fromSavedEvidence: boolean;
+  pathwayStepId: string | null;
 } {
-  const savedStatus =
-    savedPathwayStatuses[buildPathwayStepKey(workspace.key, stage.key, String(step.id))] ||
-    savedPathwayStatuses[
-      buildPathwayStepKey(workspace.trackingKey, stage.key, String(step.id))
-    ];
+  const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+  const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
+    subjectKey,
+    pathwayKey: workspace.key,
+    stageKey: stage.key,
+    stepKey,
+    stepNumber: String(step.id),
+  });
+  const savedStatus = getUnifiedPathwayStepState(
+    unifiedPathwayStepStateIndex,
+    pathwayStepId,
+  )?.pathwayProgressFromEvidence;
 
   if (savedStatus) {
     return {
       status: savedStatus,
       fromSavedEvidence: true,
+      pathwayStepId,
     };
   }
 
@@ -320,6 +309,7 @@ function getWorkspaceDisplayedPathwayStatus(
     return {
       status: stepIndex === stage.steps.length - 1 ? "Ready to assess" : "Secure",
       fromSavedEvidence: false,
+      pathwayStepId,
     };
   }
 
@@ -327,6 +317,7 @@ function getWorkspaceDisplayedPathwayStatus(
     return {
       status: stepIndex === 0 ? "Evidence started" : "Practising",
       fromSavedEvidence: false,
+      pathwayStepId,
     };
   }
 
@@ -334,32 +325,36 @@ function getWorkspaceDisplayedPathwayStatus(
     return {
       status: stepIndex === 0 ? "Practising" : "Not started",
       fromSavedEvidence: false,
+      pathwayStepId,
     };
   }
 
   return {
     status: "Not started" as PathwayProgressStatus,
     fromSavedEvidence: false,
+    pathwayStepId,
   };
 }
 
 function buildWorkspaceStageSummaryCounts(
+  subjectKey: PathwaySubjectKey,
   workspace: MathematicsDetailedStrandWorkspace,
   stage: MathematicsDetailedStrandStage,
   stageIndex: number,
   currentStageIndex: number,
-  savedPathwayStatuses: SavedPathwayStatusMap,
+  unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex,
 ): StageSummaryCounts {
   return stage.steps.reduce(
     (totals, step, stepIndex) => {
       const { status } = getWorkspaceDisplayedPathwayStatus(
+        subjectKey,
         workspace,
         stage,
         stageIndex,
         currentStageIndex,
         step,
         stepIndex,
-        savedPathwayStatuses,
+        unifiedPathwayStepStateIndex,
       );
 
       if (status === "Secure") {
@@ -410,7 +405,8 @@ function PathwaysWorkspaceBody() {
     "health-pe": DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
   });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
-  const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
+  const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
+    useState<UnifiedPathwayStepStateIndex>(new Map());
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   const learnerOptions = useMemo(
@@ -499,55 +495,40 @@ function PathwaysWorkspaceBody() {
   useEffect(() => {
     let active = true;
 
-    async function loadSavedPathwayStatuses() {
+    async function loadUnifiedPathwayStepState() {
       if (
         !workspace.profile ||
         workspace.schemaMissing ||
         workspace.requiresFamilyCreation ||
         !selectedLearnerId
       ) {
-        setSavedPathwayStatuses({});
+        setUnifiedPathwayStepStateIndex(new Map());
         return;
       }
 
       try {
-        const evidenceEntries = await listCleanEvidenceEntries(workspace.profile.id, {
-          learnerId: selectedLearnerId,
-        });
+        const [evidenceEntries, assessmentStatuses] = await Promise.all([
+          listCleanEvidenceEntries(workspace.profile.id, {
+            learnerId: selectedLearnerId,
+          }),
+          listCleanAssessmentSkillStatuses(workspace.profile.id, selectedLearnerId),
+        ]);
 
         if (!active) return;
 
-        const nextSavedStatuses: SavedPathwayStatusMap = {};
-
-        for (const entry of evidenceEntries) {
-          const pathwayContext = parsePathwayContextFromNodeIds(entry.curriculumNodeIds);
-          if (!pathwayContext || pathwayContext.source !== MY_PATHWAYS_SOURCE) continue;
-
-          const pathwayKey = safe(pathwayContext.pathwayKey);
-          const stageKey = safe(pathwayContext.stageKey);
-          const stepNumber = safe(pathwayContext.stepNumber);
-          const mappedStatus = mapObservedSkillStatusToPathwayStatus(
-            pathwayContext.observedSkillStatus,
-          );
-
-          if (!pathwayKey || !stageKey || !stepNumber || !mappedStatus) {
-            continue;
-          }
-
-          const statusKey = buildPathwayStepKey(pathwayKey, stageKey, stepNumber);
-          if (!nextSavedStatuses[statusKey]) {
-            nextSavedStatuses[statusKey] = mappedStatus;
-          }
-        }
-
-        setSavedPathwayStatuses(nextSavedStatuses);
+        setUnifiedPathwayStepStateIndex(
+          buildUnifiedPathwayStepStateIndex({
+            evidenceEntries,
+            assessmentStatuses,
+          }),
+        );
       } catch {
         if (!active) return;
-        setSavedPathwayStatuses({});
+        setUnifiedPathwayStepStateIndex(new Map());
       }
     }
 
-    void loadSavedPathwayStatuses();
+    void loadUnifiedPathwayStepState();
 
     return () => {
       active = false;
@@ -576,17 +557,19 @@ function PathwaysWorkspaceBody() {
     if (!selectedSubjectWorkspace || !selectedWorkspaceCurrentStage) return null;
 
     return buildWorkspaceStageSummaryCounts(
+      selectedSubjectKey,
       selectedSubjectWorkspace,
       selectedWorkspaceCurrentStage,
       selectedWorkspaceStageIndex,
       selectedWorkspaceStageIndex,
-      savedPathwayStatuses,
+      unifiedPathwayStepStateIndex,
     );
   }, [
-    savedPathwayStatuses,
+    selectedSubjectKey,
     selectedSubjectWorkspace,
     selectedWorkspaceCurrentStage,
     selectedWorkspaceStageIndex,
+    unifiedPathwayStepStateIndex,
   ]);
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title || `${selectedSubject.title} pathways`
@@ -1096,7 +1079,7 @@ function PathwaysWorkspaceBody() {
                         stage={stage}
                         stageIndex={stageIndex}
                         currentStageIndex={selectedWorkspaceStageIndex}
-                        savedPathwayStatuses={savedPathwayStatuses}
+                        unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
                         selectedSubjectKey={selectedSubject.key}
                         selectedSubjectTitle={selectedSubject.title}
                         selectedLearnerId={selectedLearner?.id || ""}
@@ -1359,7 +1342,7 @@ function DetailedMathematicsStageCard({
   stage,
   stageIndex,
   currentStageIndex,
-  savedPathwayStatuses,
+  unifiedPathwayStepStateIndex,
   selectedSubjectKey,
   selectedSubjectTitle,
   selectedLearnerId,
@@ -1371,7 +1354,7 @@ function DetailedMathematicsStageCard({
   stage: MathematicsDetailedStrandStage;
   stageIndex: number;
   currentStageIndex: number;
-  savedPathwayStatuses: SavedPathwayStatusMap;
+  unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   selectedLearnerId: string;
@@ -1382,11 +1365,12 @@ function DetailedMathematicsStageCard({
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const panelId = `${strand.key}-stage-${stage.key}`;
   const summary = buildWorkspaceStageSummaryCounts(
+    selectedSubjectKey,
     strand,
     stage,
     stageIndex,
     currentStageIndex,
-    savedPathwayStatuses,
+    unifiedPathwayStepStateIndex,
   );
   const summaryChips = [
     {
@@ -1557,7 +1541,7 @@ function DetailedMathematicsStageCard({
             currentStageIndex={currentStageIndex}
             step={step}
             stepIndex={stepIndex}
-            savedPathwayStatuses={savedPathwayStatuses}
+            unifiedPathwayStepStateIndex={unifiedPathwayStepStateIndex}
             selectedSubjectKey={selectedSubjectKey}
             selectedSubjectTitle={selectedSubjectTitle}
             selectedLearnerId={selectedLearnerId}
@@ -1576,7 +1560,7 @@ function DetailedMathematicsStepCard({
   currentStageIndex,
   step,
   stepIndex,
-  savedPathwayStatuses,
+  unifiedPathwayStepStateIndex,
   selectedSubjectKey,
   selectedSubjectTitle,
   selectedLearnerId,
@@ -1588,7 +1572,7 @@ function DetailedMathematicsStepCard({
   currentStageIndex: number;
   step: MathematicsDetailedStrandStep;
   stepIndex: number;
-  savedPathwayStatuses: SavedPathwayStatusMap;
+  unifiedPathwayStepStateIndex: UnifiedPathwayStepStateIndex;
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   selectedLearnerId: string;
@@ -1596,19 +1580,34 @@ function DetailedMathematicsStepCard({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const statusState = getWorkspaceDisplayedPathwayStatus(
+    selectedSubjectKey,
     strand,
     stage,
     stageIndex,
     currentStageIndex,
     step,
     stepIndex,
-    savedPathwayStatuses,
+    unifiedPathwayStepStateIndex,
   );
   const status = statusState.status;
   const meta = statusMeta[status];
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
+  const stepUnifiedState = getUnifiedPathwayStepState(
+    unifiedPathwayStepStateIndex,
+    statusState.pathwayStepId,
+  );
+  const assessmentConfidence =
+    stepUnifiedState?.assessmentConfidence || "Not assessed yet";
+  const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
   const captureHref = useMemo(() => {
     const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
+    const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
+      subjectKey: selectedSubjectKey,
+      pathwayKey: strand.key,
+      stageKey: stage.key,
+      stepKey,
+      stepNumber: String(step.id),
+    });
     const params = buildPathwayCaptureSearchParams(
       {
         source: "my-pathways",
@@ -1618,6 +1617,7 @@ function DetailedMathematicsStepCard({
         pathwayLabel: strand.pathwayLabel,
         stageKey: stage.key,
         stageLabel: stage.title,
+        pathwayStepId,
         stepKey,
         stepNumber: String(step.id),
         stepTitle: step.title,
@@ -1715,9 +1715,28 @@ function DetailedMathematicsStepCard({
             </div>
             {statusState.fromSavedEvidence ? (
               <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.4 }}>
-                Based on saved evidence
+                Based on linked evidence
               </div>
             ) : null}
+            <div
+              style={{
+                display: "grid",
+                gap: 4,
+                justifyItems: "end",
+                color: "#475569",
+                fontSize: 12,
+                lineHeight: 1.4,
+              }}
+            >
+              <div>
+                Assessment:{" "}
+                <strong style={{ color: "#0f172a" }}>{assessmentConfidence}</strong>
+              </div>
+              <div>
+                Evidence linked:{" "}
+                <strong style={{ color: "#0f172a" }}>{evidenceLinkedCount}</strong>
+              </div>
+            </div>
           </div>
 
           <button

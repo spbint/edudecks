@@ -59,6 +59,10 @@ import {
   type PathwayStepRegistryItem,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
+  buildUnifiedPathwayStepStateIndex,
+  getUnifiedPathwayStepState,
+} from "@/lib/clean/pathways/pathwayStepState";
+import {
   PATHWAY_SUBJECTS,
 } from "@/lib/clean/pathways/pathwaySubjects";
 import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
@@ -897,6 +901,14 @@ function AssessmentsWorkspaceBody() {
 
     return next;
   }, [assessmentEvidenceEntries]);
+  const unifiedPathwayStepStateIndex = useMemo(
+    () =>
+      buildUnifiedPathwayStepStateIndex({
+        assessmentStatuses,
+        evidenceEntries: assessmentEvidenceEntries,
+      }),
+    [assessmentEvidenceEntries, assessmentStatuses],
+  );
 
   const selectedStrandView = useMemo(() => {
     if (!selectedStrandCard || !selectedSubjectConfig) {
@@ -1070,6 +1082,10 @@ function AssessmentsWorkspaceBody() {
   const selectedTileLinkedEvidenceEntry = selectedTileEvidenceLinkKey
     ? linkedAssessmentEvidenceMap.get(selectedTileEvidenceLinkKey) ?? null
     : null;
+  const selectedTileUnifiedState = selectedTile
+    ? getUnifiedPathwayStepState(unifiedPathwayStepStateIndex, selectedTile.pathwayStepId)
+    : null;
+  const selectedTileLinkedEvidenceCount = selectedTileUnifiedState?.linkedEvidenceCount || 0;
   const selectedTileLinkedEvidenceLabel = formatAssessmentSavedAt(
     selectedTileLinkedEvidenceEntry?.createdAt ||
       selectedTileLinkedEvidenceEntry?.observedOn ||
@@ -1225,6 +1241,7 @@ function AssessmentsWorkspaceBody() {
         pathwayLabel: selectedTileDetail.strandTitle,
         stageKey: selectedTileDetail.registryItem.stageKey,
         stageLabel: selectedTileDetail.stageTitle,
+        pathwayStepId: selectedTileDetail.registryItem.id,
         stepKey: selectedTileDetail.registryItem.stepKey,
         stepNumber: selectedTileDetail.registryItem.legacyStepNumber,
         stepTitle: selectedTileDetail.registryItem.stepTitle,
@@ -1930,6 +1947,11 @@ function AssessmentsWorkspaceBody() {
                           stepView.registryItem.id,
                           stepView.registryItem.stageKey as AssessmentStage,
                         );
+                        const linkedEvidenceCount =
+                          getUnifiedPathwayStepState(
+                            unifiedPathwayStepStateIndex,
+                            stepView.registryItem.id,
+                          )?.linkedEvidenceCount || 0;
                         const meta = STATUS_META[status];
 
                         return (
@@ -2004,6 +2026,10 @@ function AssessmentsWorkspaceBody() {
                               </strong>
                               <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
                                 {stepView.registryItem.stepDescription}
+                              </div>
+                              <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
+                                Evidence linked:{" "}
+                                <strong style={{ color: "#0f172a" }}>{linkedEvidenceCount}</strong>
                               </div>
                             </div>
 
@@ -2180,6 +2206,13 @@ function AssessmentsWorkspaceBody() {
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Developmental band</div>
                   <strong style={{ color: "#0f172a" }}>{selectedTileDetail.stageTitle}</strong>
+                </div>
+                <div style={compactCardStyle}>
+                  <div style={eyebrowStyle}>Linked evidence</div>
+                  <strong style={{ color: "#0f172a" }}>{selectedTileLinkedEvidenceCount}</strong>
+                  <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.6 }}>
+                    Evidence already attached to this same pathway step.
+                  </div>
                 </div>
                 <div
                   style={{

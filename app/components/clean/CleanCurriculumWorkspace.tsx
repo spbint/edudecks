@@ -7,6 +7,10 @@ import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import {
+  listCleanAssessmentSkillStatuses,
+} from "@/lib/clean/assessments/client";
+import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import {
@@ -23,6 +27,10 @@ import {
   buildCurriculumCoverageSummary,
   type CurriculumCoverageStatus,
 } from "@/lib/clean/curriculum/coverageSummary";
+import {
+  buildSubjectCurriculumDashboardSummaries,
+  buildUnifiedPathwayStepStateIndex,
+} from "@/lib/clean/pathways/pathwayStepState";
 import {
   buildCurriculumCoveragePdfFilename,
   buildCurriculumCoveragePdfModel,
@@ -324,8 +332,10 @@ function CurriculumWorkspaceBody() {
   const pathname = usePathname();
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
   const [entries, setEntries] = useState<CleanEvidenceEntry[]>([]);
+  const [assessmentStatuses, setAssessmentStatuses] = useState<CleanAssessmentSkillStatus[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
+  const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
@@ -411,6 +421,61 @@ function CurriculumWorkspaceBody() {
     workspace.requiresFamilyCreation,
     workspace.schemaMissing,
   ]);
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadAssessmentStatuses() {
+      if (!workspace.profile || !selectedLearnerId) {
+        if (!isCurrent) return;
+        setAssessmentStatuses([]);
+        setAssessmentStatusesError(null);
+        return;
+      }
+
+      try {
+        const nextStatuses = await listCleanAssessmentSkillStatuses(
+          workspace.profile.id,
+          selectedLearnerId,
+        );
+
+        if (!isCurrent) return;
+        setAssessmentStatuses(nextStatuses);
+        setAssessmentStatusesError(null);
+      } catch (error) {
+        if (!isCurrent) return;
+        setAssessmentStatuses([]);
+        setAssessmentStatusesError(
+          normalizeCleanErrorMessage(
+            error,
+            "We could not load pathway-linked assessment confidence just now.",
+          ),
+        );
+      }
+    }
+
+    if (workspace.schemaMissing || workspace.requiresFamilyCreation) {
+      setAssessmentStatuses([]);
+      setAssessmentStatusesError(null);
+      return undefined;
+    }
+
+    if (!selectedLearnerId) {
+      setAssessmentStatuses([]);
+      setAssessmentStatusesError(null);
+      return undefined;
+    }
+
+    void loadAssessmentStatuses();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    selectedLearnerId,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
 
   const selectedLearner = useMemo(
     () =>
@@ -461,6 +526,43 @@ function CurriculumWorkspaceBody() {
     : "Learner";
   const linkedEvidenceCount = coverageSummary.totalLinkedEvidenceCount;
   const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
+  const unifiedPathwayStepStateIndex = useMemo(
+    () =>
+      buildUnifiedPathwayStepStateIndex({
+        assessmentStatuses,
+        evidenceEntries: entries,
+      }),
+    [assessmentStatuses, entries],
+  );
+  const pathwaySubjectSummaries = useMemo(
+    () => buildSubjectCurriculumDashboardSummaries(unifiedPathwayStepStateIndex),
+    [unifiedPathwayStepStateIndex],
+  );
+  const pathwayCoverageTotals = useMemo(
+    () =>
+      pathwaySubjectSummaries.reduce(
+        (totals, summary) => {
+          totals.totalSteps += summary.totalSteps;
+          totals.evidenceLinkedCount += summary.evidenceLinkedCount;
+          totals.assessedCount += summary.assessedCount;
+          totals.secureOrStrongCount += summary.secureOrStrongCount;
+          totals.developingCount += summary.developingCount;
+          totals.notAssessedCount += summary.notAssessedCount;
+          totals.revisitCount += summary.revisitCount;
+          return totals;
+        },
+        {
+          totalSteps: 0,
+          evidenceLinkedCount: 0,
+          assessedCount: 0,
+          secureOrStrongCount: 0,
+          developingCount: 0,
+          notAssessedCount: 0,
+          revisitCount: 0,
+        },
+      ),
+    [pathwaySubjectSummaries],
+  );
 
   useEffect(() => {
     setCoverageError(null);
@@ -737,6 +839,108 @@ function CurriculumWorkspaceBody() {
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   {resolvedFramework.supplementaryMetricCopy}
+                </div>
+              </div>
+            </section>
+
+            <section style={cardStyle}>
+              <div style={{ display: "grid", gap: 16 }}>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={eyebrowStyle}>Pathway-linked coverage</div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Shared pathway step summary</h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    This layer now reads the same canonical pathway steps used by My Pathways,
+                    My Assessments, and My Capture. Evidence and assessment confidence stay linked
+                    to the same step IDs.
+                  </p>
+                </div>
+
+                {assessmentStatusesError ? (
+                  <div
+                    style={{
+                      border: "1px solid #fecaca",
+                      background: "#fef2f2",
+                      color: "#b91c1c",
+                      borderRadius: 14,
+                      padding: 12,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {assessmentStatusesError}
+                  </div>
+                ) : null}
+
+                <div style={summaryStripStyle}>
+                  <div style={summaryCardStyle}>
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      Pathway steps with evidence
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                      {pathwayCoverageTotals.evidenceLinkedCount}
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Evidence linked to canonical pathway steps across detailed subjects.
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      Assessed steps
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                      {pathwayCoverageTotals.assessedCount}
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Saved confidence records using the same pathway step IDs.
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      Secure or strong
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                      {pathwayCoverageTotals.secureOrStrongCount}
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Steps with higher recorded confidence for this learner.
+                    </div>
+                  </div>
+                  <div style={summaryCardStyle}>
+                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
+                      Revisit
+                    </div>
+                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
+                      {pathwayCoverageTotals.revisitCount}
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Steps with no evidence, no assessment, or both still missing.
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: 14,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  }}
+                >
+                  {pathwaySubjectSummaries.map((summary) => (
+                    <article key={summary.subjectKey} style={compactCardStyle}>
+                      <div style={eyebrowStyle}>{summary.subjectTitle}</div>
+                      <strong style={{ color: "#0f172a", fontSize: 18 }}>
+                        {summary.evidenceLinkedCount} with evidence
+                      </strong>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        {summary.assessedCount} assessed, {summary.secureOrStrongCount} secure or
+                        strong, {summary.notAssessedCount} not assessed yet.
+                      </div>
+                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
+                        {summary.strands.length} strands tracked across {summary.totalSteps} pathway
+                        steps. Revisit {summary.revisitCount} steps where evidence or assessment is
+                        still missing.
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </div>
             </section>

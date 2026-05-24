@@ -24,6 +24,7 @@ import type {
   CleanReportStatus,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
+import { parseAssessmentEvidenceLinkFromNodeIds } from "@/lib/clean/assessments/client";
 import {
   CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE,
   normalizeCleanErrorMessage,
@@ -277,20 +278,32 @@ function summarizeEvidence(item: CleanPortfolioItem) {
 type PathwayStepEvidenceMeta = {
   key: string;
   label: string;
+  assessmentConfidence: string | null;
+  observedSkillStatus: string | null;
 };
 
 function getPathwayStepEvidenceMeta(item: CleanPortfolioItem): PathwayStepEvidenceMeta | null {
   const context = parsePathwayContextFromNodeIds(item.evidence.curriculumNodeIds);
   if (!context?.stepNumber || !context.stepTitle) return null;
+  const assessmentLink = parseAssessmentEvidenceLinkFromNodeIds(item.evidence.curriculumNodeIds);
 
   return {
-    key: [
-      item.evidence.learnerId,
-      context.pathwayKey || context.pathwayLabel || "pathway",
-      context.stageKey || context.stageLabel || "stage",
-      context.stepNumber,
-    ].join("::"),
+    key:
+      [
+        item.evidence.learnerId,
+        context.pathwayStepId,
+      ]
+        .filter(Boolean)
+        .join("::") ||
+      [
+        item.evidence.learnerId,
+        context.pathwayKey || context.pathwayLabel || "pathway",
+        context.stageKey || context.stageLabel || "stage",
+        context.stepNumber,
+      ].join("::"),
     label: `Step ${context.stepNumber} - ${context.stepTitle}`,
+    assessmentConfidence: assessmentLink?.assessmentStatus || null,
+    observedSkillStatus: context.observedSkillStatus || null,
   };
 }
 
@@ -1779,6 +1792,12 @@ function CleanReportsWorkspaceBody() {
                                       }}
                                     >
                                       <span>Pathway: {pathwayMeta.label}</span>
+                                      {pathwayMeta.assessmentConfidence ? (
+                                        <span>Assessment: {pathwayMeta.assessmentConfidence}</span>
+                                      ) : null}
+                                      {pathwayMeta.observedSkillStatus ? (
+                                        <span>Observed: {pathwayMeta.observedSkillStatus}</span>
+                                      ) : null}
                                       {repeatedPathwayStep ? (
                                         <span
                                           style={{
