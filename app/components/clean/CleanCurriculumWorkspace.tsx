@@ -149,6 +149,11 @@ function getEvidenceItemLabel(count: number) {
   return `${count} evidence ${count === 1 ? "item" : "items"}`;
 }
 
+function getLatestEvidenceSummary(entry: CleanEvidenceEntry | null | undefined) {
+  if (!entry) return "Waiting for first linked note.";
+  return `${formatEvidenceTitle(entry)} - ${formatEvidenceDateLabel(entry.observedOn)}`;
+}
+
 function getAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary) {
   const secureOrStrong = summary.secure + summary.strong;
   const developing = summary.developing + summary.stillDeveloping;
@@ -327,6 +332,7 @@ function CurriculumWorkspaceBody() {
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [showAuthorityAreas, setShowAuthorityAreas] = useState(false);
+  const [showDetailedCoverageMap, setShowDetailedCoverageMap] = useState(false);
   const [coverageSubmitting, setCoverageSubmitting] = useState(false);
   const [coverageMessage, setCoverageMessage] = useState<string | null>(null);
   const [coverageError, setCoverageError] = useState<string | null>(null);
@@ -759,56 +765,149 @@ function CurriculumWorkspaceBody() {
               coverageError={coverageError}
             />
 
-            <section id="coverage-map" style={cardStyle}>
-              <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
-                <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>Reporting support view</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    Use this lower section when you want the detailed curriculum view for
-                    coverage, evidence placement, export, and reporting support.
-                  </p>
-                </div>
-                <div style={eyebrowStyle}>Detailed coverage map</div>
+            <section style={{ ...cardStyle, padding: 18 }}>
+              <div style={{ display: "grid", gap: 10 }}>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
                     gap: 12,
-                    alignItems: "flex-end",
+                    alignItems: "center",
                     flexWrap: "wrap",
                   }}
                 >
                   <div style={{ display: "grid", gap: 8 }}>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum coverage detail</h2>
+                    <div style={eyebrowStyle}>Curriculum Coverage Record</div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>Download coverage record</h2>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                      Open a learning area when you want the detailed coverage and reporting view.
+                      Export a compact coverage record for reporting, review, and portfolio preparation.
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    style={buttonStyle}
+                    onClick={() => void handleDownloadCoverageRecord()}
+                    disabled={!selectedLearner || coverageSubmitting}
+                  >
+                    {coverageSubmitting ? "Preparing record..." : "Download coverage record"}
+                  </button>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    color: "#64748b",
+                    lineHeight: 1.6,
+                    fontSize: 14,
+                  }}
+                >
+                  <span>This uses My Curriculum evidence links and your selected framework.</span>
+                  {!hasLinkedEvidence ? <span>Waiting for first linked evidence.</span> : null}
+                </div>
+                {coverageError ? (
+                  <div style={{ color: "#b91c1c", lineHeight: 1.6 }}>{coverageError}</div>
+                ) : null}
+                {coverageMessage ? (
+                  <div style={{ color: "#1d4ed8", lineHeight: 1.6 }}>{coverageMessage}</div>
+                ) : null}
+              </div>
+            </section>
 
-                  {selectedLearner ? (
-                    <div
+            <section id="coverage-map" style={{ ...cardStyle, padding: 18 }}>
+              <div style={{ display: "grid", gap: 12, marginBottom: showDetailedCoverageMap ? 18 : 0 }}>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={eyebrowStyle}>Detailed coverage map</div>
+                  <h2 style={{ margin: 0, color: "#0f172a" }}>Detailed coverage map / reporting support</h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                    Open this when you want the older curriculum coverage view for reporting checks,
+                    evidence placement, or export preparation.
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <span
                       style={{
                         border: "1px solid #e2e8f0",
                         borderRadius: 999,
-                        padding: "8px 12px",
+                        padding: "6px 10px",
                         background: "#f8fafc",
                         color: "#475569",
-                        lineHeight: 1.6,
+                        fontSize: 12,
+                        fontWeight: 800,
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      Viewing{" "}
-                      <strong style={{ color: "#0f172a" }}>
-                        {getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)}
-                      </strong>
-                    </div>
-                  ) : null}
+                      {areaSummaries.length} learning areas
+                    </span>
+                    {supplementaryEvidenceAreas.length ? (
+                      <span
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 999,
+                          padding: "6px 10px",
+                          background: "#ffffff",
+                          color: "#475569",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {authorityAreasWithEvidenceCount} support areas with evidence
+                      </span>
+                    ) : null}
+                    {selectedLearner ? (
+                      <span
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 999,
+                          padding: "6px 10px",
+                          background: "#ffffff",
+                          color: "#475569",
+                          fontSize: 12,
+                          fontWeight: 800,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Viewing{" "}
+                        <strong style={{ color: "#0f172a" }}>
+                          {getLearnerLabel(selectedLearner.firstName, selectedLearner.preferredName)}
+                        </strong>
+                      </span>
+                    ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    style={secondaryButtonStyle}
+                    onClick={() => setShowDetailedCoverageMap((current) => !current)}
+                  >
+                    {showDetailedCoverageMap ? "Hide detailed coverage view" : "Open detailed coverage view"}
+                  </button>
                 </div>
+                {!showDetailedCoverageMap ? (
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>Older reporting support view</strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      Closed by default so Learning Intelligence stays front and centre. Open it when you need area-level evidence placement, capture links, or reporting support checks.
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
-              {entriesLoading ? (
+              {showDetailedCoverageMap && entriesLoading ? (
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>Loading evidence coverage...</div>
               ) : null}
 
+              {showDetailedCoverageMap ? (
               <div
                 style={{
                   display: "grid",
@@ -907,10 +1006,7 @@ function CurriculumWorkspaceBody() {
                         </div>
                       ) : null}
                       <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                        Latest evidence:{" "}
-                        {summary.latestEntry
-                          ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
-                          : "No evidence linked yet."}
+                        Latest evidence: {getLatestEvidenceSummary(summary.latestEntry)}
                       </div>
                     </div>
 
@@ -925,9 +1021,10 @@ function CurriculumWorkspaceBody() {
                   );
                 })}
               </div>
+              ) : null}
             </section>
 
-            {selectedAreaSummary ? (
+            {showDetailedCoverageMap && selectedAreaSummary ? (
               <section style={cardStyle}>
                 <div
                   style={{
@@ -983,10 +1080,7 @@ function CurriculumWorkspaceBody() {
                       </div>
                     ) : null}
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                      Latest evidence:{" "}
-                      {selectedAreaSummary.latestEntry
-                        ? `${formatEvidenceTitle(selectedAreaSummary.latestEntry)} - ${formatEvidenceDateLabel(selectedAreaSummary.latestEntry.observedOn)}`
-                        : "No evidence linked yet."}
+                      Latest evidence: {getLatestEvidenceSummary(selectedAreaSummary.latestEntry)}
                     </div>
                     <Link
                       href={buildCaptureHref({
@@ -1050,10 +1144,7 @@ function CurriculumWorkspaceBody() {
                             </div>
                           ) : null}
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            Latest evidence:{" "}
-                            {summary.latestEntry
-                              ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
-                              : "No evidence linked yet."}
+                            Latest evidence: {getLatestEvidenceSummary(summary.latestEntry)}
                           </div>
                         </div>
 
@@ -1131,7 +1222,7 @@ function CurriculumWorkspaceBody() {
               </section>
             ) : null}
 
-            {supplementaryEvidenceAreas.length ? (
+            {showDetailedCoverageMap && supplementaryEvidenceAreas.length ? (
             <section style={{ ...cardStyle, background: "#fcfdff" }}>
               <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -1268,10 +1359,7 @@ function CurriculumWorkspaceBody() {
                             <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                           </div>
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
-                            Latest evidence:{" "}
-                            {summary.latestEntry
-                              ? `${formatEvidenceTitle(summary.latestEntry)} - ${formatEvidenceDateLabel(summary.latestEntry.observedOn)}`
-                              : "No evidence linked yet."}
+                            Latest evidence: {getLatestEvidenceSummary(summary.latestEntry)}
                           </div>
                         </div>
 
@@ -1330,45 +1418,6 @@ function CurriculumWorkspaceBody() {
             </section>
             ) : null}
 
-            <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                  <div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>Curriculum Coverage Record</h2>
-                    <p style={{ margin: "8px 0 0", color: "#475569", lineHeight: 1.6 }}>
-                      Export a curriculum coverage record showing learning areas, evidence links, and areas to revisit. Useful for reporting, review, and portfolio preparation.
-                    </p>
-                  </div>
-                </div>
-                <div style={helperCardStyle}>
-                  <strong style={{ color: "#0f172a" }}>Download coverage record</strong>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    This uses My Curriculum evidence links and your selected framework from My Settings.
-                  </p>
-                  {!hasLinkedEvidence ? (
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      {CURRICULUM_COVERAGE_EMPTY_COPY}
-                    </div>
-                  ) : null}
-                  {coverageError ? (
-                    <div style={{ color: "#b91c1c", lineHeight: 1.6 }}>{coverageError}</div>
-                  ) : null}
-                  {coverageMessage ? (
-                    <div style={{ color: "#1d4ed8", lineHeight: 1.6 }}>{coverageMessage}</div>
-                  ) : null}
-                  <div>
-                    <button
-                      type="button"
-                      style={buttonStyle}
-                      onClick={() => void handleDownloadCoverageRecord()}
-                      disabled={!selectedLearner || coverageSubmitting}
-                    >
-                      {coverageSubmitting ? "Preparing record..." : "Download coverage record"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
           </>
         ) : null}
       </div>
