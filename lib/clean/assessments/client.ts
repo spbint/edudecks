@@ -5,6 +5,7 @@ import {
   normalizeCleanErrorMessage,
 } from "@/lib/clean/family/client";
 import {
+  CLEAN_ASSESSMENT_LEGACY_STAGE_MAP,
   CLEAN_ASSESSMENT_STAGE_KEYS,
   CLEAN_ASSESSMENT_STATUS_VALUES,
   CLEAN_ASSESSMENT_SUBJECT_KEYS,
@@ -16,6 +17,7 @@ import {
   type ListCleanAssessmentSkillStatusesOptions,
   type UpsertCleanAssessmentSkillStatusInput,
 } from "@/lib/clean/assessments/types";
+import { parsePathwayStepId } from "@/lib/clean/pathways/pathwayStepRegistry";
 
 type AssessmentSkillStatusRow = {
   id: string;
@@ -84,9 +86,14 @@ function normalizeSubjectKey(value: unknown): CleanAssessmentSubjectKey {
 
 function normalizeStageKey(value: unknown): CleanAssessmentStageKey {
   const stageKey = safe(value);
+  const normalizedLegacyKey = CLEAN_ASSESSMENT_LEGACY_STAGE_MAP[stageKey.toLowerCase()];
+  if (normalizedLegacyKey) {
+    return normalizedLegacyKey;
+  }
+
   return CLEAN_ASSESSMENT_STAGE_KEYS.includes(stageKey as CleanAssessmentStageKey)
     ? (stageKey as CleanAssessmentStageKey)
-    : "Middle Primary";
+    : "middle-primary";
 }
 
 function normalizeStatusValue(value: unknown): CleanAssessmentStatusValue {
@@ -227,18 +234,27 @@ export function parseAssessmentEvidenceLinkFromNodeIds(nodeIds: string[]) {
 function toCleanAssessmentSkillStatus(
   row: AssessmentSkillStatusRow,
 ): CleanAssessmentSkillStatus {
+  const subjectKey = normalizeSubjectKey(row.subject_key);
+  const skillKey = safe(row.skill_key);
+  const parsedPathwayStep = parsePathwayStepId(skillKey);
+  const canonicalPathwayStep =
+    parsedPathwayStep && parsedPathwayStep.subjectKey === subjectKey ? parsedPathwayStep : null;
+
   return {
     id: safe(row.id),
     familyId: safe(row.family_id),
     learnerId: safe(row.learner_id),
-    subjectKey: normalizeSubjectKey(row.subject_key),
-    skillKey: safe(row.skill_key),
+    subjectKey,
+    skillKey,
     stageKey: normalizeStageKey(row.stage_key),
     status: normalizeStatusValue(row.status),
     note: normalizeNullString(row.note),
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
+    pathwayStepId: canonicalPathwayStep ? skillKey : null,
+    strandKey: canonicalPathwayStep?.strandKey ?? null,
+    stepKey: canonicalPathwayStep?.stepKey ?? null,
   };
 }
 

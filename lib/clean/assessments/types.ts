@@ -1,12 +1,44 @@
-export const CLEAN_ASSESSMENT_SUBJECT_KEYS = ["mathematics", "english"] as const;
+import {
+  PATHWAY_STAGE_ORDER,
+  type PathwayStageKey,
+} from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import {
+  PATHWAY_SUBJECTS,
+  type PathwaySubjectKey,
+} from "@/lib/clean/pathways/pathwaySubjects";
 
-export const CLEAN_ASSESSMENT_STAGE_KEYS = [
-  "Foundation",
-  "Lower Primary",
-  "Middle Primary",
-  "Upper Primary",
-  "Lower Secondary",
-] as const;
+export const CLEAN_ASSESSMENT_SUBJECT_KEYS = PATHWAY_SUBJECTS.filter(
+  (subject) => subject.status === "detailed",
+).map((subject) => subject.key) as PathwaySubjectKey[];
+
+export const CLEAN_ASSESSMENT_STAGE_KEYS = PATHWAY_STAGE_ORDER as readonly PathwayStageKey[];
+
+export const CLEAN_ASSESSMENT_STAGE_TITLES: Record<PathwayStageKey, string> = {
+  "foundation-kindergarten": "Foundation / Kindergarten",
+  "lower-primary": "Lower Primary",
+  "middle-primary": "Middle Primary",
+  "upper-primary": "Upper Primary",
+  "lower-secondary": "Lower Secondary",
+  "years-9-10-consolidation": "Years 9–10 / consolidation",
+};
+
+export const CLEAN_ASSESSMENT_LEGACY_STAGE_MAP: Record<string, PathwayStageKey> = {
+  foundation: "foundation-kindergarten",
+  "foundation / kindergarten": "foundation-kindergarten",
+  kindergarten: "foundation-kindergarten",
+  "foundation-kindergarten": "foundation-kindergarten",
+  "lower primary": "lower-primary",
+  "lower-primary": "lower-primary",
+  "middle primary": "middle-primary",
+  "middle-primary": "middle-primary",
+  "upper primary": "upper-primary",
+  "upper-primary": "upper-primary",
+  "lower secondary": "lower-secondary",
+  "lower-secondary": "lower-secondary",
+  "years 9-10 / consolidation": "years-9-10-consolidation",
+  "years 9–10 / consolidation": "years-9-10-consolidation",
+  "years-9-10-consolidation": "years-9-10-consolidation",
+};
 
 export const CLEAN_ASSESSMENT_STATUS_VALUES = [
   "Not assessed yet",
@@ -16,8 +48,8 @@ export const CLEAN_ASSESSMENT_STATUS_VALUES = [
   "Strong",
 ] as const;
 
-export type CleanAssessmentSubjectKey = (typeof CLEAN_ASSESSMENT_SUBJECT_KEYS)[number];
-export type CleanAssessmentStageKey = (typeof CLEAN_ASSESSMENT_STAGE_KEYS)[number];
+export type CleanAssessmentSubjectKey = PathwaySubjectKey;
+export type CleanAssessmentStageKey = PathwayStageKey;
 export type CleanAssessmentStatusValue = (typeof CLEAN_ASSESSMENT_STATUS_VALUES)[number];
 
 export type CleanAssessmentSkillStatus = {
@@ -32,6 +64,9 @@ export type CleanAssessmentSkillStatus = {
   createdByUserId: string;
   createdAt: string | null;
   updatedAt: string | null;
+  pathwayStepId: string | null;
+  strandKey: string | null;
+  stepKey: string | null;
 };
 
 export type ListCleanAssessmentSkillStatusesOptions = {
@@ -56,3 +91,7 @@ export type CleanAssessmentEvidenceLink = {
   stageKey: CleanAssessmentStageKey;
   assessmentStatus: CleanAssessmentStatusValue;
 };
+
+export function getCleanAssessmentStageTitle(stageKey: CleanAssessmentStageKey) {
+  return CLEAN_ASSESSMENT_STAGE_TITLES[stageKey];
+}

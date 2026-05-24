@@ -17,6 +17,7 @@ import {
 import {
   CLEAN_ASSESSMENT_STAGE_KEYS,
   CLEAN_ASSESSMENT_STATUS_VALUES,
+  getCleanAssessmentStageTitle,
   type CleanAssessmentEvidenceLink,
   type CleanAssessmentSkillStatus,
   type CleanAssessmentStageKey,
@@ -32,10 +33,35 @@ import {
 import { createCleanEvidenceEntry, listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildCurriculumCaptureContext,
+  buildPathwayCaptureContext,
   encodeCurriculumContextNodeIds,
+  encodePathwayContextNodeIds,
 } from "@/lib/clean/evidence/curriculumContext";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { Learner } from "@/lib/clean/learners/types";
+import {
+  DETAILED_SUBJECT_CONFIGS,
+  type DetailedSubjectConfig,
+} from "@/lib/clean/pathways/detailedSubjectConfigs";
+import type {
+  MathematicsDetailedStrandStep,
+  MathematicsDetailedStrandWorkspace,
+} from "@/lib/clean/pathways/mathematicsDetailedStrands";
+import {
+  getStageProgressionLabel,
+  inferPathwayStageFromYearLevel,
+  type PathwayStageKey,
+} from "@/lib/clean/pathways/mathematicsNumberPrototype";
+import {
+  buildPathwayRegistryStepKey,
+  buildPathwayStepId,
+  getPathwayStepsByStrand,
+  type PathwayStepRegistryItem,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
+import {
+  PATHWAY_SUBJECTS,
+} from "@/lib/clean/pathways/pathwaySubjects";
+import type { SubjectStrandCard } from "@/lib/clean/pathways/subjectPathwayTypes";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -158,25 +184,46 @@ type AssessmentStage = CleanAssessmentStageKey;
 type AssessmentStatus = CleanAssessmentStatusValue;
 type AssessmentSubjectKey = CleanAssessmentSubjectKey;
 
-type AssessmentSkillRow = {
-  skillArea: string;
-  stages: Record<AssessmentStage, AssessmentStatus>;
-};
-
-type AssessmentSkillDetail = {
-  summary: string;
-  bullets: string[];
-};
-
 type AssessmentSubject = {
   key: AssessmentSubjectKey;
   title: string;
   helper: string;
   summaryCopy: string;
-  rows: AssessmentSkillRow[];
-  prototypeCopy: string;
-  skillDetails: Record<string, AssessmentSkillDetail>;
+  strands: SubjectStrandCard[];
+  defaultStrandKey: string;
 };
+
+type AssessmentStepView = {
+  registryItem: PathwayStepRegistryItem;
+  step: MathematicsDetailedStrandStep;
+  subjectTitle: string;
+  subjectSummary: string;
+  strandTitle: string;
+  strandDescription: string;
+  strandWhyItMatters: string;
+  stageTitle: string;
+  stageHelper: string;
+  pathwayLabel: string;
+};
+
+type AssessmentStageView = {
+  key: AssessmentStage;
+  title: string;
+  helper: string;
+  steps: AssessmentStepView[];
+};
+
+type AssessmentTileSelection = {
+  subjectKey: AssessmentSubjectKey;
+  strandKey: string;
+  stageKey: AssessmentStage;
+  pathwayStepId: string;
+};
+
+type AssessmentTileFeedback = {
+  tone: "success" | "error";
+  message: string;
+} | null;
 
 type StatusMeta = {
   fill: string;
@@ -189,17 +236,12 @@ type StatusMeta = {
   detailMeaning: string;
 };
 
-type AssessmentTileSelection = {
-  subjectKey: AssessmentSubjectKey;
-  skillKey: string;
-  skillArea: string;
-  stage: AssessmentStage;
+type StageSnapshot = {
+  secureOrStrong: number;
+  developing: number;
+  stillDeveloping: number;
+  notAssessedYet: number;
 };
-
-type AssessmentTileFeedback = {
-  tone: "success" | "error";
-  message: string;
-} | null;
 
 const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
   "Not assessed yet": {
@@ -209,9 +251,9 @@ const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
     dot: "#94a3b8",
     cellLabel: "Not assessed",
     helper: "No assessment recorded yet.",
-    scoringHint: "Suggested later model: no assessment recorded",
+    scoringHint: "No assessment recorded yet.",
     detailMeaning:
-      "No assessment has been recorded for this skill and stage yet. This simply means the tracker is ready to begin.",
+      "No assessment has been recorded for this pathway step yet. The tracker is ready whenever you want to save a judgement.",
   },
   "Still developing": {
     fill: "#f5f3ff",
@@ -220,9 +262,9 @@ const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
     dot: "#8b5cf6",
     cellLabel: "Still developing",
     helper: "Early understanding is still developing.",
-    scoringHint: "Suggested later model: below 50%",
+    scoringHint: "Early confidence is still building.",
     detailMeaning:
-      "Early understanding is still developing. The learner may need more support, examples, or practice before this feels secure.",
+      "Early understanding is still developing. The learner may need more support, examples, or repetition before this feels settled.",
   },
   Developing: {
     fill: "#eff6ff",
@@ -231,9 +273,9 @@ const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
     dot: "#3b82f6",
     cellLabel: "Developing",
     helper: "Confidence is starting to build.",
-    scoringHint: "Suggested later model: 50-79%",
+    scoringHint: "Growing confidence is becoming more visible.",
     detailMeaning:
-      "Confidence is starting to build. The learner can show some understanding but may need more practice across different examples.",
+      "Confidence is starting to build. The learner can show some understanding but still benefits from practice across different examples.",
   },
   Secure: {
     fill: "#f0fdf4",
@@ -241,10 +283,10 @@ const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
     text: "#166534",
     dot: "#22c55e",
     cellLabel: "Secure",
-    helper: "The skill is looking more settled.",
-    scoringHint: "Suggested later model: 80%+",
+    helper: "The step is looking more settled.",
+    scoringHint: "Understanding looks settled and repeatable.",
     detailMeaning:
-      "The skill is looking settled. The learner can usually apply this skill with confidence.",
+      "The step looks settled. The learner can usually apply this idea with dependable confidence.",
   },
   Strong: {
     fill: "#fff7ed",
@@ -253,428 +295,40 @@ const STATUS_META: Record<AssessmentStatus, StatusMeta> = {
     dot: "#f97316",
     cellLabel: "Strong",
     helper: "Repeated confidence or standout performance.",
-    scoringHint: "Suggested later model: 90%+ or repeated secure result",
+    scoringHint: "Confidence is sustained, fluent, or extending beyond expectation.",
     detailMeaning:
-      "Repeated confidence or standout performance is showing. This may later be used for strong evidence or extension.",
+      "Repeated confidence or standout performance is showing. This can support richer evidence, extension, or next-step planning.",
   },
 };
 
-function buildStageStatusMap(
-  foundation: AssessmentStatus,
-  lowerPrimary: AssessmentStatus,
-  middlePrimary: AssessmentStatus,
-  upperPrimary: AssessmentStatus,
-  lowerSecondary: AssessmentStatus,
-) {
-  return {
-    Foundation: foundation,
-    "Lower Primary": lowerPrimary,
-    "Middle Primary": middlePrimary,
-    "Upper Primary": upperPrimary,
-    "Lower Secondary": lowerSecondary,
-  } satisfies Record<AssessmentStage, AssessmentStatus>;
-}
+const ASSESSMENT_SUBJECTS = PATHWAY_SUBJECTS.filter(
+  (subject) => subject.status === "detailed",
+)
+  .map((subject) => {
+    const config = DETAILED_SUBJECT_CONFIGS[subject.key];
+    if (!config) {
+      throw new Error(`Assessments is missing detailed subject config for "${subject.key}".`);
+    }
 
-const MATHEMATICS_ROWS: AssessmentSkillRow[] = [
-  {
-    skillArea: "Number sense",
-    stages: buildStageStatusMap("Developing", "Secure", "Strong", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Place value",
-    stages: buildStageStatusMap(
-      "Still developing",
-      "Developing",
-      "Secure",
-      "Secure",
-      "Developing",
-    ),
-  },
-  {
-    skillArea: "Addition and subtraction",
-    stages: buildStageStatusMap("Secure", "Secure", "Strong", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Multiplication and division",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Developing",
-      "Secure",
-      "Developing",
-      "Still developing",
-    ),
-  },
-  {
-    skillArea: "Fractions",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Still developing",
-      "Developing",
-      "Secure",
-      "Developing",
-    ),
-  },
-  {
-    skillArea: "Decimals and percentages",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Not assessed yet",
-      "Developing",
-      "Secure",
-      "Still developing",
-    ),
-  },
-  {
-    skillArea: "Measurement",
-    stages: buildStageStatusMap("Developing", "Secure", "Developing", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Geometry / space",
-    stages: buildStageStatusMap("Developing", "Developing", "Secure", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Data / statistics",
-    stages: buildStageStatusMap(
-      "Still developing",
-      "Developing",
-      "Developing",
-      "Secure",
-      "Developing",
-    ),
-  },
-  {
-    skillArea: "Mathematical modelling and problem solving",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Developing",
-      "Developing",
-      "Secure",
-      "Strong",
-    ),
-  },
-  {
-    skillArea: "Reasoning and explanation",
-    stages: buildStageStatusMap(
-      "Still developing",
-      "Developing",
-      "Developing",
-      "Secure",
-      "Strong",
-    ),
-  },
-];
+    return {
+      key: subject.key,
+      title: subject.title,
+      helper: subject.guidance,
+      summaryCopy: subject.description,
+      strands: config.domainCards,
+      defaultStrandKey: config.defaultStrandKey,
+    } satisfies AssessmentSubject;
+  });
 
-const ENGLISH_ROWS: AssessmentSkillRow[] = [
-  {
-    skillArea: "Reading comprehension",
-    stages: buildStageStatusMap("Developing", "Secure", "Secure", "Strong", "Secure"),
-  },
-  {
-    skillArea: "Vocabulary",
-    stages: buildStageStatusMap("Developing", "Developing", "Secure", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Spelling / word knowledge",
-    stages: buildStageStatusMap(
-      "Still developing",
-      "Developing",
-      "Secure",
-      "Developing",
-      "Still developing",
-    ),
-  },
-  {
-    skillArea: "Writing sentences",
-    stages: buildStageStatusMap("Secure", "Secure", "Strong", "Secure", "Developing"),
-  },
-  {
-    skillArea: "Writing paragraphs and texts",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Developing",
-      "Developing",
-      "Secure",
-      "Strong",
-    ),
-  },
-  {
-    skillArea: "Grammar and punctuation",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Still developing",
-      "Developing",
-      "Secure",
-      "Developing",
-    ),
-  },
-  {
-    skillArea: "Speaking and listening",
-    stages: buildStageStatusMap("Developing", "Secure", "Secure", "Strong", "Secure"),
-  },
-  {
-    skillArea: "Text response",
-    stages: buildStageStatusMap(
-      "Not assessed yet",
-      "Developing",
-      "Developing",
-      "Secure",
-      "Developing",
-    ),
-  },
-];
+const ASSESSMENT_SUBJECTS_BY_KEY = Object.fromEntries(
+  ASSESSMENT_SUBJECTS.map((subject) => [subject.key, subject]),
+) as Record<AssessmentSubjectKey, AssessmentSubject>;
 
-const MATHEMATICS_SKILL_DETAILS: Record<string, AssessmentSkillDetail> = {
-  "Number sense": {
-    summary: "May include reading, representing, ordering, and comparing numbers.",
-    bullets: [
-      "reading and representing numbers",
-      "ordering and comparing numbers",
-      "noticing quantity and magnitude",
-      "using numbers confidently in everyday situations",
-    ],
-  },
-  "Place value": {
-    summary:
-      "May include understanding digit value, partitioning numbers, and regrouping.",
-    bullets: [
-      "reading and writing numbers",
-      "partitioning numbers",
-      "comparing and ordering numbers",
-      "explaining the value of digits",
-    ],
-  },
-  "Addition and subtraction": {
-    summary:
-      "May include solving addition and subtraction problems using mental, written, and practical strategies.",
-    bullets: [
-      "mental strategies",
-      "written methods",
-      "practical problem solving",
-      "checking whether answers are reasonable",
-    ],
-  },
-  "Multiplication and division": {
-    summary:
-      "May include grouping, sharing, arrays, multiplication facts, and division strategies.",
-    bullets: [
-      "grouping and sharing",
-      "arrays and repeated addition",
-      "multiplication facts",
-      "division strategies",
-    ],
-  },
-  Fractions: {
-    summary:
-      "May include parts of a whole, equivalent fractions, comparing fractions, and using fractions in practical contexts.",
-    bullets: [
-      "parts of a whole",
-      "equivalent fractions",
-      "comparing fractions",
-      "using fractions in practical contexts",
-    ],
-  },
-  "Decimals and percentages": {
-    summary:
-      "May include decimal place value, percentages, and connecting fractions, decimals, and percentages.",
-    bullets: [
-      "decimal place value",
-      "understanding percentages",
-      "connecting fractions, decimals, and percentages",
-      "applying these ideas in practical problems",
-    ],
-  },
-  Measurement: {
-    summary:
-      "May include length, mass, capacity, time, money, area, perimeter, and choosing appropriate units.",
-    bullets: [
-      "length, mass, and capacity",
-      "time and money",
-      "area and perimeter",
-      "choosing and using appropriate units",
-    ],
-  },
-  "Geometry / space": {
-    summary:
-      "May include shapes, position, direction, symmetry, angles, and spatial reasoning.",
-    bullets: [
-      "recognising and describing shapes",
-      "position and direction",
-      "symmetry and angles",
-      "using spatial reasoning",
-    ],
-  },
-  "Data / statistics": {
-    summary:
-      "May include collecting, sorting, representing, interpreting, and discussing data.",
-    bullets: [
-      "collecting and sorting data",
-      "representing data clearly",
-      "interpreting graphs or tables",
-      "discussing what data shows",
-    ],
-  },
-  "Mathematical modelling and problem solving": {
-    summary:
-      "May include applying maths to real situations, choosing strategies, and explaining solutions.",
-    bullets: [
-      "applying maths to real situations",
-      "choosing useful strategies",
-      "explaining solutions",
-      "checking and refining answers",
-    ],
-  },
-  "Reasoning and explanation": {
-    summary:
-      "May include explaining thinking, checking reasonableness, justifying answers, and using mathematical language.",
-    bullets: [
-      "explaining mathematical thinking",
-      "checking whether answers are reasonable",
-      "justifying answers",
-      "using mathematical language clearly",
-    ],
-  },
-};
-
-const ENGLISH_SKILL_DETAILS: Record<string, AssessmentSkillDetail> = {
-  "Reading comprehension": {
-    summary:
-      "May include understanding texts, retrieving information, making inferences, and discussing meaning.",
-    bullets: [
-      "retrieving information from texts",
-      "making inferences",
-      "discussing meaning",
-      "showing understanding across different text types",
-    ],
-  },
-  Vocabulary: {
-    summary:
-      "May include word meaning, word choice, synonyms, topic words, and language growth.",
-    bullets: [
-      "understanding word meaning",
-      "using stronger word choice",
-      "working with synonyms and topic words",
-      "growing language confidence over time",
-    ],
-  },
-  "Spelling / word knowledge": {
-    summary:
-      "May include spelling patterns, phonics, morphology, and word families.",
-    bullets: [
-      "spelling patterns",
-      "phonics knowledge",
-      "morphology and word parts",
-      "using word families",
-    ],
-  },
-  "Writing sentences": {
-    summary:
-      "May include sentence structure, clarity, punctuation, and expressing complete ideas.",
-    bullets: [
-      "building complete sentences",
-      "using punctuation clearly",
-      "making ideas clear",
-      "improving sentence control",
-    ],
-  },
-  "Writing paragraphs and texts": {
-    summary:
-      "May include planning, organising ideas, writing longer responses, and improving drafts.",
-    bullets: [
-      "planning writing",
-      "organising ideas into paragraphs",
-      "writing longer responses",
-      "improving drafts",
-    ],
-  },
-  "Grammar and punctuation": {
-    summary:
-      "May include grammar choices, punctuation, sentence control, and editing.",
-    bullets: [
-      "grammar choices",
-      "punctuation use",
-      "sentence control",
-      "editing and improving writing",
-    ],
-  },
-  "Speaking and listening": {
-    summary:
-      "May include explaining ideas, listening carefully, discussion, oral presentation, and responding to questions.",
-    bullets: [
-      "explaining ideas clearly",
-      "listening carefully",
-      "joining discussion",
-      "responding to questions",
-    ],
-  },
-  "Text response": {
-    summary:
-      "May include responding to stories, information texts, media, and personal reading.",
-    bullets: [
-      "responding to stories",
-      "discussing information texts",
-      "thinking about media texts",
-      "reflecting on personal reading",
-    ],
-  },
-};
-
-const SUBJECTS: Record<AssessmentSubjectKey, AssessmentSubject> = {
-  mathematics: {
-    key: "mathematics",
-    title: "My Mathematics",
-    helper: "Number and core mathematical skills",
-    summaryCopy:
-      "My Mathematics focuses on number, operations, problem solving, reasoning, measurement, geometry, and data skills across the learner's stage progression.",
-    rows: MATHEMATICS_ROWS,
-    prototypeCopy:
-      "This is a visual prototype. Assessment checks and saved results will come later.",
-    skillDetails: MATHEMATICS_SKILL_DETAILS,
-  },
-  english: {
-    key: "english",
-    title: "My English",
-    helper: "Reading, writing, language, and communication skills",
-    summaryCopy:
-      "My English focuses on reading, vocabulary, spelling, writing, grammar, speaking and listening, and text response across the learner's stage progression.",
-    rows: ENGLISH_ROWS,
-    prototypeCopy:
-      "This is a visual prototype. Assessment checks and saved results will come later.",
-    skillDetails: ENGLISH_SKILL_DETAILS,
-  },
-};
-
-function getAssessmentRow(
-  subjectKey: AssessmentSubjectKey,
-  skillArea: string,
-) {
-  return SUBJECTS[subjectKey].rows.find((row) => row.skillArea === skillArea) ?? null;
-}
-
-function getAssessmentDemoStatus(
-  subjectKey: AssessmentSubjectKey,
-  skillArea: string,
-  stage: AssessmentStage,
-): AssessmentStatus {
-  return getAssessmentRow(subjectKey, skillArea)?.stages[stage] ?? "Not assessed yet";
-}
+const DEFAULT_ASSESSMENT_SUBJECT_KEY =
+  (ASSESSMENT_SUBJECTS[0]?.key || "mathematics") as AssessmentSubjectKey;
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
-}
-
-function toAssessmentSkillKey(skillArea: string) {
-  return safe(skillArea)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function buildAssessmentStatusLookupKey(
-  subjectKey: AssessmentSubjectKey,
-  skillKey: string,
-  stage: AssessmentStage,
-) {
-  return `${subjectKey}::${skillKey}::${stage}`;
 }
 
 function formatAssessmentSavedAt(value: string | null) {
@@ -722,65 +376,12 @@ function splitCountryAndAuthorityLabels(countryAuthorityLabel: string, countryLa
   };
 }
 
-function inferStageFocusFromYearLevel(yearLevel: string | null | undefined): AssessmentStage {
-  const normalized = safe(yearLevel).toLowerCase();
-
-  if (!normalized) return "Middle Primary";
-
-  if (
-    /\b(foundation|prep|kindergarten|kindy|reception)\b/.test(normalized) ||
-    /\b(?:year|grade)\s*0\b/.test(normalized) ||
-    normalized === "k"
-  ) {
-    return "Foundation";
-  }
-
-  if (normalized.includes("lower primary")) return "Lower Primary";
-  if (normalized.includes("middle primary")) return "Middle Primary";
-  if (normalized.includes("upper primary")) return "Upper Primary";
-  if (normalized.includes("lower secondary")) return "Lower Secondary";
-
-  const numericMatch =
-    normalized.match(/\b(?:year|grade)\s*(\d+)\b/) || normalized.match(/\b(\d+)\b/);
-  const numericValue = numericMatch ? Number.parseInt(numericMatch[1], 10) : Number.NaN;
-
-  if (numericValue === 1 || numericValue === 2) return "Lower Primary";
-  if (numericValue === 3 || numericValue === 4) return "Middle Primary";
-  if (numericValue === 5 || numericValue === 6) return "Upper Primary";
-  if (numericValue >= 7) return "Lower Secondary";
-
-  return "Middle Primary";
-}
-
-function getStageProgressionMeta(stage: AssessmentStage, currentStage: AssessmentStage) {
-  const currentStageIndex = ASSESSMENT_STAGES.indexOf(currentStage);
-  const stageIndex = ASSESSMENT_STAGES.indexOf(stage);
-
-  if (stageIndex === currentStageIndex) {
-    return {
-      badge: "Current focus",
-      helper: "Highlighted for this learner right now",
-    };
-  }
-
-  if (stageIndex < currentStageIndex) {
-    return {
-      badge: "Before",
-      helper: "Earlier foundations",
-    };
-  }
-
-  if (stageIndex === currentStageIndex + 1) {
-    return {
-      badge: "Later",
-      helper: "Next progression",
-    };
-  }
-
-  return {
-    badge: "Later",
-    helper: "Later progression",
-  };
+function buildAssessmentStatusLookupKey(
+  subjectKey: AssessmentSubjectKey,
+  skillKey: string,
+  stageKey: AssessmentStage,
+) {
+  return `${subjectKey}::${skillKey}::${stageKey}`;
 }
 
 function normalizeAssessmentMatchText(value: unknown) {
@@ -792,12 +393,14 @@ function normalizeAssessmentMatchText(value: unknown) {
 }
 
 function toAssessmentMatchTokens(values: Array<string | null | undefined>) {
-  return [...new Set(
-    values
-      .flatMap((value) => normalizeAssessmentMatchText(value).split(/\s+/))
-      .map((token) => token.trim())
-      .filter((token) => token.length > 2),
-  )];
+  return [
+    ...new Set(
+      values
+        .flatMap((value) => normalizeAssessmentMatchText(value).split(/\s+/))
+        .map((token) => token.trim())
+        .filter((token) => token.length > 2),
+    ),
+  ];
 }
 
 function getCurriculumMatchValues(item: {
@@ -850,12 +453,9 @@ function scoreCurriculumMatch(
 
 function findAssessmentLearningArea(
   resolvedFramework: ResolvedCurriculumFrameworkMap,
-  subjectKey: AssessmentSubjectKey,
+  subject: AssessmentSubject,
 ): CurriculumFrameworkLearningArea | null {
-  const subjectTokens =
-    subjectKey === "mathematics"
-      ? ["mathematics", "maths", "math", "numeracy", "number"]
-      : ["english", "literacy", "reading", "writing", "language"];
+  const subjectTokens = toAssessmentMatchTokens([subject.title, subject.summaryCopy, subject.helper]);
 
   let bestMatch: CurriculumFrameworkLearningArea | null = null;
   let bestScore = 0;
@@ -873,15 +473,19 @@ function findAssessmentLearningArea(
 
 function findAssessmentCurriculumElement(
   learningArea: CurriculumFrameworkLearningArea | null,
-  skillArea: string,
-  skillDetail: AssessmentSkillDetail | null,
+  stepView: AssessmentStepView,
 ): CurriculumFrameworkElement | null {
   if (!learningArea) return null;
 
   const skillTokens = toAssessmentMatchTokens([
-    skillArea,
-    skillDetail?.summary || "",
-    ...(skillDetail?.bullets || []),
+    stepView.strandTitle,
+    stepView.strandDescription,
+    stepView.registryItem.stepTitle,
+    stepView.registryItem.stepDescription,
+    stepView.step.skillFocus,
+    stepView.step.learningIntention,
+    ...stepView.step.successCriteria,
+    ...stepView.step.evidenceExamples,
   ]);
 
   let bestMatch: CurriculumFrameworkElement | null = null;
@@ -900,7 +504,7 @@ function findAssessmentCurriculumElement(
 
 function getAssessmentStatusNarrative(status: AssessmentStatus) {
   if (status === "Not assessed yet") {
-    return "has a saved assessment judgement ready to begin or revisit";
+    return "has an assessment judgement ready to begin or revisit";
   }
 
   if (status === "Still developing") {
@@ -929,12 +533,178 @@ function getAssessmentEvidenceObservedOn(record: CleanAssessmentSkillStatus | nu
   return localDate.toISOString().slice(0, 10);
 }
 
+function getAssessmentProgressionMeta(stage: AssessmentStage, currentStage: AssessmentStage) {
+  const progressionLabel = getStageProgressionLabel(stage, currentStage as PathwayStageKey);
+
+  if (progressionLabel === "Current focus") {
+    return {
+      badge: "Current focus",
+      helper: "This is the main assessment band for the learner right now.",
+    };
+  }
+
+  if (progressionLabel === "Next progression") {
+    return {
+      badge: "Next progression",
+      helper: "These steps help show what learning is building toward next.",
+    };
+  }
+
+  if (progressionLabel === "Later progression") {
+    return {
+      badge: "Later progression",
+      helper: "These later steps stay visible for longer-term direction.",
+    };
+  }
+
+  return {
+    badge: "Earlier steps",
+    helper: "These earlier steps help show what foundations sit underneath.",
+  };
+}
+
+function formatLegacyAssessmentSkillLabel(skillKey: string) {
+  return safe(skillKey)
+    .split("-")
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function buildDefaultSelectedStrands() {
+  return ASSESSMENT_SUBJECTS.reduce(
+    (next, subject) => {
+      next[subject.key] = subject.defaultStrandKey;
+      return next;
+    },
+    {} as Partial<Record<AssessmentSubjectKey, string>>,
+  );
+}
+
+function buildAssessmentStageViews(
+  subject: AssessmentSubject,
+  selectedStrandCard: SubjectStrandCard,
+  subjectConfig: DetailedSubjectConfig,
+  stageFocus: AssessmentStage,
+) {
+  const workspaceBuilder = subjectConfig.workspaceBuilders[selectedStrandCard.key];
+  if (!workspaceBuilder) {
+    return {
+      workspace: null,
+      stages: [] as AssessmentStageView[],
+      stepMap: new Map<string, AssessmentStepView>(),
+    };
+  }
+
+  const workspace = workspaceBuilder(stageFocus) as MathematicsDetailedStrandWorkspace;
+  const registryItems = getPathwayStepsByStrand(subject.key, selectedStrandCard.key);
+  const registryById = new Map(registryItems.map((item) => [item.id, item]));
+  const stageViews: AssessmentStageView[] = [];
+  const stepMap = new Map<string, AssessmentStepView>();
+
+  workspace.stages.forEach((stage) => {
+    const stageStepKeys = new Set<string>();
+    const stageSteps: AssessmentStepView[] = [];
+
+    stage.steps.forEach((step, index) => {
+      const explicitStepKey = safe(
+        (step as Record<string, unknown>).stepKey ?? (step as Record<string, unknown>).key,
+      );
+      const stepKey = buildPathwayRegistryStepKey(
+        explicitStepKey || step.title,
+        safe(step.id) || String(index + 1),
+        stageStepKeys,
+      );
+      stageStepKeys.add(stepKey);
+
+      const pathwayStepId = buildPathwayStepId(
+        subject.key,
+        selectedStrandCard.key,
+        stage.key,
+        stepKey,
+      );
+      const registryItem = registryById.get(pathwayStepId);
+      if (!registryItem) {
+        return;
+      }
+
+      const stepView: AssessmentStepView = {
+        registryItem,
+        step,
+        subjectTitle: subject.title,
+        subjectSummary: subject.summaryCopy,
+        strandTitle: selectedStrandCard.title,
+        strandDescription: selectedStrandCard.description,
+        strandWhyItMatters: selectedStrandCard.whyItMatters,
+        stageTitle: stage.title,
+        stageHelper: stage.helper,
+        pathwayLabel: workspace.pathwayLabel,
+      };
+
+      stageSteps.push(stepView);
+      stepMap.set(pathwayStepId, stepView);
+    });
+
+    stageViews.push({
+      key: stage.key as AssessmentStage,
+      title: stage.title,
+      helper: stage.helper,
+      steps: stageSteps,
+    });
+  });
+
+  return {
+    workspace,
+    stages: stageViews,
+    stepMap,
+  };
+}
+
+function getStageSnapshot(
+  steps: AssessmentStepView[],
+  getStatus: (stepView: AssessmentStepView) => AssessmentStatus,
+): StageSnapshot {
+  return steps.reduce(
+    (totals, stepView) => {
+      const status = getStatus(stepView);
+
+      if (status === "Secure" || status === "Strong") {
+        totals.secureOrStrong += 1;
+        return totals;
+      }
+
+      if (status === "Developing") {
+        totals.developing += 1;
+        return totals;
+      }
+
+      if (status === "Still developing") {
+        totals.stillDeveloping += 1;
+        return totals;
+      }
+
+      totals.notAssessedYet += 1;
+      return totals;
+    },
+    {
+      secureOrStrong: 0,
+      developing: 0,
+      stillDeveloping: 0,
+      notAssessedYet: 0,
+    },
+  );
+}
+
 function AssessmentsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
-  const [selectedSubjectKey, setSelectedSubjectKey] =
-    useState<AssessmentSubjectKey>("mathematics");
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState<AssessmentSubjectKey>(
+    DEFAULT_ASSESSMENT_SUBJECT_KEY,
+  );
+  const [selectedStrandKeys, setSelectedStrandKeys] = useState<
+    Partial<Record<AssessmentSubjectKey, string>>
+  >(buildDefaultSelectedStrands());
   const [stageFocusOverride, setStageFocusOverride] = useState<{
     learnerId: string;
     stage: AssessmentStage;
@@ -989,9 +759,10 @@ function AssessmentsWorkspaceBody() {
   );
 
   const inferredStageFocus = useMemo(
-    () => inferStageFocusFromYearLevel(selectedLearner?.yearLevel),
+    () => inferPathwayStageFromYearLevel(selectedLearner?.yearLevel),
     [selectedLearner?.yearLevel],
   );
+
   const stageFocus = useMemo(() => {
     const stageFocusLearnerId = selectedLearner?.id || "";
     if (stageFocusOverride?.learnerId === stageFocusLearnerId) {
@@ -1000,36 +771,15 @@ function AssessmentsWorkspaceBody() {
     return inferredStageFocus;
   }, [inferredStageFocus, selectedLearner?.id, stageFocusOverride]);
 
-  const selectedTileIdentity = useMemo(() => {
-    if (!selectedTile) return "";
-
-    return [
-      selectedLearner?.id || "no-learner",
-      selectedTile.subjectKey,
-      selectedTile.skillKey,
-      selectedTile.stage,
-    ].join(":");
-  }, [selectedLearner?.id, selectedTile]);
-
-  useEffect(() => {
-    if (!selectedTileIdentity) return;
-
-    closeButtonRef.current?.focus();
-
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setSelectedTile(null);
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [selectedTileIdentity]);
-
   const selectedFamilyId = workspace.profile?.id || "";
+  const selectedSubject = ASSESSMENT_SUBJECTS_BY_KEY[selectedSubjectKey];
+  const selectedStrandKey =
+    selectedStrandKeys[selectedSubjectKey] || selectedSubject.defaultStrandKey;
+  const selectedStrandCard =
+    selectedSubject.strands.find((strand) => strand.key === selectedStrandKey) ||
+    selectedSubject.strands[0] ||
+    null;
+  const selectedSubjectConfig = DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null;
 
   useEffect(() => {
     let isCurrent = true;
@@ -1061,7 +811,7 @@ function AssessmentsWorkspaceBody() {
         setAssessmentStatusesError(
           String(
             (error as { message?: unknown })?.message ??
-              "Saved skill statuses could not be loaded right now.",
+              "Saved assessment statuses could not be loaded right now.",
           ).trim(),
         );
       } finally {
@@ -1108,7 +858,6 @@ function AssessmentsWorkspaceBody() {
     };
   }, [selectedFamilyId, selectedLearnerId]);
 
-  const selectedSubject = SUBJECTS[selectedSubjectKey];
   const savedAssessmentStatusMap = useMemo(() => {
     const next = new Map<string, CleanAssessmentSkillStatus>();
 
@@ -1121,6 +870,7 @@ function AssessmentsWorkspaceBody() {
 
     return next;
   }, [assessmentStatuses]);
+
   const linkedAssessmentEvidenceMap = useMemo(() => {
     const next = new Map<string, CleanEvidenceEntry>();
 
@@ -1148,28 +898,25 @@ function AssessmentsWorkspaceBody() {
     return next;
   }, [assessmentEvidenceEntries]);
 
-  function getSavedAssessmentStatusRecord(
-    subjectKey: AssessmentSubjectKey,
-    skillArea: string,
-    stage: AssessmentStage,
-  ) {
-    return (
-      savedAssessmentStatusMap.get(
-        buildAssessmentStatusLookupKey(subjectKey, toAssessmentSkillKey(skillArea), stage),
-      ) ?? null
-    );
-  }
+  const selectedStrandView = useMemo(() => {
+    if (!selectedStrandCard || !selectedSubjectConfig) {
+      return {
+        workspace: null,
+        stages: [] as AssessmentStageView[],
+        stepMap: new Map<string, AssessmentStepView>(),
+      };
+    }
 
-  function getDisplayedAssessmentStatus(
-    subjectKey: AssessmentSubjectKey,
-    skillArea: string,
-    stage: AssessmentStage,
-  ) {
-    return (
-      getSavedAssessmentStatusRecord(subjectKey, skillArea, stage)?.status ??
-      getAssessmentDemoStatus(subjectKey, skillArea, stage)
+    return buildAssessmentStageViews(
+      selectedSubject,
+      selectedStrandCard,
+      selectedSubjectConfig,
+      stageFocus,
     );
-  }
+  }, [selectedStrandCard, selectedSubject, selectedSubjectConfig, stageFocus]);
+
+  const selectedStageViews = selectedStrandView.stages;
+  const selectedStepMap = selectedStrandView.stepMap;
 
   const stageFocusAdjustedForView = useMemo(() => {
     const selectedLearnerKey = selectedLearner?.id || "";
@@ -1179,46 +926,55 @@ function AssessmentsWorkspaceBody() {
       stageFocusOverride.stage !== inferredStageFocus
     );
   }, [inferredStageFocus, selectedLearner?.id, stageFocusOverride]);
+
+  const currentStageView =
+    selectedStageViews.find((stage) => stage.key === stageFocus) || selectedStageViews[0] || null;
+
+  function getSavedAssessmentStatusRecord(
+    subjectKey: AssessmentSubjectKey,
+    pathwayStepId: string,
+    stageKey: AssessmentStage,
+  ) {
+    return (
+      savedAssessmentStatusMap.get(
+        buildAssessmentStatusLookupKey(subjectKey, pathwayStepId, stageKey),
+      ) ?? null
+    );
+  }
+
+  function getDisplayedAssessmentStatus(stepView: AssessmentStepView) {
+    return (
+      getSavedAssessmentStatusRecord(
+        stepView.registryItem.subjectKey,
+        stepView.registryItem.id,
+        stepView.registryItem.stageKey as AssessmentStage,
+      )?.status ?? "Not assessed yet"
+    );
+  }
+
   const currentStageSnapshot = useMemo(
     () =>
-      selectedSubject.rows.reduce(
-        (totals, row) => {
-          const status =
-            savedAssessmentStatusMap.get(
-              buildAssessmentStatusLookupKey(
-                selectedSubject.key,
-                toAssessmentSkillKey(row.skillArea),
-                stageFocus,
-              ),
-            )?.status ?? getAssessmentDemoStatus(selectedSubject.key, row.skillArea, stageFocus);
-
-          if (status === "Secure" || status === "Strong") {
-            totals.secureOrStrong += 1;
-            return totals;
-          }
-
-          if (status === "Developing") {
-            totals.developing += 1;
-            return totals;
-          }
-
-          if (status === "Still developing") {
-            totals.stillDeveloping += 1;
-            return totals;
-          }
-
-          totals.notAssessedYet += 1;
-          return totals;
-        },
-        {
-          secureOrStrong: 0,
-          developing: 0,
-          stillDeveloping: 0,
-          notAssessedYet: 0,
-        },
-      ),
-    [selectedSubject, stageFocus, savedAssessmentStatusMap],
+      getStageSnapshot(currentStageView?.steps || [], (stepView) => {
+        const savedStatus = savedAssessmentStatusMap.get(
+          buildAssessmentStatusLookupKey(
+            stepView.registryItem.subjectKey,
+            stepView.registryItem.id,
+            stepView.registryItem.stageKey as AssessmentStage,
+          ),
+        );
+        return savedStatus?.status ?? "Not assessed yet";
+      }),
+    [currentStageView, savedAssessmentStatusMap],
   );
+
+  const legacyAssessmentStatusesForSubject = useMemo(
+    () =>
+      assessmentStatuses.filter(
+        (item) => item.subjectKey === selectedSubjectKey && !item.pathwayStepId,
+      ),
+    [assessmentStatuses, selectedSubjectKey],
+  );
+
   const resolvedFramework = useMemo(() => resolveCurriculumFrameworkMap(workspace.profile), [
     workspace.profile,
   ]);
@@ -1252,23 +1008,49 @@ function AssessmentsWorkspaceBody() {
   const selectedLearnerLabel = getLearnerLabel(selectedLearner);
   const hasMultipleLearners = workspace.learners.length > 1;
 
+  const selectedTileIdentity = useMemo(() => {
+    if (!selectedTile) return "";
+
+    return [
+      selectedLearner?.id || "no-learner",
+      selectedTile.subjectKey,
+      selectedTile.strandKey,
+      selectedTile.stageKey,
+      selectedTile.pathwayStepId,
+    ].join(":");
+  }, [selectedLearner?.id, selectedTile]);
+
+  useEffect(() => {
+    if (!selectedTileIdentity) return;
+
+    closeButtonRef.current?.focus();
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSelectedTile(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [selectedTileIdentity]);
+
   const selectedTileDetail = selectedTile
-    ? SUBJECTS[selectedTile.subjectKey].skillDetails[selectedTile.skillArea]
+    ? selectedStepMap.get(selectedTile.pathwayStepId) ?? null
     : null;
-  const selectedTileSubject = selectedTile ? SUBJECTS[selectedTile.subjectKey] : null;
-  const selectedTileStatusRecord = selectedTile
-    ? getSavedAssessmentStatusRecord(
-        selectedTile.subjectKey,
-        selectedTile.skillArea,
-        selectedTile.stage,
-      )
-    : null;
-  const selectedTileDisplayedStatus = selectedTile
-    ? getDisplayedAssessmentStatus(
-        selectedTile.subjectKey,
-        selectedTile.skillArea,
-        selectedTile.stage,
-      )
+  const selectedTileStatusRecord =
+    selectedTile && selectedTileDetail
+      ? getSavedAssessmentStatusRecord(
+          selectedTile.subjectKey,
+          selectedTile.pathwayStepId,
+          selectedTile.stageKey,
+        )
+      : null;
+  const selectedTileDisplayedStatus = selectedTileDetail
+    ? getDisplayedAssessmentStatus(selectedTileDetail)
     : null;
   const selectedTileStatusMeta = selectedTileDisplayedStatus
     ? STATUS_META[selectedTileDisplayedStatus]
@@ -1289,27 +1071,30 @@ function AssessmentsWorkspaceBody() {
     ? linkedAssessmentEvidenceMap.get(selectedTileEvidenceLinkKey) ?? null
     : null;
   const selectedTileLinkedEvidenceLabel = formatAssessmentSavedAt(
-    selectedTileLinkedEvidenceEntry?.createdAt || selectedTileLinkedEvidenceEntry?.observedOn || null,
+    selectedTileLinkedEvidenceEntry?.createdAt ||
+      selectedTileLinkedEvidenceEntry?.observedOn ||
+      null,
   );
-  const selectedTileStageMessage = selectedTile
-    ? selectedTile.stage === stageFocus
-      ? "This skill sits within the learner's current stage focus. At this stage, the focus is on building confidence, applying the skill in different contexts, and preparing for the next progression step."
-      : `This skill sits within the wider progression around ${stageFocus}. It helps show what came before or what comes next as confidence builds over time.`
-    : "";
+  const selectedTileStageMessage =
+    selectedTile && selectedTileDetail
+      ? selectedTile.stageKey === stageFocus
+        ? `${selectedTileDetail.stageHelper} This is the learner's current assessment band, so the focus is on what they can now do with growing confidence and consistency.`
+        : `${selectedTileDetail.stageHelper} This step stays visible so you can see what foundations sit underneath or what learning is building toward next.`
+      : "";
 
-  function openAssessmentTile(row: AssessmentSkillRow, stage: AssessmentStage) {
-    const displayedStatus = getDisplayedAssessmentStatus(selectedSubject.key, row.skillArea, stage);
+  function openAssessmentTile(stepView: AssessmentStepView) {
+    const displayedStatus = getDisplayedAssessmentStatus(stepView);
     const savedStatusRecord = getSavedAssessmentStatusRecord(
-      selectedSubject.key,
-      row.skillArea,
-      stage,
+      stepView.registryItem.subjectKey,
+      stepView.registryItem.id,
+      stepView.registryItem.stageKey as AssessmentStage,
     );
 
     setSelectedTile({
-      subjectKey: selectedSubject.key,
-      skillKey: toAssessmentSkillKey(row.skillArea),
-      skillArea: row.skillArea,
-      stage,
+      subjectKey: stepView.registryItem.subjectKey,
+      strandKey: stepView.registryItem.strandKey,
+      stageKey: stepView.registryItem.stageKey as AssessmentStage,
+      pathwayStepId: stepView.registryItem.id,
     });
     setSelectedTileDraftStatus(displayedStatus);
     setSelectedTileDraftNote(savedStatusRecord?.note || "");
@@ -1333,7 +1118,7 @@ function AssessmentsWorkspaceBody() {
     if (!selectedTile || !selectedLearner || !selectedFamilyId) {
       setSelectedTileFeedback({
         tone: "error",
-        message: "Add a learner before saving a skill status.",
+        message: "Add a learner before saving an assessment confidence judgement.",
       });
       return;
     }
@@ -1345,8 +1130,8 @@ function AssessmentsWorkspaceBody() {
       const savedStatus = await upsertCleanAssessmentSkillStatus(selectedFamilyId, {
         learnerId: selectedLearner.id,
         subjectKey: selectedTile.subjectKey,
-        skillKey: selectedTile.skillKey,
-        stageKey: selectedTile.stage,
+        skillKey: selectedTile.pathwayStepId,
+        stageKey: selectedTile.stageKey,
         status: selectedTileDraftStatus,
         note: selectedTileDraftNote,
       });
@@ -1371,12 +1156,12 @@ function AssessmentsWorkspaceBody() {
       setSelectedTileDraftNote(savedStatus.note || "");
       setSelectedTileFeedback({
         tone: "success",
-        message: "Skill status saved.",
+        message: "Assessment confidence saved.",
       });
     } catch {
       setSelectedTileFeedback({
         tone: "error",
-        message: "Could not save this skill status. Please try again.",
+        message: "Could not save this assessment confidence. Please try again.",
       });
     } finally {
       setIsSavingAssessmentStatus(false);
@@ -1387,14 +1172,13 @@ function AssessmentsWorkspaceBody() {
     if (
       !selectedTile ||
       !selectedTileDetail ||
-      !selectedTileSubject ||
       !selectedTileStatusRecord ||
       !selectedLearner ||
       !selectedFamilyId
     ) {
       setSelectedTileEvidenceFeedback({
         tone: "error",
-        message: "Save this skill status before creating an evidence note.",
+        message: "Save this assessment confidence before creating an evidence note.",
       });
       return;
     }
@@ -1402,7 +1186,7 @@ function AssessmentsWorkspaceBody() {
     if (selectedTileHasUnsavedChanges) {
       setSelectedTileEvidenceFeedback({
         tone: "error",
-        message: "Save the latest status changes before creating an evidence note.",
+        message: "Save the latest confidence changes before creating an evidence note.",
       });
       return;
     }
@@ -1410,7 +1194,7 @@ function AssessmentsWorkspaceBody() {
     if (selectedTileLinkedEvidenceEntry) {
       setSelectedTileEvidenceFeedback({
         tone: "success",
-        message: "Evidence already linked for this saved status.",
+        message: "Evidence is already linked for this saved assessment confidence.",
       });
       return;
     }
@@ -1419,10 +1203,9 @@ function AssessmentsWorkspaceBody() {
     setSelectedTileEvidenceFeedback(null);
 
     try {
-      const learningArea = findAssessmentLearningArea(resolvedFramework, selectedTile.subjectKey);
+      const learningArea = findAssessmentLearningArea(resolvedFramework, selectedSubject);
       const curriculumElement = findAssessmentCurriculumElement(
         learningArea,
-        selectedTile.skillArea,
         selectedTileDetail,
       );
       const curriculumContext = buildCurriculumCaptureContext({
@@ -1431,31 +1214,48 @@ function AssessmentsWorkspaceBody() {
         curriculumElementKey: curriculumElement?.key || null,
         curriculumElementLabel: curriculumElement?.label || null,
       });
+      const pathwayContext = buildPathwayCaptureContext({
+        subjectKey: selectedTileDetail.registryItem.subjectKey,
+        subjectLabel: selectedTileDetail.subjectTitle,
+        pathwayKey: selectedTileDetail.registryItem.strandKey,
+        pathwayLabel: selectedTileDetail.strandTitle,
+        stageKey: selectedTileDetail.registryItem.stageKey,
+        stageLabel: selectedTileDetail.stageTitle,
+        stepKey: selectedTileDetail.registryItem.stepKey,
+        stepNumber: selectedTileDetail.registryItem.legacyStepNumber,
+        stepTitle: selectedTileDetail.registryItem.stepTitle,
+        stepMeaning: selectedTileDetail.registryItem.stepDescription,
+        skillFocus: selectedTileDetail.registryItem.skillFocus,
+        observedSkillStatus: selectedTileStatusRecord.status,
+      });
       const evidenceLink = {
         sourceContext: "my-assessments",
         statusRecordId: selectedTileStatusRecord.id,
         statusSavedAt: selectedTileSavedAt,
         subjectKey: selectedTile.subjectKey,
-        skillKey: selectedTile.skillKey,
-        stageKey: selectedTile.stage,
+        skillKey: selectedTile.pathwayStepId,
+        stageKey: selectedTile.stageKey,
         assessmentStatus: selectedTileStatusRecord.status,
       } satisfies CleanAssessmentEvidenceLink;
       const curriculumNodeIds = encodeAssessmentEvidenceNodeIds(
-        encodeCurriculumContextNodeIds([], curriculumContext),
+        encodePathwayContextNodeIds(
+          encodeCurriculumContextNodeIds([], curriculumContext),
+          pathwayContext,
+        ),
         evidenceLink,
       );
 
       const createdEvidence = await createCleanEvidenceEntry(selectedFamilyId, {
         learnerId: selectedLearner.id,
         observedOn: getAssessmentEvidenceObservedOn(selectedTileStatusRecord),
-        title: `Assessment evidence - ${selectedTile.skillArea}`,
+        title: `Assessment evidence - ${selectedTileDetail.registryItem.stepTitle}`,
         whatHappened: `${selectedLearnerLabel} ${getAssessmentStatusNarrative(
           selectedTileStatusRecord.status,
-        )} in ${selectedTile.skillArea} at ${selectedTile.stage} stage in ${
-          selectedTileSubject.title
-        }.`,
+        )} in ${selectedTileDetail.registryItem.stepTitle} within ${
+          selectedTileDetail.strandTitle
+        } at ${selectedTileDetail.stageTitle} in ${selectedTileDetail.subjectTitle}.`,
         reflection: selectedTileStatusRecord.note || null,
-        learningArea: learningArea?.label || selectedTileSubject.title,
+        learningArea: learningArea?.label || selectedTileDetail.subjectTitle,
         curriculumNodeIds,
         includeInPortfolio: true,
         includeInReport: true,
@@ -1503,8 +1303,9 @@ function AssessmentsWorkspaceBody() {
                 <div style={eyebrowStyle}>Assessment dashboard</div>
                 <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Assessments</h1>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                  See assessed skill confidence across the learner&apos;s current stage and
-                  wider progression.
+                  Assess confidence against the same pathway steps used in My Pathways. Choose a
+                  subject, narrow to one strand, and save a calm judgement against the learner&apos;s
+                  current steps.
                 </p>
               </div>
 
@@ -1521,7 +1322,7 @@ function AssessmentsWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Manual status tracking is now available. Assessment checks will come later.
+                  Manual confidence tracking now writes to pathway-linked step IDs.
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -1534,6 +1335,7 @@ function AssessmentsWorkspaceBody() {
                 display: "grid",
                 gap: 14,
                 gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                alignItems: "start",
               }}
             >
               <div style={compactCardStyle}>
@@ -1569,18 +1371,17 @@ function AssessmentsWorkspaceBody() {
                         {selectedLearnerLabel}
                       </strong>
                       <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Learner context for the current assessment dashboard.
+                        Learner context for the current assessment workspace.
                       </div>
                     </>
                   )
                 ) : (
                   <>
                     <strong style={{ color: "#0f172a" }}>
-                      Add a learner before tracking assessments.
+                      Add a learner before tracking assessment confidence.
                     </strong>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      You can still explore the prototype tracker while learner details are
-                      being set up.
+                      You can still explore the workspace while learner details are being set up.
                     </div>
                     <div>
                       <Link href="/my-profile" style={secondaryButtonStyle}>
@@ -1594,7 +1395,7 @@ function AssessmentsWorkspaceBody() {
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Subject view</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {(Object.values(SUBJECTS) as AssessmentSubject[]).map((subject) => {
+                  {ASSESSMENT_SUBJECTS.map((subject) => {
                     const active = subject.key === selectedSubjectKey;
 
                     return (
@@ -1615,7 +1416,6 @@ function AssessmentsWorkspaceBody() {
                           cursor: "pointer",
                           fontSize: 13,
                           fontWeight: 700,
-                          transition: "border-color 140ms ease, box-shadow 140ms ease",
                         }}
                       >
                         {subject.title}
@@ -1623,12 +1423,59 @@ function AssessmentsWorkspaceBody() {
                     );
                   })}
                 </div>
-                <div style={{ color: "#475569", lineHeight: 1.7 }}>{selectedSubject.summaryCopy}</div>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  {selectedSubject.summaryCopy}
+                </div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Strand focus</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {selectedSubject.strands.map((strand) => {
+                    const active = strand.key === selectedStrandCard?.key;
+
+                    return (
+                      <button
+                        key={strand.key}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStrandKeys((current) => ({
+                            ...current,
+                            [selectedSubject.key]: strand.key,
+                          }));
+                          setSelectedTile(null);
+                        }}
+                        aria-pressed={active}
+                        style={{
+                          border: active ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                          background: active ? "#eff6ff" : "#ffffff",
+                          color: active ? "#1d4ed8" : "#0f172a",
+                          borderRadius: 12,
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          textAlign: "left",
+                        }}
+                      >
+                        {strand.title}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  {selectedStrandCard?.description || "Choose a strand to narrow the assessment view."}
+                </div>
+                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                  {selectedStrandCard?.whyItMatters || selectedSubject.helper}
+                </div>
               </div>
 
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Current stage focus</div>
-                <strong style={{ color: "#0f172a", fontSize: 20 }}>{stageFocus}</strong>
+                <strong style={{ color: "#0f172a", fontSize: 20 }}>
+                  {getCleanAssessmentStageTitle(stageFocus)}
+                </strong>
                 <label style={{ color: "#334155", fontWeight: 700 }}>Stage focus</label>
                 <select
                   value={stageFocus}
@@ -1642,7 +1489,7 @@ function AssessmentsWorkspaceBody() {
                 >
                   {ASSESSMENT_STAGES.map((stage) => (
                     <option key={stage} value={stage}>
-                      {stage}
+                      {getCleanAssessmentStageTitle(stage)}
                     </option>
                   ))}
                 </select>
@@ -1656,20 +1503,21 @@ function AssessmentsWorkspaceBody() {
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Framework context</div>
                 <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails?.frameworkLabel || "Framework details will connect to My Settings later."}
+                  {frameworkDetails?.frameworkLabel ||
+                    "Framework details will connect to My Settings later."}
                 </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   {frameworkDetails
                     ? `${frameworkDetails.countryLabel}${
                         frameworkDetails.authorityLabel !== "Not recorded in MyLearna yet."
-                          ? ` · ${frameworkDetails.authorityLabel}`
+                          ? ` / ${frameworkDetails.authorityLabel}`
                           : ""
-                      }`.replace("Â·", "/")
+                      }`
                     : "Selected framework context will connect to My Settings as this layer develops."}
                 </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {frameworkDetails?.settingsHint ||
-                    "The assessment pathway will later map back to the framework selected in My Settings."}
+                    "The assessment workspace will later map back to the framework selected in My Settings."}
                 </div>
               </div>
             </div>
@@ -1690,7 +1538,8 @@ function AssessmentsWorkspaceBody() {
               <div style={{ display: "grid", gap: 6, maxWidth: 720 }}>
                 <div style={eyebrowStyle}>Legend and progression</div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Current stage stays highlighted while the wider progression remains visible.
+                  Confidence is saved against pathway steps, while the stage focus helps you keep
+                  the learner&apos;s current band in view.
                 </div>
               </div>
               <span
@@ -1704,7 +1553,7 @@ function AssessmentsWorkspaceBody() {
                   fontWeight: 700,
                 }}
               >
-                Current stage: {stageFocus}
+                Current stage: {getCleanAssessmentStageTitle(stageFocus)}
               </span>
             </div>
 
@@ -1716,7 +1565,7 @@ function AssessmentsWorkspaceBody() {
               }}
             >
               <div style={{ ...helperCardStyle, padding: 14 }}>
-                <div style={eyebrowStyle}>Status legend</div>
+                <div style={eyebrowStyle}>Confidence legend</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {ASSESSMENT_STATUSES.map((status) => {
                     const meta = STATUS_META[status];
@@ -1751,7 +1600,7 @@ function AssessmentsWorkspaceBody() {
                   })}
                 </div>
                 <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                  Open any skill tile for fuller status detail.
+                  Open any pathway step to save confidence or create linked evidence.
                 </div>
               </div>
 
@@ -1760,7 +1609,7 @@ function AssessmentsWorkspaceBody() {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {ASSESSMENT_STAGES.map((stage) => {
                     const isFocusedStage = stage === stageFocus;
-                    const progressionMeta = getStageProgressionMeta(stage, stageFocus);
+                    const progressionMeta = getAssessmentProgressionMeta(stage, stageFocus);
 
                     return (
                       <div
@@ -1788,13 +1637,102 @@ function AssessmentsWorkspaceBody() {
                         >
                           {progressionMeta.badge}
                         </span>
-                        <strong style={{ color: "#0f172a", fontSize: 13 }}>{stage}</strong>
+                        <strong style={{ color: "#0f172a", fontSize: 13 }}>
+                          {getCleanAssessmentStageTitle(stage)}
+                        </strong>
                       </div>
                     );
                   })}
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section style={{ ...cardStyle, padding: 18 }}>
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={eyebrowStyle}>Current strand snapshot</div>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>
+                {selectedStrandCard?.title || "Assessment strand"}
+              </h2>
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                {selectedStrandCard?.whyItMatters ||
+                  "Choose one strand and use the saved confidence view to stay focused."}
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gap: 10,
+                gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              }}
+            >
+              <div style={buildSnapshotCardStyle("#dbeafe", "#f8fbff")}>
+                <div style={eyebrowStyle}>Current stage steps</div>
+                <strong style={{ color: "#0f172a", fontSize: 24 }}>
+                  {currentStageView?.steps.length || 0}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Steps currently visible in {getCleanAssessmentStageTitle(stageFocus)}.
+                </div>
+              </div>
+
+              <div style={buildSnapshotCardStyle("#bbf7d0", "#f0fdf4")}>
+                <div style={eyebrowStyle}>Secure or strong</div>
+                <strong style={{ color: "#166534", fontSize: 24 }}>
+                  {currentStageSnapshot.secureOrStrong}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Saved confidence already looks more settled here.
+                </div>
+              </div>
+
+              <div style={buildSnapshotCardStyle("#bfdbfe", "#eff6ff")}>
+                <div style={eyebrowStyle}>Developing</div>
+                <strong style={{ color: "#1d4ed8", fontSize: 24 }}>
+                  {currentStageSnapshot.developing + currentStageSnapshot.stillDeveloping}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Steps where confidence is still building.
+                </div>
+              </div>
+
+              <div style={buildSnapshotCardStyle("#e2e8f0", "#f8fafc")}>
+                <div style={eyebrowStyle}>Not assessed yet</div>
+                <strong style={{ color: "#475569", fontSize: 24 }}>
+                  {currentStageSnapshot.notAssessedYet}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Steps still waiting for a saved judgement.
+                </div>
+              </div>
+            </div>
+
+            {assessmentStatusesLoading ? (
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>Loading saved assessment confidence</strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Pulling the latest saved judgements for this learner now.
+                </div>
+              </div>
+            ) : null}
+
+            {assessmentStatusesError ? (
+              <div
+                style={{
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  borderRadius: 16,
+                  padding: 14,
+                  lineHeight: 1.6,
+                }}
+              >
+                {assessmentStatusesError}
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -1809,310 +1747,236 @@ function AssessmentsWorkspaceBody() {
                 flexWrap: "wrap",
               }}
             >
-              <div style={{ display: "grid", gap: 8, maxWidth: 700 }}>
-                <div style={eyebrowStyle}>Visual tracker</div>
-                <h2 style={{ margin: 0, color: "#0f172a" }}>{selectedSubject.title}</h2>
+              <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+                <div style={eyebrowStyle}>Assessment workspace</div>
+                <h2 style={{ margin: 0, color: "#0f172a" }}>
+                  {selectedSubject.title} - {selectedStrandCard?.title || "Selected strand"}
+                </h2>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Click any skill tile to explore how confidence looks across the learner&apos;s
-                  current stage and wider progression.
+                  Open a pathway step to save assessment confidence, add a note, and link evidence
+                  without leaving the shared learning spine.
                 </p>
               </div>
             </div>
 
             <div style={helperCardStyle}>
-              <strong style={{ color: "#0f172a" }}>What to do next</strong>
+              <strong style={{ color: "#0f172a" }}>How to use this view</strong>
               <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                Start with the current focus stage first. Earlier and later stages stay
-                available when you want wider progression context.
+                Start with the current focus stage. Earlier and later stages stay visible so you
+                can judge confidence within the learner&apos;s wider progression, not in isolation.
               </div>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              }}
-            >
-              <div
-                style={{
-                  ...compactCardStyle,
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  boxShadow: "0 10px 22px rgba(59,130,246,0.08)",
-                }}
-              >
-                <div style={eyebrowStyle}>{stageFocus} snapshot</div>
-                <strong style={{ color: "#0f172a" }}>Current stage</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Using the displayed statuses in the selected stage column for {selectedSubject.title}.
-                </div>
-              </div>
-              <div style={buildSnapshotCardStyle("#99f6e4", "#f0fdfa")}>
-                <strong style={{ color: "#0f766e", fontSize: 22 }}>
-                  {currentStageSnapshot.secureOrStrong}
-                </strong>
-                <div style={{ color: "#0f766e", lineHeight: 1.5, fontWeight: 700 }}>
-                  secure or strong
-                </div>
-              </div>
-              <div style={buildSnapshotCardStyle("#bfdbfe", "#eff6ff")}>
-                <strong style={{ color: "#1d4ed8", fontSize: 22 }}>
-                  {currentStageSnapshot.developing}
-                </strong>
-                <div style={{ color: "#1d4ed8", lineHeight: 1.5, fontWeight: 700 }}>
-                  developing
-                </div>
-              </div>
-              <div style={buildSnapshotCardStyle("#fed7aa", "#fff7ed")}>
-                <strong style={{ color: "#c2410c", fontSize: 22 }}>
-                  {currentStageSnapshot.stillDeveloping}
-                </strong>
-                <div style={{ color: "#c2410c", lineHeight: 1.5, fontWeight: 700 }}>
-                  still developing
-                </div>
-              </div>
-              <div style={buildSnapshotCardStyle("#e2e8f0", "#f8fafc")}>
-                <strong style={{ color: "#64748b", fontSize: 22 }}>
-                  {currentStageSnapshot.notAssessedYet}
-                </strong>
-                <div style={{ color: "#64748b", lineHeight: 1.5, fontWeight: 700 }}>
-                  not assessed yet
-                </div>
-              </div>
-            </div>
-
-            {assessmentStatusesLoading ? (
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                Loading saved skill statuses...
-              </div>
-            ) : null}
-
-            {assessmentStatusesError ? (
+            {legacyAssessmentStatusesForSubject.length ? (
               <div style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>
-                  Saved skill statuses could not be loaded right now.
-                </strong>
+                <strong style={{ color: "#0f172a" }}>Legacy saved assessment statuses</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Demo statuses are still showing while manual tracking reconnects.
+                  Older assessment records from the previous skill tracker are still preserved.
+                  New saves now use canonical pathway step IDs. Legacy rows remain visible here
+                  until a later migration maps them more precisely.
+                </div>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {legacyAssessmentStatusesForSubject.slice(0, 6).map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        border: "1px solid #dbeafe",
+                        borderRadius: 12,
+                        background: "#ffffff",
+                        padding: 12,
+                        display: "grid",
+                        gap: 4,
+                      }}
+                    >
+                      <strong style={{ color: "#0f172a" }}>
+                        {formatLegacyAssessmentSkillLabel(item.skillKey)}
+                      </strong>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        {getCleanAssessmentStageTitle(item.stageKey)} - {item.status}
+                      </div>
+                    </div>
+                  ))}
+                  {legacyAssessmentStatusesForSubject.length > 6 ? (
+                    <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                      {legacyAssessmentStatusesForSubject.length - 6} more legacy records are also
+                      preserved.
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : null}
 
-            <div
-              style={{
-                border: "1px solid #dbeafe",
-                borderRadius: 20,
-                background:
-                  "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(255,255,255,1) 100%)",
-                padding: 12,
-                overflowX: "auto",
-                WebkitOverflowScrolling: "touch",
-              }}
-            >
-              <div style={{ minWidth: 820, display: "grid", gap: 8 }}>
-                <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                  Swipe across on smaller screens to compare stages.
-                </div>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "200px repeat(5, minmax(116px, 1fr))",
-                    gap: 8,
-                    alignItems: "stretch",
-                  }}
-                >
-                  <div
+            <div style={{ display: "grid", gap: 14 }}>
+              {selectedStageViews.map((stageView) => {
+                const isFocusedStage = stageView.key === stageFocus;
+                const progressionMeta = getAssessmentProgressionMeta(stageView.key, stageFocus);
+                const stageSnapshot = getStageSnapshot(stageView.steps, (stepView) =>
+                  getDisplayedAssessmentStatus(stepView),
+                );
+
+                return (
+                  <article
+                    key={stageView.key}
                     style={{
-                      ...compactCardStyle,
-                      position: "sticky",
-                      left: 0,
-                      zIndex: 2,
-                      background: "#ffffff",
-                      padding: 14,
-                    }}
-                  >
-                    <div style={eyebrowStyle}>Skill area</div>
-                    <strong style={{ color: "#0f172a" }}>{selectedSubject.title}</strong>
-                    <div style={{ color: "#64748b", lineHeight: 1.5 }}>
-                      {selectedSubject.helper}
-                    </div>
-                  </div>
-
-                  {ASSESSMENT_STAGES.map((stage) => {
-                    const isFocusedStage = stage === stageFocus;
-                    const progressionMeta = getStageProgressionMeta(stage, stageFocus);
-
-                    return (
-                      <div
-                        key={stage}
-                        style={{
-                          ...compactCardStyle,
-                          alignContent: "center",
-                          justifyItems: "start",
-                          padding: 12,
-                          background: isFocusedStage ? "#eff6ff" : "#f8fafc",
-                          border: isFocusedStage
-                            ? "1px solid #93c5fd"
-                            : "1px solid #e2e8f0",
-                          boxShadow: isFocusedStage
-                            ? "0 10px 22px rgba(59,130,246,0.12)"
-                            : "none",
-                          opacity: isFocusedStage ? 1 : 0.72,
-                          filter: isFocusedStage ? "none" : "saturate(0.68)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 8,
-                            alignItems: "center",
-                            width: "100%",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <div
-                            style={{
-                              ...eyebrowStyle,
-                              color: isFocusedStage ? "#1d4ed8" : "#64748b",
-                            }}
-                          >
-                            {progressionMeta.badge}
-                          </div>
-                          {isFocusedStage ? (
-                            <span
-                              style={{
-                                border: "1px solid #bfdbfe",
-                                background: "#ffffff",
-                                color: "#1d4ed8",
-                                borderRadius: 999,
-                                padding: "4px 8px",
-                                fontSize: 10,
-                                fontWeight: 800,
-                                letterSpacing: "0.04em",
-                                textTransform: "uppercase",
-                              }}
-                            >
-                              Current focus
-                            </span>
-                          ) : null}
-                        </div>
-                        <strong style={{ color: "#0f172a", fontSize: 15 }}>{stage}</strong>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {selectedSubject.rows.map((row) => (
-                  <div
-                    key={row.skillArea}
-                    style={{
+                      border: isFocusedStage ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                      borderRadius: 18,
+                      background: isFocusedStage ? "#f8fbff" : "#ffffff",
+                      padding: 16,
                       display: "grid",
-                      gridTemplateColumns: "200px repeat(5, minmax(116px, 1fr))",
-                      gap: 8,
-                      alignItems: "stretch",
+                      gap: 14,
+                      boxShadow: isFocusedStage
+                        ? "0 12px 26px rgba(59,130,246,0.08)"
+                        : "0 6px 18px rgba(15,23,42,0.03)",
                     }}
                   >
                     <div
                       style={{
-                        ...compactCardStyle,
-                        position: "sticky",
-                        left: 0,
-                        zIndex: 1,
-                        background: "#ffffff",
-                        justifyContent: "center",
-                        padding: 14,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 12,
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
                       }}
                     >
-                      <strong style={{ color: "#0f172a", fontSize: 15 }}>{row.skillArea}</strong>
-                      <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>
-                        Universal skill area
+                      <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
+                        <div
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <span
+                            style={{
+                              border: isFocusedStage ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+                              background: "#ffffff",
+                              color: isFocusedStage ? "#1d4ed8" : "#64748b",
+                              borderRadius: 999,
+                              padding: "5px 9px",
+                              fontSize: 11,
+                              fontWeight: 800,
+                              letterSpacing: "0.05em",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {progressionMeta.badge}
+                          </span>
+                          <span
+                            style={{
+                              border: "1px solid #e2e8f0",
+                              background: "#ffffff",
+                              color: "#475569",
+                              borderRadius: 999,
+                              padding: "5px 9px",
+                              fontSize: 11,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {stageView.steps.length} steps
+                          </span>
+                        </div>
+                        <strong style={{ color: "#0f172a", fontSize: 18 }}>{stageView.title}</strong>
+                        <div style={{ color: "#475569", lineHeight: 1.6 }}>{stageView.helper}</div>
+                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                          {progressionMeta.helper}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+                          minWidth: "min(100%, 320px)",
+                        }}
+                      >
+                        <div style={buildSnapshotCardStyle("#bbf7d0", "#f0fdf4")}>
+                          <div style={eyebrowStyle}>Secure / strong</div>
+                          <strong style={{ color: "#166534", fontSize: 20 }}>
+                            {stageSnapshot.secureOrStrong}
+                          </strong>
+                        </div>
+                        <div style={buildSnapshotCardStyle("#bfdbfe", "#eff6ff")}>
+                          <div style={eyebrowStyle}>Developing</div>
+                          <strong style={{ color: "#1d4ed8", fontSize: 20 }}>
+                            {stageSnapshot.developing + stageSnapshot.stillDeveloping}
+                          </strong>
+                        </div>
+                        <div style={buildSnapshotCardStyle("#e2e8f0", "#f8fafc")}>
+                          <div style={eyebrowStyle}>Not assessed</div>
+                          <strong style={{ color: "#475569", fontSize: 20 }}>
+                            {stageSnapshot.notAssessedYet}
+                          </strong>
+                        </div>
                       </div>
                     </div>
 
-                    {ASSESSMENT_STAGES.map((stage) => {
-                      const status = getDisplayedAssessmentStatus(
-                        selectedSubject.key,
-                        row.skillArea,
-                        stage,
-                      );
-                      const savedStatusRecord = getSavedAssessmentStatusRecord(
-                        selectedSubject.key,
-                        row.skillArea,
-                        stage,
-                      );
-                      const meta = STATUS_META[status];
-                      const isFocusedStage = stage === stageFocus;
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: 12,
+                        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      }}
+                    >
+                      {stageView.steps.map((stepView) => {
+                        const status = getDisplayedAssessmentStatus(stepView);
+                        const savedStatusRecord = getSavedAssessmentStatusRecord(
+                          stepView.registryItem.subjectKey,
+                          stepView.registryItem.id,
+                          stepView.registryItem.stageKey as AssessmentStage,
+                        );
+                        const meta = STATUS_META[status];
 
-                      return (
-                        <button
-                          key={`${row.skillArea}-${stage}`}
-                          type="button"
-                          aria-label={`${row.skillArea}, ${stage}, ${status}`}
-                          onClick={() => openAssessmentTile(row, stage)}
-                          style={{
-                            border: isFocusedStage
-                              ? "2px solid #60a5fa"
-                              : `1px solid ${meta.border}`,
-                            borderRadius: 14,
-                            background: isFocusedStage ? meta.fill : "#ffffff",
-                            padding: 12,
-                            minHeight: 86,
-                            display: "grid",
-                            gap: 8,
-                            alignContent: "start",
-                            boxShadow: isFocusedStage
-                              ? "0 12px 24px rgba(59,130,246,0.12)"
-                              : "none",
-                            cursor: "pointer",
-                            textAlign: "left",
-                            opacity: isFocusedStage ? 1 : 0.76,
-                            filter: isFocusedStage ? "none" : "saturate(0.58)",
-                            transition:
-                              "box-shadow 140ms ease, border-color 140ms ease, transform 140ms ease",
-                          }}
-                        >
-                          <div
+                        return (
+                          <button
+                            key={stepView.registryItem.id}
+                            type="button"
+                            onClick={() => openAssessmentTile(stepView)}
+                            aria-label={`${stepView.registryItem.stepTitle}, ${stageView.title}, ${status}`}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 8,
-                              flexWrap: "wrap",
+                              border: `1px solid ${meta.border}`,
+                              borderRadius: 16,
+                              background: "#ffffff",
+                              padding: 14,
+                              display: "grid",
+                              gap: 10,
+                              textAlign: "left",
+                              cursor: "pointer",
+                              boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
                             }}
                           >
-                            <span
+                            <div
                               style={{
-                                display: "inline-flex",
+                                display: "flex",
                                 alignItems: "center",
+                                justifyContent: "space-between",
                                 gap: 8,
-                                minWidth: 0,
+                                flexWrap: "wrap",
                               }}
                             >
                               <span
-                                aria-hidden="true"
                                 style={{
-                                  width: 10,
-                                  height: 10,
-                                  borderRadius: 999,
-                                  background: meta.dot,
-                                  flexShrink: 0,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  minWidth: 0,
                                 }}
-                              />
-                              <strong style={{ color: meta.text, fontSize: 13 }}>
-                                {meta.cellLabel}
-                              </strong>
-                            </span>
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 6,
-                                flexWrap: "wrap",
-                                justifyContent: "flex-end",
-                              }}
-                            >
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  style={{
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: 999,
+                                    background: meta.dot,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <strong style={{ color: meta.text, fontSize: 13 }}>
+                                  {meta.cellLabel}
+                                </strong>
+                              </span>
                               <span
                                 style={{
                                   border: "1px solid #e2e8f0",
@@ -2126,39 +1990,29 @@ function AssessmentsWorkspaceBody() {
                                   textTransform: "uppercase",
                                 }}
                               >
-                                {savedStatusRecord ? "Saved" : "Demo"}
+                                {savedStatusRecord ? "Saved" : "Not saved"}
                               </span>
-                              {isFocusedStage ? (
-                                <span
-                                  style={{
-                                    border: "1px solid #bfdbfe",
-                                    background: "#ffffff",
-                                    color: "#1d4ed8",
-                                    borderRadius: 999,
-                                    padding: "4px 7px",
-                                    fontSize: 10,
-                                    fontWeight: 800,
-                                    letterSpacing: "0.04em",
-                                    textTransform: "uppercase",
-                                  }}
-                                >
-                                  Focus
-                                </span>
-                              ) : null}
-                            </span>
-                          </div>
-                          <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
-                            {status}
-                          </div>
-                          <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 700 }}>
-                            Open detail
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
+                            </div>
+
+                            <div style={{ display: "grid", gap: 6 }}>
+                              <strong style={{ color: "#0f172a", fontSize: 15 }}>
+                                {stepView.registryItem.stepTitle}
+                              </strong>
+                              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
+                                {stepView.registryItem.stepDescription}
+                              </div>
+                            </div>
+
+                            <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 700 }}>
+                              Open assessment detail
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -2169,8 +2023,8 @@ function AssessmentsWorkspaceBody() {
               <div style={eyebrowStyle}>Coming later</div>
               <h2 style={{ margin: 0, color: "#0f172a" }}>Future assessment actions</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                These are the next pieces planned for the assessment layer once the
-                visual tracker is in place.
+                The next layer will add structured checks, saved summaries, and clearer reporting
+                views while still using the same subject -&gt; strand -&gt; stage -&gt; step spine.
               </p>
             </div>
 
@@ -2183,12 +2037,10 @@ function AssessmentsWorkspaceBody() {
             >
               <article style={compactCardStyle}>
                 <div style={eyebrowStyle}>Assessment checks</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  Start assessment checks
-                </strong>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>Structured checks</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Short skill checks will help update the tracker and create evidence for
-                  reports.
+                  Gentle checks will later help confirm whether a saved judgement is still
+                  developing, developing, secure, or strong.
                 </div>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>
@@ -2200,11 +2052,11 @@ function AssessmentsWorkspaceBody() {
               <article style={compactCardStyle}>
                 <div style={eyebrowStyle}>Assessment exports</div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  Assessment result exports
+                  Assessment summaries
                 </strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Export assessment summaries that can support reports, curriculum
-                  coverage, and portfolio review.
+                  Export assessment summaries that can support reports, curriculum review, and
+                  planning conversations.
                 </div>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>
@@ -2214,27 +2066,11 @@ function AssessmentsWorkspaceBody() {
               </article>
 
               <article style={compactCardStyle}>
-                <div style={eyebrowStyle}>Framework mapping</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>Framework crosswalk</strong>
+                <div style={eyebrowStyle}>Legacy migration</div>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>Legacy status mapping</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Assessment results will later be mapped to the selected curriculum
-                  framework in My Settings.
-                </div>
-                <div>
-                  <button type="button" style={disabledButtonStyle} disabled>
-                    Coming later
-                  </button>
-                </div>
-              </article>
-
-              <article style={compactCardStyle}>
-                <div style={eyebrowStyle}>Future subjects</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                  More assessment areas
-                </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  More assessment areas can be added later while keeping the same learner
-                  view and stage-focused tracker pattern.
+                  Older assessment rows can be mapped more precisely into the pathway spine in a
+                  later migration pass.
                 </div>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>
@@ -2246,7 +2082,7 @@ function AssessmentsWorkspaceBody() {
           </div>
         </section>
 
-        {selectedTile && selectedTileDetail && selectedTileSubject && selectedTileStatusMeta ? (
+        {selectedTile && selectedTileDetail && selectedTileStatusMeta ? (
           <div
             role="presentation"
             onClick={() => setSelectedTile(null)}
@@ -2298,13 +2134,13 @@ function AssessmentsWorkspaceBody() {
                       textTransform: "uppercase",
                     }}
                   >
-                    Skill tile detail
+                    Assessment step detail
                   </div>
                   <h2
                     id="assessment-tile-detail-heading"
                     style={{ margin: 0, color: "#0f172a", fontSize: 24 }}
                   >
-                    {selectedTile.skillArea} - {selectedTile.stage}
+                    {selectedTileDetail.registryItem.stepTitle}
                   </h2>
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
                     Viewing assessment detail for {selectedLearnerLabel}.
@@ -2331,15 +2167,15 @@ function AssessmentsWorkspaceBody() {
               >
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Subject</div>
-                  <strong style={{ color: "#0f172a" }}>{selectedTileSubject.title}</strong>
+                  <strong style={{ color: "#0f172a" }}>{selectedTileDetail.subjectTitle}</strong>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Skill area</div>
-                  <strong style={{ color: "#0f172a" }}>{selectedTile.skillArea}</strong>
+                  <div style={eyebrowStyle}>Strand</div>
+                  <strong style={{ color: "#0f172a" }}>{selectedTileDetail.strandTitle}</strong>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Stage</div>
-                  <strong style={{ color: "#0f172a" }}>{selectedTile.stage}</strong>
+                  <div style={eyebrowStyle}>Developmental band</div>
+                  <strong style={{ color: "#0f172a" }}>{selectedTileDetail.stageTitle}</strong>
                 </div>
                 <div
                   style={{
@@ -2352,7 +2188,7 @@ function AssessmentsWorkspaceBody() {
                   }}
                 >
                   <div style={eyebrowStyle}>
-                    {selectedTileStatusRecord ? "Saved status" : "Displayed status"}
+                    {selectedTileStatusRecord ? "Saved confidence" : "Displayed confidence"}
                   </div>
                   <strong style={{ color: selectedTileStatusMeta.text }}>
                     {selectedTileDisplayedStatus}
@@ -2366,9 +2202,9 @@ function AssessmentsWorkspaceBody() {
               </div>
 
               <section style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>What this status means</strong>
+                <strong style={{ color: "#0f172a" }}>What this step means</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  {selectedTileStatusMeta.detailMeaning}
+                  {selectedTileDetail.registryItem.stepDescription}
                 </p>
               </section>
 
@@ -2379,11 +2215,33 @@ function AssessmentsWorkspaceBody() {
                 </p>
               </section>
 
+              <section
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <article style={compactCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What the learner is practising</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileDetail.step.skillFocus}
+                  </p>
+                  <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                    {selectedTileDetail.step.learningIntention}
+                  </div>
+                </article>
+
+                <article style={compactCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Assessment check</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileDetail.step.assessmentCheck}
+                  </p>
+                </article>
+              </section>
+
               <section style={compactCardStyle}>
-                <strong style={{ color: "#0f172a" }}>What this skill may include</strong>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  {selectedTileDetail.summary}
-                </p>
+                <strong style={{ color: "#0f172a" }}>What to look for</strong>
                 <ul
                   style={{
                     margin: 0,
@@ -2394,10 +2252,65 @@ function AssessmentsWorkspaceBody() {
                     lineHeight: 1.6,
                   }}
                 >
-                  {selectedTileDetail.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
+                  {selectedTileDetail.step.successCriteria.map((criterion) => (
+                    <li key={criterion}>{criterion}</li>
                   ))}
                 </ul>
+              </section>
+
+              <section
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <article style={compactCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Practice suggestion</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileDetail.step.practiceActivity}
+                  </p>
+                </article>
+
+                <article style={compactCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What evidence could look like</strong>
+                  <ul
+                    style={{
+                      margin: 0,
+                      paddingLeft: 18,
+                      color: "#475569",
+                      display: "grid",
+                      gap: 6,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {selectedTileDetail.step.evidenceExamples.map((example) => (
+                      <li key={example}>{example}</li>
+                    ))}
+                  </ul>
+                </article>
+              </section>
+
+              <section
+                style={{
+                  display: "grid",
+                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                }}
+              >
+                <article style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>Report language</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileDetail.step.reportLanguage}
+                  </p>
+                </article>
+
+                <article style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>What comes next</strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileDetail.step.nextStep}
+                  </p>
+                </article>
               </section>
 
               {selectedTileStatusRecord?.note ? (
@@ -2410,18 +2323,10 @@ function AssessmentsWorkspaceBody() {
               ) : null}
 
               <section style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>What comes next</strong>
+                <strong style={{ color: "#0f172a" }}>Update assessment confidence</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Assessment checks will later help confirm whether this skill is still
-                  developing, developing, secure, or strong.
-                </p>
-              </section>
-
-              <section style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>Update this skill status</strong>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Use this to record your current judgement for this learner. Formal
-                  assessment checks will come later.
+                  Use this to record your current judgement for this pathway step. Formal
+                  assessment checks can sit on top of this later.
                 </p>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2503,7 +2408,7 @@ function AssessmentsWorkspaceBody() {
                     disabled={isSavingAssessmentStatus || !selectedLearner || !selectedFamilyId}
                     style={isSavingAssessmentStatus ? disabledButtonStyle : buttonStyle}
                   >
-                    {isSavingAssessmentStatus ? "Saving..." : "Save status"}
+                    {isSavingAssessmentStatus ? "Saving..." : "Save confidence"}
                   </button>
                 </div>
 
@@ -2524,18 +2429,19 @@ function AssessmentsWorkspaceBody() {
                         : "Create evidence note"}
                     </strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                      Use this to add the current assessment judgement into your learning
-                      evidence and reports.
+                      Add this saved confidence into learning evidence so portfolio and reporting
+                      views can read the same pathway step later.
                     </p>
 
                     {selectedTileHasUnsavedChanges ? (
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                        Save this status to create an evidence note from the latest judgement.
+                        Save this confidence first to create an evidence note from the latest
+                        judgement.
                       </div>
                     ) : selectedTileLinkedEvidenceEntry ? (
                       <div style={{ display: "grid", gap: 8 }}>
                         <div style={{ color: "#166534", lineHeight: 1.6 }}>
-                          Evidence already linked for this saved status.
+                          Evidence already linked for this saved confidence.
                           {selectedTileLinkedEvidenceLabel
                             ? ` Added ${selectedTileLinkedEvidenceLabel}.`
                             : ""}
@@ -2596,9 +2502,9 @@ function AssessmentsWorkspaceBody() {
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Future assessment actions</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Manual status tracking and evidence links are now available. Next,
-                  MyLearna will add formal assessment checks, saved results, and
-                  assessment summaries.
+                  Manual confidence tracking and evidence links are now aligned to pathway step
+                  IDs. Next, MyLearna can add structured checks and step-level summaries on top of
+                  the same shared learning spine.
                 </p>
                 <div>
                   <button type="button" style={disabledButtonStyle} disabled>

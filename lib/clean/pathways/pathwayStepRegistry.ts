@@ -100,6 +100,24 @@ export function buildPathwayStepId(
   return [safe(subjectKey), safe(strandKey), safe(stageKey), safe(stepKey)].join("::");
 }
 
+export function parsePathwayStepId(value: string): PathwayStepIdentity | null {
+  const [subjectKey, strandKey, stageKey, stepKey, ...rest] = safe(value).split("::");
+  if (rest.length > 0) return null;
+  if (!subjectKey || !strandKey || !stageKey || !stepKey) return null;
+
+  const isKnownSubject = PATHWAY_SUBJECTS.some((subject) => subject.key === subjectKey);
+  if (!isKnownSubject) {
+    return null;
+  }
+
+  return {
+    subjectKey: subjectKey as PathwaySubjectKey,
+    strandKey,
+    stageKey,
+    stepKey,
+  };
+}
+
 function assertRequiredField(
   label: string,
   value: string,
