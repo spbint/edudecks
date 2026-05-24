@@ -9,6 +9,7 @@ import {
 
 import {
   buildCurriculumCoverageSummary,
+  type CurriculumCoverageAssessmentSummary,
   type CurriculumCoverageLinkedEvidence,
   type CurriculumCoverageMatchSummary,
   type CurriculumCoverageStatus,
@@ -21,6 +22,7 @@ import {
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import type { Learner } from "@/lib/clean/learners/types";
+import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
 
 export const CURRICULUM_COVERAGE_EMPTY_COPY =
   "No curriculum-linked evidence has been captured yet.";
@@ -53,6 +55,7 @@ export type BuildCurriculumCoveragePdfModelInput = {
   profile: FamilyProfile;
   learner: Learner;
   entries: CleanEvidenceEntry[];
+  assessmentStatuses?: CleanAssessmentSkillStatus[];
   generatedOn?: string | null;
 };
 
@@ -166,6 +169,13 @@ function getEvidenceItemLabel(count: number) {
   return `${count} evidence ${count === 1 ? "item" : "items"}`;
 }
 
+function buildAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary) {
+  const secureOrStrong = summary.secure + summary.strong;
+  const developing = summary.developing + summary.stillDeveloping;
+
+  return `Assessment confidence: ${summary.assessedCount} assessed, ${secureOrStrong} secure or strong, ${developing} developing or still developing, ${summary.notAssessedYet} not assessed yet.`;
+}
+
 function buildLatestEvidenceLine(entry: CleanEvidenceEntry | null) {
   if (!entry) return "Latest evidence: No evidence linked yet.";
   return `Latest evidence: ${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
@@ -215,6 +225,7 @@ export function buildCurriculumCoveragePdfModel(
   const coverageSummary = buildCurriculumCoverageSummary({
     resolvedFramework,
     entries: input.entries,
+    assessmentStatuses: input.assessmentStatuses,
   });
   const learnerName = formatDisplayName(input.learner) || input.learner.firstName || "Learner";
   const { countryLabel, authorityLabel } = splitCountryAndAuthorityLabels(resolvedFramework);
@@ -901,6 +912,7 @@ function buildAreaCoverageLines(summary: {
   latestEntry: CleanEvidenceEntry | null;
   matchedEntries: CleanEvidenceEntry[];
   elementSummaries: Array<{ count: number }>;
+  assessmentSummary: CurriculumCoverageAssessmentSummary;
 }) {
   const elementsWithEvidenceCount = summary.elementSummaries.filter(
     (item) => item.count > 0,
@@ -911,6 +923,10 @@ function buildAreaCoverageLines(summary: {
     `Elements with evidence: ${elementsWithEvidenceCount} of ${summary.elementSummaries.length}`,
     buildLatestEvidenceLine(summary.latestEntry),
   ];
+
+  if (summary.assessmentSummary.totalSteps > 0) {
+    lines.splice(2, 0, buildAssessmentSummaryLine(summary.assessmentSummary));
+  }
 
   if (!exampleEntries.length) {
     lines.push("Evidence examples: No evidence linked yet.");
@@ -927,13 +943,16 @@ function buildAreaCoverageLines(summary: {
 function buildElementCoverageLines(
   summary: Pick<
     CurriculumCoverageMatchSummary,
-    "count" | "status" | "latestEntry" | "matchedEntries"
+    "count" | "status" | "latestEntry" | "matchedEntries" | "assessmentSummary"
   >,
 ) {
   const lines = [
     `Linked evidence: ${getEvidenceItemLabel(summary.count)}`,
     buildLatestEvidenceLine(summary.latestEntry),
   ];
+  if (summary.assessmentSummary.totalSteps > 0) {
+    lines.splice(1, 0, buildAssessmentSummaryLine(summary.assessmentSummary));
+  }
   const exampleEntry = summary.matchedEntries[0] ?? null;
 
   lines.push(

@@ -6,9 +6,23 @@ import type {
 } from "@/lib/clean/curriculum/frameworkMaps";
 import {
   parseCurriculumContextFromNodeIds,
+  parsePathwayContextFromNodeIds,
   type CleanCurriculumCaptureContext,
+  type CleanPathwayCaptureContext,
 } from "@/lib/clean/evidence/curriculumContext";
 import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
+import type {
+  CleanAssessmentSkillStatus,
+  CleanAssessmentStatusValue,
+} from "@/lib/clean/assessments/types";
+import {
+  buildUnifiedPathwayStepStateIndex,
+  getUnifiedPathwayStepState,
+} from "@/lib/clean/pathways/pathwayStepState";
+import {
+  getAllPathwaySteps,
+  type PathwayStepRegistryItem,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
 
 export type CurriculumCoverageStatus =
   | "No evidence yet"
@@ -20,6 +34,7 @@ export type CurriculumCoverageMatchSummary = {
   status: CurriculumCoverageStatus;
   latestEntry: CleanEvidenceEntry | null;
   matchedEntries: CleanEvidenceEntry[];
+  assessmentSummary: CurriculumCoverageAssessmentSummary;
 };
 
 export type CurriculumCoverageElementSummary = CurriculumCoverageMatchSummary & {
@@ -38,9 +53,21 @@ export type CurriculumCoverageEvidenceAreaSummary = CurriculumCoverageMatchSumma
 export type CurriculumCoverageLinkedEvidence = {
   entry: CleanEvidenceEntry;
   curriculumContext: CleanCurriculumCaptureContext | null;
+  pathwayContext: CleanPathwayCaptureContext | null;
   learningAreaLabel: string | null;
   curriculumElementLabel: string | null;
   authorityEvidenceAreaLabel: string | null;
+};
+
+export type CurriculumCoverageAssessmentSummary = {
+  totalSteps: number;
+  evidenceLinkedStepCount: number;
+  assessedCount: number;
+  notAssessedYet: number;
+  stillDeveloping: number;
+  developing: number;
+  secure: number;
+  strong: number;
 };
 
 export type CurriculumCoverageSummary = {
@@ -58,11 +85,24 @@ export type CurriculumCoverageSummary = {
 type EvidenceEntryWithCurriculumContext = {
   entry: CleanEvidenceEntry;
   curriculumContext: CleanCurriculumCaptureContext | null;
+  pathwayContext: CleanPathwayCaptureContext | null;
 };
 
 type BuildCurriculumCoverageSummaryInput = {
   resolvedFramework: ResolvedCurriculumFrameworkMap;
   entries: CleanEvidenceEntry[];
+  assessmentStatuses?: CleanAssessmentSkillStatus[];
+};
+
+type PathwayMatchDescriptor = {
+  subjectKey: string;
+  subjectLabel: string;
+  pathwayKey: string;
+  pathwayLabel: string;
+  stepKey: string;
+  stepLabel: string;
+  stepMeaning: string;
+  skillFocus: string;
 };
 
 function safe(value: unknown) {
@@ -80,8 +120,43 @@ function buildEvidenceSearchText(entry: CleanEvidenceEntry) {
     .toLowerCase();
 }
 
+function buildPathwayAreaSearchText(descriptor: PathwayMatchDescriptor) {
+  return [
+    descriptor.subjectKey,
+    descriptor.subjectLabel,
+    descriptor.pathwayKey,
+    descriptor.pathwayLabel,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function buildPathwayElementSearchText(descriptor: PathwayMatchDescriptor) {
+  return [
+    descriptor.subjectKey,
+    descriptor.subjectLabel,
+    descriptor.pathwayKey,
+    descriptor.pathwayLabel,
+    descriptor.stepKey,
+    descriptor.stepLabel,
+    descriptor.stepMeaning,
+    descriptor.skillFocus,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 function matchesAnyKeyword(text: string, keywords: string[]) {
   return keywords.some((keyword) => text.includes(keyword.toLowerCase()));
+}
+
+function matchesPathwayKeyword(text: string, keywords: string[]) {
+  const normalizedText = ` ${safe(text).toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  return keywords.some((keyword) => {
+    const normalizedKeyword = safe(keyword).toLowerCase().replace(/[^a-z0-9]+/g, " ");
+    if (!normalizedKeyword) return false;
+    return normalizedText.includes(` ${normalizedKeyword} `);
+  });
 }
 
 function evidenceSortValue(entry: CleanEvidenceEntry) {
@@ -104,12 +179,114 @@ function buildDetailedMatchSummary(entries: CleanEvidenceEntry[]): CurriculumCov
     count: matchedEntries.length,
     status: getCoverageStatus(matchedEntries.length),
     latestEntry: matchedEntries[0] ?? null,
+    assessmentSummary: {
+      totalSteps: 0,
+      evidenceLinkedStepCount: 0,
+      assessedCount: 0,
+      notAssessedYet: 0,
+      stillDeveloping: 0,
+      developing: 0,
+      secure: 0,
+      strong: 0,
+    },
   };
+}
+
+function buildPathwayDescriptorFromContext(
+  context: CleanPathwayCaptureContext | null,
+): PathwayMatchDescriptor | null {
+  if (!context) return null;
+
+  return {
+    subjectKey: safe(context.subjectKey),
+    subjectLabel: safe(context.subjectLabel),
+    pathwayKey: safe(context.pathwayKey),
+    pathwayLabel: safe(context.pathwayLabel),
+    stepKey: safe(context.stepKey),
+    stepLabel: safe(context.stepTitle),
+    stepMeaning: safe(context.stepMeaning),
+    skillFocus: safe(context.skillFocus),
+  };
+}
+
+function buildPathwayDescriptorFromRegistryItem(
+  item: PathwayStepRegistryItem,
+): PathwayMatchDescriptor {
+  return {
+    subjectKey: safe(item.subjectKey),
+    subjectLabel: safe(item.subjectTitle),
+    pathwayKey: safe(item.strandKey),
+    pathwayLabel: safe(item.strandTitle),
+    stepKey: safe(item.stepKey),
+    stepLabel: safe(item.stepTitle),
+    stepMeaning: safe(item.stepDescription),
+    skillFocus: safe(item.skillFocus),
+  };
+}
+
+function matchesAreaDescriptor(
+  key: string,
+  label: string,
+  area: CurriculumFrameworkLearningArea,
+) {
+  const normalizedKey = key.toLowerCase();
+  const normalizedLabel = label.toLowerCase();
+  return (
+    (normalizedKey && normalizedKey === area.key.toLowerCase()) ||
+    area.legacyKeys?.some((legacyKey) => normalizedKey === legacyKey.toLowerCase()) === true ||
+    (normalizedLabel && normalizedLabel === area.label.toLowerCase()) ||
+    area.legacyLabels?.some(
+      (legacyLabel) => normalizedLabel === legacyLabel.toLowerCase(),
+    ) === true
+  );
+}
+
+function matchesElementDescriptor(
+  key: string,
+  label: string,
+  element: CurriculumFrameworkElement,
+) {
+  const normalizedKey = key.toLowerCase();
+  const normalizedLabel = label.toLowerCase();
+  return (
+    (normalizedKey && normalizedKey === element.key.toLowerCase()) ||
+    element.legacyKeys?.some((legacyKey) => normalizedKey === legacyKey.toLowerCase()) === true ||
+    (normalizedLabel && normalizedLabel === element.label.toLowerCase()) ||
+    element.legacyLabels?.some(
+      (legacyLabel) => normalizedLabel === legacyLabel.toLowerCase(),
+    ) === true
+  );
+}
+
+function matchesLearningAreaFromPathwayDescriptor(
+  descriptor: PathwayMatchDescriptor,
+  area: CurriculumFrameworkLearningArea,
+) {
+  if (
+    matchesAreaDescriptor(descriptor.subjectKey, descriptor.subjectLabel, area) ||
+    matchesAreaDescriptor(descriptor.pathwayKey, descriptor.pathwayLabel, area)
+  ) {
+    return true;
+  }
+
+  return matchesPathwayKeyword(buildPathwayAreaSearchText(descriptor), area.keywords);
+}
+
+function matchesCurriculumElementFromPathwayDescriptor(
+  descriptor: PathwayMatchDescriptor,
+  element: CurriculumFrameworkElement,
+) {
+  if (matchesElementDescriptor(descriptor.pathwayKey, descriptor.pathwayLabel, element)) {
+    return true;
+  }
+
+  return matchesPathwayKeyword(buildPathwayElementSearchText(descriptor), element.keywords);
 }
 
 function matchesLearningAreaConfig(
   entry: CleanEvidenceEntry,
   curriculumContext: CleanCurriculumCaptureContext | null,
+  pathwayContext: CleanPathwayCaptureContext | null,
   area: CurriculumFrameworkLearningArea,
 ) {
   if (safe(curriculumContext?.learningAreaKey)) {
@@ -123,6 +300,11 @@ function matchesLearningAreaConfig(
       learningAreaLabel === area.label ||
       area.legacyLabels?.includes(learningAreaLabel) === true
     );
+  }
+
+  const pathwayDescriptor = buildPathwayDescriptorFromContext(pathwayContext);
+  if (pathwayDescriptor) {
+    return matchesLearningAreaFromPathwayDescriptor(pathwayDescriptor, area);
   }
 
   if (curriculumContext) {
@@ -144,6 +326,7 @@ function matchesLearningAreaConfig(
 function matchesCurriculumElementConfig(
   entry: CleanEvidenceEntry,
   curriculumContext: CleanCurriculumCaptureContext | null,
+  pathwayContext: CleanPathwayCaptureContext | null,
   area: CurriculumFrameworkLearningArea,
   element: CurriculumFrameworkElement,
 ) {
@@ -163,7 +346,16 @@ function matchesCurriculumElementConfig(
     );
   }
 
-  if (!matchesLearningAreaConfig(entry, curriculumContext, area)) {
+  const pathwayDescriptor = buildPathwayDescriptorFromContext(pathwayContext);
+  if (pathwayDescriptor) {
+    if (!matchesLearningAreaFromPathwayDescriptor(pathwayDescriptor, area)) {
+      return false;
+    }
+
+    return matchesCurriculumElementFromPathwayDescriptor(pathwayDescriptor, element);
+  }
+
+  if (!matchesLearningAreaConfig(entry, curriculumContext, pathwayContext, area)) {
     return false;
   }
 
@@ -206,37 +398,118 @@ function pushUnique(list: string[], value: string | null) {
   list.push(normalizedValue);
 }
 
+function buildAssessmentSummary(
+  registryItems: PathwayStepRegistryItem[],
+  unifiedStateIndex: ReturnType<typeof buildUnifiedPathwayStepStateIndex>,
+): CurriculumCoverageAssessmentSummary {
+  return registryItems.reduce(
+    (totals, item) => {
+      const unifiedState = getUnifiedPathwayStepState(unifiedStateIndex, item.id);
+      const assessmentConfidence =
+        (unifiedState?.assessmentConfidence || "Not assessed yet") as CleanAssessmentStatusValue;
+
+      totals.totalSteps += 1;
+      if ((unifiedState?.linkedEvidenceCount || 0) > 0) {
+        totals.evidenceLinkedStepCount += 1;
+      }
+
+      if (assessmentConfidence === "Not assessed yet") {
+        totals.notAssessedYet += 1;
+        return totals;
+      }
+
+      totals.assessedCount += 1;
+
+      if (assessmentConfidence === "Still developing") {
+        totals.stillDeveloping += 1;
+      } else if (assessmentConfidence === "Developing") {
+        totals.developing += 1;
+      } else if (assessmentConfidence === "Secure") {
+        totals.secure += 1;
+      } else if (assessmentConfidence === "Strong") {
+        totals.strong += 1;
+      }
+
+      return totals;
+    },
+    {
+      totalSteps: 0,
+      evidenceLinkedStepCount: 0,
+      assessedCount: 0,
+      notAssessedYet: 0,
+      stillDeveloping: 0,
+      developing: 0,
+      secure: 0,
+      strong: 0,
+    },
+  );
+}
+
 export function buildCurriculumCoverageSummary(
   input: BuildCurriculumCoverageSummaryInput,
 ): CurriculumCoverageSummary {
+  const registryItems = getAllPathwaySteps();
+  const unifiedStateIndex = buildUnifiedPathwayStepStateIndex({
+    assessmentStatuses: input.assessmentStatuses,
+    evidenceEntries: input.entries,
+  });
   const entriesWithCurriculumContext: EvidenceEntryWithCurriculumContext[] = input.entries.map(
     (entry) => ({
       entry,
       curriculumContext: parseCurriculumContextFromNodeIds(entry.curriculumNodeIds),
+      pathwayContext: parsePathwayContextFromNodeIds(entry.curriculumNodeIds),
     }),
   );
-  const curriculumContextByEntryId = new Map(
-    entriesWithCurriculumContext.map((item) => [item.entry.id, item.curriculumContext]),
+  const contextByEntryId = new Map(
+    entriesWithCurriculumContext.map((item) => [
+      item.entry.id,
+      {
+        curriculumContext: item.curriculumContext,
+        pathwayContext: item.pathwayContext,
+      },
+    ]),
   );
 
   const areaSummaries: CurriculumCoverageAreaSummary[] = input.resolvedFramework.map.learningAreas.map(
     (area) => {
+      const matchedPathwaySteps = registryItems.filter((item) =>
+        matchesLearningAreaFromPathwayDescriptor(
+          buildPathwayDescriptorFromRegistryItem(item),
+          area,
+        ),
+      );
       const matchedAreaEntries = entriesWithCurriculumContext
-        .filter(({ entry, curriculumContext }) =>
-          matchesLearningAreaConfig(entry, curriculumContext, area),
+        .filter(({ entry, curriculumContext, pathwayContext }) =>
+          matchesLearningAreaConfig(entry, curriculumContext, pathwayContext, area),
         )
         .map(({ entry }) => entry);
 
       const elementSummaries = area.elements.map((element) => {
+        const matchedElementPathwaySteps = matchedPathwaySteps.filter((item) =>
+          matchesCurriculumElementFromPathwayDescriptor(
+            buildPathwayDescriptorFromRegistryItem(item),
+            element,
+          ),
+        );
         const matchedElementEntries = entriesWithCurriculumContext
-          .filter(({ entry, curriculumContext }) =>
-            matchesCurriculumElementConfig(entry, curriculumContext, area, element),
+          .filter(({ entry, curriculumContext, pathwayContext }) =>
+            matchesCurriculumElementConfig(
+              entry,
+              curriculumContext,
+              pathwayContext,
+              area,
+              element,
+            ),
           )
           .map(({ entry }) => entry);
 
         return {
           element,
           ...buildDetailedMatchSummary(matchedElementEntries),
+          assessmentSummary: buildAssessmentSummary(
+            matchedElementPathwaySteps,
+            unifiedStateIndex,
+          ),
         };
       });
 
@@ -244,6 +517,7 @@ export function buildCurriculumCoverageSummary(
         area,
         elementSummaries,
         ...buildDetailedMatchSummary(matchedAreaEntries),
+        assessmentSummary: buildAssessmentSummary(matchedPathwaySteps, unifiedStateIndex),
       };
     },
   );
@@ -295,15 +569,15 @@ export function buildCurriculumCoverageSummary(
 
   areaSummaries.forEach((summary) => {
     summary.matchedEntries.forEach((entry) => {
-      const curriculumContext = curriculumContextByEntryId.get(entry.id) ?? null;
-      const linked = registerLinkedEntry(entry, curriculumContext);
+      const contexts = contextByEntryId.get(entry.id) ?? null;
+      const linked = registerLinkedEntry(entry, contexts?.curriculumContext ?? null);
       pushUnique(linked.learningAreaLabels, summary.area.label);
     });
 
     summary.elementSummaries.forEach((elementSummary) => {
       elementSummary.matchedEntries.forEach((entry) => {
-        const curriculumContext = curriculumContextByEntryId.get(entry.id) ?? null;
-        const linked = registerLinkedEntry(entry, curriculumContext);
+        const contexts = contextByEntryId.get(entry.id) ?? null;
+        const linked = registerLinkedEntry(entry, contexts?.curriculumContext ?? null);
         pushUnique(linked.learningAreaLabels, summary.area.label);
         pushUnique(linked.curriculumElementLabels, elementSummary.element.label);
       });
@@ -312,8 +586,8 @@ export function buildCurriculumCoverageSummary(
 
   supplementaryAreaSummaries.forEach((summary) => {
     summary.matchedEntries.forEach((entry) => {
-      const curriculumContext = curriculumContextByEntryId.get(entry.id) ?? null;
-      const linked = registerLinkedEntry(entry, curriculumContext);
+      const contexts = contextByEntryId.get(entry.id) ?? null;
+      const linked = registerLinkedEntry(entry, contexts?.curriculumContext ?? null);
       pushUnique(linked.authorityEvidenceAreaLabels, summary.area.label);
     });
   });
@@ -324,6 +598,7 @@ export function buildCurriculumCoverageSummary(
     .map((linked) => ({
       entry: linked.entry,
       curriculumContext: linked.curriculumContext,
+      pathwayContext: contextByEntryId.get(linked.entry.id)?.pathwayContext ?? null,
       learningAreaLabel:
         safe(linked.curriculumContext?.learningAreaLabel) ||
         linked.learningAreaLabels[0] ||

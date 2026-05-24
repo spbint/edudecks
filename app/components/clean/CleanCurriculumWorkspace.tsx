@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanLearningIntelligenceDashboard from "@/app/components/clean/CleanLearningIntelligenceDashboard";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   listCleanAssessmentSkillStatuses,
@@ -25,12 +26,9 @@ import {
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
 import {
   buildCurriculumCoverageSummary,
+  type CurriculumCoverageAssessmentSummary,
   type CurriculumCoverageStatus,
 } from "@/lib/clean/curriculum/coverageSummary";
-import {
-  buildSubjectCurriculumDashboardSummaries,
-  buildUnifiedPathwayStepStateIndex,
-} from "@/lib/clean/pathways/pathwayStepState";
 import {
   buildCurriculumCoveragePdfFilename,
   buildCurriculumCoveragePdfModel,
@@ -165,6 +163,13 @@ function formatEvidenceSnippet(entry: CleanEvidenceEntry) {
 
 function getEvidenceItemLabel(count: number) {
   return `${count} evidence ${count === 1 ? "item" : "items"}`;
+}
+
+function getAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary) {
+  const secureOrStrong = summary.secure + summary.strong;
+  const developing = summary.developing + summary.stillDeveloping;
+
+  return `${summary.assessedCount} assessed | ${secureOrStrong} secure/strong | ${developing} developing/still developing`;
 }
 
 function coverageBadgeStyle(status: CurriculumCoverageStatus): React.CSSProperties {
@@ -487,8 +492,9 @@ function CurriculumWorkspaceBody() {
       buildCurriculumCoverageSummary({
         resolvedFramework,
         entries,
+        assessmentStatuses,
       }),
-    [entries, resolvedFramework],
+    [assessmentStatuses, entries, resolvedFramework],
   );
   const areaSummaries = coverageSummary.areaSummaries;
 
@@ -526,43 +532,6 @@ function CurriculumWorkspaceBody() {
     : "Learner";
   const linkedEvidenceCount = coverageSummary.totalLinkedEvidenceCount;
   const hasLinkedEvidence = coverageSummary.hasLinkedEvidence;
-  const unifiedPathwayStepStateIndex = useMemo(
-    () =>
-      buildUnifiedPathwayStepStateIndex({
-        assessmentStatuses,
-        evidenceEntries: entries,
-      }),
-    [assessmentStatuses, entries],
-  );
-  const pathwaySubjectSummaries = useMemo(
-    () => buildSubjectCurriculumDashboardSummaries(unifiedPathwayStepStateIndex),
-    [unifiedPathwayStepStateIndex],
-  );
-  const pathwayCoverageTotals = useMemo(
-    () =>
-      pathwaySubjectSummaries.reduce(
-        (totals, summary) => {
-          totals.totalSteps += summary.totalSteps;
-          totals.evidenceLinkedCount += summary.evidenceLinkedCount;
-          totals.assessedCount += summary.assessedCount;
-          totals.secureOrStrongCount += summary.secureOrStrongCount;
-          totals.developingCount += summary.developingCount;
-          totals.notAssessedCount += summary.notAssessedCount;
-          totals.revisitCount += summary.revisitCount;
-          return totals;
-        },
-        {
-          totalSteps: 0,
-          evidenceLinkedCount: 0,
-          assessedCount: 0,
-          secureOrStrongCount: 0,
-          developingCount: 0,
-          notAssessedCount: 0,
-          revisitCount: 0,
-        },
-      ),
-    [pathwaySubjectSummaries],
-  );
 
   useEffect(() => {
     setCoverageError(null);
@@ -598,6 +567,7 @@ function CurriculumWorkspaceBody() {
         profile: workspace.profile,
         learner: selectedLearner,
         entries,
+        assessmentStatuses,
         generatedOn: new Date().toISOString().slice(0, 10),
       });
       const pdfBytes = await generateCurriculumCoveragePdfBytes(model);
@@ -631,20 +601,25 @@ function CurriculumWorkspaceBody() {
         <section style={{ ...cardStyle, padding: 24 }}>
           <div style={{ display: "grid", gap: 18 }}>
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={eyebrowStyle}>Learning areas and evidence</div>
-              <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Curriculum</h1>
+              <div style={eyebrowStyle}>Connected overview</div>
+              <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>
+                Learning Intelligence
+              </h1>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                See what learning areas are being covered, where evidence is building, and where you may want to capture more.
+                A clear overview of learner progress across pathways, assessment confidence,
+                evidence, curriculum coverage, portfolio support, and reporting readiness.
               </p>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-                This is a supporting layer. It does not replace My Capture, My Portfolio, My Reports, or My Outputs.
+                This dashboard sits inside My Curriculum and reads the same canonical pathway
+                spine already used by My Pathways, My Assessments, and My Capture.
               </p>
             </div>
 
             <div style={helperCardStyle}>
               <strong style={{ color: "#0f172a" }}>What does this learning show?</strong>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                Use My Curriculum to connect everyday learning with curriculum areas, reporting expectations, and your child&apos;s learning record.
+                Use Learning Intelligence to see where evidence is building, where confidence has
+                been saved, and which learning areas may benefit from the next calm step.
               </p>
             </div>
 
@@ -791,6 +766,19 @@ function CurriculumWorkspaceBody() {
               </section>
             ) : null}
 
+            <CleanLearningIntelligenceDashboard
+              learnerName={selectedLearnerDisplayName}
+              learnerYearLevel={selectedLearner?.yearLevel ?? null}
+              frameworkLabel={resolvedFramework.frameworkDisplayLabel}
+              evidenceEntries={entries}
+              assessmentStatuses={assessmentStatuses}
+              assessmentStatusesError={assessmentStatusesError}
+              onDownloadCoverageRecord={() => void handleDownloadCoverageRecord()}
+              coverageSubmitting={coverageSubmitting}
+              coverageMessage={coverageMessage}
+              coverageError={coverageError}
+            />
+
             <section style={summaryStripStyle}>
               <div style={summaryCardStyle}>
                 <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
@@ -843,109 +831,7 @@ function CurriculumWorkspaceBody() {
               </div>
             </section>
 
-            <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 16 }}>
-                <div style={{ display: "grid", gap: 8 }}>
-                  <div style={eyebrowStyle}>Pathway-linked coverage</div>
-                  <h2 style={{ margin: 0, color: "#0f172a" }}>Shared pathway step summary</h2>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                    This layer now reads the same canonical pathway steps used by My Pathways,
-                    My Assessments, and My Capture. Evidence and assessment confidence stay linked
-                    to the same step IDs.
-                  </p>
-                </div>
-
-                {assessmentStatusesError ? (
-                  <div
-                    style={{
-                      border: "1px solid #fecaca",
-                      background: "#fef2f2",
-                      color: "#b91c1c",
-                      borderRadius: 14,
-                      padding: 12,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {assessmentStatusesError}
-                  </div>
-                ) : null}
-
-                <div style={summaryStripStyle}>
-                  <div style={summaryCardStyle}>
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                      Pathway steps with evidence
-                    </div>
-                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                      {pathwayCoverageTotals.evidenceLinkedCount}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Evidence linked to canonical pathway steps across detailed subjects.
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                      Assessed steps
-                    </div>
-                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                      {pathwayCoverageTotals.assessedCount}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Saved confidence records using the same pathway step IDs.
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                      Secure or strong
-                    </div>
-                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                      {pathwayCoverageTotals.secureOrStrongCount}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Steps with higher recorded confidence for this learner.
-                    </div>
-                  </div>
-                  <div style={summaryCardStyle}>
-                    <div style={{ color: "#64748b", fontSize: 13, fontWeight: 700 }}>
-                      Revisit
-                    </div>
-                    <div style={{ color: "#0f172a", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                      {pathwayCoverageTotals.revisitCount}
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Steps with no evidence, no assessment, or both still missing.
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 14,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  }}
-                >
-                  {pathwaySubjectSummaries.map((summary) => (
-                    <article key={summary.subjectKey} style={compactCardStyle}>
-                      <div style={eyebrowStyle}>{summary.subjectTitle}</div>
-                      <strong style={{ color: "#0f172a", fontSize: 18 }}>
-                        {summary.evidenceLinkedCount} with evidence
-                      </strong>
-                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                        {summary.assessedCount} assessed, {summary.secureOrStrongCount} secure or
-                        strong, {summary.notAssessedCount} not assessed yet.
-                      </div>
-                      <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.6 }}>
-                        {summary.strands.length} strands tracked across {summary.totalSteps} pathway
-                        steps. Revisit {summary.revisitCount} steps where evidence or assessment is
-                        still missing.
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section style={cardStyle}>
+            <section id="coverage-map" style={cardStyle}>
               <div style={{ display: "grid", gap: 12, marginBottom: 18 }}>
                 <div style={helperCardStyle}>
                   <strong style={{ color: "#0f172a" }}>What to do next</strong>
@@ -1087,6 +973,11 @@ function CurriculumWorkspaceBody() {
                       <div>
                         <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                       </div>
+                      {summary.assessmentSummary.totalSteps > 0 ? (
+                        <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                          Assessment: {getAssessmentSummaryLine(summary.assessmentSummary)}
+                        </div>
+                      ) : null}
                       <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
                         Latest evidence:{" "}
                         {summary.latestEntry
@@ -1158,6 +1049,11 @@ function CurriculumWorkspaceBody() {
                     <div style={{ color: "#0f172a", fontWeight: 800 }}>
                       {getEvidenceItemLabel(selectedAreaSummary.count)}
                     </div>
+                    {selectedAreaSummary.assessmentSummary.totalSteps > 0 ? (
+                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
+                        Assessment: {getAssessmentSummaryLine(selectedAreaSummary.assessmentSummary)}
+                      </div>
+                    ) : null}
                     <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                       Latest evidence:{" "}
                       {selectedAreaSummary.latestEntry
@@ -1220,6 +1116,11 @@ function CurriculumWorkspaceBody() {
                           <div>
                             <strong style={{ color: "#0f172a" }}>{getEvidenceItemLabel(summary.count)}</strong>
                           </div>
+                          {summary.assessmentSummary.totalSteps > 0 ? (
+                            <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
+                              Assessment: {getAssessmentSummaryLine(summary.assessmentSummary)}
+                            </div>
+                          ) : null}
                           <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5 }}>
                             Latest evidence:{" "}
                             {summary.latestEntry
