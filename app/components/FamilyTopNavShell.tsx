@@ -113,7 +113,14 @@ function routeSubtitle(pathname: string) {
   if (pathname === "/settings") return "My Settings";
   if (pathname === "/profile") return "My Profile";
   if (pathname === "/family") return "My Family";
-  if (pathname === "/community" || pathname.startsWith("/community/")) return "Community";
+  if (
+    pathname === "/community" ||
+    pathname.startsWith("/community/") ||
+    pathname === "/my-community" ||
+    pathname.startsWith("/my-community/")
+  ) {
+    return "My Community";
+  }
   return "MyLearna";
 }
 
@@ -160,7 +167,12 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (pathname === "/reports" || pathname === "/my-reports") {
     return "Build clear family reports from real learning";
   }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
+  if (
+    pathname === "/community" ||
+    pathname.startsWith("/community/") ||
+    pathname === "/my-community" ||
+    pathname.startsWith("/my-community/")
+  ) {
     return "A place to ask, share, and encourage";
   }
   return subtitle;
@@ -204,7 +216,12 @@ function routeHeroText(pathname: string) {
   if (pathname === "/reports" || pathname === "/my-reports") {
     return "Bring together evidence, reflection, and structure so reporting is clearer and more trustworthy.";
   }
-  if (pathname === "/community" || pathname.startsWith("/community/")) {
+  if (
+    pathname === "/community" ||
+    pathname.startsWith("/community/") ||
+    pathname === "/my-community" ||
+    pathname.startsWith("/my-community/")
+  ) {
     return "Connect with other homeschool families in a space designed for clear, useful, and encouraging conversation.";
   }
   return "Keep your learning system connected and ready for the next meaningful step.";
@@ -260,7 +277,7 @@ function OutputsDropdown({ pathname }: { pathname: string }) {
         aria-expanded={open}
         aria-controls="outputs-navigation-menu"
       >
-        Outputs
+        My Outputs
         <span aria-hidden="true" className="text-[11px] leading-none">
           ▾
         </span>
@@ -331,7 +348,11 @@ export default function FamilyTopNavShell({
   const resolvedDefaultLearner =
     defaultLearner || activeLearner?.label || workspace.learners[0]?.label || "No learner selected";
   const normalizedPath = normalizeRoute(pathname);
-  const communityActive = pathname === "/community" || pathname.startsWith("/community/");
+  const communityActive =
+    pathname === "/community" ||
+    pathname.startsWith("/community/") ||
+    pathname === "/my-community" ||
+    pathname.startsWith("/my-community/");
   const workspaceStatusLabel = workspace.syncIssue
     ? "Sync issue"
     : workspace.storageMode === "database"
@@ -383,7 +404,7 @@ export default function FamilyTopNavShell({
 
           <div className="flex items-center justify-between gap-3 lg:justify-end">
             <Link
-              href="/community"
+              href="/my-community"
               aria-current={communityActive ? "page" : undefined}
               className={cx(
                 "group min-w-0 rounded-[18px] px-3 py-2 text-left transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2",
@@ -400,7 +421,7 @@ export default function FamilyTopNavShell({
                     : "text-slate-900 group-hover:text-slate-950",
                 )}
               >
-                Community
+                My Community
               </div>
               <div
                 className={cx(

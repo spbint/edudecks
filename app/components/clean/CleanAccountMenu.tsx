@@ -128,7 +128,7 @@ export default function CleanAccountMenu({
           {initials}
         </span>
         <span style={{ display: "grid", gap: 2, textAlign: "left" }}>
-          <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>Account</span>
+          <span style={{ color: "#0f172a", fontSize: 14, fontWeight: 800 }}>My Account</span>
           <span style={{ color: "#64748b", fontSize: 12 }}>
             {email || "Profile and settings"}
           </span>
@@ -138,7 +138,7 @@ export default function CleanAccountMenu({
       {open ? (
         <div
           role="menu"
-          aria-label="Account menu"
+          aria-label="My Account menu"
           style={{
             position: "absolute",
             right: 0,
