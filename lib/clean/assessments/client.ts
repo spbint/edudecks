@@ -26,12 +26,46 @@ type AssessmentSkillStatusRow = {
   subject_key: string;
   skill_key: string;
   stage_key: string;
+  pathway_step_id?: string | null;
+  strand_key?: string | null;
+  step_key?: string | null;
   status: string;
   note?: string | null;
   created_by_user_id: string;
   created_at?: string | null;
   updated_at?: string | null;
 };
+
+const ASSESSMENT_STATUS_SELECT = [
+  "id",
+  "family_id",
+  "learner_id",
+  "subject_key",
+  "skill_key",
+  "stage_key",
+  "pathway_step_id",
+  "strand_key",
+  "step_key",
+  "status",
+  "note",
+  "created_by_user_id",
+  "created_at",
+  "updated_at",
+].join(",");
+
+const ASSESSMENT_STATUS_LEGACY_SELECT = [
+  "id",
+  "family_id",
+  "learner_id",
+  "subject_key",
+  "skill_key",
+  "stage_key",
+  "status",
+  "note",
+  "created_by_user_id",
+  "created_at",
+  "updated_at",
+].join(",");
 
 const ASSESSMENT_SOURCE_CONTEXT = "my-assessments" as const;
 const ASSESSMENT_SOURCE_PREFIX = "assessment-source:";
@@ -101,6 +135,15 @@ function normalizeStatusValue(value: unknown): CleanAssessmentStatusValue {
   return CLEAN_ASSESSMENT_STATUS_VALUES.includes(status as CleanAssessmentStatusValue)
     ? (status as CleanAssessmentStatusValue)
     : "Not assessed yet";
+}
+
+function isAssessmentPathwayColumnMissingError(error: unknown) {
+  const message = safe((error as { message?: unknown })?.message).toLowerCase();
+  return (
+    message.includes("pathway_step_id") ||
+    message.includes("strand_key") ||
+    message.includes("step_key")
+  );
 }
 
 export function buildAssessmentEvidenceLinkKey(
@@ -236,7 +279,8 @@ function toCleanAssessmentSkillStatus(
 ): CleanAssessmentSkillStatus {
   const subjectKey = normalizeSubjectKey(row.subject_key);
   const skillKey = safe(row.skill_key);
-  const parsedPathwayStep = parsePathwayStepId(skillKey);
+  const pathwayStepId = safe(row.pathway_step_id) || skillKey;
+  const parsedPathwayStep = parsePathwayStepId(pathwayStepId);
   const canonicalPathwayStep =
     parsedPathwayStep && parsedPathwayStep.subjectKey === subjectKey ? parsedPathwayStep : null;
 
@@ -252,9 +296,9 @@ function toCleanAssessmentSkillStatus(
     createdByUserId: safe(row.created_by_user_id),
     createdAt: normalizeNullString(row.created_at),
     updatedAt: normalizeNullString(row.updated_at),
-    pathwayStepId: canonicalPathwayStep ? skillKey : null,
-    strandKey: canonicalPathwayStep?.strandKey ?? null,
-    stepKey: canonicalPathwayStep?.stepKey ?? null,
+    pathwayStepId: canonicalPathwayStep ? pathwayStepId : null,
+    strandKey: normalizeNullString(row.strand_key) || canonicalPathwayStep?.strandKey || null,
+    stepKey: normalizeNullString(row.step_key) || canonicalPathwayStep?.stepKey || null,
   };
 }
 
@@ -287,9 +331,7 @@ export async function listCleanAssessmentSkillStatuses(
 
   let query = supabase
     .from("assessment_skill_statuses")
-    .select(
-      "id,family_id,learner_id,subject_key,skill_key,stage_key,status,note,created_by_user_id,created_at,updated_at",
-    )
+    .select(ASSESSMENT_STATUS_SELECT)
     .eq("family_id", normalizedFamilyId)
     .eq("learner_id", normalizedLearnerId)
     .order("updated_at", { ascending: false });
@@ -299,7 +341,22 @@ export async function listCleanAssessmentSkillStatuses(
     query = query.eq("subject_key", subjectKey);
   }
 
-  const response = await query;
+  let response = await query;
+
+  if (response.error && isAssessmentPathwayColumnMissingError(response.error)) {
+    let legacyQuery = supabase
+      .from("assessment_skill_statuses")
+      .select(ASSESSMENT_STATUS_LEGACY_SELECT)
+      .eq("family_id", normalizedFamilyId)
+      .eq("learner_id", normalizedLearnerId)
+      .order("updated_at", { ascending: false });
+
+    if (subjectKey) {
+      legacyQuery = legacyQuery.eq("subject_key", subjectKey);
+    }
+
+    response = await legacyQuery;
+  }
 
   if (response.error) {
     if (isCleanSchemaMissingError(response.error)) {
@@ -316,7 +373,7 @@ export async function listCleanAssessmentSkillStatuses(
 
   return sortStatuses(
     (response.data ?? []).map((row) =>
-      toCleanAssessmentSkillStatus(row as AssessmentSkillStatusRow),
+      toCleanAssessmentSkillStatus(row as unknown as AssessmentSkillStatusRow),
     ),
   );
 }
@@ -333,6 +390,11 @@ export async function upsertCleanAssessmentSkillStatus(
   const normalizedFamilyId = safe(familyId);
   const learnerId = safe(input.learnerId);
   const skillKey = safe(input.skillKey);
+  const subjectKey = normalizeSubjectKey(input.subjectKey);
+  const pathwayStepId = safe(input.pathwayStepId) || skillKey;
+  const parsedPathwayStep = parsePathwayStepId(pathwayStepId);
+  const canonicalPathwayStep =
+    parsedPathwayStep && parsedPathwayStep.subjectKey === subjectKey ? parsedPathwayStep : null;
 
   if (!normalizedFamilyId) {
     throw new Error("A family profile is required.");
@@ -352,9 +414,16 @@ export async function upsertCleanAssessmentSkillStatus(
       {
         family_id: normalizedFamilyId,
         learner_id: learnerId,
-        subject_key: normalizeSubjectKey(input.subjectKey),
+        subject_key: subjectKey,
         skill_key: skillKey,
         stage_key: normalizeStageKey(input.stageKey),
+        pathway_step_id: normalizeNullString(canonicalPathwayStep ? pathwayStepId : ""),
+        strand_key: normalizeNullString(
+          safe(input.strandKey) || canonicalPathwayStep?.strandKey,
+        ),
+        step_key: normalizeNullString(
+          safe(input.stepKey) || canonicalPathwayStep?.stepKey,
+        ),
         status: normalizeStatusValue(input.status),
         note: normalizeNullString(input.note),
         created_by_user_id: currentUserId,
@@ -363,19 +432,42 @@ export async function upsertCleanAssessmentSkillStatus(
         onConflict: "family_id,learner_id,subject_key,skill_key,stage_key",
       },
     )
-    .select(
-      "id,family_id,learner_id,subject_key,skill_key,stage_key,status,note,created_by_user_id,created_at,updated_at",
-    )
+    .select(ASSESSMENT_STATUS_SELECT)
     .maybeSingle();
 
-  if (response.error || !response.data) {
+  const fallbackResponse =
+    response.error && isAssessmentPathwayColumnMissingError(response.error)
+      ? await supabase
+          .from("assessment_skill_statuses")
+          .upsert(
+            {
+              family_id: normalizedFamilyId,
+              learner_id: learnerId,
+              subject_key: subjectKey,
+              skill_key: skillKey,
+              stage_key: normalizeStageKey(input.stageKey),
+              status: normalizeStatusValue(input.status),
+              note: normalizeNullString(input.note),
+              created_by_user_id: currentUserId,
+            },
+            {
+              onConflict: "family_id,learner_id,subject_key,skill_key,stage_key",
+            },
+          )
+          .select(ASSESSMENT_STATUS_LEGACY_SELECT)
+          .maybeSingle()
+      : response;
+
+  if (fallbackResponse.error || !fallbackResponse.data) {
     throw new Error(
       normalizeCleanErrorMessage(
-        response.error,
+        fallbackResponse.error,
         "Unable to save the skill status.",
       ),
     );
   }
 
-  return toCleanAssessmentSkillStatus(response.data as AssessmentSkillStatusRow);
+  return toCleanAssessmentSkillStatus(
+    fallbackResponse.data as unknown as AssessmentSkillStatusRow,
+  );
 }

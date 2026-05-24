@@ -19,7 +19,7 @@ export const CLEAN_ASSESSMENT_STAGE_TITLES: Record<PathwayStageKey, string> = {
   "middle-primary": "Middle Primary",
   "upper-primary": "Upper Primary",
   "lower-secondary": "Lower Secondary",
-  "years-9-10-consolidation": "Years 9–10 / consolidation",
+  "years-9-10-consolidation": "Years 9-10 / consolidation",
 };
 
 export const CLEAN_ASSESSMENT_LEGACY_STAGE_MAP: Record<string, PathwayStageKey> = {
@@ -36,7 +36,6 @@ export const CLEAN_ASSESSMENT_LEGACY_STAGE_MAP: Record<string, PathwayStageKey> 
   "lower secondary": "lower-secondary",
   "lower-secondary": "lower-secondary",
   "years 9-10 / consolidation": "years-9-10-consolidation",
-  "years 9–10 / consolidation": "years-9-10-consolidation",
   "years-9-10-consolidation": "years-9-10-consolidation",
 };
 
@@ -80,6 +79,9 @@ export type UpsertCleanAssessmentSkillStatusInput = {
   stageKey: CleanAssessmentStageKey;
   status: CleanAssessmentStatusValue;
   note?: string | null;
+  pathwayStepId?: string | null;
+  strandKey?: string | null;
+  stepKey?: string | null;
 };
 
 export type CleanAssessmentEvidenceLink = {

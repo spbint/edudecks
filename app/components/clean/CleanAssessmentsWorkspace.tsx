@@ -1127,6 +1127,7 @@ function AssessmentsWorkspaceBody() {
     setSelectedTileEvidenceFeedback(null);
 
     try {
+      const selectedTileStep = selectedTileDetail;
       const savedStatus = await upsertCleanAssessmentSkillStatus(selectedFamilyId, {
         learnerId: selectedLearner.id,
         subjectKey: selectedTile.subjectKey,
@@ -1134,6 +1135,9 @@ function AssessmentsWorkspaceBody() {
         stageKey: selectedTile.stageKey,
         status: selectedTileDraftStatus,
         note: selectedTileDraftNote,
+        pathwayStepId: selectedTile.pathwayStepId,
+        strandKey: selectedTile.strandKey,
+        stepKey: selectedTileStep?.registryItem.stepKey || null,
       });
 
       setAssessmentStatuses((current) => {
