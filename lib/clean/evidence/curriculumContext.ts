@@ -15,6 +15,7 @@ const PATHWAY_KEY_PREFIX = "pathway-key:";
 const PATHWAY_LABEL_PREFIX = "pathway-label:";
 const PATHWAY_STAGE_KEY_PREFIX = "pathway-stage-key:";
 const PATHWAY_STAGE_LABEL_PREFIX = "pathway-stage-label:";
+const PATHWAY_STEP_KEY_PREFIX = "pathway-step-key:";
 const PATHWAY_STEP_NUMBER_PREFIX = "pathway-step-number:";
 const PATHWAY_STEP_TITLE_PREFIX = "pathway-step-title:";
 const PATHWAY_STEP_MEANING_PREFIX = "pathway-step-meaning:";
@@ -39,6 +40,7 @@ const PATHWAY_CONTEXT_PREFIXES = [
   PATHWAY_LABEL_PREFIX,
   PATHWAY_STAGE_KEY_PREFIX,
   PATHWAY_STAGE_LABEL_PREFIX,
+  PATHWAY_STEP_KEY_PREFIX,
   PATHWAY_STEP_NUMBER_PREFIX,
   PATHWAY_STEP_TITLE_PREFIX,
   PATHWAY_STEP_MEANING_PREFIX,
@@ -64,6 +66,7 @@ export type CleanPathwayCaptureContext = {
   pathwayLabel?: string | null;
   stageKey?: string | null;
   stageLabel?: string | null;
+  stepKey?: string | null;
   stepNumber?: string | null;
   stepTitle?: string | null;
   stepMeaning?: string | null;
@@ -115,6 +118,7 @@ function hasPathwayContextValue(context: Partial<CleanPathwayCaptureContext>) {
       safe(context.pathwayLabel) ||
       safe(context.stageKey) ||
       safe(context.stageLabel) ||
+      safe(context.stepKey) ||
       safe(context.stepNumber) ||
       safe(context.stepTitle) ||
       safe(context.stepMeaning) ||
@@ -158,6 +162,7 @@ export function buildPathwayCaptureContext(
     pathwayLabel: normalizeNullString(input.pathwayLabel),
     stageKey: normalizeNullString(input.stageKey),
     stageLabel: normalizeNullString(input.stageLabel),
+    stepKey: normalizeNullString(input.stepKey),
     stepNumber: normalizeNullString(input.stepNumber),
     stepTitle: normalizeNullString(input.stepTitle),
     stepMeaning: normalizeNullString(input.stepMeaning),
@@ -211,6 +216,7 @@ export function parsePathwayCaptureContextFromSearchParams(
     pathwayLabel: searchParams.get("pathwayLabel"),
     stageKey: searchParams.get("stageKey") || searchParams.get("stage"),
     stageLabel: searchParams.get("stageLabel"),
+    stepKey: searchParams.get("stepKey"),
     stepNumber: searchParams.get("stepNumber"),
     stepTitle: searchParams.get("stepTitle"),
     stepMeaning: searchParams.get("stepMeaning"),
@@ -319,6 +325,10 @@ export function buildPathwayCaptureSearchParams(
 
   if (safe(context.stageLabel)) {
     params.set("stageLabel", safe(context.stageLabel));
+  }
+
+  if (safe(context.stepKey)) {
+    params.set("stepKey", safe(context.stepKey));
   }
 
   if (safe(context.stepNumber)) {
@@ -448,6 +458,12 @@ export function encodePathwayContextNodeIds(
   if (safe(context.stageLabel)) {
     pathwayNodeIds.push(
       `${PATHWAY_STAGE_LABEL_PREFIX}${encodeNodeValue(safe(context.stageLabel))}`,
+    );
+  }
+
+  if (safe(context.stepKey)) {
+    pathwayNodeIds.push(
+      `${PATHWAY_STEP_KEY_PREFIX}${encodeNodeValue(safe(context.stepKey))}`,
     );
   }
 
@@ -601,6 +617,13 @@ export function parsePathwayContextFromNodeIds(nodeIds: string[]) {
     if (normalizedNodeId.startsWith(PATHWAY_STAGE_LABEL_PREFIX)) {
       parsed.stageLabel = decodeNodeValue(
         normalizedNodeId.slice(PATHWAY_STAGE_LABEL_PREFIX.length),
+      );
+      continue;
+    }
+
+    if (normalizedNodeId.startsWith(PATHWAY_STEP_KEY_PREFIX)) {
+      parsed.stepKey = decodeNodeValue(
+        normalizedNodeId.slice(PATHWAY_STEP_KEY_PREFIX.length),
       );
       continue;
     }

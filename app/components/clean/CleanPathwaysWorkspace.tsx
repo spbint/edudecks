@@ -16,62 +16,16 @@ import {
 } from "@/lib/clean/evidence/curriculumContext";
 import type { Learner } from "@/lib/clean/learners/types";
 import {
-  MATHEMATICS_DOMAIN_CARDS,
   type PathwayProgressStatus,
-  type PathwayStageKey,
-  buildNumberAndPlaceValueWorkspace,
   inferPathwayStageFromYearLevel,
 } from "@/lib/clean/pathways/mathematicsNumberPrototype";
 import {
-  buildOperationsAndCalculationWorkspace,
-} from "@/lib/clean/pathways/mathematicsOperationsPrototype";
-import { buildFractionsDecimalsPercentagesWorkspace } from "@/lib/clean/pathways/mathematicsFractionsPrototype";
+  DETAILED_SUBJECT_CONFIGS,
+  NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+} from "@/lib/clean/pathways/detailedSubjectConfigs";
 import {
-  buildAlgebraPatternsAndFunctionsWorkspace,
-  buildFinancialAndRealWorldMathematicsWorkspace,
-  buildGeometryAndSpatialReasoningWorkspace,
-  buildMathematicalReasoningModellingAndExplanationWorkspace,
-  buildMeasurementWorkspace,
-  buildProbabilityAndChanceWorkspace,
-  buildRatioAndProportionalReasoningWorkspace,
-  buildStatisticsAndDataWorkspace,
-} from "@/lib/clean/pathways/mathematicsAdditionalStrands";
-import {
-  DEFAULT_ENGLISH_STRAND_KEY,
-  ENGLISH_DOMAIN_CARDS,
-  ENGLISH_STRAND_WORKSPACE_BUILDERS,
-  ENGLISH_SUBJECT_OVERVIEW,
-} from "@/lib/clean/pathways/englishPathways";
-import {
-  DEFAULT_SCIENCE_STRAND_KEY,
-  SCIENCE_DOMAIN_CARDS,
-  SCIENCE_STRAND_WORKSPACE_BUILDERS,
-  SCIENCE_SUBJECT_OVERVIEW,
-} from "@/lib/clean/pathways/sciencePathways";
-import {
-  DEFAULT_TECHNOLOGIES_STRAND_KEY,
-  TECHNOLOGIES_DOMAIN_CARDS,
-  TECHNOLOGIES_STRAND_WORKSPACE_BUILDERS,
-  TECHNOLOGIES_SUBJECT_OVERVIEW,
-} from "@/lib/clean/pathways/technologiesPathways";
-import {
-  ARTS_DOMAIN_CARDS,
-  ARTS_STRAND_WORKSPACE_BUILDERS,
-  ARTS_SUBJECT_OVERVIEW,
-  DEFAULT_ARTS_STRAND_KEY,
-} from "@/lib/clean/pathways/artsPathways";
-import {
-  DEFAULT_HEALTH_PE_STRAND_KEY,
-  HEALTH_PE_DOMAIN_CARDS,
-  HEALTH_PE_STRAND_WORKSPACE_BUILDERS,
-  HEALTH_PE_SUBJECT_OVERVIEW,
-} from "@/lib/clean/pathways/healthPePathways";
-import {
-  DEFAULT_HUMANITIES_STRAND_KEY,
-  HUMANITIES_DOMAIN_CARDS,
-  HUMANITIES_STRAND_WORKSPACE_BUILDERS,
-  HUMANITIES_SUBJECT_OVERVIEW,
-} from "@/lib/clean/pathways/humanitiesSocialSciencesPathways";
+  buildPathwayRegistryStepKey,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
 import {
   DEFAULT_PATHWAY_SUBJECT_KEY,
   PATHWAY_SUBJECTS,
@@ -134,109 +88,12 @@ const summaryCardStyle: React.CSSProperties = {
   boxShadow: "0 6px 18px rgba(15,23,42,0.04)",
 };
 
-const NUMBER_AND_PLACE_VALUE_STRAND_KEY = "number-and-place-value";
-type PathwayWorkspaceBuilder = (
-  currentFocusStageKey: PathwayStageKey,
-) => MathematicsDetailedStrandWorkspace;
-
-type DetailedSubjectConfig = {
-  defaultStrandKey: string;
-  domainCards: SubjectStrandCard[];
-  workspaceBuilders: Record<string, PathwayWorkspaceBuilder>;
-  overviewEyebrow: string;
-  overviewTitle: string;
-  overviewDescription: string;
-  overviewHelper: string;
-};
-
-const MATHEMATICS_STRAND_WORKSPACE_BUILDERS: Record<string, PathwayWorkspaceBuilder> = {
-  "operations-and-calculation": buildOperationsAndCalculationWorkspace,
-  "fractions-decimals-percentages": buildFractionsDecimalsPercentagesWorkspace,
-  "ratio-and-proportional-reasoning": buildRatioAndProportionalReasoningWorkspace,
-  "algebra-patterns-and-functions": buildAlgebraPatternsAndFunctionsWorkspace,
-  measurement: buildMeasurementWorkspace,
-  "geometry-and-spatial-reasoning": buildGeometryAndSpatialReasoningWorkspace,
-  "statistics-and-data": buildStatisticsAndDataWorkspace,
-  "probability-and-chance": buildProbabilityAndChanceWorkspace,
-  "financial-and-real-world-mathematics": buildFinancialAndRealWorldMathematicsWorkspace,
-  "mathematical-reasoning-modelling-and-explanation":
-    buildMathematicalReasoningModellingAndExplanationWorkspace,
-};
-
 const EMPTY_STRAND_CARD: SubjectStrandCard = {
   key: "selected-strand",
   title: "Selected strand",
   description: "Choose a strand to open the detailed pathway workspace.",
   whyItMatters: "Detailed strand guidance will appear here when a populated strand is selected.",
   status: "coming-later",
-};
-
-const DETAILED_SUBJECT_CONFIGS: Partial<Record<PathwaySubjectKey, DetailedSubjectConfig>> = {
-  mathematics: {
-    defaultStrandKey: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-    domainCards: MATHEMATICS_DOMAIN_CARDS,
-    workspaceBuilders: MATHEMATICS_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: "Mathematics F-10 / K-10 domain map",
-    overviewTitle: "Mathematics pathway overview",
-    overviewDescription:
-      "This prototype shows the wider mathematics pathway map while highlighting Number as the foundational detailed strand, with Operations and calculation and Fractions, decimals, and percentages now added as detailed follow-on strands.",
-    overviewHelper:
-      "Choose one strand to explore. The selected strand opens in the focused workspace below, so the page stays calm and readable as more detailed strands are added.",
-  },
-  english: {
-    defaultStrandKey: DEFAULT_ENGLISH_STRAND_KEY,
-    domainCards: ENGLISH_DOMAIN_CARDS,
-    workspaceBuilders: ENGLISH_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: ENGLISH_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: ENGLISH_SUBJECT_OVERVIEW.title,
-    overviewDescription: ENGLISH_SUBJECT_OVERVIEW.description,
-    overviewHelper: ENGLISH_SUBJECT_OVERVIEW.helper,
-  },
-  science: {
-    defaultStrandKey: DEFAULT_SCIENCE_STRAND_KEY,
-    domainCards: SCIENCE_DOMAIN_CARDS,
-    workspaceBuilders: SCIENCE_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: SCIENCE_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: SCIENCE_SUBJECT_OVERVIEW.title,
-    overviewDescription: SCIENCE_SUBJECT_OVERVIEW.description,
-    overviewHelper: SCIENCE_SUBJECT_OVERVIEW.helper,
-  },
-  humanities: {
-    defaultStrandKey: DEFAULT_HUMANITIES_STRAND_KEY,
-    domainCards: HUMANITIES_DOMAIN_CARDS,
-    workspaceBuilders: HUMANITIES_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: HUMANITIES_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: HUMANITIES_SUBJECT_OVERVIEW.title,
-    overviewDescription: HUMANITIES_SUBJECT_OVERVIEW.description,
-    overviewHelper: HUMANITIES_SUBJECT_OVERVIEW.helper,
-  },
-  technologies: {
-    defaultStrandKey: DEFAULT_TECHNOLOGIES_STRAND_KEY,
-    domainCards: TECHNOLOGIES_DOMAIN_CARDS,
-    workspaceBuilders: TECHNOLOGIES_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: TECHNOLOGIES_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: TECHNOLOGIES_SUBJECT_OVERVIEW.title,
-    overviewDescription: TECHNOLOGIES_SUBJECT_OVERVIEW.description,
-    overviewHelper: TECHNOLOGIES_SUBJECT_OVERVIEW.helper,
-  },
-  arts: {
-    defaultStrandKey: DEFAULT_ARTS_STRAND_KEY,
-    domainCards: ARTS_DOMAIN_CARDS,
-    workspaceBuilders: ARTS_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: ARTS_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: ARTS_SUBJECT_OVERVIEW.title,
-    overviewDescription: ARTS_SUBJECT_OVERVIEW.description,
-    overviewHelper: ARTS_SUBJECT_OVERVIEW.helper,
-  },
-  "health-pe": {
-    defaultStrandKey: DEFAULT_HEALTH_PE_STRAND_KEY,
-    domainCards: HEALTH_PE_DOMAIN_CARDS,
-    workspaceBuilders: HEALTH_PE_STRAND_WORKSPACE_BUILDERS,
-    overviewEyebrow: HEALTH_PE_SUBJECT_OVERVIEW.eyebrow,
-    overviewTitle: HEALTH_PE_SUBJECT_OVERVIEW.title,
-    overviewDescription: HEALTH_PE_SUBJECT_OVERVIEW.description,
-    overviewHelper: HEALTH_PE_SUBJECT_OVERVIEW.helper,
-  },
 };
 
 const inputStyle: React.CSSProperties = {
@@ -446,9 +303,11 @@ function getWorkspaceDisplayedPathwayStatus(
   status: PathwayProgressStatus;
   fromSavedEvidence: boolean;
 } {
-  const savedStatus = savedPathwayStatuses[
-    buildPathwayStepKey(workspace.trackingKey, stage.key, String(step.id))
-  ];
+  const savedStatus =
+    savedPathwayStatuses[buildPathwayStepKey(workspace.key, stage.key, String(step.id))] ||
+    savedPathwayStatuses[
+      buildPathwayStepKey(workspace.trackingKey, stage.key, String(step.id))
+    ];
 
   if (savedStatus) {
     return {
@@ -540,13 +399,15 @@ function PathwaysWorkspaceBody() {
   const [selectedStrandKeyBySubject, setSelectedStrandKeyBySubject] = useState<
     Partial<Record<PathwaySubjectKey, string>>
   >({
-    mathematics: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-    english: DEFAULT_ENGLISH_STRAND_KEY,
-    science: DEFAULT_SCIENCE_STRAND_KEY,
-    humanities: DEFAULT_HUMANITIES_STRAND_KEY,
-    technologies: DEFAULT_TECHNOLOGIES_STRAND_KEY,
-    arts: DEFAULT_ARTS_STRAND_KEY,
-    "health-pe": DEFAULT_HEALTH_PE_STRAND_KEY,
+    mathematics:
+      DETAILED_SUBJECT_CONFIGS.mathematics?.defaultStrandKey ||
+      NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+    english: DETAILED_SUBJECT_CONFIGS.english?.defaultStrandKey || "",
+    science: DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
+    humanities: DETAILED_SUBJECT_CONFIGS.humanities?.defaultStrandKey || "",
+    technologies: DETAILED_SUBJECT_CONFIGS.technologies?.defaultStrandKey || "",
+    arts: DETAILED_SUBJECT_CONFIGS.arts?.defaultStrandKey || "",
+    "health-pe": DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
   });
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [savedPathwayStatuses, setSavedPathwayStatuses] = useState<SavedPathwayStatusMap>({});
@@ -631,16 +492,9 @@ function PathwaysWorkspaceBody() {
   const selectedSubjectWorkspace = useMemo(() => {
     if (!selectedDetailedSubjectConfig) return null;
 
-    if (
-      selectedSubjectKey === DEFAULT_PATHWAY_SUBJECT_KEY &&
-      selectedStrandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY
-    ) {
-      return buildNumberAndPlaceValueWorkspace(currentLearnerFocusStageKey);
-    }
-
     const buildWorkspace = selectedDetailedSubjectConfig.workspaceBuilders[selectedStrandKey];
     return buildWorkspace ? buildWorkspace(currentLearnerFocusStageKey) : null;
-  }, [currentLearnerFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey, selectedSubjectKey]);
+  }, [currentLearnerFocusStageKey, selectedDetailedSubjectConfig, selectedStrandKey]);
 
   useEffect(() => {
     let active = true;
@@ -1754,15 +1608,17 @@ function DetailedMathematicsStepCard({
   const meta = statusMeta[status];
   const detailPanelId = `pathway-step-${strand.key}-${stage.key}-${step.id}`;
   const captureHref = useMemo(() => {
+    const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
     const params = buildPathwayCaptureSearchParams(
       {
         source: "my-pathways",
         subjectKey: selectedSubjectKey,
         subjectLabel: selectedSubjectTitle,
-        pathwayKey: strand.trackingKey,
+        pathwayKey: strand.key,
         pathwayLabel: strand.pathwayLabel,
         stageKey: stage.key,
         stageLabel: stage.title,
+        stepKey,
         stepNumber: String(step.id),
         stepTitle: step.title,
         stepMeaning: step.meaning,
@@ -1781,13 +1637,13 @@ function DetailedMathematicsStepCard({
     selectedLearnerId,
     selectedSubjectKey,
     selectedSubjectTitle,
+    strand.key,
     stage.key,
     stage.title,
     step.id,
     step.meaning,
     step.skillFocus,
     step.title,
-    strand.trackingKey,
     strand.pathwayLabel,
   ]);
 
