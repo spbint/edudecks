@@ -578,7 +578,8 @@ function PracticeWorkspaceBody({
               <div style={{ color: "#475569", lineHeight: 1.65 }}>
                 Start the player to move through one prompt at a time with a visual work
                 area, light support, and calm navigation. Maths prompts now move from
-                objects, to pictures and models, to short number sentences.
+                objects, to pictures and models, to short number sentences, with oral
+                response and parent guidance built in for early learners.
               </div>
             </div>
 
@@ -603,6 +604,10 @@ function PracticeWorkspaceBody({
                   title: "Now use the numbers",
                   body: "Short number prompts come after the meaning is supported, not before.",
                 },
+                {
+                  title: "Talk it through",
+                  body: "Pointing, matching, and oral explanation are valid responses during the early stages.",
+                },
               ].map((item) => (
                 <div key={item.title} style={compactCardStyle}>
                   <div style={eyebrowStyle}>{item.title}</div>
@@ -615,6 +620,7 @@ function PracticeWorkspaceBody({
               {[
                 "Open Practice to work through Understanding, Fluency, Problem Solving, and Reasoning one task at a time.",
                 "Each maths task moves from real objects, to a visual model, to a short symbolic prompt when the learner is ready.",
+                "Learning intentions, success checks, and parent prompts stay inside the player so support is clear without becoming noisy.",
                 "Use the Mini Check player separately when you want a lighter readiness check with less prompting but age-appropriate visuals.",
                 "Use the evidence summary and Capture link once you want to record the learning.",
               ].map((line, index) => (

@@ -135,6 +135,33 @@ function getVisualModelLabel(task: PracticeTask) {
   return "Visual model";
 }
 
+function getLearnerActionLabel(task: PracticeTask) {
+  if (task.learnerAction === "build") return "Build with objects";
+  if (task.learnerAction === "match") return "Match the picture";
+  if (task.learnerAction === "count") return "Count what you see";
+  if (task.learnerAction === "compare") return "Compare two models";
+  if (task.learnerAction === "explain") return "Explain your thinking";
+  if (task.learnerAction === "choose") return "Choose the best match";
+  if (task.learnerAction === "tell") return "Tell the answer";
+  if (task.learnerAction === "write_number") return "Write the number";
+  return "Show your thinking";
+}
+
+function getScaffoldLabel(task: PracticeTask) {
+  if (task.scaffoldLevel === "high") return "High support";
+  if (task.scaffoldLevel === "medium") return "Guided support";
+  if (task.scaffoldLevel === "low") return "Lighter support";
+  return "Practice support";
+}
+
+function getMiniCheckVariantLabel(task: PracticeTask) {
+  if (task.miniCheckVariant === "lighter_scaffold") return "Light scaffold";
+  if (task.miniCheckVariant === "reduced_prompting") return "Reduced prompting";
+  if (task.miniCheckVariant === "independent_transfer") return "Independent transfer";
+  if (task.miniCheckVariant === "misconception_check") return "Misconception check";
+  return "Mini check";
+}
+
 function sumPair(pair: string) {
   const parts = pair
     .split("+")
@@ -550,10 +577,93 @@ function ResponseField({
     <input
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      placeholder="Write the answer here."
+      placeholder={
+        task.oralResponseAllowed
+          ? "Write the number or say it aloud."
+          : "Write the answer here."
+      }
       inputMode="numeric"
       style={inputStyle}
     />
+  );
+}
+
+function InstructionalFocus({
+  task,
+  mode,
+}: {
+  task: PracticeTask;
+  mode: PlayerMode;
+}) {
+  const hasLearningIntention = Boolean(safe(task.learningIntention));
+  const hasSuccessCriteria = Boolean(safe(task.successCriteria));
+
+  if (!hasLearningIntention && !hasSuccessCriteria) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: 12,
+      }}
+    >
+      {hasLearningIntention ? (
+        <div
+          style={{
+            borderRadius: 18,
+            border: "1px solid #e2e8f0",
+            background: "#ffffff",
+            padding: "14px 16px",
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#64748b",
+              textTransform: "uppercase",
+            }}
+          >
+            {mode === "mini_check" ? "We are checking whether..." : "We are learning to..."}
+          </div>
+          <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
+            {task.learningIntention}
+          </div>
+        </div>
+      ) : null}
+
+      {hasSuccessCriteria ? (
+        <div
+          style={{
+            borderRadius: 18,
+            border: "1px solid #e2e8f0",
+            background: "#ffffff",
+            padding: "14px 16px",
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              color: "#64748b",
+              textTransform: "uppercase",
+            }}
+          >
+            Success looks like
+          </div>
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>{task.successCriteria}</div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -861,7 +971,24 @@ export default function CleanPathwayPracticePlayer({
             <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 20 }}>
               {currentItem.learnerGoal || currentItem.sectionTitle}
             </div>
-            {currentItem.task.visualModelType ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {currentItem.task.visualModelType ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    width: "fit-content",
+                    borderRadius: 999,
+                    border: "1px solid #e2e8f0",
+                    background: "#f8fafc",
+                    color: "#475569",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                  }}
+                >
+                  {getVisualModelLabel(currentItem.task)}
+                </div>
+              ) : null}
               <div
                 style={{
                   display: "inline-flex",
@@ -875,10 +1002,61 @@ export default function CleanPathwayPracticePlayer({
                   padding: "6px 10px",
                 }}
               >
-                {getVisualModelLabel(currentItem.task)}
+                {getLearnerActionLabel(currentItem.task)}
               </div>
-            ) : null}
+              <div
+                style={{
+                  display: "inline-flex",
+                  width: "fit-content",
+                  borderRadius: 999,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#475569",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "6px 10px",
+                }}
+              >
+                {getScaffoldLabel(currentItem.task)}
+              </div>
+              {currentItem.task.oralResponseAllowed ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    width: "fit-content",
+                    borderRadius: 999,
+                    border: "1px solid #dbeafe",
+                    background: "#f8fbff",
+                    color: "#1d4ed8",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                  }}
+                >
+                  Oral answer is fine
+                </div>
+              ) : null}
+              {mode === "mini_check" && currentItem.task.miniCheckVariant ? (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    width: "fit-content",
+                    borderRadius: 999,
+                    border: "1px solid #ccfbf1",
+                    background: "#f0fdfa",
+                    color: "#0f766e",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: "6px 10px",
+                  }}
+                >
+                  {getMiniCheckVariantLabel(currentItem.task)}
+                </div>
+              ) : null}
+            </div>
           </div>
+
+          <InstructionalFocus task={currentItem.task} mode={mode} />
 
           <CraPromptCards task={currentItem.task} mode={mode} />
 
@@ -922,6 +1100,40 @@ export default function CleanPathwayPracticePlayer({
               </div>
             ) : null}
 
+            {currentItem.task.reflectionPrompt ? (
+              <div
+                style={{
+                  borderRadius: 16,
+                  border: "1px solid #dbeafe",
+                  background: "#f8fbff",
+                  padding: "12px 14px",
+                  color: "#475569",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>Talk about it:</strong>{" "}
+                {currentItem.task.reflectionPrompt}
+              </div>
+            ) : null}
+
+            {currentItem.task.feedbackPrompt ? (
+              <div
+                style={{
+                  borderRadius: 16,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  padding: "12px 14px",
+                  color: "#475569",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>Helpful next prompt:</strong>{" "}
+                {currentItem.task.feedbackPrompt}
+              </div>
+            ) : null}
+
             {currentItem.task.supportPrompt ? (
               <details
                 style={{
@@ -943,6 +1155,31 @@ export default function CleanPathwayPracticePlayer({
                 </summary>
                 <div style={{ color: "#475569", lineHeight: 1.65, marginTop: 10 }}>
                   {currentItem.task.supportPrompt}
+                </div>
+              </details>
+            ) : null}
+
+            {currentItem.task.misconceptionPrompt ? (
+              <details
+                style={{
+                  borderRadius: 16,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  padding: "12px 14px",
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: "pointer",
+                    color: "#0f172a",
+                    fontWeight: 700,
+                    listStyle: "none",
+                  }}
+                >
+                  What to watch for
+                </summary>
+                <div style={{ color: "#475569", lineHeight: 1.65, marginTop: 10 }}>
+                  {currentItem.task.misconceptionPrompt}
                 </div>
               </details>
             ) : null}

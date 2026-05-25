@@ -21,6 +21,22 @@ export type PracticeTaskType =
   | "draw_or_explain"
   | "parent_observation";
 
+export type PracticeLearnerAction =
+  | "build"
+  | "match"
+  | "count"
+  | "compare"
+  | "explain"
+  | "choose"
+  | "tell"
+  | "write_number";
+
+export type PracticeMiniCheckVariant =
+  | "lighter_scaffold"
+  | "reduced_prompting"
+  | "independent_transfer"
+  | "misconception_check";
+
 export type PracticeVisual =
   | {
       type: "number_pairs";
@@ -53,15 +69,23 @@ export type PracticeTask = {
   prompt: string;
   taskType: PracticeTaskType;
   expectedAnswer?: string | string[];
+  learningIntention?: string;
+  successCriteria?: string;
   concretePrompt?: string;
   representationalPrompt?: string;
   abstractPrompt?: string;
   parentPrompt?: string;
+  reflectionPrompt?: string;
+  misconceptionPrompt?: string;
   supportPrompt?: string;
+  feedbackPrompt?: string;
   options?: string[];
   visual?: PracticeVisual;
   visualModelType?: PracticeVisual["type"];
   scaffoldLevel?: "high" | "medium" | "low";
+  oralResponseAllowed?: boolean;
+  learnerAction?: PracticeLearnerAction;
+  miniCheckVariant?: PracticeMiniCheckVariant;
 };
 
 export type PracticeSection = {
@@ -162,6 +186,9 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           prompt: "Which pair makes 5? 2 and 3, 1 and 2, or 4 and 4?",
           taskType: "select",
           expectedAnswer: "2 and 3",
+          learningIntention: "We are learning that two parts can make one whole.",
+          successCriteria:
+            "I can show two groups, join them, and match the picture to the whole number.",
           concretePrompt:
             "Use counters, buttons, or small toys to make one group of 2 and one group of 3. Push the groups together and count the whole.",
           representationalPrompt:
@@ -169,6 +196,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "Choose the pair that makes 5.",
           parentPrompt:
             "The learner can point, move objects, or answer aloud. An adult can tap the choice if needed.",
+          reflectionPrompt: "How did you know these two groups made 5 altogether?",
+          misconceptionPrompt:
+            "Check whether the learner counts all objects once rather than counting one group twice or choosing the pair with the biggest numbers.",
+          feedbackPrompt:
+            "If the learner is unsure, rebuild the two groups and count the whole slowly together.",
           options: ["2 and 3", "1 and 2", "4 and 4"],
           visual: {
             type: "number_pairs",
@@ -176,12 +208,17 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "number_pairs",
           scaffoldLevel: "high",
+          oralResponseAllowed: true,
+          learnerAction: "match",
         },
         {
           id: "u2",
           prompt: "Which pair makes 10? 6 and 4, 3 and 3, or 8 and 1?",
           taskType: "select",
           expectedAnswer: "6 and 4",
+          learningIntention: "We are learning that the same whole can be made from two parts.",
+          successCriteria:
+            "I can compare groups and pick the picture that makes the whole number 10.",
           concretePrompt:
             "Make 10 with counters or snacks, then split them into two parts in different ways and compare them.",
           representationalPrompt:
@@ -189,6 +226,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "Choose the pair that makes 10.",
           parentPrompt:
             "Ask: Which two parts join to make the whole group of 10? The learner can answer by pointing.",
+          reflectionPrompt: "What makes this pair a whole of 10?",
+          misconceptionPrompt:
+            "Watch for the learner choosing a familiar pair without checking the whole, especially 8 and 1 or 3 and 3.",
+          feedbackPrompt:
+            "If needed, ask the learner to build each pair with objects and compare which one fills the whole of 10.",
           options: ["6 and 4", "3 and 3", "8 and 1"],
           visual: {
             type: "number_pairs",
@@ -196,6 +238,8 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "number_pairs",
           scaffoldLevel: "high",
+          oralResponseAllowed: true,
+          learnerAction: "choose",
         },
       ],
     },
@@ -210,6 +254,9 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           prompt: "4 and __ make 10.",
           taskType: "short_answer",
           expectedAnswer: "6",
+          learningIntention: "We are learning to find a missing part when we know the whole.",
+          successCriteria:
+            "I can use a ten frame or objects to work out the missing number.",
           concretePrompt:
             "Build 10 with objects. Move 4 to one side. How many objects are still needed to make the whole 10?",
           representationalPrompt:
@@ -217,6 +264,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "4 and __ make 10.",
           parentPrompt:
             "The learner can count the empty spaces aloud. An adult can type the number if needed.",
+          reflectionPrompt: "Did you count the whole again, or did you count the empty spaces?",
+          misconceptionPrompt:
+            "Check whether the learner says 4 because they repeat the visible part instead of finding the missing part.",
+          feedbackPrompt:
+            "Point to the empty spaces one at a time and ask what number would finish the whole.",
           visual: {
             type: "ten_frame",
             filled: 4,
@@ -224,12 +276,17 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "ten_frame",
           scaffoldLevel: "high",
+          oralResponseAllowed: true,
+          learnerAction: "count",
         },
         {
           id: "f2",
           prompt: "7 and __ make 10.",
           taskType: "short_answer",
           expectedAnswer: "3",
+          learningIntention: "We are learning to connect a visual model to a short number sentence.",
+          successCriteria:
+            "I can use the picture to tell how many are missing from the whole.",
           concretePrompt:
             "Start with a group of 10 objects. Put 7 in one group. How many are left to finish the whole?",
           representationalPrompt:
@@ -237,6 +294,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "7 and __ make 10.",
           parentPrompt:
             "If needed, ask the learner to tap each empty space while counting aloud.",
+          reflectionPrompt: "What did the empty spaces tell you?",
+          misconceptionPrompt:
+            "Watch for skip-counting errors or the learner counting filled and empty spaces together without separating the missing part.",
+          feedbackPrompt:
+            "If the learner hesitates, cover the filled counters and count only the spaces that still need to be filled.",
           visual: {
             type: "ten_frame",
             filled: 7,
@@ -244,12 +306,17 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "ten_frame",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "count",
         },
         {
           id: "f3",
           prompt: "2 and __ make 8.",
           taskType: "short_answer",
           expectedAnswer: "6",
+          learningIntention: "We are learning to use a part-part-whole model to find a missing part.",
+          successCriteria:
+            "I can use the whole and one part to work out the other part.",
           concretePrompt:
             "Make 8 objects. Put 2 in one part. How many need to go in the other part?",
           representationalPrompt:
@@ -257,6 +324,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "2 and __ make 8.",
           parentPrompt:
             "The learner can answer orally or by showing the other part with counters first.",
+          reflectionPrompt: "How did the whole help you find the missing part?",
+          misconceptionPrompt:
+            "Check whether the learner treats the known part as the answer instead of working out the missing group.",
+          feedbackPrompt:
+            "Slide counters into the empty part while counting until the whole is complete.",
           visual: {
             type: "part_part_whole",
             whole: 8,
@@ -264,6 +336,8 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "part_part_whole",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "count",
         },
       ],
     },
@@ -279,6 +353,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 10 apples. 6 are red and the rest are green. How many are green?",
           taskType: "short_answer",
           expectedAnswer: "4",
+          learningIntention:
+            "We are learning to use number parts to solve a short real-world problem.",
+          successCriteria:
+            "I can use the picture or objects to work out the missing group in the story.",
           concretePrompt:
             "Use 10 counters as apples. Make 6 red apples. The rest are green. Count the green apples.",
           representationalPrompt:
@@ -287,6 +365,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 10 apples. 6 are red. How many are green?",
           parentPrompt:
             "Keep the story short. The learner can count the green group or say the answer aloud.",
+          reflectionPrompt: "What part of the picture showed the apples that were still green?",
+          misconceptionPrompt:
+            "Watch for the learner giving the visible red group as the answer instead of the missing green part.",
+          feedbackPrompt:
+            "Retell the story with the counters and point to the part that is already known before counting the missing group.",
           visual: {
             type: "counter_groups",
             groups: [6, 4],
@@ -294,6 +377,8 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "counter_groups",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "count",
         },
         {
           id: "p2",
@@ -301,6 +386,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 8 counters. Some are blue and 5 are yellow. How many are blue?",
           taskType: "short_answer",
           expectedAnswer: "3",
+          learningIntention:
+            "We are learning to use a hidden part to think about the whole and the missing group.",
+          successCriteria:
+            "I can use the whole and the visible group to work out the hidden group.",
           concretePrompt:
             "Use 8 counters. Show 5 yellow counters. Cover the counters that must be blue and then uncover them to count.",
           representationalPrompt:
@@ -309,6 +398,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 8 counters. 5 are yellow. How many are blue?",
           parentPrompt:
             "Ask: What is the whole? What part can you see? The learner can answer after counting the hidden part.",
+          reflectionPrompt: "How did you know how many counters were hiding?",
+          misconceptionPrompt:
+            "Check whether the learner counts the visible yellow counters again instead of finding the hidden part.",
+          feedbackPrompt:
+            "Name the whole first, then the visible part, then ask what is left over.",
           visual: {
             type: "counter_groups",
             groups: [3, 5],
@@ -317,6 +411,8 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "counter_groups",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "count",
         },
       ],
     },
@@ -330,6 +426,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           id: "r1",
           prompt: "Show or explain two different ways to make 10.",
           taskType: "draw_or_explain",
+          learningIntention:
+            "We are learning that the same whole can be shown in more than one way.",
+          successCriteria:
+            "I can show two different pairs that both make the same whole.",
           concretePrompt:
             "Use counters, linking cubes, or snacks to make 10 in one way. Then rearrange them to make 10 in a different way.",
           representationalPrompt:
@@ -337,6 +437,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           abstractPrompt: "Show or say two different ways to make 10.",
           parentPrompt:
             "The learner can build, point, draw, or answer orally. You can record their words for them.",
+          reflectionPrompt: "What stayed the same when you changed the two parts?",
+          misconceptionPrompt:
+            "Watch for the learner changing the whole instead of changing the two parts that make the same whole.",
+          feedbackPrompt:
+            "If the learner repeats the same pair, rebuild the whole 10 and ask for a different split.",
           supportPrompt: "For example: 5 and 5 is one way. What is another way?",
           visual: {
             type: "part_part_whole",
@@ -344,11 +449,17 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "part_part_whole",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "explain",
         },
         {
           id: "r2",
           prompt: "Is 6 and 4 the same total as 7 and 3? How do you know?",
           taskType: "parent_observation",
+          learningIntention:
+            "We are learning to compare two number pairs and justify whether they make the same whole.",
+          successCriteria:
+            "I can compare two models and explain why the totals are the same or different.",
           concretePrompt:
             "Make 6 and 4 with one set of objects. Make 7 and 3 with another set. Compare the two totals.",
           representationalPrompt:
@@ -357,6 +468,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "Are 6 + 4 and 7 + 3 the same total? Explain how you know.",
           parentPrompt:
             "Accept oral explanation, pointing, or showing with counters. Long writing is not needed.",
+          reflectionPrompt: "What changed in the parts, and what stayed the same in the whole?",
+          misconceptionPrompt:
+            "Check whether the learner decides based on one larger part rather than comparing the whole totals.",
+          feedbackPrompt:
+            "If needed, count both totals side by side and ask the learner what they notice.",
           supportPrompt:
             "The child may explain using counters, fingers, drawing, or mental reasoning.",
           visual: {
@@ -365,6 +481,8 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           },
           visualModelType: "comparison_pairs",
           scaffoldLevel: "medium",
+          oralResponseAllowed: true,
+          learnerAction: "compare",
         },
       ],
     },
@@ -375,6 +493,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       prompt: "8 and __ make 10.",
       taskType: "short_answer",
       expectedAnswer: "2",
+      learningIntention:
+        "We are checking whether the learner can find a missing part with lighter support.",
+      successCriteria:
+        "I can use the picture to work out the missing number without many hints.",
       concretePrompt:
         "If needed, build 10 with objects and move 8 to one side before answering.",
       representationalPrompt:
@@ -382,6 +504,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       abstractPrompt: "8 and __ make 10.",
       parentPrompt:
         "Keep support light here. The learner can answer aloud while looking at the model.",
+      reflectionPrompt: "What helped you know the missing number?",
+      misconceptionPrompt:
+        "Check whether the learner repeats the visible part instead of finding the missing part.",
+      feedbackPrompt:
+        "If the learner is stuck, prompt once to look at the empty spaces, then let them answer.",
       visual: {
         type: "ten_frame",
         filled: 8,
@@ -389,12 +516,19 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       },
       visualModelType: "ten_frame",
       scaffoldLevel: "low",
+      oralResponseAllowed: true,
+      learnerAction: "count",
+      miniCheckVariant: "lighter_scaffold",
     },
     {
       id: "mc2",
       prompt: "Which makes 9? 5 and 4, 6 and 6, or 2 and 5?",
       taskType: "select",
       expectedAnswer: "5 and 4",
+      learningIntention:
+        "We are checking whether the learner can match a number pair to the correct whole more independently.",
+      successCriteria:
+        "I can choose the pair that matches the whole number without heavy prompting.",
       concretePrompt:
         "If needed, make each pair with counters and compare which whole is 9.",
       representationalPrompt:
@@ -402,6 +536,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       abstractPrompt: "Choose the pair that makes 9.",
       parentPrompt:
         "Offer less prompting than in practice. The learner can point or say the answer.",
+      reflectionPrompt: "How did you decide which pair matched 9?",
+      misconceptionPrompt:
+        "Watch for the learner choosing the pair with the largest single number instead of checking the whole.",
+      feedbackPrompt:
+        "If needed, ask the learner to count just one card and then choose.",
       options: ["5 and 4", "6 and 6", "2 and 5"],
       visual: {
         type: "number_pairs",
@@ -409,11 +548,18 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       },
       visualModelType: "number_pairs",
       scaffoldLevel: "low",
+      oralResponseAllowed: true,
+      learnerAction: "choose",
+      miniCheckVariant: "reduced_prompting",
     },
     {
       id: "mc3",
       prompt: "Show another way to make 7.",
       taskType: "draw_or_explain",
+      learningIntention:
+        "We are checking whether the learner can show another number split without copying the practice example.",
+      successCriteria:
+        "I can show or tell a different pair that still makes the same whole.",
       concretePrompt:
         "If needed, make 7 with objects, then rearrange them into two parts in a different way.",
       representationalPrompt:
@@ -421,12 +567,20 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       abstractPrompt: "Show or say another way to make 7.",
       parentPrompt:
         "Allow an oral answer or a quick sketch. The learner does not need to write a long explanation.",
+      reflectionPrompt: "What did you change, and what stayed the same?",
+      misconceptionPrompt:
+        "Check whether the learner changes the whole instead of finding a different pair for 7.",
+      feedbackPrompt:
+        "If the learner repeats the same pair, ask for a different split once and pause.",
       visual: {
         type: "part_part_whole",
         whole: 7,
       },
       visualModelType: "part_part_whole",
       scaffoldLevel: "low",
+      oralResponseAllowed: true,
+      learnerAction: "explain",
+      miniCheckVariant: "independent_transfer",
     },
   ],
   assessmentPreview: [
