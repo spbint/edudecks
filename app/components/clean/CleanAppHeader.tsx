@@ -41,11 +41,6 @@ const coreNavItems: HeaderNavItem[] = [
     matches: ["/my-pathways", "/clean-my-pathways"],
   },
   {
-    label: "My Curriculum",
-    href: "/my-curriculum",
-    matches: ["/my-curriculum", "/clean-my-curriculum"],
-  },
-  {
     label: "My Assessments",
     href: "/my-assessments",
     matches: ["/my-assessments", "/clean-my-assessments"],
@@ -79,6 +74,12 @@ const communityNavItem: HeaderNavItem = {
   label: "My Community",
   href: "/my-community",
   matches: ["/my-community"],
+};
+
+const dataNavItem: HeaderNavItem = {
+  label: "My Data",
+  href: "/my-data",
+  matches: ["/my-data", "/my-curriculum", "/clean-my-curriculum"],
 };
 
 function matchesPath(pathname: string, candidate: string) {
@@ -360,6 +361,35 @@ export default function CleanAppHeader() {
                     )
                   : null}
               </div>
+
+              {(() => {
+                const isCurrent = isCurrentMatch(pathname, dataNavItem.matches);
+
+                return (
+                  <Link
+                    href={dataNavItem.href}
+                    aria-current={isCurrent ? "page" : undefined}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 999,
+                      border: isCurrent ? "1px solid #1d4ed8" : "1px solid #dbeafe",
+                      background: isCurrent ? "#eff6ff" : "#ffffff",
+                      color: isCurrent ? "#1d4ed8" : "#334155",
+                      padding: "10px 14px",
+                      minHeight: 40,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      scrollSnapAlign: "start",
+                    }}
+                  >
+                    {dataNavItem.label}
+                  </Link>
+                );
+              })()}
 
               {(() => {
                 const isCurrent = isCurrentMatch(pathname, communityNavItem.matches);

@@ -308,7 +308,7 @@ function CleanCaptureWorkspaceBody() {
   );
   const curriculumReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-curriculum"
-    : "/my-curriculum";
+    : "/my-data";
   const pathwaysReturnPath = pathname.startsWith("/clean-my-capture")
     ? "/clean-my-pathways"
     : "/my-pathways";
@@ -664,7 +664,7 @@ function CleanCaptureWorkspaceBody() {
           nextPathwayContext
             ? "Evidence saved for this pathway step."
             : nextCurriculumContext
-            ? "Evidence saved to My Curriculum."
+            ? "Evidence saved to My Data."
             : "Capture note updated.",
         );
       } else {
@@ -673,7 +673,7 @@ function CleanCaptureWorkspaceBody() {
           nextPathwayContext
             ? "Evidence saved for this pathway step."
             : nextCurriculumContext
-            ? "Evidence saved to My Curriculum."
+            ? "Evidence saved to My Data."
             : "Capture note saved.",
         );
       }
@@ -934,7 +934,7 @@ function CleanCaptureWorkspaceBody() {
                     ))}
                   </div>
                   <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                    This evidence will help build your My Curriculum coverage and support reports later.
+                    This evidence will help build your My Data record and support reports later.
                   </div>
                 </div>
               ) : null}
@@ -1155,7 +1155,7 @@ function CleanCaptureWorkspaceBody() {
                         style={{ ...buttonStyle, background: "#ffffff", color: "#0f172a" }}
                         onClick={() => router.push(curriculumReturnPath)}
                       >
-                        Back to My Curriculum
+                        Back to My Data
                       </button>
                     </div>
                   ) : null}

@@ -1,11 +1,5 @@
-import CleanCurriculumWorkspace from "@/app/components/clean/CleanCurriculumWorkspace";
-import FamilyCurriculumMapWorkspace from "@/app/components/FamilyCurriculumMapWorkspace";
-import { isCleanAppEnabled } from "@/lib/clean/featureFlags";
+import { redirect } from "next/navigation";
 
-export default function MyCurriculumPage() {
-  if (isCleanAppEnabled()) {
-    return <CleanCurriculumWorkspace />;
-  }
-
-  return <FamilyCurriculumMapWorkspace />;
+export default function MyCurriculumRedirectPage() {
+  redirect("/my-data");
 }

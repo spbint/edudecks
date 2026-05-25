@@ -1674,7 +1674,7 @@ export function resolveCurriculumFrameworkMap(
     brentContextCard: brentActive
       ? {
           title: "Brent evidence pathway active",
-          copy: "This learner is set to Brent Council. My Curriculum includes UK National Curriculum areas and Brent-aligned support evidence areas.",
+          copy: "This learner is set to Brent Council. My Data includes UK National Curriculum areas and Brent-aligned support evidence areas.",
         }
       : null,
   };

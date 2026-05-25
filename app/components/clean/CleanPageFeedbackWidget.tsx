@@ -29,7 +29,7 @@ const feedbackPages: FeedbackPage[] = [
   { key: "my-assessments", title: "My Assessments", matches: ["/my-assessments", "/clean-my-assessments"] },
   { key: "my-capture", title: "My Capture", matches: ["/my-capture", "/clean-my-capture"] },
   { key: "my-portfolio", title: "My Portfolio", matches: ["/my-portfolio", "/clean-my-portfolio"] },
-  { key: "my-curriculum", title: "My Curriculum", matches: ["/my-curriculum", "/clean-my-curriculum"] },
+  { key: "my-curriculum", title: "My Data", matches: ["/my-data", "/my-curriculum", "/clean-my-curriculum"] },
   { key: "my-reports", title: "My Reports", matches: ["/my-reports", "/clean-my-reports"] },
   { key: "my-outputs", title: "My Outputs", matches: ["/my-outputs", "/clean-my-outputs"] },
   { key: "my-programs", title: "My Programs", matches: ["/my-programs", "/clean-my-programs"] },

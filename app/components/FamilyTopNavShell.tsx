@@ -52,7 +52,6 @@ const PRIMARY_NAV = [
   { href: "/my-day", label: "My Day" },
   { href: "/my-calendar", label: "My Calendar" },
   { href: "/my-pathways", label: "My Pathways" },
-  { href: "/my-curriculum", label: "My Curriculum" },
   { href: "/my-assessments", label: "My Assessments" },
 ] as const;
 
@@ -62,6 +61,8 @@ const SECONDARY_NAV = [
   { href: "/my-reports", label: "My Reports" },
   { href: "/my-outputs", label: "My Outputs" },
 ] as const;
+
+const DATA_NAV = { href: "/my-data", label: "My Data" } as const;
 
 function normalizeOutputRoute(pathname: string) {
   if (pathname === "/capture" || pathname === "/my-capture") return "/my-capture";
@@ -83,9 +84,10 @@ function normalizeRoute(pathname: string) {
   if (
     pathname === "/curriculum" ||
     pathname === "/curriculum-map" ||
-    pathname === "/my-curriculum"
+    pathname === "/my-curriculum" ||
+    pathname === "/my-data"
   ) {
-    return "/my-curriculum";
+    return "/my-data";
   }
   if (pathname === "/my-assessments") return "/my-assessments";
   return "";
@@ -102,9 +104,10 @@ function routeSubtitle(pathname: string) {
   if (
     pathname === "/curriculum-map" ||
     pathname === "/curriculum" ||
-    pathname === "/my-curriculum"
+    pathname === "/my-curriculum" ||
+    pathname === "/my-data"
   ) {
-    return "My Curriculum";
+    return "My Data";
   }
   if (pathname === "/my-assessments") return "My Assessments";
   if (pathname === "/portfolio" || pathname === "/my-portfolio") return "My Portfolio";
@@ -154,9 +157,10 @@ function routeHeroTitle(pathname: string, subtitle: string) {
   if (
     pathname === "/curriculum" ||
     pathname === "/curriculum-map" ||
-    pathname === "/my-curriculum"
+    pathname === "/my-curriculum" ||
+    pathname === "/my-data"
   ) {
-    return "See how evidence is building across the broader learning map";
+    return "See how evidence, confidence, and reporting readiness connect across the broader learning map";
   }
   if (pathname === "/my-assessments") {
     return "See assessed skill confidence in a calm, visual way";
@@ -203,9 +207,10 @@ function routeHeroText(pathname: string) {
   if (
     pathname === "/curriculum" ||
     pathname === "/curriculum-map" ||
-    pathname === "/my-curriculum"
+    pathname === "/my-curriculum" ||
+    pathname === "/my-data"
   ) {
-    return "See how learning evidence is spreading across curriculum and reporting areas without interrupting the capture flow.";
+    return "See how learning evidence, confidence, and reporting support are building without interrupting the capture flow.";
   }
   if (pathname === "/my-assessments") {
     return "Use visual skill tracking to see where confidence is building across mathematics and English without turning the workflow into a test dashboard.";
@@ -353,6 +358,7 @@ export default function FamilyTopNavShell({
     pathname.startsWith("/community/") ||
     pathname === "/my-community" ||
     pathname.startsWith("/my-community/");
+  const dataActive = normalizedPath === DATA_NAV.href;
   const workspaceStatusLabel = workspace.syncIssue
     ? "Sync issue"
     : workspace.storageMode === "database"
@@ -398,6 +404,19 @@ export default function FamilyTopNavShell({
                 })}
 
                 <OutputsDropdown pathname={pathname} />
+
+                <Link
+                  href={DATA_NAV.href}
+                  aria-current={dataActive ? "page" : undefined}
+                  className={cx(
+                    "inline-flex items-center rounded-full px-4 py-2.5 text-[13px] font-semibold tracking-[-0.01em] transition duration-150",
+                    dataActive
+                      ? "bg-white text-slate-950 shadow-[0_8px_22px_rgba(15,23,42,0.08)] ring-1 ring-slate-200"
+                      : "text-slate-500 hover:bg-white/90 hover:text-slate-900",
+                  )}
+                >
+                  {DATA_NAV.label}
+                </Link>
               </nav>
             </div>
           </div>

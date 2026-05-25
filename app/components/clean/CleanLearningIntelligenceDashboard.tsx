@@ -113,8 +113,8 @@ const inputStyle: React.CSSProperties = {
 
 const quickLinks = [
   { label: "Overview", href: "/my-day" },
-  { label: "Learning Intelligence", href: "/my-curriculum", current: true },
-  { label: "Curriculum", href: "/my-curriculum#coverage-map" },
+  { label: "My Data", href: "/my-data", current: true },
+  { label: "Curriculum", href: "/my-data#coverage-map" },
   { label: "Pathways", href: "/my-pathways" },
   { label: "Assessments", href: "/my-assessments" },
   { label: "Evidence", href: "/my-capture" },

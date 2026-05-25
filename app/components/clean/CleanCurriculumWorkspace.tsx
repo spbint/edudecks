@@ -596,7 +596,7 @@ function CurriculumWorkspaceBody() {
                 evidence, curriculum coverage, portfolio support, and reporting readiness.
               </p>
               <p style={{ margin: 0, color: "#64748b", lineHeight: 1.7 }}>
-                This dashboard sits inside My Curriculum and reads the same canonical pathway
+                This dashboard sits inside My Data and reads the same canonical pathway
                 spine already used by My Pathways, My Assessments, and My Capture.
               </p>
             </div>
@@ -701,7 +701,7 @@ function CurriculumWorkspaceBody() {
               {CLEAN_SCHEMA_NOT_INSTALLED_MESSAGE}
             </strong>
             <p style={{ margin: 0, color: "#475569" }}>
-              My Curriculum uses the clean family workspace and evidence records.
+              My Data uses the clean family workspace and evidence records.
             </p>
           </section>
         ) : null}
@@ -717,7 +717,7 @@ function CurriculumWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Create family profile first</h2>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              My Curriculum needs the family workspace first. Set up My Profile before using this page.
+              My Data needs the family workspace first. Set up My Profile before using this page.
             </p>
           </section>
         ) : null}
@@ -729,7 +729,7 @@ function CurriculumWorkspaceBody() {
           <section style={cardStyle}>
             <h2 style={{ marginTop: 0, color: "#0f172a" }}>Add a learner first</h2>
             <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-              Add a learner before using curriculum coverage. My Curriculum is designed to help you understand one learner&apos;s evidence and coverage at a time.
+              Add a learner before using curriculum coverage. My Data is designed to help you understand one learner&apos;s evidence and coverage at a time.
             </p>
             <div style={{ marginTop: 16 }}>
               <Link href="/my-profile" style={buttonStyle}>
@@ -803,7 +803,7 @@ function CurriculumWorkspaceBody() {
                     fontSize: 14,
                   }}
                 >
-                  <span>This uses My Curriculum evidence links and your selected framework.</span>
+                  <span>This uses evidence links from My Data and your selected framework.</span>
                   {!hasLinkedEvidence ? <span>Waiting for first linked evidence.</span> : null}
                 </div>
                 {coverageError ? (
