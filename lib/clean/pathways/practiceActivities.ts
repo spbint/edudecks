@@ -21,12 +21,41 @@ export type PracticeTaskType =
   | "draw_or_explain"
   | "parent_observation";
 
+export type PracticeVisual =
+  | {
+      type: "number_pairs";
+      pairs: string[];
+    }
+  | {
+      type: "ten_frame";
+      filled: number;
+      total?: number;
+    }
+  | {
+      type: "part_part_whole";
+      whole: number;
+      partA?: number;
+      partB?: number;
+    }
+  | {
+      type: "counter_groups";
+      groups: number[];
+      hiddenGroupIndex?: number;
+      labels?: string[];
+    }
+  | {
+      type: "comparison_pairs";
+      pairs: string[];
+    };
+
 export type PracticeTask = {
   id: string;
   prompt: string;
   taskType: PracticeTaskType;
   expectedAnswer?: string | string[];
   supportPrompt?: string;
+  options?: string[];
+  visual?: PracticeVisual;
 };
 
 export type PracticeSection = {
@@ -60,6 +89,15 @@ export type PathwayPracticeActivity = {
   miniCheck: PracticeTask[];
   assessmentPreview: PracticeTask[];
   evidenceSummaryTemplate: string;
+};
+
+export type PracticePlayerTaskItem = {
+  key: string;
+  sectionId: string;
+  sectionType: PracticeSectionType | "mini_check";
+  sectionTitle: string;
+  learnerGoal: string | null;
+  task: PracticeTask;
 };
 
 function safe(value: unknown) {
@@ -118,12 +156,22 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           prompt: "Which pair makes 5? 2 and 3, 1 and 2, or 4 and 4?",
           taskType: "select",
           expectedAnswer: "2 and 3",
+          options: ["2 and 3", "1 and 2", "4 and 4"],
+          visual: {
+            type: "number_pairs",
+            pairs: ["2 + 3", "1 + 2", "4 + 4"],
+          },
         },
         {
           id: "u2",
           prompt: "Which pair makes 10? 6 and 4, 3 and 3, or 8 and 1?",
           taskType: "select",
           expectedAnswer: "6 and 4",
+          options: ["6 and 4", "3 and 3", "8 and 1"],
+          visual: {
+            type: "number_pairs",
+            pairs: ["6 + 4", "3 + 3", "8 + 1"],
+          },
         },
       ],
     },
@@ -138,18 +186,33 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           prompt: "4 and __ make 10.",
           taskType: "short_answer",
           expectedAnswer: "6",
+          visual: {
+            type: "ten_frame",
+            filled: 4,
+            total: 10,
+          },
         },
         {
           id: "f2",
           prompt: "7 and __ make 10.",
           taskType: "short_answer",
           expectedAnswer: "3",
+          visual: {
+            type: "ten_frame",
+            filled: 7,
+            total: 10,
+          },
         },
         {
           id: "f3",
           prompt: "2 and __ make 8.",
           taskType: "short_answer",
           expectedAnswer: "6",
+          visual: {
+            type: "part_part_whole",
+            whole: 8,
+            partA: 2,
+          },
         },
       ],
     },
@@ -165,6 +228,11 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 10 apples. 6 are red and the rest are green. How many are green?",
           taskType: "short_answer",
           expectedAnswer: "4",
+          visual: {
+            type: "counter_groups",
+            groups: [6, 4],
+            labels: ["red", "green"],
+          },
         },
         {
           id: "p2",
@@ -172,6 +240,12 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
             "There are 8 counters. Some are blue and 5 are yellow. How many are blue?",
           taskType: "short_answer",
           expectedAnswer: "3",
+          visual: {
+            type: "counter_groups",
+            groups: [3, 5],
+            hiddenGroupIndex: 0,
+            labels: ["blue", "yellow"],
+          },
         },
       ],
     },
@@ -186,6 +260,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           prompt: "Show or explain two different ways to make 10.",
           taskType: "draw_or_explain",
           supportPrompt: "For example: 5 and 5 is one way. What is another way?",
+          visual: {
+            type: "part_part_whole",
+            whole: 10,
+          },
         },
         {
           id: "r2",
@@ -193,6 +271,10 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
           taskType: "parent_observation",
           supportPrompt:
             "The child may explain using counters, fingers, drawing, or mental reasoning.",
+          visual: {
+            type: "comparison_pairs",
+            pairs: ["6 + 4", "7 + 3"],
+          },
         },
       ],
     },
@@ -203,17 +285,31 @@ export const makeNumbersTo10Practice: PathwayPracticeActivity = {
       prompt: "8 and __ make 10.",
       taskType: "short_answer",
       expectedAnswer: "2",
+      visual: {
+        type: "ten_frame",
+        filled: 8,
+        total: 10,
+      },
     },
     {
       id: "mc2",
       prompt: "Which makes 9? 5 and 4, 6 and 6, or 2 and 5?",
       taskType: "select",
       expectedAnswer: "5 and 4",
+      options: ["5 and 4", "6 and 6", "2 and 5"],
+      visual: {
+        type: "number_pairs",
+        pairs: ["5 + 4", "6 + 6", "2 + 5"],
+      },
     },
     {
       id: "mc3",
       prompt: "Show another way to make 7.",
       taskType: "draw_or_explain",
+      visual: {
+        type: "part_part_whole",
+        whole: 7,
+      },
     },
   ],
   assessmentPreview: [
@@ -311,6 +407,38 @@ export function getPracticeRecommendation(outcome: PracticeOutcome) {
   };
 }
 
+export function buildPracticePlayerItems(activity: PathwayPracticeActivity) {
+  return activity.sections.flatMap((section) =>
+    section.tasks.map((task) => ({
+      key: `${section.id}::${task.id}`,
+      sectionId: section.id,
+      sectionType: section.type,
+      sectionTitle: section.title,
+      learnerGoal: section.learnerGoal,
+      task,
+    })),
+  );
+}
+
+export function buildMiniCheckPlayerItems(activity: PathwayPracticeActivity) {
+  return activity.miniCheck.map((task) => ({
+    key: `mini-check::${task.id}`,
+    sectionId: "mini-check",
+    sectionType: "mini_check" as const,
+    sectionTitle: "Mini Check",
+    learnerGoal: "Try the skill with lighter support and choose the best-fit outcome.",
+    task,
+  }));
+}
+
+export function countPracticeTasks(activity: PathwayPracticeActivity) {
+  return activity.sections.reduce((total, section) => total + section.tasks.length, 0);
+}
+
+export function countMiniCheckTasks(activity: PathwayPracticeActivity) {
+  return activity.miniCheck.length;
+}
+
 export function getPathwayIdentityLabel(item: Pick<PathwayPracticeActivity, "pathwayStepId">) {
   return safe(item.pathwayStepId);
 }
@@ -325,7 +453,7 @@ export function getCanonicalPracticeStepMeta(
     canonicalMeaning: registryItem.stepDescription,
     canonicalStageTitle: registryItem.stageTitle,
     canonicalStepNumber: registryItem.legacyStepNumber,
-    canonicalLabel: `${registryItem.subjectTitle} · ${registryItem.strandTitle} · ${registryItem.stageTitle}`,
+    canonicalLabel: `${registryItem.subjectTitle} / ${registryItem.strandTitle} / ${registryItem.stageTitle}`,
     pathwayStepId: activity.pathwayStepId,
   };
 }
