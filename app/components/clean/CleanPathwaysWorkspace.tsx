@@ -6,6 +6,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
 import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
@@ -25,6 +26,9 @@ import {
 import {
   buildPathwayRegistryStepKey,
 } from "@/lib/clean/pathways/pathwayStepRegistry";
+import {
+  getPathwayPracticeActivityByStepId,
+} from "@/lib/clean/pathways/practiceActivities";
 import {
   buildUnifiedPathwayStepStateIndex,
   getUnifiedPathwayStepState,
@@ -588,6 +592,9 @@ function PathwaysWorkspaceBody() {
   const capturePathBase = pathname.startsWith("/clean-my-pathways")
     ? "/clean-my-capture"
     : "/my-capture";
+  const assessPathBase = pathname.startsWith("/clean-my-pathways")
+    ? "/clean-my-assessments"
+    : "/my-assessments";
 
   function handleSelectSubjectStrand(nextStrandKey: string) {
     setSelectedStrandKeyBySubject((current) => ({
@@ -1096,6 +1103,7 @@ function PathwaysWorkspaceBody() {
                           )
                         }
                         capturePathBase={capturePathBase}
+                        assessPathBase={assessPathBase}
                       />
                     ))}
                   </div>
@@ -1349,6 +1357,7 @@ function DetailedMathematicsStageCard({
   isOpen,
   onToggle,
   capturePathBase,
+  assessPathBase,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -1361,6 +1370,7 @@ function DetailedMathematicsStageCard({
   isOpen: boolean;
   onToggle: () => void;
   capturePathBase: string;
+  assessPathBase: string;
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const panelId = `${strand.key}-stage-${stage.key}`;
@@ -1546,6 +1556,7 @@ function DetailedMathematicsStageCard({
             selectedSubjectTitle={selectedSubjectTitle}
             selectedLearnerId={selectedLearnerId}
             capturePathBase={capturePathBase}
+            assessPathBase={assessPathBase}
           />
         ))}
       </div>
@@ -1565,6 +1576,7 @@ function DetailedMathematicsStepCard({
   selectedSubjectTitle,
   selectedLearnerId,
   capturePathBase,
+  assessPathBase,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -1577,6 +1589,7 @@ function DetailedMathematicsStepCard({
   selectedSubjectTitle: string;
   selectedLearnerId: string;
   capturePathBase: string;
+  assessPathBase: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const statusState = getWorkspaceDisplayedPathwayStatus(
@@ -1599,15 +1612,37 @@ function DetailedMathematicsStepCard({
   const assessmentConfidence =
     stepUnifiedState?.assessmentConfidence || "Not assessed yet";
   const evidenceLinkedCount = stepUnifiedState?.linkedEvidenceCount || 0;
+  const canonicalStepKey = useMemo(
+    () => buildPathwayRegistryStepKey(step.title, step.id),
+    [step.id, step.title],
+  );
+  const canonicalPathwayStepId = useMemo(
+    () =>
+      statusState.pathwayStepId ||
+      resolveCanonicalPathwayStepIdFromParts({
+        subjectKey: selectedSubjectKey,
+        pathwayKey: strand.key,
+        stageKey: stage.key,
+        stepKey: canonicalStepKey,
+        stepNumber: String(step.id),
+      }),
+    [
+      canonicalStepKey,
+      selectedSubjectKey,
+      stage.key,
+      statusState.pathwayStepId,
+      step.id,
+      strand.key,
+    ],
+  );
+  const practiceActivity = useMemo(
+    () =>
+      canonicalPathwayStepId
+        ? getPathwayPracticeActivityByStepId(canonicalPathwayStepId)
+        : null,
+    [canonicalPathwayStepId],
+  );
   const captureHref = useMemo(() => {
-    const stepKey = buildPathwayRegistryStepKey(step.title, step.id);
-    const pathwayStepId = resolveCanonicalPathwayStepIdFromParts({
-      subjectKey: selectedSubjectKey,
-      pathwayKey: strand.key,
-      stageKey: stage.key,
-      stepKey,
-      stepNumber: String(step.id),
-    });
     const params = buildPathwayCaptureSearchParams(
       {
         source: "my-pathways",
@@ -1617,8 +1652,8 @@ function DetailedMathematicsStepCard({
         pathwayLabel: strand.pathwayLabel,
         stageKey: stage.key,
         stageLabel: stage.title,
-        pathwayStepId,
-        stepKey,
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
         stepNumber: String(step.id),
         stepTitle: step.title,
         stepMeaning: step.meaning,
@@ -1633,6 +1668,8 @@ function DetailedMathematicsStepCard({
 
     return `${capturePathBase}?${params.toString()}`;
   }, [
+    canonicalPathwayStepId,
+    canonicalStepKey,
     capturePathBase,
     selectedLearnerId,
     selectedSubjectKey,
@@ -1645,6 +1682,31 @@ function DetailedMathematicsStepCard({
     step.skillFocus,
     step.title,
     strand.pathwayLabel,
+  ]);
+  const assessHref = useMemo(() => {
+    if (!canonicalPathwayStepId) {
+      return assessPathBase;
+    }
+
+    const params = new URLSearchParams();
+    params.set("openStep", "1");
+    params.set("subjectKey", selectedSubjectKey);
+    params.set("strandKey", strand.key);
+    params.set("stageKey", stage.key);
+    params.set("pathwayStepId", canonicalPathwayStepId);
+
+    if (selectedLearnerId) {
+      params.set("learnerId", selectedLearnerId);
+    }
+
+    return `${assessPathBase}?${params.toString()}`;
+  }, [
+    assessPathBase,
+    canonicalPathwayStepId,
+    selectedLearnerId,
+    selectedSubjectKey,
+    stage.key,
+    strand.key,
   ]);
 
   return (
@@ -1781,34 +1843,11 @@ function DetailedMathematicsStepCard({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
-        <button
-          type="button"
-          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
-          disabled
-          title="Parent-guided practice for this pathway step will be added later."
-          aria-label="Practise this pathway step"
-        >
-          Practise
-        </button>
-        <button
-          type="button"
-          style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
-          disabled
-          title="Assessment checks coming later"
-          aria-label="Assessment checks coming later for this pathway step"
-        >
-          Assess
-        </button>
-        <Link
-          href={captureHref}
-          style={{ ...buttonStyle, flex: "1 1 160px" }}
-          title="Open My Capture with this pathway step already connected."
-          aria-label="Capture evidence for this pathway step"
-        >
-          Capture evidence
-        </Link>
-      </div>
+      <CleanPathwayStepActionRow
+        activity={practiceActivity}
+        assessHref={assessHref}
+        captureHref={captureHref}
+      />
 
       <div
         id={detailPanelId}

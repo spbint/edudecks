@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -228,6 +228,14 @@ type AssessmentTileFeedback = {
   tone: "success" | "error";
   message: string;
 } | null;
+
+function isAssessmentSubjectKey(value: string | null): value is AssessmentSubjectKey {
+  return Boolean(value && value in ASSESSMENT_SUBJECTS_BY_KEY);
+}
+
+function isAssessmentStage(value: string | null): value is AssessmentStage {
+  return Boolean(value && ASSESSMENT_STAGES.includes(value as AssessmentStage));
+}
 
 type StatusMeta = {
   fill: string;
@@ -702,6 +710,7 @@ function getStageSnapshot(
 function AssessmentsWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<AssessmentSubjectKey>(
     DEFAULT_ASSESSMENT_SUBJECT_KEY,
@@ -729,6 +738,7 @@ function AssessmentsWorkspaceBody() {
   const [selectedTileEvidenceFeedback, setSelectedTileEvidenceFeedback] =
     useState<AssessmentTileFeedback>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const autoOpenedQueryTargetRef = useRef("");
   const capturePathBase = pathname.startsWith("/clean-my-assessments")
     ? "/clean-my-capture"
     : "/my-capture";
@@ -929,6 +939,45 @@ function AssessmentsWorkspaceBody() {
 
   const selectedStageViews = selectedStrandView.stages;
   const selectedStepMap = selectedStrandView.stepMap;
+  const requestedAssessmentStep = useMemo(() => {
+    if (searchParams.get("openStep") !== "1") {
+      return null;
+    }
+
+    const subjectKey = searchParams.get("subjectKey");
+    const stageKey = searchParams.get("stageKey");
+    const strandKey = String(searchParams.get("strandKey") || "").trim();
+    const pathwayStepId = String(searchParams.get("pathwayStepId") || "").trim();
+    const learnerId = String(searchParams.get("learnerId") || "").trim();
+
+    if (
+      !isAssessmentSubjectKey(subjectKey) ||
+      !isAssessmentStage(stageKey) ||
+      !strandKey ||
+      !pathwayStepId
+    ) {
+      return null;
+    }
+
+    return {
+      learnerId,
+      subjectKey,
+      strandKey,
+      stageKey,
+      pathwayStepId,
+    };
+  }, [searchParams]);
+  const requestedAssessmentIdentity = useMemo(() => {
+    if (!requestedAssessmentStep) return "";
+
+    return [
+      requestedAssessmentStep.learnerId || "default-learner",
+      requestedAssessmentStep.subjectKey,
+      requestedAssessmentStep.strandKey,
+      requestedAssessmentStep.stageKey,
+      requestedAssessmentStep.pathwayStepId,
+    ].join(":");
+  }, [requestedAssessmentStep]);
 
   const stageFocusAdjustedForView = useMemo(() => {
     const selectedLearnerKey = selectedLearner?.id || "";
@@ -941,6 +990,105 @@ function AssessmentsWorkspaceBody() {
 
   const currentStageView =
     selectedStageViews.find((stage) => stage.key === stageFocus) || selectedStageViews[0] || null;
+
+  useEffect(() => {
+    if (!requestedAssessmentStep || !requestedAssessmentIdentity) {
+      return;
+    }
+
+    if (autoOpenedQueryTargetRef.current === requestedAssessmentIdentity) {
+      return;
+    }
+
+    if (requestedAssessmentStep.learnerId) {
+      const learnerExists = workspace.learners.some(
+        (learner) => learner.id === requestedAssessmentStep.learnerId,
+      );
+
+      if (learnerExists && selectedLearner?.id !== requestedAssessmentStep.learnerId) {
+        setSelectedLearnerIdOverride(requestedAssessmentStep.learnerId);
+        return;
+      }
+    }
+
+    if (selectedSubjectKey !== requestedAssessmentStep.subjectKey) {
+      setSelectedSubjectKey(requestedAssessmentStep.subjectKey);
+      return;
+    }
+
+    const requestedSubject = ASSESSMENT_SUBJECTS_BY_KEY[requestedAssessmentStep.subjectKey];
+    const strandExists = requestedSubject.strands.some(
+      (strand) => strand.key === requestedAssessmentStep.strandKey,
+    );
+    const activeStrandKey =
+      selectedStrandKeys[requestedAssessmentStep.subjectKey] || requestedSubject.defaultStrandKey;
+
+    if (strandExists && activeStrandKey !== requestedAssessmentStep.strandKey) {
+      setSelectedStrandKeys((current) => ({
+        ...current,
+        [requestedAssessmentStep.subjectKey]: requestedAssessmentStep.strandKey,
+      }));
+      return;
+    }
+
+    const stageFocusLearnerId = selectedLearner?.id || requestedAssessmentStep.learnerId;
+    if (
+      stageFocusLearnerId &&
+      (stageFocusOverride?.learnerId !== stageFocusLearnerId ||
+        stageFocusOverride.stage !== requestedAssessmentStep.stageKey)
+    ) {
+      setStageFocusOverride({
+        learnerId: stageFocusLearnerId,
+        stage: requestedAssessmentStep.stageKey,
+      });
+      return;
+    }
+
+    const stepView = selectedStepMap.get(requestedAssessmentStep.pathwayStepId);
+    if (!stepView) {
+      return;
+    }
+
+    if (
+      stepView.registryItem.subjectKey !== requestedAssessmentStep.subjectKey ||
+      stepView.registryItem.strandKey !== requestedAssessmentStep.strandKey ||
+      stepView.registryItem.stageKey !== requestedAssessmentStep.stageKey
+    ) {
+      return;
+    }
+
+    const savedStatusRecord =
+      savedAssessmentStatusMap.get(
+        buildAssessmentStatusLookupKey(
+          stepView.registryItem.subjectKey,
+          stepView.registryItem.id,
+          stepView.registryItem.stageKey as AssessmentStage,
+        ),
+      ) ?? null;
+    const displayedStatus = savedStatusRecord?.status ?? "Not assessed yet";
+
+    setSelectedTile({
+      subjectKey: stepView.registryItem.subjectKey,
+      strandKey: stepView.registryItem.strandKey,
+      stageKey: stepView.registryItem.stageKey as AssessmentStage,
+      pathwayStepId: stepView.registryItem.id,
+    });
+    setSelectedTileDraftStatus(displayedStatus);
+    setSelectedTileDraftNote(savedStatusRecord?.note || "");
+    setSelectedTileFeedback(null);
+    setSelectedTileEvidenceFeedback(null);
+    autoOpenedQueryTargetRef.current = requestedAssessmentIdentity;
+  }, [
+    requestedAssessmentIdentity,
+    requestedAssessmentStep,
+    savedAssessmentStatusMap,
+    selectedLearner,
+    selectedStepMap,
+    selectedStrandKeys,
+    selectedSubjectKey,
+    stageFocusOverride,
+    workspace.learners,
+  ]);
 
   function getSavedAssessmentStatusRecord(
     subjectKey: AssessmentSubjectKey,
