@@ -38,7 +38,7 @@ const coreNavItems: HeaderNavItem[] = [
   {
     label: "My Pathways",
     href: "/my-pathways",
-    matches: ["/my-pathways", "/clean-my-pathways"],
+    matches: ["/my-pathways", "/clean-my-pathways", "/pathways"],
   },
   {
     label: "My Assessments",

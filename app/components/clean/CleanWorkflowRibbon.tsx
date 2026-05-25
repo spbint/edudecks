@@ -54,7 +54,7 @@ const steps: CleanWorkflowStep[] = [
     helper: "Follow the next step",
     href: "/my-pathways",
     cleanHref: "/clean-my-pathways",
-    matches: ["/my-pathways", "/clean-my-pathways"],
+    matches: ["/my-pathways", "/clean-my-pathways", "/pathways"],
   },
   {
     key: "assessments",

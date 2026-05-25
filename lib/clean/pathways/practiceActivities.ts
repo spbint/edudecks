@@ -1,0 +1,331 @@
+import {
+  getPathwayStepById,
+  type PathwayStepRegistryItem,
+} from "@/lib/clean/pathways/pathwayStepRegistry";
+
+export type PracticeOutcome =
+  | "not_started"
+  | "developing"
+  | "secure"
+  | "needs_support";
+
+export type PracticeSectionType =
+  | "understanding"
+  | "fluency"
+  | "problem_solving"
+  | "reasoning";
+
+export type PracticeTaskType =
+  | "select"
+  | "short_answer"
+  | "draw_or_explain"
+  | "parent_observation";
+
+export type PracticeTask = {
+  id: string;
+  prompt: string;
+  taskType: PracticeTaskType;
+  expectedAnswer?: string | string[];
+  supportPrompt?: string;
+};
+
+export type PracticeSection = {
+  id: string;
+  type: PracticeSectionType;
+  title: string;
+  learnerGoal: string;
+  tasks: PracticeTask[];
+};
+
+export type PathwayPracticeActivity = {
+  pathwayStepId: string;
+  subjectKey: string;
+  strandKey: string;
+  stageKey: string;
+  stepKey: string;
+  title: string;
+  strandLabel: string;
+  phaseLabel: string;
+  myLearnaFocus: string;
+  canonicalStepTitle: string;
+  canonicalStepMeaning: string;
+  canonicalStageTitle: string;
+  acaraCode?: string;
+  learnCard: {
+    bigIdea: string;
+    example: string;
+    parentTip: string;
+  };
+  sections: PracticeSection[];
+  miniCheck: PracticeTask[];
+  assessmentPreview: PracticeTask[];
+  evidenceSummaryTemplate: string;
+};
+
+function safe(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function requireCanonicalStep() {
+  const step = getPathwayStepById(
+    "mathematics",
+    "number-and-place-value",
+    "foundation-kindergarten",
+    "partition-and-combine-small-collections-up-to-10",
+  );
+
+  if (!step) {
+    throw new Error(
+      "The canonical practice prototype step was not found in the pathway step registry.",
+    );
+  }
+
+  return step;
+}
+
+const CANONICAL_MAKE_NUMBERS_TO_10_STEP = requireCanonicalStep();
+
+export const makeNumbersTo10Practice: PathwayPracticeActivity = {
+  pathwayStepId: CANONICAL_MAKE_NUMBERS_TO_10_STEP.id,
+  subjectKey: CANONICAL_MAKE_NUMBERS_TO_10_STEP.subjectKey,
+  strandKey: CANONICAL_MAKE_NUMBERS_TO_10_STEP.strandKey,
+  stageKey: CANONICAL_MAKE_NUMBERS_TO_10_STEP.stageKey,
+  stepKey: CANONICAL_MAKE_NUMBERS_TO_10_STEP.stepKey,
+  title: "Make numbers to 10 in different ways",
+  strandLabel: CANONICAL_MAKE_NUMBERS_TO_10_STEP.subjectTitle,
+  phaseLabel: "Number Foundations",
+  myLearnaFocus: "Part-part-whole thinking",
+  canonicalStepTitle: CANONICAL_MAKE_NUMBERS_TO_10_STEP.stepTitle,
+  canonicalStepMeaning: CANONICAL_MAKE_NUMBERS_TO_10_STEP.stepDescription,
+  canonicalStageTitle: CANONICAL_MAKE_NUMBERS_TO_10_STEP.stageTitle,
+  acaraCode: "AC9MFN04",
+  learnCard: {
+    bigIdea:
+      "Numbers can be broken into smaller parts. The same number can be made in more than one way.",
+    example: "10 can be made as 5 + 5, 6 + 4, 7 + 3, or 8 + 2.",
+    parentTip:
+      "Use counters, blocks, buttons or snacks. Ask: 'Can you show me another way to make the same number?'",
+  },
+  sections: [
+    {
+      id: "understanding",
+      type: "understanding",
+      title: "Understanding",
+      learnerGoal: "I can see two parts that make a whole number.",
+      tasks: [
+        {
+          id: "u1",
+          prompt: "Which pair makes 5? 2 and 3, 1 and 2, or 4 and 4?",
+          taskType: "select",
+          expectedAnswer: "2 and 3",
+        },
+        {
+          id: "u2",
+          prompt: "Which pair makes 10? 6 and 4, 3 and 3, or 8 and 1?",
+          taskType: "select",
+          expectedAnswer: "6 and 4",
+        },
+      ],
+    },
+    {
+      id: "fluency",
+      type: "fluency",
+      title: "Fluency",
+      learnerGoal: "I can find the missing part.",
+      tasks: [
+        {
+          id: "f1",
+          prompt: "4 and __ make 10.",
+          taskType: "short_answer",
+          expectedAnswer: "6",
+        },
+        {
+          id: "f2",
+          prompt: "7 and __ make 10.",
+          taskType: "short_answer",
+          expectedAnswer: "3",
+        },
+        {
+          id: "f3",
+          prompt: "2 and __ make 8.",
+          taskType: "short_answer",
+          expectedAnswer: "6",
+        },
+      ],
+    },
+    {
+      id: "problem-solving",
+      type: "problem_solving",
+      title: "Problem Solving",
+      learnerGoal: "I can use number parts in a simple situation.",
+      tasks: [
+        {
+          id: "p1",
+          prompt:
+            "There are 10 apples. 6 are red and the rest are green. How many are green?",
+          taskType: "short_answer",
+          expectedAnswer: "4",
+        },
+        {
+          id: "p2",
+          prompt:
+            "There are 8 counters. Some are blue and 5 are yellow. How many are blue?",
+          taskType: "short_answer",
+          expectedAnswer: "3",
+        },
+      ],
+    },
+    {
+      id: "reasoning",
+      type: "reasoning",
+      title: "Reasoning",
+      learnerGoal: "I can show the same number in more than one way.",
+      tasks: [
+        {
+          id: "r1",
+          prompt: "Show or explain two different ways to make 10.",
+          taskType: "draw_or_explain",
+          supportPrompt: "For example: 5 and 5 is one way. What is another way?",
+        },
+        {
+          id: "r2",
+          prompt: "Is 6 and 4 the same total as 7 and 3? How do you know?",
+          taskType: "parent_observation",
+          supportPrompt:
+            "The child may explain using counters, fingers, drawing, or mental reasoning.",
+        },
+      ],
+    },
+  ],
+  miniCheck: [
+    {
+      id: "mc1",
+      prompt: "8 and __ make 10.",
+      taskType: "short_answer",
+      expectedAnswer: "2",
+    },
+    {
+      id: "mc2",
+      prompt: "Which makes 9? 5 and 4, 6 and 6, or 2 and 5?",
+      taskType: "select",
+      expectedAnswer: "5 and 4",
+    },
+    {
+      id: "mc3",
+      prompt: "Show another way to make 7.",
+      taskType: "draw_or_explain",
+    },
+  ],
+  assessmentPreview: [
+    {
+      id: "ap1",
+      prompt: "6 + __ = 10",
+      taskType: "short_answer",
+    },
+    {
+      id: "ap2",
+      prompt: "Which two numbers make 8?",
+      taskType: "select",
+    },
+    {
+      id: "ap3",
+      prompt: "There are 9 counters. 4 are hidden. How many can you see?",
+      taskType: "short_answer",
+    },
+    {
+      id: "ap4",
+      prompt: "Show a different way to make 10.",
+      taskType: "draw_or_explain",
+    },
+    {
+      id: "ap5",
+      prompt: "True or false: 3 and 6 make 10. Explain or correct it.",
+      taskType: "parent_observation",
+    },
+  ],
+  evidenceSummaryTemplate:
+    "Today, this learner practised making numbers to 10 in different ways using part-part-whole thinking. They worked with missing parts, simple number stories, and explaining more than one way to make the same number.",
+};
+
+export const PATHWAY_PRACTICE_ACTIVITIES = Object.freeze([makeNumbersTo10Practice]);
+
+export function getPathwayPracticeActivityByStepId(pathwayStepId: string) {
+  const normalizedPathwayStepId = safe(pathwayStepId);
+  return (
+    PATHWAY_PRACTICE_ACTIVITIES.find(
+      (activity) => activity.pathwayStepId === normalizedPathwayStepId,
+    ) || null
+  );
+}
+
+export function getCanonicalPracticePrototypeStep() {
+  return CANONICAL_MAKE_NUMBERS_TO_10_STEP;
+}
+
+export function buildPracticeEvidenceSummary(
+  activity: PathwayPracticeActivity,
+  learnerLabel?: string | null,
+) {
+  const template = safe(activity.evidenceSummaryTemplate);
+  if (!template) {
+    const sectionSummary = activity.sections
+      .map((section) => section.title.toLowerCase())
+      .join(", ");
+    const subjectLabel = safe(activity.strandLabel) || "this learner";
+
+    return `${learnerLabel || "This learner"} practised ${activity.title.toLowerCase()} in ${subjectLabel}. The activity included ${sectionSummary}.`;
+  }
+
+  if (safe(learnerLabel)) {
+    return template.replace("this learner", safe(learnerLabel));
+  }
+
+  return template;
+}
+
+export function getPracticeRecommendation(outcome: PracticeOutcome) {
+  if (outcome === "secure") {
+    return {
+      title: "Ready for the next step",
+      body: "Move forward to simple addition and subtraction stories using numbers to 10.",
+    };
+  }
+
+  if (outcome === "developing") {
+    return {
+      title: "Keep practising this step",
+      body: "Repeat the fluency and reasoning activities with counters or ten frames.",
+    };
+  }
+
+  if (outcome === "needs_support") {
+    return {
+      title: "Step back for support",
+      body: "Return to counting collections and recognising small groups before practising missing parts again.",
+    };
+  }
+
+  return {
+    title: "Start the practice loop",
+    body: "Begin with the Learn card, then complete each practice section.",
+  };
+}
+
+export function getPathwayIdentityLabel(item: Pick<PathwayPracticeActivity, "pathwayStepId">) {
+  return safe(item.pathwayStepId);
+}
+
+export function getCanonicalPracticeStepMeta(
+  activity: PathwayPracticeActivity,
+  registryItem: PathwayStepRegistryItem = CANONICAL_MAKE_NUMBERS_TO_10_STEP,
+) {
+  return {
+    canonicalStrandTitle: registryItem.strandTitle,
+    canonicalTitle: registryItem.stepTitle,
+    canonicalMeaning: registryItem.stepDescription,
+    canonicalStageTitle: registryItem.stageTitle,
+    canonicalStepNumber: registryItem.legacyStepNumber,
+    canonicalLabel: `${registryItem.subjectTitle} · ${registryItem.strandTitle} · ${registryItem.stageTitle}`,
+    pathwayStepId: activity.pathwayStepId,
+  };
+}
