@@ -577,15 +577,45 @@ function PracticeWorkspaceBody({
               </h2>
               <div style={{ color: "#475569", lineHeight: 1.65 }}>
                 Start the player to move through one prompt at a time with a visual work
-                area, light support, and calm navigation. The overview page stays short so
-                the learner is not hit with a full worksheet wall.
+                area, light support, and calm navigation. Maths prompts now move from
+                objects, to pictures and models, to short number sentences.
               </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 10,
+                marginTop: 16,
+              }}
+            >
+              {[
+                {
+                  title: "Try with objects",
+                  body: "Use counters, snacks, toys, or blocks to build the idea with real things first.",
+                },
+                {
+                  title: "Look at the picture",
+                  body: "Ten frames, grouped counters, and part-part-whole models bridge the idea visually.",
+                },
+                {
+                  title: "Now use the numbers",
+                  body: "Short number prompts come after the meaning is supported, not before.",
+                },
+              ].map((item) => (
+                <div key={item.title} style={compactCardStyle}>
+                  <div style={eyebrowStyle}>{item.title}</div>
+                  <div style={{ color: "#475569", lineHeight: 1.55 }}>{item.body}</div>
+                </div>
+              ))}
             </div>
 
             <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
               {[
-                "Open Practice to work through Understanding, Fluency, Problem Solving, and Reasoning.",
-                "Use the Mini Check player separately when you want a lighter readiness check.",
+                "Open Practice to work through Understanding, Fluency, Problem Solving, and Reasoning one task at a time.",
+                "Each maths task moves from real objects, to a visual model, to a short symbolic prompt when the learner is ready.",
+                "Use the Mini Check player separately when you want a lighter readiness check with less prompting but age-appropriate visuals.",
                 "Use the evidence summary and Capture link once you want to record the learning.",
               ].map((line, index) => (
                 <div
@@ -644,8 +674,9 @@ function PracticeWorkspaceBody({
                   Practice loop
                 </h2>
                 <div style={{ color: "#475569", lineHeight: 1.65 }}>
-                  Four sections guide the learner through supported understanding before
-                  moving into the mini check.
+                  Four sections guide the learner from concrete support into visual
+                  representation and then short symbolic prompts before moving into the
+                  mini check.
                 </div>
               </div>
 
@@ -678,8 +709,9 @@ function PracticeWorkspaceBody({
             </div>
 
             <div style={{ color: "#64748b", fontSize: 13, lineHeight: 1.55, marginTop: 12 }}>
-              Understanding, Fluency, Problem Solving, and Reasoning stay inside the
-              player rather than expanding into a long worksheet.
+              Understanding stays mostly hands-on and visual. Fluency bridges pictures to
+              symbols. Problem Solving and Reasoning keep the visual support but ask for
+              more independence.
             </div>
 
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
@@ -709,7 +741,7 @@ function PracticeWorkspaceBody({
                 </h2>
                 <div style={{ color: "#475569", lineHeight: 1.65 }}>
                   Mini Check uses the same focused player pattern, but with lighter
-                  scaffolding and a separate outcome for the practice loop.
+                  scaffolding, fewer hints, and a separate outcome for the practice loop.
                 </div>
               </div>
 

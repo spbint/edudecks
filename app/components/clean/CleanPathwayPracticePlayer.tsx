@@ -126,6 +126,15 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function getVisualModelLabel(task: PracticeTask) {
+  if (task.visualModelType === "ten_frame") return "Ten frame";
+  if (task.visualModelType === "number_pairs") return "Number-pair cards";
+  if (task.visualModelType === "part_part_whole") return "Part-part-whole model";
+  if (task.visualModelType === "counter_groups") return "Grouped counters";
+  if (task.visualModelType === "comparison_pairs") return "Comparison cards";
+  return "Visual model";
+}
+
 function sumPair(pair: string) {
   const parts = pair
     .split("+")
@@ -548,6 +557,123 @@ function ResponseField({
   );
 }
 
+function CraPromptCards({
+  task,
+  mode,
+}: {
+  task: PracticeTask;
+  mode: PlayerMode;
+}) {
+  const hasConcrete = Boolean(safe(task.concretePrompt));
+  const hasRepresentational = Boolean(safe(task.representationalPrompt));
+  const hasAbstract = Boolean(safe(task.abstractPrompt));
+
+  if (!hasConcrete && !hasRepresentational && !hasAbstract) {
+    return null;
+  }
+
+  const cardStyle: React.CSSProperties = {
+    borderRadius: 18,
+    border: "1px solid #e2e8f0",
+    background: "#ffffff",
+    padding: "14px 16px",
+    display: "grid",
+    gap: 8,
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 800,
+    letterSpacing: "0.08em",
+    color: "#64748b",
+    textTransform: "uppercase",
+  };
+
+  if (mode === "practice") {
+    return (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {hasConcrete ? (
+          <div style={cardStyle}>
+            <div style={labelStyle}>Try with objects</div>
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>{task.concretePrompt}</div>
+          </div>
+        ) : null}
+
+        {hasRepresentational ? (
+          <div style={cardStyle}>
+            <div style={labelStyle}>Look at the model</div>
+            <div style={{ color: "#475569", lineHeight: 1.6 }}>
+              {task.representationalPrompt}
+            </div>
+          </div>
+        ) : null}
+
+        {hasAbstract ? (
+          <div style={cardStyle}>
+            <div style={labelStyle}>Now use the numbers</div>
+            <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
+              {task.abstractPrompt}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      {hasRepresentational ? (
+        <div style={cardStyle}>
+          <div style={labelStyle}>Look at the model</div>
+          <div style={{ color: "#475569", lineHeight: 1.6 }}>
+            {task.representationalPrompt}
+          </div>
+        </div>
+      ) : null}
+
+      {hasAbstract ? (
+        <div style={cardStyle}>
+          <div style={labelStyle}>Try it yourself</div>
+          <div style={{ color: "#0f172a", lineHeight: 1.6, fontWeight: 700 }}>
+            {task.abstractPrompt}
+          </div>
+        </div>
+      ) : null}
+
+      {hasConcrete ? (
+        <details
+          style={{
+            borderRadius: 16,
+            border: "1px solid #e2e8f0",
+            background: "#f8fafc",
+            padding: "12px 14px",
+          }}
+        >
+          <summary
+            style={{
+              cursor: "pointer",
+              color: "#0f172a",
+              fontWeight: 700,
+              listStyle: "none",
+            }}
+          >
+            If needed, start with objects
+          </summary>
+          <div style={{ color: "#475569", lineHeight: 1.6, marginTop: 10 }}>
+            {task.concretePrompt}
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
 export default function CleanPathwayPracticePlayer({
   open,
   mode,
@@ -662,14 +788,15 @@ export default function CleanPathwayPracticePlayer({
               background: "#ffffff",
               color: "#0f172a",
               borderRadius: 999,
-              width: 40,
-              height: 40,
-              fontSize: 20,
+              minHeight: 40,
+              padding: "0 14px",
+              fontSize: 14,
+              fontWeight: 700,
               cursor: "pointer",
             }}
             aria-label="Close practice player"
           >
-            ×
+            Close
           </button>
         </div>
 
@@ -734,7 +861,26 @@ export default function CleanPathwayPracticePlayer({
             <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 20 }}>
               {currentItem.learnerGoal || currentItem.sectionTitle}
             </div>
+            {currentItem.task.visualModelType ? (
+              <div
+                style={{
+                  display: "inline-flex",
+                  width: "fit-content",
+                  borderRadius: 999,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  color: "#475569",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "6px 10px",
+                }}
+              >
+                {getVisualModelLabel(currentItem.task)}
+              </div>
+            ) : null}
           </div>
+
+          <CraPromptCards task={currentItem.task} mode={mode} />
 
           <VisualWorkspace task={currentItem.task} accent={tone.accent} />
 
@@ -749,7 +895,7 @@ export default function CleanPathwayPracticePlayer({
             }}
           >
             <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 24, lineHeight: 1.25 }}>
-              {currentItem.task.prompt}
+              {currentItem.task.abstractPrompt || currentItem.task.prompt}
             </div>
 
             <ResponseField
@@ -758,6 +904,23 @@ export default function CleanPathwayPracticePlayer({
               onChange={(value) => onResponseChange(currentItem.task.id, value)}
               accent={tone.accent}
             />
+
+            {currentItem.task.parentPrompt ? (
+              <div
+                style={{
+                  borderRadius: 16,
+                  border: "1px solid #e2e8f0",
+                  background: "#f8fafc",
+                  padding: "12px 14px",
+                  color: "#475569",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>Parent prompt:</strong>{" "}
+                {currentItem.task.parentPrompt}
+              </div>
+            ) : null}
 
             {currentItem.task.supportPrompt ? (
               <details
