@@ -23,6 +23,15 @@ import type { CleanEvidenceEntry } from "@/lib/clean/evidence/types";
 import type { FamilyProfile } from "@/lib/clean/family/types";
 import type { Learner } from "@/lib/clean/learners/types";
 import type { CleanAssessmentSkillStatus } from "@/lib/clean/assessments/types";
+import {
+  drawDashboardHeroCard,
+  drawDashboardMetricGrid,
+  drawDashboardMiniCardGrid,
+  type DashboardPdfMetricTile,
+  type DashboardPdfMiniCard,
+  type DashboardPdfPalette,
+  type DashboardPdfTone,
+} from "@/lib/clean/outputs/dashboardPdfPrimitives";
 
 export const CURRICULUM_COVERAGE_EMPTY_COPY =
   "No curriculum-linked evidence has been captured yet.";
@@ -173,21 +182,157 @@ function buildAssessmentSummaryLine(summary: CurriculumCoverageAssessmentSummary
   const secureOrStrong = summary.secure + summary.strong;
   const developing = summary.developing + summary.stillDeveloping;
 
-  return `Assessment confidence: ${summary.assessedCount} assessed, ${secureOrStrong} secure or strong, ${developing} developing or still developing, ${summary.notAssessedYet} not assessed yet.`;
+  return `Confidence: ${summary.assessedCount} assessed | ${secureOrStrong} secure or strong | ${developing} developing | ${summary.notAssessedYet} not assessed yet`;
 }
 
 function buildLatestEvidenceLine(entry: CleanEvidenceEntry | null) {
-  if (!entry) return "Latest evidence: No evidence linked yet.";
+  if (!entry) return "Recent evidence: waiting for first linked note.";
   return `Latest evidence: ${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
 }
 
 function buildLatestEvidenceLabel(entry: CleanEvidenceEntry | null) {
-  if (!entry) return "No evidence linked yet.";
+  if (!entry) return "Waiting for first linked note";
   return `${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
 }
 
 function buildEvidenceExampleLabel(entry: CleanEvidenceEntry) {
   return `${getEvidenceTitle(entry)} - ${formatDateLabel(entry.observedOn)}`;
+}
+
+function buildDashboardPalette(theme: PdfTheme): DashboardPdfPalette {
+  return {
+    title: theme.title,
+    heading: theme.heading,
+    body: theme.body,
+    muted: theme.muted,
+    line: theme.line,
+    surface: theme.surface,
+    accent: rgb(0.14, 0.38, 0.78),
+    accentSurface: rgb(0.95, 0.97, 1),
+    accentBorder: rgb(0.78, 0.86, 0.97),
+    success: rgb(0.08, 0.48, 0.32),
+    successSurface: rgb(0.94, 0.98, 0.96),
+    successBorder: rgb(0.74, 0.9, 0.81),
+    warning: rgb(0.72, 0.45, 0.08),
+    warningSurface: rgb(1, 0.98, 0.93),
+    warningBorder: rgb(0.96, 0.86, 0.67),
+    lavender: rgb(0.38, 0.28, 0.76),
+    lavenderSurface: rgb(0.96, 0.95, 1),
+    lavenderBorder: rgb(0.84, 0.81, 0.98),
+    neutral: rgb(0.33, 0.4, 0.49),
+    neutralSurface: rgb(0.98, 0.99, 1),
+    neutralBorder: rgb(0.86, 0.9, 0.94),
+  };
+}
+
+function buildAssessmentSnapshot(
+  summaries: Array<{ assessmentSummary: CurriculumCoverageAssessmentSummary }>,
+) {
+  return summaries.reduce(
+    (totals, summary) => {
+      totals.totalSteps += summary.assessmentSummary.totalSteps;
+      totals.evidenceLinkedStepCount += summary.assessmentSummary.evidenceLinkedStepCount;
+      totals.assessedCount += summary.assessmentSummary.assessedCount;
+      totals.notAssessedYet += summary.assessmentSummary.notAssessedYet;
+      totals.stillDeveloping += summary.assessmentSummary.stillDeveloping;
+      totals.developing += summary.assessmentSummary.developing;
+      totals.secure += summary.assessmentSummary.secure;
+      totals.strong += summary.assessmentSummary.strong;
+      return totals;
+    },
+    {
+      totalSteps: 0,
+      evidenceLinkedStepCount: 0,
+      assessedCount: 0,
+      notAssessedYet: 0,
+      stillDeveloping: 0,
+      developing: 0,
+      secure: 0,
+      strong: 0,
+    } satisfies CurriculumCoverageAssessmentSummary,
+  );
+}
+
+function getCoverageStatusTone(status: CurriculumCoverageStatus): DashboardPdfTone {
+  if (status === "Evidence building") return "success";
+  if (status === "Evidence started") return "lavender";
+  return "neutral";
+}
+
+function buildCoverageMetricTiles(model: CurriculumCoveragePdfModel): DashboardPdfMetricTile[] {
+  const mainAssessment = buildAssessmentSnapshot(model.coverageSummary.areaSummaries);
+  const secureStrongCount = mainAssessment.secure + mainAssessment.strong;
+  const developingCount =
+    mainAssessment.developing + mainAssessment.stillDeveloping;
+  const latestEvidence = model.coverageSummary.linkedEvidenceEntries[0]?.entry ?? null;
+
+  return [
+    {
+      label: "Learning areas",
+      value: `${model.coverageSummary.learningAreasWithEvidenceCount}/${model.coverageSummary.areaSummaries.length}`,
+      helper: "Areas with linked evidence",
+      tone: "accent",
+    },
+    {
+      label: "Evidence linked",
+      value: String(model.coverageSummary.totalLinkedEvidenceCount),
+      helper: latestEvidence
+        ? `Latest: ${formatDateLabel(latestEvidence.observedOn)}`
+        : "Waiting for first linked evidence",
+      tone: latestEvidence ? "success" : "neutral",
+    },
+    {
+      label: "Secure / Strong",
+      value: String(secureStrongCount),
+      helper: mainAssessment.assessedCount
+        ? "Saved confidence across pathway-linked steps"
+        : "No confidence saved yet",
+      tone: secureStrongCount ? "success" : "neutral",
+    },
+    {
+      label: "Developing",
+      value: String(developingCount),
+      helper: mainAssessment.assessedCount
+        ? "Still developing plus developing"
+        : "Confidence not started yet",
+      tone: developingCount ? "warning" : "neutral",
+    },
+    {
+      label: "Areas to revisit",
+      value: String(model.coverageSummary.areasToRevisitCount),
+      helper: "Areas still waiting for evidence",
+      tone: model.coverageSummary.areasToRevisitCount ? "warning" : "success",
+    },
+    {
+      label: "Reporting support",
+      value: model.coverageSummary.supplementaryAreaSummaries.length
+        ? `${model.coverageSummary.supplementaryAreasWithEvidenceCount}/${model.coverageSummary.supplementaryAreaSummaries.length}`
+        : "0",
+      helper: model.coverageSummary.supplementaryAreaSummaries.length
+        ? "Support areas with evidence"
+        : "No separate support areas active",
+      tone: model.coverageSummary.supplementaryAreasWithEvidenceCount ? "lavender" : "neutral",
+    },
+  ];
+}
+
+function buildAreaOverviewCards(model: CurriculumCoveragePdfModel): DashboardPdfMiniCard[] {
+  return model.coverageSummary.areaSummaries.map((summary) => ({
+    eyebrow: "Learning area",
+    title: summary.area.label,
+    description: summary.area.shortDescription,
+    lines: [
+      `Evidence: ${getEvidenceItemLabel(summary.count)}`,
+      summary.assessmentSummary.totalSteps > 0
+        ? `Confidence: ${summary.assessmentSummary.assessedCount} assessed`
+        : "Confidence: not started yet",
+      summary.latestEntry
+        ? `Recent: ${buildLatestEvidenceLabel(summary.latestEntry)}`
+        : "Recent: waiting for first linked note",
+    ],
+    badge: summary.status,
+    tone: getCoverageStatusTone(summary.status),
+  }));
 }
 
 function splitCountryAndAuthorityLabels(model: ResolvedCurriculumFrameworkMap) {
@@ -486,17 +631,6 @@ function drawHeading(
   });
   next.y -= fontSize + 6;
   return next;
-}
-
-function drawDivider(composer: PdfComposer) {
-  composer.page.drawLine({
-    start: { x: composer.margin, y: composer.y },
-    end: { x: composer.width - composer.margin, y: composer.y },
-    thickness: 1,
-    color: composer.theme.line,
-  });
-  composer.y -= 14;
-  return composer;
 }
 
 function drawHeaderLogo(composer: PdfComposer, logo: PDFImage | null) {
@@ -835,29 +969,6 @@ function drawFooter(
   });
 }
 
-function buildCoverageStatusCounts<TSummary extends { status: CurriculumCoverageStatus }>(
-  summaries: TSummary[],
-) {
-  return summaries.reduce(
-    (totals, summary) => {
-      if (summary.status === "Evidence building") {
-        totals.buildingCount += 1;
-      } else if (summary.status === "Evidence started") {
-        totals.startedCount += 1;
-      } else {
-        totals.noEvidenceCount += 1;
-      }
-
-      return totals;
-    },
-    {
-      noEvidenceCount: 0,
-      startedCount: 0,
-      buildingCount: 0,
-    },
-  );
-}
-
 function getStatusBadge(status: CurriculumCoverageStatus): StatusBadge {
   if (status === "Evidence building") {
     return {
@@ -919,22 +1030,22 @@ function buildAreaCoverageLines(summary: {
   ).length;
   const exampleEntries = summary.matchedEntries.slice(0, 2);
   const lines = [
-    `Evidence count: ${getEvidenceItemLabel(summary.count)}`,
+    `Evidence: ${getEvidenceItemLabel(summary.count)}`,
     `Elements with evidence: ${elementsWithEvidenceCount} of ${summary.elementSummaries.length}`,
-    buildLatestEvidenceLine(summary.latestEntry),
   ];
 
   if (summary.assessmentSummary.totalSteps > 0) {
-    lines.splice(2, 0, buildAssessmentSummaryLine(summary.assessmentSummary));
+    lines.push(buildAssessmentSummaryLine(summary.assessmentSummary));
   }
 
+  lines.push(buildLatestEvidenceLine(summary.latestEntry));
+
   if (!exampleEntries.length) {
-    lines.push("Evidence examples: No evidence linked yet.");
     return lines;
   }
 
   exampleEntries.forEach((entry, index) => {
-    lines.push(`Evidence example ${index + 1}: ${buildEvidenceExampleLabel(entry)}`);
+    lines.push(`Example ${index + 1}: ${buildEvidenceExampleLabel(entry)}`);
   });
 
   return lines;
@@ -947,62 +1058,19 @@ function buildElementCoverageLines(
   >,
 ) {
   const lines = [
-    `Linked evidence: ${getEvidenceItemLabel(summary.count)}`,
-    buildLatestEvidenceLine(summary.latestEntry),
+    `Evidence: ${getEvidenceItemLabel(summary.count)}`,
   ];
   if (summary.assessmentSummary.totalSteps > 0) {
-    lines.splice(1, 0, buildAssessmentSummaryLine(summary.assessmentSummary));
+    lines.push(buildAssessmentSummaryLine(summary.assessmentSummary));
   }
+  lines.push(buildLatestEvidenceLine(summary.latestEntry));
   const exampleEntry = summary.matchedEntries[0] ?? null;
 
-  lines.push(
-    exampleEntry
-      ? `Example evidence: ${buildEvidenceExampleLabel(exampleEntry)}`
-      : "Example evidence: No evidence linked yet.",
-  );
-
-  return lines;
-}
-
-function buildStatusGuideLines() {
-  return [
-    "No evidence yet: no linked evidence has been captured in MyLearna for this area yet.",
-    "Evidence started: one linked evidence example has been captured for this area.",
-    "Evidence building: two or more linked evidence examples are now on record for this area.",
-  ];
-}
-
-function buildSectionGuideLines(model: CurriculumCoveragePdfModel) {
-  const lines = [
-    "Coverage summary: calm headline counts and a quick scan across the current framework.",
-    "Learning area coverage: broad areas showing where evidence is starting to build.",
-    "Curriculum element breakdown: wider elements sitting under each learning area.",
-  ];
-
-  if (model.coverageSummary.supplementaryAreaSummaries.length) {
-    lines.push(
-      `${model.resolvedFramework.supplementarySectionTitle}: additional support and reporting areas linked to the active framework.`,
-    );
+  if (exampleEntry) {
+    lines.push(`Example: ${buildEvidenceExampleLabel(exampleEntry)}`);
   }
 
-  lines.push(
-    "Evidence appendix: linked evidence entries grouped by learning area for easier review.",
-  );
-
   return lines;
-}
-
-function buildQuickAreaScanLines(
-  summaries: Array<{
-    area: { label: string };
-    status: CurriculumCoverageStatus;
-    count: number;
-  }>,
-) {
-  return summaries.map(
-    (summary) =>
-      `${summary.area.label}: ${summary.status} (${getEvidenceItemLabel(summary.count)})`,
-  );
 }
 
 function buildAppendixGroups(model: CurriculumCoveragePdfModel) {
@@ -1048,55 +1116,6 @@ function buildCoverMetaItems(model: CurriculumCoveragePdfModel): LabelValueItem[
   ];
 }
 
-function buildSummaryMetricCards(model: CurriculumCoveragePdfModel) {
-  const areaStatusCounts = buildCoverageStatusCounts(model.coverageSummary.areaSummaries);
-  const supplementaryStatusCounts = buildCoverageStatusCounts(
-    model.coverageSummary.supplementaryAreaSummaries,
-  );
-  const latestLinkedEvidence = model.coverageSummary.linkedEvidenceEntries[0]?.entry ?? null;
-  const cards = [
-    {
-      title: "Learning areas with evidence",
-      description: `${model.coverageSummary.learningAreasWithEvidenceCount} of ${model.coverageSummary.areaSummaries.length} learning areas have linked evidence.`,
-      lines: [
-        `${areaStatusCounts.buildingCount} areas are in Evidence building.`,
-        `${areaStatusCounts.startedCount} areas are in Evidence started.`,
-        `${areaStatusCounts.noEvidenceCount} areas are still showing No evidence yet.`,
-      ],
-    },
-    {
-      title: "Total linked evidence entries",
-      description: `${model.coverageSummary.totalLinkedEvidenceCount} linked evidence entries`,
-      lines: [
-        model.coverageSummary.hasLinkedEvidence
-          ? `Latest linked evidence: ${buildLatestEvidenceLabel(latestLinkedEvidence)}`
-          : CURRICULUM_COVERAGE_EMPTY_COPY,
-      ],
-    },
-    {
-      title: "Areas to revisit",
-      description: `${model.coverageSummary.areasToRevisitCount} areas may need more evidence.`,
-      lines: [
-        "Use this as a calm prompt for where you may want to capture more next.",
-        "A revisit area simply means no linked evidence has been captured there yet.",
-      ],
-    },
-  ];
-
-  if (model.coverageSummary.supplementaryAreaSummaries.length) {
-    cards.push({
-      title: model.resolvedFramework.supplementaryMetricLabel,
-      description: `${model.coverageSummary.supplementaryAreasWithEvidenceCount} of ${model.coverageSummary.supplementaryAreaSummaries.length} areas have linked evidence.`,
-      lines: [
-        model.resolvedFramework.supplementaryMetricCopy,
-        `${supplementaryStatusCounts.buildingCount} building, ${supplementaryStatusCounts.startedCount} started, ${supplementaryStatusCounts.noEvidenceCount} with no evidence yet.`,
-      ],
-    });
-  }
-
-  return cards;
-}
-
 export async function generateCurriculumCoveragePdfBytes(
   model: CurriculumCoveragePdfModel,
 ) {
@@ -1112,8 +1131,11 @@ export async function generateCurriculumCoveragePdfBytes(
     line: rgb(0.85, 0.89, 0.94),
     surface: rgb(0.97, 0.98, 1),
   };
+  const dashboardPalette = buildDashboardPalette(theme);
   let composer = createComposer(doc, regular, bold, theme);
   const logo = await loadSafeLogoImage(doc);
+  const latestLinkedEvidence = model.coverageSummary.linkedEvidenceEntries[0]?.entry ?? null;
+  const assessmentSnapshot = buildAssessmentSnapshot(model.coverageSummary.areaSummaries);
 
   composer.page.drawRectangle({
     x: 0,
@@ -1135,9 +1157,52 @@ export async function generateCurriculumCoveragePdfBytes(
     fontSize: 10.5,
     lineHeight: 14,
     color: theme.muted,
-    spacingAfter: 18,
+    spacingAfter: 14,
   });
-
+  composer = drawDashboardHeroCard(composer, dashboardPalette, {
+    eyebrow: "Learning Snapshot",
+    title: "A printable overview of evidence, confidence, and coverage",
+    subtitle: `This record brings together pathway-linked evidence, curriculum coverage, and reporting support for ${model.learnerName}.`,
+    statusLabel: model.coverageSummary.hasLinkedEvidence ? "Evidence linked" : "Ready to start",
+    supportingBadges: [
+      model.frameworkLabel,
+      model.generatedOnLabel,
+    ],
+    note:
+      "Use this snapshot first, then move into the detailed coverage map only when you need area-level reporting checks or export preparation.",
+    statLines: [
+      {
+        label: "Latest activity",
+        value: latestLinkedEvidence
+          ? buildLatestEvidenceLabel(latestLinkedEvidence)
+          : "Waiting for first linked evidence",
+        tone: latestLinkedEvidence ? "success" : "neutral",
+      },
+      {
+        label: "Confidence saved",
+        value: assessmentSnapshot.assessedCount
+          ? `${assessmentSnapshot.assessedCount} pathway steps assessed`
+          : "No confidence saved yet",
+        tone: assessmentSnapshot.assessedCount ? "accent" : "neutral",
+      },
+      {
+        label: "Areas to revisit",
+        value: model.coverageSummary.areasToRevisitCount
+          ? `${model.coverageSummary.areasToRevisitCount} still waiting for evidence`
+          : "Every area has started to build",
+        tone: model.coverageSummary.areasToRevisitCount ? "warning" : "success",
+      },
+    ],
+  });
+  composer = drawDashboardMetricGrid(
+    composer,
+    dashboardPalette,
+    buildCoverageMetricTiles(model),
+    {
+      columns: 3,
+      spacingAfter: 10,
+    },
+  );
   composer = drawMetaCard(
     composer,
     "At a glance",
@@ -1147,58 +1212,46 @@ export async function generateCurriculumCoveragePdfBytes(
       border: theme.accent,
     },
   );
-  composer = drawCard(
-    composer,
-    "How to read the language in this record",
-    null,
-    buildStatusGuideLines(),
-  );
-  composer = drawCard(
-    composer,
-    "What is included",
-    null,
-    buildSectionGuideLines(model),
-  );
   composer = drawInfoCard(
     composer,
-    "Family record keeping note",
+    "Family reporting note",
     model.disclaimer,
   );
   composer = drawCard(
     composer,
-    "Using this record",
+    "How to use this record",
     null,
     [
-      "Use this record to see which learning areas already have evidence, which areas are beginning to build, and which areas you may want to revisit next.",
-      "This is designed to support calm family review and reporting preparation rather than assessment scoring.",
+      "Start with the Learning Snapshot for the broad picture, then open the detailed sections only where you need closer reporting support.",
+      "This record is designed for calm family review and reporting preparation rather than assessment scoring.",
     ],
   );
 
   composer = startNewPage(composer);
-  composer = drawHeading(composer, "Coverage summary");
+  composer = drawHeading(composer, "Learning area progress");
   composer = drawTextBlock(composer, model.resolvedFramework.helperCopy, {
     color: theme.body,
     spacingAfter: 10,
   });
-
-  buildSummaryMetricCards(model).forEach((card) => {
-    composer = drawCard(composer, card.title, card.description, card.lines);
-  });
-
-  composer = drawDivider(composer);
-  composer = drawCard(
+  composer = drawDashboardMiniCardGrid(
     composer,
-    "Quick area scan",
-    "A simple scan of the current learning areas and their current evidence status.",
-    buildQuickAreaScanLines(model.coverageSummary.areaSummaries),
+    dashboardPalette,
+    buildAreaOverviewCards(model),
+    {
+      columns: 2,
+      spacingAfter: 10,
+    },
   );
 
   if (model.coverageSummary.supplementaryAreaSummaries.length) {
     composer = drawCard(
       composer,
       model.resolvedFramework.supplementarySectionTitle,
-      "These support areas are included because they are active for this framework.",
-      buildQuickAreaScanLines(model.coverageSummary.supplementaryAreaSummaries),
+      "These support areas are active for the current framework.",
+      model.coverageSummary.supplementaryAreaSummaries.map(
+        (summary) =>
+          `${summary.area.label}: ${summary.status} (${getEvidenceItemLabel(summary.count)})`,
+      ),
     );
   }
 
@@ -1239,6 +1292,12 @@ export async function generateCurriculumCoveragePdfBytes(
 
   model.coverageSummary.areaSummaries.forEach((areaSummary) => {
     const areaStatusStyle = getStatusCardStyle(areaSummary.status);
+    const activeElementSummaries = areaSummary.elementSummaries.filter(
+      (elementSummary) =>
+        elementSummary.count > 0 ||
+        elementSummary.assessmentSummary.assessedCount > 0 ||
+        elementSummary.assessmentSummary.evidenceLinkedStepCount > 0,
+    );
     composer = drawHeading(composer, areaSummary.area.label, 2, {
       minFollowingSpace: 84,
     });
@@ -1258,7 +1317,7 @@ export async function generateCurriculumCoveragePdfBytes(
       },
     );
 
-    areaSummary.elementSummaries.forEach((elementSummary) => {
+    activeElementSummaries.forEach((elementSummary) => {
       const elementStatusStyle = getStatusCardStyle(elementSummary.status);
       composer = drawCard(
         composer,
@@ -1272,6 +1331,18 @@ export async function generateCurriculumCoveragePdfBytes(
         },
       );
     });
+
+    if (!activeElementSummaries.length) {
+      composer = drawCard(
+        composer,
+        "Element detail",
+        null,
+        [
+          "No element-level evidence or saved confidence is linked here yet.",
+          "Use this area overview as the main signal until more detailed evidence is added.",
+        ],
+      );
+    }
   });
 
   if (model.coverageSummary.supplementaryAreaSummaries.length) {

@@ -11,6 +11,15 @@ import type {
   CleanReportSection,
   CleanReportingPeriod,
 } from "@/lib/clean/reports/types";
+import {
+  drawDashboardHeroCard,
+  drawDashboardMetricGrid,
+  drawDashboardMiniCardGrid,
+  type DashboardPdfMetricTile,
+  type DashboardPdfMiniCard,
+  type DashboardPdfPalette,
+  type DashboardPdfTone,
+} from "@/lib/clean/outputs/dashboardPdfPrimitives";
 
 export type CleanReportPdfEvidenceItem = {
   id: string;
@@ -110,15 +119,6 @@ function formatDateRange(period: CleanReportingPeriod | null) {
   return `${formatDateLabel(period.startsOn)} to ${formatDateLabel(period.endsOn)}`;
 }
 
-function buildEvidenceMetaLine(item: CleanReportPdfEvidenceItem) {
-  return [
-    item.observedOn ? formatDateLabel(item.observedOn) : "",
-    safe(item.learningArea),
-  ]
-    .filter(Boolean)
-    .join(" | ");
-}
-
 function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
   const parts = [
     safe(item.programTitle) ? `Program: ${safe(item.programTitle)}` : "",
@@ -127,6 +127,132 @@ function buildEvidenceContextLine(item: CleanReportPdfEvidenceItem) {
   ].filter(Boolean);
 
   return parts.join(" | ");
+}
+
+function buildDashboardPalette(theme: PdfTheme): DashboardPdfPalette {
+  return {
+    title: theme.title,
+    heading: theme.heading,
+    body: theme.body,
+    muted: theme.muted,
+    line: theme.accent,
+    surface: theme.surface,
+    accent: rgb(0.14, 0.38, 0.78),
+    accentSurface: rgb(0.95, 0.97, 1),
+    accentBorder: rgb(0.78, 0.86, 0.97),
+    success: rgb(0.08, 0.48, 0.32),
+    successSurface: rgb(0.94, 0.98, 0.96),
+    successBorder: rgb(0.74, 0.9, 0.81),
+    warning: rgb(0.72, 0.45, 0.08),
+    warningSurface: rgb(1, 0.98, 0.93),
+    warningBorder: rgb(0.96, 0.86, 0.67),
+    lavender: rgb(0.38, 0.28, 0.76),
+    lavenderSurface: rgb(0.96, 0.95, 1),
+    lavenderBorder: rgb(0.84, 0.81, 0.98),
+    neutral: rgb(0.33, 0.4, 0.49),
+    neutralSurface: rgb(0.98, 0.99, 1),
+    neutralBorder: rgb(0.86, 0.9, 0.94),
+  };
+}
+
+function getLatestEvidenceItem(items: CleanReportPdfEvidenceItem[]) {
+  return [...items].sort((left, right) => {
+    const leftValue = Date.parse(`${safe(left.observedOn)}T00:00:00`) || 0;
+    const rightValue = Date.parse(`${safe(right.observedOn)}T00:00:00`) || 0;
+    return rightValue - leftValue;
+  })[0] ?? null;
+}
+
+function getReportStatusTone(statusLabel: string): DashboardPdfTone {
+  const normalized = safe(statusLabel).toLowerCase();
+  if (normalized.includes("ready")) return "success";
+  if (normalized.includes("draft")) return "warning";
+  return "accent";
+}
+
+function buildLearningRecordMetricTiles(
+  model: CleanReportPdfModel,
+  learningAreas: string[],
+): DashboardPdfMetricTile[] {
+  const latestEvidence = getLatestEvidenceItem(model.evidenceItems);
+  return [
+    {
+      label: "Selected evidence",
+      value: String(model.evidenceItems.length),
+      helper: model.evidenceItems.length
+        ? "Portfolio-linked evidence entries"
+        : "Waiting for first selected evidence",
+      tone: "accent",
+    },
+    {
+      label: "Report sections",
+      value: String(model.sections.length),
+      helper: model.sections.length
+        ? "Written sections shaping the record"
+        : "No sections saved yet",
+      tone: "neutral",
+    },
+    {
+      label: "Learning areas",
+      value: String(learningAreas.length),
+      helper: learningAreas.length
+        ? learningAreas.slice(0, 3).join(", ")
+        : "Not recorded yet",
+      tone: "lavender",
+    },
+    {
+      label: "Report status",
+      value: model.statusLabel,
+      helper: model.reportingPeriod?.title || "Current learning record",
+      tone: getReportStatusTone(model.statusLabel),
+    },
+    {
+      label: "Latest evidence",
+      value: latestEvidence?.observedOn
+        ? formatDateLabel(latestEvidence.observedOn)
+        : "Waiting",
+      helper: latestEvidence?.title || "No linked evidence yet",
+      tone: latestEvidence ? "success" : "neutral",
+    },
+  ];
+}
+
+function buildEvidenceHighlightCards(items: CleanReportPdfEvidenceItem[]): DashboardPdfMiniCard[] {
+  const visibleItems = items.slice(0, 6).map((item, index) => {
+    const metaParts = [
+      item.observedOn ? formatDateLabel(item.observedOn) : null,
+      safe(item.learningArea) || null,
+    ].filter(Boolean) as string[];
+    const contextLine = buildEvidenceContextLine(item);
+
+    return {
+      eyebrow: `Evidence ${index + 1}`,
+      title: item.title,
+      description: metaParts.join(" | ") || "Learning record evidence",
+      lines: [
+        contextLine || "Linked directly to this learning record.",
+        normalizeText(item.whatHappened).slice(0, 140) ||
+          "No narrative note recorded yet.",
+      ],
+      badge: safe(item.learningArea) || "Evidence",
+      tone: "accent" as DashboardPdfTone,
+    };
+  });
+
+  if (items.length > 6) {
+    visibleItems.push({
+      eyebrow: "More evidence",
+      title: `+ ${items.length - 6} more evidence item${items.length - 6 === 1 ? "" : "s"}`,
+      description: "Continue to the detail section for the full record.",
+      lines: [
+        "This snapshot keeps the first page lighter while the full appendix stays available below.",
+      ],
+      badge: "Details",
+      tone: "neutral",
+    });
+  }
+
+  return visibleItems;
 }
 
 async function loadSafeLogoImage(doc: PDFDocument) {
@@ -637,82 +763,17 @@ function drawSummaryCard(
 function drawEvidenceSummaryCard(
   composer: PdfComposer,
   items: CleanReportPdfEvidenceItem[],
+  palette: DashboardPdfPalette,
 ) {
-  const width = composer.width - composer.margin * 2 - 28;
-  const titleHeight = 14;
-  const itemPrepared = items.map((item, index) => {
-    const titleLines = wrapText(
-      `${index + 1}. ${item.title}`,
-      composer.bold,
-      11.5,
-      width,
-    );
-    const meta = buildEvidenceMetaLine(item);
-    const metaLines = meta
-      ? wrapText(meta, composer.regular, 9.75, width)
-      : [];
-    return { titleLines, metaLines };
-  });
-  const contentHeight = itemPrepared.reduce((sum, item) => {
-    const titleHeightUsed = measureWrappedLines(item.titleLines, 15);
-    const metaHeightUsed = item.metaLines.length
-      ? measureWrappedLines(item.metaLines, 13) + 2
-      : 0;
-    return sum + titleHeightUsed + metaHeightUsed + 10;
-  }, 0);
-  const totalHeight = 18 + titleHeight + 12 + contentHeight + 16;
-  const next = ensureSpace(composer, totalHeight + 10);
-  const top = next.y;
-
-  drawPanel(next, top, totalHeight, {
-    fill: next.theme.surface,
-    border: next.theme.accent,
-  });
-
-  next.page.drawText("Selected evidence in this record", {
-    x: next.margin + 14,
-    y: top - 18,
-    size: 11.5,
-    font: next.bold,
-    color: next.theme.heading,
-  });
-
-  let cursor = top - 40;
-  itemPrepared.forEach((item, index) => {
-    cursor = drawPreparedLines(next, item.titleLines, {
-      x: next.margin + 14,
-      y: cursor,
-      font: next.bold,
-      fontSize: 11.5,
-      lineHeight: 15,
-      color: next.theme.heading,
-    });
-
-    if (item.metaLines.length) {
-      cursor = drawPreparedLines(next, item.metaLines, {
-        x: next.margin + 14,
-        y: cursor,
-        font: next.regular,
-        fontSize: 9.75,
-        lineHeight: 13,
-        color: next.theme.muted,
-      });
-      cursor -= 2;
-    }
-
-    if (index < itemPrepared.length - 1) {
-      next.page.drawLine({
-        start: { x: next.margin + 14, y: cursor },
-        end: { x: next.width - next.margin - 14, y: cursor },
-        thickness: 1,
-        color: next.theme.accent,
-      });
-      cursor -= 10;
-    }
-  });
-
-  next.y = top - totalHeight - 8;
-  return next;
+  return drawDashboardMiniCardGrid(
+    composer,
+    palette,
+    buildEvidenceHighlightCards(items),
+    {
+      columns: 2,
+      spacingAfter: 12,
+    },
+  );
 }
 
 function drawReportSectionCard(
@@ -972,9 +1033,11 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     accent: rgb(0.85, 0.89, 0.94),
     surface: rgb(0.97, 0.985, 1),
   };
+  const dashboardPalette = buildDashboardPalette(theme);
   const overviewText = model.reportingPeriod
     ? `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel} during ${model.reportingPeriod.title}.`
     : `This learning record brings together selected portfolio evidence and written report sections for ${model.learnerLabel}.`;
+  const latestEvidence = getLatestEvidenceItem(model.evidenceItems);
 
   let composer = createComposer(doc, regular, bold, theme);
 
@@ -1020,6 +1083,48 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     },
   );
   composer = drawCenteredRule(composer, 136);
+  composer = drawDashboardHeroCard(composer, dashboardPalette, {
+    eyebrow: "Learning Snapshot",
+    title: "A printable view of this learning record",
+    subtitle: overviewText,
+    statusLabel: model.statusLabel,
+    supportingBadges: [
+      model.reportingPeriod?.title || "Current learning record",
+      model.preparedOnLabel,
+    ],
+    note:
+      "Selected evidence, written sections, and reporting context are grouped here so the record is easier to scan before sharing or exporting.",
+    statLines: [
+      {
+        label: "Reporting period",
+        value: model.reportingPeriod?.title || "Current learning record",
+        tone: "accent",
+      },
+      {
+        label: "Latest activity",
+        value: latestEvidence
+          ? `${formatDateLabel(latestEvidence.observedOn)} - ${latestEvidence.title}`
+          : "Waiting for first selected evidence",
+        tone: latestEvidence ? "success" : "neutral",
+      },
+      {
+        label: "Learning areas",
+        value: learningAreas.length
+          ? `${learningAreas.length} represented`
+          : "Not recorded yet",
+        tone: learningAreas.length ? "lavender" : "neutral",
+      },
+    ],
+  });
+  composer = drawDashboardMetricGrid(
+    composer,
+    dashboardPalette,
+    buildLearningRecordMetricTiles(model, learningAreas),
+    {
+      columns: 3,
+      spacingAfter: 10,
+    },
+  );
   composer = drawMetaCard(composer, [
     { label: "Learner", value: model.learnerLabel },
     {
@@ -1039,10 +1144,10 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
       border: theme.accent,
     },
   );
-  composer = drawSummaryCard(composer, "Learning record snapshot", [
+  composer = drawSummaryCard(composer, "Record summary", [
     `${model.evidenceItems.length} selected ${model.evidenceItems.length === 1 ? "evidence entry supports" : "evidence entries support"} this learning record.`,
-    `${model.sections.length} written ${model.sections.length === 1 ? "section shapes" : "sections shape"} the narrative of the report.`,
-    `Learning areas represented: ${learningAreas.length ? learningAreas.join(", ") : "Not recorded"}.`,
+    `${model.sections.length} written ${model.sections.length === 1 ? "section shapes" : "sections shape"} the narrative.`,
+    `Learning areas represented: ${learningAreas.length ? learningAreas.join(", ") : "Not recorded yet"}.`,
   ]);
 
   composer = startNewPage(composer);
@@ -1051,7 +1156,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   });
   composer = drawTextBlock(
     composer,
-    "A quick view of the selected evidence included in this learning record.",
+    "A quick scan of the selected evidence included in this learning record.",
     {
       fontSize: 10.75,
       lineHeight: 15,
@@ -1060,7 +1165,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
     },
   );
   if (model.evidenceItems.length) {
-    composer = drawEvidenceSummaryCard(composer, model.evidenceItems);
+    composer = drawEvidenceSummaryCard(composer, model.evidenceItems, dashboardPalette);
   } else {
     composer = drawTextBlock(
       composer,
@@ -1094,7 +1199,7 @@ export async function generateCleanReportPdfBytes(model: CleanReportPdfModel) {
   });
   composer = drawTextBlock(
     composer,
-    "These notes show the selected evidence that sits behind the written report and helps trace the learning record back to the source entries.",
+    "These notes sit behind the written report and make it easier to trace the learning record back to the source entries.",
     {
       fontSize: 10.75,
       lineHeight: 15,
