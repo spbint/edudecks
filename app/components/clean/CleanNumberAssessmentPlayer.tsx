@@ -22,6 +22,24 @@ type LocalAssessmentResponse = {
   result: LocalAssessmentResult;
 };
 
+type LocalAdaptiveInsightSummary = {
+  attemptedCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  reviewNeededCount: number;
+  topMisconceptionTargets: Array<{ code: string; label: string; count: number }>;
+  topPracticeRecommendations: Array<{ recommendation: string; count: number }>;
+  suggestedFocusAreas: string[];
+  suggestedNextStep: string;
+  parentJudgementPrompt: string;
+};
+
+type ParentJudgement =
+  | "secure"
+  | "developing"
+  | "needs_support"
+  | "not_enough_evidence_yet";
+
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
@@ -161,6 +179,32 @@ const progressTrackStyle: React.CSSProperties = {
   borderRadius: 999,
   background: "#e2e8f0",
   overflow: "hidden",
+};
+
+const parentJudgementToneMeta: Record<
+  ParentJudgement,
+  { border: string; background: string; color: string }
+> = {
+  secure: {
+    border: "#bbf7d0",
+    background: "#f0fdf4",
+    color: "#166534",
+  },
+  developing: {
+    border: "#fde68a",
+    background: "#fffbeb",
+    color: "#b45309",
+  },
+  needs_support: {
+    border: "#c7d2fe",
+    background: "#eef2ff",
+    color: "#4338ca",
+  },
+  not_enough_evidence_yet: {
+    border: "#cbd5e1",
+    background: "#f8fafc",
+    color: "#475569",
+  },
 };
 
 function getDifficultyTone(
@@ -384,27 +428,194 @@ function getAnswerModeLabel(item: NumberAssessmentItem) {
 
 function getMisconceptionLabel(code: string) {
   if (code === "rounding-place-value-error") {
-    return "Place value and rounding choice";
+    return "Rounding and decimal place value";
   }
   if (code === "truncation-vs-rounding-confusion") {
-    return "Truncation and rounding confusion";
+    return "Truncation compared with rounding";
   }
   if (code === "decimal-operation-error") {
     return "Decimal operation error";
   }
   if (code === "estimated-exact-confusion") {
-    return "Estimate versus exact value confusion";
+    return "Estimated versus exact values";
   }
   if (code === "unit-conversion-error") {
-    return "Unit or measurement confusion";
+    return "Units and measurement conversion";
   }
   if (code === "percentage-or-rate-context-error") {
-    return "Percentage or rate context confusion";
+    return "Percentages, rates or financial contexts";
   }
   if (code === "rounding-too-early") {
     return "Rounding too early";
   }
-  return "Reasonableness not checked";
+  return "Checking whether an answer is reasonable";
+}
+
+function getFocusAreaFromMisconception(code: string) {
+  if (code === "rounding-place-value-error") {
+    return "Focus on reading decimal places carefully before rounding.";
+  }
+  if (code === "truncation-vs-rounding-confusion") {
+    return "Focus on comparing truncation with rounding on the same decimal values.";
+  }
+  if (code === "decimal-operation-error") {
+    return "Practise using sensible decimal operations after values have been rounded.";
+  }
+  if (code === "estimated-exact-confusion") {
+    return "Review when an estimate should be close to the exact answer and when the difference matters.";
+  }
+  if (code === "unit-conversion-error") {
+    return "Revisit units and measurement language when comparing approximate values.";
+  }
+  if (code === "percentage-or-rate-context-error") {
+    return "Practise choosing reasonable approximations in money, percentage, or rate contexts.";
+  }
+  if (code === "rounding-too-early") {
+    return "Practise when to round in a calculation so early rounding does not change the final result.";
+  }
+  return "Practise checking whether an answer is reasonable for the context.";
+}
+
+function getParentJudgementLabel(value: ParentJudgement) {
+  if (value === "secure") return "Secure";
+  if (value === "developing") return "Developing";
+  if (value === "needs_support") return "Needs support";
+  return "Not enough evidence yet";
+}
+
+function getParentJudgementTone(
+  value: ParentJudgement,
+  selected: boolean,
+): React.CSSProperties {
+  const tone = parentJudgementToneMeta[value];
+
+  return {
+    ...secondaryButtonStyle,
+    border: `1px solid ${tone.border}`,
+    background: selected ? tone.background : "#ffffff",
+    color: tone.color,
+    boxShadow: selected ? "0 8px 18px rgba(15,23,42,0.06)" : "none",
+  };
+}
+
+function buildAdaptiveInsightSummary(
+  items: NumberAssessmentItem[],
+  responses: Record<string, LocalAssessmentResponse>,
+): LocalAdaptiveInsightSummary {
+  const responseList = items.map(
+    (item) => responses[item.id] ?? createEmptyResponse(item.id),
+  );
+
+  const attemptedCount = responseList.filter(
+    (response) => response.submitted || normalizeValue(response.response).length,
+  ).length;
+  const correctCount = responseList.filter(
+    (response) => response.result === "correct",
+  ).length;
+  const incorrectCount = responseList.filter(
+    (response) => response.result === "incorrect",
+  ).length;
+  const reviewNeededCount = responseList.filter(
+    (response) => response.result === "review_needed",
+  ).length;
+
+  const targetedItems = items.filter((item) => {
+    const response = responses[item.id];
+    return (
+      response?.result === "incorrect" || response?.result === "review_needed"
+    );
+  });
+
+  const misconceptionCounts = new Map<string, number>();
+  const recommendationCounts = new Map<string, number>();
+
+  targetedItems.forEach((item) => {
+    item.misconceptionTargets.forEach((code) => {
+      misconceptionCounts.set(code, (misconceptionCounts.get(code) ?? 0) + 1);
+    });
+
+    const recommendation = item.adaptiveRoute.practiceRecommendation.trim();
+    if (recommendation) {
+      recommendationCounts.set(
+        recommendation,
+        (recommendationCounts.get(recommendation) ?? 0) + 1,
+      );
+    }
+  });
+
+  const topMisconceptionTargets = Array.from(misconceptionCounts.entries())
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 3)
+    .map(([code, count]) => ({
+      code,
+      label: getMisconceptionLabel(code),
+      count,
+    }));
+
+  const topPracticeRecommendations = Array.from(recommendationCounts.entries())
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .slice(0, 3)
+    .map(([recommendation, count]) => ({
+      recommendation,
+      count,
+    }));
+
+  const suggestedFocusAreas = topMisconceptionTargets.map((entry) =>
+    getFocusAreaFromMisconception(entry.code),
+  );
+
+  let suggestedNextStep =
+    "Complete a few more items, then review the main practice focus before deciding whether this learning is secure.";
+
+  const topCodes = topMisconceptionTargets.map((entry) => entry.code);
+
+  if (attemptedCount === 0) {
+    suggestedNextStep =
+      "Start the preview with a few items first, then use the pattern summary to decide the next practice focus.";
+  } else if (
+    correctCount >= Math.max(8, items.length - 2) &&
+    incorrectCount === 0 &&
+    reviewNeededCount === 0
+  ) {
+    suggestedNextStep =
+      "This learner appears ready for more complex approximation and error-analysis contexts.";
+  } else if (reviewNeededCount >= 2 && incorrectCount === 0 && correctCount >= 4) {
+    suggestedNextStep =
+      "The closed responses look strong. Review the explanation responses with an adult before moving forward.";
+  } else if (
+    topCodes.includes("rounding-place-value-error") ||
+    topCodes.includes("truncation-vs-rounding-confusion")
+  ) {
+    suggestedNextStep =
+      "Return to practice that compares rounding and truncating the same decimal values before trying repeated approximation problems.";
+  } else if (
+    topCodes.includes("estimated-exact-confusion") ||
+    topCodes.includes("reasonableness-not-checked")
+  ) {
+    suggestedNextStep =
+      "Practise comparing exact answers with estimates and explaining whether the difference matters in context.";
+  } else if (topCodes.includes("rounding-too-early")) {
+    suggestedNextStep =
+      "Revisit calculations where rounding early changes the final result, then retry repeated approximation items.";
+  } else if (reviewNeededCount >= 2) {
+    suggestedNextStep =
+      "Review the explanation responses with an adult before deciding whether this concept is secure.";
+  } else if (topPracticeRecommendations[0]) {
+    suggestedNextStep = topPracticeRecommendations[0].recommendation;
+  }
+
+  return {
+    attemptedCount,
+    correctCount,
+    incorrectCount,
+    reviewNeededCount,
+    topMisconceptionTargets,
+    topPracticeRecommendations,
+    suggestedFocusAreas,
+    suggestedNextStep,
+    parentJudgementPrompt:
+      "Based on this preview, how would you judge this learning focus?",
+  };
 }
 
 export default function CleanNumberAssessmentPlayer() {
@@ -413,6 +624,9 @@ export default function CleanNumberAssessmentPlayer() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
+  const [parentJudgement, setParentJudgement] = useState<ParentJudgement | null>(
+    null,
+  );
   const [responses, setResponses] = useState<
     Record<string, LocalAssessmentResponse>
   >({});
@@ -422,64 +636,10 @@ export default function CleanNumberAssessmentPlayer() {
     responses[currentItem.id] ?? createEmptyResponse(currentItem.id);
   const currentProgress = ((currentIndex + 1) / totalItems) * 100;
 
-  const summary = useMemo(() => {
-    const responseList = items.map(
-      (item) => responses[item.id] ?? createEmptyResponse(item.id),
-    );
-
-    const attemptedItems = responseList.filter(
-      (response) => response.submitted || normalizeValue(response.response).length,
-    ).length;
-    const correctCount = responseList.filter(
-      (response) => response.result === "correct",
-    ).length;
-    const incorrectCount = responseList.filter(
-      (response) => response.result === "incorrect",
-    ).length;
-    const reviewNeededCount = responseList.filter(
-      (response) => response.result === "review_needed",
-    ).length;
-
-    const targetedItems = items.filter((item) => {
-      const response = responses[item.id];
-      return (
-        response?.result === "incorrect" || response?.result === "review_needed"
-      );
-    });
-
-    const misconceptionCounts = new Map<string, number>();
-    const recommendationCounts = new Map<string, number>();
-
-    targetedItems.forEach((item) => {
-      item.misconceptionTargets.forEach((code) => {
-        misconceptionCounts.set(code, (misconceptionCounts.get(code) ?? 0) + 1);
-      });
-      const recommendation = item.adaptiveRoute.practiceRecommendation.trim();
-      if (recommendation) {
-        recommendationCounts.set(
-          recommendation,
-          (recommendationCounts.get(recommendation) ?? 0) + 1,
-        );
-      }
-    });
-
-    const mostCommonMisconceptions = Array.from(misconceptionCounts.entries())
-      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-      .slice(0, 3);
-
-    const practiceFocuses = Array.from(recommendationCounts.entries())
-      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-      .slice(0, 3);
-
-    return {
-      attemptedItems,
-      correctCount,
-      incorrectCount,
-      reviewNeededCount,
-      mostCommonMisconceptions,
-      practiceFocuses,
-    };
-  }, [items, responses]);
+  const summary = useMemo(
+    () => buildAdaptiveInsightSummary(items, responses),
+    [items, responses],
+  );
 
   function updateResponse(itemId: string, value: string) {
     setResponses((current) => ({
@@ -521,6 +681,7 @@ export default function CleanNumberAssessmentPlayer() {
   function resetPreview() {
     setCurrentIndex(0);
     setShowSummary(false);
+    setParentJudgement(null);
     setResponses({});
   }
 
@@ -612,7 +773,7 @@ export default function CleanNumberAssessmentPlayer() {
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Attempted</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>
-                    {summary.attemptedItems}
+                    {summary.attemptedCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
@@ -622,13 +783,13 @@ export default function CleanNumberAssessmentPlayer() {
                   </div>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Incorrect</div>
+                  <div style={eyebrowStyle}>Worth revisiting</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#b45309" }}>
                     {summary.incorrectCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Review needed</div>
+                  <div style={eyebrowStyle}>Needs adult review</div>
                   <div style={{ fontSize: 28, fontWeight: 800, color: "#4338ca" }}>
                     {summary.reviewNeededCount}
                   </div>
@@ -643,39 +804,114 @@ export default function CleanNumberAssessmentPlayer() {
                 }}
               >
                 <div style={helperCardStyle}>
-                  <div style={eyebrowStyle}>Misconception signals</div>
-                  {summary.mostCommonMisconceptions.length ? (
-                    summary.mostCommonMisconceptions.map(([code, count]) => (
-                      <div key={code} style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                        <strong>{count}x</strong> {getMisconceptionLabel(code)}
+                  <div style={eyebrowStyle}>What this may show</div>
+                  {summary.topMisconceptionTargets.length ? (
+                    summary.topMisconceptionTargets.map((entry) => (
+                      <div
+                        key={entry.code}
+                        style={{ color: "#0f172a", lineHeight: 1.6 }}
+                      >
+                        <strong>{entry.count}x</strong> {entry.label}
                       </div>
                     ))
                   ) : (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      No recurring misconception signals were detected in this local
-                      run.
+                      No clear learning focus has appeared yet in this local run.
                     </div>
                   )}
                 </div>
 
                 <div style={helperCardStyle}>
-                  <div style={eyebrowStyle}>Suggested practice focus</div>
-                  {summary.practiceFocuses.length ? (
-                    summary.practiceFocuses.map(([recommendation, count]) => (
+                  <div style={eyebrowStyle}>Suggested focus areas</div>
+                  {summary.suggestedFocusAreas.length ? (
+                    summary.suggestedFocusAreas.map((focus) => (
                       <div
-                        key={recommendation}
+                        key={focus}
                         style={{ color: "#0f172a", lineHeight: 1.6 }}
                       >
-                        <strong>{count}x</strong> {recommendation}
+                        {focus}
                       </div>
                     ))
                   ) : (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      No practice focus was generated yet. Submit a few items to test
-                      the recommendation model.
+                      Complete more items to build a clearer picture of the next
+                      practice focus.
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div style={helperCardStyle}>
+                <div style={eyebrowStyle}>Suggested next practice</div>
+                {summary.topPracticeRecommendations.length ? (
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {summary.topPracticeRecommendations.map((entry) => (
+                      <div
+                        key={entry.recommendation}
+                        style={{ color: "#0f172a", lineHeight: 1.6 }}
+                      >
+                        <strong>{entry.count}x</strong> {entry.recommendation}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    No suggested next practice yet. Submit a few items first.
+                  </div>
+                )}
+              </div>
+
+              <div style={helperCardStyle}>
+                <div style={eyebrowStyle}>Suggested next step</div>
+                <div style={{ color: "#0f172a", lineHeight: 1.7 }}>
+                  {summary.suggestedNextStep}
+                </div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Parent judgement - local preview</div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {summary.parentJudgementPrompt}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {(
+                    [
+                      "secure",
+                      "developing",
+                      "needs_support",
+                      "not_enough_evidence_yet",
+                    ] as ParentJudgement[]
+                  ).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setParentJudgement(option)}
+                      style={getParentJudgementTone(
+                        option,
+                        parentJudgement === option,
+                      )}
+                    >
+                      {getParentJudgementLabel(option)}
+                    </button>
+                  ))}
+                </div>
+                {parentJudgement ? (
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    This judgement is not saved yet. In a future version it could
+                    update My Assessments after parent confirmation.
+                  </div>
+                ) : null}
+              </div>
+
+              <div
+                style={{
+                  color: "#64748b",
+                  lineHeight: 1.6,
+                  fontSize: 14,
+                }}
+              >
+                This preview does not save results yet. It is testing the
+                assessment flow and recommendation model.
               </div>
 
               <div
@@ -1018,21 +1254,21 @@ export default function CleanNumberAssessmentPlayer() {
                     </div>
                   ) : null}
 
-                  <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                    <strong>Misconception targets:</strong>{" "}
-                    {currentItem.misconceptionTargets
-                      .map((code) => getMisconceptionLabel(code))
-                      .join(", ")}
-                  </div>
-
-                  <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                    <strong>Diagnostic note:</strong>{" "}
-                    {currentItem.adaptiveRoute.diagnosticNote}
-                  </div>
-
-                  <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                    <strong>Practice recommendation:</strong>{" "}
-                    {currentItem.adaptiveRoute.practiceRecommendation}
+                  <div style={helperCardStyle}>
+                    <div style={eyebrowStyle}>What this checks</div>
+                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                      {currentItem.adaptiveRoute.diagnosticNote}
+                    </div>
+                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                      <strong>Possible learning focus:</strong>{" "}
+                      {currentItem.misconceptionTargets
+                        .map((code) => getMisconceptionLabel(code))
+                        .join(", ")}
+                    </div>
+                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                      <strong>Suggested next practice:</strong>{" "}
+                      {currentItem.adaptiveRoute.practiceRecommendation}
+                    </div>
                   </div>
                 </div>
               ) : null}
