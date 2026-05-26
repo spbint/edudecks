@@ -53,17 +53,63 @@ const wrapStyle: React.CSSProperties = {
   gap: 18,
 };
 
-const cardStyle: React.CSSProperties = {
+const sessionShellStyle: React.CSSProperties = {
+  border: "1px solid #dbe4f0",
+  borderRadius: 28,
+  background: "#ffffff",
+  overflow: "hidden",
+  boxShadow: "0 18px 42px rgba(15,23,42,0.08)",
+};
+
+const sessionHeaderStyle: React.CSSProperties = {
+  padding: "16px 18px 14px",
+  display: "grid",
+  gap: 12,
+  borderBottom: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)",
+};
+
+const sessionBodyStyle: React.CSSProperties = {
+  padding: 16,
+  display: "grid",
+  gap: 14,
+};
+
+const workspaceLayoutStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 16,
+  alignItems: "flex-start",
+};
+
+const workspaceCardStyle: React.CSSProperties = {
+  flex: "1.45 1 560px",
+  minWidth: 0,
   border: "1px solid #e2e8f0",
   borderRadius: 22,
   background: "#ffffff",
-  padding: "clamp(16px, 2.6vw, 22px)",
-  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
+  padding: "18px 18px 16px",
+  boxShadow: "0 12px 28px rgba(15,23,42,0.04)",
+  display: "grid",
+  gap: 14,
 };
 
-const headerCardStyle: React.CSSProperties = {
-  ...cardStyle,
+const supportColumnStyle: React.CSSProperties = {
+  flex: "0.95 1 300px",
+  minWidth: "min(100%, 280px)",
+  display: "grid",
+  gap: 12,
+};
+
+const actionBarStyle: React.CSSProperties = {
+  borderTop: "1px solid #e2e8f0",
   padding: "14px 16px",
+  background: "#fcfdff",
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
 };
 
 const compactCardStyle: React.CSSProperties = {
@@ -82,6 +128,13 @@ const helperCardStyle: React.CSSProperties = {
   padding: 14,
   display: "grid",
   gap: 6,
+};
+
+const highlightCardStyle: React.CSSProperties = {
+  ...helperCardStyle,
+  border: "1px solid #bfdbfe",
+  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+  boxShadow: "0 10px 22px rgba(59,130,246,0.08)",
 };
 
 const chipBaseStyle: React.CSSProperties = {
@@ -628,6 +681,7 @@ export default function CleanNumberAssessmentPlayer() {
   const currentResponse =
     responses[currentItem.id] ?? createEmptyResponse(currentItem.id);
   const currentProgress = ((currentIndex + 1) / totalItems) * 100;
+  const sessionProgress = showSummary ? 100 : currentProgress;
 
   const summary = useMemo(
     () => buildAdaptiveInsightSummary(items, responses),
@@ -683,107 +737,149 @@ export default function CleanNumberAssessmentPlayer() {
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
 
-        <section style={headerCardStyle}>
-          <div style={{ display: "grid", gap: 10 }}>
+        <section style={sessionShellStyle}>
+          <div style={sessionHeaderStyle}>
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
-                gap: 8,
-                alignItems: "center",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 12,
               }}
             >
-              <span style={getDifficultyTone("foundation")}>Years 7-10</span>
-              <span style={getFormatTone("applied_context")}>Number</span>
-              <span style={getFormatTone("repeated_calculation")}>Local preview</span>
-              <span style={getResultTone("review_needed")}>No results saved</span>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: "clamp(22px, 3.5vw, 30px)",
-                  lineHeight: 1.12,
-                  color: "#0f172a",
-                }}
-              >
-                Number assessment prototype: Approximation, estimation and error
-              </h1>
-              <p
-                style={{
-                  margin: 0,
-                  maxWidth: 760,
-                  color: "#475569",
-                  lineHeight: 1.6,
-                  fontSize: 14,
-                }}
-              >
-                A local-only assessment flow for testing rounding, truncation,
-                estimation, exact vs approximate values, and error reasoning.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {showSummary ? (
-          <section style={cardStyle}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={eyebrowStyle}>Summary</div>
-                <h2
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={eyebrowStyle}>Number assessment</div>
+                <h1
                   style={{
                     margin: 0,
-                    fontSize: "clamp(24px, 4vw, 32px)",
+                    fontSize: "clamp(22px, 3.4vw, 30px)",
+                    lineHeight: 1.1,
                     color: "#0f172a",
                   }}
                 >
-                  Assessment summary - local preview
-                </h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
-                  A quick view of current response patterns and suggested next
-                  practice.
+                  Approximation, estimation and error
+                </h1>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#475569",
+                    fontSize: 14,
+                    lineHeight: 1.5,
+                    maxWidth: 720,
+                  }}
+                >
+                  {showSummary
+                    ? "Use this session summary to decide the next practice focus."
+                    : "A focused local preview for checking rounding, estimation and error reasoning."}
                 </p>
               </div>
 
               <div
                 style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                }}
+              >
+                <span style={getDifficultyTone("foundation")}>Years 7-10</span>
+                <span style={getFormatTone("applied_context")}>Local preview</span>
+                <span style={getFormatTone("reasonableness")}>Number</span>
+                <span style={getResultTone("review_needed")}>No results saved</span>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                  }}
+                >
+                  {showSummary
+                    ? "Session summary"
+                    : `Item ${currentIndex + 1} of ${totalItems}`}
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  <span
+                    style={{
+                      ...chipBaseStyle,
+                      border: "1px solid #e2e8f0",
+                      background: "#ffffff",
+                      color: "#475569",
+                    }}
+                  >
+                    Attempted {summary.attemptedCount}
+                  </span>
+                  {!showSummary && currentResponse.submitted ? (
+                    <span style={getResultTone(currentResponse.result)}>
+                      {getResultLabel(currentResponse.result)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div style={progressTrackStyle}>
+                <div
+                  style={{
+                    width: `${sessionProgress}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    background: "linear-gradient(90deg, #60a5fa, #34d399)",
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {showSummary ? (
+            <div style={sessionBodyStyle}>
+              <div
+                style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-                  gap: 12,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+                  gap: 10,
                 }}
               >
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Total items</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
                     {totalItems}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Attempted</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
                     {summary.attemptedCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Correct</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#166534" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#166534" }}>
                     {summary.correctCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Worth revisiting</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#b45309" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
                     {summary.incorrectCount}
                   </div>
                 </div>
                 <div style={compactCardStyle}>
                   <div style={eyebrowStyle}>Needs adult review</div>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: "#4338ca" }}>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#4338ca" }}>
                     {summary.reviewNeededCount}
                   </div>
                 </div>
@@ -791,40 +887,50 @@ export default function CleanNumberAssessmentPlayer() {
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  display: "flex",
+                  flexWrap: "wrap",
                   gap: 12,
+                  alignItems: "stretch",
                 }}
               >
-                <div style={helperCardStyle}>
+                <div style={{ ...helperCardStyle, flex: "1 1 280px" }}>
                   <div style={eyebrowStyle}>What this may show</div>
                   {summary.topMisconceptionTargets.length ? (
-                    summary.topMisconceptionTargets.map((entry) => (
-                      <div
-                        key={entry.code}
-                        style={{ color: "#0f172a", lineHeight: 1.6 }}
-                      >
-                        <strong>{entry.count}x</strong> {entry.label}
-                      </div>
-                    ))
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {summary.topMisconceptionTargets.map((entry) => (
+                        <span
+                          key={entry.code}
+                          style={{
+                            ...chipBaseStyle,
+                            border: "1px solid #e2e8f0",
+                            background: "#ffffff",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {entry.label} · {entry.count}
+                        </span>
+                      ))}
+                    </div>
                   ) : (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      No clear learning focus has appeared yet in this local run.
+                      No clear learning focus has appeared yet in this session.
                     </div>
                   )}
                 </div>
 
-                <div style={helperCardStyle}>
+                <div style={{ ...helperCardStyle, flex: "1 1 280px" }}>
                   <div style={eyebrowStyle}>Suggested focus areas</div>
                   {summary.suggestedFocusAreas.length ? (
-                    summary.suggestedFocusAreas.map((focus) => (
-                      <div
-                        key={focus}
-                        style={{ color: "#0f172a", lineHeight: 1.6 }}
-                      >
-                        {focus}
-                      </div>
-                    ))
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {summary.suggestedFocusAreas.map((focus) => (
+                        <div
+                          key={focus}
+                          style={{ color: "#0f172a", lineHeight: 1.6 }}
+                        >
+                          {focus}
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
                       Complete more items to build a clearer picture of the next
@@ -834,30 +940,46 @@ export default function CleanNumberAssessmentPlayer() {
                 </div>
               </div>
 
-              <div style={helperCardStyle}>
-                <div style={eyebrowStyle}>Suggested next practice</div>
-                {summary.topPracticeRecommendations.length ? (
-                  <div style={{ display: "grid", gap: 6 }}>
-                    {summary.topPracticeRecommendations.map((entry) => (
-                      <div
-                        key={entry.recommendation}
-                        style={{ color: "#0f172a", lineHeight: 1.6 }}
-                      >
-                        <strong>{entry.count}x</strong> {entry.recommendation}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    No suggested next practice yet. Submit a few items first.
-                  </div>
-                )}
-              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 12,
+                  alignItems: "stretch",
+                }}
+              >
+                <div style={{ ...helperCardStyle, flex: "1 1 320px" }}>
+                  <div style={eyebrowStyle}>Suggested next practice</div>
+                  {summary.topPracticeRecommendations.length ? (
+                    <div style={{ display: "grid", gap: 6 }}>
+                      {summary.topPracticeRecommendations.map((entry) => (
+                        <div
+                          key={entry.recommendation}
+                          style={{ color: "#0f172a", lineHeight: 1.6 }}
+                        >
+                          <strong>{entry.count}x</strong> {entry.recommendation}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      No suggested next practice yet. Submit a few items first.
+                    </div>
+                  )}
+                </div>
 
-              <div style={helperCardStyle}>
-                <div style={eyebrowStyle}>Suggested next step</div>
-                <div style={{ color: "#0f172a", lineHeight: 1.7 }}>
-                  {summary.suggestedNextStep}
+                <div style={{ ...highlightCardStyle, flex: "1 1 360px" }}>
+                  <div style={eyebrowStyle}>Suggested next step</div>
+                  <div
+                    style={{
+                      color: "#0f172a",
+                      lineHeight: 1.7,
+                      fontSize: 16,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {summary.suggestedNextStep}
+                  </div>
                 </div>
               </div>
 
@@ -899,14 +1021,7 @@ export default function CleanNumberAssessmentPlayer() {
                 ) : null}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  justifyContent: "space-between",
-                }}
-              >
+              <div style={actionBarStyle}>
                 <button
                   type="button"
                   onClick={() => {
@@ -922,369 +1037,348 @@ export default function CleanNumberAssessmentPlayer() {
                 </button>
               </div>
             </div>
-          </section>
-        ) : (
-          <section style={cardStyle}>
-            <div style={{ display: "grid", gap: 14 }}>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  gap: 12,
-                  justifyContent: "space-between",
-                }}
-              >
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div style={eyebrowStyle}>
-                    Approximation, estimation and error
-                  </div>
-                  <h2 style={{ margin: 0, fontSize: 28, color: "#0f172a" }}>
-                    Item {currentIndex + 1} of {totalItems}
-                  </h2>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  <span style={getDifficultyTone(currentItem.difficulty)}>
-                    {currentItem.difficulty}
-                  </span>
-                  <span style={getFormatTone(currentItem.format)}>
-                    {getFormatLabel(currentItem.format)}
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={progressTrackStyle}>
-                  <div
-                    style={{
-                      width: `${currentProgress}%`,
-                      height: "100%",
-                      borderRadius: 999,
-                      background: "linear-gradient(90deg, #60a5fa, #34d399)",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gap: 8 }}>
-                <div style={eyebrowStyle}>Question</div>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 24,
-                    color: "#0f172a",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {currentItem.title}
-                </h3>
-                <p
-                  style={{
-                    margin: 0,
-                    color: "#334155",
-                    fontSize: 16,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  {currentItem.prompt}
-                </p>
-              </div>
-
-              {currentItem.visualSupport &&
-              (currentItem.visualSupport.type !== "none" ||
-                currentItem.visualSupport.description) ? (
-                <div style={helperCardStyle}>
-                  <div style={eyebrowStyle}>Helpful context</div>
-                  <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                    {currentItem.visualSupport.description ||
-                      "Use the context support to compare values before answering."}
-                  </div>
-                </div>
-              ) : null}
-
-              <div style={{ display: "grid", gap: 10 }}>
-                <div style={eyebrowStyle}>Response</div>
-
-                {currentItem.answerType === "multiple_choice" ? (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {(currentItem.options ?? []).map((option) => {
-                      const isSelected = currentResponse.response === option;
-
-                      return (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => updateResponse(currentItem.id, option)}
-                          style={{
-                            ...optionButtonStyle,
-                            border: isSelected
-                              ? "2px solid #1d4ed8"
-                              : optionButtonStyle.border,
-                            background: isSelected ? "#eff6ff" : "#ffffff",
-                            boxShadow: isSelected
-                              ? "0 10px 22px rgba(59,130,246,0.14)"
-                              : "none",
-                          }}
-                        >
-                          <span>{option}</span>
-                          {isSelected ? (
-                            <span
-                              style={{
-                                ...chipBaseStyle,
-                                border: "1px solid #bfdbfe",
-                                background: "#dbeafe",
-                                color: "#1d4ed8",
-                                flexShrink: 0,
-                              }}
-                            >
-                              Selected
-                            </span>
-                          ) : null}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : currentItem.answerType === "short_answer" ||
-                  currentItem.answerType === "numeric" ? (
-                  <input
-                    type="text"
-                    value={currentResponse.response}
-                    onChange={(event) =>
-                      updateResponse(currentItem.id, event.target.value)
-                    }
-                    placeholder={
-                      currentItem.answerType === "numeric"
-                        ? "Enter a numeric answer"
-                        : "Enter a short response"
-                    }
-                    style={inputStyle}
-                  />
-                ) : (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div
-                      style={{
-                        color: "#475569",
-                        fontSize: 14,
-                        lineHeight: 1.6,
-                      }}
-                    >
-                      This response can be reviewed by an adult using the guide
-                      below.
-                    </div>
-                    <textarea
-                      value={currentResponse.response}
-                      onChange={(event) =>
-                        updateResponse(currentItem.id, event.target.value)
-                      }
-                      placeholder="Write the response here. The learner can explain in their own words."
-                      style={textareaStyle}
-                    />
-                  </div>
-                )}
-
-                {isOpenResponse(currentItem) && currentItem.openResponseReview ? (
-                  <div style={helperCardStyle}>
-                    <div style={eyebrowStyle}>What a strong response includes</div>
-                    <div style={{ display: "grid", gap: 6, color: "#334155" }}>
-                      {currentItem.openResponseReview.successCriteria
-                        .slice(0, 3)
-                        .map((criterion) => (
-                          <div key={criterion} style={{ lineHeight: 1.6 }}>
-                            - {criterion}
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                <details
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 14,
-                    padding: "10px 12px",
-                    background: "#ffffff",
-                  }}
-                >
-                  <summary
-                    style={{
-                      cursor: "pointer",
-                      color: "#475569",
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
-                  >
-                    More details
-                  </summary>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 6,
-                      marginTop: 10,
-                      color: "#475569",
-                      fontSize: 14,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    <div>
-                      <strong>Focus:</strong> {getFocusLabel(currentItem)}
-                    </div>
-                    <div>
-                      <strong>Response mode:</strong> {getAnswerModeLabel(currentItem)}
-                    </div>
-                  </div>
-                </details>
-              </div>
-
-              {currentResponse.submitted ? (
-                <div style={compactCardStyle}>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 10,
-                    }}
-                  >
-                    <div style={eyebrowStyle}>Feedback</div>
-                    <span style={getResultTone(currentResponse.result)}>
-                      {getResultLabel(currentResponse.result)}
-                    </span>
-                  </div>
-
-                  <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                    {getResultMessage(currentResponse.result)}
-                  </div>
-
-                  {currentItem.expectedAnswer && !isOpenResponse(currentItem) ? (
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      <strong>Expected answer:</strong> {currentItem.expectedAnswer}
-                    </div>
-                  ) : null}
-
-                  {isOpenResponse(currentItem) && currentItem.openResponseReview ? (
-                    <div style={helperCardStyle}>
-                      <div style={eyebrowStyle}>Adult review guide</div>
-                      <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                        <strong>Expected response:</strong>{" "}
-                        {currentItem.openResponseReview.expectedResponse}
+          ) : (
+            <>
+              <div style={sessionBodyStyle}>
+                <div style={workspaceLayoutStyle}>
+                  <div style={workspaceCardStyle}>
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div style={eyebrowStyle}>Current question</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        <span style={getDifficultyTone(currentItem.difficulty)}>
+                          {currentItem.difficulty}
+                        </span>
+                        <span style={getFormatTone(currentItem.format)}>
+                          {getFormatLabel(currentItem.format)}
+                        </span>
                       </div>
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                          Success criteria
+                      <h2
+                        style={{
+                          margin: 0,
+                          fontSize: "clamp(28px, 4vw, 36px)",
+                          color: "#0f172a",
+                          lineHeight: 1.1,
+                        }}
+                      >
+                        {currentItem.title}
+                      </h2>
+                      <p
+                        style={{
+                          margin: 0,
+                          color: "#334155",
+                          fontSize: 17,
+                          lineHeight: 1.75,
+                        }}
+                      >
+                        {currentItem.prompt}
+                      </p>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div style={eyebrowStyle}>Response</div>
+
+                      {currentItem.answerType === "multiple_choice" ? (
+                        <div style={{ display: "grid", gap: 10 }}>
+                          {(currentItem.options ?? []).map((option) => {
+                            const isSelected = currentResponse.response === option;
+
+                            return (
+                              <button
+                                key={option}
+                                type="button"
+                                onClick={() => updateResponse(currentItem.id, option)}
+                                style={{
+                                  ...optionButtonStyle,
+                                  border: isSelected
+                                    ? "2px solid #1d4ed8"
+                                    : optionButtonStyle.border,
+                                  background: isSelected ? "#eff6ff" : "#ffffff",
+                                  boxShadow: isSelected
+                                    ? "0 10px 22px rgba(59,130,246,0.14)"
+                                    : "none",
+                                }}
+                              >
+                                <span>{option}</span>
+                                {isSelected ? (
+                                  <span
+                                    style={{
+                                      ...chipBaseStyle,
+                                      border: "1px solid #bfdbfe",
+                                      background: "#dbeafe",
+                                      color: "#1d4ed8",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    Selected
+                                  </span>
+                                ) : null}
+                              </button>
+                            );
+                          })}
                         </div>
-                        {currentItem.openResponseReview.successCriteria.map(
-                          (criterion) => (
-                            <div
-                              key={criterion}
-                              style={{ color: "#334155", lineHeight: 1.6 }}
-                            >
-                              - {criterion}
-                            </div>
-                          ),
-                        )}
-                      </div>
-                      <div style={{ display: "grid", gap: 6 }}>
-                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
-                          Parent review prompts
-                        </div>
-                        {currentItem.openResponseReview.parentReviewPrompts.map(
-                          (prompt) => (
-                            <div
-                              key={prompt}
-                              style={{ color: "#334155", lineHeight: 1.6 }}
-                            >
-                              - {prompt}
-                            </div>
-                          ),
-                        )}
-                      </div>
-                      {currentItem.openResponseReview.evidenceNote ? (
-                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                          <strong>Evidence note:</strong>{" "}
-                          {currentItem.openResponseReview.evidenceNote}
-                        </div>
-                      ) : null}
-                      {currentItem.openResponseReview.aiReviewPrompt ? (
-                        <details
-                          style={{
-                            border: "1px solid #dbeafe",
-                            borderRadius: 12,
-                            background: "#ffffff",
-                            padding: "10px 12px",
-                          }}
-                        >
-                          <summary
-                            style={{
-                              cursor: "pointer",
-                              color: "#1e3a8a",
-                              fontSize: 13,
-                              fontWeight: 700,
-                            }}
-                          >
-                            Future AI support
-                          </summary>
+                      ) : currentItem.answerType === "short_answer" ||
+                        currentItem.answerType === "numeric" ? (
+                        <input
+                          type="text"
+                          value={currentResponse.response}
+                          onChange={(event) =>
+                            updateResponse(currentItem.id, event.target.value)
+                          }
+                          placeholder={
+                            currentItem.answerType === "numeric"
+                              ? "Enter a numeric answer"
+                              : "Enter a short response"
+                          }
+                          style={inputStyle}
+                        />
+                      ) : (
+                        <div style={{ display: "grid", gap: 10 }}>
                           <div
                             style={{
-                              marginTop: 8,
-                              color: "#334155",
+                              color: "#475569",
+                              fontSize: 14,
                               lineHeight: 1.6,
                             }}
                           >
-                            Future AI review can use the typed response against
-                            these success criteria, with the parent confirming the
-                            final judgement.
+                            This response can be reviewed by an adult.
                           </div>
-                        </details>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {currentItem.workedSolution ? (
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      <strong>Worked solution:</strong> {currentItem.workedSolution}
-                    </div>
-                  ) : null}
-
-                  {currentItem.markingGuide ? (
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      <strong>Marking guide:</strong> {currentItem.markingGuide}
-                    </div>
-                  ) : null}
-
-                  <div style={helperCardStyle}>
-                    <div style={eyebrowStyle}>What this checks</div>
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      {currentItem.adaptiveRoute.diagnosticNote}
-                    </div>
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      <strong>Possible learning focus:</strong>{" "}
-                      {currentItem.misconceptionTargets
-                        .map((code) => getMisconceptionLabel(code))
-                        .join(", ")}
-                    </div>
-                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                      <strong>Suggested next practice:</strong>{" "}
-                      {currentItem.adaptiveRoute.practiceRecommendation}
+                          <textarea
+                            value={currentResponse.response}
+                            onChange={(event) =>
+                              updateResponse(currentItem.id, event.target.value)
+                            }
+                            placeholder="Write the response here. The learner can explain in their own words."
+                            style={textareaStyle}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ) : null}
 
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
+                  <aside style={supportColumnStyle}>
+                    {currentItem.visualSupport &&
+                    (currentItem.visualSupport.type !== "none" ||
+                      currentItem.visualSupport.description) ? (
+                      <div style={helperCardStyle}>
+                        <div style={eyebrowStyle}>Helpful context</div>
+                        <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
+                          {currentItem.visualSupport.description ||
+                            "Use the context support to compare values before answering."}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {isOpenResponse(currentItem) &&
+                    currentItem.openResponseReview &&
+                    !currentResponse.submitted ? (
+                      <div style={helperCardStyle}>
+                        <div style={eyebrowStyle}>What a strong response includes</div>
+                        <div
+                          style={{ display: "grid", gap: 6, color: "#334155" }}
+                        >
+                          {currentItem.openResponseReview.successCriteria
+                            .slice(0, 3)
+                            .map((criterion) => (
+                              <div key={criterion} style={{ lineHeight: 1.6 }}>
+                                - {criterion}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <details
+                      style={{
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 16,
+                        padding: "10px 12px",
+                        background: "#ffffff",
+                      }}
+                    >
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          color: "#475569",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        More details
+                      </summary>
+                      <div
+                        style={{
+                          display: "grid",
+                          gap: 6,
+                          marginTop: 10,
+                          color: "#475569",
+                          fontSize: 14,
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        <div>
+                          <strong>Focus:</strong> {getFocusLabel(currentItem)}
+                        </div>
+                        <div>
+                          <strong>Response mode:</strong>{" "}
+                          {getAnswerModeLabel(currentItem)}
+                        </div>
+                      </div>
+                    </details>
+
+                    {currentResponse.submitted ? (
+                      <div style={compactCardStyle}>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 10,
+                          }}
+                        >
+                          <div style={eyebrowStyle}>Feedback</div>
+                          <span style={getResultTone(currentResponse.result)}>
+                            {getResultLabel(currentResponse.result)}
+                          </span>
+                        </div>
+
+                        <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
+                          {getResultMessage(currentResponse.result)}
+                        </div>
+
+                        {currentItem.expectedAnswer && !isOpenResponse(currentItem) ? (
+                          <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                            <strong>Expected answer:</strong>{" "}
+                            {currentItem.expectedAnswer}
+                          </div>
+                        ) : null}
+
+                        {currentItem.workedSolution ? (
+                          <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                            <strong>Worked solution:</strong>{" "}
+                            {currentItem.workedSolution}
+                          </div>
+                        ) : null}
+
+                        {currentItem.markingGuide ? (
+                          <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                            <strong>Marking guide:</strong>{" "}
+                            {currentItem.markingGuide}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {isOpenResponse(currentItem) &&
+                    currentItem.openResponseReview &&
+                    currentResponse.submitted ? (
+                      <div style={helperCardStyle}>
+                        <div style={eyebrowStyle}>Adult review guide</div>
+                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                          <strong>Expected response:</strong>{" "}
+                          {currentItem.openResponseReview.expectedResponse}
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                            Success criteria
+                          </div>
+                          {currentItem.openResponseReview.successCriteria.map(
+                            (criterion) => (
+                              <div
+                                key={criterion}
+                                style={{ color: "#334155", lineHeight: 1.6 }}
+                              >
+                                - {criterion}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                        <div style={{ display: "grid", gap: 6 }}>
+                          <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                            Parent review prompts
+                          </div>
+                          {currentItem.openResponseReview.parentReviewPrompts.map(
+                            (prompt) => (
+                              <div
+                                key={prompt}
+                                style={{ color: "#334155", lineHeight: 1.6 }}
+                              >
+                                - {prompt}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                        {currentItem.openResponseReview.evidenceNote ? (
+                          <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                            <strong>Evidence note:</strong>{" "}
+                            {currentItem.openResponseReview.evidenceNote}
+                          </div>
+                        ) : null}
+                        {currentItem.openResponseReview.aiReviewPrompt ? (
+                          <details
+                            style={{
+                              border: "1px solid #dbeafe",
+                              borderRadius: 12,
+                              background: "#ffffff",
+                              padding: "10px 12px",
+                            }}
+                          >
+                            <summary
+                              style={{
+                                cursor: "pointer",
+                                color: "#1e3a8a",
+                                fontSize: 13,
+                                fontWeight: 700,
+                              }}
+                            >
+                              Future AI support
+                            </summary>
+                            <div
+                              style={{
+                                marginTop: 8,
+                                color: "#334155",
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              Future AI review can use the typed response against
+                              these success criteria, with the parent confirming the
+                              final judgement.
+                            </div>
+                          </details>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {currentResponse.submitted ? (
+                      <div style={helperCardStyle}>
+                        <div style={eyebrowStyle}>What this checks</div>
+                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                          {currentItem.adaptiveRoute.diagnosticNote}
+                        </div>
+                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                          <strong>Possible learning focus:</strong>{" "}
+                          {currentItem.misconceptionTargets
+                            .map((code) => getMisconceptionLabel(code))
+                            .join(", ")}
+                        </div>
+                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                          <strong>Suggested next practice:</strong>{" "}
+                          {currentItem.adaptiveRoute.practiceRecommendation}
+                        </div>
+                      </div>
+                    ) : null}
+                  </aside>
+                </div>
+              </div>
+
+              <div style={actionBarStyle}>
                 <button
                   type="button"
                   onClick={goBack}
                   disabled={currentIndex === 0}
-                  style={currentIndex === 0 ? disabledButtonStyle : secondaryButtonStyle}
+                  style={
+                    currentIndex === 0 ? disabledButtonStyle : secondaryButtonStyle
+                  }
                 >
                   Back
                 </button>
@@ -1309,9 +1403,9 @@ export default function CleanNumberAssessmentPlayer() {
                   </button>
                 </div>
               </div>
-            </div>
-          </section>
-        )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );
