@@ -43,6 +43,11 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
 };
 
+const headerCardStyle: React.CSSProperties = {
+  ...cardStyle,
+  padding: "16px 18px",
+};
+
 const compactCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 16,
@@ -117,6 +122,17 @@ const secondaryButtonStyle: React.CSSProperties = {
   border: "1px solid #cbd5e1",
   background: "#ffffff",
   color: "#0f172a",
+};
+
+const tertiaryButtonStyle: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  color: "#64748b",
+  borderRadius: 10,
+  padding: 0,
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: "pointer",
 };
 
 const disabledButtonStyle: React.CSSProperties = {
@@ -270,6 +286,13 @@ function normalizeValue(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function isOpenResponse(item: NumberAssessmentItem) {
+  return (
+    item.answerType === "worked_response" ||
+    item.answerType === "explain_or_justify"
+  );
+}
+
 function getCheckResult(
   item: NumberAssessmentItem,
   responseText: string,
@@ -278,6 +301,10 @@ function getCheckResult(
 
   if (!normalizedResponse) {
     return "unanswered";
+  }
+
+  if (isOpenResponse(item)) {
+    return "review_needed";
   }
 
   const acceptable = [
@@ -293,13 +320,6 @@ function getCheckResult(
 
   if (acceptable.includes(normalizedResponse)) {
     return "correct";
-  }
-
-  if (
-    item.answerType === "worked_response" ||
-    item.answerType === "explain_or_justify"
-  ) {
-    return "review_needed";
   }
 
   return "incorrect";
@@ -318,8 +338,73 @@ function getResultMessage(result: LocalAssessmentResult) {
   return "Add a response when you are ready.";
 }
 
+function getResultLabel(result: LocalAssessmentResult) {
+  if (result === "review_needed") {
+    return "Needs adult review";
+  }
+  if (result === "correct") {
+    return "Correct";
+  }
+  if (result === "incorrect") {
+    return "Check again";
+  }
+  return "Unanswered";
+}
+
 function getFormatLabel(format: NumberAssessmentItemFormat) {
   return format.replace(/_/g, " ");
+}
+
+function getFocusLabel(item: NumberAssessmentItem) {
+  if (item.progressionStepKey === "round-decimals-to-a-required-accuracy") {
+    return "Rounding decimals";
+  }
+  if (item.progressionStepKey === "estimate-sums-and-products-using-rounding") {
+    return "Estimating with rounding";
+  }
+  if (item.progressionStepKey === "compare-exact-and-estimated-results") {
+    return "Comparing estimates with exact values";
+  }
+  if (item.progressionStepKey === "truncate-and-round-values") {
+    return "Truncating and rounding";
+  }
+  if (item.progressionStepKey === "analyse-approximation-error-in-contexts") {
+    return "Approximation error in context";
+  }
+  return "Repeated approximation effects";
+}
+
+function getAnswerModeLabel(item: NumberAssessmentItem) {
+  if (item.answerType === "multiple_choice") return "Choose one";
+  if (item.answerType === "numeric") return "Number answer";
+  if (item.answerType === "short_answer") return "Short response";
+  if (item.answerType === "worked_response") return "Worked response";
+  return "Explain or justify";
+}
+
+function getMisconceptionLabel(code: string) {
+  if (code === "rounding-place-value-error") {
+    return "Place value and rounding choice";
+  }
+  if (code === "truncation-vs-rounding-confusion") {
+    return "Truncation and rounding confusion";
+  }
+  if (code === "decimal-operation-error") {
+    return "Decimal operation error";
+  }
+  if (code === "estimated-exact-confusion") {
+    return "Estimate versus exact value confusion";
+  }
+  if (code === "unit-conversion-error") {
+    return "Unit or measurement confusion";
+  }
+  if (code === "percentage-or-rate-context-error") {
+    return "Percentage or rate context confusion";
+  }
+  if (code === "rounding-too-early") {
+    return "Rounding too early";
+  }
+  return "Reasonableness not checked";
 }
 
 export default function CleanNumberAssessmentPlayer() {
@@ -444,50 +529,49 @@ export default function CleanNumberAssessmentPlayer() {
       <div style={wrapStyle}>
         <CleanWorkflowRibbon />
 
-        <section style={cardStyle}>
-          <div style={{ display: "grid", gap: 14 }}>
-            <div style={eyebrowStyle}>Assessment prototype</div>
+        <section style={headerCardStyle}>
+          <div style={{ display: "grid", gap: 10 }}>
             <div
               style={{
                 display: "flex",
                 flexWrap: "wrap",
+                gap: 8,
                 alignItems: "center",
-                gap: 12,
-                justifyContent: "space-between",
               }}
             >
-              <div style={{ display: "grid", gap: 8 }}>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: "clamp(28px, 4vw, 38px)",
-                    lineHeight: 1.08,
-                    color: "#0f172a",
-                  }}
-                >
-                  Number assessment prototype: Approximation, estimation and error
-                </h1>
-                <p
-                  style={{
-                    margin: 0,
-                    maxWidth: 760,
-                    color: "#475569",
-                    lineHeight: 1.7,
-                    fontSize: 15,
-                  }}
-                >
-                  A local-only assessment flow for testing rounding, truncation,
-                  estimation, exact vs approximate values, and error reasoning.
-                </p>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <span style={getDifficultyTone("foundation")}>Years 7-10</span>
-                <span style={getFormatTone("applied_context")}>Number</span>
-                <span style={getFormatTone("repeated_calculation")}>
-                  Local preview
-                </span>
-                <span style={getResultTone("review_needed")}>No results saved</span>
-              </div>
+              <span style={getDifficultyTone("foundation")}>Years 7-10</span>
+              <span style={getFormatTone("applied_context")}>Number</span>
+              <span style={getFormatTone("repeated_calculation")}>Local preview</span>
+              <span style={getResultTone("review_needed")}>No results saved</span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(22px, 3.5vw, 30px)",
+                  lineHeight: 1.12,
+                  color: "#0f172a",
+                }}
+              >
+                Number assessment prototype: Approximation, estimation and error
+              </h1>
+              <p
+                style={{
+                  margin: 0,
+                  maxWidth: 760,
+                  color: "#475569",
+                  lineHeight: 1.6,
+                  fontSize: 14,
+                }}
+              >
+                A local-only assessment flow for testing rounding, truncation,
+                estimation, exact vs approximate values, and error reasoning.
+              </p>
             </div>
           </div>
         </section>
@@ -563,7 +647,7 @@ export default function CleanNumberAssessmentPlayer() {
                   {summary.mostCommonMisconceptions.length ? (
                     summary.mostCommonMisconceptions.map(([code, count]) => (
                       <div key={code} style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                        <strong>{count}x</strong> {code}
+                        <strong>{count}x</strong> {getMisconceptionLabel(code)}
                       </div>
                     ))
                   ) : (
@@ -659,9 +743,6 @@ export default function CleanNumberAssessmentPlayer() {
                     }}
                   />
                 </div>
-                <div style={{ color: "#64748b", fontSize: 13 }}>
-                  Progress reflects the current item in this 12-item preview.
-                </div>
               </div>
 
               <div style={{ display: "grid", gap: 10 }}>
@@ -692,10 +773,10 @@ export default function CleanNumberAssessmentPlayer() {
               (currentItem.visualSupport.type !== "none" ||
                 currentItem.visualSupport.description) ? (
                 <div style={helperCardStyle}>
-                  <div style={eyebrowStyle}>Visual/context support</div>
+                  <div style={eyebrowStyle}>Helpful context</div>
                   <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
                     {currentItem.visualSupport.description ||
-                      `Future support type: ${currentItem.visualSupport.type}`}
+                      "Use the context support to compare values before answering."}
                   </div>
                 </div>
               ) : null}
@@ -745,53 +826,79 @@ export default function CleanNumberAssessmentPlayer() {
                     style={inputStyle}
                   />
                 ) : (
-                  <textarea
-                    value={currentResponse.response}
-                    onChange={(event) =>
-                      updateResponse(currentItem.id, event.target.value)
-                    }
-                    placeholder="Write the response here. Adult review may still be helpful."
-                    style={textareaStyle}
-                  />
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <div
+                      style={{
+                        color: "#475569",
+                        fontSize: 14,
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      This response can be reviewed by an adult using the guide
+                      below.
+                    </div>
+                    <textarea
+                      value={currentResponse.response}
+                      onChange={(event) =>
+                        updateResponse(currentItem.id, event.target.value)
+                      }
+                      placeholder="Write the response here. The learner can explain in their own words."
+                      style={textareaStyle}
+                    />
+                  </div>
                 )}
 
-                <div
+                {isOpenResponse(currentItem) && currentItem.openResponseReview ? (
+                  <div style={helperCardStyle}>
+                    <div style={eyebrowStyle}>What a strong response includes</div>
+                    <div style={{ display: "grid", gap: 6, color: "#334155" }}>
+                      {currentItem.openResponseReview.successCriteria
+                        .slice(0, 3)
+                        .map((criterion) => (
+                          <div key={criterion} style={{ lineHeight: 1.6 }}>
+                            - {criterion}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <details
                   style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    alignItems: "center",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    padding: "10px 12px",
+                    background: "#ffffff",
                   }}
                 >
-                  <span style={chipBaseStyle}>Answer type: {currentItem.answerType}</span>
-                  <span style={chipBaseStyle}>
-                    Step focus: {currentItem.progressionStepKey}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  justifyContent: "space-between",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={submitCurrentItem}
-                  style={buttonStyle}
-                >
-                  Check response
-                </button>
-                <button
-                  type="button"
-                  onClick={resetPreview}
-                  style={secondaryButtonStyle}
-                >
-                  Reset preview
-                </button>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      color: "#475569",
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Prototype details
+                  </summary>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 6,
+                      marginTop: 10,
+                      color: "#475569",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <div>
+                      <strong>Focus:</strong> {getFocusLabel(currentItem)}
+                    </div>
+                    <div>
+                      <strong>Response mode:</strong> {getAnswerModeLabel(currentItem)}
+                    </div>
+                  </div>
+                </details>
               </div>
 
               {currentResponse.submitted ? (
@@ -807,7 +914,7 @@ export default function CleanNumberAssessmentPlayer() {
                   >
                     <div style={eyebrowStyle}>Local feedback</div>
                     <span style={getResultTone(currentResponse.result)}>
-                      {currentResponse.result.replace(/_/g, " ")}
+                      {getResultLabel(currentResponse.result)}
                     </span>
                   </div>
 
@@ -815,9 +922,87 @@ export default function CleanNumberAssessmentPlayer() {
                     {getResultMessage(currentResponse.result)}
                   </div>
 
-                  {currentItem.expectedAnswer ? (
+                  {currentItem.expectedAnswer && !isOpenResponse(currentItem) ? (
                     <div style={{ color: "#334155", lineHeight: 1.6 }}>
                       <strong>Expected answer:</strong> {currentItem.expectedAnswer}
+                    </div>
+                  ) : null}
+
+                  {isOpenResponse(currentItem) && currentItem.openResponseReview ? (
+                    <div style={helperCardStyle}>
+                      <div style={eyebrowStyle}>Adult review guide</div>
+                      <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                        <strong>Expected response:</strong>{" "}
+                        {currentItem.openResponseReview.expectedResponse}
+                      </div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          Success criteria
+                        </div>
+                        {currentItem.openResponseReview.successCriteria.map(
+                          (criterion) => (
+                            <div
+                              key={criterion}
+                              style={{ color: "#334155", lineHeight: 1.6 }}
+                            >
+                              - {criterion}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <div style={{ color: "#0f172a", fontWeight: 700 }}>
+                          Parent review prompts
+                        </div>
+                        {currentItem.openResponseReview.parentReviewPrompts.map(
+                          (prompt) => (
+                            <div
+                              key={prompt}
+                              style={{ color: "#334155", lineHeight: 1.6 }}
+                            >
+                              - {prompt}
+                            </div>
+                          ),
+                        )}
+                      </div>
+                      {currentItem.openResponseReview.evidenceNote ? (
+                        <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                          <strong>Evidence note:</strong>{" "}
+                          {currentItem.openResponseReview.evidenceNote}
+                        </div>
+                      ) : null}
+                      {currentItem.openResponseReview.aiReviewPrompt ? (
+                        <details
+                          style={{
+                            border: "1px solid #dbeafe",
+                            borderRadius: 12,
+                            background: "#ffffff",
+                            padding: "10px 12px",
+                          }}
+                        >
+                          <summary
+                            style={{
+                              cursor: "pointer",
+                              color: "#1e3a8a",
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            Future AI support
+                          </summary>
+                          <div
+                            style={{
+                              marginTop: 8,
+                              color: "#334155",
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            Future AI review can use the typed response against
+                            these success criteria, with the parent confirming the
+                            final judgement.
+                          </div>
+                        </details>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -835,7 +1020,9 @@ export default function CleanNumberAssessmentPlayer() {
 
                   <div style={{ color: "#334155", lineHeight: 1.6 }}>
                     <strong>Misconception targets:</strong>{" "}
-                    {currentItem.misconceptionTargets.join(", ")}
+                    {currentItem.misconceptionTargets
+                      .map((code) => getMisconceptionLabel(code))
+                      .join(", ")}
                   </div>
 
                   <div style={{ color: "#334155", lineHeight: 1.6 }}>
@@ -856,6 +1043,7 @@ export default function CleanNumberAssessmentPlayer() {
                   flexWrap: "wrap",
                   gap: 10,
                   justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
                 <button
@@ -867,8 +1055,39 @@ export default function CleanNumberAssessmentPlayer() {
                   Back
                 </button>
 
-                <button type="button" onClick={goNext} style={buttonStyle}>
-                  {currentIndex === totalItems - 1 ? "Finish" : "Next"}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={submitCurrentItem}
+                    style={secondaryButtonStyle}
+                  >
+                    Check response
+                  </button>
+                  <button type="button" onClick={goNext} style={buttonStyle}>
+                    {currentIndex === totalItems - 1 ? "Finish" : "Next"}
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={resetPreview}
+                  style={tertiaryButtonStyle}
+                >
+                  Reset preview
                 </button>
               </div>
             </div>

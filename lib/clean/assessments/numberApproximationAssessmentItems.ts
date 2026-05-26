@@ -57,6 +57,14 @@ export type NumberAssessmentVisualSupport = {
   description?: string;
 };
 
+export type NumberAssessmentOpenResponseReview = {
+  expectedResponse: string;
+  successCriteria: string[];
+  parentReviewPrompts: string[];
+  aiReviewPrompt?: string;
+  evidenceNote?: string;
+};
+
 export type NumberAssessmentItem = {
   id: string;
   progressionBandKey: NumberApproximationProgressionBandKey;
@@ -74,6 +82,7 @@ export type NumberAssessmentItem = {
   misconceptionTargets: NumberAssessmentMisconceptionCode[];
   adaptiveRoute: NumberAssessmentAdaptiveRoute;
   visualSupport?: NumberAssessmentVisualSupport;
+  openResponseReview?: NumberAssessmentOpenResponseReview;
 };
 
 export const NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY: NumberApproximationProgressionBandKey =
@@ -165,7 +174,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "table",
-      description: "Can later display two columns labelled truncated and rounded.",
+      description: "Compare the truncated value with the rounded value.",
     },
   },
   {
@@ -221,7 +230,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "table",
-      description: "Can later show exact and estimated values side by side for comparison.",
+      description: "Look at the exact total and compare which estimate is closer.",
     },
   },
   {
@@ -260,7 +269,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Can later show the builder context and the four estimation choices in a compact card.",
+      description: "Use the timber lengths to compare which quick estimate makes the most sense.",
     },
   },
   {
@@ -295,7 +304,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Can later show the monthly saving amount and number of months in a finance-style summary card.",
+      description: "Use the monthly saving amount and number of months to judge the best estimate.",
     },
   },
   {
@@ -328,6 +337,25 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
         "This item checks whether the learner can judge the usefulness of an estimate rather than only compute it.",
     },
     visualSupport: { type: "none" },
+    openResponseReview: {
+      expectedResponse:
+        "Yes. The estimate is reasonable because 19.8 is close to 20 and 6.1 is close to 6, so 20 x 6 should be close to the exact product. The exact product is 120.78, so the estimate is only a little low.",
+      successCriteria: [
+        "States that the estimate is reasonable.",
+        "Identifies the rounded values used in the estimate.",
+        "Explains why the rounded values are close to the originals.",
+        "Optionally compares the estimate with the exact product.",
+      ],
+      parentReviewPrompts: [
+        "Can the learner explain why 19.8 was treated like 20 and 6.1 like 6?",
+        "Can the learner say whether the estimate is slightly high or low?",
+        "Can the learner connect the estimate to the exact product or its size?",
+      ],
+      aiReviewPrompt:
+        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
+      evidenceNote:
+        "The learner judged whether an estimate was reasonable by comparing rounded values with the original multiplication.",
+    },
   },
   {
     id: "approx-rounding-too-early-009",
@@ -362,7 +390,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "table",
-      description: "Can later show Student A and Student B methods in parallel columns.",
+      description: "Compare Student A's method with Student B's method side by side.",
     },
   },
   {
@@ -400,7 +428,26 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Can later show the path dimensions and the gardener's estimate together.",
+      description: "Use the path dimensions and the gardener's estimate to decide whether the estimate is too high or too low.",
+    },
+    openResponseReview: {
+      expectedResponse:
+        "The estimate is an overestimate. The exact area is 18.7 x 2.9 = 54.23 m^2, so 57 m^2 is about 2.77 m^2 too high.",
+      successCriteria: [
+        "Identifies the estimate as too high.",
+        "Finds or refers to the exact area.",
+        "Calculates or estimates the size of the difference.",
+        "Uses square-metre language appropriately.",
+      ],
+      parentReviewPrompts: [
+        "Can the learner explain why rounding both measurements up makes the area larger?",
+        "Can the learner compare the estimate with the exact area?",
+        "Can the learner describe the error using area units?",
+      ],
+      aiReviewPrompt:
+        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
+      evidenceNote:
+        "The learner analysed whether a measured area estimate was too high or too low and described the size of the error.",
     },
   },
   {
@@ -438,7 +485,26 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Can later show the rounded diameter method and the original diameter method side by side.",
+      description: "Compare the rounded diameter method with the original diameter calculation.",
+    },
+    openResponseReview: {
+      expectedResponse:
+        "The estimate is too high. Using the original diameter gives 3.14 x 9.7 = 30.458 m, so 31.4 m is about 0.94 m too high.",
+      successCriteria: [
+        "Identifies the estimate as too high.",
+        "Uses the original diameter in the calculation.",
+        "Finds or estimates the difference between the two values.",
+        "Explains the effect of rounding the diameter up.",
+      ],
+      parentReviewPrompts: [
+        "Can the learner explain why replacing 9.7 with 10 changes the circumference upward?",
+        "Can the learner compare the estimate with the value from the original diameter?",
+        "Can the learner describe the error in metres?",
+      ],
+      aiReviewPrompt:
+        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
+      evidenceNote:
+        "The learner compared an estimated circumference with a calculation from the original measurement and explained the resulting error.",
     },
   },
   {
@@ -475,7 +541,26 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Can later show both savings methods as a small year-by-year comparison card.",
+      description: "Compare the year-by-year rounding method with the keep-decimals-until-the-end method.",
+    },
+    openResponseReview: {
+      expectedResponse:
+        "Rounding each year gives the larger final balance because the rounded amount becomes the next starting balance, so the small increase carries forward each year.",
+      successCriteria: [
+        "Identifies which method gives the larger final balance.",
+        "Explains that the rounded balance is reused in the next step.",
+        "Describes the cumulative effect across multiple years.",
+        "Connects the explanation to the financial context.",
+      ],
+      parentReviewPrompts: [
+        "Can the learner explain what happens when a rounded value is reused in the next year?",
+        "Can the learner describe why repeated rounding changes the final balance?",
+        "Can the learner compare the two methods without needing every exact step?",
+      ],
+      aiReviewPrompt:
+        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
+      evidenceNote:
+        "The learner explained how repeated rounding choices can change a long-running financial calculation.",
     },
   },
 ];
