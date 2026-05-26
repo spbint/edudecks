@@ -269,7 +269,8 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Use the timber lengths to compare which quick estimate makes the most sense.",
+      description:
+        "Timber lengths for comparing which quick estimate is the most sensible.",
     },
   },
   {
@@ -304,7 +305,8 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Use the monthly saving amount and number of months to judge the best estimate.",
+      description:
+        "Monthly saving amount and number of months for judging the best estimate.",
     },
   },
   {
@@ -428,7 +430,8 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     },
     visualSupport: {
       type: "context_card",
-      description: "Use the path dimensions and the gardener's estimate to decide whether the estimate is too high or too low.",
+      description:
+        "Path dimensions and the gardener's estimate for comparing whether the estimate is high or low.",
     },
     openResponseReview: {
       expectedResponse:

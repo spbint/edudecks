@@ -50,38 +50,38 @@ const wrapStyle: React.CSSProperties = {
   maxWidth: 980,
   margin: "0 auto",
   display: "grid",
-  gap: 20,
+  gap: 18,
 };
 
 const cardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 22,
   background: "#ffffff",
-  padding: "clamp(18px, 3vw, 24px)",
+  padding: "clamp(16px, 2.6vw, 22px)",
   boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
 };
 
 const headerCardStyle: React.CSSProperties = {
   ...cardStyle,
-  padding: "16px 18px",
+  padding: "14px 16px",
 };
 
 const compactCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
-  borderRadius: 16,
+  borderRadius: 14,
   background: "#f8fafc",
-  padding: 16,
+  padding: 14,
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const helperCardStyle: React.CSSProperties = {
   border: "1px solid #dbeafe",
-  borderRadius: 18,
+  borderRadius: 16,
   background: "#f8fbff",
-  padding: 16,
+  padding: 14,
   display: "grid",
-  gap: 8,
+  gap: 6,
 };
 
 const chipBaseStyle: React.CSSProperties = {
@@ -107,7 +107,7 @@ const inputStyle: React.CSSProperties = {
   width: "100%",
   border: "1px solid #cbd5e1",
   borderRadius: 12,
-  padding: "12px 14px",
+  padding: "11px 13px",
   fontSize: 15,
   background: "#ffffff",
   color: "#0f172a",
@@ -142,17 +142,6 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const tertiaryButtonStyle: React.CSSProperties = {
-  border: "none",
-  background: "transparent",
-  color: "#64748b",
-  borderRadius: 10,
-  padding: 0,
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: "pointer",
-};
-
 const disabledButtonStyle: React.CSSProperties = {
   ...secondaryButtonStyle,
   color: "#94a3b8",
@@ -162,10 +151,14 @@ const disabledButtonStyle: React.CSSProperties = {
 
 const optionButtonStyle: React.CSSProperties = {
   width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
   textAlign: "left",
   border: "1px solid #cbd5e1",
   borderRadius: 16,
-  padding: "14px 16px",
+  padding: "12px 14px",
   background: "#ffffff",
   color: "#0f172a",
   fontSize: 15,
@@ -175,7 +168,7 @@ const optionButtonStyle: React.CSSProperties = {
 
 const progressTrackStyle: React.CSSProperties = {
   width: "100%",
-  height: 10,
+  height: 8,
   borderRadius: 999,
   background: "#e2e8f0",
   overflow: "hidden",
@@ -739,9 +732,9 @@ export default function CleanNumberAssessmentPlayer() {
 
         {showSummary ? (
           <section style={cardStyle}>
-            <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={eyebrowStyle}>Prototype summary</div>
+                <div style={eyebrowStyle}>Summary</div>
                 <h2
                   style={{
                     margin: 0,
@@ -751,9 +744,9 @@ export default function CleanNumberAssessmentPlayer() {
                 >
                   Assessment summary - local preview
                 </h2>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  This prototype does not save results yet. It is testing the
-                  assessment flow and recommendation model.
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                  A quick view of current response patterns and suggested next
+                  practice.
                 </p>
               </div>
 
@@ -799,8 +792,8 @@ export default function CleanNumberAssessmentPlayer() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: 14,
+                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gap: 12,
                 }}
               >
                 <div style={helperCardStyle}>
@@ -844,7 +837,7 @@ export default function CleanNumberAssessmentPlayer() {
               <div style={helperCardStyle}>
                 <div style={eyebrowStyle}>Suggested next practice</div>
                 {summary.topPracticeRecommendations.length ? (
-                  <div style={{ display: "grid", gap: 8 }}>
+                  <div style={{ display: "grid", gap: 6 }}>
                     {summary.topPracticeRecommendations.map((entry) => (
                       <div
                         key={entry.recommendation}
@@ -869,11 +862,14 @@ export default function CleanNumberAssessmentPlayer() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Parent judgement - local preview</div>
+                <div style={eyebrowStyle}>Parent judgement</div>
+                <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 13 }}>
+                  Preview only - not saved yet.
+                </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   {summary.parentJudgementPrompt}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {(
                     [
                       "secure",
@@ -897,21 +893,10 @@ export default function CleanNumberAssessmentPlayer() {
                 </div>
                 {parentJudgement ? (
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    This judgement is not saved yet. In a future version it could
-                    update My Assessments after parent confirmation.
+                    Current preview judgement:{" "}
+                    {getParentJudgementLabel(parentJudgement)}.
                   </div>
                 ) : null}
-              </div>
-
-              <div
-                style={{
-                  color: "#64748b",
-                  lineHeight: 1.6,
-                  fontSize: 14,
-                }}
-              >
-                This preview does not save results yet. It is testing the
-                assessment flow and recommendation model.
               </div>
 
               <div
@@ -940,7 +925,7 @@ export default function CleanNumberAssessmentPlayer() {
           </section>
         ) : (
           <section style={cardStyle}>
-            <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 14 }}>
               <div
                 style={{
                   display: "flex",
@@ -950,7 +935,7 @@ export default function CleanNumberAssessmentPlayer() {
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: 6 }}>
                   <div style={eyebrowStyle}>
                     Approximation, estimation and error
                   </div>
@@ -968,7 +953,7 @@ export default function CleanNumberAssessmentPlayer() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "grid", gap: 6 }}>
                 <div style={progressTrackStyle}>
                   <div
                     style={{
@@ -981,7 +966,7 @@ export default function CleanNumberAssessmentPlayer() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ display: "grid", gap: 8 }}>
                 <div style={eyebrowStyle}>Question</div>
                 <h3
                   style={{
@@ -1017,7 +1002,7 @@ export default function CleanNumberAssessmentPlayer() {
                 </div>
               ) : null}
 
-              <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ display: "grid", gap: 10 }}>
                 <div style={eyebrowStyle}>Response</div>
 
                 {currentItem.answerType === "multiple_choice" ? (
@@ -1033,15 +1018,28 @@ export default function CleanNumberAssessmentPlayer() {
                           style={{
                             ...optionButtonStyle,
                             border: isSelected
-                              ? "1px solid #1d4ed8"
+                              ? "2px solid #1d4ed8"
                               : optionButtonStyle.border,
                             background: isSelected ? "#eff6ff" : "#ffffff",
                             boxShadow: isSelected
-                              ? "0 8px 18px rgba(59,130,246,0.10)"
+                              ? "0 10px 22px rgba(59,130,246,0.14)"
                               : "none",
                           }}
                         >
-                          {option}
+                          <span>{option}</span>
+                          {isSelected ? (
+                            <span
+                              style={{
+                                ...chipBaseStyle,
+                                border: "1px solid #bfdbfe",
+                                background: "#dbeafe",
+                                color: "#1d4ed8",
+                                flexShrink: 0,
+                              }}
+                            >
+                              Selected
+                            </span>
+                          ) : null}
                         </button>
                       );
                     })}
@@ -1115,7 +1113,7 @@ export default function CleanNumberAssessmentPlayer() {
                       fontWeight: 700,
                     }}
                   >
-                    Prototype details
+                    More details
                   </summary>
                   <div
                     style={{
@@ -1148,7 +1146,7 @@ export default function CleanNumberAssessmentPlayer() {
                       gap: 10,
                     }}
                   >
-                    <div style={eyebrowStyle}>Local feedback</div>
+                    <div style={eyebrowStyle}>Feedback</div>
                     <span style={getResultTone(currentResponse.result)}>
                       {getResultLabel(currentResponse.result)}
                     </span>
@@ -1310,21 +1308,6 @@ export default function CleanNumberAssessmentPlayer() {
                     {currentIndex === totalItems - 1 ? "Finish" : "Next"}
                   </button>
                 </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={resetPreview}
-                  style={tertiaryButtonStyle}
-                >
-                  Reset preview
-                </button>
               </div>
             </div>
           </section>
