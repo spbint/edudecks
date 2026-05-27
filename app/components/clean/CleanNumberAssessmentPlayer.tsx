@@ -37,6 +37,8 @@ type LocalAdaptiveInsightSummary = {
   correctCount: number;
   incorrectCount: number;
   reviewNeededCount: number;
+  unansweredCount: number;
+  enteredButUncheckedCount: number;
   topMisconceptionTargets: Array<{ code: string; label: string; count: number }>;
   topPracticeRecommendations: Array<{ recommendation: string; count: number }>;
   suggestedFocusAreas: string[];
@@ -408,6 +410,10 @@ function isOpenResponse(item: NumberAssessmentItem) {
   );
 }
 
+function hasEnteredResponse(response: LocalAssessmentResponse) {
+  return normalizeValue(response.response).length > 0;
+}
+
 function getCheckResult(
   item: NumberAssessmentItem,
   responseText: string,
@@ -438,6 +444,25 @@ function getCheckResult(
   }
 
   return "incorrect";
+}
+
+function getPersistedLocalResult(
+  item: NumberAssessmentItem,
+  response: LocalAssessmentResponse,
+): LocalAssessmentResult {
+  if (!hasEnteredResponse(response)) {
+    return "unanswered";
+  }
+
+  if (response.submitted) {
+    return response.result;
+  }
+
+  if (isOpenResponse(item)) {
+    return "review_needed";
+  }
+
+  return "review_needed";
 }
 
 function getResultMessage(result: LocalAssessmentResult) {
@@ -609,29 +634,45 @@ function buildAdaptiveInsightSummary(
   items: NumberAssessmentItem[],
   responses: Record<string, LocalAssessmentResponse>,
 ): LocalAdaptiveInsightSummary {
-  const responseList = items.map(
-    (item) => responses[item.id] ?? createEmptyResponse(item.id),
-  );
+  const itemResponses = items.map((item) => {
+    const response = responses[item.id] ?? createEmptyResponse(item.id);
+    const persistedResult = getPersistedLocalResult(item, response);
 
-  const attemptedCount = responseList.filter(
-    (response) => response.submitted || normalizeValue(response.response).length,
-  ).length;
-  const correctCount = responseList.filter(
-    (response) => response.result === "correct",
-  ).length;
-  const incorrectCount = responseList.filter(
-    (response) => response.result === "incorrect",
-  ).length;
-  const reviewNeededCount = responseList.filter(
-    (response) => response.result === "review_needed",
-  ).length;
-
-  const targetedItems = items.filter((item) => {
-    const response = responses[item.id];
-    return (
-      response?.result === "incorrect" || response?.result === "review_needed"
-    );
+    return {
+      item,
+      response,
+      persistedResult,
+    };
   });
+
+  const attemptedCount = itemResponses.filter(({ response }) =>
+    hasEnteredResponse(response),
+  ).length;
+  const correctCount = itemResponses.filter(
+    ({ persistedResult }) => persistedResult === "correct",
+  ).length;
+  const incorrectCount = itemResponses.filter(
+    ({ persistedResult }) => persistedResult === "incorrect",
+  ).length;
+  const reviewNeededCount = itemResponses.filter(
+    ({ persistedResult }) => persistedResult === "review_needed",
+  ).length;
+  const unansweredCount = itemResponses.filter(
+    ({ persistedResult }) => persistedResult === "unanswered",
+  ).length;
+  const enteredButUncheckedCount = itemResponses.filter(
+    ({ response, persistedResult }) =>
+      hasEnteredResponse(response) &&
+      !response.submitted &&
+      persistedResult === "review_needed",
+  ).length;
+
+  const targetedItems = itemResponses
+    .filter(
+      ({ persistedResult }) =>
+        persistedResult === "incorrect" || persistedResult === "review_needed",
+    )
+    .map(({ item }) => item);
 
   const misconceptionCounts = new Map<string, number>();
   const recommendationCounts = new Map<string, number>();
@@ -716,6 +757,8 @@ function buildAdaptiveInsightSummary(
     correctCount,
     incorrectCount,
     reviewNeededCount,
+    unansweredCount,
+    enteredButUncheckedCount,
     topMisconceptionTargets,
     topPracticeRecommendations,
     suggestedFocusAreas,
@@ -853,6 +896,8 @@ function CleanNumberAssessmentPlayerBody() {
         correctCount: summary.correctCount,
         incorrectCount: summary.incorrectCount,
         reviewNeededCount: summary.reviewNeededCount,
+        unansweredCount: summary.unansweredCount,
+        enteredButUncheckedCount: summary.enteredButUncheckedCount,
         topMisconceptionTargets: summary.topMisconceptionTargets,
         topPracticeRecommendations: summary.topPracticeRecommendations,
         suggestedFocusAreas: summary.suggestedFocusAreas,
@@ -898,7 +943,7 @@ function CleanNumberAssessmentPlayerBody() {
             itemOrder: index + 1,
             progressionStepKey: item.progressionStepKey,
             answerType: item.answerType,
-            localResult: response.result,
+            localResult: getPersistedLocalResult(item, response),
             responseText: normalizedResponse || null,
             selectedOption:
               item.answerType === "multiple_choice" && normalizedResponse
@@ -1263,6 +1308,12 @@ function CleanNumberAssessmentPlayerBody() {
                         saveBlockedMessage ||
                         "Save the completed session so the assessment attempt history can be reviewed later."}
                     </div>
+                    {summary.enteredButUncheckedCount > 0 ? (
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        Some responses have been entered but not checked. They
+                        will be saved as needing review.
+                      </div>
+                    ) : null}
                     <details
                       style={{
                         border: "1px solid #dbeafe",
