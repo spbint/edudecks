@@ -354,6 +354,38 @@ function getFormatTone(format: string): React.CSSProperties {
     };
   }
 
+  if (
+    format === "square_roots" ||
+    format === "exponent_notation" ||
+    format === "powers_of_ten" ||
+    format === "prime_factorisation" ||
+    format === "exponent_laws"
+  ) {
+    return {
+      ...chipBaseStyle,
+      border: "1px solid #fde68a",
+      background: "#fffbeb",
+      color: "#b45309",
+    };
+  }
+
+  if (
+    format === "fractional_powers" ||
+    format === "surd_equivalence" ||
+    format === "surd_simplification" ||
+    format === "surd_operations" ||
+    format === "multi_step_surd_reasoning" ||
+    format === "rationalising" ||
+    format === "exact_form_reasoning"
+  ) {
+    return {
+      ...chipBaseStyle,
+      border: "1px solid #c7d2fe",
+      background: "#eef2ff",
+      color: "#4338ca",
+    };
+  }
+
   return {
     ...chipBaseStyle,
     border: "1px solid #ddd6fe",
@@ -504,47 +536,42 @@ function getFormatLabel(format: string) {
   return format.replace(/_/g, " ");
 }
 
+const FOCUS_LABELS: Record<string, string> = {
+  "round-decimals-to-a-required-accuracy": "Rounding decimals",
+  "estimate-sums-and-products-using-rounding": "Estimating with rounding",
+  "compare-exact-and-estimated-results": "Comparing estimates with exact values",
+  "truncate-and-round-values": "Truncating and rounding",
+  "analyse-approximation-error-in-contexts": "Approximation error in context",
+  "recognise-repeated-approximation-effects": "Repeated approximation effects",
+  "recognise-irrational-numbers-including-square-roots-and-pi":
+    "Recognising irrational numbers",
+  "classify-numbers-as-rational-or-irrational": "Classifying real numbers",
+  "identify-statements-about-irrational-numbers":
+    "Reasoning about irrational numbers",
+  "place-rational-and-irrational-numbers-on-a-number-line":
+    "Placing real numbers on a number line",
+  "solve-applied-problems-involving-exact-real-number-values":
+    "Exact real-number reasoning",
+  "connect-perfect-squares-and-square-roots":
+    "Connecting squares and square roots",
+  "estimate-non-perfect-square-roots": "Estimating non-perfect square roots",
+  "represent-natural-numbers-as-products-of-powers":
+    "Prime powers and factorisation",
+  "use-powers-of-ten-in-expanded-notation": "Powers of 10 and place value",
+  "apply-exponent-notation": "Exponent notation",
+  "apply-exponent-laws-with-positive-integer-exponents": "Exponent laws",
+  "write-fractional-powers-in-surd-form": "Fractional powers and surds",
+  "evaluate-fractional-powers": "Evaluating fractional powers",
+  "simplify-surds": "Simplifying surds",
+  "multiply-surds": "Multiplying surds",
+  "add-and-subtract-like-surds": "Combining like surds",
+  "simplify-expressions-containing-multiple-surds":
+    "Multi-step surd simplification",
+  "rationalise-denominators": "Rationalising denominators",
+};
+
 function getFocusLabel(item: NumberAssessmentBankItem) {
-  if (item.progressionStepKey === "round-decimals-to-a-required-accuracy") {
-    return "Rounding decimals";
-  }
-  if (item.progressionStepKey === "estimate-sums-and-products-using-rounding") {
-    return "Estimating with rounding";
-  }
-  if (item.progressionStepKey === "compare-exact-and-estimated-results") {
-    return "Comparing estimates with exact values";
-  }
-  if (item.progressionStepKey === "truncate-and-round-values") {
-    return "Truncating and rounding";
-  }
-  if (item.progressionStepKey === "analyse-approximation-error-in-contexts") {
-    return "Approximation error in context";
-  }
-  if (
-    item.progressionStepKey ===
-    "recognise-irrational-numbers-including-square-roots-and-pi"
-  ) {
-    return "Recognising irrational numbers";
-  }
-  if (item.progressionStepKey === "classify-numbers-as-rational-or-irrational") {
-    return "Classifying real numbers";
-  }
-  if (item.progressionStepKey === "identify-statements-about-irrational-numbers") {
-    return "Reasoning about irrational numbers";
-  }
-  if (
-    item.progressionStepKey ===
-    "place-rational-and-irrational-numbers-on-a-number-line"
-  ) {
-    return "Placing real numbers on a number line";
-  }
-  if (
-    item.progressionStepKey ===
-    "solve-applied-problems-involving-exact-real-number-values"
-  ) {
-    return "Exact real-number reasoning";
-  }
-  return "Repeated approximation effects";
+  return FOCUS_LABELS[item.progressionStepKey] || "Number reasoning";
 }
 
 function getAnswerModeLabel(item: NumberAssessmentBankItem) {
@@ -555,54 +582,143 @@ function getAnswerModeLabel(item: NumberAssessmentBankItem) {
   return "Explain or justify";
 }
 
+const MISCONCEPTION_LABELS: Record<string, string> = {
+  "rounding-place-value-error": "Rounding and decimal place value",
+  "truncation-vs-rounding-confusion": "Truncation compared with rounding",
+  "decimal-operation-error": "Decimal operation error",
+  "estimated-exact-confusion": "Estimated versus exact values",
+  "unit-conversion-error": "Units and measurement conversion",
+  "percentage-or-rate-context-error": "Percentages, rates or financial contexts",
+  "rounding-too-early": "Rounding too early",
+  "reasonableness-not-checked": "Checking whether an answer is reasonable",
+  "rational-irrational-classification-error":
+    "Classifying rational and irrational numbers",
+  "square-root-estimation-error": "Estimating square roots",
+  "pi-as-rational-error": "Understanding pi as irrational",
+  "exact-vs-decimal-form-confusion":
+    "Exact form compared with decimal approximation",
+  "number-line-placement-error": "Placing real numbers on a number line",
+  "area-formula-exact-form-error": "Exact area forms with pi or square roots",
+  "surd-simplification-readiness-gap": "Simplifying square-root forms",
+  "recurring-decimal-rational-confusion":
+    "Recurring decimals as rational numbers",
+  "approximation-treated-as-exact": "Approximation treated as exact",
+  "real-number-comparison-error": "Comparing rational and irrational values",
+  "square-root-perfect-square-confusion":
+    "Perfect squares and square roots",
+  "exponent-notation-confusion": "Exponent notation",
+  "repeated-multiplication-confusion": "Repeated multiplication structure",
+  "powers-of-ten-place-value-error": "Powers of 10 and place value",
+  "prime-factorisation-exponent-error": "Prime factorisation with powers",
+  "exponent-law-multiplication-error":
+    "Multiplying powers with the same base",
+  "exponent-law-division-error": "Dividing powers with the same base",
+  "zero-exponent-confusion": "Zero exponent meaning",
+  "base-vs-exponent-confusion": "Base compared with exponent",
+  "fractional-index-to-surd-confusion": "Fractional powers and surd notation",
+  "fractional-power-evaluation-error": "Evaluating fractional powers",
+  "non-perfect-square-factor-error": "Finding square factors in surds",
+  "surd-simplification-factor-error": "Simplifying surds",
+  "like-surd-combination-error": "Combining like surds",
+  "unlike-surd-combination-error": "Distinguishing unlike surds",
+  "surd-multiplication-error": "Multiplying surds",
+  "rationalising-denominator-error": "Rationalising denominators",
+  "exact-form-vs-decimal-error":
+    "Exact form compared with decimal approximations",
+  "coefficient-surd-distribution-error":
+    "Working with coefficients in surd expressions",
+};
+
+const FOCUS_AREAS_BY_MISCONCEPTION: Record<string, string> = {
+  "rounding-place-value-error":
+    "Focus on reading decimal places carefully before rounding.",
+  "truncation-vs-rounding-confusion":
+    "Focus on comparing truncation with rounding on the same decimal values.",
+  "decimal-operation-error":
+    "Practise using sensible decimal operations after values have been rounded.",
+  "estimated-exact-confusion":
+    "Review when an estimate should be close to the exact answer and when the difference matters.",
+  "unit-conversion-error":
+    "Revisit units and measurement language when comparing approximate values.",
+  "percentage-or-rate-context-error":
+    "Practise choosing reasonable approximations in money, percentage, or rate contexts.",
+  "rounding-too-early":
+    "Practise when to round in a calculation so early rounding does not change the final result.",
+  "reasonableness-not-checked":
+    "Practise checking whether an answer is reasonable for the context.",
+  "rational-irrational-classification-error":
+    "Revisit how fractions, terminating decimals, recurring decimals, pi, and square roots are classified.",
+  "square-root-estimation-error":
+    "Practise bracketing square roots between nearby perfect squares before estimating.",
+  "pi-as-rational-error":
+    "Review why pi is irrational even when it is often written as a decimal approximation.",
+  "exact-vs-decimal-form-confusion":
+    "Compare when an exact form should be kept and when a decimal approximation is appropriate.",
+  "number-line-placement-error":
+    "Practise placing real numbers by comparing them with nearby benchmark values on a number line.",
+  "area-formula-exact-form-error":
+    "Revisit how exact area expressions keep pi or square-root forms without rounding too early.",
+  "surd-simplification-readiness-gap":
+    "Build confidence rewriting square-root forms before using them in exact calculations.",
+  "recurring-decimal-rational-confusion":
+    "Review why recurring decimals are rational and can be written as fractions.",
+  "approximation-treated-as-exact":
+    "Practise distinguishing an exact value from a convenient decimal approximation.",
+  "real-number-comparison-error":
+    "Practise comparing rational and irrational values using equivalent forms and benchmarks.",
+  "square-root-perfect-square-confusion":
+    "Practise moving both ways between perfect squares and their square roots.",
+  "exponent-notation-confusion":
+    "Review how exponent notation records a repeated factor in a compact form.",
+  "repeated-multiplication-confusion":
+    "Practise identifying the repeated factor and the number of times it appears.",
+  "powers-of-ten-place-value-error":
+    "Revisit how powers of 10 connect directly to place value.",
+  "prime-factorisation-exponent-error":
+    "Practise collecting repeated prime factors into powers carefully.",
+  "exponent-law-multiplication-error":
+    "Review why exponents add when multiplying powers with the same base.",
+  "exponent-law-division-error":
+    "Review why exponents subtract when dividing powers with the same base.",
+  "zero-exponent-confusion":
+    "Practise explaining zero exponents through patterns and quotient reasoning.",
+  "base-vs-exponent-confusion":
+    "Focus on what the base tells us and what the exponent tells us.",
+  "fractional-index-to-surd-confusion":
+    "Revisit how common fractional indices translate into roots and surd notation.",
+  "fractional-power-evaluation-error":
+    "Practise reading the denominator as the root and the numerator as the power.",
+  "non-perfect-square-factor-error":
+    "Practise finding the largest perfect-square factor inside a surd before simplifying.",
+  "surd-simplification-factor-error":
+    "Review how to factor a surd so the result stays in simplest exact form.",
+  "like-surd-combination-error":
+    "Practise combining surds only when the radical parts match after simplification.",
+  "unlike-surd-combination-error":
+    "Review why unlike surds cannot be merged into a single like-surd term.",
+  "surd-multiplication-error":
+    "Practise multiplying surds first and then simplifying the resulting exact form.",
+  "rationalising-denominator-error":
+    "Revisit how equivalent fractions remove surds from denominators while keeping the value unchanged.",
+  "exact-form-vs-decimal-error":
+    "Practise delaying rounding so exact surd forms stay precise for later work.",
+  "coefficient-surd-distribution-error":
+    "Review how coefficients interact with simplified surd terms in multi-step expressions.",
+};
+
 function getMisconceptionLabel(code: string) {
-  if (code === "rounding-place-value-error") {
-    return "Rounding and decimal place value";
-  }
-  if (code === "truncation-vs-rounding-confusion") {
-    return "Truncation compared with rounding";
-  }
-  if (code === "decimal-operation-error") {
-    return "Decimal operation error";
-  }
-  if (code === "estimated-exact-confusion") {
-    return "Estimated versus exact values";
-  }
-  if (code === "unit-conversion-error") {
-    return "Units and measurement conversion";
-  }
-  if (code === "percentage-or-rate-context-error") {
-    return "Percentages, rates or financial contexts";
-  }
-  if (code === "rounding-too-early") {
-    return "Rounding too early";
-  }
-  return "Checking whether an answer is reasonable";
+  return MISCONCEPTION_LABELS[code] || "Possible learning focus";
 }
 
 function getFocusAreaFromMisconception(code: string) {
-  if (code === "rounding-place-value-error") {
-    return "Focus on reading decimal places carefully before rounding.";
-  }
-  if (code === "truncation-vs-rounding-confusion") {
-    return "Focus on comparing truncation with rounding on the same decimal values.";
-  }
-  if (code === "decimal-operation-error") {
-    return "Practise using sensible decimal operations after values have been rounded.";
-  }
-  if (code === "estimated-exact-confusion") {
-    return "Review when an estimate should be close to the exact answer and when the difference matters.";
-  }
-  if (code === "unit-conversion-error") {
-    return "Revisit units and measurement language when comparing approximate values.";
-  }
-  if (code === "percentage-or-rate-context-error") {
-    return "Practise choosing reasonable approximations in money, percentage, or rate contexts.";
-  }
-  if (code === "rounding-too-early") {
-    return "Practise when to round in a calculation so early rounding does not change the final result.";
-  }
-  return "Practise checking whether an answer is reasonable for the context.";
+  return (
+    FOCUS_AREAS_BY_MISCONCEPTION[code] ||
+    "Review the main idea behind this response pattern before moving forward."
+  );
+}
+
+function hasAnyCode(topCodes: string[], targetCodes: string[]) {
+  return targetCodes.some((code) => topCodes.includes(code));
 }
 
 function getParentJudgementLabel(value: ParentJudgement) {
@@ -664,6 +780,7 @@ function buildItemSnapshot(
 }
 
 function buildAdaptiveInsightSummary(
+  bankKey: NumberAssessmentBankKey,
   items: NumberAssessmentBankItem[],
   responses: Record<string, LocalAssessmentResponse>,
 ): LocalAdaptiveInsightSummary {
@@ -758,26 +875,142 @@ function buildAdaptiveInsightSummary(
     incorrectCount === 0 &&
     reviewNeededCount === 0
   ) {
-    suggestedNextStep =
-      "This learner appears ready for more complex approximation and error-analysis contexts.";
+    if (bankKey === "powers-roots-exponent-notation") {
+      suggestedNextStep =
+        "This learner appears ready for more complex work with exponent structure and exact forms.";
+    } else if (bankKey === "irrational-and-real-numbers") {
+      suggestedNextStep =
+        "This learner appears ready for more advanced exact real-number reasoning and surd-based contexts.";
+    } else if (bankKey === "surds-and-exact-form") {
+      suggestedNextStep =
+        "This learner appears ready for more extended work with exact surd manipulation and proof-style reasoning.";
+    } else {
+      suggestedNextStep =
+        "This learner appears ready for more complex approximation and error-analysis contexts.";
+    }
   } else if (reviewNeededCount >= 2 && incorrectCount === 0 && correctCount >= 4) {
     suggestedNextStep =
       "The closed responses look strong. Review the explanation responses with an adult before moving forward.";
-  } else if (
-    topCodes.includes("rounding-place-value-error") ||
-    topCodes.includes("truncation-vs-rounding-confusion")
-  ) {
-    suggestedNextStep =
-      "Return to practice that compares rounding and truncating the same decimal values before trying repeated approximation problems.";
-  } else if (
-    topCodes.includes("estimated-exact-confusion") ||
-    topCodes.includes("reasonableness-not-checked")
-  ) {
-    suggestedNextStep =
-      "Practise comparing exact answers with estimates and explaining whether the difference matters in context.";
-  } else if (topCodes.includes("rounding-too-early")) {
-    suggestedNextStep =
-      "Revisit calculations where rounding early changes the final result, then retry repeated approximation items.";
+  } else if (bankKey === "approximation-estimation-error") {
+    if (
+      hasAnyCode(topCodes, [
+        "rounding-place-value-error",
+        "truncation-vs-rounding-confusion",
+      ])
+    ) {
+      suggestedNextStep =
+        "Return to practice that compares rounding and truncating the same decimal values before trying repeated approximation problems.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "estimated-exact-confusion",
+        "reasonableness-not-checked",
+      ])
+    ) {
+      suggestedNextStep =
+        "Practise comparing exact answers with estimates and explaining whether the difference matters in context.";
+    } else if (topCodes.includes("rounding-too-early")) {
+      suggestedNextStep =
+        "Revisit calculations where rounding early changes the final result, then retry repeated approximation items.";
+    }
+  } else if (bankKey === "irrational-and-real-numbers") {
+    if (
+      hasAnyCode(topCodes, [
+        "rational-irrational-classification-error",
+        "recurring-decimal-rational-confusion",
+        "pi-as-rational-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Return to practice classifying fractions, decimals, square roots and pi as rational or irrational before moving into exact-form problems.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "square-root-estimation-error",
+        "number-line-placement-error",
+        "real-number-comparison-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Practise bracketing square roots between whole numbers and comparing where rational and irrational values sit on a number line.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "exact-vs-decimal-form-confusion",
+        "approximation-treated-as-exact",
+        "area-formula-exact-form-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Revisit when a value should stay in exact form and when a decimal approximation is appropriate.";
+    }
+  } else if (bankKey === "powers-roots-exponent-notation") {
+    if (
+      hasAnyCode(topCodes, [
+        "square-root-perfect-square-confusion",
+        "square-root-estimation-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Return to practice connecting perfect squares with square roots and estimating non-perfect roots between whole numbers.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "exponent-notation-confusion",
+        "repeated-multiplication-confusion",
+        "base-vs-exponent-confusion",
+      ])
+    ) {
+      suggestedNextStep =
+        "Practise translating repeated multiplication into exponent form and explaining what the base and exponent each mean.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "powers-of-ten-place-value-error",
+        "prime-factorisation-exponent-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Revisit powers of 10 and prime factorisation with powers before moving into more complex exponent work.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "exponent-law-multiplication-error",
+        "exponent-law-division-error",
+        "zero-exponent-confusion",
+      ])
+    ) {
+      suggestedNextStep =
+        "Practise the exponent laws with the same base, including what zero exponents mean, before trying mixed exponent expressions.";
+    }
+  } else if (bankKey === "surds-and-exact-form") {
+    if (
+      hasAnyCode(topCodes, [
+        "fractional-index-to-surd-confusion",
+        "fractional-power-evaluation-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Return to practice connecting fractional powers with surd notation and evaluating fractional powers in the correct order.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "non-perfect-square-factor-error",
+        "surd-simplification-factor-error",
+        "coefficient-surd-distribution-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Practise simplifying surds by finding square factors and keeping coefficients organised before combining terms.";
+    } else if (
+      hasAnyCode(topCodes, [
+        "like-surd-combination-error",
+        "unlike-surd-combination-error",
+        "surd-multiplication-error",
+      ])
+    ) {
+      suggestedNextStep =
+        "Revisit multiplying surds and simplifying them before deciding which exact surd terms can combine.";
+    } else if (topCodes.includes("rationalising-denominator-error")) {
+      suggestedNextStep =
+        "Practise rationalising simple and conjugate denominators while keeping each step in exact form.";
+    } else if (topCodes.includes("exact-form-vs-decimal-error")) {
+      suggestedNextStep =
+        "Review why exact surd form is often more useful than rounding too early in a calculation.";
+    }
   } else if (reviewNeededCount >= 2) {
     suggestedNextStep =
       "Review the explanation responses with an adult before deciding whether this concept is secure.";
@@ -805,7 +1038,7 @@ function CleanNumberAssessmentPlayerBody() {
   const workspace = useCleanFamilyWorkspace();
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
-    NUMBER_ASSESSMENT_BANKS[0]?.key || "approximation-estimation-error",
+    NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
   );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
@@ -838,8 +1071,8 @@ function CleanNumberAssessmentPlayerBody() {
   const sessionProgress = showSummary ? 100 : currentProgress;
 
   const summary = useMemo(
-    () => buildAdaptiveInsightSummary(items, responses),
-    [items, responses],
+    () => buildAdaptiveInsightSummary(selectedBank.key, items, responses),
+    [items, responses, selectedBank.key],
   );
   const selectedLearnerId = useMemo(() => {
     if (!workspace.learners.length) return "";

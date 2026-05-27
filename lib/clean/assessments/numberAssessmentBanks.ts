@@ -13,8 +13,18 @@ import {
   NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS,
   NUMBER_IRRATIONAL_REAL_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberIrrationalRealAssessmentItems";
+import {
+  NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
+  NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
+import {
+  NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS,
+  NUMBER_SURDS_EXACT_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberSurdsExactAssessmentItems";
 
 export type NumberAssessmentBankKey =
+  | "powers-roots-exponent-notation"
+  | "surds-and-exact-form"
   | "approximation-estimation-error"
   | "irrational-and-real-numbers";
 
@@ -67,22 +77,22 @@ const NUMBER_APPROXIMATION_ITEM_BANK_KEY =
 // Years 9-10 Number steps are added to the pathway registry.
 export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
   {
-    key: "approximation-estimation-error",
-    title: "Approximation, estimation and error",
-    shortTitle: "Approximation and error",
+    key: "powers-roots-exponent-notation",
+    title: "Powers, roots and exponent notation",
+    shortTitle: "Powers and roots",
     description:
-      "Checks rounding, truncation, estimation, exact versus approximate values, and error reasoning.",
-    yearBandLabel: "Years 7-10",
+      "Checks square roots, powers, exponent notation, prime powers, powers of 10 and exponent laws.",
+    yearBandLabel: "Years 7-8",
     subjectKey: "mathematics",
     strandKey: "number-and-place-value",
     stageKey: "years-9-10-consolidation",
-    stepKey: "approximation-estimation-error",
+    stepKey: "powers-roots-exponent-notation",
     pathwayStepId:
-      "mathematics::number-and-place-value::years-9-10-consolidation::approximation-estimation-error",
-    progressionBandKey: "approximation-estimation-error",
-    itemBankKey: NUMBER_APPROXIMATION_ITEM_BANK_KEY,
+      "mathematics::number-and-place-value::years-9-10-consolidation::powers-roots-exponent-notation",
+    progressionBandKey: "powers-roots-exponent-notation",
+    itemBankKey: NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number-approximation-prototype",
-    items: NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
+    items: NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   },
   {
     key: "irrational-and-real-numbers",
@@ -101,6 +111,42 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_IRRATIONAL_REAL_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number-approximation-prototype",
     items: NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "surds-and-exact-form",
+    title: "Surds and exact form",
+    shortTitle: "Surds and exact form",
+    description:
+      "Checks surd notation, simplifying surds, surd operations, rationalising denominators and exact form reasoning.",
+    yearBandLabel: "Years 10-10A",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "surds-and-exact-form",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::surds-and-exact-form",
+    progressionBandKey: "surds-and-exact-form",
+    itemBankKey: NUMBER_SURDS_EXACT_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "approximation-estimation-error",
+    title: "Approximation, estimation and error",
+    shortTitle: "Approximation and error",
+    description:
+      "Checks rounding, truncation, estimation, exact versus approximate values, and error reasoning.",
+    yearBandLabel: "Years 7-10",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "approximation-estimation-error",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::approximation-estimation-error",
+    progressionBandKey: "approximation-estimation-error",
+    itemBankKey: NUMBER_APPROXIMATION_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
   },
 ];
 
