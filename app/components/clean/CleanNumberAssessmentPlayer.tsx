@@ -9,16 +9,19 @@ import {
   createAssessmentAttempt,
   createAssessmentAttemptResponses,
 } from "@/lib/clean/assessments/attemptClient";
+import {
+  NUMBER_ASSESSMENT_BANKS,
+  getNumberAssessmentBankByKey,
+  type NumberAssessmentBankItem,
+  type NumberAssessmentBankKey,
+} from "@/lib/clean/assessments/numberAssessmentBanks";
 import type {
   AssessmentAttemptLocalResult,
   CleanAssessmentAttemptSnapshot,
   CreateCleanAssessmentAttemptResponseInput,
 } from "@/lib/clean/assessments/attemptTypes";
-import {
-  NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
-  type NumberAssessmentItem,
-  type NumberAssessmentItemDifficulty,
-  type NumberAssessmentItemFormat,
+import type {
+  NumberAssessmentItemDifficulty,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import type { Learner } from "@/lib/clean/learners/types";
 
@@ -53,18 +56,6 @@ type ParentJudgement =
   | "not_enough_evidence_yet";
 
 type AssessmentAttemptSaveState = "idle" | "saving" | "saved" | "failed";
-
-const PROTOTYPE_SUBJECT_KEY = "mathematics";
-const PROTOTYPE_STRAND_KEY = "number-and-place-value";
-const PROTOTYPE_STAGE_KEY = "years-9-10-consolidation";
-const PROTOTYPE_STEP_KEY = "approximation-estimation-error";
-const PROTOTYPE_PROGRESSION_BAND_KEY = "approximation-estimation-error";
-const PROTOTYPE_ITEM_BANK_KEY = "number-approximation-assessment-items-v1";
-const PROTOTYPE_SOURCE_ROUTE = "/assessments/number-approximation-prototype";
-// Temporary stable pathway step id until this Years 9-10 Number step is added to
-// the canonical registry.
-const PROTOTYPE_PATHWAY_STEP_ID =
-  "mathematics::number-and-place-value::years-9-10-consolidation::approximation-estimation-error";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -317,7 +308,7 @@ function getDifficultyTone(
   };
 }
 
-function getFormatTone(format: NumberAssessmentItemFormat): React.CSSProperties {
+function getFormatTone(format: string): React.CSSProperties {
   if (format === "rounding" || format === "estimation") {
     return {
       ...chipBaseStyle,
@@ -336,12 +327,30 @@ function getFormatTone(format: NumberAssessmentItemFormat): React.CSSProperties 
     };
   }
 
-  if (format === "applied_context" || format === "reasonableness") {
+  if (
+    format === "applied_context" ||
+    format === "reasonableness" ||
+    format === "geometric_reasoning"
+  ) {
     return {
       ...chipBaseStyle,
       border: "1px solid #bbf7d0",
       background: "#f0fdf4",
       color: "#166534",
+    };
+  }
+
+  if (
+    format === "classification" ||
+    format === "number_line" ||
+    format === "exact_form" ||
+    format === "real_number_reasoning"
+  ) {
+    return {
+      ...chipBaseStyle,
+      border: "1px solid #c7d2fe",
+      background: "#eef2ff",
+      color: "#4338ca",
     };
   }
 
@@ -403,7 +412,7 @@ function normalizeValue(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function isOpenResponse(item: NumberAssessmentItem) {
+function isOpenResponse(item: NumberAssessmentBankItem) {
   return (
     item.answerType === "worked_response" ||
     item.answerType === "explain_or_justify"
@@ -415,7 +424,7 @@ function hasEnteredResponse(response: LocalAssessmentResponse) {
 }
 
 function getCheckResult(
-  item: NumberAssessmentItem,
+  item: NumberAssessmentBankItem,
   responseText: string,
 ): LocalAssessmentResult {
   const normalizedResponse = normalizeValue(responseText);
@@ -447,7 +456,7 @@ function getCheckResult(
 }
 
 function getPersistedLocalResult(
-  item: NumberAssessmentItem,
+  item: NumberAssessmentBankItem,
   response: LocalAssessmentResponse,
 ): LocalAssessmentResult {
   if (!hasEnteredResponse(response)) {
@@ -491,11 +500,11 @@ function getResultLabel(result: LocalAssessmentResult) {
   return "Unanswered";
 }
 
-function getFormatLabel(format: NumberAssessmentItemFormat) {
+function getFormatLabel(format: string) {
   return format.replace(/_/g, " ");
 }
 
-function getFocusLabel(item: NumberAssessmentItem) {
+function getFocusLabel(item: NumberAssessmentBankItem) {
   if (item.progressionStepKey === "round-decimals-to-a-required-accuracy") {
     return "Rounding decimals";
   }
@@ -511,10 +520,34 @@ function getFocusLabel(item: NumberAssessmentItem) {
   if (item.progressionStepKey === "analyse-approximation-error-in-contexts") {
     return "Approximation error in context";
   }
+  if (
+    item.progressionStepKey ===
+    "recognise-irrational-numbers-including-square-roots-and-pi"
+  ) {
+    return "Recognising irrational numbers";
+  }
+  if (item.progressionStepKey === "classify-numbers-as-rational-or-irrational") {
+    return "Classifying real numbers";
+  }
+  if (item.progressionStepKey === "identify-statements-about-irrational-numbers") {
+    return "Reasoning about irrational numbers";
+  }
+  if (
+    item.progressionStepKey ===
+    "place-rational-and-irrational-numbers-on-a-number-line"
+  ) {
+    return "Placing real numbers on a number line";
+  }
+  if (
+    item.progressionStepKey ===
+    "solve-applied-problems-involving-exact-real-number-values"
+  ) {
+    return "Exact real-number reasoning";
+  }
   return "Repeated approximation effects";
 }
 
-function getAnswerModeLabel(item: NumberAssessmentItem) {
+function getAnswerModeLabel(item: NumberAssessmentBankItem) {
   if (item.answerType === "multiple_choice") return "Choose one";
   if (item.answerType === "numeric") return "Number answer";
   if (item.answerType === "short_answer") return "Short response";
@@ -599,7 +632,7 @@ function getLearnerLabel(learner: Learner | null) {
   return learner.preferredName || learner.firstName;
 }
 
-function buildOpenResponseReviewSnapshot(item: NumberAssessmentItem) {
+function buildOpenResponseReviewSnapshot(item: NumberAssessmentBankItem) {
   if (!item.openResponseReview) {
     return null;
   }
@@ -613,7 +646,7 @@ function buildOpenResponseReviewSnapshot(item: NumberAssessmentItem) {
 }
 
 function buildItemSnapshot(
-  item: NumberAssessmentItem,
+  item: NumberAssessmentBankItem,
 ): CleanAssessmentAttemptSnapshot {
   return {
     title: item.title,
@@ -631,7 +664,7 @@ function buildItemSnapshot(
 }
 
 function buildAdaptiveInsightSummary(
-  items: NumberAssessmentItem[],
+  items: NumberAssessmentBankItem[],
   responses: Record<string, LocalAssessmentResponse>,
 ): LocalAdaptiveInsightSummary {
   const itemResponses = items.map((item) => {
@@ -769,10 +802,11 @@ function buildAdaptiveInsightSummary(
 }
 
 function CleanNumberAssessmentPlayerBody() {
-  const items = NUMBER_APPROXIMATION_ASSESSMENT_ITEMS;
-  const totalItems = items.length;
   const workspace = useCleanFamilyWorkspace();
 
+  const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
+    NUMBER_ASSESSMENT_BANKS[0]?.key || "approximation-estimation-error",
+  );
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [parentJudgement, setParentJudgement] = useState<ParentJudgement | null>(
@@ -780,14 +814,26 @@ function CleanNumberAssessmentPlayerBody() {
   );
   const [saveState, setSaveState] = useState<AssessmentAttemptSaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
-  const [sessionStartedAt] = useState(() => new Date().toISOString());
   const [responses, setResponses] = useState<
     Record<string, LocalAssessmentResponse>
   >({});
+  const [sessionStartedAtValue, setSessionStartedAtValue] = useState(() =>
+    new Date().toISOString(),
+  );
 
-  const currentItem = items[currentIndex];
+  const selectedBank = useMemo(
+    () =>
+      getNumberAssessmentBankByKey(selectedBankKey) || NUMBER_ASSESSMENT_BANKS[0],
+    [selectedBankKey],
+  );
+  const items = selectedBank.items;
+  const totalItems = items.length;
+
+  const currentItem = items[currentIndex] || items[0];
   const currentResponse =
-    responses[currentItem.id] ?? createEmptyResponse(currentItem.id);
+    currentItem
+      ? responses[currentItem.id] ?? createEmptyResponse(currentItem.id)
+      : createEmptyResponse("no-item");
   const currentProgress = ((currentIndex + 1) / totalItems) * 100;
   const sessionProgress = showSummary ? 100 : currentProgress;
 
@@ -827,6 +873,16 @@ function CleanNumberAssessmentPlayerBody() {
       "Select a learner before saving this assessment attempt.";
   }
 
+  function resetAssessmentState() {
+    setCurrentIndex(0);
+    setShowSummary(false);
+    setParentJudgement(null);
+    setSaveState("idle");
+    setSaveMessage("");
+    setResponses({});
+    setSessionStartedAtValue(new Date().toISOString());
+  }
+
   function updateResponse(itemId: string, value: string) {
     setResponses((current) => ({
       ...current,
@@ -841,6 +897,10 @@ function CleanNumberAssessmentPlayerBody() {
   }
 
   function submitCurrentItem() {
+    if (!currentItem) {
+      return;
+    }
+
     const submittedAt = new Date().toISOString();
     setResponses((current) => ({
       ...current,
@@ -860,6 +920,10 @@ function CleanNumberAssessmentPlayerBody() {
   }
 
   function goNext() {
+    if (!currentItem) {
+      return;
+    }
+
     if (currentIndex >= totalItems - 1) {
       setShowSummary(true);
       return;
@@ -868,12 +932,16 @@ function CleanNumberAssessmentPlayerBody() {
   }
 
   function resetPreview() {
-    setCurrentIndex(0);
-    setShowSummary(false);
-    setParentJudgement(null);
-    setSaveState("idle");
-    setSaveMessage("");
-    setResponses({});
+    resetAssessmentState();
+  }
+
+  function selectAssessmentBank(nextBankKey: NumberAssessmentBankKey) {
+    if (nextBankKey === selectedBankKey) {
+      return;
+    }
+
+    setSelectedBankKey(nextBankKey);
+    resetAssessmentState();
   }
 
   async function saveAssessmentAttempt() {
@@ -905,7 +973,9 @@ function CleanNumberAssessmentPlayerBody() {
         parentJudgementPrompt: summary.parentJudgementPrompt,
         parentJudgementPreview: parentJudgement,
         prototypeMetadata: {
-          sourceRoute: PROTOTYPE_SOURCE_ROUTE,
+          bankKey: selectedBank.key,
+          bankTitle: selectedBank.title,
+          sourceRoute: selectedBank.sourceRoute,
           pathwayStepIdMode: "temporary-stable-key",
           learnerLabel: getLearnerLabel(selectedLearner) || null,
         },
@@ -913,15 +983,15 @@ function CleanNumberAssessmentPlayerBody() {
 
       const createdAttempt = await createAssessmentAttempt(familyId, {
         learnerId,
-        subjectKey: PROTOTYPE_SUBJECT_KEY,
-        strandKey: PROTOTYPE_STRAND_KEY,
-        stageKey: PROTOTYPE_STAGE_KEY,
-        pathwayStepId: PROTOTYPE_PATHWAY_STEP_ID,
-        stepKey: PROTOTYPE_STEP_KEY,
-        progressionBandKey: PROTOTYPE_PROGRESSION_BAND_KEY,
-        itemBankKey: PROTOTYPE_ITEM_BANK_KEY,
+        subjectKey: selectedBank.subjectKey,
+        strandKey: selectedBank.strandKey,
+        stageKey: selectedBank.stageKey,
+        pathwayStepId: selectedBank.pathwayStepId,
+        stepKey: selectedBank.stepKey,
+        progressionBandKey: selectedBank.progressionBandKey,
+        itemBankKey: selectedBank.itemBankKey,
         mode: "diagnostic",
-        sourceRoute: PROTOTYPE_SOURCE_ROUTE,
+        sourceRoute: selectedBank.sourceRoute,
         status: "completed",
         itemCount: totalItems,
         attemptedCount: summary.attemptedCount,
@@ -929,7 +999,7 @@ function CleanNumberAssessmentPlayerBody() {
         autoIncorrectCount: summary.incorrectCount,
         reviewNeededCount: summary.reviewNeededCount,
         summarySnapshot,
-        startedAt: sessionStartedAt,
+        startedAt: sessionStartedAtValue,
         completedAt,
       });
 
@@ -1001,7 +1071,7 @@ function CleanNumberAssessmentPlayerBody() {
                     color: "#0f172a",
                   }}
                 >
-                  Approximation, estimation and error
+                  {selectedBank.title}
                 </h1>
                 <p
                   style={{
@@ -1013,9 +1083,38 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   {showSummary
-                    ? "Use this session summary to decide the next practice focus."
-                    : "A focused local preview for checking rounding, estimation and error reasoning."}
+                    ? `Use this session summary to decide the next practice focus for ${selectedBank.shortTitle.toLowerCase()}.`
+                    : selectedBank.description}
                 </p>
+                <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+                  <div style={eyebrowStyle}>Assessment focus</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {NUMBER_ASSESSMENT_BANKS.map((bank) => {
+                      const isSelected = bank.key === selectedBank.key;
+
+                      return (
+                        <button
+                          key={bank.key}
+                          type="button"
+                          onClick={() => selectAssessmentBank(bank.key)}
+                          style={{
+                            ...secondaryButtonStyle,
+                            border: isSelected
+                              ? "1px solid #1d4ed8"
+                              : secondaryButtonStyle.border,
+                            background: isSelected ? "#eff6ff" : "#ffffff",
+                            color: isSelected ? "#1d4ed8" : "#0f172a",
+                            boxShadow: isSelected
+                              ? "0 8px 18px rgba(59,130,246,0.12)"
+                              : "none",
+                          }}
+                        >
+                          {bank.shortTitle}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div
@@ -1026,7 +1125,9 @@ function CleanNumberAssessmentPlayerBody() {
                   justifyContent: "flex-end",
                 }}
               >
-                <span style={getDifficultyTone("foundation")}>Years 7-10</span>
+                <span style={getDifficultyTone("foundation")}>
+                  {selectedBank.yearBandLabel}
+                </span>
                 <span style={getFormatTone("applied_context")}>Local preview</span>
                 <span style={getFormatTone("reasonableness")}>Number</span>
                 <span
@@ -1059,7 +1160,7 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   {showSummary
-                    ? "Session summary"
+                    ? `Assessment summary - ${selectedBank.shortTitle}`
                     : `Item ${currentIndex + 1} of ${totalItems}`}
                 </div>
 
