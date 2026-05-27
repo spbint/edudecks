@@ -974,7 +974,7 @@ export default function CleanNumberAssessmentPlayer() {
                       : getResultTone("review_needed")
                   }
                 >
-                  {saveState === "saved" ? "Attempt saved" : "Not saved yet"}
+                  {saveState === "saved" ? "Saved" : "Not saved yet"}
                 </span>
               </div>
             </div>
@@ -1173,60 +1173,6 @@ export default function CleanNumberAssessmentPlayer() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Assessment attempt</div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                  }}
-                >
-                  <span
-                    style={
-                      saveState === "saved"
-                        ? getResultTone("correct")
-                        : saveState === "saving"
-                          ? getFormatTone("estimation")
-                          : saveState === "failed"
-                            ? getResultTone("incorrect")
-                            : getResultTone("unanswered")
-                    }
-                  >
-                    {saveState === "saved"
-                      ? "Saved"
-                      : saveState === "saving"
-                        ? "Saving..."
-                        : saveState === "failed"
-                          ? "Save failed"
-                          : "Not saved yet"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void saveAssessmentAttempt()}
-                    disabled={!canSaveAttempt || saveState === "saving" || saveState === "saved"}
-                    style={
-                      !canSaveAttempt || saveState === "saving" || saveState === "saved"
-                        ? disabledButtonStyle
-                        : buttonStyle
-                    }
-                  >
-                    {saveState === "saved"
-                      ? "Attempt saved"
-                      : saveState === "saving"
-                        ? "Saving attempt..."
-                        : "Save assessment attempt"}
-                  </button>
-                </div>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {saveMessage ||
-                    saveBlockedMessage ||
-                    "Save the completed session so the attempt history can be reviewed later."}
-                </div>
-              </div>
-
-              <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Parent judgement</div>
                 <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 13 }}>
                   Preview only - not saved yet.
@@ -1262,6 +1208,63 @@ export default function CleanNumberAssessmentPlayer() {
                     {getParentJudgementLabel(parentJudgement)}.
                   </div>
                 ) : null}
+              </div>
+
+              <div style={highlightCardStyle}>
+                <div style={eyebrowStyle}>Save assessment attempt</div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ display: "grid", gap: 6 }}>
+                    <span
+                      style={
+                        saveState === "saved"
+                          ? getResultTone("correct")
+                          : saveState === "saving"
+                            ? getFormatTone("estimation")
+                            : saveState === "failed"
+                              ? getResultTone("incorrect")
+                              : getResultTone("unanswered")
+                      }
+                    >
+                      {saveState === "saved"
+                        ? "Saved"
+                        : saveState === "saving"
+                          ? "Saving..."
+                          : saveState === "failed"
+                            ? "Save failed"
+                            : "Not saved yet"}
+                    </span>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      {saveMessage ||
+                        saveBlockedMessage ||
+                        "Save the completed session so the assessment attempt history can be reviewed later."}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void saveAssessmentAttempt()}
+                    disabled={!canSaveAttempt || saveState === "saving" || saveState === "saved"}
+                    style={
+                      !canSaveAttempt || saveState === "saving" || saveState === "saved"
+                        ? disabledButtonStyle
+                        : buttonStyle
+                    }
+                  >
+                    {saveState === "saved"
+                      ? "Attempt saved"
+                      : saveState === "saving"
+                        ? "Saving attempt..."
+                        : "Save assessment attempt"}
+                  </button>
+                </div>
               </div>
 
               <div style={actionBarStyle}>
