@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
+import CleanFamilyWorkspaceProvider, {
+  useCleanFamilyWorkspace,
+} from "@/app/components/clean/CleanFamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   createAssessmentAttempt,
@@ -18,6 +20,7 @@ import {
   type NumberAssessmentItemDifficulty,
   type NumberAssessmentItemFormat,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
+import type { Learner } from "@/lib/clean/learners/types";
 
 type LocalAssessmentResult = AssessmentAttemptLocalResult;
 
@@ -566,6 +569,11 @@ function getParentJudgementTone(
   };
 }
 
+function getLearnerLabel(learner: Learner | null) {
+  if (!learner) return "";
+  return learner.preferredName || learner.firstName;
+}
+
 function buildOpenResponseReviewSnapshot(item: NumberAssessmentItem) {
   if (!item.openResponseReview) {
     return null;
@@ -717,11 +725,10 @@ function buildAdaptiveInsightSummary(
   };
 }
 
-export default function CleanNumberAssessmentPlayer() {
+function CleanNumberAssessmentPlayerBody() {
   const items = NUMBER_APPROXIMATION_ASSESSMENT_ITEMS;
   const totalItems = items.length;
-  const { workspace, activeLearner, loading: workspaceLoading } =
-    useFamilyWorkspace();
+  const workspace = useCleanFamilyWorkspace();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
@@ -745,22 +752,36 @@ export default function CleanNumberAssessmentPlayer() {
     () => buildAdaptiveInsightSummary(items, responses),
     [items, responses],
   );
-  const familyId =
-    workspace.storageMode === "database" && workspace.profile.id !== "local"
-      ? workspace.profile.id
-      : "";
-  const learnerId = activeLearner?.id || "";
-  const canSaveAttempt = Boolean(familyId && learnerId);
+  const selectedLearnerId = useMemo(() => {
+    if (!workspace.learners.length) return "";
+
+    const defaultLearnerId = workspace.profile?.defaultLearnerId;
+    const defaultIsValid = defaultLearnerId
+      ? workspace.learners.some((learner) => learner.id === defaultLearnerId)
+      : false;
+
+    return defaultIsValid ? defaultLearnerId || "" : workspace.learners[0]?.id || "";
+  }, [workspace.learners, workspace.profile?.defaultLearnerId]);
+  const selectedLearner = useMemo(
+    () => workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
+    [selectedLearnerId, workspace.learners],
+  );
+  const familyId = workspace.profile?.id || "";
+  const learnerId = selectedLearner?.id || "";
+  const canSaveAttempt = Boolean(!workspace.loading && familyId && learnerId);
 
   let saveBlockedMessage = "";
-  if (workspaceLoading) {
-    saveBlockedMessage = "Loading family workspace before saving.";
-  } else if (workspace.storageMode !== "database" || workspace.profile.id === "local") {
+  if (workspace.loading) {
+    saveBlockedMessage = "Checking workspace save availability...";
+  } else if (workspace.schemaMissing) {
     saveBlockedMessage =
-      "Saving is available when this assessment is opened in a synced family workspace.";
+      "A synced family workspace is required before saving assessment attempts.";
+  } else if (workspace.requiresFamilyCreation || !workspace.profile) {
+    saveBlockedMessage =
+      "This preview is not connected to a synced family workspace. Switch to a synced family workspace before saving.";
   } else if (!learnerId) {
     saveBlockedMessage =
-      "Select a learner in the family workspace before saving this assessment attempt.";
+      "Select a learner before saving this assessment attempt.";
   }
 
   function updateResponse(itemId: string, value: string) {
@@ -818,11 +839,7 @@ export default function CleanNumberAssessmentPlayer() {
     }
 
     if (!canSaveAttempt) {
-      setSaveState("failed");
-      setSaveMessage(
-        saveBlockedMessage ||
-          "A synced family workspace and active learner are required before saving.",
-      );
+      setSaveState("idle");
       return;
     }
 
@@ -845,7 +862,7 @@ export default function CleanNumberAssessmentPlayer() {
         prototypeMetadata: {
           sourceRoute: PROTOTYPE_SOURCE_ROUTE,
           pathwayStepIdMode: "temporary-stable-key",
-          learnerLabel: activeLearner?.label ?? null,
+          learnerLabel: getLearnerLabel(selectedLearner) || null,
         },
       };
 
@@ -1246,6 +1263,57 @@ export default function CleanNumberAssessmentPlayer() {
                         saveBlockedMessage ||
                         "Save the completed session so the assessment attempt history can be reviewed later."}
                     </div>
+                    <details
+                      style={{
+                        border: "1px solid #dbeafe",
+                        borderRadius: 12,
+                        background: "#ffffff",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          color: "#1e3a8a",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Save context details
+                      </summary>
+                      <div
+                        style={{
+                          marginTop: 8,
+                          display: "grid",
+                          gap: 6,
+                          color: "#334155",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        <div>
+                          <strong>Workspace:</strong>{" "}
+                          {workspace.loading
+                            ? "Checking workspace"
+                            : workspace.profile
+                              ? "Synced family workspace"
+                              : "No synced family workspace"}
+                        </div>
+                        <div>
+                          <strong>Active learner:</strong>{" "}
+                          {selectedLearner ? getLearnerLabel(selectedLearner) : "Missing"}
+                        </div>
+                        <div>
+                          <strong>Save status:</strong>{" "}
+                          {saveState === "saved"
+                            ? "Saved"
+                            : saveState === "saving"
+                              ? "Saving"
+                              : canSaveAttempt
+                                ? "Available"
+                                : "Blocked"}
+                        </div>
+                      </div>
+                    </details>
                   </div>
 
                   <button
@@ -1654,5 +1722,13 @@ export default function CleanNumberAssessmentPlayer() {
         </section>
       </div>
     </div>
+  );
+}
+
+export default function CleanNumberAssessmentPlayer() {
+  return (
+    <CleanFamilyWorkspaceProvider>
+      <CleanNumberAssessmentPlayerBody />
+    </CleanFamilyWorkspaceProvider>
   );
 }
