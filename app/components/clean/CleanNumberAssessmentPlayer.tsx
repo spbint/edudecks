@@ -741,39 +741,6 @@ export default function CleanNumberAssessmentPlayer() {
           <div style={sessionHeaderStyle}>
             <div
               style={{
-                border: "2px solid #f59e0b",
-                background: "#fef3c7",
-                color: "#0f172a",
-                borderRadius: 18,
-                padding: "14px 16px",
-                display: "grid",
-                gap: 4,
-                boxShadow: "0 10px 24px rgba(245,158,11,0.16)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 900,
-                  lineHeight: 1.2,
-                  letterSpacing: "0.01em",
-                }}
-              >
-                DEPLOYMENT CHECK - Assessment Player v6 visible
-              </div>
-              <div
-                style={{
-                  fontSize: 14,
-                  fontWeight: 800,
-                  lineHeight: 1.3,
-                }}
-              >
-                Marker: V6-CHECK-2026-05-27
-              </div>
-            </div>
-
-            <div
-              style={{
                 display: "flex",
                 flexWrap: "wrap",
                 justifyContent: "space-between",
