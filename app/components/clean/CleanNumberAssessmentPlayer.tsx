@@ -1,7 +1,17 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useFamilyWorkspace } from "@/app/components/FamilyWorkspaceProvider";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
+import {
+  createAssessmentAttempt,
+  createAssessmentAttemptResponses,
+} from "@/lib/clean/assessments/attemptClient";
+import type {
+  AssessmentAttemptLocalResult,
+  CleanAssessmentAttemptSnapshot,
+  CreateCleanAssessmentAttemptResponseInput,
+} from "@/lib/clean/assessments/attemptTypes";
 import {
   NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
   type NumberAssessmentItem,
@@ -9,17 +19,14 @@ import {
   type NumberAssessmentItemFormat,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 
-type LocalAssessmentResult =
-  | "correct"
-  | "incorrect"
-  | "review_needed"
-  | "unanswered";
+type LocalAssessmentResult = AssessmentAttemptLocalResult;
 
 type LocalAssessmentResponse = {
   itemId: string;
   response: string;
   submitted: boolean;
   result: LocalAssessmentResult;
+  submittedAt: string | null;
 };
 
 type LocalAdaptiveInsightSummary = {
@@ -39,6 +46,20 @@ type ParentJudgement =
   | "developing"
   | "needs_support"
   | "not_enough_evidence_yet";
+
+type AssessmentAttemptSaveState = "idle" | "saving" | "saved" | "failed";
+
+const PROTOTYPE_SUBJECT_KEY = "mathematics";
+const PROTOTYPE_STRAND_KEY = "number-and-place-value";
+const PROTOTYPE_STAGE_KEY = "years-9-10-consolidation";
+const PROTOTYPE_STEP_KEY = "approximation-estimation-error";
+const PROTOTYPE_PROGRESSION_BAND_KEY = "approximation-estimation-error";
+const PROTOTYPE_ITEM_BANK_KEY = "number-approximation-assessment-items-v1";
+const PROTOTYPE_SOURCE_ROUTE = "/assessments/number-approximation-prototype";
+// Temporary stable pathway step id until this Years 9-10 Number step is added to
+// the canonical registry.
+const PROTOTYPE_PATHWAY_STEP_ID =
+  "mathematics::number-and-place-value::years-9-10-consolidation::approximation-estimation-error";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -369,6 +390,7 @@ function createEmptyResponse(itemId: string): LocalAssessmentResponse {
     response: "",
     submitted: false,
     result: "unanswered",
+    submittedAt: null,
   };
 }
 
@@ -544,6 +566,37 @@ function getParentJudgementTone(
   };
 }
 
+function buildOpenResponseReviewSnapshot(item: NumberAssessmentItem) {
+  if (!item.openResponseReview) {
+    return null;
+  }
+
+  return {
+    expectedResponse: item.openResponseReview.expectedResponse,
+    successCriteria: item.openResponseReview.successCriteria,
+    parentReviewPrompts: item.openResponseReview.parentReviewPrompts,
+    evidenceNote: item.openResponseReview.evidenceNote ?? null,
+  };
+}
+
+function buildItemSnapshot(
+  item: NumberAssessmentItem,
+): CleanAssessmentAttemptSnapshot {
+  return {
+    title: item.title,
+    prompt: item.prompt,
+    options: item.options ?? [],
+    expectedAnswer: item.expectedAnswer ?? null,
+    acceptableAnswers: item.acceptableAnswers ?? [],
+    workedSolution: item.workedSolution ?? null,
+    markingGuide: item.markingGuide ?? null,
+    misconceptionTargets: item.misconceptionTargets,
+    adaptiveRoute: item.adaptiveRoute,
+    openResponseReview: buildOpenResponseReviewSnapshot(item),
+    visualSupport: item.visualSupport ?? null,
+  };
+}
+
 function buildAdaptiveInsightSummary(
   items: NumberAssessmentItem[],
   responses: Record<string, LocalAssessmentResponse>,
@@ -667,12 +720,17 @@ function buildAdaptiveInsightSummary(
 export default function CleanNumberAssessmentPlayer() {
   const items = NUMBER_APPROXIMATION_ASSESSMENT_ITEMS;
   const totalItems = items.length;
+  const { workspace, activeLearner, loading: workspaceLoading } =
+    useFamilyWorkspace();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [parentJudgement, setParentJudgement] = useState<ParentJudgement | null>(
     null,
   );
+  const [saveState, setSaveState] = useState<AssessmentAttemptSaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [sessionStartedAt] = useState(() => new Date().toISOString());
   const [responses, setResponses] = useState<
     Record<string, LocalAssessmentResponse>
   >({});
@@ -687,6 +745,23 @@ export default function CleanNumberAssessmentPlayer() {
     () => buildAdaptiveInsightSummary(items, responses),
     [items, responses],
   );
+  const familyId =
+    workspace.storageMode === "database" && workspace.profile.id !== "local"
+      ? workspace.profile.id
+      : "";
+  const learnerId = activeLearner?.id || "";
+  const canSaveAttempt = Boolean(familyId && learnerId);
+
+  let saveBlockedMessage = "";
+  if (workspaceLoading) {
+    saveBlockedMessage = "Loading family workspace before saving.";
+  } else if (workspace.storageMode !== "database" || workspace.profile.id === "local") {
+    saveBlockedMessage =
+      "Saving is available when this assessment is opened in a synced family workspace.";
+  } else if (!learnerId) {
+    saveBlockedMessage =
+      "Select a learner in the family workspace before saving this assessment attempt.";
+  }
 
   function updateResponse(itemId: string, value: string) {
     setResponses((current) => ({
@@ -696,11 +771,13 @@ export default function CleanNumberAssessmentPlayer() {
         response: value,
         submitted: false,
         result: "unanswered",
+        submittedAt: null,
       },
     }));
   }
 
   function submitCurrentItem() {
+    const submittedAt = new Date().toISOString();
     setResponses((current) => ({
       ...current,
       [currentItem.id]: {
@@ -708,6 +785,7 @@ export default function CleanNumberAssessmentPlayer() {
         response: currentResponse.response,
         submitted: true,
         result: getCheckResult(currentItem, currentResponse.response),
+        submittedAt,
       },
     }));
   }
@@ -729,7 +807,110 @@ export default function CleanNumberAssessmentPlayer() {
     setCurrentIndex(0);
     setShowSummary(false);
     setParentJudgement(null);
+    setSaveState("idle");
+    setSaveMessage("");
     setResponses({});
+  }
+
+  async function saveAssessmentAttempt() {
+    if (saveState === "saving" || saveState === "saved") {
+      return;
+    }
+
+    if (!canSaveAttempt) {
+      setSaveState("failed");
+      setSaveMessage(
+        saveBlockedMessage ||
+          "A synced family workspace and active learner are required before saving.",
+      );
+      return;
+    }
+
+    setSaveState("saving");
+    setSaveMessage("");
+
+    try {
+      const completedAt = new Date().toISOString();
+      const summarySnapshot: CleanAssessmentAttemptSnapshot = {
+        attemptedCount: summary.attemptedCount,
+        correctCount: summary.correctCount,
+        incorrectCount: summary.incorrectCount,
+        reviewNeededCount: summary.reviewNeededCount,
+        topMisconceptionTargets: summary.topMisconceptionTargets,
+        topPracticeRecommendations: summary.topPracticeRecommendations,
+        suggestedFocusAreas: summary.suggestedFocusAreas,
+        suggestedNextStep: summary.suggestedNextStep,
+        parentJudgementPrompt: summary.parentJudgementPrompt,
+        parentJudgementPreview: parentJudgement,
+        prototypeMetadata: {
+          sourceRoute: PROTOTYPE_SOURCE_ROUTE,
+          pathwayStepIdMode: "temporary-stable-key",
+          learnerLabel: activeLearner?.label ?? null,
+        },
+      };
+
+      const createdAttempt = await createAssessmentAttempt(familyId, {
+        learnerId,
+        subjectKey: PROTOTYPE_SUBJECT_KEY,
+        strandKey: PROTOTYPE_STRAND_KEY,
+        stageKey: PROTOTYPE_STAGE_KEY,
+        pathwayStepId: PROTOTYPE_PATHWAY_STEP_ID,
+        stepKey: PROTOTYPE_STEP_KEY,
+        progressionBandKey: PROTOTYPE_PROGRESSION_BAND_KEY,
+        itemBankKey: PROTOTYPE_ITEM_BANK_KEY,
+        mode: "diagnostic",
+        sourceRoute: PROTOTYPE_SOURCE_ROUTE,
+        status: "completed",
+        itemCount: totalItems,
+        attemptedCount: summary.attemptedCount,
+        autoCorrectCount: summary.correctCount,
+        autoIncorrectCount: summary.incorrectCount,
+        reviewNeededCount: summary.reviewNeededCount,
+        summarySnapshot,
+        startedAt: sessionStartedAt,
+        completedAt,
+      });
+
+      const responseInputs: CreateCleanAssessmentAttemptResponseInput[] = items.map(
+        (item, index) => {
+          const response = responses[item.id] ?? createEmptyResponse(item.id);
+          const normalizedResponse = response.response.trim();
+
+          return {
+            itemId: item.id,
+            itemOrder: index + 1,
+            progressionStepKey: item.progressionStepKey,
+            answerType: item.answerType,
+            localResult: response.result,
+            responseText: normalizedResponse || null,
+            selectedOption:
+              item.answerType === "multiple_choice" && normalizedResponse
+                ? normalizedResponse
+                : null,
+            itemSnapshot: buildItemSnapshot(item),
+            submittedAt: response.submittedAt,
+          };
+        },
+      );
+
+      await createAssessmentAttemptResponses(familyId, {
+        learnerId,
+        assessmentAttemptId: createdAttempt.id,
+        responses: responseInputs,
+      });
+
+      setSaveState("saved");
+      setSaveMessage(
+        "Assessment attempt saved. This saved the attempt history only. It did not update confidence, pathway progress, evidence, or reports.",
+      );
+    } catch (error) {
+      setSaveState("failed");
+      setSaveMessage(
+        error instanceof Error
+          ? error.message
+          : "The assessment attempt could not be saved right now.",
+      );
+    }
   }
 
   return (
@@ -786,7 +967,15 @@ export default function CleanNumberAssessmentPlayer() {
                 <span style={getDifficultyTone("foundation")}>Years 7-10</span>
                 <span style={getFormatTone("applied_context")}>Local preview</span>
                 <span style={getFormatTone("reasonableness")}>Number</span>
-                <span style={getResultTone("review_needed")}>No results saved</span>
+                <span
+                  style={
+                    saveState === "saved"
+                      ? getResultTone("correct")
+                      : getResultTone("review_needed")
+                  }
+                >
+                  {saveState === "saved" ? "Attempt saved" : "Not saved yet"}
+                </span>
               </div>
             </div>
 
@@ -907,7 +1096,7 @@ export default function CleanNumberAssessmentPlayer() {
                             color: "#0f172a",
                           }}
                         >
-                          {entry.label} · {entry.count}
+                          {entry.label} - {entry.count}
                         </span>
                       ))}
                     </div>
@@ -980,6 +1169,60 @@ export default function CleanNumberAssessmentPlayer() {
                   >
                     {summary.suggestedNextStep}
                   </div>
+                </div>
+              </div>
+
+              <div style={compactCardStyle}>
+                <div style={eyebrowStyle}>Assessment attempt</div>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <span
+                    style={
+                      saveState === "saved"
+                        ? getResultTone("correct")
+                        : saveState === "saving"
+                          ? getFormatTone("estimation")
+                          : saveState === "failed"
+                            ? getResultTone("incorrect")
+                            : getResultTone("unanswered")
+                    }
+                  >
+                    {saveState === "saved"
+                      ? "Saved"
+                      : saveState === "saving"
+                        ? "Saving..."
+                        : saveState === "failed"
+                          ? "Save failed"
+                          : "Not saved yet"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void saveAssessmentAttempt()}
+                    disabled={!canSaveAttempt || saveState === "saving" || saveState === "saved"}
+                    style={
+                      !canSaveAttempt || saveState === "saving" || saveState === "saved"
+                        ? disabledButtonStyle
+                        : buttonStyle
+                    }
+                  >
+                    {saveState === "saved"
+                      ? "Attempt saved"
+                      : saveState === "saving"
+                        ? "Saving attempt..."
+                        : "Save assessment attempt"}
+                  </button>
+                </div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  {saveMessage ||
+                    saveBlockedMessage ||
+                    "Save the completed session so the attempt history can be reviewed later."}
                 </div>
               </div>
 
