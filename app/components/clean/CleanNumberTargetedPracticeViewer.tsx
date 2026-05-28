@@ -11,6 +11,9 @@ import {
   type NumberPracticeSection,
   type NumberPracticeTask,
 } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
+import {
+  getNumberApproximationPracticeModuleById,
+} from "@/lib/clean/practice/numberApproximationPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
 
 const shellStyle: React.CSSProperties = {
@@ -246,6 +249,13 @@ function buildSectionHref(moduleId: string, sectionId: string, sourceAssessmentB
 function findSection(practiceModule: NumberPracticeModule, sectionId: string) {
   return (
     practiceModule.sections.find((section) => section.id === sectionId) || null
+  );
+}
+
+function getTargetedNumberPracticeModuleById(id: string) {
+  return (
+    getNumberPracticeModuleById(id) ||
+    getNumberApproximationPracticeModuleById(id)
   );
 }
 
@@ -584,7 +594,7 @@ export default function CleanNumberTargetedPracticeViewer() {
   const sourceAssessmentBand = safe(searchParams.get("sourceAssessmentBand"));
   const sourceSubElement = safe(searchParams.get("sourceSubElement"));
   const practiceModule =
-    getNumberPracticeModuleById(requestedModuleId) ||
+    getTargetedNumberPracticeModuleById(requestedModuleId) ||
     (!requestedModuleId ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE : null);
   const selectedSection = practiceModule && requestedSectionId
     ? findSection(practiceModule, requestedSectionId)
@@ -649,7 +659,8 @@ export default function CleanNumberTargetedPracticeViewer() {
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
               The assessment recommendation was received, but this prototype only
-              supports the Powers and roots practice module for now.
+              supports the connected Powers and roots or Approximation practice
+              modules for now.
             </div>
           </div>
         ) : null}

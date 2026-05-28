@@ -1,7 +1,5 @@
 import {
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
-  type NumberPowersRootsMisconceptionCode,
-  type NumberPowersRootsProgressionBandKey,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
 
 export type NumberPracticeModuleSectionType =
@@ -30,7 +28,7 @@ export type NumberPracticeTask = {
   options?: string[];
   workedSolution?: string;
   supportPrompt?: string;
-  misconceptionTargets: NumberPowersRootsMisconceptionCode[];
+  misconceptionTargets: string[];
   relatedAssessmentItemIds?: string[];
 };
 
@@ -44,7 +42,7 @@ export type NumberPracticeSection = {
 
 export type NumberPracticeModule = {
   id: string;
-  progressionBandKey: NumberPowersRootsProgressionBandKey;
+  progressionBandKey: string;
   title: string;
   shortTitle: string;
   description: string;
@@ -458,7 +456,7 @@ export function getNumberPracticeModuleById(id: string) {
 }
 
 export function getNumberPracticeModuleByBandKey(
-  progressionBandKey: NumberPowersRootsProgressionBandKey,
+  progressionBandKey: string,
 ) {
   return (
     NUMBER_UPPER_NUMBER_PRACTICE_MODULES.find(

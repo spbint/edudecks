@@ -24,6 +24,7 @@ import type {
 import type {
   NumberAssessmentItemDifficulty,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
+import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
@@ -210,6 +211,28 @@ const POWERS_ROOTS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "exponent-laws": {
     sectionId: "reasoning",
     sectionTitle: "Reasoning",
+  },
+};
+
+const APPROXIMATION_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "rounding-and-truncation": {
+    sectionId: "rounding-and-truncation",
+    sectionTitle: "Rounding and truncation",
+  },
+  "estimation-with-operations": {
+    sectionId: "estimation-with-operations",
+    sectionTitle: "Estimation with operations",
+  },
+  "exact-vs-estimated-comparison": {
+    sectionId: "exact-vs-estimated-comparison",
+    sectionTitle: "Exact versus estimated comparison",
+  },
+  "error-and-repeated-approximation": {
+    sectionId: "error-and-repeated-approximation",
+    sectionTitle: "Error and repeated approximation",
   },
 };
 
@@ -1360,7 +1383,20 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
-  const hasMappedPractice = Boolean(powersRootsPracticeSection);
+  const approximationPracticeSection =
+    bankKey === "approximation-estimation-error"
+      ? APPROXIMATION_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
+  const mappedPracticeSection =
+    powersRootsPracticeSection || approximationPracticeSection;
+  const mappedPracticeModule = powersRootsPracticeSection
+    ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
+    : approximationPracticeSection
+      ? NUMBER_APPROXIMATION_PRACTICE_MODULE
+      : null;
+  const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
     subElementKey: selected.subElementKey,
@@ -1371,14 +1407,10 @@ function buildTargetedPracticeRecommendation(
     progressionBandKey:
       firstItemForSubElement?.progressionBandKey ?? bankKey,
     progressionStepKey: firstItemForSubElement?.progressionStepKey ?? "",
-    practiceModuleId: hasMappedPractice
-      ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE.id
-      : null,
-    practiceModuleTitle: hasMappedPractice
-      ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE.title
-      : null,
-    practiceSectionId: powersRootsPracticeSection?.sectionId ?? null,
-    practiceSectionTitle: powersRootsPracticeSection?.sectionTitle ?? null,
+    practiceModuleId: mappedPracticeModule?.id ?? null,
+    practiceModuleTitle: mappedPracticeModule?.title ?? null,
+    practiceSectionId: mappedPracticeSection?.sectionId ?? null,
+    practiceSectionTitle: mappedPracticeSection?.sectionTitle ?? null,
     message: getTargetedPracticeMessage(selected, allSecure),
     status: hasMappedPractice ? "available" : "coming_next",
   };
