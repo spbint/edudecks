@@ -53,6 +53,9 @@ export type NumberIrrationalRealAssessmentItem = {
   id: string;
   progressionBandKey: NumberIrrationalRealProgressionBandKey;
   progressionStepKey: NumberIrrationalRealProgressionStepKey;
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
   title: string;
   prompt: string;
   difficulty: NumberAssessmentItemDifficulty;
@@ -98,6 +101,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "recognise-irrational-numbers-including-square-roots-and-pi",
+      subElementKey: "rational-irrational-classification",
+      subElementTitle: "Rational and irrational classification",
+      subElementDescription:
+        "Identify rational and irrational numbers across forms.",
       title: "Recognise irrational numbers in a mixed list",
       prompt: "Select every irrational number in the list.",
       difficulty: "foundation",
@@ -139,6 +146,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       id: "irr-real-classify-002",
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "classify-numbers-as-rational-or-irrational",
+      subElementKey: "rational-irrational-classification",
+      subElementTitle: "Rational and irrational classification",
+      subElementDescription:
+        "Identify rational and irrational numbers across forms.",
       title: "Classify numbers as rational or irrational",
       prompt: "Classify each number as rational or irrational.",
       difficulty: "foundation",
@@ -188,6 +199,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "place-rational-and-irrational-numbers-on-a-number-line",
+      subElementKey: "square-root-estimation",
+      subElementTitle: "Square-root estimation",
+      subElementDescription:
+        "Estimate non-perfect square roots and compare real values.",
       title: "Estimate a square root between consecutive integers",
       prompt: "Complete the statement for the position of sqrt(27).",
       difficulty: "foundation",
@@ -230,6 +245,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       id: "irr-real-pi-004",
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "identify-statements-about-irrational-numbers",
+      subElementKey: "pi-and-exact-form",
+      subElementTitle: "Pi and exact form",
+      subElementDescription:
+        "Distinguish exact forms from decimal approximations.",
       title: "Recognise the difference between pi and an approximation",
       prompt: "Which explanation about pi and 3.14 is best?",
       difficulty: "developing",
@@ -280,6 +299,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "place-rational-and-irrational-numbers-on-a-number-line",
+      subElementKey: "real-number-position-and-comparison",
+      subElementTitle: "Real-number position and comparison",
+      subElementDescription:
+        "Position and compare rational and irrational values on number lines or in contexts.",
       title: "Choose the number-line point closest to an irrational value",
       prompt:
         "Put these values in increasing order on a number line.",
@@ -317,6 +340,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "solve-applied-problems-involving-exact-real-number-values",
+      subElementKey: "pi-and-exact-form",
+      subElementTitle: "Pi and exact form",
+      subElementDescription:
+        "Distinguish exact forms from decimal approximations.",
       title: "Choose the exact form of a circle area",
       prompt:
         "Match each circle-area expression with whether it is exact or approximate for radius 5 cm.",
@@ -358,6 +385,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       id: "irr-real-recurring-007",
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "classify-numbers-as-rational-or-irrational",
+      subElementKey: "rational-irrational-classification",
+      subElementTitle: "Rational and irrational classification",
+      subElementDescription:
+        "Identify rational and irrational numbers across forms.",
       title: "Recognise that a recurring decimal is rational",
       prompt:
         "True or false: 0.272727... is irrational because it has infinitely many decimal places. If false, choose the correction.",
@@ -402,6 +433,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "solve-applied-problems-involving-exact-real-number-values",
+      subElementKey: "pi-and-exact-form",
+      subElementTitle: "Pi and exact form",
+      subElementDescription:
+        "Distinguish exact forms from decimal approximations.",
       title: "Write the exact area of a circle in terms of pi",
       prompt: "A circle has radius 7 cm. Write its exact area in terms of pi.",
       difficulty: "secure",
@@ -442,6 +477,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "place-rational-and-irrational-numbers-on-a-number-line",
+      subElementKey: "real-number-position-and-comparison",
+      subElementTitle: "Real-number position and comparison",
+      subElementDescription:
+        "Position and compare rational and irrational values on number lines or in contexts.",
       title: "Compare rational and irrational values",
       prompt: "To two decimal places, what is sqrt(3)?",
       difficulty: "secure",
@@ -476,6 +515,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       id: "irr-real-radicand-010",
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "identify-statements-about-irrational-numbers",
+      subElementKey: "square-root-estimation",
+      subElementTitle: "Square-root estimation",
+      subElementDescription:
+        "Estimate non-perfect square roots and compare real values.",
       title: "Explain why one square root is rational and another is irrational",
       prompt:
         "Which working correctly explains why sqrt(49) is rational but sqrt(50) is irrational?",
@@ -534,6 +577,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "solve-applied-problems-involving-exact-real-number-values",
+      subElementKey: "square-root-estimation",
+      subElementTitle: "Square-root estimation",
+      subElementDescription:
+        "Estimate non-perfect square roots and compare real values.",
       title: "Calculate an exact area involving a square root",
       prompt:
         "A triangle has base 6 cm and height sqrt(12) cm. Write its exact area.",
@@ -574,6 +621,10 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey:
         "solve-applied-problems-involving-exact-real-number-values",
+      subElementKey: "real-number-position-and-comparison",
+      subElementTitle: "Real-number position and comparison",
+      subElementDescription:
+        "Position and compare rational and irrational values on number lines or in contexts.",
       title: "Explain the difference between an exact and approximate real-number answer",
       prompt:
         "A circular garden has radius 4 m. One student writes the boundary length as 8pi m. Another writes 25.12 m. Which statement is best?",

@@ -100,6 +100,9 @@ export type NumberAssessmentItem = {
   id: string;
   progressionBandKey: NumberApproximationProgressionBandKey;
   progressionStepKey: NumberApproximationProgressionStepKey;
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
   title: string;
   prompt: string;
   difficulty: NumberAssessmentItemDifficulty;
@@ -140,6 +143,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-round-decimal-001",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "round-decimals-to-a-required-accuracy",
+    subElementKey: "rounding-and-truncation",
+    subElementTitle: "Rounding and truncation",
+    subElementDescription:
+      "Distinguish rounding, truncating and place-value accuracy.",
     title: "Round a decimal to two decimal places",
     prompt: "Round 63.487 to 2 decimal places.",
     difficulty: "foundation",
@@ -166,6 +173,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-estimate-sum-002",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "estimate-sums-and-products-using-rounding",
+    subElementKey: "estimation-with-operations",
+    subElementTitle: "Estimation with operations",
+    subElementDescription:
+      "Estimate sums, products and practical calculations.",
     title: "Estimate a sum by rounding each term",
     prompt: "Complete the estimate after rounding each number to the nearest whole number.",
     difficulty: "foundation",
@@ -195,6 +206,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-truncate-round-003",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "truncate-and-round-values",
+    subElementKey: "rounding-and-truncation",
+    subElementTitle: "Rounding and truncation",
+    subElementDescription:
+      "Distinguish rounding, truncating and place-value accuracy.",
     title: "Distinguish truncation from rounding",
     prompt:
       "Match each method with the value it gives for 18.786 to 1 decimal place.",
@@ -230,6 +245,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-estimate-product-004",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "estimate-sums-and-products-using-rounding",
+    subElementKey: "estimation-with-operations",
+    subElementTitle: "Estimation with operations",
+    subElementDescription:
+      "Estimate sums, products and practical calculations.",
     title: "Estimate a product with rounded factors",
     prompt: "Estimate 3.84 x 19.6 by rounding each factor to 1 significant figure.",
     difficulty: "developing",
@@ -256,6 +275,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-compare-exact-estimate-005",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "compare-exact-and-estimated-results",
+    subElementKey: "exact-vs-estimated-comparison",
+    subElementTitle: "Exact versus estimated comparison",
+    subElementDescription:
+      "Compare exact and estimated values and judge closeness.",
     title: "Compare two estimates with an exact value",
     prompt:
       "Put these estimates in increasing order by their distance from the exact total $182.40.",
@@ -288,6 +311,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-best-method-006",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "compare-exact-and-estimated-results",
+    subElementKey: "exact-vs-estimated-comparison",
+    subElementTitle: "Exact versus estimated comparison",
+    subElementDescription:
+      "Compare exact and estimated values and judge closeness.",
     title: "Choose the best approximation method",
     prompt:
       "A builder wants a quick estimate for the total length of 24 pieces of timber, each 2.48 m long. Which method gives the best quick estimate?",
@@ -335,6 +362,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-money-context-007",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "analyse-approximation-error-in-contexts",
+    subElementKey: "estimation-with-operations",
+    subElementTitle: "Estimation with operations",
+    subElementDescription:
+      "Estimate sums, products and practical calculations.",
     title: "Estimate a repeated money total",
     prompt: "Select every estimate that is reasonable for $47.60 each month for 9 months.",
     difficulty: "developing",
@@ -376,6 +407,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-reasonableness-008",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "compare-exact-and-estimated-results",
+    subElementKey: "error-and-repeated-approximation",
+    subElementTitle: "Error and repeated approximation",
+    subElementDescription:
+      "Reason about error, reasonableness and repeated rounding effects.",
     title: "Explain whether an estimate is reasonable",
     prompt:
       "A student estimates 19.8 x 6.1 as 20 x 6 = 120. Which explanation is best?",
@@ -427,6 +462,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-rounding-too-early-009",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "recognise-repeated-approximation-effects",
+    subElementKey: "rounding-and-truncation",
+    subElementTitle: "Rounding and truncation",
+    subElementDescription:
+      "Distinguish rounding, truncating and place-value accuracy.",
     title: "Recognise when rounding too early changes an answer",
     prompt:
       "True or false: rounding each 1.24 to 1 decimal place before adding gives the same result as adding first and rounding the total. If false, choose the correction.",
@@ -467,6 +506,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-measurement-context-010",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "analyse-approximation-error-in-contexts",
+    subElementKey: "error-and-repeated-approximation",
+    subElementTitle: "Error and repeated approximation",
+    subElementDescription:
+      "Reason about error, reasonableness and repeated rounding effects.",
     title: "Analyse approximation in an area estimate",
     prompt:
       "A path is 18.7 m long and 2.9 m wide. A gardener estimates the area as 19 x 3 = 57 m^2. Classify each statement about the estimate.",
@@ -527,6 +570,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-circumference-context-011",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "analyse-approximation-error-in-contexts",
+    subElementKey: "exact-vs-estimated-comparison",
+    subElementTitle: "Exact versus estimated comparison",
+    subElementDescription:
+      "Compare exact and estimated values and judge closeness.",
     title: "Compare a circumference estimate with the calculated value",
     prompt:
       "A student estimates the circumference of a circular planter with diameter 9.7 m by using 10 m and pi approx 3.14. Write the calculation that compares the estimate with the value from the original diameter.",
@@ -566,6 +613,10 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     id: "approx-repeated-calculation-012",
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "recognise-repeated-approximation-effects",
+    subElementKey: "error-and-repeated-approximation",
+    subElementTitle: "Error and repeated approximation",
+    subElementDescription:
+      "Reason about error, reasonableness and repeated rounding effects.",
     title: "Reason about repeated rounding in a financial model",
     prompt:
       "A savings app starts with $249.50 and adds 2.6% interest each year for 3 years. One method rounds to the nearest dollar at the end of each year. Another keeps decimals until the end. Which method gives the larger final balance, and why?",

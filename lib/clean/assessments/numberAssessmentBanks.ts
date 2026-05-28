@@ -69,6 +69,9 @@ export type NumberAssessmentBankItem = {
   id: string;
   progressionBandKey: string;
   progressionStepKey: string;
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
   title: string;
   prompt: string;
   difficulty: NumberAssessmentItemDifficulty;

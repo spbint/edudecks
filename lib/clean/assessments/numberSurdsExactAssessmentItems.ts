@@ -56,6 +56,9 @@ export type NumberSurdsExactAssessmentItem = {
   id: string;
   progressionBandKey: NumberSurdsExactProgressionBandKey;
   progressionStepKey: NumberSurdsExactProgressionStepKey;
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
   title: string;
   prompt: string;
   difficulty: NumberAssessmentItemDifficulty;
@@ -100,6 +103,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-fractional-form-001",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "write-fractional-powers-in-surd-form",
+      subElementKey: "surd-notation-and-fractional-powers",
+      subElementTitle: "Surd notation and fractional powers",
+      subElementDescription: "Connect fractional powers and surd notation.",
       title: "Write a fractional power in surd form",
       prompt: "Complete the equivalent surd form.",
       difficulty: "foundation",
@@ -133,6 +139,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-evaluate-power-002",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "evaluate-fractional-powers",
+      subElementKey: "surd-notation-and-fractional-powers",
+      subElementTitle: "Surd notation and fractional powers",
+      subElementDescription: "Connect fractional powers and surd notation.",
       title: "Evaluate a fractional power",
       prompt: "Evaluate 27^(2/3).",
       difficulty: "foundation",
@@ -162,6 +171,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-equivalent-form-003",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "write-fractional-powers-in-surd-form",
+      subElementKey: "surd-notation-and-fractional-powers",
+      subElementTitle: "Surd notation and fractional powers",
+      subElementDescription: "Connect fractional powers and surd notation.",
       title: "Identify an equivalent surd form",
       prompt: "Which expression is equivalent to 7^(3/2)?",
       difficulty: "foundation",
@@ -196,6 +208,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-simplify-root-004",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-surds",
+      subElementKey: "surd-simplification",
+      subElementTitle: "Surd simplification",
+      subElementDescription:
+        "Simplify surds using perfect-square factors.",
       title: "Simplify a surd using a square factor",
       prompt: "Simplify sqrt(72).",
       difficulty: "developing",
@@ -225,6 +241,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-coefficient-005",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-surds",
+      subElementKey: "surd-simplification",
+      subElementTitle: "Surd simplification",
+      subElementDescription:
+        "Simplify surds using perfect-square factors.",
       title: "Simplify a surd with a coefficient",
       prompt: "Select every expression equivalent to 2sqrt(45).",
       difficulty: "developing",
@@ -261,6 +281,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-multiply-006",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "multiply-surds",
+      subElementKey: "surd-operations",
+      subElementTitle: "Surd operations",
+      subElementDescription: "Multiply, add and subtract surd expressions.",
       title: "Multiply two surds",
       prompt: "Simplify sqrt(6) x sqrt(24).",
       difficulty: "developing",
@@ -290,6 +313,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-add-like-007",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "add-and-subtract-like-surds",
+      subElementKey: "surd-operations",
+      subElementTitle: "Surd operations",
+      subElementDescription: "Multiply, add and subtract surd expressions.",
       title: "Add and subtract like surds",
       prompt: "Classify each expression by whether it contains like surds.",
       difficulty: "developing",
@@ -338,6 +364,9 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-unlike-008",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "add-and-subtract-like-surds",
+      subElementKey: "surd-operations",
+      subElementTitle: "Surd operations",
+      subElementDescription: "Multiply, add and subtract surd expressions.",
       title: "Recognise when surds are unlike",
       prompt:
         "True or false: sqrt(3) + sqrt(5) can be simplified to sqrt(8). If false, choose the correction.",
@@ -382,6 +411,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-multi-step-009",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-expressions-containing-multiple-surds",
+      subElementKey: "surd-simplification",
+      subElementTitle: "Surd simplification",
+      subElementDescription:
+        "Simplify surds using perfect-square factors.",
       title: "Simplify an expression with several surd terms",
       prompt:
         "Put these simplification steps in the correct order for sqrt(12) + sqrt(27) - sqrt(48).",
@@ -428,6 +461,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-rationalise-simple-010",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "rationalise-denominators",
+      subElementKey: "rationalising-denominators-and-exact-form",
+      subElementTitle: "Rationalising denominators and exact form",
+      subElementDescription:
+        "Rationalise denominators and explain exact form.",
       title: "Rationalise a simple denominator",
       prompt: "Match each expression with its equivalent rationalised or unrationalised form.",
       difficulty: "secure",
@@ -462,6 +499,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-rationalise-binomial-011",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "rationalise-denominators",
+      subElementKey: "rationalising-denominators-and-exact-form",
+      subElementTitle: "Rationalising denominators and exact form",
+      subElementDescription:
+        "Rationalise denominators and explain exact form.",
       title: "Rationalise a denominator using a conjugate",
       prompt:
         "Which working correctly rationalises 6 / (1 + sqrt(5))?",
@@ -519,6 +560,10 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       id: "surds-exact-why-exact-012",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-surds",
+      subElementKey: "rationalising-denominators-and-exact-form",
+      subElementTitle: "Rationalising denominators and exact form",
+      subElementDescription:
+        "Rationalise denominators and explain exact form.",
       title: "Explain why exact surd form can be preferable",
       prompt:
         "A calculator gives sqrt(50) as about 7.071. Which explanation best describes why keeping 5sqrt(2) can be better than rounding too early?",

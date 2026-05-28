@@ -35,6 +35,26 @@ type LocalAssessmentResponse = {
   submittedAt: string | null;
 };
 
+type SubElementMasteryJudgement =
+  | "Needs support"
+  | "Developing"
+  | "Consolidating"
+  | "Secure";
+
+type LocalSubElementMastery = {
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
+  totalCount: number;
+  attemptedCount: number;
+  correctCount: number;
+  incorrectCount: number;
+  reviewNeededCount: number;
+  unansweredCount: number;
+  judgement: SubElementMasteryJudgement;
+  suggestedPracticeFocus: string;
+};
+
 type LocalAdaptiveInsightSummary = {
   attemptedCount: number;
   correctCount: number;
@@ -42,6 +62,7 @@ type LocalAdaptiveInsightSummary = {
   reviewNeededCount: number;
   unansweredCount: number;
   enteredButUncheckedCount: number;
+  subElementMastery: LocalSubElementMastery[];
   topMisconceptionTargets: Array<{ code: string; label: string; count: number }>;
   topPracticeRecommendations: Array<{ recommendation: string; count: number }>;
   suggestedFocusAreas: string[];
@@ -1107,6 +1128,9 @@ function buildItemSnapshot(
   return {
     title: item.title,
     prompt: item.prompt,
+    subElementKey: item.subElementKey,
+    subElementTitle: item.subElementTitle,
+    subElementDescription: item.subElementDescription ?? null,
     answerType: item.answerType,
     format: item.format,
     options: item.options ?? [],
@@ -1135,6 +1159,107 @@ function buildItemSnapshot(
     openResponseReview: buildOpenResponseReviewSnapshot(item),
     visualSupport: item.visualSupport ?? null,
   };
+}
+
+function getSubElementMasteryJudgement(
+  correctCount: number,
+  totalCount: number,
+): SubElementMasteryJudgement {
+  if (totalCount <= 0 || correctCount <= 0) return "Needs support";
+
+  const secureThreshold = totalCount;
+  const consolidatingThreshold = Math.max(1, totalCount - 1);
+  const developingThreshold = Math.max(1, totalCount - 2);
+
+  if (correctCount >= secureThreshold) return "Secure";
+  if (correctCount >= consolidatingThreshold) return "Consolidating";
+  if (correctCount >= developingThreshold) return "Developing";
+  return "Needs support";
+}
+
+function getSubElementMasteryPriority(judgement: SubElementMasteryJudgement) {
+  if (judgement === "Needs support") return 0;
+  if (judgement === "Developing") return 1;
+  if (judgement === "Consolidating") return 2;
+  return 3;
+}
+
+function buildSubElementMastery(
+  itemResponses: Array<{
+    item: NumberAssessmentBankItem;
+    response: LocalAssessmentResponse;
+    persistedResult: LocalAssessmentResult;
+  }>,
+): LocalSubElementMastery[] {
+  const groups = new Map<
+    string,
+    {
+      subElementKey: string;
+      subElementTitle: string;
+      subElementDescription?: string;
+      rows: Array<{
+        item: NumberAssessmentBankItem;
+        response: LocalAssessmentResponse;
+        persistedResult: LocalAssessmentResult;
+      }>;
+    }
+  >();
+
+  itemResponses.forEach((row) => {
+    const existing = groups.get(row.item.subElementKey);
+
+    if (existing) {
+      existing.rows.push(row);
+      return;
+    }
+
+    groups.set(row.item.subElementKey, {
+      subElementKey: row.item.subElementKey,
+      subElementTitle: row.item.subElementTitle,
+      subElementDescription: row.item.subElementDescription,
+      rows: [row],
+    });
+  });
+
+  return Array.from(groups.values()).map((group) => {
+    const totalCount = group.rows.length;
+    const attemptedCount = group.rows.filter(({ response }) =>
+      hasEnteredResponse(response),
+    ).length;
+    const correctCount = group.rows.filter(
+      ({ persistedResult }) => persistedResult === "correct",
+    ).length;
+    const incorrectCount = group.rows.filter(
+      ({ persistedResult }) => persistedResult === "incorrect",
+    ).length;
+    const reviewNeededCount = group.rows.filter(
+      ({ persistedResult }) => persistedResult === "review_needed",
+    ).length;
+    const unansweredCount = group.rows.filter(
+      ({ persistedResult }) => persistedResult === "unanswered",
+    ).length;
+    const judgement = getSubElementMasteryJudgement(correctCount, totalCount);
+    const reviewNote = reviewNeededCount
+      ? " Judgement may need review because one or more responses need adult review."
+      : "";
+    const unansweredNote = unansweredCount
+      ? " Complete unanswered items to strengthen this judgement."
+      : "";
+
+    return {
+      subElementKey: group.subElementKey,
+      subElementTitle: group.subElementTitle,
+      subElementDescription: group.subElementDescription,
+      totalCount,
+      attemptedCount,
+      correctCount,
+      incorrectCount,
+      reviewNeededCount,
+      unansweredCount,
+      judgement,
+      suggestedPracticeFocus: `${group.subElementTitle}: ${judgement}.${reviewNote}${unansweredNote}`,
+    };
+  });
 }
 
 function buildAdaptiveInsightSummary(
@@ -1174,6 +1299,15 @@ function buildAdaptiveInsightSummary(
       !response.submitted &&
       persistedResult === "review_needed",
   ).length;
+  const subElementMastery = buildSubElementMastery(itemResponses);
+  const prioritySubElements = subElementMastery
+    .filter((entry) => entry.judgement !== "Secure")
+    .sort(
+      (left, right) =>
+        getSubElementMasteryPriority(left.judgement) -
+          getSubElementMasteryPriority(right.judgement) ||
+        left.subElementTitle.localeCompare(right.subElementTitle),
+    );
 
   const targetedItems = itemResponses
     .filter(
@@ -1216,9 +1350,13 @@ function buildAdaptiveInsightSummary(
       count,
     }));
 
-  const suggestedFocusAreas = topMisconceptionTargets.map((entry) =>
-    getFocusAreaFromMisconception(entry.code),
-  );
+  const suggestedFocusAreas = prioritySubElements.length
+    ? prioritySubElements.map(
+        (entry) => `${entry.subElementTitle} - ${entry.judgement}`,
+      )
+    : topMisconceptionTargets.map((entry) =>
+        getFocusAreaFromMisconception(entry.code),
+      );
 
   let suggestedNextStep =
     "Complete a few more items, then review the main practice focus before deciding whether this learning is secure.";
@@ -1376,6 +1514,24 @@ function buildAdaptiveInsightSummary(
     suggestedNextStep = topPracticeRecommendations[0].recommendation;
   }
 
+  const leadingSubElement = prioritySubElements[0];
+  if (attemptedCount > 0 && leadingSubElement) {
+    if (leadingSubElement.judgement === "Needs support") {
+      suggestedNextStep = `Start with targeted practice for ${leadingSubElement.subElementTitle}.`;
+    } else if (leadingSubElement.judgement === "Developing") {
+      suggestedNextStep = `Build fluency with ${leadingSubElement.subElementTitle} before reassessing.`;
+    } else {
+      suggestedNextStep = `Use short practice to consolidate ${leadingSubElement.subElementTitle} before reassessing.`;
+    }
+  } else if (
+    attemptedCount > 0 &&
+    subElementMastery.length > 0 &&
+    subElementMastery.every((entry) => entry.judgement === "Secure")
+  ) {
+    suggestedNextStep =
+      "This learner appears ready to move to the next Number focus.";
+  }
+
   return {
     attemptedCount,
     correctCount,
@@ -1383,6 +1539,7 @@ function buildAdaptiveInsightSummary(
     reviewNeededCount,
     unansweredCount,
     enteredButUncheckedCount,
+    subElementMastery,
     topMisconceptionTargets,
     topPracticeRecommendations,
     suggestedFocusAreas,
@@ -1980,6 +2137,7 @@ function CleanNumberAssessmentPlayerBody() {
         reviewNeededCount: summary.reviewNeededCount,
         unansweredCount: summary.unansweredCount,
         enteredButUncheckedCount: summary.enteredButUncheckedCount,
+        subElementMastery: summary.subElementMastery,
         topMisconceptionTargets: summary.topMisconceptionTargets,
         topPracticeRecommendations: summary.topPracticeRecommendations,
         suggestedFocusAreas: summary.suggestedFocusAreas,
@@ -2349,6 +2507,72 @@ function CleanNumberAssessmentPlayerBody() {
                   <div style={{ fontSize: 26, fontWeight: 800, color: "#4338ca" }}>
                     {summary.reviewNeededCount}
                   </div>
+                </div>
+              </div>
+
+              <div style={highlightCardStyle}>
+                <div style={eyebrowStyle}>Sub-element mastery</div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {summary.subElementMastery.map((entry) => {
+                    const supportLabels = [
+                      entry.reviewNeededCount
+                        ? "Review needed"
+                        : "",
+                      entry.unansweredCount
+                        ? `${entry.unansweredCount} unanswered`
+                        : "",
+                    ].filter(Boolean);
+
+                    return (
+                      <div
+                        key={entry.subElementKey}
+                        style={{
+                          ...compactCardStyle,
+                          background: "#ffffff",
+                        }}
+                      >
+                        <div
+                          style={{
+                            color: "#0f172a",
+                            fontWeight: 800,
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {entry.subElementTitle}
+                        </div>
+                        <div
+                          style={{
+                            color: "#1e3a8a",
+                            fontWeight: 800,
+                            lineHeight: 1.4,
+                          }}
+                        >
+                          {entry.correctCount}/{entry.totalCount} correct -{" "}
+                          {entry.judgement}
+                        </div>
+                        <div style={{ color: "#64748b", fontSize: 13 }}>
+                          {entry.attemptedCount}/{entry.totalCount} attempted
+                        </div>
+                        {supportLabels.length ? (
+                          <div
+                            style={{
+                              color: "#92400e",
+                              fontSize: 13,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {supportLabels.join(" - ")}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

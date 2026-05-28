@@ -54,6 +54,9 @@ export type NumberPowersRootsAssessmentItem = {
   id: string;
   progressionBandKey: NumberPowersRootsProgressionBandKey;
   progressionStepKey: NumberPowersRootsProgressionStepKey;
+  subElementKey: string;
+  subElementTitle: string;
+  subElementDescription?: string;
   title: string;
   prompt: string;
   difficulty: NumberAssessmentItemDifficulty;
@@ -98,6 +101,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-perfect-square-001",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "connect-perfect-squares-and-square-roots",
+      subElementKey: "perfect-square-roots",
+      subElementTitle: "Perfect square roots",
+      subElementDescription: "Connect square numbers and square roots.",
       title: "Find the square root of a perfect square",
       prompt: "If 14^2 = 196, what is sqrt(196)?",
       difficulty: "foundation",
@@ -123,6 +129,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-square-connection-002",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "connect-perfect-squares-and-square-roots",
+      subElementKey: "perfect-square-roots",
+      subElementTitle: "Perfect square roots",
+      subElementDescription: "Connect square numbers and square roots.",
       title: "Connect a square number with its square root",
       prompt:
         "Classify each statement as a correct square-root match or not a correct match.",
@@ -179,6 +188,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-exponent-form-003",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-notation",
+      subElementKey: "exponent-notation",
+      subElementTitle: "Exponent notation",
+      subElementDescription: "Represent repeated multiplication using powers.",
       title: "Write repeated multiplication in exponent form",
       prompt: "Complete the exponent form for 6 x 6 x 6 x 6.",
       difficulty: "foundation",
@@ -214,6 +226,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-estimate-root-004",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "estimate-non-perfect-square-roots",
+      subElementKey: "perfect-square-roots",
+      subElementTitle: "Perfect square roots",
+      subElementDescription: "Connect square numbers and square roots.",
       title: "Estimate a square root between consecutive integers",
       prompt:
         "Put these square-root values in increasing order: sqrt(49), sqrt(36), sqrt(41).",
@@ -251,6 +266,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-powers-of-ten-005",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "use-powers-of-ten-in-expanded-notation",
+      subElementKey: "powers-of-ten-and-prime-powers",
+      subElementTitle: "Powers of 10 and prime powers",
+      subElementDescription:
+        "Interpret powers of 10 and prime factorisation using exponents.",
       title: "Interpret expanded notation with powers of 10",
       prompt:
         "Match each powers-of-10 term with its place-value contribution.",
@@ -289,6 +308,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-prime-powers-006",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "represent-natural-numbers-as-products-of-powers",
+      subElementKey: "powers-of-ten-and-prime-powers",
+      subElementTitle: "Powers of 10 and prime powers",
+      subElementDescription:
+        "Interpret powers of 10 and prime factorisation using exponents.",
       title: "Represent a number using prime powers",
       prompt: "Write 72 as a product of prime powers.",
       difficulty: "developing",
@@ -322,6 +345,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-factor-tree-007",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "represent-natural-numbers-as-products-of-powers",
+      subElementKey: "powers-of-ten-and-prime-powers",
+      subElementTitle: "Powers of 10 and prime powers",
+      subElementDescription:
+        "Interpret powers of 10 and prime factorisation using exponents.",
       title: "Interpret a prime factorisation from a factor tree",
       prompt:
         "A factor tree for 180 ends with prime factors 2, 2, 3, 3, and 5. Which working correctly writes 180 as a product of prime powers?",
@@ -379,6 +406,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-multiply-law-008",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-laws-with-positive-integer-exponents",
+      subElementKey: "exponent-laws",
+      subElementTitle: "Exponent laws",
+      subElementDescription:
+        "Simplify expressions using same-base exponent rules.",
       title: "Apply the multiplication law for exponents",
       prompt: "Simplify 5^3 x 5^4.",
       difficulty: "secure",
@@ -410,6 +441,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-division-law-009",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-laws-with-positive-integer-exponents",
+      subElementKey: "exponent-laws",
+      subElementTitle: "Exponent laws",
+      subElementDescription:
+        "Simplify expressions using same-base exponent rules.",
       title: "Apply the division law for exponents",
       prompt: "Select every expression equivalent to 8^6 / 8^2.",
       difficulty: "secure",
@@ -448,6 +483,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-base-exponent-010",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-notation",
+      subElementKey: "exponent-notation",
+      subElementTitle: "Exponent notation",
+      subElementDescription: "Represent repeated multiplication using powers.",
       title: "Identify a base and exponent misconception",
       prompt: "Which explanation of 3^5 is correct?",
       difficulty: "secure",
@@ -490,6 +528,10 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-zero-exponent-011",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-laws-with-positive-integer-exponents",
+      subElementKey: "exponent-laws",
+      subElementTitle: "Exponent laws",
+      subElementDescription:
+        "Simplify expressions using same-base exponent rules.",
       title: "Explain the meaning of a zero exponent",
       prompt: "Which explanation best justifies why 9^0 = 1?",
       difficulty: "extension",
@@ -543,6 +585,9 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       id: "powers-roots-efficiency-012",
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-notation",
+      subElementKey: "exponent-notation",
+      subElementTitle: "Exponent notation",
+      subElementDescription: "Represent repeated multiplication using powers.",
       title: "Explain why exponent notation is efficient",
       prompt:
         "True or false: 5^4 is just a shorter way to write 5 x 4. If false, choose the correction.",
