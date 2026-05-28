@@ -1371,7 +1371,10 @@ function CleanNumberAssessmentPlayerBody() {
                       <button
                         key={bank.key}
                         type="button"
-                        onClick={() => setSelectedBankKey(bank.key)}
+                        onClick={() => {
+                          setSelectedBankKey(bank.key);
+                          resetAssessmentState();
+                        }}
                         aria-pressed={isSelected}
                         style={{
                           display: "grid",
