@@ -68,6 +68,11 @@ type LocalTargetedPracticeRecommendation = {
   judgement: SubElementMasteryJudgement;
   correctCount: number;
   totalCount: number;
+  subjectKey: string;
+  strandKey: string;
+  stageKey: string;
+  pathwayStepId: string;
+  stepKey: string;
   progressionBandKey: string;
   progressionStepKey: string;
   practiceModuleId: string | null;
@@ -1423,6 +1428,7 @@ function buildTargetedPracticeRecommendation(
   const firstItemForSubElement = itemResponses.find(
     ({ item }) => item.subElementKey === selected.subElementKey,
   )?.item;
+  const selectedBank = getNumberAssessmentBankByKey(bankKey);
   const powersRootsPracticeSection =
     bankKey === "powers-roots-exponent-notation"
       ? POWERS_ROOTS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
@@ -1469,6 +1475,11 @@ function buildTargetedPracticeRecommendation(
     judgement: selected.judgement,
     correctCount: selected.correctCount,
     totalCount: selected.totalCount,
+    subjectKey: selectedBank?.subjectKey ?? "mathematics",
+    strandKey: selectedBank?.strandKey ?? "number-and-place-value",
+    stageKey: selectedBank?.stageKey ?? "years-9-10-consolidation",
+    pathwayStepId: selectedBank?.pathwayStepId ?? "",
+    stepKey: selectedBank?.stepKey ?? bankKey,
     progressionBandKey:
       firstItemForSubElement?.progressionBandKey ?? bankKey,
     progressionStepKey: firstItemForSubElement?.progressionStepKey ?? "",
@@ -1495,7 +1506,13 @@ function buildTargetedPracticeHref(
   const params = new URLSearchParams({
     moduleId: recommendation.practiceModuleId,
     sectionId: recommendation.practiceSectionId,
+    subjectKey: recommendation.subjectKey,
+    strandKey: recommendation.strandKey,
+    stageKey: recommendation.stageKey,
+    pathwayStepId: recommendation.pathwayStepId,
+    stepKey: recommendation.stepKey,
     sourceAssessmentBand: recommendation.progressionBandKey,
+    sourceProgressionStep: recommendation.progressionStepKey,
     sourceSubElement: recommendation.subElementKey,
   });
 
