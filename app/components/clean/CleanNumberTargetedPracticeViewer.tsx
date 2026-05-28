@@ -17,6 +17,9 @@ import {
 import {
   getNumberIrrationalRealPracticeModuleById,
 } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
+import {
+  getNumberSurdsExactPracticeModuleById,
+} from "@/lib/clean/practice/numberSurdsExactPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
 
 const shellStyle: React.CSSProperties = {
@@ -259,7 +262,8 @@ function getTargetedNumberPracticeModuleById(id: string) {
   return (
     getNumberPracticeModuleById(id) ||
     getNumberApproximationPracticeModuleById(id) ||
-    getNumberIrrationalRealPracticeModuleById(id)
+    getNumberIrrationalRealPracticeModuleById(id) ||
+    getNumberSurdsExactPracticeModuleById(id)
   );
 }
 

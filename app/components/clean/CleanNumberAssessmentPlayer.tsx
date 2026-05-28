@@ -27,6 +27,7 @@ import type {
 import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
 import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
+import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
 type LocalAssessmentResult = AssessmentAttemptLocalResult;
@@ -256,6 +257,28 @@ const IRRATIONAL_REAL_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "real-number-position-and-comparison": {
     sectionId: "real-number-position-and-comparison",
     sectionTitle: "Real-number position and comparison",
+  },
+};
+
+const SURDS_EXACT_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "surd-notation-and-fractional-powers": {
+    sectionId: "surd-notation-and-fractional-powers",
+    sectionTitle: "Surd notation and fractional powers",
+  },
+  "surd-simplification": {
+    sectionId: "surd-simplification",
+    sectionTitle: "Surd simplification",
+  },
+  "surd-operations": {
+    sectionId: "surd-operations",
+    sectionTitle: "Surd operations",
+  },
+  "rationalising-denominators-and-exact-form": {
+    sectionId: "rationalising-denominators-and-exact-form",
+    sectionTitle: "Rationalising denominators and exact form",
   },
 };
 
@@ -1418,17 +1441,26 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const surdsExactPracticeSection =
+    bankKey === "surds-and-exact-form"
+      ? SURDS_EXACT_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
-    irrationalRealPracticeSection;
+    irrationalRealPracticeSection ||
+    surdsExactPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
       ? NUMBER_APPROXIMATION_PRACTICE_MODULE
       : irrationalRealPracticeSection
         ? NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE
-        : null;
+        : surdsExactPracticeSection
+          ? NUMBER_SURDS_EXACT_PRACTICE_MODULE
+          : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
