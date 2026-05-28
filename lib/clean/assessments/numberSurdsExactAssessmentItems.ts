@@ -107,7 +107,7 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       format: "fractional_powers",
       gapText: "13^(1/2) = __",
       gapAnswer: "sqrt(13)",
-      gapAcceptableAnswers: ["sqrt 13", "√13"],
+      gapAcceptableAnswers: ["sqrt 13", "sqrt(13)"],
       expectedAnswer: "sqrt(13)",
       acceptableAnswers: ["sqrt(13)"],
       markingGuide:

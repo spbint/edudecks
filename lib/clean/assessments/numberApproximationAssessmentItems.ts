@@ -231,7 +231,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "estimate-sums-and-products-using-rounding",
     title: "Estimate a product with rounded factors",
-    prompt: "Estimate 3.84 × 19.6 by rounding each factor to 1 significant figure.",
+    prompt: "Estimate 3.84 x 19.6 by rounding each factor to 1 significant figure.",
     difficulty: "developing",
     answerType: "numeric",
     format: "estimation",
@@ -240,7 +240,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for 80. The intended rounded factors are 4 and 20.",
     workedSolution:
-      "Round 3.84 to 4 and 19.6 to 20. Then estimate 4 × 20 = 80.",
+      "Round 3.84 to 4 and 19.6 to 20. Then estimate 4 x 20 = 80.",
     misconceptionTargets: ["rounding-place-value-error", "decimal-operation-error"],
     adaptiveRoute: {
       ifIncorrectGoToStepKey: "estimate-sums-and-products-using-rounding",
@@ -295,17 +295,24 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     answerType: "select_correct_working",
     format: "reasonableness",
     options: [
-      "Use 24 × 2 = 48 m",
-      "Use 20 × 2.5 = 50 m",
-      "Use 24 × 2.5 = 60 m",
-      "Use 25 × 3 = 75 m",
+      "Use 24 x 2 = 48 m",
+      "Use 20 x 2.5 = 50 m",
+      "Use 24 x 2.5 = 60 m",
+      "Use 25 x 3 = 75 m",
     ],
-    expectedAnswer: "Use 24 × 2.5 = 60 m",
-    acceptableAnswers: ["Use 24 × 2.5 = 60 m"],
+    structuredOptions: [
+      { id: "too-low-length", label: "Use 24 x 2 = 48 m" },
+      { id: "round-both-too-much", label: "Use 20 x 2.5 = 50 m" },
+      { id: "keep-count-round-length", label: "Use 24 x 2.5 = 60 m" },
+      { id: "too-high-both", label: "Use 25 x 3 = 75 m" },
+    ],
+    correctWorkingOptionId: "keep-count-round-length",
+    expectedAnswer: "Use 24 x 2.5 = 60 m",
+    acceptableAnswers: ["Use 24 x 2.5 = 60 m"],
     markingGuide:
-      "Award full credit for the method using 24 × 2.5 = 60 m. It keeps the number of pieces exact and rounds the length sensibly.",
+      "Award full credit for the method using 24 x 2.5 = 60 m. It keeps the number of pieces exact and rounds the length sensibly.",
     workedSolution:
-      "The exact total is 24 × 2.48 = 59.52 m. Using 24 × 2.5 = 60 m is the best quick estimate because it stays very close to the exact value.",
+      "The exact total is 24 x 2.48 = 59.52 m. Using 24 x 2.5 = 60 m is the best quick estimate because it stays very close to the exact value.",
     misconceptionTargets: [
       "rounding-place-value-error",
       "reasonableness-not-checked",
@@ -345,7 +352,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for $430. The exact total is $428.40, so $430 is the closest estimate.",
     workedSolution:
-      "A sensible estimate is 48 × 9 = 432, which is close to $430. The exact total is $47.60 × 9 = $428.40, so $430 is the best estimate shown.",
+      "A sensible estimate is 48 x 9 = 432, which is close to $430. The exact total is $47.60 x 9 = $428.40, so $430 is the best estimate shown.",
     misconceptionTargets: [
       "percentage-or-rate-context-error",
       "estimated-exact-confusion",
@@ -371,7 +378,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "compare-exact-and-estimated-results",
     title: "Explain whether an estimate is reasonable",
     prompt:
-      "A student estimates 19.8 × 6.1 as 20 × 6 = 120. Is the estimate reasonable? Explain.",
+      "A student estimates 19.8 x 6.1 as 20 x 6 = 120. Which explanation is best?",
     difficulty: "secure",
     answerType: "choose_best_explanation",
     format: "reasonableness",
@@ -404,7 +411,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for explaining that the estimate is reasonable because the exact product is close to 120. Strong responses note that 19.8 is close to 20 and 6.1 is close to 6, and the exact answer is 120.78.",
     workedSolution:
-      "The estimate is reasonable. The exact product is 19.8 × 6.1 = 120.78, so the estimate of 120 is only 0.78 away and is a slight underestimate.",
+      "The estimate is reasonable. The exact product is 19.8 x 6.1 = 120.78, so the estimate of 120 is only 0.78 away and is a slight underestimate.",
     misconceptionTargets: ["estimated-exact-confusion", "reasonableness-not-checked"],
     adaptiveRoute: {
       ifIncorrectGoToStepKey: "compare-exact-and-estimated-results",
@@ -462,7 +469,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "analyse-approximation-error-in-contexts",
     title: "Analyse approximation in an area estimate",
     prompt:
-      "A path is 18.7 m long and 2.9 m wide. A gardener estimates the area as 19 × 3 = 57 m^2. Is the estimate an overestimate or an underestimate? About how much?",
+      "A path is 18.7 m long and 2.9 m wide. A gardener estimates the area as 19 x 3 = 57 m^2. Classify each statement about the estimate.",
     difficulty: "secure",
     answerType: "classification",
     format: "applied_context",
@@ -496,7 +503,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for identifying that the estimate is too high and for giving a difference close to 2.77 m^2.",
     workedSolution:
-      "The exact area is 18.7 × 2.9 = 54.23 m^2. The estimate is 57 m^2, so the estimate is an overestimate by 57 - 54.23 = 2.77 m^2.",
+      "The exact area is 18.7 x 2.9 = 54.23 m^2. The estimate is 57 m^2, so the estimate is an overestimate by 57 - 54.23 = 2.77 m^2.",
     misconceptionTargets: [
       "unit-conversion-error",
       "estimated-exact-confusion",
@@ -522,7 +529,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "analyse-approximation-error-in-contexts",
     title: "Compare a circumference estimate with the calculated value",
     prompt:
-      "A student estimates the circumference of a circular planter with diameter 9.7 m by using 10 m and pi ≈ 3.14. They get 31.4 m. Using the original diameter with pi ≈ 3.14, is the estimate too high or too low? By about how much?",
+      "A student estimates the circumference of a circular planter with diameter 9.7 m by using 10 m and pi approx 3.14. Write the calculation that compares the estimate with the value from the original diameter.",
     difficulty: "extension",
     answerType: "short_symbolic",
     format: "error_comparison",
@@ -536,7 +543,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for identifying the estimate as too high and for giving a difference close to 0.94 m.",
     workedSolution:
-      "Using the original diameter gives 3.14 × 9.7 = 30.458 m. The estimate was 31.4 m, so it is too high by 31.4 - 30.458 = 0.942 m, which is about 0.94 m.",
+      "Using the original diameter gives 3.14 x 9.7 = 30.458 m. The estimate was 31.4 m, so it is too high by 31.4 - 30.458 = 0.942 m, which is about 0.94 m.",
     misconceptionTargets: [
       "unit-conversion-error",
       "estimated-exact-confusion",
@@ -579,7 +586,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     markingGuide:
       "Award full credit for identifying the year-by-year rounding method as larger and for explaining that the rounded amount becomes the next starting balance.",
     workedSolution:
-      "Keeping decimals gives 249.50 × 1.026 × 1.026 × 1.026 ≈ 269.47, which rounds to $269 at the end. Rounding each year gives about $256 after year 1, $263 after year 2, and $270 after year 3. The year-by-year method is larger because the rounded balance becomes the starting amount for the next calculation.",
+      "Keeping decimals gives 249.50 x 1.026 x 1.026 x 1.026 approx 269.47, which rounds to $269 at the end. Rounding each year gives about $256 after year 1, $263 after year 2, and $270 after year 3. The year-by-year method is larger because the rounded balance becomes the starting amount for the next calculation.",
     misconceptionTargets: [
       "rounding-too-early",
       "percentage-or-rate-context-error",
