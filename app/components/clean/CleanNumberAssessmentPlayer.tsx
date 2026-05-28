@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -1383,6 +1384,27 @@ function buildTargetedPracticeRecommendation(
   };
 }
 
+function buildTargetedPracticeHref(
+  recommendation: LocalTargetedPracticeRecommendation,
+) {
+  if (
+    recommendation.status !== "available" ||
+    !recommendation.practiceModuleId ||
+    !recommendation.practiceSectionId
+  ) {
+    return "";
+  }
+
+  const params = new URLSearchParams({
+    moduleId: recommendation.practiceModuleId,
+    sectionId: recommendation.practiceSectionId,
+    sourceAssessmentBand: recommendation.progressionBandKey,
+    sourceSubElement: recommendation.subElementKey,
+  });
+
+  return `/practice/number-targeted?${params.toString()}`;
+}
+
 function buildAdaptiveInsightSummary(
   bankKey: NumberAssessmentBankKey,
   items: NumberAssessmentBankItem[],
@@ -2762,20 +2784,33 @@ function CleanNumberAssessmentPlayerBody() {
                         alignItems: "center",
                       }}
                     >
-                      <button
-                        type="button"
-                        disabled
-                        style={{
-                          ...buttonStyle,
-                          opacity: 0.62,
-                          cursor: "not-allowed",
-                        }}
-                      >
-                        Start targeted practice
-                      </button>
+                      {buildTargetedPracticeHref(
+                        summary.targetedPracticeRecommendation,
+                      ) ? (
+                        <Link
+                          href={buildTargetedPracticeHref(
+                            summary.targetedPracticeRecommendation,
+                          )}
+                          style={buttonStyle}
+                        >
+                          Start targeted practice
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          style={{
+                            ...buttonStyle,
+                            opacity: 0.62,
+                            cursor: "not-allowed",
+                          }}
+                        >
+                          Start targeted practice
+                        </button>
+                      )}
                       <span style={{ color: "#64748b", fontSize: 13 }}>
                         {summary.targetedPracticeRecommendation.status === "available"
-                          ? "Practice viewer will be connected next."
+                          ? "Opens the recommended practice section."
                           : "Practice module coming next."}
                       </span>
                     </div>
