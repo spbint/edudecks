@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import type React from "react";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -94,6 +95,120 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+type PracticeTaskResult =
+  | "not_checked"
+  | "correct"
+  | "worth_revisiting"
+  | "needs_review"
+  | "reviewed";
+
+type LocalPracticeResponse = {
+  value: string;
+  result: PracticeTaskResult;
+  checked: boolean;
+};
+
+type LocalPracticeResponseMap = Record<string, LocalPracticeResponse>;
+
+function normalizeAnswer(value: unknown) {
+  return safe(value).toLowerCase().replace(/\s+/g, " ");
+}
+
+function createEmptyResponse(): LocalPracticeResponse {
+  return {
+    value: "",
+    result: "not_checked",
+    checked: false,
+  };
+}
+
+function isAutoCheckableTask(task: NumberPracticeTask) {
+  return (
+    task.taskType === "multiple_choice" ||
+    task.taskType === "short_answer" ||
+    task.taskType === "numeric" ||
+    (task.taskType === "sort_or_match" &&
+      Boolean(task.expectedAnswer || task.acceptableAnswers?.length))
+  );
+}
+
+function checkPracticeTask(
+  task: NumberPracticeTask,
+  response: LocalPracticeResponse,
+): PracticeTaskResult {
+  if (task.taskType === "worked_example") return "reviewed";
+  if (task.taskType === "explain") return "needs_review";
+
+  if (!isAutoCheckableTask(task)) {
+    return safe(response.value) ? "needs_review" : "not_checked";
+  }
+
+  const acceptedAnswers = [task.expectedAnswer, ...(task.acceptableAnswers ?? [])]
+    .map((answer) => normalizeAnswer(answer))
+    .filter(Boolean);
+
+  if (!safe(response.value)) return "not_checked";
+  if (!acceptedAnswers.length) return "needs_review";
+
+  return acceptedAnswers.includes(normalizeAnswer(response.value))
+    ? "correct"
+    : "worth_revisiting";
+}
+
+function getResultLabel(result: PracticeTaskResult) {
+  if (result === "correct") return "Correct";
+  if (result === "worth_revisiting") return "Worth revisiting";
+  if (result === "needs_review") return "Needs review";
+  if (result === "reviewed") return "Reviewed";
+  return "Not checked";
+}
+
+function getResultTone(result: PracticeTaskResult) {
+  if (result === "correct") {
+    return { border: "#bbf7d0", fill: "#f0fdf4", text: "#166534" };
+  }
+
+  if (result === "worth_revisiting") {
+    return { border: "#fde68a", fill: "#fffbeb", text: "#92400e" };
+  }
+
+  if (result === "needs_review") {
+    return { border: "#c7d2fe", fill: "#eef2ff", text: "#4338ca" };
+  }
+
+  if (result === "reviewed") {
+    return { border: "#bfdbfe", fill: "#eff6ff", text: "#1d4ed8" };
+  }
+
+  return { border: "#e2e8f0", fill: "#ffffff", text: "#475569" };
+}
+
+function buildProgressSummary(
+  tasks: NumberPracticeTask[],
+  responses: LocalPracticeResponseMap,
+) {
+  const taskResponses = tasks.map((task) => responses[task.id] ?? createEmptyResponse());
+  const completedCount = taskResponses.filter(
+    (response) => response.checked || safe(response.value),
+  ).length;
+  const checkedCount = taskResponses.filter((response) => response.checked).length;
+  const correctCount = taskResponses.filter(
+    (response) => response.result === "correct",
+  ).length;
+  const needsReviewCount = taskResponses.filter(
+    (response) =>
+      response.result === "needs_review" || response.result === "reviewed",
+  ).length;
+
+  return {
+    completedCount,
+    checkedCount,
+    correctCount,
+    needsReviewCount,
+    totalCount: tasks.length,
+  };
+}
+
 function buildSectionHref(moduleId: string, sectionId: string, sourceAssessmentBand: string, sourceSubElement: string) {
   const params = new URLSearchParams({ moduleId, sectionId });
 
@@ -114,7 +229,52 @@ function findSection(practiceModule: NumberPracticeModule, sectionId: string) {
   );
 }
 
-function TaskCard({ task, index }: { task: NumberPracticeTask; index: number }) {
+function PracticeProgressSummary({
+  label,
+  summary,
+}: {
+  label: string;
+  summary: ReturnType<typeof buildProgressSummary>;
+}) {
+  return (
+    <div style={compactCardStyle}>
+      <div style={eyebrowStyle}>{label}</div>
+      <div style={{ color: "#0f172a", fontWeight: 800 }}>
+        {summary.completedCount} of {summary.totalCount} tasks completed
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          color: "#475569",
+          fontSize: 13,
+        }}
+      >
+        <span>{summary.checkedCount} checked</span>
+        <span>{summary.correctCount} correct</span>
+        <span>{summary.needsReviewCount} for review/discussion</span>
+      </div>
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  index,
+  response,
+  onChange,
+  onCheck,
+}: {
+  task: NumberPracticeTask;
+  index: number;
+  response: LocalPracticeResponse;
+  onChange: (value: string) => void;
+  onCheck: () => void;
+}) {
+  const resultTone = getResultTone(response.result);
+  const showFeedback = response.checked;
+
   return (
     <div style={compactCardStyle}>
       <div style={eyebrowStyle}>Task {index + 1}</div>
@@ -122,38 +282,122 @@ function TaskCard({ task, index }: { task: NumberPracticeTask; index: number }) 
         {task.title}
       </div>
       <div style={{ color: "#334155", lineHeight: 1.6 }}>{task.prompt}</div>
-      {task.options?.length ? (
+      {task.taskType === "worked_example" ? (
+        <div
+          style={{
+            border: "1px solid #dbeafe",
+            borderRadius: 12,
+            background: "#ffffff",
+            padding: 12,
+            color: "#334155",
+            lineHeight: 1.6,
+          }}
+        >
+          Read the worked example, then mark it reviewed when it makes sense.
+        </div>
+      ) : null}
+      {task.taskType === "multiple_choice" && task.options?.length ? (
         <div style={{ display: "grid", gap: 6 }}>
           {task.options.map((option) => (
-            <div
+            <button
               key={option}
+              type="button"
+              onClick={() => onChange(option)}
               style={{
-                border: "1px solid #e2e8f0",
+                border:
+                  response.value === option
+                    ? "1px solid #2563eb"
+                    : "1px solid #e2e8f0",
                 borderRadius: 10,
-                background: "#ffffff",
+                background: response.value === option ? "#eff6ff" : "#ffffff",
                 padding: "8px 10px",
                 color: "#334155",
+                textAlign: "left",
+                cursor: "pointer",
+                font: "inherit",
               }}
             >
               {option}
-            </div>
+            </button>
           ))}
         </div>
       ) : null}
-      {task.supportPrompt ? (
-        <div style={{ color: "#475569", lineHeight: 1.5 }}>
-          <strong>Support:</strong> {task.supportPrompt}
-        </div>
+      {task.taskType === "short_answer" ||
+      task.taskType === "numeric" ||
+      task.taskType === "sort_or_match" ? (
+        <input
+          value={response.value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={
+            task.taskType === "numeric"
+              ? "Enter your answer"
+              : "Type your response"
+          }
+          style={{
+            width: "100%",
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
+            padding: "10px 12px",
+            fontSize: 14,
+            background: "#ffffff",
+            color: "#0f172a",
+          }}
+        />
       ) : null}
-      {task.workedSolution ? (
-        <details>
-          <summary style={{ cursor: "pointer", fontWeight: 800, color: "#1e3a8a" }}>
-            Show worked solution
-          </summary>
-          <div style={{ marginTop: 8, color: "#334155", lineHeight: 1.6 }}>
-            {task.workedSolution}
+      {task.taskType === "explain" ? (
+        <textarea
+          value={response.value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Write or discuss your explanation"
+          style={{
+            width: "100%",
+            border: "1px solid #cbd5e1",
+            borderRadius: 12,
+            padding: "10px 12px",
+            fontSize: 14,
+            background: "#ffffff",
+            color: "#0f172a",
+            minHeight: 100,
+            resize: "vertical",
+            fontFamily: "inherit",
+          }}
+        />
+      ) : null}
+      <div>
+        <button type="button" onClick={onCheck} style={buttonStyle}>
+          {task.taskType === "worked_example" ? "Mark reviewed" : "Check response"}
+        </button>
+      </div>
+      {showFeedback ? (
+        <div
+          style={{
+            border: `1px solid ${resultTone.border}`,
+            background: resultTone.fill,
+            borderRadius: 12,
+            padding: 12,
+            display: "grid",
+            gap: 8,
+          }}
+        >
+          <div style={{ color: resultTone.text, fontWeight: 800 }}>
+            {getResultLabel(response.result)}
           </div>
-        </details>
+          {task.expectedAnswer ? (
+            <div style={{ color: "#334155", lineHeight: 1.5 }}>
+              <strong>Expected answer:</strong> {task.expectedAnswer}
+            </div>
+          ) : null}
+          {task.supportPrompt ? (
+            <div style={{ color: "#475569", lineHeight: 1.5 }}>
+              <strong>Support:</strong> {task.supportPrompt}
+            </div>
+          ) : null}
+          {task.workedSolution ? (
+            <div style={{ color: "#334155", lineHeight: 1.6 }}>
+              <strong>Worked solution:</strong> {task.workedSolution}
+            </div>
+          ) : null}
+        </div>
       ) : null}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {task.misconceptionTargets.map((target) => (
@@ -224,9 +468,17 @@ function SectionOverview({
 
 function SelectedSection({
   section,
+  responses,
+  onChange,
+  onCheck,
 }: {
   section: NumberPracticeSection;
+  responses: LocalPracticeResponseMap;
+  onChange: (taskId: string, value: string) => void;
+  onCheck: (task: NumberPracticeTask) => void;
 }) {
+  const progress = buildProgressSummary(section.tasks, responses);
+
   return (
     <div style={highlightCardStyle}>
       <div style={eyebrowStyle}>Recommended section</div>
@@ -236,17 +488,69 @@ function SelectedSection({
       <div style={{ color: "#334155", lineHeight: 1.6, fontSize: 16 }}>
         {section.learnerGoal}
       </div>
+      <PracticeProgressSummary label="Practice progress" summary={progress} />
       <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
         {section.tasks.map((task, index) => (
-          <TaskCard key={task.id} task={task} index={index} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            index={index}
+            response={responses[task.id] ?? createEmptyResponse()}
+            onChange={(value) => onChange(task.id, value)}
+            onCheck={() => onCheck(task)}
+          />
         ))}
       </div>
     </div>
   );
 }
 
+function MiniCheckSection({
+  tasks,
+  responses,
+  onChange,
+  onCheck,
+}: {
+  tasks: NumberPracticeTask[];
+  responses: LocalPracticeResponseMap;
+  onChange: (taskId: string, value: string) => void;
+  onCheck: (task: NumberPracticeTask) => void;
+}) {
+  const progress = buildProgressSummary(tasks, responses);
+
+  return (
+    <section style={cardStyle}>
+      <div style={eyebrowStyle}>Mini check</div>
+      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+        Try these after practice to see whether the focus is ready for reassessment.
+      </div>
+      <PracticeProgressSummary label="Mini-check summary" summary={progress} />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: 10,
+          marginTop: 12,
+        }}
+      >
+        {tasks.map((task, index) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            index={index}
+            response={responses[task.id] ?? createEmptyResponse()}
+            onChange={(value) => onChange(task.id, value)}
+            onCheck={() => onCheck(task)}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function CleanNumberTargetedPracticeViewer() {
   const searchParams = useSearchParams();
+  const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const sourceAssessmentBand = safe(searchParams.get("sourceAssessmentBand"));
@@ -263,6 +567,42 @@ export default function CleanNumberTargetedPracticeViewer() {
       )
     : null;
   const unsupportedModule = requestedModuleId && !practiceModule;
+  const selectedSectionTasks = useMemo(
+    () => selectedSection?.tasks ?? [],
+    [selectedSection],
+  );
+  const miniCheckTasks = useMemo(
+    () => practiceModule?.miniCheck ?? [],
+    [practiceModule],
+  );
+
+  function updateTaskResponse(taskId: string, value: string) {
+    setResponses((current) => ({
+      ...current,
+      [taskId]: {
+        ...(current[taskId] ?? createEmptyResponse()),
+        value,
+        checked: false,
+        result: "not_checked",
+      },
+    }));
+  }
+
+  function checkTask(task: NumberPracticeTask) {
+    setResponses((current) => {
+      const existing = current[task.id] ?? createEmptyResponse();
+      const nextResult = checkPracticeTask(task, existing);
+
+      return {
+        ...current,
+        [task.id]: {
+          ...existing,
+          checked: nextResult !== "not_checked",
+          result: nextResult,
+        },
+      };
+    });
+  }
 
   return (
     <main style={shellStyle}>
@@ -367,7 +707,12 @@ export default function CleanNumberTargetedPracticeViewer() {
             ) : null}
 
             {selectedSection ? (
-              <SelectedSection section={selectedSection} />
+              <SelectedSection
+                section={selectedSection}
+                responses={responses}
+                onChange={updateTaskResponse}
+                onCheck={checkTask}
+              />
             ) : (
               <SectionOverview
                 practiceModule={practiceModule}
@@ -376,25 +721,14 @@ export default function CleanNumberTargetedPracticeViewer() {
               />
             )}
 
-            <section style={cardStyle}>
-              <div style={eyebrowStyle}>Mini check preview</div>
-              <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                After practice, use these mini-check prompts to see whether the
-                focus is ready for reassessment.
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                  gap: 10,
-                  marginTop: 12,
-                }}
-              >
-                {practiceModule.miniCheck.map((task, index) => (
-                  <TaskCard key={task.id} task={task} index={index} />
-                ))}
-              </div>
-            </section>
+            {selectedSectionTasks.length ? (
+              <MiniCheckSection
+                tasks={miniCheckTasks}
+                responses={responses}
+                onChange={updateTaskResponse}
+                onCheck={checkTask}
+              />
+            ) : null}
           </>
         ) : null}
       </div>
