@@ -1,6 +1,6 @@
 import {
   NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
-  type NumberAssessmentAnswerType,
+  type NumberAssessmentAnswerType as BaseNumberAssessmentAnswerType,
   type NumberAssessmentItemDifficulty,
   type NumberAssessmentOpenResponseReview,
   type NumberAssessmentVisualSupport,
@@ -28,6 +28,43 @@ export type NumberAssessmentBankKey =
   | "approximation-estimation-error"
   | "irrational-and-real-numbers";
 
+export type NumberAssessmentStructuredAnswerType =
+  | "multi_select"
+  | "short_symbolic"
+  | "matching"
+  | "ordering"
+  | "classification"
+  | "select_correct_working"
+  | "choose_best_explanation"
+  | "fill_gap"
+  | "true_false_correction";
+
+export type NumberAssessmentAnswerType =
+  | BaseNumberAssessmentAnswerType
+  | NumberAssessmentStructuredAnswerType;
+
+export type NumberAssessmentStructuredOption = {
+  id: string;
+  label: string;
+  value?: string;
+};
+
+export type NumberAssessmentMatchingPair = {
+  prompt: string;
+  correctMatch: string;
+};
+
+export type NumberAssessmentClassificationCategory = {
+  id: string;
+  label: string;
+};
+
+export type NumberAssessmentClassificationItem = {
+  id: string;
+  label: string;
+  correctCategoryId: string;
+};
+
 export type NumberAssessmentBankItem = {
   id: string;
   progressionBandKey: string;
@@ -38,6 +75,22 @@ export type NumberAssessmentBankItem = {
   answerType: NumberAssessmentAnswerType;
   format: string;
   options?: string[];
+  structuredOptions?: NumberAssessmentStructuredOption[];
+  correctOptionIds?: string[];
+  matchingPairs?: NumberAssessmentMatchingPair[];
+  orderingItems?: string[];
+  correctOrder?: string[];
+  classificationCategories?: NumberAssessmentClassificationCategory[];
+  classificationItems?: NumberAssessmentClassificationItem[];
+  gapText?: string;
+  gapAnswer?: string;
+  gapAcceptableAnswers?: string[];
+  trueFalseStatement?: string;
+  correctBoolean?: boolean;
+  correctionOptions?: string[];
+  correctCorrection?: string;
+  correctWorkingOptionId?: string;
+  bestExplanationOptionId?: string;
   expectedAnswer?: string;
   acceptableAnswers?: string[];
   markingGuide?: string;

@@ -482,6 +482,129 @@ function normalizeValue(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function normalizeSymbolicValue(value: string) {
+  return normalizeValue(value)
+    .replace(/[×*]/g, "x")
+    .replace(/\s*x\s*/g, "x")
+    .replace(/\s+/g, "");
+}
+
+function getComparableAnswers(item: NumberAssessmentBankItem) {
+  return [item.expectedAnswer, ...(item.acceptableAnswers ?? [])].filter(Boolean);
+}
+
+function parseStructuredResponse(responseText: string) {
+  const text = responseText.trim();
+  if (!text) return null;
+
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function serializeStructuredResponse(value: Record<string, unknown>) {
+  return JSON.stringify(value);
+}
+
+function getStructuredOptions(item: NumberAssessmentBankItem) {
+  if (item.structuredOptions?.length) {
+    return item.structuredOptions;
+  }
+
+  return (item.options ?? []).map((option) => ({
+    id: option,
+    label: option,
+    value: option,
+  }));
+}
+
+function getOptionComparisonValues(option: { id: string; label: string; value?: string }) {
+  return [option.id, option.label, option.value].filter(Boolean).map((value) =>
+    normalizeValue(String(value)),
+  );
+}
+
+function getCorrectOptionIds(item: NumberAssessmentBankItem) {
+  if (item.correctOptionIds?.length) {
+    return item.correctOptionIds;
+  }
+
+  const acceptable = getComparableAnswers(item).map((value) =>
+    normalizeValue(String(value)),
+  );
+
+  if (!acceptable.length) {
+    return [];
+  }
+
+  return getStructuredOptions(item)
+    .filter((option) =>
+      getOptionComparisonValues(option).some((value) => acceptable.includes(value)),
+    )
+    .map((option) => option.id);
+}
+
+function getSingleCorrectOptionId(
+  item: NumberAssessmentBankItem,
+  explicitOptionId?: string,
+) {
+  if (explicitOptionId) {
+    return explicitOptionId;
+  }
+
+  return getCorrectOptionIds(item)[0] || "";
+}
+
+function getStructuredStringArray(
+  responseText: string,
+  key: string,
+) {
+  const parsed = parseStructuredResponse(responseText);
+  const value = parsed?.[key];
+  return Array.isArray(value)
+    ? value.map((entry) => String(entry)).filter(Boolean)
+    : [];
+}
+
+function getStructuredStringMap(responseText: string, key: string) {
+  const parsed = parseStructuredResponse(responseText);
+  const value = parsed?.[key];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([entryKey, entryValue]) => [
+      entryKey,
+      String(entryValue ?? ""),
+    ]),
+  );
+}
+
+function setsMatch(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+
+  const normalizedLeft = [...left].map(normalizeValue).sort();
+  const normalizedRight = [...right].map(normalizeValue).sort();
+
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
+}
+
+function sequencesMatch(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+
+  return left.every(
+    (value, index) => normalizeValue(value) === normalizeValue(right[index] ?? ""),
+  );
+}
+
 function isOpenResponse(item: NumberAssessmentBankItem) {
   return (
     item.answerType === "worked_response" ||
@@ -490,7 +613,7 @@ function isOpenResponse(item: NumberAssessmentBankItem) {
 }
 
 function hasEnteredResponse(response: LocalAssessmentResponse) {
-  return normalizeValue(response.response).length > 0;
+  return response.response.trim().length > 0;
 }
 
 function getCheckResult(
@@ -499,7 +622,7 @@ function getCheckResult(
 ): LocalAssessmentResult {
   const normalizedResponse = normalizeValue(responseText);
 
-  if (!normalizedResponse) {
+  if (!responseText.trim()) {
     return "unanswered";
   }
 
@@ -507,18 +630,156 @@ function getCheckResult(
     return "review_needed";
   }
 
+  if (item.answerType === "multi_select") {
+    const selectedOptionIds = getStructuredStringArray(
+      responseText,
+      "selectedOptionIds",
+    );
+    const correctOptionIds = getCorrectOptionIds(item);
+
+    if (!selectedOptionIds.length) return "unanswered";
+    if (!correctOptionIds.length) return "review_needed";
+
+    return setsMatch(selectedOptionIds, correctOptionIds) ? "correct" : "incorrect";
+  }
+
+  if (item.answerType === "matching") {
+    const matches = getStructuredStringMap(responseText, "matches");
+    const pairs = item.matchingPairs ?? [];
+
+    if (!pairs.length) return "review_needed";
+    if (!pairs.every((pair) => normalizeValue(matches[pair.prompt] ?? ""))) {
+      return "unanswered";
+    }
+
+    return pairs.every(
+      (pair) =>
+        normalizeValue(matches[pair.prompt] ?? "") ===
+        normalizeValue(pair.correctMatch),
+    )
+      ? "correct"
+      : "incorrect";
+  }
+
+  if (item.answerType === "ordering") {
+    const order = getStructuredStringArray(responseText, "order");
+    const expectedOrder = item.correctOrder?.length
+      ? item.correctOrder
+      : item.orderingItems ?? [];
+
+    if (!order.length) return "unanswered";
+    if (!expectedOrder.length) return "review_needed";
+
+    return sequencesMatch(order, expectedOrder) ? "correct" : "incorrect";
+  }
+
+  if (item.answerType === "classification") {
+    const classifications = getStructuredStringMap(responseText, "classifications");
+    const classificationItems = item.classificationItems ?? [];
+
+    if (!classificationItems.length) return "review_needed";
+    if (
+      !classificationItems.every((classificationItem) =>
+        normalizeValue(classifications[classificationItem.id] ?? ""),
+      )
+    ) {
+      return "unanswered";
+    }
+
+    return classificationItems.every(
+      (classificationItem) =>
+        classifications[classificationItem.id] ===
+        classificationItem.correctCategoryId,
+    )
+      ? "correct"
+      : "incorrect";
+  }
+
+  if (item.answerType === "select_correct_working") {
+    const parsed = parseStructuredResponse(responseText);
+    const selectedOptionId = String(parsed?.selectedOptionId ?? "");
+    const correctOptionId = getSingleCorrectOptionId(
+      item,
+      item.correctWorkingOptionId,
+    );
+
+    if (!selectedOptionId) return "unanswered";
+    if (!correctOptionId) return "review_needed";
+
+    return selectedOptionId === correctOptionId ? "correct" : "incorrect";
+  }
+
+  if (item.answerType === "choose_best_explanation") {
+    const parsed = parseStructuredResponse(responseText);
+    const selectedOptionId = String(parsed?.selectedOptionId ?? "");
+    const correctOptionId = getSingleCorrectOptionId(
+      item,
+      item.bestExplanationOptionId,
+    );
+
+    if (!selectedOptionId) return "unanswered";
+    if (!correctOptionId) return "review_needed";
+
+    return selectedOptionId === correctOptionId ? "correct" : "incorrect";
+  }
+
+  if (item.answerType === "fill_gap") {
+    const parsed = parseStructuredResponse(responseText);
+    const gapResponse = String(parsed?.gapResponse ?? "");
+    const acceptable = [item.gapAnswer, ...(item.gapAcceptableAnswers ?? [])]
+      .filter(Boolean)
+      .map((value) => normalizeSymbolicValue(String(value)));
+
+    if (!gapResponse.trim()) return "unanswered";
+    if (!acceptable.length) return "review_needed";
+
+    return acceptable.includes(normalizeSymbolicValue(gapResponse))
+      ? "correct"
+      : "incorrect";
+  }
+
+  if (item.answerType === "true_false_correction") {
+    const parsed = parseStructuredResponse(responseText);
+    const booleanAnswer = parsed?.booleanAnswer;
+    const correction = String(parsed?.correction ?? "");
+
+    if (typeof booleanAnswer !== "boolean") return "unanswered";
+    if (typeof item.correctBoolean !== "boolean") return "review_needed";
+
+    if (item.correctBoolean === true) {
+      return booleanAnswer === true ? "correct" : "incorrect";
+    }
+
+    if (booleanAnswer !== false) return "incorrect";
+    if (!item.correctCorrection) return "correct";
+    if (!correction.trim()) return "unanswered";
+
+    return normalizeValue(correction) === normalizeValue(item.correctCorrection)
+      ? "correct"
+      : "incorrect";
+  }
+
   const acceptable = [
     item.expectedAnswer,
     ...(item.acceptableAnswers ?? []),
   ]
     .filter(Boolean)
-    .map((value) => normalizeValue(String(value)));
+    .map((value) =>
+      item.answerType === "short_symbolic"
+        ? normalizeSymbolicValue(String(value))
+        : normalizeValue(String(value)),
+    );
 
   if (!acceptable.length) {
     return "review_needed";
   }
 
-  if (acceptable.includes(normalizedResponse)) {
+  const comparableResponse =
+    item.answerType === "short_symbolic"
+      ? normalizeSymbolicValue(responseText)
+      : normalizedResponse;
+
+  if (acceptable.includes(comparableResponse)) {
     return "correct";
   }
 
@@ -542,6 +803,38 @@ function getPersistedLocalResult(
   }
 
   return "review_needed";
+}
+
+function getSelectedOptionForSave(
+  item: NumberAssessmentBankItem,
+  responseText: string,
+) {
+  const normalizedResponse = responseText.trim();
+
+  if (item.answerType === "multiple_choice" && normalizedResponse) {
+    return normalizedResponse;
+  }
+
+  if (
+    item.answerType === "select_correct_working" ||
+    item.answerType === "choose_best_explanation"
+  ) {
+    const selectedOptionId = String(
+      parseStructuredResponse(responseText)?.selectedOptionId ?? "",
+    ).trim();
+
+    return selectedOptionId || null;
+  }
+
+  if (item.answerType === "true_false_correction") {
+    const parsed = parseStructuredResponse(responseText);
+    const booleanAnswer = parsed?.booleanAnswer;
+    if (typeof booleanAnswer === "boolean") {
+      return booleanAnswer ? "true" : "false";
+    }
+  }
+
+  return null;
 }
 
 function getResultMessage(result: LocalAssessmentResult) {
@@ -614,8 +907,17 @@ function getFocusLabel(item: NumberAssessmentBankItem) {
 
 function getAnswerModeLabel(item: NumberAssessmentBankItem) {
   if (item.answerType === "multiple_choice") return "Choose one";
+  if (item.answerType === "multi_select") return "Choose all that apply";
   if (item.answerType === "numeric") return "Number answer";
+  if (item.answerType === "short_symbolic") return "Symbolic answer";
   if (item.answerType === "short_answer") return "Short response";
+  if (item.answerType === "matching") return "Match each row";
+  if (item.answerType === "ordering") return "Put in order";
+  if (item.answerType === "classification") return "Classify each item";
+  if (item.answerType === "select_correct_working") return "Choose working";
+  if (item.answerType === "choose_best_explanation") return "Choose explanation";
+  if (item.answerType === "fill_gap") return "Fill the gap";
+  if (item.answerType === "true_false_correction") return "True/false";
   if (item.answerType === "worked_response") return "Worked response";
   return "Explain or justify";
 }
@@ -805,7 +1107,25 @@ function buildItemSnapshot(
   return {
     title: item.title,
     prompt: item.prompt,
+    answerType: item.answerType,
+    format: item.format,
     options: item.options ?? [],
+    structuredOptions: item.structuredOptions ?? [],
+    correctOptionIds: item.correctOptionIds ?? [],
+    matchingPairs: item.matchingPairs ?? [],
+    orderingItems: item.orderingItems ?? [],
+    correctOrder: item.correctOrder ?? [],
+    classificationCategories: item.classificationCategories ?? [],
+    classificationItems: item.classificationItems ?? [],
+    gapText: item.gapText ?? null,
+    gapAnswer: item.gapAnswer ?? null,
+    gapAcceptableAnswers: item.gapAcceptableAnswers ?? [],
+    trueFalseStatement: item.trueFalseStatement ?? null,
+    correctBoolean: item.correctBoolean ?? null,
+    correctionOptions: item.correctionOptions ?? [],
+    correctCorrection: item.correctCorrection ?? null,
+    correctWorkingOptionId: item.correctWorkingOptionId ?? null,
+    bestExplanationOptionId: item.bestExplanationOptionId ?? null,
     expectedAnswer: item.expectedAnswer ?? null,
     acceptableAnswers: item.acceptableAnswers ?? [],
     workedSolution: item.workedSolution ?? null,
@@ -1185,6 +1505,17 @@ function CleanNumberAssessmentPlayerBody() {
     }));
   }
 
+  function updateStructuredResponse(
+    itemId: string,
+    value: Record<string, unknown>,
+  ) {
+    updateResponse(itemId, serializeStructuredResponse(value));
+  }
+
+  function getCurrentStructuredResponse() {
+    return parseStructuredResponse(currentResponse.response) ?? {};
+  }
+
   function submitCurrentItem() {
     if (!currentItem) {
       return;
@@ -1201,6 +1532,407 @@ function CleanNumberAssessmentPlayerBody() {
         submittedAt,
       },
     }));
+  }
+
+  function renderStructuredOptionButton({
+    option,
+    isSelected,
+    onClick,
+  }: {
+    option: { id: string; label: string; value?: string };
+    isSelected: boolean;
+    onClick: () => void;
+  }) {
+    return (
+      <button
+        key={option.id}
+        type="button"
+        onClick={onClick}
+        style={{
+          ...optionButtonStyle,
+          border: isSelected ? "2px solid #1d4ed8" : optionButtonStyle.border,
+          background: isSelected ? "#eff6ff" : "#ffffff",
+          boxShadow: isSelected ? "0 10px 22px rgba(59,130,246,0.14)" : "none",
+        }}
+      >
+        <span>{option.label}</span>
+        {isSelected ? (
+          <span
+            style={{
+              ...chipBaseStyle,
+              border: "1px solid #bfdbfe",
+              background: "#dbeafe",
+              color: "#1d4ed8",
+              flexShrink: 0,
+            }}
+          >
+            Selected
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
+  function renderResponseControl() {
+    const structuredResponse = getCurrentStructuredResponse();
+
+    if (currentItem.answerType === "multiple_choice") {
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {(currentItem.options ?? []).map((option) => {
+            const isSelected = currentResponse.response === option;
+
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => updateResponse(currentItem.id, option)}
+                style={{
+                  ...optionButtonStyle,
+                  border: isSelected ? "2px solid #1d4ed8" : optionButtonStyle.border,
+                  background: isSelected ? "#eff6ff" : "#ffffff",
+                  boxShadow: isSelected
+                    ? "0 10px 22px rgba(59,130,246,0.14)"
+                    : "none",
+                }}
+              >
+                <span>{option}</span>
+                {isSelected ? (
+                  <span
+                    style={{
+                      ...chipBaseStyle,
+                      border: "1px solid #bfdbfe",
+                      background: "#dbeafe",
+                      color: "#1d4ed8",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Selected
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    if (currentItem.answerType === "multi_select") {
+      const selectedOptionIds = Array.isArray(structuredResponse.selectedOptionIds)
+        ? structuredResponse.selectedOptionIds.map((value) => String(value))
+        : [];
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {getStructuredOptions(currentItem).map((option) => {
+            const isSelected = selectedOptionIds.includes(option.id);
+            const nextSelectedOptionIds = isSelected
+              ? selectedOptionIds.filter((id) => id !== option.id)
+              : [...selectedOptionIds, option.id];
+
+            return renderStructuredOptionButton({
+              option,
+              isSelected,
+              onClick: () =>
+                updateStructuredResponse(currentItem.id, {
+                  selectedOptionIds: nextSelectedOptionIds,
+                }),
+            });
+          })}
+        </div>
+      );
+    }
+
+    if (
+      currentItem.answerType === "short_answer" ||
+      currentItem.answerType === "numeric" ||
+      currentItem.answerType === "short_symbolic"
+    ) {
+      return (
+        <input
+          type="text"
+          value={currentResponse.response}
+          onChange={(event) => updateResponse(currentItem.id, event.target.value)}
+          placeholder={
+            currentItem.answerType === "numeric"
+              ? "Enter a numeric answer"
+              : currentItem.answerType === "short_symbolic"
+                ? "Enter a symbolic answer"
+                : "Enter a short response"
+          }
+          style={inputStyle}
+        />
+      );
+    }
+
+    if (currentItem.answerType === "matching") {
+      const matches =
+        structuredResponse.matches &&
+        typeof structuredResponse.matches === "object" &&
+        !Array.isArray(structuredResponse.matches)
+          ? (structuredResponse.matches as Record<string, string>)
+          : {};
+      const matchOptions =
+        currentItem.structuredOptions?.map((option) => option.label) ??
+        Array.from(new Set((currentItem.matchingPairs ?? []).map((pair) => pair.correctMatch)));
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {(currentItem.matchingPairs ?? []).map((pair) => (
+            <label
+              key={pair.prompt}
+              style={{ display: "grid", gap: 6, color: "#0f172a", fontWeight: 700 }}
+            >
+              <span>{pair.prompt}</span>
+              <select
+                value={matches[pair.prompt] ?? ""}
+                onChange={(event) =>
+                  updateStructuredResponse(currentItem.id, {
+                    matches: {
+                      ...matches,
+                      [pair.prompt]: event.target.value,
+                    },
+                  })
+                }
+                style={inputStyle}
+              >
+                <option value="">Choose a match</option>
+                {matchOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      );
+    }
+
+    if (currentItem.answerType === "ordering") {
+      const responseOrder = Array.isArray(structuredResponse.order)
+        ? structuredResponse.order.map((value) => String(value))
+        : [];
+      const order = responseOrder.length ? responseOrder : currentItem.orderingItems ?? [];
+
+      function moveItem(index: number, direction: -1 | 1) {
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= order.length) return;
+
+        const nextOrder = [...order];
+        const current = nextOrder[index];
+        nextOrder[index] = nextOrder[nextIndex];
+        nextOrder[nextIndex] = current;
+        updateStructuredResponse(currentItem.id, { order: nextOrder });
+      }
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {order.map((item, index) => (
+            <div
+              key={`${item}-${index}`}
+              style={{
+                ...optionButtonStyle,
+                cursor: "default",
+              }}
+            >
+              <span>
+                {index + 1}. {item}
+              </span>
+              <span style={{ display: "inline-flex", gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => moveItem(index, -1)}
+                  disabled={index === 0}
+                  style={index === 0 ? disabledButtonStyle : secondaryButtonStyle}
+                >
+                  Up
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveItem(index, 1)}
+                  disabled={index === order.length - 1}
+                  style={
+                    index === order.length - 1
+                      ? disabledButtonStyle
+                      : secondaryButtonStyle
+                  }
+                >
+                  Down
+                </button>
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (currentItem.answerType === "classification") {
+      const classifications =
+        structuredResponse.classifications &&
+        typeof structuredResponse.classifications === "object" &&
+        !Array.isArray(structuredResponse.classifications)
+          ? (structuredResponse.classifications as Record<string, string>)
+          : {};
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {(currentItem.classificationItems ?? []).map((classificationItem) => (
+            <label
+              key={classificationItem.id}
+              style={{ display: "grid", gap: 6, color: "#0f172a", fontWeight: 700 }}
+            >
+              <span>{classificationItem.label}</span>
+              <select
+                value={classifications[classificationItem.id] ?? ""}
+                onChange={(event) =>
+                  updateStructuredResponse(currentItem.id, {
+                    classifications: {
+                      ...classifications,
+                      [classificationItem.id]: event.target.value,
+                    },
+                  })
+                }
+                style={inputStyle}
+              >
+                <option value="">Choose a category</option>
+                {(currentItem.classificationCategories ?? []).map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+      );
+    }
+
+    if (
+      currentItem.answerType === "select_correct_working" ||
+      currentItem.answerType === "choose_best_explanation"
+    ) {
+      const selectedOptionId = String(structuredResponse.selectedOptionId ?? "");
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {getStructuredOptions(currentItem).map((option) =>
+            renderStructuredOptionButton({
+              option,
+              isSelected: selectedOptionId === option.id,
+              onClick: () =>
+                updateStructuredResponse(currentItem.id, {
+                  selectedOptionId: option.id,
+                }),
+            }),
+          )}
+        </div>
+      );
+    }
+
+    if (currentItem.answerType === "fill_gap") {
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          {currentItem.gapText ? (
+            <div style={{ color: "#334155", lineHeight: 1.6 }}>
+              {currentItem.gapText}
+            </div>
+          ) : null}
+          <input
+            type="text"
+            value={String(structuredResponse.gapResponse ?? "")}
+            onChange={(event) =>
+              updateStructuredResponse(currentItem.id, {
+                gapResponse: event.target.value,
+              })
+            }
+            placeholder="Enter the missing value"
+            style={inputStyle}
+          />
+        </div>
+      );
+    }
+
+    if (currentItem.answerType === "true_false_correction") {
+      const booleanAnswer = structuredResponse.booleanAnswer;
+      const correction = String(structuredResponse.correction ?? "");
+      const correctionRequired = booleanAnswer === false;
+
+      return (
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ color: "#334155", lineHeight: 1.6 }}>
+            {currentItem.trueFalseStatement || currentItem.prompt}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {[
+              { label: "True", value: true },
+              { label: "False", value: false },
+            ].map((option) => {
+              const isSelected = booleanAnswer === option.value;
+
+              return (
+                <button
+                  key={option.label}
+                  type="button"
+                  onClick={() =>
+                    updateStructuredResponse(currentItem.id, {
+                      booleanAnswer: option.value,
+                      correction: option.value ? "" : correction,
+                    })
+                  }
+                  style={{
+                    ...secondaryButtonStyle,
+                    border: isSelected
+                      ? "2px solid #1d4ed8"
+                      : secondaryButtonStyle.border,
+                    background: isSelected ? "#eff6ff" : "#ffffff",
+                    color: isSelected ? "#1d4ed8" : "#0f172a",
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          {correctionRequired && currentItem.correctionOptions?.length ? (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={eyebrowStyle}>Choose the correction</div>
+              {currentItem.correctionOptions.map((option) =>
+                renderStructuredOptionButton({
+                  option: { id: option, label: option, value: option },
+                  isSelected: correction === option,
+                  onClick: () =>
+                    updateStructuredResponse(currentItem.id, {
+                      booleanAnswer,
+                      correction: option,
+                    }),
+                }),
+              )}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            color: "#475569",
+            fontSize: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          This response can be reviewed by an adult.
+        </div>
+        <textarea
+          value={currentResponse.response}
+          onChange={(event) => updateResponse(currentItem.id, event.target.value)}
+          placeholder="Write the response here. The learner can explain in their own words."
+          style={textareaStyle}
+        />
+      </div>
+    );
   }
 
   function goBack() {
@@ -1297,10 +2029,7 @@ function CleanNumberAssessmentPlayerBody() {
             answerType: item.answerType,
             localResult: getPersistedLocalResult(item, response),
             responseText: normalizedResponse || null,
-            selectedOption:
-              item.answerType === "multiple_choice" && normalizedResponse
-                ? normalizedResponse
-                : null,
+            selectedOption: getSelectedOptionForSave(item, normalizedResponse),
             itemSnapshot: buildItemSnapshot(item),
             submittedAt: response.submittedAt,
           };
@@ -1948,81 +2677,7 @@ function CleanNumberAssessmentPlayerBody() {
                     <div style={{ display: "grid", gap: 10 }}>
                       <div style={eyebrowStyle}>Response</div>
 
-                      {currentItem.answerType === "multiple_choice" ? (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          {(currentItem.options ?? []).map((option) => {
-                            const isSelected = currentResponse.response === option;
-
-                            return (
-                              <button
-                                key={option}
-                                type="button"
-                                onClick={() => updateResponse(currentItem.id, option)}
-                                style={{
-                                  ...optionButtonStyle,
-                                  border: isSelected
-                                    ? "2px solid #1d4ed8"
-                                    : optionButtonStyle.border,
-                                  background: isSelected ? "#eff6ff" : "#ffffff",
-                                  boxShadow: isSelected
-                                    ? "0 10px 22px rgba(59,130,246,0.14)"
-                                    : "none",
-                                }}
-                              >
-                                <span>{option}</span>
-                                {isSelected ? (
-                                  <span
-                                    style={{
-                                      ...chipBaseStyle,
-                                      border: "1px solid #bfdbfe",
-                                      background: "#dbeafe",
-                                      color: "#1d4ed8",
-                                      flexShrink: 0,
-                                    }}
-                                  >
-                                    Selected
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : currentItem.answerType === "short_answer" ||
-                        currentItem.answerType === "numeric" ? (
-                        <input
-                          type="text"
-                          value={currentResponse.response}
-                          onChange={(event) =>
-                            updateResponse(currentItem.id, event.target.value)
-                          }
-                          placeholder={
-                            currentItem.answerType === "numeric"
-                              ? "Enter a numeric answer"
-                              : "Enter a short response"
-                          }
-                          style={inputStyle}
-                        />
-                      ) : (
-                        <div style={{ display: "grid", gap: 10 }}>
-                          <div
-                            style={{
-                              color: "#475569",
-                              fontSize: 14,
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            This response can be reviewed by an adult.
-                          </div>
-                          <textarea
-                            value={currentResponse.response}
-                            onChange={(event) =>
-                              updateResponse(currentItem.id, event.target.value)
-                            }
-                            placeholder="Write the response here. The learner can explain in their own words."
-                            style={textareaStyle}
-                          />
-                        </div>
-                      )}
+                      {renderResponseControl()}
                     </div>
                   </div>
 
