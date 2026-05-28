@@ -23,6 +23,7 @@ import type {
 import type {
   NumberAssessmentItemDifficulty,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
+import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
 type LocalAssessmentResult = AssessmentAttemptLocalResult;
@@ -55,6 +56,24 @@ type LocalSubElementMastery = {
   suggestedPracticeFocus: string;
 };
 
+type TargetedPracticeRecommendationStatus = "available" | "coming_next";
+
+type LocalTargetedPracticeRecommendation = {
+  subElementKey: string;
+  subElementTitle: string;
+  judgement: SubElementMasteryJudgement;
+  correctCount: number;
+  totalCount: number;
+  progressionBandKey: string;
+  progressionStepKey: string;
+  practiceModuleId: string | null;
+  practiceModuleTitle: string | null;
+  practiceSectionId: string | null;
+  practiceSectionTitle: string | null;
+  message: string;
+  status: TargetedPracticeRecommendationStatus;
+};
+
 type LocalAdaptiveInsightSummary = {
   attemptedCount: number;
   correctCount: number;
@@ -63,6 +82,7 @@ type LocalAdaptiveInsightSummary = {
   unansweredCount: number;
   enteredButUncheckedCount: number;
   subElementMastery: LocalSubElementMastery[];
+  targetedPracticeRecommendation: LocalTargetedPracticeRecommendation | null;
   topMisconceptionTargets: Array<{ code: string; label: string; count: number }>;
   topPracticeRecommendations: Array<{ recommendation: string; count: number }>;
   suggestedFocusAreas: string[];
@@ -168,6 +188,28 @@ const helperCardStyle: React.CSSProperties = {
   padding: 14,
   display: "grid",
   gap: 6,
+};
+
+const POWERS_ROOTS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "perfect-square-roots": {
+    sectionId: "fluency",
+    sectionTitle: "Fluency",
+  },
+  "exponent-notation": {
+    sectionId: "understanding",
+    sectionTitle: "Understanding",
+  },
+  "powers-of-ten-and-prime-powers": {
+    sectionId: "problem-solving",
+    sectionTitle: "Problem Solving",
+  },
+  "exponent-laws": {
+    sectionId: "reasoning",
+    sectionTitle: "Reasoning",
+  },
 };
 
 const highlightCardStyle: React.CSSProperties = {
@@ -1262,6 +1304,85 @@ function buildSubElementMastery(
   });
 }
 
+function getTargetedPracticeMessage(
+  recommendation: LocalSubElementMastery,
+  allSecure: boolean,
+) {
+  if (allSecure) {
+    return "This learner appears ready for extension or the next Number focus.";
+  }
+
+  if (recommendation.judgement === "Needs support") {
+    return `Start with targeted practice on ${recommendation.subElementTitle} before reassessing this focus.`;
+  }
+
+  if (recommendation.judgement === "Developing") {
+    return `Build fluency with ${recommendation.subElementTitle}, then return to the assessment.`;
+  }
+
+  return `Use short practice to consolidate ${recommendation.subElementTitle} before reassessing.`;
+}
+
+function buildTargetedPracticeRecommendation(
+  bankKey: NumberAssessmentBankKey,
+  itemResponses: Array<{
+    item: NumberAssessmentBankItem;
+    response: LocalAssessmentResponse;
+    persistedResult: LocalAssessmentResult;
+  }>,
+  subElementMastery: LocalSubElementMastery[],
+): LocalTargetedPracticeRecommendation | null {
+  if (!subElementMastery.length) return null;
+
+  const prioritySubElements = subElementMastery
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.judgement !== "Secure")
+    .sort(
+      (left, right) =>
+        getSubElementMasteryPriority(left.entry.judgement) -
+          getSubElementMasteryPriority(right.entry.judgement) ||
+        left.index - right.index,
+    );
+  const allSecure = prioritySubElements.length === 0;
+  const selected = allSecure
+    ? subElementMastery[0]
+    : prioritySubElements[0]?.entry;
+
+  if (!selected) return null;
+
+  const firstItemForSubElement = itemResponses.find(
+    ({ item }) => item.subElementKey === selected.subElementKey,
+  )?.item;
+  const powersRootsPracticeSection =
+    bankKey === "powers-roots-exponent-notation"
+      ? POWERS_ROOTS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
+  const hasMappedPractice = Boolean(powersRootsPracticeSection);
+
+  return {
+    subElementKey: selected.subElementKey,
+    subElementTitle: selected.subElementTitle,
+    judgement: selected.judgement,
+    correctCount: selected.correctCount,
+    totalCount: selected.totalCount,
+    progressionBandKey:
+      firstItemForSubElement?.progressionBandKey ?? bankKey,
+    progressionStepKey: firstItemForSubElement?.progressionStepKey ?? "",
+    practiceModuleId: hasMappedPractice
+      ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE.id
+      : null,
+    practiceModuleTitle: hasMappedPractice
+      ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE.title
+      : null,
+    practiceSectionId: powersRootsPracticeSection?.sectionId ?? null,
+    practiceSectionTitle: powersRootsPracticeSection?.sectionTitle ?? null,
+    message: getTargetedPracticeMessage(selected, allSecure),
+    status: hasMappedPractice ? "available" : "coming_next",
+  };
+}
+
 function buildAdaptiveInsightSummary(
   bankKey: NumberAssessmentBankKey,
   items: NumberAssessmentBankItem[],
@@ -1301,13 +1422,20 @@ function buildAdaptiveInsightSummary(
   ).length;
   const subElementMastery = buildSubElementMastery(itemResponses);
   const prioritySubElements = subElementMastery
-    .filter((entry) => entry.judgement !== "Secure")
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.judgement !== "Secure")
     .sort(
       (left, right) =>
-        getSubElementMasteryPriority(left.judgement) -
-          getSubElementMasteryPriority(right.judgement) ||
-        left.subElementTitle.localeCompare(right.subElementTitle),
-    );
+        getSubElementMasteryPriority(left.entry.judgement) -
+          getSubElementMasteryPriority(right.entry.judgement) ||
+        left.index - right.index,
+    )
+    .map(({ entry }) => entry);
+  const targetedPracticeRecommendation = buildTargetedPracticeRecommendation(
+    bankKey,
+    itemResponses,
+    subElementMastery,
+  );
 
   const targetedItems = itemResponses
     .filter(
@@ -1540,6 +1668,7 @@ function buildAdaptiveInsightSummary(
     unansweredCount,
     enteredButUncheckedCount,
     subElementMastery,
+    targetedPracticeRecommendation,
     topMisconceptionTargets,
     topPracticeRecommendations,
     suggestedFocusAreas,
@@ -2138,6 +2267,7 @@ function CleanNumberAssessmentPlayerBody() {
         unansweredCount: summary.unansweredCount,
         enteredButUncheckedCount: summary.enteredButUncheckedCount,
         subElementMastery: summary.subElementMastery,
+        targetedPracticeRecommendation: summary.targetedPracticeRecommendation,
         topMisconceptionTargets: summary.topMisconceptionTargets,
         topPracticeRecommendations: summary.topPracticeRecommendations,
         suggestedFocusAreas: summary.suggestedFocusAreas,
@@ -2575,6 +2705,83 @@ function CleanNumberAssessmentPlayerBody() {
                   })}
                 </div>
               </div>
+
+              {summary.targetedPracticeRecommendation ? (
+                <div style={highlightCardStyle}>
+                  <div style={eyebrowStyle}>Recommended targeted practice</div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        color: "#0f172a",
+                        fontSize: 18,
+                        fontWeight: 800,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {summary.targetedPracticeRecommendation.subElementTitle}
+                    </div>
+                    <div
+                      style={{
+                        color: "#1e3a8a",
+                        fontWeight: 800,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {summary.targetedPracticeRecommendation.correctCount}/
+                      {summary.targetedPracticeRecommendation.totalCount} correct -{" "}
+                      {summary.targetedPracticeRecommendation.judgement}
+                    </div>
+                    <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                      {summary.targetedPracticeRecommendation.message}
+                    </div>
+                    {summary.targetedPracticeRecommendation.practiceModuleTitle ? (
+                      <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                        Related practice:{" "}
+                        <strong>
+                          {summary.targetedPracticeRecommendation.practiceModuleTitle}
+                        </strong>
+                        {summary.targetedPracticeRecommendation.practiceSectionTitle
+                          ? ` - ${summary.targetedPracticeRecommendation.practiceSectionTitle}`
+                          : ""}
+                      </div>
+                    ) : (
+                      <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                        Practice module coming next for this focus.
+                      </div>
+                    )}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 10,
+                        alignItems: "center",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        disabled
+                        style={{
+                          ...buttonStyle,
+                          opacity: 0.62,
+                          cursor: "not-allowed",
+                        }}
+                      >
+                        Start targeted practice
+                      </button>
+                      <span style={{ color: "#64748b", fontSize: 13 }}>
+                        {summary.targetedPracticeRecommendation.status === "available"
+                          ? "Practice viewer will be connected next."
+                          : "Practice module coming next."}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               <div
                 style={{
