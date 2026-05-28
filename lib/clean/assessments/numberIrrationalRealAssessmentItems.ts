@@ -1,7 +1,11 @@
 import type {
   NumberAssessmentAnswerType,
+  NumberAssessmentClassificationCategory,
+  NumberAssessmentClassificationItem,
   NumberAssessmentItemDifficulty,
+  NumberAssessmentMatchingPair,
   NumberAssessmentOpenResponseReview,
+  NumberAssessmentStructuredOption,
   NumberAssessmentVisualSupport,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import type { NumberProgressionBandKey } from "@/lib/clean/pathways/mathematicsYears6To10NumberProgressionMap";
@@ -55,6 +59,22 @@ export type NumberIrrationalRealAssessmentItem = {
   answerType: NumberAssessmentAnswerType;
   format: NumberIrrationalRealAssessmentFormat;
   options?: string[];
+  structuredOptions?: NumberAssessmentStructuredOption[];
+  correctOptionIds?: string[];
+  matchingPairs?: NumberAssessmentMatchingPair[];
+  orderingItems?: string[];
+  correctOrder?: string[];
+  classificationCategories?: NumberAssessmentClassificationCategory[];
+  classificationItems?: NumberAssessmentClassificationItem[];
+  gapText?: string;
+  gapAnswer?: string;
+  gapAcceptableAnswers?: string[];
+  trueFalseStatement?: string;
+  correctBoolean?: boolean;
+  correctionOptions?: string[];
+  correctCorrection?: string;
+  correctWorkingOptionId?: string;
+  bestExplanationOptionId?: string;
   expectedAnswer?: string;
   acceptableAnswers?: string[];
   markingGuide?: string;
@@ -79,16 +99,18 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionStepKey:
         "recognise-irrational-numbers-including-square-roots-and-pi",
       title: "Recognise irrational numbers in a mixed list",
-      prompt: "Which two numbers are irrational?",
+      prompt: "Select every irrational number in the list.",
       difficulty: "foundation",
-      answerType: "multiple_choice",
+      answerType: "multi_select",
       format: "classification",
-      options: [
-        "sqrt(9) and 0.75",
-        "sqrt(5) and pi",
-        "1/3 and 2.4",
-        "0.6 recurring and sqrt(16)",
+      structuredOptions: [
+        { id: "sqrt-9", label: "sqrt(9)" },
+        { id: "sqrt-5", label: "sqrt(5)" },
+        { id: "pi", label: "pi" },
+        { id: "one-third", label: "1/3" },
+        { id: "recurring-decimal", label: "0.6 recurring" },
       ],
+      correctOptionIds: ["sqrt-5", "pi"],
       expectedAnswer: "sqrt(5) and pi",
       acceptableAnswers: ["sqrt(5) and pi"],
       markingGuide:
@@ -118,16 +140,22 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "classify-numbers-as-rational-or-irrational",
       title: "Classify numbers as rational or irrational",
-      prompt:
-        "Which classification is correct for sqrt(4), sqrt(13), and 0.2 recurring?",
+      prompt: "Classify each number as rational or irrational.",
       difficulty: "foundation",
-      answerType: "multiple_choice",
+      answerType: "classification",
       format: "classification",
-      options: [
-        "All three numbers are irrational",
-        "Rational: sqrt(4), 0.2 recurring; Irrational: sqrt(13)",
-        "Rational: sqrt(13); Irrational: sqrt(4), 0.2 recurring",
-        "Rational: sqrt(4); Irrational: sqrt(13), 0.2 recurring",
+      classificationCategories: [
+        { id: "rational", label: "Rational" },
+        { id: "irrational", label: "Irrational" },
+      ],
+      classificationItems: [
+        { id: "sqrt-4", label: "sqrt(4)", correctCategoryId: "rational" },
+        { id: "sqrt-13", label: "sqrt(13)", correctCategoryId: "irrational" },
+        {
+          id: "point-two-recurring",
+          label: "0.2 recurring",
+          correctCategoryId: "rational",
+        },
       ],
       expectedAnswer:
         "Rational: sqrt(4), 0.2 recurring; Irrational: sqrt(13)",
@@ -161,10 +189,13 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionStepKey:
         "place-rational-and-irrational-numbers-on-a-number-line",
       title: "Estimate a square root between consecutive integers",
-      prompt: "Between which two consecutive integers does sqrt(27) lie?",
+      prompt: "Complete the statement for the position of sqrt(27).",
       difficulty: "foundation",
-      answerType: "short_answer",
+      answerType: "fill_gap",
       format: "number_line",
+      gapText: "sqrt(27) lies between __.",
+      gapAnswer: "5 and 6",
+      gapAcceptableAnswers: ["between 5 and 6", "5, 6", "5 to 6"],
       expectedAnswer: "5 and 6",
       acceptableAnswers: [
         "5 and 6",
@@ -200,16 +231,26 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "identify-statements-about-irrational-numbers",
       title: "Recognise the difference between pi and an approximation",
-      prompt: "Which statement about pi is correct?",
+      prompt: "Which explanation about pi and 3.14 is best?",
       difficulty: "developing",
-      answerType: "multiple_choice",
+      answerType: "choose_best_explanation",
       format: "real_number_reasoning",
-      options: [
-        "pi is rational because 3.14 is a terminating decimal.",
-        "pi is irrational, and 3.14 is only an approximation.",
-        "pi is irrational only when it appears in geometry formulas.",
-        "pi equals 22/7 exactly.",
+      structuredOptions: [
+        {
+          id: "pi-irrational-approximation",
+          label: "pi is irrational, and 3.14 is only an approximation.",
+        },
+        {
+          id: "pi-rational-terminating",
+          label: "pi is rational because 3.14 is a terminating decimal.",
+        },
+        {
+          id: "pi-only-geometry",
+          label: "pi is irrational only when it appears in geometry formulas.",
+        },
+        { id: "pi-22-7", label: "pi equals 22/7 exactly." },
       ],
+      bestExplanationOptionId: "pi-irrational-approximation",
       expectedAnswer: "pi is irrational, and 3.14 is only an approximation.",
       acceptableAnswers: [
         "pi is irrational, and 3.14 is only an approximation.",
@@ -241,11 +282,12 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
         "place-rational-and-irrational-numbers-on-a-number-line",
       title: "Choose the number-line point closest to an irrational value",
       prompt:
-        "A number line has points at 3, 3.2, 3.5, and 3.8. Which point is closest to sqrt(10)?",
+        "Put these values in increasing order on a number line.",
       difficulty: "developing",
-      answerType: "multiple_choice",
+      answerType: "ordering",
       format: "number_line",
-      options: ["3", "3.2", "3.5", "3.8"],
+      orderingItems: ["3.5", "3", "sqrt(10)", "3.2"],
+      correctOrder: ["3", "sqrt(10)", "3.2", "3.5"],
       expectedAnswer: "3.2",
       acceptableAnswers: ["3.2"],
       markingGuide:
@@ -277,11 +319,15 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
         "solve-applied-problems-involving-exact-real-number-values",
       title: "Choose the exact form of a circle area",
       prompt:
-        "Which expression gives the exact area of a circle with radius 5 cm?",
+        "Match each circle-area expression with whether it is exact or approximate for radius 5 cm.",
       difficulty: "developing",
-      answerType: "multiple_choice",
+      answerType: "matching",
       format: "exact_form",
-      options: ["25pi cm^2", "78.5 cm^2", "157 cm^2", "31.4 cm^2"],
+      matchingPairs: [
+        { prompt: "25pi cm^2", correctMatch: "Exact area" },
+        { prompt: "78.5 cm^2", correctMatch: "Approximation using pi about 3.14" },
+        { prompt: "31.4 cm^2", correctMatch: "Not the area for radius 5 cm" },
+      ],
       expectedAnswer: "25pi cm^2",
       acceptableAnswers: ["25pi cm^2", "25pi"],
       markingGuide:
@@ -313,10 +359,21 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "classify-numbers-as-rational-or-irrational",
       title: "Recognise that a recurring decimal is rational",
-      prompt: "Is 0.272727... rational or irrational?",
+      prompt:
+        "True or false: 0.272727... is irrational because it has infinitely many decimal places. If false, choose the correction.",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "true_false_correction",
       format: "classification",
+      trueFalseStatement:
+        "0.272727... is irrational because it has infinitely many decimal places.",
+      correctBoolean: false,
+      correctionOptions: [
+        "It is rational because the decimal pattern recurs and can be written as a fraction.",
+        "It is irrational because every infinite decimal is irrational.",
+        "It is rational only if it terminates.",
+      ],
+      correctCorrection:
+        "It is rational because the decimal pattern recurs and can be written as a fraction.",
       expectedAnswer: "rational",
       acceptableAnswers: [
         "rational",
@@ -348,7 +405,7 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       title: "Write the exact area of a circle in terms of pi",
       prompt: "A circle has radius 7 cm. Write its exact area in terms of pi.",
       difficulty: "secure",
-      answerType: "worked_response",
+      answerType: "short_symbolic",
       format: "geometric_reasoning",
       expectedAnswer: "49pi cm^2",
       acceptableAnswers: [
@@ -379,25 +436,6 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
         type: "context_card",
         description: "Use the circle area formula and leave pi in the exact answer.",
       },
-      openResponseReview: {
-        expectedResponse:
-          "The exact area is 49pi cm^2 because A = pi r^2 and 7^2 = 49.",
-        successCriteria: [
-          "Uses the circle area formula pi r^2.",
-          "Squares the radius correctly.",
-          "Writes the answer in exact form using pi.",
-          "Does not replace pi with a decimal as the final exact answer.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain why the radius is squared?",
-          "Can the learner say why 49pi is exact but 153.86 is approximate?",
-          "Can the learner connect the formula to the final answer clearly?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner used the circle area formula and kept the final result in exact form using pi.",
-      },
     },
     {
       id: "irr-real-compare-009",
@@ -405,16 +443,16 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionStepKey:
         "place-rational-and-irrational-numbers-on-a-number-line",
       title: "Compare rational and irrational values",
-      prompt: "Which number is greatest: 1.7, sqrt(3), 8/5, or pi/2?",
+      prompt: "To two decimal places, what is sqrt(3)?",
       difficulty: "secure",
-      answerType: "short_answer",
+      answerType: "numeric",
       format: "real_number_reasoning",
-      expectedAnswer: "sqrt(3)",
-      acceptableAnswers: ["sqrt(3)", "sqrt 3"],
+      expectedAnswer: "1.73",
+      acceptableAnswers: ["1.73"],
       markingGuide:
-        "Award full credit for sqrt(3). It is about 1.732, which is greater than 1.7, 1.6, and about 1.57.",
+        "Award full credit for 1.73. This checks that sqrt(3) is estimated near 1.732 before comparison or placement.",
       workedSolution:
-        "Compare decimal values: 1.7 = 1.7, sqrt(3) is about 1.732, 8/5 = 1.6, and pi/2 is about 1.57. So sqrt(3) is the greatest.",
+        "sqrt(3) is about 1.732, so to two decimal places it is 1.73.",
       misconceptionTargets: [
         "real-number-comparison-error",
         "number-line-placement-error",
@@ -439,10 +477,33 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       progressionBandKey: NUMBER_IRRATIONAL_REAL_PROGRESSION_BAND_KEY,
       progressionStepKey: "identify-statements-about-irrational-numbers",
       title: "Explain why one square root is rational and another is irrational",
-      prompt: "Explain why sqrt(49) is rational but sqrt(50) is irrational.",
+      prompt:
+        "Which working correctly explains why sqrt(49) is rational but sqrt(50) is irrational?",
       difficulty: "secure",
-      answerType: "explain_or_justify",
+      answerType: "select_correct_working",
       format: "real_number_reasoning",
+      structuredOptions: [
+        {
+          id: "perfect-square-test",
+          label:
+            "49 is a perfect square, so sqrt(49) = 7. 50 is not a perfect square, so sqrt(50) is irrational.",
+        },
+        {
+          id: "close-to-seven",
+          label:
+            "sqrt(50) is close to 7, so it is rational, but sqrt(49) is irrational because it uses a square root sign.",
+        },
+        {
+          id: "all-square-roots",
+          label: "All square roots are irrational, except when they are written as decimals.",
+        },
+        {
+          id: "bigger-number",
+          label:
+            "sqrt(50) is irrational only because 50 is larger than 49.",
+        },
+      ],
+      correctWorkingOptionId: "perfect-square-test",
       expectedAnswer:
         "sqrt(49) is rational because it equals 7 exactly. sqrt(50) is irrational because 50 is not a perfect square, so its decimal form does not terminate or recur.",
       acceptableAnswers: [
@@ -467,25 +528,6 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
           "This item checks whether the learner can explain how the radicand determines whether a square root is rational or irrational.",
       },
       visualSupport: { type: "none" },
-      openResponseReview: {
-        expectedResponse:
-          "sqrt(49) is rational because it equals 7 exactly. sqrt(50) is irrational because 50 is not a perfect square, so the square root is not an exact integer or fraction of integers.",
-        successCriteria: [
-          "States that sqrt(49) equals 7 exactly.",
-          "Identifies 49 as a perfect square.",
-          "States that 50 is not a perfect square.",
-          "Explains why that makes sqrt(50) irrational.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain what a perfect square means here?",
-          "Can the learner connect the radicand to the type of number produced by the square root?",
-          "Can the learner justify both classifications rather than only naming them?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner explained how perfect squares and non-perfect squares affect whether a square root is rational or irrational.",
-      },
     },
     {
       id: "irr-real-triangle-area-011",
@@ -496,7 +538,7 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       prompt:
         "A triangle has base 6 cm and height sqrt(12) cm. Write its exact area.",
       difficulty: "extension",
-      answerType: "worked_response",
+      answerType: "short_answer",
       format: "geometric_reasoning",
       expectedAnswer: "3sqrt(12) cm^2",
       acceptableAnswers: [
@@ -526,25 +568,6 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
         type: "context_card",
         description: "Use the triangle area formula and keep the square root in exact form.",
       },
-      openResponseReview: {
-        expectedResponse:
-          "The exact area is 3sqrt(12) cm^2, which is also 6sqrt(3) cm^2 after simplification.",
-        successCriteria: [
-          "Uses the triangle area formula 1/2 x base x height.",
-          "Substitutes the base and square-root height correctly.",
-          "Keeps the result in exact form.",
-          "Optionally simplifies sqrt(12) to 2sqrt(3).",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain where the 1/2 comes from in the triangle area formula?",
-          "Can the learner keep the radical in the answer instead of converting it to a decimal too early?",
-          "Can the learner explain whether simplification changes the exact value?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner used a geometry formula with a square-root measure and preserved an exact real-number result.",
-      },
     },
     {
       id: "irr-real-context-012",
@@ -553,15 +576,20 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
         "solve-applied-problems-involving-exact-real-number-values",
       title: "Explain the difference between an exact and approximate real-number answer",
       prompt:
-        "A circular garden has radius 4 m. One student writes the boundary length as 8pi m. Another writes 25.12 m. Which answer is exact, and when might the other answer still be useful? Explain.",
+        "A circular garden has radius 4 m. One student writes the boundary length as 8pi m. Another writes 25.12 m. Which statement is best?",
       difficulty: "extension",
-      answerType: "explain_or_justify",
+      answerType: "multiple_choice",
       format: "applied_context",
+      options: [
+        "8pi m is exact; 25.12 m is an approximation useful for practical measuring.",
+        "25.12 m is exact because it is a decimal.",
+        "Both are exact because they describe the same garden.",
+        "8pi m is approximate because it contains pi.",
+      ],
       expectedAnswer:
-        "8pi m is the exact answer. 25.12 m is an approximation that can be useful for practical measurement or estimating materials.",
+        "8pi m is exact; 25.12 m is an approximation useful for practical measuring.",
       acceptableAnswers: [
-        "8pi m is exact and 25.12 m is an approximation.",
-        "The exact answer is 8pi m. 25.12 m is useful as an approximate measurement.",
+        "8pi m is exact; 25.12 m is an approximation useful for practical measuring.",
       ],
       markingGuide:
         "Award full credit for identifying 8pi m as exact and for explaining that 25.12 m comes from approximating pi and may still be useful in a practical context.",
@@ -583,25 +611,6 @@ export const NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS: NumberIrrationalRealAssess
       visualSupport: {
         type: "context_card",
         description: "Compare the exact circumference with a decimal approximation for a real measurement context.",
-      },
-      openResponseReview: {
-        expectedResponse:
-          "8pi m is the exact answer because it keeps pi in exact form. 25.12 m is an approximation found by replacing pi with 3.14, and that can still be useful for practical measuring.",
-        successCriteria: [
-          "Identifies 8pi m as the exact answer.",
-          "Explains that 25.12 m is approximate because pi was replaced by a decimal.",
-          "States a practical reason why the approximation may still be useful.",
-          "Connects the explanation to the circle context.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain why pi should stay in the exact answer?",
-          "Can the learner describe when a decimal approximation is more practical?",
-          "Can the learner distinguish exact mathematics from useful measurement estimates?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner explained the difference between an exact real-number form and a practical decimal approximation in context.",
       },
     },
   ];

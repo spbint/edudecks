@@ -1,7 +1,11 @@
 import type {
   NumberAssessmentAnswerType,
+  NumberAssessmentClassificationCategory,
+  NumberAssessmentClassificationItem,
   NumberAssessmentItemDifficulty,
+  NumberAssessmentMatchingPair,
   NumberAssessmentOpenResponseReview,
+  NumberAssessmentStructuredOption,
   NumberAssessmentVisualSupport,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import type { NumberProgressionBandKey } from "@/lib/clean/pathways/mathematicsYears6To10NumberProgressionMap";
@@ -56,6 +60,22 @@ export type NumberPowersRootsAssessmentItem = {
   answerType: NumberAssessmentAnswerType;
   format: NumberPowersRootsAssessmentFormat;
   options?: string[];
+  structuredOptions?: NumberAssessmentStructuredOption[];
+  correctOptionIds?: string[];
+  matchingPairs?: NumberAssessmentMatchingPair[];
+  orderingItems?: string[];
+  correctOrder?: string[];
+  classificationCategories?: NumberAssessmentClassificationCategory[];
+  classificationItems?: NumberAssessmentClassificationItem[];
+  gapText?: string;
+  gapAnswer?: string;
+  gapAcceptableAnswers?: string[];
+  trueFalseStatement?: string;
+  correctBoolean?: boolean;
+  correctionOptions?: string[];
+  correctCorrection?: string;
+  correctWorkingOptionId?: string;
+  bestExplanationOptionId?: string;
   expectedAnswer?: string;
   acceptableAnswers?: string[];
   markingGuide?: string;
@@ -104,15 +124,36 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "connect-perfect-squares-and-square-roots",
       title: "Connect a square number with its square root",
-      prompt: "Which pair is correctly matched?",
+      prompt:
+        "Classify each statement as a correct square-root match or not a correct match.",
       difficulty: "foundation",
-      answerType: "multiple_choice",
+      answerType: "classification",
       format: "square_roots",
-      options: [
-        "121 and sqrt(121) = 11",
-        "81 and sqrt(81) = 9/2",
-        "64 and sqrt(64) = 6",
-        "144 and sqrt(144) = 24",
+      classificationCategories: [
+        { id: "correct", label: "Correct match" },
+        { id: "incorrect", label: "Not a correct match" },
+      ],
+      classificationItems: [
+        {
+          id: "sqrt-121",
+          label: "121 and sqrt(121) = 11",
+          correctCategoryId: "correct",
+        },
+        {
+          id: "sqrt-81",
+          label: "81 and sqrt(81) = 9/2",
+          correctCategoryId: "incorrect",
+        },
+        {
+          id: "sqrt-64",
+          label: "64 and sqrt(64) = 6",
+          correctCategoryId: "incorrect",
+        },
+        {
+          id: "sqrt-144",
+          label: "144 and sqrt(144) = 24",
+          correctCategoryId: "incorrect",
+        },
       ],
       expectedAnswer: "121 and sqrt(121) = 11",
       acceptableAnswers: ["121 and sqrt(121) = 11"],
@@ -139,10 +180,13 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-notation",
       title: "Write repeated multiplication in exponent form",
-      prompt: "Write 6 x 6 x 6 x 6 in exponent form.",
+      prompt: "Complete the exponent form for 6 x 6 x 6 x 6.",
       difficulty: "foundation",
-      answerType: "short_answer",
+      answerType: "fill_gap",
       format: "exponent_notation",
+      gapText: "6 x 6 x 6 x 6 = 6^__",
+      gapAnswer: "4",
+      gapAcceptableAnswers: ["4"],
       expectedAnswer: "6^4",
       acceptableAnswers: ["6^4"],
       markingGuide:
@@ -171,10 +215,13 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "estimate-non-perfect-square-roots",
       title: "Estimate a square root between consecutive integers",
-      prompt: "Between which two consecutive integers does sqrt(41) lie?",
+      prompt:
+        "Put these square-root values in increasing order: sqrt(49), sqrt(36), sqrt(41).",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "ordering",
       format: "square_roots",
+      orderingItems: ["sqrt(49)", "sqrt(36)", "sqrt(41)"],
+      correctOrder: ["sqrt(36)", "sqrt(41)", "sqrt(49)"],
       expectedAnswer: "6 and 7",
       acceptableAnswers: [
         "6 and 7",
@@ -205,10 +252,16 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "use-powers-of-ten-in-expanded-notation",
       title: "Interpret expanded notation with powers of 10",
-      prompt: "What number is represented by 4 x 10^3 + 7 x 10^1 + 2?",
+      prompt:
+        "Match each powers-of-10 term with its place-value contribution.",
       difficulty: "developing",
-      answerType: "numeric",
+      answerType: "matching",
       format: "powers_of_ten",
+      matchingPairs: [
+        { prompt: "4 x 10^3", correctMatch: "4000" },
+        { prompt: "7 x 10^1", correctMatch: "70" },
+        { prompt: "2", correctMatch: "2" },
+      ],
       expectedAnswer: "4072",
       acceptableAnswers: ["4072"],
       markingGuide:
@@ -239,7 +292,7 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       title: "Represent a number using prime powers",
       prompt: "Write 72 as a product of prime powers.",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "short_symbolic",
       format: "prime_factorisation",
       expectedAnswer: "2^3 x 3^2",
       acceptableAnswers: ["2^3 x 3^2", "3^2 x 2^3"],
@@ -271,10 +324,29 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionStepKey: "represent-natural-numbers-as-products-of-powers",
       title: "Interpret a prime factorisation from a factor tree",
       prompt:
-        "A factor tree for 180 ends with prime factors 2, 2, 3, 3, and 5. Write 180 as a product of prime powers.",
+        "A factor tree for 180 ends with prime factors 2, 2, 3, 3, and 5. Which working correctly writes 180 as a product of prime powers?",
       difficulty: "developing",
-      answerType: "worked_response",
+      answerType: "select_correct_working",
       format: "prime_factorisation",
+      structuredOptions: [
+        {
+          id: "group-repeated-primes",
+          label: "2 x 2 x 3 x 3 x 5 = 2^2 x 3^2 x 5",
+        },
+        {
+          id: "multiply-all-primes",
+          label: "2 x 2 x 3 x 3 x 5 = 2^4 x 5",
+        },
+        {
+          id: "count-distinct-primes",
+          label: "2 x 2 x 3 x 3 x 5 = 2 x 3 x 5",
+        },
+        {
+          id: "use-composite-bases",
+          label: "2 x 2 x 3 x 3 x 5 = 4^2 x 9 x 5",
+        },
+      ],
+      correctWorkingOptionId: "group-repeated-primes",
       expectedAnswer: "2^2 x 3^2 x 5",
       acceptableAnswers: [
         "2^2 x 3^2 x 5",
@@ -301,25 +373,6 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       visualSupport: {
         type: "context_card",
         description: "Group the repeated prime factors shown at the end of the factor tree.",
-      },
-      openResponseReview: {
-        expectedResponse:
-          "180 = 2 x 2 x 3 x 3 x 5, so the product of prime powers is 2^2 x 3^2 x 5.",
-        successCriteria: [
-          "Lists or recognises the prime factors correctly.",
-          "Groups repeated prime factors together.",
-          "Uses exponents to show how many times each prime occurs.",
-          "Keeps the remaining prime factor 5 correctly.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain where each exponent comes from?",
-          "Can the learner distinguish prime factors from composite factors in the original tree?",
-          "Can the learner rewrite the factorisation without losing any factor?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner interpreted a factor tree and represented repeated prime factors using exponent notation.",
       },
     },
     {
@@ -358,10 +411,17 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-laws-with-positive-integer-exponents",
       title: "Apply the division law for exponents",
-      prompt: "Simplify 8^6 / 8^2.",
+      prompt: "Select every expression equivalent to 8^6 / 8^2.",
       difficulty: "secure",
-      answerType: "short_answer",
+      answerType: "multi_select",
       format: "exponent_laws",
+      structuredOptions: [
+        { id: "eight-four", label: "8^4" },
+        { id: "four-eights", label: "8 x 8 x 8 x 8" },
+        { id: "eight-eight", label: "8^8" },
+        { id: "four-eight", label: "4^8" },
+      ],
+      correctOptionIds: ["eight-four", "four-eights"],
       expectedAnswer: "8^4",
       acceptableAnswers: ["8^4"],
       markingGuide:
@@ -431,10 +491,30 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionBandKey: NUMBER_POWERS_ROOTS_PROGRESSION_BAND_KEY,
       progressionStepKey: "apply-exponent-laws-with-positive-integer-exponents",
       title: "Explain the meaning of a zero exponent",
-      prompt: "Explain why 9^0 = 1.",
+      prompt: "Which explanation best justifies why 9^0 = 1?",
       difficulty: "extension",
-      answerType: "explain_or_justify",
+      answerType: "choose_best_explanation",
       format: "reasoning",
+      structuredOptions: [
+        {
+          id: "quotient-law",
+          label:
+            "9^3 / 9^3 is 1, and the exponent law also gives 9^(3-3) = 9^0, so 9^0 = 1.",
+        },
+        {
+          id: "zero-means-zero",
+          label: "The exponent is zero, so the whole value must be zero.",
+        },
+        {
+          id: "base-minus-exponent",
+          label: "Subtract the exponent from the base: 9 - 0 = 9.",
+        },
+        {
+          id: "memorised-only",
+          label: "It is 1 only because zero exponents are always written that way.",
+        },
+      ],
+      bestExplanationOptionId: "quotient-law",
       expectedAnswer:
         "9^0 = 1 because dividing 9^1 by 9 leaves 9^0, and the value goes from 9 to 1.",
       acceptableAnswers: [
@@ -458,25 +538,6 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
           "This item checks whether the learner understands zero exponents through pattern or exponent-law reasoning rather than memorising a rule only.",
       },
       visualSupport: { type: "none" },
-      openResponseReview: {
-        expectedResponse:
-          "9^0 = 1 because when powers with the same base are divided, the exponents subtract. Since 9^3 / 9^3 = 1, it also equals 9^0, so 9^0 = 1.",
-        successCriteria: [
-          "Uses a valid exponent-law or pattern argument.",
-          "Connects equal powers divided by themselves to a result of 1.",
-          "Explains why the zero exponent comes from subtracting equal exponents.",
-          "Avoids treating the zero exponent as making the whole value 0.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain why the result is not 0?",
-          "Can the learner use a pattern of decreasing exponents or a quotient argument?",
-          "Can the learner connect the explanation to a general rule for non-zero bases?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner justified the meaning of a zero exponent using an exponent pattern or quotient argument.",
-      },
     },
     {
       id: "powers-roots-efficiency-012",
@@ -484,10 +545,19 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       progressionStepKey: "apply-exponent-notation",
       title: "Explain why exponent notation is efficient",
       prompt:
-        "Explain why writing 5^4 is more efficient than writing 5 x 5 x 5 x 5.",
+        "True or false: 5^4 is just a shorter way to write 5 x 4. If false, choose the correction.",
       difficulty: "extension",
-      answerType: "explain_or_justify",
+      answerType: "true_false_correction",
       format: "reasoning",
+      trueFalseStatement: "5^4 is just a shorter way to write 5 x 4.",
+      correctBoolean: false,
+      correctionOptions: [
+        "5^4 means four factors of 5 multiplied: 5 x 5 x 5 x 5.",
+        "5^4 means five factors of 4 multiplied: 4 x 4 x 4 x 4 x 4.",
+        "5^4 means 5 + 5 + 5 + 5.",
+      ],
+      correctCorrection:
+        "5^4 means four factors of 5 multiplied: 5 x 5 x 5 x 5.",
       expectedAnswer:
         "Exponent notation is more efficient because it shows the repeated factor and how many times it is used in a shorter, clearer form.",
       acceptableAnswers: [
@@ -512,25 +582,6 @@ export const NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS: NumberPowersRootsAssessmentIt
       visualSupport: {
         type: "table",
         description: "Compare the long repeated multiplication with its compact exponent form.",
-      },
-      openResponseReview: {
-        expectedResponse:
-          "Exponent notation is more efficient because it writes repeated multiplication in a shorter form while still showing the repeated factor and how many times it appears.",
-        successCriteria: [
-          "States that exponent notation is shorter or more efficient.",
-          "Identifies the repeated factor as the base.",
-          "Identifies the number of repeated factors as the exponent.",
-          "Explains that the compact form still preserves the multiplication structure.",
-        ],
-        parentReviewPrompts: [
-          "Can the learner explain what the base tells us?",
-          "Can the learner explain what the exponent tells us?",
-          "Can the learner describe why this notation becomes especially useful for longer repeated products?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner explained exponent notation as a compact way to represent repeated multiplication clearly.",
       },
     },
   ];

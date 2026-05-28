@@ -1,7 +1,11 @@
 import type {
   NumberAssessmentAnswerType,
+  NumberAssessmentClassificationCategory,
+  NumberAssessmentClassificationItem,
   NumberAssessmentItemDifficulty,
+  NumberAssessmentMatchingPair,
   NumberAssessmentOpenResponseReview,
+  NumberAssessmentStructuredOption,
   NumberAssessmentVisualSupport,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import type { NumberProgressionBandKey } from "@/lib/clean/pathways/mathematicsYears6To10NumberProgressionMap";
@@ -58,6 +62,22 @@ export type NumberSurdsExactAssessmentItem = {
   answerType: NumberAssessmentAnswerType;
   format: NumberSurdsExactAssessmentFormat;
   options?: string[];
+  structuredOptions?: NumberAssessmentStructuredOption[];
+  correctOptionIds?: string[];
+  matchingPairs?: NumberAssessmentMatchingPair[];
+  orderingItems?: string[];
+  correctOrder?: string[];
+  classificationCategories?: NumberAssessmentClassificationCategory[];
+  classificationItems?: NumberAssessmentClassificationItem[];
+  gapText?: string;
+  gapAnswer?: string;
+  gapAcceptableAnswers?: string[];
+  trueFalseStatement?: string;
+  correctBoolean?: boolean;
+  correctionOptions?: string[];
+  correctCorrection?: string;
+  correctWorkingOptionId?: string;
+  bestExplanationOptionId?: string;
   expectedAnswer?: string;
   acceptableAnswers?: string[];
   markingGuide?: string;
@@ -81,10 +101,13 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "write-fractional-powers-in-surd-form",
       title: "Write a fractional power in surd form",
-      prompt: "Write 13^(1/2) in surd form.",
+      prompt: "Complete the equivalent surd form.",
       difficulty: "foundation",
-      answerType: "short_answer",
+      answerType: "fill_gap",
       format: "fractional_powers",
+      gapText: "13^(1/2) = __",
+      gapAnswer: "sqrt(13)",
+      gapAcceptableAnswers: ["sqrt 13", "√13"],
       expectedAnswer: "sqrt(13)",
       acceptableAnswers: ["sqrt(13)"],
       markingGuide:
@@ -176,7 +199,7 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       title: "Simplify a surd using a square factor",
       prompt: "Simplify sqrt(72).",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "short_symbolic",
       format: "surd_simplification",
       expectedAnswer: "6sqrt(2)",
       acceptableAnswers: ["6sqrt(2)"],
@@ -203,10 +226,17 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-surds",
       title: "Simplify a surd with a coefficient",
-      prompt: "Simplify 2sqrt(45).",
+      prompt: "Select every expression equivalent to 2sqrt(45).",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "multi_select",
       format: "surd_simplification",
+      structuredOptions: [
+        { id: "six-root-five", label: "6sqrt(5)" },
+        { id: "root-one-eighty", label: "sqrt(180)" },
+        { id: "two-root-nine-five", label: "2sqrt(9 x 5)" },
+        { id: "ten-root-three", label: "10sqrt(3)" },
+      ],
+      correctOptionIds: ["six-root-five", "root-one-eighty", "two-root-nine-five"],
       expectedAnswer: "6sqrt(5)",
       acceptableAnswers: ["6sqrt(5)"],
       markingGuide:
@@ -234,7 +264,7 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       title: "Multiply two surds",
       prompt: "Simplify sqrt(6) x sqrt(24).",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "numeric",
       format: "surd_operations",
       expectedAnswer: "12",
       acceptableAnswers: ["12"],
@@ -261,10 +291,31 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "add-and-subtract-like-surds",
       title: "Add and subtract like surds",
-      prompt: "Simplify 4sqrt(3) - sqrt(3).",
+      prompt: "Classify each expression by whether it contains like surds.",
       difficulty: "developing",
-      answerType: "short_answer",
+      answerType: "classification",
       format: "surd_operations",
+      classificationCategories: [
+        { id: "like-surds", label: "Like surds" },
+        { id: "unlike-surds", label: "Unlike surds" },
+      ],
+      classificationItems: [
+        {
+          id: "four-root-three-minus-root-three",
+          label: "4sqrt(3) - sqrt(3)",
+          correctCategoryId: "like-surds",
+        },
+        {
+          id: "root-three-plus-root-five",
+          label: "sqrt(3) + sqrt(5)",
+          correctCategoryId: "unlike-surds",
+        },
+        {
+          id: "root-eight-plus-root-eighteen",
+          label: "sqrt(8) + sqrt(18)",
+          correctCategoryId: "like-surds",
+        },
+      ],
       expectedAnswer: "3sqrt(3)",
       acceptableAnswers: ["3sqrt(3)"],
       markingGuide:
@@ -288,16 +339,20 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "add-and-subtract-like-surds",
       title: "Recognise when surds are unlike",
-      prompt: "Which expression cannot be simplified to a single like-surd term?",
+      prompt:
+        "True or false: sqrt(3) + sqrt(5) can be simplified to sqrt(8). If false, choose the correction.",
       difficulty: "secure",
-      answerType: "multiple_choice",
+      answerType: "true_false_correction",
       format: "surd_operations",
-      options: [
-        "2sqrt(5) + 3sqrt(5)",
-        "sqrt(8) + sqrt(18)",
-        "sqrt(3) + sqrt(5)",
-        "sqrt(12) - sqrt(3)",
+      trueFalseStatement: "sqrt(3) + sqrt(5) can be simplified to sqrt(8).",
+      correctBoolean: false,
+      correctionOptions: [
+        "sqrt(3) and sqrt(5) are unlike surds, so they cannot be combined into one surd.",
+        "All square roots can be added by adding the numbers under the roots.",
+        "sqrt(3) + sqrt(5) equals 8.",
       ],
+      correctCorrection:
+        "sqrt(3) and sqrt(5) are unlike surds, so they cannot be combined into one surd.",
       expectedAnswer: "sqrt(3) + sqrt(5)",
       acceptableAnswers: ["sqrt(3) + sqrt(5)"],
       markingGuide:
@@ -328,10 +383,21 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "simplify-expressions-containing-multiple-surds",
       title: "Simplify an expression with several surd terms",
-      prompt: "Simplify sqrt(12) + sqrt(27) - sqrt(48). Show your steps.",
+      prompt:
+        "Put these simplification steps in the correct order for sqrt(12) + sqrt(27) - sqrt(48).",
       difficulty: "secure",
-      answerType: "worked_response",
+      answerType: "ordering",
       format: "multi_step_surd_reasoning",
+      orderingItems: [
+        "Combine to get sqrt(3).",
+        "Rewrite as 2sqrt(3) + 3sqrt(3) - 4sqrt(3).",
+        "Simplify each surd using square factors.",
+      ],
+      correctOrder: [
+        "Simplify each surd using square factors.",
+        "Rewrite as 2sqrt(3) + 3sqrt(3) - 4sqrt(3).",
+        "Combine to get sqrt(3).",
+      ],
       expectedAnswer:
         "sqrt(12) = 2sqrt(3), sqrt(27) = 3sqrt(3), and sqrt(48) = 4sqrt(3), so the expression simplifies to sqrt(3).",
       acceptableAnswers: [
@@ -357,35 +423,21 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
           "This item checks whether the learner can carry out a multi-step surd simplification without losing structure or signs.",
       },
       visualSupport: { type: "none" },
-      openResponseReview: {
-        expectedResponse:
-          "The learner simplifies each surd first, rewrites the expression as 2sqrt(3) + 3sqrt(3) - 4sqrt(3), and then combines to get sqrt(3).",
-        successCriteria: [
-          "Simplifies sqrt(12) correctly to 2sqrt(3).",
-          "Simplifies sqrt(27) correctly to 3sqrt(3).",
-          "Simplifies sqrt(48) correctly to 4sqrt(3).",
-          "Combines the like surds accurately to reach sqrt(3).",
-        ],
-        parentReviewPrompts: [
-          "Did the learner simplify each radical before combining terms?",
-          "Did the learner keep the subtraction sign attached to the final term?",
-          "Does the final answer still use exact surd form rather than a rounded decimal?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner showed whether they can simplify several surd terms step by step and then combine the like forms accurately.",
-      },
     },
     {
       id: "surds-exact-rationalise-simple-010",
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "rationalise-denominators",
       title: "Rationalise a simple denominator",
-      prompt: "Rationalise 5 / sqrt(2).",
+      prompt: "Match each expression with its equivalent rationalised or unrationalised form.",
       difficulty: "secure",
-      answerType: "short_answer",
+      answerType: "matching",
       format: "rationalising",
+      matchingPairs: [
+        { prompt: "5 / sqrt(2)", correctMatch: "5sqrt(2) / 2" },
+        { prompt: "3 / sqrt(5)", correctMatch: "3sqrt(5) / 5" },
+        { prompt: "sqrt(7) / 7", correctMatch: "1 / sqrt(7)" },
+      ],
       expectedAnswer: "5sqrt(2) / 2",
       acceptableAnswers: ["5sqrt(2) / 2", "(5sqrt(2)) / 2", "5sqrt(2)/2"],
       markingGuide:
@@ -411,10 +463,34 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionBandKey: NUMBER_SURDS_EXACT_PROGRESSION_BAND_KEY,
       progressionStepKey: "rationalise-denominators",
       title: "Rationalise a denominator using a conjugate",
-      prompt: "Rationalise 6 / (1 + sqrt(5)).",
+      prompt:
+        "Which working correctly rationalises 6 / (1 + sqrt(5))?",
       difficulty: "extension",
-      answerType: "worked_response",
+      answerType: "select_correct_working",
       format: "rationalising",
+      structuredOptions: [
+        {
+          id: "use-conjugate",
+          label:
+            "Multiply by (1 - sqrt(5)) / (1 - sqrt(5)); the denominator becomes 1 - 5, giving an equivalent form with no surd in the denominator.",
+        },
+        {
+          id: "multiply-root-five",
+          label:
+            "Multiply by sqrt(5) / sqrt(5); the denominator becomes sqrt(5) + 5, so it is rationalised.",
+        },
+        {
+          id: "add-conjugate",
+          label:
+            "Add (1 - sqrt(5)) to the denominator only so the surd cancels.",
+        },
+        {
+          id: "square-denominator",
+          label:
+            "Square only the denominator to remove the square root and leave the numerator unchanged.",
+        },
+      ],
+      correctWorkingOptionId: "use-conjugate",
       expectedAnswer:
         "Multiply by (1 - sqrt(5)) / (1 - sqrt(5)) to get 6(1 - sqrt(5)) / (1 - 5), which simplifies to 3(sqrt(5) - 1) / 2.",
       acceptableAnswers: [
@@ -438,25 +514,6 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
           "This item checks whether the learner can rationalise a binomial surd denominator while preserving exact form.",
       },
       visualSupport: { type: "none" },
-      openResponseReview: {
-        expectedResponse:
-          "The learner multiplies by the conjugate (1 - sqrt(5)) / (1 - sqrt(5)), simplifies the denominator to -4, and reaches an equivalent rationalised form such as 3(sqrt(5) - 1) / 2.",
-        successCriteria: [
-          "Chooses the conjugate 1 - sqrt(5).",
-          "Multiplies the numerator and denominator by the same expression.",
-          "Simplifies the denominator correctly to remove the surd.",
-          "Gives an equivalent final answer with no surd in the denominator.",
-        ],
-        parentReviewPrompts: [
-          "Did the learner use the conjugate rather than multiplying by sqrt(5) alone?",
-          "Did the learner expand the denominator correctly?",
-          "Is the final answer still exact and equivalent to the original expression?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner showed whether they understand conjugates and can rationalise a denominator while keeping the expression exact.",
-      },
     },
     {
       id: "surds-exact-why-exact-012",
@@ -464,10 +521,33 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
       progressionStepKey: "simplify-surds",
       title: "Explain why exact surd form can be preferable",
       prompt:
-        "A calculator gives sqrt(50) as about 7.071. Explain why keeping sqrt(50), or 5sqrt(2), in exact form can be better than rounding too early.",
+        "A calculator gives sqrt(50) as about 7.071. Which explanation best describes why keeping 5sqrt(2) can be better than rounding too early?",
       difficulty: "extension",
-      answerType: "explain_or_justify",
+      answerType: "choose_best_explanation",
       format: "exact_form_reasoning",
+      structuredOptions: [
+        {
+          id: "preserve-precision",
+          label:
+            "5sqrt(2) keeps the exact value, while 7.071 is rounded and can introduce error into later calculations.",
+        },
+        {
+          id: "decimal-always-exact",
+          label:
+            "7.071 is better because all decimals are exact and surds are only estimates.",
+        },
+        {
+          id: "surd-not-number",
+          label:
+            "5sqrt(2) is better because it is not a number until it is converted to a decimal.",
+        },
+        {
+          id: "rounding-removes-units",
+          label:
+            "Rounding is only a problem when the units disappear from the answer.",
+        },
+      ],
+      bestExplanationOptionId: "preserve-precision",
       expectedAnswer:
         "Exact surd form keeps the full value without rounding, so it avoids early approximation error and is often better for later exact calculations.",
       acceptableAnswers: [
@@ -493,25 +573,6 @@ export const NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS: NumberSurdsExactAssessmentItem
         type: "context_card",
         description:
           "Consider what information is kept in 5sqrt(2) that is lost once the value is rounded.",
-      },
-      openResponseReview: {
-        expectedResponse:
-          "A strong response explains that exact surd form preserves precision, avoids rounding error, and is often more useful for later calculations until an approximation is required.",
-        successCriteria: [
-          "States that exact form keeps the full value rather than an approximation.",
-          "Explains that early rounding can introduce error into later calculations.",
-          "Recognises that a decimal approximation can still be useful when a context asks for an estimate.",
-          "Uses sqrt(50) or 5sqrt(2) as the exact reference form.",
-        ],
-        parentReviewPrompts: [
-          "Does the learner explain what is lost when a surd is rounded too early?",
-          "Can the learner distinguish between an exact form and an estimate?",
-          "Does the learner connect the explanation to later calculations or contexts?",
-        ],
-        aiReviewPrompt:
-          "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-        evidenceNote:
-          "The learner explained why exact surd form can preserve precision better than an early decimal approximation.",
       },
     },
   ];

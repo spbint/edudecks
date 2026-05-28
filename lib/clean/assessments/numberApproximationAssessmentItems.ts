@@ -21,8 +21,17 @@ export type NumberAssessmentItemDifficulty =
 
 export type NumberAssessmentAnswerType =
   | "multiple_choice"
+  | "multi_select"
   | "short_answer"
   | "numeric"
+  | "short_symbolic"
+  | "matching"
+  | "ordering"
+  | "classification"
+  | "select_correct_working"
+  | "choose_best_explanation"
+  | "fill_gap"
+  | "true_false_correction"
   | "worked_response"
   | "explain_or_justify";
 
@@ -65,6 +74,28 @@ export type NumberAssessmentOpenResponseReview = {
   evidenceNote?: string;
 };
 
+export type NumberAssessmentStructuredOption = {
+  id: string;
+  label: string;
+  value?: string;
+};
+
+export type NumberAssessmentMatchingPair = {
+  prompt: string;
+  correctMatch: string;
+};
+
+export type NumberAssessmentClassificationCategory = {
+  id: string;
+  label: string;
+};
+
+export type NumberAssessmentClassificationItem = {
+  id: string;
+  label: string;
+  correctCategoryId: string;
+};
+
 export type NumberAssessmentItem = {
   id: string;
   progressionBandKey: NumberApproximationProgressionBandKey;
@@ -75,6 +106,22 @@ export type NumberAssessmentItem = {
   answerType: NumberAssessmentAnswerType;
   format: NumberAssessmentItemFormat;
   options?: string[];
+  structuredOptions?: NumberAssessmentStructuredOption[];
+  correctOptionIds?: string[];
+  matchingPairs?: NumberAssessmentMatchingPair[];
+  orderingItems?: string[];
+  correctOrder?: string[];
+  classificationCategories?: NumberAssessmentClassificationCategory[];
+  classificationItems?: NumberAssessmentClassificationItem[];
+  gapText?: string;
+  gapAnswer?: string;
+  gapAcceptableAnswers?: string[];
+  trueFalseStatement?: string;
+  correctBoolean?: boolean;
+  correctionOptions?: string[];
+  correctCorrection?: string;
+  correctWorkingOptionId?: string;
+  bestExplanationOptionId?: string;
   expectedAnswer?: string;
   acceptableAnswers?: string[];
   markingGuide?: string;
@@ -120,10 +167,13 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "estimate-sums-and-products-using-rounding",
     title: "Estimate a sum by rounding each term",
-    prompt: "Estimate 48.3 + 19.7 + 7.8 by rounding each number to the nearest whole number.",
+    prompt: "Complete the estimate after rounding each number to the nearest whole number.",
     difficulty: "foundation",
-    answerType: "numeric",
+    answerType: "fill_gap",
     format: "estimation",
+    gapText: "48.3 + 19.7 + 7.8 is estimated by 48 + 20 + 8 = __.",
+    gapAnswer: "76",
+    gapAcceptableAnswers: ["76"],
     expectedAnswer: "76",
     acceptableAnswers: ["76"],
     markingGuide:
@@ -147,15 +197,14 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "truncate-and-round-values",
     title: "Distinguish truncation from rounding",
     prompt:
-      "Which option correctly gives the truncated and rounded values of 18.786 to 1 decimal place?",
+      "Match each method with the value it gives for 18.786 to 1 decimal place.",
     difficulty: "foundation",
-    answerType: "multiple_choice",
+    answerType: "matching",
     format: "truncation",
-    options: [
-      "Truncated: 18.7, Rounded: 18.8",
-      "Truncated: 18.8, Rounded: 18.7",
-      "Truncated: 18.8, Rounded: 18.8",
-      "Truncated: 18.7, Rounded: 18.7",
+    matchingPairs: [
+      { prompt: "Truncated to 1 decimal place", correctMatch: "18.7" },
+      { prompt: "Rounded to 1 decimal place", correctMatch: "18.8" },
+      { prompt: "The digit used to decide rounding", correctMatch: "8" },
     ],
     expectedAnswer: "Truncated: 18.7, Rounded: 18.8",
     acceptableAnswers: ["Truncated: 18.7, Rounded: 18.8"],
@@ -209,10 +258,12 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "compare-exact-and-estimated-results",
     title: "Compare two estimates with an exact value",
     prompt:
-      "The exact total is $182.40. Which estimate is closer: $180 or $195?",
+      "Put these estimates in increasing order by their distance from the exact total $182.40.",
     difficulty: "developing",
-    answerType: "short_answer",
+    answerType: "ordering",
     format: "error_comparison",
+    orderingItems: ["$195", "$180"],
+    correctOrder: ["$180", "$195"],
     expectedAnswer: "$180",
     acceptableAnswers: ["180", "$180", "180 dollars", "$180 is closer"],
     markingGuide:
@@ -241,7 +292,7 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     prompt:
       "A builder wants a quick estimate for the total length of 24 pieces of timber, each 2.48 m long. Which method gives the best quick estimate?",
     difficulty: "developing",
-    answerType: "multiple_choice",
+    answerType: "select_correct_working",
     format: "reasonableness",
     options: [
       "Use 24 × 2 = 48 m",
@@ -278,12 +329,17 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionBandKey: NUMBER_APPROXIMATION_PROGRESSION_BAND_KEY,
     progressionStepKey: "analyse-approximation-error-in-contexts",
     title: "Estimate a repeated money total",
-    prompt:
-      "A club saves $47.60 each month for 9 months. Which is the best estimate of the total savings?",
+    prompt: "Select every estimate that is reasonable for $47.60 each month for 9 months.",
     difficulty: "developing",
-    answerType: "multiple_choice",
+    answerType: "multi_select",
     format: "applied_context",
-    options: ["$360", "$430", "$480", "$900"],
+    structuredOptions: [
+      { id: "430", label: "$430" },
+      { id: "432", label: "$432" },
+      { id: "360", label: "$360" },
+      { id: "900", label: "$900" },
+    ],
+    correctOptionIds: ["430", "432"],
     expectedAnswer: "$430",
     acceptableAnswers: ["$430"],
     markingGuide:
@@ -317,8 +373,28 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     prompt:
       "A student estimates 19.8 × 6.1 as 20 × 6 = 120. Is the estimate reasonable? Explain.",
     difficulty: "secure",
-    answerType: "explain_or_justify",
+    answerType: "choose_best_explanation",
     format: "reasonableness",
+    structuredOptions: [
+      {
+        id: "close-values",
+        label:
+          "Yes. 19.8 is close to 20 and 6.1 is close to 6, so 120 is close to the exact product.",
+      },
+      {
+        id: "always-exact",
+        label: "Yes, because estimates made by rounding are always exact.",
+      },
+      {
+        id: "too-low-invalid",
+        label: "No, because an estimate below the exact value cannot be reasonable.",
+      },
+      {
+        id: "decimal-invalid",
+        label: "No, because decimal multiplication cannot be estimated.",
+      },
+    ],
+    bestExplanationOptionId: "close-values",
     expectedAnswer: "Yes, it is reasonable.",
     acceptableAnswers: [
       "Yes, it is reasonable.",
@@ -339,25 +415,6 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
         "This item checks whether the learner can judge the usefulness of an estimate rather than only compute it.",
     },
     visualSupport: { type: "none" },
-    openResponseReview: {
-      expectedResponse:
-        "Yes. The estimate is reasonable because 19.8 is close to 20 and 6.1 is close to 6, so 20 x 6 should be close to the exact product. The exact product is 120.78, so the estimate is only a little low.",
-      successCriteria: [
-        "States that the estimate is reasonable.",
-        "Identifies the rounded values used in the estimate.",
-        "Explains why the rounded values are close to the originals.",
-        "Optionally compares the estimate with the exact product.",
-      ],
-      parentReviewPrompts: [
-        "Can the learner explain why 19.8 was treated like 20 and 6.1 like 6?",
-        "Can the learner say whether the estimate is slightly high or low?",
-        "Can the learner connect the estimate to the exact product or its size?",
-      ],
-      aiReviewPrompt:
-        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-      evidenceNote:
-        "The learner judged whether an estimate was reasonable by comparing rounded values with the original multiplication.",
-    },
   },
   {
     id: "approx-rounding-too-early-009",
@@ -365,16 +422,20 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     progressionStepKey: "recognise-repeated-approximation-effects",
     title: "Recognise when rounding too early changes an answer",
     prompt:
-      "Two students calculate 1.24 + 1.24 + 1.24. Student A rounds each number to 1 decimal place first. Student B adds first, then rounds the total to 1 decimal place. Which statement is correct?",
+      "True or false: rounding each 1.24 to 1 decimal place before adding gives the same result as adding first and rounding the total. If false, choose the correction.",
     difficulty: "secure",
-    answerType: "multiple_choice",
+    answerType: "true_false_correction",
     format: "repeated_calculation",
-    options: [
-      "Student A gets 3.6 and Student B gets 3.7",
-      "Student A gets 3.7 and Student B gets 3.6",
-      "Both students get 3.6",
-      "Both students get 3.7",
+    trueFalseStatement:
+      "Rounding each 1.24 to 1 decimal place before adding gives the same result as adding first and rounding the total.",
+    correctBoolean: false,
+    correctionOptions: [
+      "Rounding first gives 3.6, while adding first gives 3.72, which rounds to 3.7.",
+      "Rounding first gives 3.7, while adding first gives 3.6.",
+      "Both methods give 3.6 because 1.24 rounds down.",
     ],
+    correctCorrection:
+      "Rounding first gives 3.6, while adding first gives 3.72, which rounds to 3.7.",
     expectedAnswer: "Student A gets 3.6 and Student B gets 3.7",
     acceptableAnswers: ["Student A gets 3.6 and Student B gets 3.7"],
     markingGuide:
@@ -403,8 +464,29 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     prompt:
       "A path is 18.7 m long and 2.9 m wide. A gardener estimates the area as 19 × 3 = 57 m^2. Is the estimate an overestimate or an underestimate? About how much?",
     difficulty: "secure",
-    answerType: "worked_response",
+    answerType: "classification",
     format: "applied_context",
+    classificationCategories: [
+      { id: "true", label: "True" },
+      { id: "false", label: "False" },
+    ],
+    classificationItems: [
+      {
+        id: "overestimate",
+        label: "57 m^2 is an overestimate.",
+        correctCategoryId: "true",
+      },
+      {
+        id: "exact-area",
+        label: "The exact area is 54.23 m^2.",
+        correctCategoryId: "true",
+      },
+      {
+        id: "underestimate",
+        label: "The estimate is too low because both dimensions were rounded down.",
+        correctCategoryId: "false",
+      },
+    ],
     expectedAnswer: "Overestimate by about 2.77 m^2",
     acceptableAnswers: [
       "Overestimate by about 2.8 m^2",
@@ -433,25 +515,6 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
       description:
         "Path dimensions and the gardener's estimate for comparing whether the estimate is high or low.",
     },
-    openResponseReview: {
-      expectedResponse:
-        "The estimate is an overestimate. The exact area is 18.7 x 2.9 = 54.23 m^2, so 57 m^2 is about 2.77 m^2 too high.",
-      successCriteria: [
-        "Identifies the estimate as too high.",
-        "Finds or refers to the exact area.",
-        "Calculates or estimates the size of the difference.",
-        "Uses square-metre language appropriately.",
-      ],
-      parentReviewPrompts: [
-        "Can the learner explain why rounding both measurements up makes the area larger?",
-        "Can the learner compare the estimate with the exact area?",
-        "Can the learner describe the error using area units?",
-      ],
-      aiReviewPrompt:
-        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-      evidenceNote:
-        "The learner analysed whether a measured area estimate was too high or too low and described the size of the error.",
-    },
   },
   {
     id: "approx-circumference-context-011",
@@ -461,13 +524,14 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     prompt:
       "A student estimates the circumference of a circular planter with diameter 9.7 m by using 10 m and pi ≈ 3.14. They get 31.4 m. Using the original diameter with pi ≈ 3.14, is the estimate too high or too low? By about how much?",
     difficulty: "extension",
-    answerType: "worked_response",
+    answerType: "short_symbolic",
     format: "error_comparison",
-    expectedAnswer: "Too high by about 0.94 m",
+    expectedAnswer: "31.4 - 30.458",
     acceptableAnswers: [
-      "Too high by about 0.94 m",
-      "Overestimate by about 0.94 m",
-      "Too high by about 1 m",
+      "31.4 - 30.458",
+      "31.4-30.458",
+      "0.942",
+      "0.94",
     ],
     markingGuide:
       "Award full credit for identifying the estimate as too high and for giving a difference close to 0.94 m.",
@@ -490,25 +554,6 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
       type: "context_card",
       description: "Compare the rounded diameter method with the original diameter calculation.",
     },
-    openResponseReview: {
-      expectedResponse:
-        "The estimate is too high. Using the original diameter gives 3.14 x 9.7 = 30.458 m, so 31.4 m is about 0.94 m too high.",
-      successCriteria: [
-        "Identifies the estimate as too high.",
-        "Uses the original diameter in the calculation.",
-        "Finds or estimates the difference between the two values.",
-        "Explains the effect of rounding the diameter up.",
-      ],
-      parentReviewPrompts: [
-        "Can the learner explain why replacing 9.7 with 10 changes the circumference upward?",
-        "Can the learner compare the estimate with the value from the original diameter?",
-        "Can the learner describe the error in metres?",
-      ],
-      aiReviewPrompt:
-        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-      evidenceNote:
-        "The learner compared an estimated circumference with a calculation from the original measurement and explained the resulting error.",
-    },
   },
   {
     id: "approx-repeated-calculation-012",
@@ -518,13 +563,18 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     prompt:
       "A savings app starts with $249.50 and adds 2.6% interest each year for 3 years. One method rounds to the nearest dollar at the end of each year. Another keeps decimals until the end. Which method gives the larger final balance, and why?",
     difficulty: "extension",
-    answerType: "explain_or_justify",
+    answerType: "multiple_choice",
     format: "repeated_calculation",
+    options: [
+      "Rounding each year gives the larger final balance because the rounded-up amount carries forward.",
+      "Keeping decimals until the end gives the larger final balance because it avoids all rounding.",
+      "Both methods must give exactly the same final balance.",
+      "The method with the smaller first-year balance must always become larger later.",
+    ],
     expectedAnswer:
-      "Rounding each year gives the larger final balance because the rounded-up amount is used again in the next year.",
+      "Rounding each year gives the larger final balance because the rounded-up amount carries forward.",
     acceptableAnswers: [
-      "Rounding each year gives the larger final balance because the rounded-up amount is used again in the next year.",
-      "The year-by-year rounding method is larger because it rounds up earlier and that larger value carries forward.",
+      "Rounding each year gives the larger final balance because the rounded-up amount carries forward.",
     ],
     markingGuide:
       "Award full credit for identifying the year-by-year rounding method as larger and for explaining that the rounded amount becomes the next starting balance.",
@@ -545,25 +595,6 @@ export const NUMBER_APPROXIMATION_ASSESSMENT_ITEMS: NumberAssessmentItem[] = [
     visualSupport: {
       type: "context_card",
       description: "Compare the year-by-year rounding method with the keep-decimals-until-the-end method.",
-    },
-    openResponseReview: {
-      expectedResponse:
-        "Rounding each year gives the larger final balance because the rounded amount becomes the next starting balance, so the small increase carries forward each year.",
-      successCriteria: [
-        "Identifies which method gives the larger final balance.",
-        "Explains that the rounded balance is reused in the next step.",
-        "Describes the cumulative effect across multiple years.",
-        "Connects the explanation to the financial context.",
-      ],
-      parentReviewPrompts: [
-        "Can the learner explain what happens when a rounded value is reused in the next year?",
-        "Can the learner describe why repeated rounding changes the final balance?",
-        "Can the learner compare the two methods without needing every exact step?",
-      ],
-      aiReviewPrompt:
-        "Review the learner response against the success criteria. Suggest whether it appears secure, developing, or needs support. Do not make the final judgement; provide a parent-facing recommendation.",
-      evidenceNote:
-        "The learner explained how repeated rounding choices can change a long-running financial calculation.",
     },
   },
 ];
