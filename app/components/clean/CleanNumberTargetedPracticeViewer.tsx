@@ -44,16 +44,16 @@ const compactCardStyle: React.CSSProperties = {
   border: "1px solid #e2e8f0",
   borderRadius: 14,
   background: "#f8fafc",
-  padding: 14,
+  padding: 16,
   display: "grid",
-  gap: 8,
+  gap: 10,
 };
 
 const eyebrowStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: "0.08em",
-  color: "#64748b",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.06em",
+  color: "#7c8da3",
   textTransform: "uppercase",
 };
 
@@ -82,13 +82,33 @@ const chipStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   borderRadius: 999,
-  padding: "6px 10px",
-  fontSize: 12,
-  fontWeight: 800,
-  lineHeight: 1.2,
+  padding: "5px 9px",
+  fontSize: 11,
+  fontWeight: 700,
+  lineHeight: 1.25,
   border: "1px solid #dbeafe",
-  background: "#eff6ff",
+  background: "#f8fbff",
   color: "#1d4ed8",
+};
+
+const softChipStyle: React.CSSProperties = {
+  ...chipStyle,
+  border: "1px solid #e2e8f0",
+  background: "#ffffff",
+  color: "#64748b",
+  fontWeight: 600,
+};
+
+const bodyTextStyle: React.CSSProperties = {
+  color: "#334155",
+  lineHeight: 1.75,
+  fontWeight: 400,
+};
+
+const quietTextStyle: React.CSSProperties = {
+  color: "#64748b",
+  lineHeight: 1.7,
+  fontWeight: 400,
 };
 
 function safe(value: unknown) {
@@ -239,7 +259,7 @@ function PracticeProgressSummary({
   return (
     <div style={compactCardStyle}>
       <div style={eyebrowStyle}>{label}</div>
-      <div style={{ color: "#0f172a", fontWeight: 800 }}>
+      <div style={{ color: "#0f172a", fontWeight: 700 }}>
         {summary.completedCount} of {summary.totalCount} tasks completed
       </div>
       <div
@@ -247,8 +267,9 @@ function PracticeProgressSummary({
           display: "flex",
           flexWrap: "wrap",
           gap: 8,
-          color: "#475569",
+          color: "#64748b",
           fontSize: 13,
+          lineHeight: 1.5,
         }}
       >
         <span>{summary.checkedCount} checked</span>
@@ -278,10 +299,10 @@ function TaskCard({
   return (
     <div style={compactCardStyle}>
       <div style={eyebrowStyle}>Task {index + 1}</div>
-      <div style={{ color: "#0f172a", fontSize: 17, fontWeight: 800 }}>
+      <div style={{ color: "#0f172a", fontSize: 17, fontWeight: 700, lineHeight: 1.35 }}>
         {task.title}
       </div>
-      <div style={{ color: "#334155", lineHeight: 1.6 }}>{task.prompt}</div>
+      <div style={{ ...bodyTextStyle, fontSize: 15 }}>{task.prompt}</div>
       {task.taskType === "worked_example" ? (
         <div
           style={{
@@ -289,8 +310,7 @@ function TaskCard({
             borderRadius: 12,
             background: "#ffffff",
             padding: 12,
-            color: "#334155",
-            lineHeight: 1.6,
+            ...quietTextStyle,
           }}
         >
           Read the worked example, then mark it reviewed when it makes sense.
@@ -313,6 +333,7 @@ function TaskCard({
                 padding: "8px 10px",
                 color: "#334155",
                 textAlign: "left",
+                lineHeight: 1.45,
                 cursor: "pointer",
                 font: "inherit",
               }}
@@ -383,17 +404,17 @@ function TaskCard({
             {getResultLabel(response.result)}
           </div>
           {task.expectedAnswer ? (
-            <div style={{ color: "#334155", lineHeight: 1.5 }}>
+            <div style={bodyTextStyle}>
               <strong>Expected answer:</strong> {task.expectedAnswer}
             </div>
           ) : null}
           {task.supportPrompt ? (
-            <div style={{ color: "#475569", lineHeight: 1.5 }}>
+            <div style={quietTextStyle}>
               <strong>Support:</strong> {task.supportPrompt}
             </div>
           ) : null}
           {task.workedSolution ? (
-            <div style={{ color: "#334155", lineHeight: 1.6 }}>
+            <div style={bodyTextStyle}>
               <strong>Worked solution:</strong> {task.workedSolution}
             </div>
           ) : null}
@@ -401,7 +422,7 @@ function TaskCard({
       ) : null}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {task.misconceptionTargets.map((target) => (
-          <span key={target} style={chipStyle}>
+          <span key={target} style={softChipStyle}>
             {target}
           </span>
         ))}
@@ -450,13 +471,13 @@ function SectionOverview({
               color: "inherit",
             }}
           >
-            <div style={{ color: "#0f172a", fontWeight: 800 }}>
+            <div style={{ color: "#0f172a", fontWeight: 700, lineHeight: 1.35 }}>
               {section.title}
             </div>
-            <div style={{ color: "#475569", lineHeight: 1.5 }}>
+            <div style={quietTextStyle}>
               {section.learnerGoal}
             </div>
-            <div style={{ color: "#1d4ed8", fontWeight: 800 }}>
+            <div style={{ color: "#1d4ed8", fontWeight: 700, fontSize: 14 }}>
               Open section
             </div>
           </Link>
@@ -482,10 +503,17 @@ function SelectedSection({
   return (
     <div style={highlightCardStyle}>
       <div style={eyebrowStyle}>Recommended section</div>
-      <h2 style={{ margin: 0, color: "#0f172a", fontSize: "clamp(24px, 4vw, 34px)" }}>
+      <h2
+        style={{
+          margin: 0,
+          color: "#0f172a",
+          fontSize: "clamp(22px, 4vw, 30px)",
+          lineHeight: 1.15,
+        }}
+      >
         {section.title}
       </h2>
-      <div style={{ color: "#334155", lineHeight: 1.6, fontSize: 16 }}>
+      <div style={{ ...bodyTextStyle, fontSize: 16 }}>
         {section.learnerGoal}
       </div>
       <PracticeProgressSummary label="Practice progress" summary={progress} />
@@ -521,7 +549,7 @@ function MiniCheckSection({
   return (
     <section style={cardStyle}>
       <div style={eyebrowStyle}>Mini check</div>
-      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+      <div style={quietTextStyle}>
         Try these after practice to see whether the focus is ready for reassessment.
       </div>
       <PracticeProgressSummary label="Mini-check summary" summary={progress} />
@@ -634,13 +662,14 @@ export default function CleanNumberTargetedPracticeViewer() {
                 style={{
                   margin: "8px 0",
                   color: "#0f172a",
-                  fontSize: "clamp(30px, 5vw, 46px)",
-                  lineHeight: 1.05,
+                  fontSize: "clamp(30px, 5vw, 44px)",
+                  lineHeight: 1.08,
+                  fontWeight: 800,
                 }}
               >
                 {practiceModule.title}
               </h1>
-              <div style={{ color: "#334155", lineHeight: 1.7, fontSize: 16 }}>
+              <div style={{ ...bodyTextStyle, fontSize: 16 }}>
                 {practiceModule.description}
               </div>
               <div
@@ -664,8 +693,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                     borderRadius: 14,
                     background: "#f8fbff",
                     padding: 12,
-                    color: "#334155",
-                    lineHeight: 1.6,
+                    ...bodyTextStyle,
                   }}
                 >
                   Recommended from assessment
@@ -677,19 +705,47 @@ export default function CleanNumberTargetedPracticeViewer() {
 
             <section style={highlightCardStyle}>
               <div style={eyebrowStyle}>Learn card</div>
-              <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 18 }}>
+              <div
+                style={{
+                  color: "#0f172a",
+                  fontWeight: 600,
+                  fontSize: 18,
+                  lineHeight: 1.65,
+                }}
+              >
                 {practiceModule.learnCard.bigIdea}
               </div>
-              <div style={{ color: "#334155", lineHeight: 1.6 }}>
-                <strong>Worked example:</strong>{" "}
-                {practiceModule.learnCard.workedExample}
+              <div
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 14,
+                  background: "#ffffff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <div style={eyebrowStyle}>Worked example</div>
+                <div style={bodyTextStyle}>
+                  {practiceModule.learnCard.workedExample}
+                </div>
               </div>
-              <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                <strong>Parent tip:</strong> {practiceModule.learnCard.parentTip}
+              <div
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 14,
+                  background: "#f8fbff",
+                  padding: 14,
+                  display: "grid",
+                  gap: 6,
+                }}
+              >
+                <div style={eyebrowStyle}>Parent tip</div>
+                <div style={quietTextStyle}>{practiceModule.learnCard.parentTip}</div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {practiceModule.learnCard.keyLanguage.map((term) => (
-                  <span key={term} style={chipStyle}>
+                  <span key={term} style={softChipStyle}>
                     {term}
                   </span>
                 ))}
