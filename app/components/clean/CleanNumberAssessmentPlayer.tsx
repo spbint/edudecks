@@ -57,6 +57,8 @@ type ParentJudgement =
 
 type AssessmentAttemptSaveState = "idle" | "saving" | "saved" | "failed";
 
+type AssessmentSessionMode = "launcher" | "active" | "summary";
+
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
   background: "#f8fafc",
@@ -64,7 +66,7 @@ const shellStyle: React.CSSProperties = {
 };
 
 const wrapStyle: React.CSSProperties = {
-  maxWidth: 980,
+  maxWidth: 1120,
   margin: "0 auto",
   display: "grid",
   gap: 18,
@@ -72,18 +74,18 @@ const wrapStyle: React.CSSProperties = {
 
 const sessionShellStyle: React.CSSProperties = {
   border: "1px solid #dbe4f0",
-  borderRadius: 28,
+  borderRadius: 24,
   background: "#ffffff",
   overflow: "hidden",
-  boxShadow: "0 18px 42px rgba(15,23,42,0.08)",
+  boxShadow: "0 22px 54px rgba(15,23,42,0.10)",
 };
 
 const sessionHeaderStyle: React.CSSProperties = {
-  padding: "16px 18px 14px",
+  padding: "14px 16px",
   display: "grid",
-  gap: 12,
+  gap: 10,
   borderBottom: "1px solid #e2e8f0",
-  background: "linear-gradient(180deg, #ffffff 0%, #fbfdff 100%)",
+  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
 };
 
 const sessionBodyStyle: React.CSSProperties = {
@@ -100,19 +102,19 @@ const workspaceLayoutStyle: React.CSSProperties = {
 };
 
 const workspaceCardStyle: React.CSSProperties = {
-  flex: "1.45 1 560px",
+  flex: "1.6 1 600px",
   minWidth: 0,
   border: "1px solid #e2e8f0",
-  borderRadius: 22,
+  borderRadius: 18,
   background: "#ffffff",
-  padding: "18px 18px 16px",
-  boxShadow: "0 12px 28px rgba(15,23,42,0.04)",
+  padding: "clamp(18px, 3vw, 26px)",
+  boxShadow: "0 14px 32px rgba(15,23,42,0.06)",
   display: "grid",
-  gap: 14,
+  gap: 18,
 };
 
 const supportColumnStyle: React.CSSProperties = {
-  flex: "0.95 1 300px",
+  flex: "0.85 1 300px",
   minWidth: "min(100%, 280px)",
   display: "grid",
   gap: 12,
@@ -120,7 +122,7 @@ const supportColumnStyle: React.CSSProperties = {
 
 const actionBarStyle: React.CSSProperties = {
   borderTop: "1px solid #e2e8f0",
-  padding: "14px 16px",
+  padding: "12px 16px",
   background: "#fcfdff",
   display: "flex",
   flexWrap: "wrap",
@@ -238,10 +240,46 @@ const optionButtonStyle: React.CSSProperties = {
 
 const progressTrackStyle: React.CSSProperties = {
   width: "100%",
-  height: 8,
+  height: 7,
   borderRadius: 999,
   background: "#e2e8f0",
   overflow: "hidden",
+};
+
+const launcherShellStyle: React.CSSProperties = {
+  border: "1px solid #dbe4f0",
+  borderRadius: 24,
+  background: "#ffffff",
+  boxShadow: "0 22px 54px rgba(15,23,42,0.10)",
+  overflow: "hidden",
+};
+
+const launcherHeaderStyle: React.CSSProperties = {
+  padding: "clamp(20px, 4vw, 32px)",
+  display: "grid",
+  gap: 8,
+  borderBottom: "1px solid #e2e8f0",
+  background: "linear-gradient(180deg, #f8fbff 0%, #ffffff 100%)",
+};
+
+const launcherBodyStyle: React.CSSProperties = {
+  padding: "clamp(16px, 4vw, 26px)",
+  display: "grid",
+  gap: 18,
+};
+
+const focusGridStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: 12,
+};
+
+const assessmentTopBarStyle: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
 };
 
 const parentJudgementToneMeta: Record<
@@ -1040,6 +1078,8 @@ function CleanNumberAssessmentPlayerBody() {
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
     NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
   );
+  const [sessionMode, setSessionMode] =
+    useState<AssessmentSessionMode>("launcher");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showSummary, setShowSummary] = useState(false);
   const [parentJudgement, setParentJudgement] = useState<ParentJudgement | null>(
@@ -1116,6 +1156,22 @@ function CleanNumberAssessmentPlayerBody() {
     setSessionStartedAtValue(new Date().toISOString());
   }
 
+  function startAssessment(nextBankKey = selectedBankKey) {
+    setSelectedBankKey(nextBankKey);
+    resetAssessmentState();
+    setSessionMode("active");
+  }
+
+  function exitAssessment() {
+    resetAssessmentState();
+    setSessionMode("launcher");
+  }
+
+  function chooseAnotherFocus() {
+    resetAssessmentState();
+    setSessionMode("launcher");
+  }
+
   function updateResponse(itemId: string, value: string) {
     setResponses((current) => ({
       ...current,
@@ -1159,6 +1215,7 @@ function CleanNumberAssessmentPlayerBody() {
 
     if (currentIndex >= totalItems - 1) {
       setShowSummary(true);
+      setSessionMode("summary");
       return;
     }
     setCurrentIndex((value) => Math.min(totalItems - 1, value + 1));
@@ -1166,15 +1223,7 @@ function CleanNumberAssessmentPlayerBody() {
 
   function resetPreview() {
     resetAssessmentState();
-  }
-
-  function selectAssessmentBank(nextBankKey: NumberAssessmentBankKey) {
-    if (nextBankKey === selectedBankKey) {
-      return;
-    }
-
-    setSelectedBankKey(nextBankKey);
-    resetAssessmentState();
+    setSessionMode("active");
   }
 
   async function saveAssessmentAttempt() {
@@ -1281,101 +1330,193 @@ function CleanNumberAssessmentPlayerBody() {
   return (
     <div style={shellStyle}>
       <div style={wrapStyle}>
-        <CleanWorkflowRibbon />
+        {sessionMode === "launcher" ? <CleanWorkflowRibbon /> : null}
 
-        <section style={sessionShellStyle}>
-          <div style={sessionHeaderStyle}>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 12,
-              }}
-            >
-              <div style={{ display: "grid", gap: 4 }}>
-                <div style={eyebrowStyle}>Number assessment</div>
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: "clamp(22px, 3.4vw, 30px)",
-                    lineHeight: 1.1,
-                    color: "#0f172a",
-                  }}
-                >
-                  {selectedBank.title}
-                </h1>
-                <p
-                  style={{
-                    margin: 0,
-                    color: "#475569",
-                    fontSize: 14,
-                    lineHeight: 1.5,
-                    maxWidth: 720,
-                  }}
-                >
-                  {showSummary
-                    ? `Use this session summary to decide the next practice focus for ${selectedBank.shortTitle.toLowerCase()}.`
-                    : selectedBank.description}
-                </p>
-                <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
-                  <div style={eyebrowStyle}>Assessment focus</div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {NUMBER_ASSESSMENT_BANKS.map((bank) => {
-                      const isSelected = bank.key === selectedBank.key;
+        {sessionMode === "launcher" ? (
+          <section style={launcherShellStyle}>
+            <div style={launcherHeaderStyle}>
+              <div style={eyebrowStyle}>MyLearna Assessment</div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: "clamp(30px, 5vw, 44px)",
+                  lineHeight: 1.05,
+                  color: "#0f172a",
+                }}
+              >
+                Number assessment
+              </h1>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#475569",
+                  fontSize: 17,
+                  lineHeight: 1.65,
+                  maxWidth: 720,
+                }}
+              >
+                Choose an assessment focus, then enter a focused session with
+                12 Number questions and a saveable attempt summary.
+              </p>
+            </div>
 
-                      return (
-                        <button
-                          key={bank.key}
-                          type="button"
-                          onClick={() => selectAssessmentBank(bank.key)}
+            <div style={launcherBodyStyle}>
+              <div style={{ display: "grid", gap: 8 }}>
+                <div style={eyebrowStyle}>Choose an assessment focus</div>
+                <div style={focusGridStyle}>
+                  {NUMBER_ASSESSMENT_BANKS.map((bank) => {
+                    const isSelected = bank.key === selectedBank.key;
+
+                    return (
+                      <button
+                        key={bank.key}
+                        type="button"
+                        onClick={() => setSelectedBankKey(bank.key)}
+                        aria-pressed={isSelected}
+                        style={{
+                          display: "grid",
+                          gap: 8,
+                          textAlign: "left",
+                          borderRadius: 16,
+                          border: isSelected
+                            ? "2px solid #1d4ed8"
+                            : "1px solid #dbe4f0",
+                          background: isSelected ? "#eff6ff" : "#ffffff",
+                          padding: 16,
+                          cursor: "pointer",
+                          boxShadow: isSelected
+                            ? "0 14px 28px rgba(59,130,246,0.14)"
+                            : "0 8px 20px rgba(15,23,42,0.04)",
+                        }}
+                      >
+                        <span
                           style={{
-                            ...secondaryButtonStyle,
-                            border: isSelected
-                              ? "1px solid #1d4ed8"
-                              : secondaryButtonStyle.border,
-                            background: isSelected ? "#eff6ff" : "#ffffff",
                             color: isSelected ? "#1d4ed8" : "#0f172a",
-                            boxShadow: isSelected
-                              ? "0 8px 18px rgba(59,130,246,0.12)"
-                              : "none",
+                            fontSize: 16,
+                            fontWeight: 800,
                           }}
                         >
                           {bank.shortTitle}
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </span>
+                        <span
+                          style={{
+                            color: "#64748b",
+                            fontSize: 13,
+                            lineHeight: 1.5,
+                          }}
+                        >
+                          {bank.yearBandLabel} - {bank.items.length} items
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <div
                 style={{
+                  ...highlightCardStyle,
                   display: "flex",
                   flexWrap: "wrap",
-                  gap: 8,
-                  justifyContent: "flex-end",
+                  justifyContent: "space-between",
+                  alignItems: "center",
                 }}
               >
-                <span style={getDifficultyTone("foundation")}>
-                  {selectedBank.yearBandLabel}
-                </span>
-                <span style={getFormatTone("applied_context")}>Local preview</span>
-                <span style={getFormatTone("reasonableness")}>Number</span>
-                <span
-                  style={
-                    saveState === "saved"
-                      ? getResultTone("correct")
-                      : getResultTone("review_needed")
-                  }
+                <div style={{ display: "grid", gap: 8 }}>
+                  <div style={eyebrowStyle}>Selected focus</div>
+                  <h2
+                    style={{
+                      margin: 0,
+                      color: "#0f172a",
+                      fontSize: "clamp(22px, 3vw, 30px)",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {selectedBank.title}
+                  </h2>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedBank.description}
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    <span style={getDifficultyTone("foundation")}>
+                      {selectedBank.yearBandLabel}
+                    </span>
+                    <span style={getFormatTone("reasonableness")}>
+                      {totalItems} items
+                    </span>
+                    <span style={getFormatTone("applied_context")}>
+                      Diagnostic attempt
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => startAssessment()}
+                  style={{
+                    ...buttonStyle,
+                    minHeight: 46,
+                    whiteSpace: "nowrap",
+                  }}
                 >
-                  {saveState === "saved" ? "Saved" : "Not saved yet"}
-                </span>
+                  Start assessment
+                </button>
               </div>
             </div>
+          </section>
+        ) : (
+          <section style={sessionShellStyle}>
+            <div style={sessionHeaderStyle}>
+              <div style={assessmentTopBarStyle}>
+                <div style={{ display: "grid", gap: 3, minWidth: 0 }}>
+                  <div style={eyebrowStyle}>MyLearna Assessment</div>
+                  <div
+                    style={{
+                      color: "#0f172a",
+                      fontSize: "clamp(18px, 3vw, 24px)",
+                      fontWeight: 850,
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {selectedBank.title}
+                  </div>
+                </div>
 
-            <div style={{ display: "grid", gap: 8 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    justifyContent: "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <span style={getDifficultyTone("foundation")}>
+                    {selectedBank.yearBandLabel}
+                  </span>
+                  <span
+                    style={{
+                      ...chipBaseStyle,
+                      border: "1px solid #dbe4f0",
+                      background: "#ffffff",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {sessionMode === "summary"
+                      ? "Summary"
+                      : `Item ${currentIndex + 1} of ${totalItems}`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={exitAssessment}
+                    style={secondaryButtonStyle}
+                  >
+                    Exit assessment
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: 8 }}>
               <div
                 style={{
                   display: "flex",
@@ -1407,6 +1548,15 @@ function CleanNumberAssessmentPlayerBody() {
                     }}
                   >
                     Attempted {summary.attemptedCount}
+                  </span>
+                  <span
+                    style={
+                      saveState === "saved"
+                        ? getResultTone("correct")
+                        : getResultTone("review_needed")
+                    }
+                  >
+                    {saveState === "saved" ? "Saved" : "Not saved yet"}
                   </span>
                   {!showSummary && currentResponse.submitted ? (
                     <span style={getResultTone(currentResponse.result)}>
@@ -1721,19 +1871,38 @@ function CleanNumberAssessmentPlayerBody() {
               </div>
 
               <div style={actionBarStyle}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSummary(false);
-                    setCurrentIndex(0);
-                  }}
-                  style={secondaryButtonStyle}
-                >
-                  Review answers
-                </button>
-                <button type="button" onClick={resetPreview} style={buttonStyle}>
-                  Restart preview
-                </button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSummary(false);
+                      setSessionMode("active");
+                      setCurrentIndex(0);
+                    }}
+                    style={secondaryButtonStyle}
+                  >
+                    Review answers
+                  </button>
+                  <button
+                    type="button"
+                    onClick={chooseAnotherFocus}
+                    style={secondaryButtonStyle}
+                  >
+                    Choose another focus
+                  </button>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={exitAssessment}
+                    style={secondaryButtonStyle}
+                  >
+                    Exit assessment
+                  </button>
+                  <button type="button" onClick={resetPreview} style={buttonStyle}>
+                    Restart assessment
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -2104,7 +2273,8 @@ function CleanNumberAssessmentPlayerBody() {
               </div>
             </>
           )}
-        </section>
+          </section>
+        )}
       </div>
     </div>
   );

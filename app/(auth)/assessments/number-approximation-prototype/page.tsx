@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import CleanNumberAssessmentPlayer from "@/app/components/clean/CleanNumberAssessmentPlayer";
 
 export const metadata: Metadata = {
-  title: "Number Approximation Assessment Prototype | MyLearna",
+  title: "Number Assessment | MyLearna",
   description:
-    "A local-only MyLearna assessment prototype for approximation, estimation, and error reasoning.",
+    "A MyLearna Number assessment session with switchable upper Number focus areas.",
 };
 
 export default function NumberApproximationPrototypePage() {
