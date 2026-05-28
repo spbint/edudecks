@@ -25,6 +25,7 @@ import type {
   NumberAssessmentItemDifficulty,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
+import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
@@ -233,6 +234,28 @@ const APPROXIMATION_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "error-and-repeated-approximation": {
     sectionId: "error-and-repeated-approximation",
     sectionTitle: "Error and repeated approximation",
+  },
+};
+
+const IRRATIONAL_REAL_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "rational-irrational-classification": {
+    sectionId: "rational-irrational-classification",
+    sectionTitle: "Rational and irrational classification",
+  },
+  "pi-and-exact-form": {
+    sectionId: "pi-and-exact-form",
+    sectionTitle: "Pi and exact form",
+  },
+  "square-root-estimation": {
+    sectionId: "square-root-estimation",
+    sectionTitle: "Square-root estimation",
+  },
+  "real-number-position-and-comparison": {
+    sectionId: "real-number-position-and-comparison",
+    sectionTitle: "Real-number position and comparison",
   },
 };
 
@@ -1389,13 +1412,23 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const irrationalRealPracticeSection =
+    bankKey === "irrational-and-real-numbers"
+      ? IRRATIONAL_REAL_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
-    powersRootsPracticeSection || approximationPracticeSection;
+    powersRootsPracticeSection ||
+    approximationPracticeSection ||
+    irrationalRealPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
       ? NUMBER_APPROXIMATION_PRACTICE_MODULE
-      : null;
+      : irrationalRealPracticeSection
+        ? NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE
+        : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
