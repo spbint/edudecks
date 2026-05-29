@@ -10,6 +10,10 @@ import type {
   CleanAssessmentSubjectKey,
 } from "@/lib/clean/assessments/types";
 import {
+  NUMBER_INTEGERS_COORDINATES_PROPERTIES_ASSESSMENT_ITEMS,
+  NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberIntegersCoordinatesPropertiesAssessmentItems";
+import {
   NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS,
   NUMBER_IRRATIONAL_REAL_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberIrrationalRealAssessmentItems";
@@ -31,6 +35,7 @@ import {
 } from "@/lib/clean/assessments/numberSurdsExactAssessmentItems";
 
 export type NumberAssessmentBankKey =
+  | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
   | "percentages-ratio-financial-modelling"
   | "powers-roots-exponent-notation"
@@ -142,6 +147,24 @@ const NUMBER_APPROXIMATION_ITEM_BANK_KEY =
 // These pathway step ids are stable prototype keys until matching canonical
 // Years 9-10 Number steps are added to the pathway registry.
 export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
+  {
+    key: "integers-coordinates-number-properties",
+    title: "Integers, coordinates and number properties",
+    shortTitle: "Integers and coordinates",
+    description:
+      "Checks integer ordering and operations, coordinates, factors, multiples, divisibility, primes, composites and number properties.",
+    yearBandLabel: "Years 6-8",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "integers-coordinates-number-properties",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::integers-coordinates-number-properties",
+    progressionBandKey: "integers-coordinates-number-properties",
+    itemBankKey: NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_INTEGERS_COORDINATES_PROPERTIES_ASSESSMENT_ITEMS,
+  },
   {
     key: "rational-numbers-and-operations",
     title: "Rational numbers and operations",
