@@ -27,6 +27,7 @@ import type {
 import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
 import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
+import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
@@ -284,6 +285,28 @@ const SURDS_EXACT_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "rationalising-denominators-and-exact-form": {
     sectionId: "rationalising-denominators-and-exact-form",
     sectionTitle: "Rationalising denominators and exact form",
+  },
+};
+
+const RATIONAL_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "equivalent-rational-representations": {
+    sectionId: "equivalent-rational-representations",
+    sectionTitle: "Equivalent rational representations",
+  },
+  "fraction-and-decimal-operations": {
+    sectionId: "fraction-and-decimal-operations",
+    sectionTitle: "Fraction and decimal operations",
+  },
+  "rational-number-comparison": {
+    sectionId: "rational-number-comparison",
+    sectionTitle: "Rational number comparison",
+  },
+  "rational-operations-in-context": {
+    sectionId: "rational-operations-in-context",
+    sectionTitle: "Rational operations in context",
   },
 };
 
@@ -1453,11 +1476,18 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const rationalOperationsPracticeSection =
+    bankKey === "rational-numbers-and-operations"
+      ? RATIONAL_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
     irrationalRealPracticeSection ||
-    surdsExactPracticeSection;
+    surdsExactPracticeSection ||
+    rationalOperationsPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1466,7 +1496,9 @@ function buildTargetedPracticeRecommendation(
         ? NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE
         : surdsExactPracticeSection
           ? NUMBER_SURDS_EXACT_PRACTICE_MODULE
-          : null;
+          : rationalOperationsPracticeSection
+            ? NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE
+            : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

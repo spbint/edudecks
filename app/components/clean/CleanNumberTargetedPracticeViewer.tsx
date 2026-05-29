@@ -18,6 +18,9 @@ import {
   getNumberIrrationalRealPracticeModuleById,
 } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import {
+  getNumberRationalOperationsPracticeModuleById,
+} from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
+import {
   getNumberSurdsExactPracticeModuleById,
 } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
@@ -263,6 +266,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberPracticeModuleById(id) ||
     getNumberApproximationPracticeModuleById(id) ||
     getNumberIrrationalRealPracticeModuleById(id) ||
+    getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id)
   );
 }
