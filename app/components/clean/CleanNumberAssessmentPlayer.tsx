@@ -26,6 +26,7 @@ import type {
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
 import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
+import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE } from "@/lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules";
 import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
@@ -330,6 +331,28 @@ const PERCENT_RATIO_FINANCE_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "percentage-error-and-financial-modelling": {
     sectionId: "percentage-error-and-financial-modelling",
     sectionTitle: "Percentage error and financial modelling",
+  },
+};
+
+const INTEGERS_COORDINATES_PROPERTIES_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "integer-ordering-and-operations": {
+    sectionId: "integer-ordering-and-operations",
+    sectionTitle: "Integer ordering and operations",
+  },
+  "coordinates-and-integer-position": {
+    sectionId: "coordinates-and-integer-position",
+    sectionTitle: "Coordinates and integer position",
+  },
+  "factors-multiples-and-divisibility": {
+    sectionId: "factors-multiples-and-divisibility",
+    sectionTitle: "Factors, multiples and divisibility",
+  },
+  "primes-composites-and-number-properties": {
+    sectionId: "primes-composites-and-number-properties",
+    sectionTitle: "Primes, composites and number properties",
   },
 };
 
@@ -1511,13 +1534,20 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const integersCoordinatesPropertiesPracticeSection =
+    bankKey === "integers-coordinates-number-properties"
+      ? INTEGERS_COORDINATES_PROPERTIES_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
     irrationalRealPracticeSection ||
     surdsExactPracticeSection ||
     rationalOperationsPracticeSection ||
-    percentRatioFinancePracticeSection;
+    percentRatioFinancePracticeSection ||
+    integersCoordinatesPropertiesPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1527,9 +1557,11 @@ function buildTargetedPracticeRecommendation(
         : surdsExactPracticeSection
           ? NUMBER_SURDS_EXACT_PRACTICE_MODULE
           : rationalOperationsPracticeSection
-            ? NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE
-            : percentRatioFinancePracticeSection
-              ? NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE
+          ? NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE
+          : percentRatioFinancePracticeSection
+            ? NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE
+            : integersCoordinatesPropertiesPracticeSection
+              ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
               : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
