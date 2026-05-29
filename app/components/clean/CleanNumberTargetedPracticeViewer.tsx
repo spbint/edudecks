@@ -18,6 +18,9 @@ import {
   getNumberIrrationalRealPracticeModuleById,
 } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import {
+  getNumberPercentRatioFinancePracticeModuleById,
+} from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
+import {
   getNumberRationalOperationsPracticeModuleById,
 } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import {
@@ -266,6 +269,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberPracticeModuleById(id) ||
     getNumberApproximationPracticeModuleById(id) ||
     getNumberIrrationalRealPracticeModuleById(id) ||
+    getNumberPercentRatioFinancePracticeModuleById(id) ||
     getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id)
   );
