@@ -18,11 +18,16 @@ import {
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
 import {
+  NUMBER_RATIONAL_OPERATIONS_ASSESSMENT_ITEMS,
+  NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberRationalOperationsAssessmentItems";
+import {
   NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS,
   NUMBER_SURDS_EXACT_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberSurdsExactAssessmentItems";
 
 export type NumberAssessmentBankKey =
+  | "rational-numbers-and-operations"
   | "powers-roots-exponent-notation"
   | "surds-and-exact-form"
   | "approximation-estimation-error"
@@ -132,6 +137,24 @@ const NUMBER_APPROXIMATION_ITEM_BANK_KEY =
 // These pathway step ids are stable prototype keys until matching canonical
 // Years 9-10 Number steps are added to the pathway registry.
 export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
+  {
+    key: "rational-numbers-and-operations",
+    title: "Rational numbers and operations",
+    shortTitle: "Rational operations",
+    description:
+      "Checks equivalent rational representations, fraction and decimal operations, rational-number comparison, and rational operations in context.",
+    yearBandLabel: "Years 6-8",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "rational-numbers-and-operations",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::rational-numbers-and-operations",
+    progressionBandKey: "rational-numbers-and-operations",
+    itemBankKey: NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_RATIONAL_OPERATIONS_ASSESSMENT_ITEMS,
+  },
   {
     key: "powers-roots-exponent-notation",
     title: "Powers, roots and exponent notation",
