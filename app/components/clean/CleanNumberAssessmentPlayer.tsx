@@ -31,6 +31,7 @@ import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practi
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
+import { NUMBER_TERMINATING_RECURRING_RATIONAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberTerminatingRecurringRationalPracticeModules";
 import type { Learner } from "@/lib/clean/learners/types";
 
 type LocalAssessmentResult = AssessmentAttemptLocalResult;
@@ -309,6 +310,28 @@ const RATIONAL_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "rational-operations-in-context": {
     sectionId: "rational-operations-in-context",
     sectionTitle: "Rational operations in context",
+  },
+};
+
+const TERMINATING_RECURRING_RATIONAL_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "terminating-decimal-representations": {
+    sectionId: "terminating-decimal-representations",
+    sectionTitle: "Terminating decimal representations",
+  },
+  "recurring-decimal-representations": {
+    sectionId: "recurring-decimal-representations",
+    sectionTitle: "Recurring decimal representations",
+  },
+  "fraction-decimal-conversions": {
+    sectionId: "fraction-decimal-conversions",
+    sectionTitle: "Fraction and decimal conversions",
+  },
+  "rational-irrational-decimal-boundary": {
+    sectionId: "rational-irrational-decimal-boundary",
+    sectionTitle: "Rational and irrational decimal boundary",
   },
 };
 
@@ -1528,6 +1551,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const terminatingRecurringRationalPracticeSection =
+    bankKey === "terminating-recurring-rational-representations"
+      ? TERMINATING_RECURRING_RATIONAL_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const percentRatioFinancePracticeSection =
     bankKey === "percentages-ratio-financial-modelling"
       ? PERCENT_RATIO_FINANCE_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
@@ -1546,6 +1575,7 @@ function buildTargetedPracticeRecommendation(
     irrationalRealPracticeSection ||
     surdsExactPracticeSection ||
     rationalOperationsPracticeSection ||
+    terminatingRecurringRationalPracticeSection ||
     percentRatioFinancePracticeSection ||
     integersCoordinatesPropertiesPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
@@ -1558,11 +1588,13 @@ function buildTargetedPracticeRecommendation(
           ? NUMBER_SURDS_EXACT_PRACTICE_MODULE
           : rationalOperationsPracticeSection
           ? NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE
-          : percentRatioFinancePracticeSection
-            ? NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE
-            : integersCoordinatesPropertiesPracticeSection
-              ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
-              : null;
+          : terminatingRecurringRationalPracticeSection
+            ? NUMBER_TERMINATING_RECURRING_RATIONAL_PRACTICE_MODULE
+            : percentRatioFinancePracticeSection
+              ? NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE
+              : integersCoordinatesPropertiesPracticeSection
+                ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
+                : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
