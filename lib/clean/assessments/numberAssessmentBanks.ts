@@ -14,6 +14,10 @@ import {
   NUMBER_IRRATIONAL_REAL_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberIrrationalRealAssessmentItems";
 import {
+  NUMBER_PERCENT_RATIO_FINANCE_ASSESSMENT_ITEMS,
+  NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberPercentRatioFinanceAssessmentItems";
+import {
   NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
@@ -28,6 +32,7 @@ import {
 
 export type NumberAssessmentBankKey =
   | "rational-numbers-and-operations"
+  | "percentages-ratio-financial-modelling"
   | "powers-roots-exponent-notation"
   | "surds-and-exact-form"
   | "approximation-estimation-error"
@@ -154,6 +159,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number-approximation-prototype",
     items: NUMBER_RATIONAL_OPERATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "percentages-ratio-financial-modelling",
+    title: "Percentages, ratio and financial modelling",
+    shortTitle: "Percent, ratio and finance",
+    description:
+      "Checks percentages, equivalent representations, ratio sharing, discounts, profit, percentage error and financial modelling.",
+    yearBandLabel: "Years 6-8",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "percentages-ratio-financial-modelling",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::percentages-ratio-financial-modelling",
+    progressionBandKey: "percentages-ratio-financial-modelling",
+    itemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_PERCENT_RATIO_FINANCE_ASSESSMENT_ITEMS,
   },
   {
     key: "powers-roots-exponent-notation",
