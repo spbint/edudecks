@@ -30,6 +30,10 @@ import {
   NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberRationalOperationsAssessmentItems";
 import {
+  NUMBER_TERMINATING_RECURRING_RATIONAL_ASSESSMENT_ITEMS,
+  NUMBER_TERMINATING_RECURRING_RATIONAL_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberTerminatingRecurringRationalAssessmentItems";
+import {
   NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS,
   NUMBER_SURDS_EXACT_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberSurdsExactAssessmentItems";
@@ -37,6 +41,7 @@ import {
 export type NumberAssessmentBankKey =
   | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
+  | "terminating-recurring-rational-representations"
   | "percentages-ratio-financial-modelling"
   | "powers-roots-exponent-notation"
   | "surds-and-exact-form"
@@ -182,6 +187,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number-approximation-prototype",
     items: NUMBER_RATIONAL_OPERATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "terminating-recurring-rational-representations",
+    title: "Terminating, recurring and rational representations",
+    shortTitle: "Terminating and recurring decimals",
+    description:
+      "Checks terminating decimals, recurring decimals, fraction-decimal conversions, and rational versus irrational decimal representations.",
+    yearBandLabel: "Years 7-9",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "years-9-10-consolidation",
+    stepKey: "terminating-recurring-rational-representations",
+    pathwayStepId:
+      "mathematics::number-and-place-value::years-9-10-consolidation::terminating-recurring-rational-representations",
+    progressionBandKey: "terminating-recurring-rational-representations",
+    itemBankKey: NUMBER_TERMINATING_RECURRING_RATIONAL_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number-approximation-prototype",
+    items: NUMBER_TERMINATING_RECURRING_RATIONAL_ASSESSMENT_ITEMS,
   },
   {
     key: "percentages-ratio-financial-modelling",
