@@ -247,15 +247,54 @@ function buildProgressSummary(
   };
 }
 
-function buildSectionHref(moduleId: string, sectionId: string, sourceAssessmentBand: string, sourceSubElement: string) {
+type SourcePracticeContext = {
+  subjectKey: string;
+  strandKey: string;
+  stageKey: string;
+  pathwayStepId: string;
+  stepKey: string;
+  sourceAssessmentBand: string;
+  sourceProgressionStep: string;
+  sourceSubElement: string;
+};
+
+function buildSectionHref(
+  moduleId: string,
+  sectionId: string,
+  sourceContext: SourcePracticeContext,
+) {
   const params = new URLSearchParams({ moduleId, sectionId });
 
-  if (sourceAssessmentBand) {
-    params.set("sourceAssessmentBand", sourceAssessmentBand);
+  if (sourceContext.subjectKey) {
+    params.set("subjectKey", sourceContext.subjectKey);
   }
 
-  if (sourceSubElement) {
-    params.set("sourceSubElement", sourceSubElement);
+  if (sourceContext.strandKey) {
+    params.set("strandKey", sourceContext.strandKey);
+  }
+
+  if (sourceContext.stageKey) {
+    params.set("stageKey", sourceContext.stageKey);
+  }
+
+  if (sourceContext.pathwayStepId) {
+    params.set("pathwayStepId", sourceContext.pathwayStepId);
+  }
+
+  if (sourceContext.stepKey) {
+    params.set("stepKey", sourceContext.stepKey);
+  }
+
+  if (sourceContext.sourceAssessmentBand) {
+    params.set("sourceAssessmentBand", sourceContext.sourceAssessmentBand);
+  }
+
+  if (sourceContext.sourceProgressionStep) {
+    params.set("sourceProgressionStep", sourceContext.sourceProgressionStep);
+  }
+
+  if (sourceContext.sourceSubElement) {
+    params.set("sourceSubElement", sourceContext.sourceSubElement);
   }
 
   return `/practice/number-targeted?${params.toString()}`;
@@ -468,12 +507,10 @@ function TaskCard({
 
 function SectionOverview({
   practiceModule,
-  sourceAssessmentBand,
-  sourceSubElement,
+  sourceContext,
 }: {
   practiceModule: NumberPracticeModule;
-  sourceAssessmentBand: string;
-  sourceSubElement: string;
+  sourceContext: SourcePracticeContext;
 }) {
   return (
     <div style={cardStyle}>
@@ -492,8 +529,7 @@ function SectionOverview({
             href={buildSectionHref(
               practiceModule.id,
               section.id,
-              sourceAssessmentBand,
-              sourceSubElement,
+              sourceContext,
             )}
             style={{
               ...compactCardStyle,
@@ -611,8 +647,26 @@ export default function CleanNumberTargetedPracticeViewer() {
   const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
+  const subjectKey = safe(searchParams.get("subjectKey"));
+  const strandKey = safe(searchParams.get("strandKey"));
+  const stageKey = safe(searchParams.get("stageKey"));
+  const pathwayStepId = safe(searchParams.get("pathwayStepId"));
+  const stepKey = safe(searchParams.get("stepKey"));
   const sourceAssessmentBand = safe(searchParams.get("sourceAssessmentBand"));
+  const sourceProgressionStep = safe(
+    searchParams.get("sourceProgressionStep"),
+  );
   const sourceSubElement = safe(searchParams.get("sourceSubElement"));
+  const sourceContext: SourcePracticeContext = {
+    subjectKey,
+    strandKey,
+    stageKey,
+    pathwayStepId,
+    stepKey,
+    sourceAssessmentBand,
+    sourceProgressionStep,
+    sourceSubElement,
+  };
   const practiceModule =
     getTargetedNumberPracticeModuleById(requestedModuleId) ||
     (!requestedModuleId ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE : null);
@@ -802,8 +856,7 @@ export default function CleanNumberTargetedPracticeViewer() {
             ) : (
               <SectionOverview
                 practiceModule={practiceModule}
-                sourceAssessmentBand={sourceAssessmentBand}
-                sourceSubElement={sourceSubElement}
+                sourceContext={sourceContext}
               />
             )}
 
