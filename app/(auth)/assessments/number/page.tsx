@@ -7,6 +7,6 @@ export const metadata: Metadata = {
     "A MyLearna Number assessment session with switchable Number focus areas.",
 };
 
-export default function LegacyNumberApproximationPrototypePage() {
+export default function NumberAssessmentPage() {
   return <CleanNumberAssessmentPlayer />;
 }

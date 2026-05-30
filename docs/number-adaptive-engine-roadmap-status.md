@@ -22,12 +22,16 @@ The same model is intended to be replicable later across Number, Measurement, Sp
 
 ## 3. Current Routes
 
-Current prototype routes:
+Current primary routes:
 
-- `/assessments/number-approximation-prototype`
+- `/assessments/number`
 - `/practice/number-targeted`
 
-The route names are still prototype names. They may later be renamed to production routes once the broader launcher/navigation model is settled.
+Legacy compatibility route:
+
+- `/assessments/number-approximation-prototype`
+
+`/assessments/number` is the production-shaped Number assessment entry point. `/assessments/number-approximation-prototype` is retained for old links and historical saved source routes for now. `/practice/number-targeted` remains the targeted practice route; a shorter practice alias has not been added yet.
 
 ## 4. Completed Number Adaptive Loops
 
@@ -180,10 +184,10 @@ Recommended next phase:
 
 1. Pause major content expansion briefly.
 2. Do a browser/manual QA pass across all eight loops.
-3. Rename or plan production route names.
+3. Continue planning the remaining production route names.
 4. Decide whether to:
    - move downward into Grades 3-6 Number foundations,
-   - polish the current Number prototype UX and persistence, or
+   - polish the current Number assessment/practice UX and persistence, or
    - begin Measurement, Space/Geometry, Statistics or Probability.
 
 A sensible next content build is lower Number foundations, but only after a short review pass confirms the current eight-loop Number spine works well enough for continued replication.
@@ -194,7 +198,7 @@ A sensible next content build is lower Number foundations, but only after a shor
 - When should parent confirmation update `assessment_skill_statuses`?
 - When should assessment/practice become evidence?
 - What is the production route structure?
-- Should there be a Number dashboard/launcher instead of the prototype URL?
+- Should there be a Number dashboard/launcher as the long-term entry point?
 - How should lower Grades 3-6 represent visual/concrete concepts?
 - When should video lessons become a premium layer?
 - How should sub-element mastery roll up into pathway progress?

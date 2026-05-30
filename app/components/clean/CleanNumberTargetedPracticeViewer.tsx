@@ -724,7 +724,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     <main style={shellStyle}>
       <div style={wrapStyle}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Link href="/assessments/number-approximation-prototype" style={secondaryButtonStyle}>
+          <Link href="/assessments/number" style={secondaryButtonStyle}>
             Return to assessment
           </Link>
         </div>
@@ -736,7 +736,7 @@ export default function CleanNumberTargetedPracticeViewer() {
               This practice module is not connected yet.
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                The assessment recommendation was received, but this prototype only
+                The assessment recommendation was received, but this practice route only
               supports connected Number practice modules for now.
               </div>
           </div>

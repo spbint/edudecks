@@ -167,7 +167,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::integers-coordinates-number-properties",
     progressionBandKey: "integers-coordinates-number-properties",
     itemBankKey: NUMBER_INTEGERS_COORDINATES_PROPERTIES_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_INTEGERS_COORDINATES_PROPERTIES_ASSESSMENT_ITEMS,
   },
   {
@@ -185,7 +185,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::rational-numbers-and-operations",
     progressionBandKey: "rational-numbers-and-operations",
     itemBankKey: NUMBER_RATIONAL_OPERATIONS_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_RATIONAL_OPERATIONS_ASSESSMENT_ITEMS,
   },
   {
@@ -203,7 +203,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::terminating-recurring-rational-representations",
     progressionBandKey: "terminating-recurring-rational-representations",
     itemBankKey: NUMBER_TERMINATING_RECURRING_RATIONAL_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_TERMINATING_RECURRING_RATIONAL_ASSESSMENT_ITEMS,
   },
   {
@@ -221,7 +221,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::percentages-ratio-financial-modelling",
     progressionBandKey: "percentages-ratio-financial-modelling",
     itemBankKey: NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_PERCENT_RATIO_FINANCE_ASSESSMENT_ITEMS,
   },
   {
@@ -239,7 +239,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::powers-roots-exponent-notation",
     progressionBandKey: "powers-roots-exponent-notation",
     itemBankKey: NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   },
   {
@@ -257,7 +257,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::irrational-and-real-numbers",
     progressionBandKey: "irrational-and-real-numbers",
     itemBankKey: NUMBER_IRRATIONAL_REAL_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_IRRATIONAL_REAL_ASSESSMENT_ITEMS,
   },
   {
@@ -275,7 +275,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::surds-and-exact-form",
     progressionBandKey: "surds-and-exact-form",
     itemBankKey: NUMBER_SURDS_EXACT_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_SURDS_EXACT_ASSESSMENT_ITEMS,
   },
   {
@@ -293,7 +293,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
       "mathematics::number-and-place-value::years-9-10-consolidation::approximation-estimation-error",
     progressionBandKey: "approximation-estimation-error",
     itemBankKey: NUMBER_APPROXIMATION_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number-approximation-prototype",
+    sourceRoute: "/assessments/number",
     items: NUMBER_APPROXIMATION_ASSESSMENT_ITEMS,
   },
 ];

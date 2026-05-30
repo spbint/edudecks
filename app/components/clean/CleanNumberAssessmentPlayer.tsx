@@ -1757,7 +1757,7 @@ function buildAdaptiveInsightSummary(
 
   if (attemptedCount === 0) {
     suggestedNextStep =
-      "Start the preview with a few items first, then use the pattern summary to decide the next practice focus.";
+      "Start the assessment with a few items first, then use the pattern summary to decide the next practice focus.";
   } else if (
     correctCount >= Math.max(8, items.length - 2) &&
     incorrectCount === 0 &&
@@ -1938,7 +1938,7 @@ function buildAdaptiveInsightSummary(
     suggestedFocusAreas,
     suggestedNextStep,
     parentJudgementPrompt:
-      "Based on this preview, how would you judge this learning focus?",
+      "Based on this assessment, how would you judge this learning focus?",
   };
 }
 
@@ -2010,7 +2010,7 @@ function CleanNumberAssessmentPlayerBody() {
       "A synced family workspace is required before saving assessment attempts.";
   } else if (workspace.requiresFamilyCreation || !workspace.profile) {
     saveBlockedMessage =
-      "This preview is not connected to a synced family workspace. Switch to a synced family workspace before saving.";
+      "This assessment is not connected to a synced family workspace. Switch to a synced family workspace before saving.";
   } else if (!learnerId) {
     saveBlockedMessage =
       "Select a learner before saving this assessment attempt.";
@@ -3161,7 +3161,7 @@ function CleanNumberAssessmentPlayerBody() {
               <div style={compactCardStyle}>
                 <div style={eyebrowStyle}>Parent judgement</div>
                 <div style={{ color: "#64748b", lineHeight: 1.5, fontSize: 13 }}>
-                  Preview only - not saved yet.
+                  Local judgement only - not saved yet.
                 </div>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
                   {summary.parentJudgementPrompt}
@@ -3190,7 +3190,7 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
                 {parentJudgement ? (
                   <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                    Current preview judgement:{" "}
+                    Current local judgement:{" "}
                     {getParentJudgementLabel(parentJudgement)}.
                   </div>
                 ) : null}
