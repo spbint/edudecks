@@ -35,6 +35,7 @@ import { NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practic
 import { NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE } from "@/lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules";
 import { NUMBER_MONEY_PRACTICAL_CONTEXTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberMoneyPracticalContextsPracticeModules";
 import { NUMBER_PATTERNS_EARLY_ALGEBRA_PRACTICE_MODULE } from "@/lib/clean/practice/numberPatternsEarlyAlgebraPracticeModules";
+import { NUMBER_TIME_ELAPSED_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberTimeElapsedFoundationsPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -537,6 +538,28 @@ const MONEY_PRACTICAL_CONTEXTS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "estimation-budgeting-and-reasonableness": {
     sectionId: "estimation-budgeting-and-reasonableness",
     sectionTitle: "Estimation, budgeting and reasonableness",
+  },
+};
+
+const TIME_ELAPSED_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "reading-and-representing-time": {
+    sectionId: "reading-and-representing-time",
+    sectionTitle: "Reading and representing time",
+  },
+  "elapsed-time-and-duration": {
+    sectionId: "elapsed-time-and-duration",
+    sectionTitle: "Elapsed time and duration",
+  },
+  "timetables-and-daily-schedules": {
+    sectionId: "timetables-and-daily-schedules",
+    sectionTitle: "Timetables and daily schedules",
+  },
+  "calendars-and-multi-step-time-contexts": {
+    sectionId: "calendars-and-multi-step-time-contexts",
+    sectionTitle: "Calendars and multi-step time contexts",
   },
 };
 
@@ -1772,6 +1795,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const timeElapsedFoundationsPracticeSection =
+    bankKey === "time-and-elapsed-time-foundations"
+      ? TIME_ELAPSED_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1787,7 +1816,8 @@ function buildTargetedPracticeRecommendation(
     decimalsFoundationsPracticeSection ||
     multiplicationDivisionFluencyPracticeSection ||
     patternsEarlyAlgebraPracticeSection ||
-    moneyPracticalContextsPracticeSection;
+    moneyPracticalContextsPracticeSection ||
+    timeElapsedFoundationsPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1818,7 +1848,9 @@ function buildTargetedPracticeRecommendation(
                             ? NUMBER_PATTERNS_EARLY_ALGEBRA_PRACTICE_MODULE
                             : moneyPracticalContextsPracticeSection
                               ? NUMBER_MONEY_PRACTICAL_CONTEXTS_PRACTICE_MODULE
-                              : null;
+                              : timeElapsedFoundationsPracticeSection
+                                ? NUMBER_TIME_ELAPSED_FOUNDATIONS_PRACTICE_MODULE
+                                : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

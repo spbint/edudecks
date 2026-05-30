@@ -50,6 +50,10 @@ import {
   NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPatternsEarlyAlgebraAssessmentItems";
 import {
+  NUMBER_TIME_ELAPSED_FOUNDATIONS_ASSESSMENT_ITEMS,
+  NUMBER_TIME_ELAPSED_FOUNDATIONS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberTimeElapsedFoundationsAssessmentItems";
+import {
   NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
@@ -70,10 +74,11 @@ export type NumberAssessmentBankKey =
   | "place-value-and-whole-number-operations"
   | "additive-strategies-and-problem-solving"
   | "multiplication-division-fluency"
+  | "money-and-practical-number-contexts"
+  | "time-and-elapsed-time-foundations"
   | "number-patterns-and-early-algebraic-thinking"
   | "fractions-foundations"
   | "decimals-foundations"
-  | "money-and-practical-number-contexts"
   | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
   | "terminating-recurring-rational-representations"
@@ -242,6 +247,42 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     items: NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ASSESSMENT_ITEMS,
   },
   {
+    key: "money-and-practical-number-contexts",
+    title: "Money and practical number contexts",
+    shortTitle: "Money and practical contexts",
+    description:
+      "Checks money values, dollars and cents, totals, change, practical measurement and time contexts, budgeting, estimation and reasonableness.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "money-and-practical-number-contexts",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::money-and-practical-number-contexts",
+    progressionBandKey: "money-and-practical-number-contexts",
+    itemBankKey: NUMBER_MONEY_PRACTICAL_CONTEXTS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_MONEY_PRACTICAL_CONTEXTS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "time-and-elapsed-time-foundations",
+    title: "Time and elapsed-time foundations",
+    shortTitle: "Time and elapsed time",
+    description:
+      "Checks reading analogue and digital time, elapsed time, duration, timetables, calendars and practical time contexts.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "time-and-elapsed-time-foundations",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::time-and-elapsed-time-foundations",
+    progressionBandKey: "time-and-elapsed-time-foundations",
+    itemBankKey: NUMBER_TIME_ELAPSED_FOUNDATIONS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_TIME_ELAPSED_FOUNDATIONS_ASSESSMENT_ITEMS,
+  },
+  {
     key: "number-patterns-and-early-algebraic-thinking",
     title: "Number patterns and early algebraic thinking",
     shortTitle: "Number patterns",
@@ -294,24 +335,6 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_DECIMALS_FOUNDATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_DECIMALS_FOUNDATIONS_ASSESSMENT_ITEMS,
-  },
-  {
-    key: "money-and-practical-number-contexts",
-    title: "Money and practical number contexts",
-    shortTitle: "Money and practical contexts",
-    description:
-      "Checks money values, dollars and cents, totals, change, practical measurement and time contexts, budgeting, estimation and reasonableness.",
-    yearBandLabel: "Years 3-5",
-    subjectKey: "mathematics",
-    strandKey: "number-and-place-value",
-    stageKey: "middle-primary",
-    stepKey: "money-and-practical-number-contexts",
-    pathwayStepId:
-      "mathematics::number-and-place-value::middle-primary::money-and-practical-number-contexts",
-    progressionBandKey: "money-and-practical-number-contexts",
-    itemBankKey: NUMBER_MONEY_PRACTICAL_CONTEXTS_ITEM_BANK_KEY,
-    sourceRoute: "/assessments/number",
-    items: NUMBER_MONEY_PRACTICAL_CONTEXTS_ASSESSMENT_ITEMS,
   },
   {
     key: "integers-coordinates-number-properties",

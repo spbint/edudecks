@@ -45,6 +45,9 @@ import {
   getNumberPatternsEarlyAlgebraPracticeModuleById,
 } from "@/lib/clean/practice/numberPatternsEarlyAlgebraPracticeModules";
 import {
+  getNumberTimeElapsedFoundationsPracticeModuleById,
+} from "@/lib/clean/practice/numberTimeElapsedFoundationsPracticeModules";
+import {
   getNumberRationalOperationsPracticeModuleById,
 } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import {
@@ -344,6 +347,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberMultiplicationDivisionFluencyPracticeModuleById(id) ||
     getNumberMoneyPracticalContextsPracticeModuleById(id) ||
     getNumberPatternsEarlyAlgebraPracticeModuleById(id) ||
+    getNumberTimeElapsedFoundationsPracticeModuleById(id) ||
     getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id) ||
     getNumberTerminatingRecurringRationalPracticeModuleById(id)
