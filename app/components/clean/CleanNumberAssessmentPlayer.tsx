@@ -2240,6 +2240,23 @@ function CleanNumberAssessmentPlayerBody() {
     () => buildAdaptiveInsightSummary(selectedBank.key, items, responses),
     [items, responses, selectedBank.key],
   );
+  const assessmentBankGroups = useMemo(
+    () => [
+      {
+        label: "Year 3-5 Number foundations",
+        banks: NUMBER_ASSESSMENT_BANKS.filter(
+          (bank) => bank.stageKey === "middle-primary",
+        ),
+      },
+      {
+        label: "Years 6-10 Number",
+        banks: NUMBER_ASSESSMENT_BANKS.filter(
+          (bank) => bank.stageKey !== "middle-primary",
+        ),
+      },
+    ],
+    [],
+  );
   const selectedLearnerId = useMemo(() => {
     if (!workspace.learners.length) return "";
 
@@ -2900,57 +2917,71 @@ function CleanNumberAssessmentPlayerBody() {
             <div style={launcherBodyStyle}>
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={eyebrowStyle}>Choose an assessment focus</div>
-                <div style={focusGridStyle}>
-                  {NUMBER_ASSESSMENT_BANKS.map((bank) => {
-                    const isSelected = bank.key === selectedBank.key;
+                {assessmentBankGroups.map((group) => (
+                  <div key={group.label} style={{ display: "grid", gap: 10 }}>
+                    <div
+                      style={{
+                        color: "#334155",
+                        fontSize: 14,
+                        fontWeight: 800,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {group.label}
+                    </div>
+                    <div style={focusGridStyle}>
+                      {group.banks.map((bank) => {
+                        const isSelected = bank.key === selectedBank.key;
 
-                    return (
-                      <button
-                        key={bank.key}
-                        type="button"
-                        onClick={() => {
-                          setSelectedBankKey(bank.key);
-                          resetAssessmentState();
-                        }}
-                        aria-pressed={isSelected}
-                        style={{
-                          display: "grid",
-                          gap: 8,
-                          textAlign: "left",
-                          borderRadius: 16,
-                          border: isSelected
-                            ? "2px solid #1d4ed8"
-                            : "1px solid #dbe4f0",
-                          background: isSelected ? "#eff6ff" : "#ffffff",
-                          padding: 16,
-                          cursor: "pointer",
-                          boxShadow: isSelected
-                            ? "0 14px 28px rgba(59,130,246,0.14)"
-                            : "0 8px 20px rgba(15,23,42,0.04)",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: isSelected ? "#1d4ed8" : "#0f172a",
-                            fontSize: 16,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {bank.shortTitle}
-                        </span>
-                        <span
-                          style={{
-                            color: "#64748b",
-                            fontSize: 13,
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          {bank.yearBandLabel} - {bank.items.length} items
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+                        return (
+                          <button
+                            key={bank.key}
+                            type="button"
+                            onClick={() => {
+                              setSelectedBankKey(bank.key);
+                              resetAssessmentState();
+                            }}
+                            aria-pressed={isSelected}
+                            style={{
+                              display: "grid",
+                              gap: 8,
+                              textAlign: "left",
+                              borderRadius: 16,
+                              border: isSelected
+                                ? "2px solid #1d4ed8"
+                                : "1px solid #dbe4f0",
+                              background: isSelected ? "#eff6ff" : "#ffffff",
+                              padding: 16,
+                              cursor: "pointer",
+                              boxShadow: isSelected
+                                ? "0 14px 28px rgba(59,130,246,0.14)"
+                                : "0 8px 20px rgba(15,23,42,0.04)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: isSelected ? "#1d4ed8" : "#0f172a",
+                                fontSize: 16,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {bank.shortTitle}
+                            </span>
+                            <span
+                              style={{
+                                color: "#64748b",
+                                fontSize: 13,
+                                lineHeight: 1.5,
+                              }}
+                            >
+                              {bank.yearBandLabel} - {bank.items.length} items
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div

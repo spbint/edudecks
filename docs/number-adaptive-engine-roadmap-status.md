@@ -4,7 +4,7 @@
 
 This document records the current state of the MyLearna Number adaptive assessment-and-practice engine.
 
-It is a checkpoint before adding the next foundation bank and, later, expanding into other Mathematics strands. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before more banks and practice modules are added.
+It is a checkpoint for the standalone Years 3-10 Number product experience. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before manual browser QA, product polish and listing readiness work.
 
 ## 2. Core Learning Loop
 
@@ -31,7 +31,7 @@ Legacy compatibility route:
 
 - `/assessments/number-approximation-prototype`
 
-`/assessments/number` is the production-shaped Number assessment entry point. `/assessments/number-approximation-prototype` is retained for old links and historical saved source routes for now. `/practice/number-targeted` remains the targeted practice route; a shorter practice alias has not been added yet.
+`/assessments/number` is the primary Number assessment entry point. `/assessments/number-approximation-prototype` is retained for old links and historical saved source routes for now. `/practice/number-targeted` remains the targeted practice route; a shorter practice alias has not been added yet.
 
 ## 4. Completed Number Adaptive Loops
 
@@ -40,6 +40,9 @@ Legacy compatibility route:
 | Place value and operations | `place-value-and-whole-number-operations` | `lib/clean/assessments/numberPlaceValueOperationsAssessmentItems.ts` | `lib/clean/practice/numberPlaceValueOperationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Additive strategies | `additive-strategies-and-problem-solving` | `lib/clean/assessments/numberAdditiveStrategiesAssessmentItems.ts` | `lib/clean/practice/numberAdditiveStrategiesPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Multiplication and division | `multiplication-division-fluency` | `lib/clean/assessments/numberMultiplicationDivisionFluencyAssessmentItems.ts` | `lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Money and practical number contexts | `money-and-practical-number-contexts` | `lib/clean/assessments/numberMoneyPracticalContextsAssessmentItems.ts` | `lib/clean/practice/numberMoneyPracticalContextsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Time and elapsed-time foundations | `time-and-elapsed-time-foundations` | `lib/clean/assessments/numberTimeElapsedFoundationsAssessmentItems.ts` | `lib/clean/practice/numberTimeElapsedFoundationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Number patterns and early algebraic thinking | `number-patterns-and-early-algebraic-thinking` | `lib/clean/assessments/numberPatternsEarlyAlgebraAssessmentItems.ts` | `lib/clean/practice/numberPatternsEarlyAlgebraPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Fractions foundations | `fractions-foundations` | `lib/clean/assessments/numberFractionsFoundationsAssessmentItems.ts` | `lib/clean/practice/numberFractionsFoundationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Decimals foundations | `decimals-foundations` | `lib/clean/assessments/numberDecimalsFoundationsAssessmentItems.ts` | `lib/clean/practice/numberDecimalsFoundationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Integers and coordinates | `integers-coordinates-number-properties` | `lib/clean/assessments/numberIntegersCoordinatesPropertiesAssessmentItems.ts` | `lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
@@ -112,7 +115,7 @@ Each targeted practice module follows this pattern:
 - local-only interactive practice viewer
 - return to assessment
 
-Practice currently uses a lightweight local renderer. Richer widgets such as drag/drop classification, advanced matching, graphing, or canvas interactions are not part of this MVP layer yet.
+Practice currently uses a lightweight local renderer. `visualSupport` metadata exists across the assessment and practice spine, but richer visual renderers such as clocks, timelines, tables, drag/drop classification, advanced matching, graphing, or canvas interactions are future work.
 
 ## 9. Persistence Status
 
@@ -168,30 +171,35 @@ Current boundaries:
 - Practice widgets are lightweight, not rich drag/drop widgets yet.
 - Browser walkthrough QA has not been completed for every loop.
 
-## 12. Remaining Number Coverage
+## 12. Number Coverage Status
 
-The mapped middle/upper Number spine is now MVP-complete at adaptive-loop level across the eight middle/upper banks listed above.
+Number Years 3-10 is MVP-complete at adaptive-loop level across the banks listed above.
 
-Year 3-5 foundation banks completed so far:
+The mapped middle/upper Number spine is MVP-complete at adaptive-loop level.
+
+Year 3-5 foundation loops completed so far:
 
 - Place value and operations
 - Additive strategies
 - Multiplication and division
+- Money and practical number contexts
+- Time and elapsed-time foundations
+- Number patterns and early algebraic thinking
 - Fractions foundations
 - Decimals foundations
 
-Full Years 3-10 Number coverage still needs a gap check before moving sideways into other strands. The next Number phase is identifying any remaining Year 3-5 Number gaps, such as early equivalence, early multiplicative thinking, early patterns and relationships, and other missing foundation concepts.
+The current recommendation is not to create more Number banks by default. One optional final Number bank for early scaling / multiplicative comparison can still be considered if a manual gap review judges that coverage important.
 
-## 13. Recommended Next Build Phase
+## 13. Recommended Next Phase
 
 Recommended next phase:
 
-1. Do a browser/manual QA pass across the current Number adaptive spine.
-2. Identify any remaining Year 3-5 Number gaps before adding more Number foundations.
-3. Continue planning the remaining production route names and Number launcher/dashboard shape.
-4. After the remaining Number gaps are clear, move sideways into Measurement, Geometry/Space, Statistics, Probability, Algebra and other Mathematics strands.
+1. Do manual browser QA across the current Number adaptive spine.
+2. Complete product polish and marketing/listing readiness for the standalone Years 3-10 Number experience.
+3. Decide whether to move sideways into Measurement, Geometry/Space, Statistics, Probability, Algebra and other Mathematics strands.
+4. Only add one optional final Number bank for early scaling / multiplicative comparison if the coverage gap is judged important.
 
-The next content decision should be based on a gap check across the current Year 3-5 Number foundations and the completed middle/upper Number spine.
+The next phase is manual browser QA, product polish and listing readiness, not more Number bank creation by default.
 
 ## 14. Open Questions
 
