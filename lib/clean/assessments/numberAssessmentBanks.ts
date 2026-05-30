@@ -34,6 +34,10 @@ import {
   NUMBER_FRACTIONS_FOUNDATIONS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberFractionsFoundationsAssessmentItems";
 import {
+  NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ASSESSMENT_ITEMS,
+  NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberMultiplicationDivisionFluencyAssessmentItems";
+import {
   NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
@@ -52,6 +56,7 @@ import {
 
 export type NumberAssessmentBankKey =
   | "place-value-and-whole-number-operations"
+  | "multiplication-division-fluency"
   | "fractions-foundations"
   | "decimals-foundations"
   | "integers-coordinates-number-properties"
@@ -184,6 +189,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_PLACE_VALUE_OPERATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "multiplication-division-fluency",
+    title: "Multiplication and division fluency",
+    shortTitle: "Multiplication and division",
+    description:
+      "Checks multiplication facts, arrays, equal groups, division facts, fact families, inverse relationships and multiplicative problem solving.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "multiplication-division-fluency",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::multiplication-division-fluency",
+    progressionBandKey: "multiplication-division-fluency",
+    itemBankKey: NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ASSESSMENT_ITEMS,
   },
   {
     key: "fractions-foundations",
