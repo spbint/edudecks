@@ -29,6 +29,7 @@ import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/num
 import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE } from "@/lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules";
 import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
 import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
+import { NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberFractionsFoundationsPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -399,6 +400,28 @@ const PLACE_VALUE_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "multiplication-and-division-foundations": {
     sectionId: "multiplication-and-division-foundations",
     sectionTitle: "Multiplication and division foundations",
+  },
+};
+
+const FRACTIONS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "fraction-meaning-and-representation": {
+    sectionId: "fraction-meaning-and-representation",
+    sectionTitle: "Fraction meaning and representation",
+  },
+  "equivalent-fractions": {
+    sectionId: "equivalent-fractions",
+    sectionTitle: "Equivalent fractions",
+  },
+  "comparing-and-ordering-fractions": {
+    sectionId: "comparing-and-ordering-fractions",
+    sectionTitle: "Comparing and ordering fractions",
+  },
+  "fraction-problem-solving-foundations": {
+    sectionId: "fraction-problem-solving-foundations",
+    sectionTitle: "Fraction problem-solving foundations",
   },
 };
 
@@ -1598,6 +1621,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const fractionsFoundationsPracticeSection =
+    bankKey === "fractions-foundations"
+      ? FRACTIONS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1607,7 +1636,8 @@ function buildTargetedPracticeRecommendation(
     terminatingRecurringRationalPracticeSection ||
     percentRatioFinancePracticeSection ||
     integersCoordinatesPropertiesPracticeSection ||
-    placeValueOperationsPracticeSection;
+    placeValueOperationsPracticeSection ||
+    fractionsFoundationsPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1626,7 +1656,9 @@ function buildTargetedPracticeRecommendation(
                 ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
                 : placeValueOperationsPracticeSection
                   ? NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE
-                  : null;
+                  : fractionsFoundationsPracticeSection
+                    ? NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE
+                    : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

@@ -1,6 +1,9 @@
 import {
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
+import type {
+  NumberAssessmentVisualSupport,
+} from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 
 export type NumberPracticeModuleSectionType =
   | "learn"
@@ -30,6 +33,7 @@ export type NumberPracticeTask = {
   supportPrompt?: string;
   misconceptionTargets: string[];
   relatedAssessmentItemIds?: string[];
+  visualSupport?: NumberAssessmentVisualSupport;
 };
 
 export type NumberPracticeSection = {
