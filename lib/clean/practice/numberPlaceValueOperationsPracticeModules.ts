@@ -69,6 +69,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
             "Read the places from left to right: thousands, hundreds, tens, ones.",
           misconceptionTargets: ["place-value-digit-value-error"],
           relatedAssessmentItemIds: ["place-value-ops-digit-value-001"],
+          visualSupport: {
+            type: "table",
+            description:
+              "Use a thousands-hundreds-tens-ones table to locate the digit 3.",
+          },
         },
         {
           id: "place-value-structure-expanded-match",
@@ -91,6 +96,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
             "place-value-digit-value-error",
           ],
           relatedAssessmentItemIds: ["place-value-ops-partition-match-002"],
+          visualSupport: {
+            type: "table",
+            description:
+              "Use a place-value table before matching each number to expanded form.",
+          },
         },
         {
           id: "place-value-structure-flexible-renaming",
@@ -119,6 +129,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-flexible-renaming-003",
           ],
+          visualSupport: {
+            type: "table",
+            description:
+              "Use a place-value table to rename thousands as hundreds.",
+          },
         },
       ],
     },
@@ -157,6 +172,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-comparison-correction-004",
           ],
+          visualSupport: {
+            type: "table",
+            description:
+              "Line both numbers up in a place-value table before comparing.",
+          },
         },
         {
           id: "comparing-ordering-order-numbers",
@@ -179,6 +199,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
             "whole-number-comparison-error",
           ],
           relatedAssessmentItemIds: ["place-value-ops-ordering-005"],
+          visualSupport: {
+            type: "number_line",
+            description:
+              "Place the four numbers on a number line after comparing place values.",
+          },
         },
         {
           id: "comparing-ordering-round-nearest-hundred",
@@ -193,6 +218,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
             "Identify the rounding place first, then look one place to the right.",
           misconceptionTargets: ["rounding-place-value-error"],
           relatedAssessmentItemIds: ["place-value-ops-rounding-gap-006"],
+          visualSupport: {
+            type: "number_line",
+            description:
+              "Show 7,649 between the nearest hundred benchmarks.",
+          },
         },
       ],
     },
@@ -231,6 +261,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-addition-working-007",
           ],
+          visualSupport: {
+            type: "table",
+            description:
+              "Use a hundreds-tens-ones table to combine like place-value parts.",
+          },
         },
         {
           id: "addition-subtraction-explain-subtraction",
@@ -260,6 +295,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-subtraction-working-008",
           ],
+          visualSupport: {
+            type: "table",
+            description:
+              "Use a place-value table to show renaming through the zero.",
+          },
         },
         {
           id: "addition-subtraction-missing-value",
@@ -279,6 +319,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-missing-equation-009",
           ],
+          visualSupport: {
+            type: "number_line",
+            description:
+              "Use an open number line to count on from 275 to 600.",
+          },
         },
       ],
     },
@@ -317,6 +362,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-array-classification-010",
           ],
+          visualSupport: {
+            type: "context_card",
+            description:
+              "Use equal-group and array cards to compare representations of 3 x 8.",
+          },
         },
         {
           id: "multiplication-division-sharing",
@@ -337,6 +387,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-division-sharing-011",
           ],
+          visualSupport: {
+            type: "context_card",
+            description:
+              "Show 48 counters shared into 6 equal groups.",
+          },
         },
         {
           id: "multiplication-division-best-explanation",
@@ -366,6 +421,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
           relatedAssessmentItemIds: [
             "place-value-ops-multiplication-explanation-012",
           ],
+          visualSupport: {
+            type: "context_card",
+            description:
+              "Compare an equal-groups card for 6 x 5 with an addition card for 6 + 5.",
+          },
         },
       ],
     },
@@ -387,6 +447,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
         "place-value-digit-value-error",
       ],
       relatedAssessmentItemIds: ["place-value-ops-partition-match-002"],
+      visualSupport: {
+        type: "table",
+        description:
+          "Use a place-value table and leave out the zero tens addend.",
+      },
     },
     {
       id: "mini-check-comparing-ordering-rounding",
@@ -401,6 +466,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
         "Find the thousands place, then look one digit to the right.",
       misconceptionTargets: ["rounding-place-value-error"],
       relatedAssessmentItemIds: ["place-value-ops-rounding-gap-006"],
+      visualSupport: {
+        type: "number_line",
+        description:
+          "Show 4,582 between 4,000 and 5,000 before rounding.",
+      },
     },
     {
       id: "mini-check-addition-subtraction",
@@ -420,6 +490,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
       relatedAssessmentItemIds: [
         "place-value-ops-missing-equation-009",
       ],
+      visualSupport: {
+        type: "number_line",
+        description:
+          "Use an open number line or inverse subtraction to find the missing value.",
+      },
     },
     {
       id: "mini-check-multiplication-division",
@@ -440,6 +515,11 @@ export const NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE: NumberPracticeModule
       relatedAssessmentItemIds: [
         "place-value-ops-division-sharing-011",
       ],
+      visualSupport: {
+        type: "context_card",
+        description:
+          "Show 54 pencils shared equally between 9 cups.",
+      },
     },
   ],
   evidenceSummaryTemplate:

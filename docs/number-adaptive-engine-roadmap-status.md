@@ -4,7 +4,7 @@
 
 This document records the current state of the MyLearna Number adaptive assessment-and-practice engine.
 
-It is a checkpoint before expanding further into lower Year 3-5 Number content and, later, into other Mathematics strands. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before more banks and practice modules are added.
+It is a checkpoint before adding the next foundation bank and, later, expanding into other Mathematics strands. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before more banks and practice modules are added.
 
 ## 2. Core Learning Loop
 
@@ -37,6 +37,11 @@ Legacy compatibility route:
 
 | Bank / focus | Progression band key | Assessment item file | Practice module file | Assessment item count | Sub-elements | Practice sections | Mini-check count | Status |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |
+| Place value and operations | `place-value-and-whole-number-operations` | `lib/clean/assessments/numberPlaceValueOperationsAssessmentItems.ts` | `lib/clean/practice/numberPlaceValueOperationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Additive strategies | `additive-strategies-and-problem-solving` | `lib/clean/assessments/numberAdditiveStrategiesAssessmentItems.ts` | `lib/clean/practice/numberAdditiveStrategiesPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Multiplication and division | `multiplication-division-fluency` | `lib/clean/assessments/numberMultiplicationDivisionFluencyAssessmentItems.ts` | `lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Fractions foundations | `fractions-foundations` | `lib/clean/assessments/numberFractionsFoundationsAssessmentItems.ts` | `lib/clean/practice/numberFractionsFoundationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
+| Decimals foundations | `decimals-foundations` | `lib/clean/assessments/numberDecimalsFoundationsAssessmentItems.ts` | `lib/clean/practice/numberDecimalsFoundationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Integers and coordinates | `integers-coordinates-number-properties` | `lib/clean/assessments/numberIntegersCoordinatesPropertiesAssessmentItems.ts` | `lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Rational operations | `rational-numbers-and-operations` | `lib/clean/assessments/numberRationalOperationsAssessmentItems.ts` | `lib/clean/practice/numberRationalOperationsPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
 | Terminating and recurring decimals | `terminating-recurring-rational-representations` | `lib/clean/assessments/numberTerminatingRecurringRationalAssessmentItems.ts` | `lib/clean/practice/numberTerminatingRecurringRationalPracticeModules.ts` | 12 | 4 | 4 | 4 | MVP loop complete |
@@ -165,29 +170,28 @@ Current boundaries:
 
 ## 12. Remaining Number Coverage
 
-The mapped middle/upper Number spine is now MVP-complete at loop level across the eight banks listed above.
+The mapped middle/upper Number spine is now MVP-complete at adaptive-loop level across the eight middle/upper banks listed above.
 
-Full Years 3-10 Number coverage is not complete yet. Lower and middle primary Number foundations still need to be built next, including:
+Year 3-5 foundation banks completed so far:
 
-- place value
-- whole-number operations
-- multiplication and division fluency
-- fraction foundations
-- decimal foundations
-- early equivalence
-- early multiplicative thinking
-- early patterns and relationships
+- Place value and operations
+- Additive strategies
+- Multiplication and division
+- Fractions foundations
+- Decimals foundations
+
+Full Years 3-10 Number coverage still needs a gap check before moving sideways into other strands. The next Number phase is identifying any remaining Year 3-5 Number gaps, such as early equivalence, early multiplicative thinking, early patterns and relationships, and other missing foundation concepts.
 
 ## 13. Recommended Next Build Phase
 
 Recommended next phase:
 
-1. Do a browser/manual QA pass across all eight current loops.
-2. Move downward into Year 3-5 Number foundations.
+1. Do a browser/manual QA pass across the current Number adaptive spine.
+2. Identify any remaining Year 3-5 Number gaps before adding more Number foundations.
 3. Continue planning the remaining production route names and Number launcher/dashboard shape.
-4. After Number is complete down to Year 3, move sideways into Measurement, Geometry/Space, Statistics, Probability, Algebra and other Mathematics strands.
+4. After the remaining Number gaps are clear, move sideways into Measurement, Geometry/Space, Statistics, Probability, Algebra and other Mathematics strands.
 
-The next content build should be lower Number foundations, using the current eight-loop middle/upper Number spine as the reusable model.
+The next content decision should be based on a gap check across the current Year 3-5 Number foundations and the completed middle/upper Number spine.
 
 ## 14. Open Questions
 
