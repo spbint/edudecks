@@ -26,6 +26,10 @@ import {
   NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPlaceValueOperationsAssessmentItems";
 import {
+  NUMBER_DECIMALS_FOUNDATIONS_ASSESSMENT_ITEMS,
+  NUMBER_DECIMALS_FOUNDATIONS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberDecimalsFoundationsAssessmentItems";
+import {
   NUMBER_FRACTIONS_FOUNDATIONS_ASSESSMENT_ITEMS,
   NUMBER_FRACTIONS_FOUNDATIONS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberFractionsFoundationsAssessmentItems";
@@ -49,6 +53,7 @@ import {
 export type NumberAssessmentBankKey =
   | "place-value-and-whole-number-operations"
   | "fractions-foundations"
+  | "decimals-foundations"
   | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
   | "terminating-recurring-rational-representations"
@@ -197,6 +202,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_FRACTIONS_FOUNDATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_FRACTIONS_FOUNDATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "decimals-foundations",
+    title: "Decimals foundations",
+    shortTitle: "Decimals foundations",
+    description:
+      "Checks decimal place value, tenths and hundredths, fraction-decimal connections, comparing, ordering and rounding decimals, and simple money or measurement contexts.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "decimals-foundations",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::decimals-foundations",
+    progressionBandKey: "decimals-foundations",
+    itemBankKey: NUMBER_DECIMALS_FOUNDATIONS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_DECIMALS_FOUNDATIONS_ASSESSMENT_ITEMS,
   },
   {
     key: "integers-coordinates-number-properties",
