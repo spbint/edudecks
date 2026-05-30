@@ -30,6 +30,7 @@ import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE } from "@/lib/cl
 import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
 import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
 import { NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberFractionsFoundationsPracticeModules";
+import { NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberDecimalsFoundationsPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -422,6 +423,28 @@ const FRACTIONS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "fraction-problem-solving-foundations": {
     sectionId: "fraction-problem-solving-foundations",
     sectionTitle: "Fraction problem-solving foundations",
+  },
+};
+
+const DECIMALS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "decimal-place-value": {
+    sectionId: "decimal-place-value",
+    sectionTitle: "Decimal place value",
+  },
+  "fraction-decimal-connections": {
+    sectionId: "fraction-decimal-connections",
+    sectionTitle: "Fraction and decimal connections",
+  },
+  "comparing-ordering-and-rounding-decimals": {
+    sectionId: "comparing-ordering-and-rounding-decimals",
+    sectionTitle: "Comparing, ordering and rounding decimals",
+  },
+  "decimal-problem-solving-foundations": {
+    sectionId: "decimal-problem-solving-foundations",
+    sectionTitle: "Decimal problem-solving foundations",
   },
 };
 
@@ -1627,6 +1650,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const decimalsFoundationsPracticeSection =
+    bankKey === "decimals-foundations"
+      ? DECIMALS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1637,7 +1666,8 @@ function buildTargetedPracticeRecommendation(
     percentRatioFinancePracticeSection ||
     integersCoordinatesPropertiesPracticeSection ||
     placeValueOperationsPracticeSection ||
-    fractionsFoundationsPracticeSection;
+    fractionsFoundationsPracticeSection ||
+    decimalsFoundationsPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1658,7 +1688,9 @@ function buildTargetedPracticeRecommendation(
                   ? NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE
                   : fractionsFoundationsPracticeSection
                     ? NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE
-                    : null;
+                    : decimalsFoundationsPracticeSection
+                      ? NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE
+                      : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
