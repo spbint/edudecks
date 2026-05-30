@@ -193,7 +193,7 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     title: "Terminating, recurring and rational representations",
     shortTitle: "Terminating and recurring decimals",
     description:
-      "Checks terminating decimals, recurring decimals, fraction-decimal conversions, and rational versus irrational decimal representations.",
+      "Checks terminating decimals, recurring decimals, fraction-decimal conversion, rational representations, and the rational/irrational decimal boundary.",
     yearBandLabel: "Years 7-9",
     subjectKey: "mathematics",
     strandKey: "number-and-place-value",
