@@ -39,6 +39,9 @@ import {
   getNumberMultiplicationDivisionFluencyPracticeModuleById,
 } from "@/lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules";
 import {
+  getNumberMoneyPracticalContextsPracticeModuleById,
+} from "@/lib/clean/practice/numberMoneyPracticalContextsPracticeModules";
+import {
   getNumberPatternsEarlyAlgebraPracticeModuleById,
 } from "@/lib/clean/practice/numberPatternsEarlyAlgebraPracticeModules";
 import {
@@ -339,6 +342,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberFractionsFoundationsPracticeModuleById(id) ||
     getNumberDecimalsFoundationsPracticeModuleById(id) ||
     getNumberMultiplicationDivisionFluencyPracticeModuleById(id) ||
+    getNumberMoneyPracticalContextsPracticeModuleById(id) ||
     getNumberPatternsEarlyAlgebraPracticeModuleById(id) ||
     getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id) ||

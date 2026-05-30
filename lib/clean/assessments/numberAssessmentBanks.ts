@@ -42,6 +42,10 @@ import {
   NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberMultiplicationDivisionFluencyAssessmentItems";
 import {
+  NUMBER_MONEY_PRACTICAL_CONTEXTS_ASSESSMENT_ITEMS,
+  NUMBER_MONEY_PRACTICAL_CONTEXTS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberMoneyPracticalContextsAssessmentItems";
+import {
   NUMBER_PATTERNS_EARLY_ALGEBRA_ASSESSMENT_ITEMS,
   NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPatternsEarlyAlgebraAssessmentItems";
@@ -69,6 +73,7 @@ export type NumberAssessmentBankKey =
   | "number-patterns-and-early-algebraic-thinking"
   | "fractions-foundations"
   | "decimals-foundations"
+  | "money-and-practical-number-contexts"
   | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
   | "terminating-recurring-rational-representations"
@@ -289,6 +294,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_DECIMALS_FOUNDATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_DECIMALS_FOUNDATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "money-and-practical-number-contexts",
+    title: "Money and practical number contexts",
+    shortTitle: "Money and practical contexts",
+    description:
+      "Checks money values, dollars and cents, totals, change, practical measurement and time contexts, budgeting, estimation and reasonableness.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "money-and-practical-number-contexts",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::money-and-practical-number-contexts",
+    progressionBandKey: "money-and-practical-number-contexts",
+    itemBankKey: NUMBER_MONEY_PRACTICAL_CONTEXTS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_MONEY_PRACTICAL_CONTEXTS_ASSESSMENT_ITEMS,
   },
   {
     key: "integers-coordinates-number-properties",
