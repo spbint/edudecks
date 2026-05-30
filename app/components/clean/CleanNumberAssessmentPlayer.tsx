@@ -31,6 +31,7 @@ import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practi
 import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
 import { NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberFractionsFoundationsPracticeModules";
 import { NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberDecimalsFoundationsPracticeModules";
+import { NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE } from "@/lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -445,6 +446,28 @@ const DECIMALS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "decimal-problem-solving-foundations": {
     sectionId: "decimal-problem-solving-foundations",
     sectionTitle: "Decimal problem-solving foundations",
+  },
+};
+
+const MULTIPLICATION_DIVISION_FLUENCY_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "multiplication-facts-and-arrays": {
+    sectionId: "multiplication-facts-and-arrays",
+    sectionTitle: "Multiplication facts and arrays",
+  },
+  "division-facts-and-equal-groups": {
+    sectionId: "division-facts-and-equal-groups",
+    sectionTitle: "Division facts and equal groups",
+  },
+  "fact-families-and-inverse-relationships": {
+    sectionId: "fact-families-and-inverse-relationships",
+    sectionTitle: "Fact families and inverse relationships",
+  },
+  "multiplicative-problem-solving": {
+    sectionId: "multiplicative-problem-solving",
+    sectionTitle: "Multiplicative problem solving",
   },
 };
 
@@ -1656,6 +1679,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const multiplicationDivisionFluencyPracticeSection =
+    bankKey === "multiplication-division-fluency"
+      ? MULTIPLICATION_DIVISION_FLUENCY_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1667,7 +1696,8 @@ function buildTargetedPracticeRecommendation(
     integersCoordinatesPropertiesPracticeSection ||
     placeValueOperationsPracticeSection ||
     fractionsFoundationsPracticeSection ||
-    decimalsFoundationsPracticeSection;
+    decimalsFoundationsPracticeSection ||
+    multiplicationDivisionFluencyPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1690,7 +1720,9 @@ function buildTargetedPracticeRecommendation(
                     ? NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE
                     : decimalsFoundationsPracticeSection
                       ? NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE
-                      : null;
+                      : multiplicationDivisionFluencyPracticeSection
+                        ? NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE
+                        : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

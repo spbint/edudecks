@@ -33,6 +33,9 @@ import {
   getNumberDecimalsFoundationsPracticeModuleById,
 } from "@/lib/clean/practice/numberDecimalsFoundationsPracticeModules";
 import {
+  getNumberMultiplicationDivisionFluencyPracticeModuleById,
+} from "@/lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules";
+import {
   getNumberRationalOperationsPracticeModuleById,
 } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import {
@@ -328,6 +331,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberPlaceValueOperationsPracticeModuleById(id) ||
     getNumberFractionsFoundationsPracticeModuleById(id) ||
     getNumberDecimalsFoundationsPracticeModuleById(id) ||
+    getNumberMultiplicationDivisionFluencyPracticeModuleById(id) ||
     getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id) ||
     getNumberTerminatingRecurringRationalPracticeModuleById(id)
