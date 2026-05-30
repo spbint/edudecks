@@ -25,6 +25,7 @@ import type {
   NumberAssessmentItemDifficulty,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
 import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numberApproximationPracticeModules";
+import { NUMBER_ADDITIVE_STRATEGIES_PRACTICE_MODULE } from "@/lib/clean/practice/numberAdditiveStrategiesPracticeModules";
 import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE } from "@/lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules";
 import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
@@ -446,6 +447,28 @@ const DECIMALS_FOUNDATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
   "decimal-problem-solving-foundations": {
     sectionId: "decimal-problem-solving-foundations",
     sectionTitle: "Decimal problem-solving foundations",
+  },
+};
+
+const ADDITIVE_STRATEGIES_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "mental-addition-strategies": {
+    sectionId: "mental-addition-strategies",
+    sectionTitle: "Mental addition strategies",
+  },
+  "mental-subtraction-strategies": {
+    sectionId: "mental-subtraction-strategies",
+    sectionTitle: "Mental subtraction strategies",
+  },
+  "written-addition-and-subtraction": {
+    sectionId: "written-addition-and-subtraction",
+    sectionTitle: "Written addition and subtraction",
+  },
+  "additive-problem-solving": {
+    sectionId: "additive-problem-solving",
+    sectionTitle: "Additive problem solving",
   },
 };
 
@@ -1679,6 +1702,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const additiveStrategiesPracticeSection =
+    bankKey === "additive-strategies-and-problem-solving"
+      ? ADDITIVE_STRATEGIES_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const multiplicationDivisionFluencyPracticeSection =
     bankKey === "multiplication-division-fluency"
       ? MULTIPLICATION_DIVISION_FLUENCY_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
@@ -1695,6 +1724,7 @@ function buildTargetedPracticeRecommendation(
     percentRatioFinancePracticeSection ||
     integersCoordinatesPropertiesPracticeSection ||
     placeValueOperationsPracticeSection ||
+    additiveStrategiesPracticeSection ||
     fractionsFoundationsPracticeSection ||
     decimalsFoundationsPracticeSection ||
     multiplicationDivisionFluencyPracticeSection;
@@ -1716,13 +1746,15 @@ function buildTargetedPracticeRecommendation(
                 ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
                 : placeValueOperationsPracticeSection
                   ? NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE
-                  : fractionsFoundationsPracticeSection
-                    ? NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE
-                    : decimalsFoundationsPracticeSection
-                      ? NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE
-                      : multiplicationDivisionFluencyPracticeSection
-                        ? NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE
-                        : null;
+                  : additiveStrategiesPracticeSection
+                    ? NUMBER_ADDITIVE_STRATEGIES_PRACTICE_MODULE
+                    : fractionsFoundationsPracticeSection
+                      ? NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE
+                      : decimalsFoundationsPracticeSection
+                        ? NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE
+                        : multiplicationDivisionFluencyPracticeSection
+                          ? NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE
+                          : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

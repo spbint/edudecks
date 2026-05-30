@@ -5,6 +5,10 @@ import {
   type NumberAssessmentOpenResponseReview,
   type NumberAssessmentVisualSupport,
 } from "@/lib/clean/assessments/numberApproximationAssessmentItems";
+import {
+  NUMBER_ADDITIVE_STRATEGIES_ASSESSMENT_ITEMS,
+  NUMBER_ADDITIVE_STRATEGIES_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberAdditiveStrategiesAssessmentItems";
 import type {
   CleanAssessmentStageKey,
   CleanAssessmentSubjectKey,
@@ -56,6 +60,7 @@ import {
 
 export type NumberAssessmentBankKey =
   | "place-value-and-whole-number-operations"
+  | "additive-strategies-and-problem-solving"
   | "multiplication-division-fluency"
   | "fractions-foundations"
   | "decimals-foundations"
@@ -189,6 +194,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_PLACE_VALUE_OPERATIONS_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "additive-strategies-and-problem-solving",
+    title: "Additive strategies and problem solving",
+    shortTitle: "Additive strategies",
+    description:
+      "Checks mental addition and subtraction strategies, written addition and subtraction, regrouping, missing-number equations and additive problem solving.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "additive-strategies-and-problem-solving",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::additive-strategies-and-problem-solving",
+    progressionBandKey: "additive-strategies-and-problem-solving",
+    itemBankKey: NUMBER_ADDITIVE_STRATEGIES_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_ADDITIVE_STRATEGIES_ASSESSMENT_ITEMS,
   },
   {
     key: "multiplication-division-fluency",
