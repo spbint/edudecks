@@ -22,6 +22,10 @@ import {
   NUMBER_PERCENT_RATIO_FINANCE_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPercentRatioFinanceAssessmentItems";
 import {
+  NUMBER_PLACE_VALUE_OPERATIONS_ASSESSMENT_ITEMS,
+  NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberPlaceValueOperationsAssessmentItems";
+import {
   NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
@@ -39,6 +43,7 @@ import {
 } from "@/lib/clean/assessments/numberSurdsExactAssessmentItems";
 
 export type NumberAssessmentBankKey =
+  | "place-value-and-whole-number-operations"
   | "integers-coordinates-number-properties"
   | "rational-numbers-and-operations"
   | "terminating-recurring-rational-representations"
@@ -152,6 +157,24 @@ const NUMBER_APPROXIMATION_ITEM_BANK_KEY =
 // These pathway step ids are stable prototype keys until matching canonical
 // Years 9-10 Number steps are added to the pathway registry.
 export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
+  {
+    key: "place-value-and-whole-number-operations",
+    title: "Place value and whole-number operations",
+    shortTitle: "Place value and operations",
+    description:
+      "Checks place value, number structure, comparing, ordering, rounding, addition and subtraction strategies, and multiplication and division foundations.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "place-value-and-whole-number-operations",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::place-value-and-whole-number-operations",
+    progressionBandKey: "place-value-and-whole-number-operations",
+    itemBankKey: NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_PLACE_VALUE_OPERATIONS_ASSESSMENT_ITEMS,
+  },
   {
     key: "integers-coordinates-number-properties",
     title: "Integers, coordinates and number properties",
