@@ -4,7 +4,7 @@
 
 This document records the current state of the MyLearna Number adaptive assessment-and-practice engine.
 
-It is a checkpoint before expanding further into lower Grades 3-6 Number content or into other Mathematics strands. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before more banks and practice modules are added.
+It is a checkpoint before expanding further into lower Year 3-5 Number content and, later, into other Mathematics strands. The aim is to keep the current architecture, content coverage, persistence boundaries, and next decisions clear before more banks and practice modules are added.
 
 ## 2. Core Learning Loop
 
@@ -167,7 +167,7 @@ Current boundaries:
 
 The mapped middle/upper Number spine is now MVP-complete at loop level across the eight banks listed above.
 
-Full Grades 3-10 Number coverage is not complete yet. Lower and middle primary Number foundations still need to be built later, including:
+Full Years 3-10 Number coverage is not complete yet. Lower and middle primary Number foundations still need to be built next, including:
 
 - place value
 - whole-number operations
@@ -182,15 +182,12 @@ Full Grades 3-10 Number coverage is not complete yet. Lower and middle primary N
 
 Recommended next phase:
 
-1. Pause major content expansion briefly.
-2. Do a browser/manual QA pass across all eight loops.
-3. Continue planning the remaining production route names.
-4. Decide whether to:
-   - move downward into Grades 3-6 Number foundations,
-   - polish the current Number assessment/practice UX and persistence, or
-   - begin Measurement, Space/Geometry, Statistics or Probability.
+1. Do a browser/manual QA pass across all eight current loops.
+2. Move downward into Year 3-5 Number foundations.
+3. Continue planning the remaining production route names and Number launcher/dashboard shape.
+4. After Number is complete down to Year 3, move sideways into Measurement, Geometry/Space, Statistics, Probability, Algebra and other Mathematics strands.
 
-A sensible next content build is lower Number foundations, but only after a short review pass confirms the current eight-loop Number spine works well enough for continued replication.
+The next content build should be lower Number foundations, using the current eight-loop middle/upper Number spine as the reusable model.
 
 ## 14. Open Questions
 
@@ -199,6 +196,6 @@ A sensible next content build is lower Number foundations, but only after a shor
 - When should assessment/practice become evidence?
 - What is the production route structure?
 - Should there be a Number dashboard/launcher as the long-term entry point?
-- How should lower Grades 3-6 represent visual/concrete concepts?
+- How should lower Years 3-5 represent visual/concrete concepts?
 - When should video lessons become a premium layer?
 - How should sub-element mastery roll up into pathway progress?

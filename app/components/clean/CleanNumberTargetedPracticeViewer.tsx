@@ -736,9 +736,9 @@ export default function CleanNumberTargetedPracticeViewer() {
               This practice module is not connected yet.
             </h1>
             <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                The assessment recommendation was received, but this practice route only
+              The assessment recommendation was received, but this practice route only
               supports connected Number practice modules for now.
-              </div>
+            </div>
           </div>
         ) : null}
 
