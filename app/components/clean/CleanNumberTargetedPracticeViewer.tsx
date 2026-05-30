@@ -24,6 +24,9 @@ import {
   getNumberPercentRatioFinancePracticeModuleById,
 } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
 import {
+  getNumberPlaceValueOperationsPracticeModuleById,
+} from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
+import {
   getNumberRationalOperationsPracticeModuleById,
 } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import {
@@ -316,6 +319,7 @@ function getTargetedNumberPracticeModuleById(id: string) {
     getNumberIrrationalRealPracticeModuleById(id) ||
     getNumberIntegersCoordinatesPropertiesPracticeModuleById(id) ||
     getNumberPercentRatioFinancePracticeModuleById(id) ||
+    getNumberPlaceValueOperationsPracticeModuleById(id) ||
     getNumberRationalOperationsPracticeModuleById(id) ||
     getNumberSurdsExactPracticeModuleById(id) ||
     getNumberTerminatingRecurringRationalPracticeModuleById(id)

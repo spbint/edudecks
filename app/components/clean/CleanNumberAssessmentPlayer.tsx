@@ -28,6 +28,7 @@ import { NUMBER_APPROXIMATION_PRACTICE_MODULE } from "@/lib/clean/practice/numbe
 import { NUMBER_IRRATIONAL_REAL_PRACTICE_MODULE } from "@/lib/clean/practice/numberIrrationalRealPracticeModules";
 import { NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE } from "@/lib/clean/practice/numberIntegersCoordinatesPropertiesPracticeModules";
 import { NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE } from "@/lib/clean/practice/numberPercentRatioFinancePracticeModules";
+import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -376,6 +377,28 @@ const INTEGERS_COORDINATES_PROPERTIES_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: 
   "primes-composites-and-number-properties": {
     sectionId: "primes-composites-and-number-properties",
     sectionTitle: "Primes, composites and number properties",
+  },
+};
+
+const PLACE_VALUE_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "place-value-and-number-structure": {
+    sectionId: "place-value-and-number-structure",
+    sectionTitle: "Place value and number structure",
+  },
+  "comparing-ordering-and-rounding": {
+    sectionId: "comparing-ordering-and-rounding",
+    sectionTitle: "Comparing, ordering and rounding",
+  },
+  "addition-and-subtraction-strategies": {
+    sectionId: "addition-and-subtraction-strategies",
+    sectionTitle: "Addition and subtraction strategies",
+  },
+  "multiplication-and-division-foundations": {
+    sectionId: "multiplication-and-division-foundations",
+    sectionTitle: "Multiplication and division foundations",
   },
 };
 
@@ -1569,6 +1592,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const placeValueOperationsPracticeSection =
+    bankKey === "place-value-and-whole-number-operations"
+      ? PLACE_VALUE_OPERATIONS_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1577,7 +1606,8 @@ function buildTargetedPracticeRecommendation(
     rationalOperationsPracticeSection ||
     terminatingRecurringRationalPracticeSection ||
     percentRatioFinancePracticeSection ||
-    integersCoordinatesPropertiesPracticeSection;
+    integersCoordinatesPropertiesPracticeSection ||
+    placeValueOperationsPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1594,7 +1624,9 @@ function buildTargetedPracticeRecommendation(
               ? NUMBER_PERCENT_RATIO_FINANCE_PRACTICE_MODULE
               : integersCoordinatesPropertiesPracticeSection
                 ? NUMBER_INTEGERS_COORDINATES_PROPERTIES_PRACTICE_MODULE
-                : null;
+                : placeValueOperationsPracticeSection
+                  ? NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE
+                  : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {
