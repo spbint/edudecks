@@ -33,6 +33,7 @@ import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/pract
 import { NUMBER_FRACTIONS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberFractionsFoundationsPracticeModules";
 import { NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberDecimalsFoundationsPracticeModules";
 import { NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE } from "@/lib/clean/practice/numberMultiplicationDivisionFluencyPracticeModules";
+import { NUMBER_PATTERNS_EARLY_ALGEBRA_PRACTICE_MODULE } from "@/lib/clean/practice/numberPatternsEarlyAlgebraPracticeModules";
 import { NUMBER_POWERS_ROOTS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 import { NUMBER_RATIONAL_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberRationalOperationsPracticeModules";
 import { NUMBER_SURDS_EXACT_PRACTICE_MODULE } from "@/lib/clean/practice/numberSurdsExactPracticeModules";
@@ -491,6 +492,28 @@ const MULTIPLICATION_DIVISION_FLUENCY_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: 
   "multiplicative-problem-solving": {
     sectionId: "multiplicative-problem-solving",
     sectionTitle: "Multiplicative problem solving",
+  },
+};
+
+const PATTERNS_EARLY_ALGEBRA_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT: Record<
+  string,
+  { sectionId: string; sectionTitle: string }
+> = {
+  "skip-counting-and-number-sequences": {
+    sectionId: "skip-counting-and-number-sequences",
+    sectionTitle: "Skip-counting and number sequences",
+  },
+  "growing-and-shrinking-patterns": {
+    sectionId: "growing-and-shrinking-patterns",
+    sectionTitle: "Growing and shrinking patterns",
+  },
+  "input-output-rules-and-tables": {
+    sectionId: "input-output-rules-and-tables",
+    sectionTitle: "Input-output rules and tables",
+  },
+  "missing-numbers-and-simple-equations": {
+    sectionId: "missing-numbers-and-simple-equations",
+    sectionTitle: "Missing numbers and simple equations",
   },
 };
 
@@ -1714,6 +1737,12 @@ function buildTargetedPracticeRecommendation(
           selected.subElementKey
         ] ?? null
       : null;
+  const patternsEarlyAlgebraPracticeSection =
+    bankKey === "number-patterns-and-early-algebraic-thinking"
+      ? PATTERNS_EARLY_ALGEBRA_TARGETED_PRACTICE_SECTION_BY_SUB_ELEMENT[
+          selected.subElementKey
+        ] ?? null
+      : null;
   const mappedPracticeSection =
     powersRootsPracticeSection ||
     approximationPracticeSection ||
@@ -1727,7 +1756,8 @@ function buildTargetedPracticeRecommendation(
     additiveStrategiesPracticeSection ||
     fractionsFoundationsPracticeSection ||
     decimalsFoundationsPracticeSection ||
-    multiplicationDivisionFluencyPracticeSection;
+    multiplicationDivisionFluencyPracticeSection ||
+    patternsEarlyAlgebraPracticeSection;
   const mappedPracticeModule = powersRootsPracticeSection
     ? NUMBER_POWERS_ROOTS_PRACTICE_MODULE
     : approximationPracticeSection
@@ -1754,7 +1784,9 @@ function buildTargetedPracticeRecommendation(
                         ? NUMBER_DECIMALS_FOUNDATIONS_PRACTICE_MODULE
                         : multiplicationDivisionFluencyPracticeSection
                           ? NUMBER_MULTIPLICATION_DIVISION_FLUENCY_PRACTICE_MODULE
-                          : null;
+                          : patternsEarlyAlgebraPracticeSection
+                            ? NUMBER_PATTERNS_EARLY_ALGEBRA_PRACTICE_MODULE
+                            : null;
   const hasMappedPractice = Boolean(mappedPracticeSection && mappedPracticeModule);
 
   return {

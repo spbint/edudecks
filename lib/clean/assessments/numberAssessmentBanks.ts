@@ -42,6 +42,10 @@ import {
   NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberMultiplicationDivisionFluencyAssessmentItems";
 import {
+  NUMBER_PATTERNS_EARLY_ALGEBRA_ASSESSMENT_ITEMS,
+  NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY,
+} from "@/lib/clean/assessments/numberPatternsEarlyAlgebraAssessmentItems";
+import {
   NUMBER_POWERS_ROOTS_ASSESSMENT_ITEMS,
   NUMBER_POWERS_ROOTS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPowersRootsAssessmentItems";
@@ -62,6 +66,7 @@ export type NumberAssessmentBankKey =
   | "place-value-and-whole-number-operations"
   | "additive-strategies-and-problem-solving"
   | "multiplication-division-fluency"
+  | "number-patterns-and-early-algebraic-thinking"
   | "fractions-foundations"
   | "decimals-foundations"
   | "integers-coordinates-number-properties"
@@ -230,6 +235,24 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
     itemBankKey: NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ITEM_BANK_KEY,
     sourceRoute: "/assessments/number",
     items: NUMBER_MULTIPLICATION_DIVISION_FLUENCY_ASSESSMENT_ITEMS,
+  },
+  {
+    key: "number-patterns-and-early-algebraic-thinking",
+    title: "Number patterns and early algebraic thinking",
+    shortTitle: "Number patterns",
+    description:
+      "Checks skip-counting, growing and shrinking patterns, input-output rules, missing numbers and simple equation thinking.",
+    yearBandLabel: "Years 3-5",
+    subjectKey: "mathematics",
+    strandKey: "number-and-place-value",
+    stageKey: "middle-primary",
+    stepKey: "number-patterns-and-early-algebraic-thinking",
+    pathwayStepId:
+      "mathematics::number-and-place-value::middle-primary::number-patterns-and-early-algebraic-thinking",
+    progressionBandKey: "number-patterns-and-early-algebraic-thinking",
+    itemBankKey: NUMBER_PATTERNS_EARLY_ALGEBRA_ITEM_BANK_KEY,
+    sourceRoute: "/assessments/number",
+    items: NUMBER_PATTERNS_EARLY_ALGEBRA_ASSESSMENT_ITEMS,
   },
   {
     key: "fractions-foundations",
