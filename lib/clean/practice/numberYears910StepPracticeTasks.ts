@@ -1,7 +1,7 @@
-import { NUMBER_UPPER_PRIMARY_STEP_ASSESSMENTS } from "@/lib/clean/assessments/numberUpperPrimaryStepAssessments";
+import { NUMBER_YEARS_9_10_STEP_ASSESSMENTS } from "@/lib/clean/assessments/numberYears910StepAssessments";
 import type { NumberPracticeTask } from "@/lib/clean/practice/numberPowersRootsPracticeModules";
 
-export type UpperPrimaryStepPracticeDefinition = {
+export type Years910StepPracticeDefinition = {
   key: string;
   stepNumber: number;
   stepKey: string;
@@ -20,29 +20,26 @@ function visual(description: string) {
 }
 
 function moduleFor(parentBankKey: string) {
-  if (parentBankKey === "additive-strategies-and-problem-solving") {
-    return { id: "number-additive-strategies-practice-module-v1", title: "Additive strategies and problem solving" };
+  if (parentBankKey === "powers-roots-exponent-notation") {
+    return { id: "number-powers-roots-practice-module-v1", title: "Powers and roots" };
   }
-  if (parentBankKey === "multiplication-division-fluency") {
-    return { id: "number-multiplication-division-fluency-practice-module-v1", title: "Multiplication and division fluency" };
-  }
-  if (parentBankKey === "fractions-foundations") {
-    return { id: "number-fractions-foundations-practice-module-v1", title: "Fractions foundations" };
-  }
-  if (parentBankKey === "decimals-foundations") {
-    return { id: "number-decimals-foundations-practice-module-v1", title: "Decimals foundations" };
+  if (parentBankKey === "surds-and-exact-form") {
+    return { id: "number-surds-exact-practice-module-v1", title: "Surds and exact form" };
   }
   if (parentBankKey === "percentages-ratio-financial-modelling") {
     return { id: "number-percent-ratio-finance-practice-module-v1", title: "Percent, ratio and finance" };
   }
-  if (parentBankKey === "money-and-practical-number-contexts") {
-    return { id: "number-money-practical-contexts-practice-module-v1", title: "Money and practical contexts" };
+  if (parentBankKey === "integers-coordinates-number-properties") {
+    return { id: "number-integers-coordinates-properties-practice-module-v1", title: "Integers and coordinates" };
   }
-  return { id: "number-place-value-operations-practice-module-v1", title: "Place value and operations" };
+  if (parentBankKey === "approximation-estimation-error") {
+    return { id: "number-approximation-practice-module-v1", title: "Approximation and error" };
+  }
+  return { id: "number-rational-operations-practice-module-v1", title: "Rational operations" };
 }
 
 function makeTask(
-  assessment: (typeof NUMBER_UPPER_PRIMARY_STEP_ASSESSMENTS)[number],
+  assessment: (typeof NUMBER_YEARS_9_10_STEP_ASSESSMENTS)[number],
   index: number,
 ): NumberPracticeTask {
   const assessmentItem = assessment.items[index];
@@ -56,19 +53,19 @@ function makeTask(
     expectedAnswer,
     acceptableAnswers: assessmentItem.acceptableAnswers,
     supportPrompt:
-      "Use the model, table or number cards first. Then choose the matching answer.",
+      "Use the visual model, table or context card first. Then choose the matching answer.",
     workedSolution: `The matching answer is ${expectedAnswer}.`,
     misconceptionTargets: assessmentItem.misconceptionTargets,
     relatedAssessmentItemIds: [assessmentItem.id],
     visualSupport: visual(
       assessmentItem.visualSupport?.description ||
-        "early-number|caption=Use the visual support.|numbers=1,2,3",
+        "early-number|caption=Use the number model.|numbers=1,2,3",
     ),
   };
 }
 
-export const NUMBER_UPPER_PRIMARY_STEP_PRACTICES =
-  NUMBER_UPPER_PRIMARY_STEP_ASSESSMENTS.map((assessment) => {
+export const NUMBER_YEARS_9_10_STEP_PRACTICES =
+  NUMBER_YEARS_9_10_STEP_ASSESSMENTS.map((assessment) => {
     const parentModule = moduleFor(assessment.parentBankKey);
     return {
       key: `number-step-${assessment.stepNumber}-${assessment.stepKey}-practice-v1`,
@@ -83,4 +80,4 @@ export const NUMBER_UPPER_PRIMARY_STEP_PRACTICES =
       relatedStepAssessmentKey: assessment.key,
       tasks: assessment.items.map((_, index) => makeTask(assessment, index)),
     };
-  }) satisfies UpperPrimaryStepPracticeDefinition[];
+  }) satisfies Years910StepPracticeDefinition[];
