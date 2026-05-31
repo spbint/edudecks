@@ -11,6 +11,9 @@ import {
   NUMBER_MIDDLE_PRIMARY_STEP_ASSESSMENTS,
 } from "@/lib/clean/assessments/numberMiddlePrimaryStepAssessments";
 import {
+  NUMBER_UPPER_PRIMARY_STEP_ASSESSMENTS,
+} from "@/lib/clean/assessments/numberUpperPrimaryStepAssessments";
+import {
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_KEY,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PATHWAY_STEP_ID,
@@ -103,6 +106,25 @@ export const NUMBER_STEP_ASSESSMENTS: NumberStepAssessment[] = [
     subjectKey: "mathematics" as const,
     strandKey: "number-and-place-value" as const,
     stageKey: "middle-primary" as const,
+    parentBankKey: assessment.parentBankKey,
+    parentBankTitle: assessment.parentBankTitle,
+    parentItemBankKey: assessment.parentItemBankKey,
+    progressionBandKey: assessment.progressionBandKey,
+    sourceRoute: "/assessments/number",
+    depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
+    items: assessment.items,
+  })),
+  ...NUMBER_UPPER_PRIMARY_STEP_ASSESSMENTS.map((assessment) => ({
+    key: assessment.key,
+    stepNumber: assessment.stepNumber,
+    stepKey: assessment.stepKey,
+    pathwayStepId: assessment.pathwayStepId,
+    title: assessment.title,
+    shortTitle: assessment.shortTitle,
+    description: assessment.description,
+    subjectKey: "mathematics" as const,
+    strandKey: "number-and-place-value" as const,
+    stageKey: "upper-primary" as const,
     parentBankKey: assessment.parentBankKey,
     parentBankTitle: assessment.parentBankTitle,
     parentItemBankKey: assessment.parentItemBankKey,
