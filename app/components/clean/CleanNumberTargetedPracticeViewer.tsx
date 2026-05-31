@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type React from "react";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
@@ -160,6 +160,16 @@ function safe(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function getSafeLocalHref(value: unknown) {
+  const href = safe(value);
+
+  if (!href || !href.startsWith("/") || href.startsWith("//")) {
+    return "";
+  }
+
+  return href;
+}
+
 type PracticeTaskResult =
   | "not_checked"
   | "correct"
@@ -283,6 +293,7 @@ type SourcePracticeContext = {
   sourceAssessmentBand: string;
   sourceProgressionStep: string;
   sourceSubElement: string;
+  returnTo: string;
 };
 
 function buildSectionHref(
@@ -324,7 +335,46 @@ function buildSectionHref(
     params.set("sourceSubElement", sourceContext.sourceSubElement);
   }
 
+  if (sourceContext.returnTo) {
+    params.set("returnTo", sourceContext.returnTo);
+  }
+
   return `/practice/number-targeted?${params.toString()}`;
+}
+
+function buildAssessmentHref(sourceContext: SourcePracticeContext) {
+  const params = new URLSearchParams();
+
+  if (sourceContext.subjectKey) {
+    params.set("subjectKey", sourceContext.subjectKey);
+  }
+
+  if (sourceContext.strandKey) {
+    params.set("strandKey", sourceContext.strandKey);
+  }
+
+  if (sourceContext.stageKey) {
+    params.set("stageKey", sourceContext.stageKey);
+  }
+
+  if (sourceContext.pathwayStepId) {
+    params.set("pathwayStepId", sourceContext.pathwayStepId);
+  }
+
+  if (sourceContext.stepKey) {
+    params.set("stepKey", sourceContext.stepKey);
+  }
+
+  if (sourceContext.sourceAssessmentBand) {
+    params.set("progressionBandKey", sourceContext.sourceAssessmentBand);
+  }
+
+  if (sourceContext.returnTo) {
+    params.set("returnTo", sourceContext.returnTo);
+  }
+
+  const query = params.toString();
+  return query ? `/assessments/number?${query}` : "/assessments/number";
 }
 
 function findSection(practiceModule: NumberPracticeModule, sectionId: string) {
@@ -693,6 +743,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     searchParams.get("sourceProgressionStep"),
   );
   const sourceSubElement = safe(searchParams.get("sourceSubElement"));
+  const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
   const sourceContext: SourcePracticeContext = {
     subjectKey,
     strandKey,
@@ -702,6 +753,7 @@ export default function CleanNumberTargetedPracticeViewer() {
     sourceAssessmentBand,
     sourceProgressionStep,
     sourceSubElement,
+    returnTo,
   };
   const practiceModule =
     getTargetedNumberPracticeModuleById(requestedModuleId) ||
@@ -715,14 +767,8 @@ export default function CleanNumberTargetedPracticeViewer() {
       )
     : null;
   const unsupportedModule = requestedModuleId && !practiceModule;
-  const selectedSectionTasks = useMemo(
-    () => selectedSection?.tasks ?? [],
-    [selectedSection],
-  );
-  const miniCheckTasks = useMemo(
-    () => practiceModule?.miniCheck ?? [],
-    [practiceModule],
-  );
+  const selectedSectionTasks = selectedSection?.tasks ?? [];
+  const miniCheckTasks = practiceModule?.miniCheck ?? [];
 
   function updateTaskResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -756,9 +802,14 @@ export default function CleanNumberTargetedPracticeViewer() {
     <main style={shellStyle}>
       <div style={wrapStyle}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Link href="/assessments/number" style={secondaryButtonStyle}>
+          <Link href={buildAssessmentHref(sourceContext)} style={secondaryButtonStyle}>
             Return to assessment
           </Link>
+          {returnTo ? (
+            <Link href={returnTo} style={secondaryButtonStyle}>
+              Return to pathway
+            </Link>
+          ) : null}
         </div>
 
         {unsupportedModule ? (

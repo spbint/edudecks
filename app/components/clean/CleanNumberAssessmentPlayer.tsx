@@ -1880,6 +1880,7 @@ function buildTargetedPracticeRecommendation(
 
 function buildTargetedPracticeHref(
   recommendation: LocalTargetedPracticeRecommendation,
+  returnTo?: string,
 ) {
   if (
     recommendation.status !== "available" ||
@@ -1902,7 +1903,21 @@ function buildTargetedPracticeHref(
     sourceSubElement: recommendation.subElementKey,
   });
 
+  if (returnTo) {
+    params.set("returnTo", returnTo);
+  }
+
   return `/practice/number-targeted?${params.toString()}`;
+}
+
+function getSafeLocalHref(value: unknown) {
+  const href = String(value ?? "").trim();
+
+  if (!href || !href.startsWith("/") || href.startsWith("//")) {
+    return "";
+  }
+
+  return href;
 }
 
 function buildAdaptiveInsightSummary(
@@ -2222,6 +2237,7 @@ function CleanNumberAssessmentPlayerBody() {
     searchParams.get("subjectKey") === "mathematics" &&
     searchParams.get("strandKey") === "number-and-place-value";
   const incomingLearnerId = String(searchParams.get("learnerId") || "").trim();
+  const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
     incomingBank?.key || NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
@@ -2263,6 +2279,9 @@ function CleanNumberAssessmentPlayerBody() {
     () => buildAdaptiveInsightSummary(selectedBank.key, items, responses),
     [items, responses, selectedBank.key],
   );
+  const targetedPracticeHref = summary.targetedPracticeRecommendation
+    ? buildTargetedPracticeHref(summary.targetedPracticeRecommendation, returnTo)
+    : "";
   const assessmentBankGroups = useMemo(
     () => [
       {
@@ -3357,13 +3376,9 @@ function CleanNumberAssessmentPlayerBody() {
                         alignItems: "center",
                       }}
                     >
-                      {buildTargetedPracticeHref(
-                        summary.targetedPracticeRecommendation,
-                      ) ? (
+                      {targetedPracticeHref ? (
                         <Link
-                          href={buildTargetedPracticeHref(
-                            summary.targetedPracticeRecommendation,
-                          )}
+                          href={targetedPracticeHref}
                           style={buttonStyle}
                         >
                           Start targeted practice
@@ -3525,6 +3540,25 @@ function CleanNumberAssessmentPlayerBody() {
                     {getParentJudgementLabel(parentJudgement)}.
                   </div>
                 ) : null}
+              </div>
+
+              <div style={helperCardStyle}>
+                <div style={eyebrowStyle}>Next decisions</div>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  This check is an assessment signal. Use it to inform confidence,
+                  practise the recommended focus, or return to the pathway to capture
+                  evidence if you want this learning included in the portfolio or reports.
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {returnTo ? (
+                    <Link href={returnTo} style={secondaryButtonStyle}>
+                      Return to pathway
+                    </Link>
+                  ) : null}
+                  <Link href="/my-pathways" style={secondaryButtonStyle}>
+                    Open My Pathways
+                  </Link>
+                </div>
               </div>
 
               <div style={highlightCardStyle}>

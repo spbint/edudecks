@@ -167,6 +167,8 @@ Current boundaries:
 
 - Assessment attempts save, but do not update confidence.
 - My Assessments can show saved automatically checked Number attempts, but keeps them separate from confidence counts and evidence/report/curriculum claims.
+- My Pathways is the primary parent journey. It routes Number check-understanding actions into `/assessments/number` with learner/pathway context and a return path.
+- Number assessment and targeted practice now preserve the My Pathways return path where supplied, so parents can come back to the pathway after checking understanding or practising.
 - Practice is local-only.
 - No evidence creation yet.
 - No My Curriculum updates yet.
@@ -206,7 +208,20 @@ Recommended next phase:
 
 The next phase is manual browser QA, product polish and listing readiness, not more Number bank creation by default.
 
-## 14. Open Questions
+## 14. Cross-Workspace Product Boundary
+
+The intended parent journey is:
+
+My Day -> My Calendar -> My Pathways -> Check understanding / Practice -> Capture evidence -> Portfolio -> Reports / Outputs.
+
+Current status:
+
+- My Day and My Calendar support planning and evidence capture handoffs, including learner and calendar item context.
+- My Pathways is the main place to choose a learner focus, check understanding, practise, mini-check, capture evidence, and view saved auto-checked assessment signals.
+- Number assessment attempts are assessment signals only. They can inform parent decisions but do not automatically become evidence, portfolio items, report content, confidence, curriculum coverage, or pathway progress.
+- Capture, Portfolio, Reports and Outputs continue to use their explicit saved evidence/report/output flows.
+
+## 15. Open Questions
 
 - When should practice attempts be persisted?
 - When should parent confirmation update `assessment_skill_statuses`?
