@@ -164,6 +164,230 @@ const quietTextStyle: React.CSSProperties = {
   fontWeight: 400,
 };
 
+type DotSpec = {
+  x: number;
+  y: number;
+  size?: number;
+};
+
+type Step1VisualCard = {
+  label?: string;
+  dots: DotSpec[];
+  frame?: "plain" | "five";
+};
+
+type Step1VisualSpec = {
+  caption: string;
+  cards: Step1VisualCard[];
+};
+
+const dot = {
+  centre: { x: 50, y: 50 },
+  left: { x: 34, y: 50 },
+  right: { x: 66, y: 50 },
+  top: { x: 50, y: 28 },
+  bottomLeft: { x: 34, y: 68 },
+  bottomRight: { x: 66, y: 68 },
+  topLeft: { x: 28, y: 28 },
+  topRight: { x: 72, y: 28 },
+  bottomLeftCorner: { x: 28, y: 72 },
+  bottomRightCorner: { x: 72, y: 72 },
+  row1: { x: 28, y: 50 },
+  row2: { x: 50, y: 50 },
+  row3: { x: 72, y: 50 },
+  row4a: { x: 20, y: 50 },
+  row4b: { x: 40, y: 50 },
+  row4c: { x: 60, y: 50 },
+  row4d: { x: 80, y: 50 },
+  row5a: { x: 14, y: 50 },
+  row5b: { x: 32, y: 50 },
+  row5c: { x: 50, y: 50 },
+  row5d: { x: 68, y: 50 },
+  row5e: { x: 86, y: 50 },
+  spread1: { x: 14, y: 22 },
+  spread2: { x: 86, y: 24 },
+  spread3: { x: 18, y: 76 },
+  spread4: { x: 80, y: 72 },
+  spread5: { x: 50, y: 50 },
+} satisfies Record<string, DotSpec>;
+
+const triangleThree = [dot.top, dot.bottomLeft, dot.bottomRight];
+const rowThree = [dot.row1, dot.row2, dot.row3];
+const rowFour = [dot.row4a, dot.row4b, dot.row4c, dot.row4d];
+const rowFive = [dot.row5a, dot.row5b, dot.row5c, dot.row5d, dot.row5e];
+const squareFour = [dot.topLeft, dot.topRight, dot.bottomLeftCorner, dot.bottomRightCorner];
+const diceFive = [...squareFour, dot.centre];
+const spreadFour = [dot.spread1, dot.spread2, dot.spread3, dot.spread4];
+const spreadFive = [...spreadFour, dot.spread5];
+
+const STEP_1_PRACTICE_VISUALS: Record<string, Step1VisualSpec> = {
+  "number-step-1-practice-001": {
+    caption: "Quick-look card: two counters.",
+    cards: [{ dots: [dot.left, dot.right] }],
+  },
+  "number-step-1-practice-002": {
+    caption: "Four counters, one near each corner.",
+    cards: [{ dots: squareFour }],
+  },
+  "number-step-1-practice-003": {
+    caption: "Find the card with the same amount as three.",
+    cards: [
+      { label: "3 in a row", dots: rowThree },
+      { label: "3 triangle", dots: triangleThree },
+      { label: "2 spread", dots: [dot.spread1, dot.spread4] },
+      { label: "4 close", dots: rowFour },
+    ],
+  },
+  "number-step-1-practice-004": {
+    caption: "Four counters spread far apart.",
+    cards: [{ dots: spreadFour }],
+  },
+  "number-step-1-practice-005": {
+    caption: "One counter.",
+    cards: [{ dots: [dot.centre] }],
+  },
+  "number-step-1-practice-006": {
+    caption: "A full five-frame shows five.",
+    cards: [{ dots: rowFive, frame: "five" }],
+  },
+  "number-step-1-practice-007": {
+    caption: "A line of four and a square of four show the same amount.",
+    cards: [
+      { label: "Line", dots: rowFour },
+      { label: "Square", dots: squareFour },
+      { label: "Three", dots: rowThree },
+      { label: "Five", dots: spreadFive },
+    ],
+  },
+  "number-step-1-practice-008": {
+    caption: "Both cards have two counters, even when size changes.",
+    cards: [
+      { label: "Card A", dots: [dot.left, dot.right].map((entry) => ({ ...entry, size: 24 })) },
+      { label: "Card B", dots: [dot.left, dot.right].map((entry) => ({ ...entry, size: 13 })) },
+    ],
+  },
+  "number-step-1-practice-009": {
+    caption: "Three counters in a triangle.",
+    cards: [{ dots: triangleThree }],
+  },
+  "number-step-1-practice-010": {
+    caption: "Dice-style five: four corners and one middle.",
+    cards: [{ dots: diceFive }],
+  },
+  "number-step-1-practice-011": {
+    caption: "Two counters can be close together or far apart.",
+    cards: [
+      { label: "Close pair", dots: [dot.left, dot.right] },
+      { label: "Spaced pair", dots: [dot.spread1, dot.spread4] },
+      { label: "Three", dots: triangleThree },
+      { label: "One big", dots: [{ ...dot.centre, size: 26 }] },
+    ],
+  },
+  "number-step-1-practice-012": {
+    caption: "Compare the number of counters, not the spaces.",
+    cards: [
+      { label: "Card A", dots: rowFive },
+      { label: "Card B", dots: spreadFour },
+    ],
+  },
+};
+
+function renderStep1PracticeVisual(taskId: string) {
+  const visual = STEP_1_PRACTICE_VISUALS[taskId];
+  if (!visual) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 16,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 12,
+        display: "grid",
+        gap: 10,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        {visual.caption}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 8,
+        }}
+      >
+        {visual.cards.map((card, cardIndex) => (
+          <div
+            key={`${taskId}-${cardIndex}`}
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 14,
+              background: "#ffffff",
+              padding: 8,
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            {card.label ? (
+              <div style={{ color: "#475569", fontSize: 12, fontWeight: 800, textAlign: "center" }}>
+                {card.label}
+              </div>
+            ) : null}
+            <div
+              style={{
+                position: "relative",
+                height: card.frame === "five" ? 70 : 88,
+                border: card.frame === "five" ? "2px solid #94a3b8" : "1px solid #e2e8f0",
+                borderRadius: card.frame === "five" ? 12 : 14,
+                background: "#f8fafc",
+                overflow: "hidden",
+              }}
+            >
+              {card.frame === "five"
+                ? [20, 40, 60, 80].map((left) => (
+                    <span
+                      key={left}
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        left: `${left}%`,
+                        top: 0,
+                        bottom: 0,
+                        borderLeft: "1px solid #cbd5e1",
+                      }}
+                    />
+                  ))
+                : null}
+              {card.dots.map((entry, dotIndex) => {
+                const size = entry.size ?? 17;
+                return (
+                  <span
+                    key={`${entry.x}-${entry.y}-${dotIndex}`}
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: `${entry.x}%`,
+                      top: `${entry.y}%`,
+                      width: size,
+                      height: size,
+                      borderRadius: 999,
+                      background: "#2563eb",
+                      border: "2px solid #1e40af",
+                      transform: "translate(-50%, -50%)",
+                      boxShadow: "0 5px 12px rgba(37,99,235,0.22)",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function safe(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -466,6 +690,7 @@ function TaskCard({
         {task.title}
       </div>
       <div style={{ ...bodyTextStyle, fontSize: 15 }}>{task.prompt}</div>
+      {renderStep1PracticeVisual(task.id)}
       {task.taskType === "worked_example" ? (
         <div
           style={{
@@ -741,6 +966,7 @@ export default function CleanNumberTargetedPracticeViewer() {
   const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
   const [stepPracticeDepth, setStepPracticeDepth] =
     useState<NumberStepPracticeDepth>("basic");
+  const [stepPracticeIndex, setStepPracticeIndex] = useState(0);
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -762,6 +988,8 @@ export default function CleanNumberTargetedPracticeViewer() {
   const exactStepPracticeTasks = exactStepPractice
     ? getNumberStepPracticeTasksForDepth(exactStepPractice.key, stepPracticeDepth)
     : [];
+  const currentStepPracticeTask =
+    exactStepPracticeTasks[Math.min(stepPracticeIndex, exactStepPracticeTasks.length - 1)];
   const sourceContext: SourcePracticeContext = {
     subjectKey,
     strandKey,
@@ -863,6 +1091,7 @@ export default function CleanNumberTargetedPracticeViewer() {
                       type="button"
                       onClick={() => {
                         setStepPracticeDepth(option.key);
+                        setStepPracticeIndex(0);
                         setResponses({});
                       }}
                       style={{
@@ -889,16 +1118,58 @@ export default function CleanNumberTargetedPracticeViewer() {
                 summary={buildProgressSummary(exactStepPracticeTasks, responses)}
               />
               <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
-                {exactStepPracticeTasks.map((task, index) => (
+                {currentStepPracticeTask ? (
                   <TaskCard
-                    key={task.id}
-                    task={task}
-                    index={index}
-                    response={responses[task.id] ?? createEmptyResponse()}
-                    onChange={(value) => updateTaskResponse(task.id, value)}
-                    onCheck={() => checkTask(task)}
+                    key={currentStepPracticeTask.id}
+                    task={currentStepPracticeTask}
+                    index={stepPracticeIndex}
+                    response={
+                      responses[currentStepPracticeTask.id] ?? createEmptyResponse()
+                    }
+                    onChange={(value) =>
+                      updateTaskResponse(currentStepPracticeTask.id, value)
+                    }
+                    onCheck={() => checkTask(currentStepPracticeTask)}
                   />
-                ))}
+                ) : null}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStepPracticeIndex((value) => Math.max(0, value - 1))
+                    }
+                    disabled={stepPracticeIndex === 0}
+                    style={stepPracticeIndex === 0 ? secondaryButtonStyle : secondaryButtonStyle}
+                  >
+                    Previous
+                  </button>
+                  <div style={quietTextStyle}>
+                    Task {stepPracticeIndex + 1} of {exactStepPracticeTasks.length}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStepPracticeIndex((value) =>
+                        Math.min(exactStepPracticeTasks.length - 1, value + 1),
+                      )
+                    }
+                    disabled={stepPracticeIndex >= exactStepPracticeTasks.length - 1}
+                    style={
+                      stepPracticeIndex >= exactStepPracticeTasks.length - 1
+                        ? secondaryButtonStyle
+                        : buttonStyle
+                    }
+                  >
+                    Next task
+                  </button>
+                </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
                 Practice stays local-only. No confidence, evidence, portfolio or reports are updated automatically.

@@ -25,6 +25,9 @@ import {
   getNumberStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/numberStepAssessmentRegistry";
 import {
+  getNumberStepPracticeForPathwayStep,
+} from "@/lib/clean/practice/numberStepPracticeRegistry";
+import {
   NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
   getNumberStepAssessmentStatus,
   type NumberStepAssessmentDepth,
@@ -112,6 +115,7 @@ type LocalAdaptiveInsightSummary = {
   attemptedCount: number;
   correctCount: number;
   incorrectCount: number;
+  notSureCount: number;
   reviewNeededCount: number;
   unansweredCount: number;
   enteredButUncheckedCount: number;
@@ -133,6 +137,8 @@ type ParentJudgement =
 type AssessmentAttemptSaveState = "idle" | "saving" | "saved" | "failed";
 
 type AssessmentSessionMode = "launcher" | "active" | "summary";
+
+const NOT_SURE_RESPONSE = "__not_sure__";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -1043,11 +1049,19 @@ function hasEnteredResponse(response: LocalAssessmentResponse) {
   return response.response.trim().length > 0;
 }
 
+function isNotSureResponse(responseText: string) {
+  return responseText.trim() === NOT_SURE_RESPONSE;
+}
+
 function getCheckResult(
   item: NumberAssessmentBankItem,
   responseText: string,
 ): LocalAssessmentResult {
   const normalizedResponse = normalizeValue(responseText);
+
+  if (isNotSureResponse(responseText)) {
+    return "incorrect";
+  }
 
   if (!responseText.trim()) {
     return "unanswered";
@@ -1238,6 +1252,10 @@ function getSelectedOptionForSave(
 ) {
   const normalizedResponse = responseText.trim();
 
+  if (isNotSureResponse(normalizedResponse)) {
+    return null;
+  }
+
   if (item.answerType === "multiple_choice" && normalizedResponse) {
     return normalizedResponse;
   }
@@ -1277,6 +1295,19 @@ function getResultMessage(result: LocalAssessmentResult) {
   return "Add a response when you are ready.";
 }
 
+function getAssessmentResultMessage(
+  result: LocalAssessmentResult,
+  responseText: string,
+) {
+  if (isNotSureResponse(responseText)) {
+    return "Not sure saved. This counts as a needs-support signal.";
+  }
+  if (result === "unanswered") {
+    return "Choose an answer or Not sure before moving on.";
+  }
+  return "Answer saved. You will see the result at the end.";
+}
+
 function getResultLabel(result: LocalAssessmentResult) {
   if (result === "review_needed") {
     return "Needs adult review";
@@ -1292,6 +1323,262 @@ function getResultLabel(result: LocalAssessmentResult) {
 
 function getFormatLabel(format: string) {
   return format.replace(/_/g, " ");
+}
+
+type DotSpec = {
+  x: number;
+  y: number;
+  size?: number;
+};
+
+type Step1VisualCard = {
+  label?: string;
+  dots: DotSpec[];
+  dotColor?: string;
+  frame?: "plain" | "five";
+};
+
+type Step1VisualSpec = {
+  caption: string;
+  cards: Step1VisualCard[];
+};
+
+const DOT_POSITIONS = {
+  centre: { x: 50, y: 50 },
+  left: { x: 34, y: 50 },
+  right: { x: 66, y: 50 },
+  top: { x: 50, y: 28 },
+  bottomLeft: { x: 34, y: 68 },
+  bottomRight: { x: 66, y: 68 },
+  topLeft: { x: 28, y: 28 },
+  topRight: { x: 72, y: 28 },
+  bottomLeftCorner: { x: 28, y: 72 },
+  bottomRightCorner: { x: 72, y: 72 },
+  row1: { x: 28, y: 50 },
+  row2: { x: 50, y: 50 },
+  row3: { x: 72, y: 50 },
+  row4a: { x: 20, y: 50 },
+  row4b: { x: 40, y: 50 },
+  row4c: { x: 60, y: 50 },
+  row4d: { x: 80, y: 50 },
+  row5a: { x: 14, y: 50 },
+  row5b: { x: 32, y: 50 },
+  row5c: { x: 50, y: 50 },
+  row5d: { x: 68, y: 50 },
+  row5e: { x: 86, y: 50 },
+  spread1: { x: 14, y: 22 },
+  spread2: { x: 86, y: 24 },
+  spread3: { x: 18, y: 76 },
+  spread4: { x: 80, y: 72 },
+  spread5: { x: 50, y: 50 },
+} satisfies Record<string, DotSpec>;
+
+const triangleThree = [
+  DOT_POSITIONS.top,
+  DOT_POSITIONS.bottomLeft,
+  DOT_POSITIONS.bottomRight,
+];
+const rowThree = [DOT_POSITIONS.row1, DOT_POSITIONS.row2, DOT_POSITIONS.row3];
+const rowFour = [
+  DOT_POSITIONS.row4a,
+  DOT_POSITIONS.row4b,
+  DOT_POSITIONS.row4c,
+  DOT_POSITIONS.row4d,
+];
+const rowFive = [
+  DOT_POSITIONS.row5a,
+  DOT_POSITIONS.row5b,
+  DOT_POSITIONS.row5c,
+  DOT_POSITIONS.row5d,
+  DOT_POSITIONS.row5e,
+];
+const squareFour = [
+  DOT_POSITIONS.topLeft,
+  DOT_POSITIONS.topRight,
+  DOT_POSITIONS.bottomLeftCorner,
+  DOT_POSITIONS.bottomRightCorner,
+];
+const diceFive = [...squareFour, DOT_POSITIONS.centre];
+const spreadFour = [
+  DOT_POSITIONS.spread1,
+  DOT_POSITIONS.spread2,
+  DOT_POSITIONS.spread3,
+  DOT_POSITIONS.spread4,
+];
+const spreadFive = [...spreadFour, DOT_POSITIONS.spread5];
+
+const STEP_1_VISUALS: Record<string, Step1VisualSpec> = {
+  "number-step-1-assess-001": {
+    caption: "Quick-look card: three dots.",
+    cards: [{ dots: triangleThree }],
+  },
+  "number-step-1-assess-002": {
+    caption: "Dice-style card: one dot near each corner.",
+    cards: [{ dots: squareFour }],
+  },
+  "number-step-1-assess-003": {
+    caption: "Choose the card with the same amount as three counters.",
+    cards: [
+      { label: "2 counters", dots: [DOT_POSITIONS.left, DOT_POSITIONS.right] },
+      { label: "3 spread out", dots: [DOT_POSITIONS.spread1, DOT_POSITIONS.spread3, DOT_POSITIONS.spread5] },
+      { label: "4 counters", dots: rowFour },
+    ],
+  },
+  "number-step-1-assess-004": {
+    caption: "Five counters spread far apart.",
+    cards: [{ dots: spreadFive }],
+  },
+  "number-step-1-assess-005": {
+    caption: "Quick-look card: two counters.",
+    cards: [{ dots: [DOT_POSITIONS.left, DOT_POSITIONS.right] }],
+  },
+  "number-step-1-assess-006": {
+    caption: "Five-frame card: all five spaces are filled.",
+    cards: [{ dots: rowFive, frame: "five" }],
+  },
+  "number-step-1-assess-007": {
+    caption: "Card A shows four counters. Find another four.",
+    cards: [
+      { label: "Card A", dots: squareFour },
+      { label: "Line", dots: rowFour },
+      { label: "Triangle", dots: triangleThree },
+      { label: "Five", dots: diceFive },
+    ],
+  },
+  "number-step-1-assess-008": {
+    caption: "Both cards show three counters, even when size changes.",
+    cards: [
+      { label: "Card A", dots: rowThree.map((dot) => ({ ...dot, size: 22 })) },
+      { label: "Card B", dots: rowThree.map((dot) => ({ ...dot, size: 12 })) },
+    ],
+  },
+  "number-step-1-assess-009": {
+    caption: "Quick-look card: one dot.",
+    cards: [{ dots: [DOT_POSITIONS.centre] }],
+  },
+  "number-step-1-assess-010": {
+    caption: "Dice-style five: four corners and one middle dot.",
+    cards: [{ dots: diceFive }],
+  },
+  "number-step-1-assess-011": {
+    caption: "Find the card with the same number as a row of three.",
+    cards: [
+      { label: "3 in a row", dots: rowThree },
+      { label: "3 triangle", dots: triangleThree },
+      { label: "2 spread", dots: [DOT_POSITIONS.spread1, DOT_POSITIONS.spread4] },
+      { label: "4 close", dots: rowFour },
+    ],
+  },
+  "number-step-1-assess-012": {
+    caption: "Both cards show four counters.",
+    cards: [
+      { label: "Close", dots: squareFour },
+      { label: "Spread", dots: spreadFour },
+    ],
+  },
+};
+
+function renderStep1Visual(itemId: string) {
+  const visual = STEP_1_VISUALS[itemId];
+  if (!visual) return null;
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 14,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        {visual.caption}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {visual.cards.map((card, cardIndex) => (
+          <div
+            key={`${itemId}-${cardIndex}`}
+            style={{
+              border: "1px solid #dbeafe",
+              borderRadius: 16,
+              background: "#ffffff",
+              padding: 10,
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            {card.label ? (
+              <div
+                style={{
+                  color: "#475569",
+                  fontSize: 12,
+                  fontWeight: 800,
+                  textAlign: "center",
+                }}
+              >
+                {card.label}
+              </div>
+            ) : null}
+            <div
+              style={{
+                position: "relative",
+                height: card.frame === "five" ? 74 : 96,
+                border: card.frame === "five" ? "2px solid #94a3b8" : "1px solid #e2e8f0",
+                borderRadius: card.frame === "five" ? 12 : 14,
+                background: "#f8fafc",
+                overflow: "hidden",
+              }}
+            >
+              {card.frame === "five"
+                ? [20, 40, 60, 80].map((left) => (
+                    <span
+                      key={left}
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        left: `${left}%`,
+                        top: 0,
+                        bottom: 0,
+                        borderLeft: "1px solid #cbd5e1",
+                      }}
+                    />
+                  ))
+                : null}
+              {card.dots.map((dot, dotIndex) => {
+                const size = dot.size ?? 18;
+                return (
+                  <span
+                    key={`${dot.x}-${dot.y}-${dotIndex}`}
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: `${dot.x}%`,
+                      top: `${dot.y}%`,
+                      width: size,
+                      height: size,
+                      borderRadius: 999,
+                      background: card.dotColor ?? "#2563eb",
+                      border: "2px solid #1e40af",
+                      transform: "translate(-50%, -50%)",
+                      boxShadow: "0 5px 12px rgba(37,99,235,0.22)",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 const FOCUS_LABELS: Record<string, string> = {
@@ -1956,6 +2243,9 @@ function buildAdaptiveInsightSummary(
   const incorrectCount = itemResponses.filter(
     ({ persistedResult }) => persistedResult === "incorrect",
   ).length;
+  const notSureCount = itemResponses.filter(({ response }) =>
+    isNotSureResponse(response.response),
+  ).length;
   const reviewNeededCount = itemResponses.filter(
     ({ persistedResult }) => persistedResult === "review_needed",
   ).length;
@@ -2212,6 +2502,7 @@ function buildAdaptiveInsightSummary(
     attemptedCount,
     correctCount,
     incorrectCount,
+    notSureCount,
     reviewNeededCount,
     unansweredCount,
     enteredButUncheckedCount,
@@ -2306,6 +2597,24 @@ function CleanNumberAssessmentPlayerBody() {
   const summary = buildAdaptiveInsightSummary(selectedBank.key, items, responses);
   const targetedPracticeHref = summary.targetedPracticeRecommendation
     ? buildTargetedPracticeHref(summary.targetedPracticeRecommendation, returnTo)
+    : "";
+  const exactStepPractice = incomingStepAssessment
+    ? getNumberStepPracticeForPathwayStep({
+        pathwayStepId: incomingStepAssessment.pathwayStepId,
+        stepKey: incomingStepAssessment.stepKey,
+      })
+    : null;
+  const exactStepPracticeHref = exactStepPractice
+    ? `/practice/number-targeted?${new URLSearchParams({
+        stepPracticeKey: exactStepPractice.key,
+        subjectKey: incomingStepAssessment?.subjectKey ?? selectedBank.subjectKey,
+        strandKey: incomingStepAssessment?.strandKey ?? selectedBank.strandKey,
+        stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
+        pathwayStepId:
+          incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
+        stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+        returnTo: returnTo || "/my-pathways",
+      }).toString()}`
     : "";
   const assessmentBankGroups = useMemo(
     () => [
@@ -2418,6 +2727,10 @@ function CleanNumberAssessmentPlayerBody() {
       return;
     }
 
+    if (incomingStepAssessment && !hasEnteredResponse(currentResponse)) {
+      return;
+    }
+
     const submittedAt = new Date().toISOString();
     setResponses((current) => ({
       ...current,
@@ -2426,6 +2739,24 @@ function CleanNumberAssessmentPlayerBody() {
         response: currentResponse.response,
         submitted: true,
         result: getCheckResult(currentItem, currentResponse.response),
+        submittedAt,
+      },
+    }));
+  }
+
+  function markCurrentItemNotSure() {
+    if (!currentItem) {
+      return;
+    }
+
+    const submittedAt = new Date().toISOString();
+    setResponses((current) => ({
+      ...current,
+      [currentItem.id]: {
+        itemId: currentItem.id,
+        response: NOT_SURE_RESPONSE,
+        submitted: true,
+        result: "incorrect",
         submittedAt,
       },
     }));
@@ -2842,6 +3173,10 @@ function CleanNumberAssessmentPlayerBody() {
       return;
     }
 
+    if (incomingStepAssessment && !currentResponse.submitted) {
+      return;
+    }
+
     if (currentIndex >= totalItems - 1) {
       setShowSummary(true);
       setSessionMode("summary");
@@ -2874,6 +3209,7 @@ function CleanNumberAssessmentPlayerBody() {
         attemptedCount: summary.attemptedCount,
         correctCount: summary.correctCount,
         incorrectCount: summary.incorrectCount,
+        notSureCount: summary.notSureCount,
         reviewNeededCount: summary.reviewNeededCount,
         unansweredCount: summary.unansweredCount,
         enteredButUncheckedCount: summary.enteredButUncheckedCount,
@@ -2927,6 +3263,9 @@ function CleanNumberAssessmentPlayerBody() {
         (item, index) => {
           const response = responses[item.id] ?? createEmptyResponse(item.id);
           const normalizedResponse = response.response.trim();
+          const responseTextForSave = isNotSureResponse(normalizedResponse)
+            ? "Not sure"
+            : normalizedResponse || null;
 
           return {
             itemId: item.id,
@@ -2934,7 +3273,7 @@ function CleanNumberAssessmentPlayerBody() {
             progressionStepKey: item.progressionStepKey,
             answerType: item.answerType,
             localResult: getPersistedLocalResult(item, response),
-            responseText: normalizedResponse || null,
+            responseText: responseTextForSave,
             selectedOption: getSelectedOptionForSave(item, normalizedResponse),
             itemSnapshot: buildItemSnapshot(item),
             submittedAt: response.submittedAt,
@@ -3276,8 +3615,21 @@ function CleanNumberAssessmentPlayerBody() {
                     {saveState === "saved" ? "Saved" : "Not saved yet"}
                   </span>
                   {!showSummary && currentResponse.submitted ? (
-                    <span style={getResultTone(currentResponse.result)}>
-                      {getResultLabel(currentResponse.result)}
+                    <span
+                      style={
+                        incomingStepAssessment
+                          ? {
+                              ...chipBaseStyle,
+                              border: "1px solid #bfdbfe",
+                              background: "#eff6ff",
+                              color: "#1d4ed8",
+                            }
+                          : getResultTone(currentResponse.result)
+                      }
+                    >
+                      {incomingStepAssessment
+                        ? "Answer saved"
+                        : getResultLabel(currentResponse.result)}
                     </span>
                   ) : null}
                 </div>
@@ -3312,7 +3664,9 @@ function CleanNumberAssessmentPlayerBody() {
                   </div>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Attempted</div>
+                  <div style={eyebrowStyle}>
+                    {incomingStepAssessment ? "Answered or Not sure" : "Attempted"}
+                  </div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
                     {summary.attemptedCount}
                   </div>
@@ -3324,21 +3678,53 @@ function CleanNumberAssessmentPlayerBody() {
                   </div>
                 </div>
                 <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Worth revisiting</div>
+                  <div style={eyebrowStyle}>
+                    {incomingStepAssessment ? "Needs support signal" : "Worth revisiting"}
+                  </div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
                     {summary.incorrectCount}
                   </div>
                 </div>
-                <div style={compactCardStyle}>
-                  <div style={eyebrowStyle}>Needs adult review</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#4338ca" }}>
-                    {summary.reviewNeededCount}
+                {incomingStepAssessment ? (
+                  <div style={compactCardStyle}>
+                    <div style={eyebrowStyle}>Not sure</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#b45309" }}>
+                      {summary.notSureCount}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div style={compactCardStyle}>
+                    <div style={eyebrowStyle}>Needs adult review</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#4338ca" }}>
+                      {summary.reviewNeededCount}
+                    </div>
+                  </div>
+                )}
+                {incomingStepAssessment && summary.unansweredCount ? (
+                  <div style={compactCardStyle}>
+                    <div style={eyebrowStyle}>Not enough evidence yet</div>
+                    <div style={{ fontSize: 26, fontWeight: 800, color: "#475569" }}>
+                      {summary.unansweredCount}
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div style={highlightCardStyle}>
-                <div style={eyebrowStyle}>Sub-element mastery</div>
+                <div style={eyebrowStyle}>
+                  {incomingStepAssessment ? "Skill check results" : "Sub-element mastery"}
+                </div>
+                {incomingStepAssessment ? (
+                  <div style={{ color: "#334155", lineHeight: 1.6 }}>
+                    Auto-check result:{" "}
+                    <strong>
+                      {summary.unansweredCount
+                        ? "Assessment incomplete"
+                        : getNumberStepAssessmentStatus(summary.correctCount, totalItems)}
+                    </strong>
+                    . Confidence has not been changed automatically.
+                  </div>
+                ) : null}
                 <div
                   style={{
                     display: "grid",
@@ -3405,7 +3791,11 @@ function CleanNumberAssessmentPlayerBody() {
 
               {summary.targetedPracticeRecommendation ? (
                 <div style={highlightCardStyle}>
-                  <div style={eyebrowStyle}>Recommended targeted practice</div>
+                  <div style={eyebrowStyle}>
+                    {incomingStepAssessment
+                      ? "Suggested practice focus"
+                      : "Recommended targeted practice"}
+                  </div>
                   <div
                     style={{
                       display: "grid",
@@ -3485,6 +3875,24 @@ function CleanNumberAssessmentPlayerBody() {
                           : "Practice module coming next."}
                       </span>
                     </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {incomingStepAssessment && exactStepPracticeHref ? (
+                <div style={highlightCardStyle}>
+                  <div style={eyebrowStyle}>Practise this skill</div>
+                  <div style={{ color: "#0f172a", fontSize: 18, fontWeight: 800 }}>
+                    {incomingStepAssessment.title}
+                  </div>
+                  <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                    Use the matching Step 1 practice to revisit quick-look dot cards
+                    and same-quantity arrangements. Practice stays local-only.
+                  </div>
+                  <div>
+                    <Link href={exactStepPracticeHref} style={buttonStyle}>
+                      Practise this skill
+                    </Link>
                   </div>
                 </div>
               ) : null}
@@ -3634,8 +4042,13 @@ function CleanNumberAssessmentPlayerBody() {
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {returnTo ? (
-                    <Link href={returnTo} style={secondaryButtonStyle}>
-                      Return to pathway
+                    <Link href={returnTo} style={buttonStyle}>
+                      Return to pathway step
+                    </Link>
+                  ) : null}
+                  {exactStepPracticeHref ? (
+                    <Link href={exactStepPracticeHref} style={secondaryButtonStyle}>
+                      Practise this skill
                     </Link>
                   ) : null}
                   <Link href="/my-pathways" style={secondaryButtonStyle}>
@@ -3680,7 +4093,7 @@ function CleanNumberAssessmentPlayerBody() {
                         saveBlockedMessage ||
                         "Save the completed session so the assessment attempt history can be reviewed later."}
                     </div>
-                    {summary.enteredButUncheckedCount > 0 ? (
+                    {!incomingStepAssessment && summary.enteredButUncheckedCount > 0 ? (
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
                         Some responses have been entered but not checked. They
                         will be saved as needing review.
@@ -3800,14 +4213,16 @@ function CleanNumberAssessmentPlayerBody() {
                   <div style={workspaceCardStyle}>
                     <div style={{ display: "grid", gap: 10 }}>
                       <div style={eyebrowStyle}>Current question</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        <span style={getDifficultyTone(currentItem.difficulty)}>
-                          {currentItem.difficulty}
-                        </span>
-                        <span style={getFormatTone(currentItem.format)}>
-                          {getFormatLabel(currentItem.format)}
-                        </span>
-                      </div>
+                      {!incomingStepAssessment ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          <span style={getDifficultyTone(currentItem.difficulty)}>
+                            {currentItem.difficulty}
+                          </span>
+                          <span style={getFormatTone(currentItem.format)}>
+                            {getFormatLabel(currentItem.format)}
+                          </span>
+                        </div>
+                      ) : null}
                       <h2
                         style={{
                           margin: 0,
@@ -3818,6 +4233,7 @@ function CleanNumberAssessmentPlayerBody() {
                       >
                         {currentItem.title}
                       </h2>
+                      {incomingStepAssessment ? renderStep1Visual(currentItem.id) : null}
                       <p
                         style={{
                           margin: 0,
@@ -3838,7 +4254,8 @@ function CleanNumberAssessmentPlayerBody() {
                   </div>
 
                   <aside style={supportColumnStyle}>
-                    {currentItem.visualSupport &&
+                    {!incomingStepAssessment &&
+                    currentItem.visualSupport &&
                     (currentItem.visualSupport.type !== "none" ||
                       currentItem.visualSupport.description) ? (
                       <div style={helperCardStyle}>
@@ -3869,6 +4286,7 @@ function CleanNumberAssessmentPlayerBody() {
                       </div>
                     ) : null}
 
+                    {!incomingStepAssessment ? (
                     <details
                       style={{
                         border: "1px solid #e2e8f0",
@@ -3906,6 +4324,7 @@ function CleanNumberAssessmentPlayerBody() {
                         </div>
                       </div>
                     </details>
+                    ) : null}
 
                     {currentResponse.submitted ? (
                       <div style={compactCardStyle}>
@@ -3919,30 +4338,50 @@ function CleanNumberAssessmentPlayerBody() {
                           }}
                         >
                           <div style={eyebrowStyle}>Feedback</div>
-                          <span style={getResultTone(currentResponse.result)}>
-                            {getResultLabel(currentResponse.result)}
+                          <span
+                            style={
+                              incomingStepAssessment
+                                ? {
+                                    ...chipBaseStyle,
+                                    border: "1px solid #bfdbfe",
+                                    background: "#eff6ff",
+                                    color: "#1d4ed8",
+                                  }
+                                : getResultTone(currentResponse.result)
+                            }
+                          >
+                            {incomingStepAssessment
+                              ? "Saved"
+                              : getResultLabel(currentResponse.result)}
                           </span>
                         </div>
 
                         <div style={{ color: "#0f172a", lineHeight: 1.6 }}>
-                          {getResultMessage(currentResponse.result)}
+                          {incomingStepAssessment
+                            ? getAssessmentResultMessage(
+                                currentResponse.result,
+                                currentResponse.response,
+                              )
+                            : getResultMessage(currentResponse.result)}
                         </div>
 
-                        {currentItem.expectedAnswer && !isOpenResponse(currentItem) ? (
+                        {!incomingStepAssessment &&
+                        currentItem.expectedAnswer &&
+                        !isOpenResponse(currentItem) ? (
                           <div style={{ color: "#334155", lineHeight: 1.6 }}>
                             <strong>Expected answer:</strong>{" "}
                             {currentItem.expectedAnswer}
                           </div>
                         ) : null}
 
-                        {currentItem.workedSolution ? (
+                        {!incomingStepAssessment && currentItem.workedSolution ? (
                           <div style={{ color: "#334155", lineHeight: 1.6 }}>
                             <strong>Worked solution:</strong>{" "}
                             {currentItem.workedSolution}
                           </div>
                         ) : null}
 
-                        {currentItem.markingGuide ? (
+                        {!incomingStepAssessment && currentItem.markingGuide ? (
                           <div style={{ color: "#334155", lineHeight: 1.6 }}>
                             <strong>Marking guide:</strong>{" "}
                             {currentItem.markingGuide}
@@ -4031,7 +4470,7 @@ function CleanNumberAssessmentPlayerBody() {
                       </div>
                     ) : null}
 
-                    {currentResponse.submitted ? (
+                    {!incomingStepAssessment && currentResponse.submitted ? (
                       <div style={helperCardStyle}>
                         <div style={eyebrowStyle}>What this checks</div>
                         <div style={{ color: "#334155", lineHeight: 1.6 }}>
@@ -4076,11 +4515,38 @@ function CleanNumberAssessmentPlayerBody() {
                   <button
                     type="button"
                     onClick={submitCurrentItem}
-                    style={secondaryButtonStyle}
+                    disabled={Boolean(
+                      incomingStepAssessment && !hasEnteredResponse(currentResponse),
+                    )}
+                    style={
+                      incomingStepAssessment && !hasEnteredResponse(currentResponse)
+                        ? disabledButtonStyle
+                        : secondaryButtonStyle
+                    }
                   >
-                    Check response
+                    {incomingStepAssessment ? "Save answer" : "Check response"}
                   </button>
-                  <button type="button" onClick={goNext} style={buttonStyle}>
+                  {incomingStepAssessment ? (
+                    <button
+                      type="button"
+                      onClick={markCurrentItemNotSure}
+                      style={secondaryButtonStyle}
+                    >
+                      Not sure yet
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={Boolean(
+                      incomingStepAssessment && !currentResponse.submitted,
+                    )}
+                    style={
+                      incomingStepAssessment && !currentResponse.submitted
+                        ? disabledButtonStyle
+                        : buttonStyle
+                    }
+                  >
                     {currentIndex === totalItems - 1 ? "Finish" : "Next"}
                   </button>
                 </div>
