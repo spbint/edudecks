@@ -6,6 +6,9 @@ import {
   NUMBER_LOWER_PRIMARY_STEP_PRACTICES,
 } from "@/lib/clean/practice/numberLowerPrimaryStepPracticeTasks";
 import {
+  NUMBER_MIDDLE_PRIMARY_STEP_PRACTICES,
+} from "@/lib/clean/practice/numberMiddlePrimaryStepPracticeTasks";
+import {
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_KEY,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_METADATA,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS,
@@ -76,6 +79,23 @@ export const NUMBER_STEP_PRACTICES: NumberStepPractice[] = [
     subjectKey: "mathematics" as const,
     strandKey: "number-and-place-value" as const,
     stageKey: "lower-primary" as const,
+    parentModuleId: practice.parentModuleId,
+    parentModuleTitle: practice.parentModuleTitle,
+    relatedStepAssessmentKey: practice.relatedStepAssessmentKey,
+    depthOptions: NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
+    tasks: practice.tasks,
+  })),
+  ...NUMBER_MIDDLE_PRIMARY_STEP_PRACTICES.map((practice) => ({
+    key: practice.key,
+    stepNumber: practice.stepNumber,
+    stepKey: practice.stepKey,
+    pathwayStepId: practice.pathwayStepId,
+    title: practice.title,
+    shortTitle: practice.shortTitle,
+    description: practice.description,
+    subjectKey: "mathematics" as const,
+    strandKey: "number-and-place-value" as const,
+    stageKey: "middle-primary" as const,
     parentModuleId: practice.parentModuleId,
     parentModuleTitle: practice.parentModuleTitle,
     relatedStepAssessmentKey: practice.relatedStepAssessmentKey,
