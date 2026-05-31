@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import React, { useMemo, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -12,6 +13,7 @@ import {
 } from "@/lib/clean/assessments/attemptClient";
 import {
   NUMBER_ASSESSMENT_BANKS,
+  findNumberAssessmentBankByPathwayContext,
   getNumberAssessmentBankByKey,
   type NumberAssessmentBankItem,
   type NumberAssessmentBankKey,
@@ -2200,9 +2202,29 @@ function buildAdaptiveInsightSummary(
 
 function CleanNumberAssessmentPlayerBody() {
   const workspace = useCleanFamilyWorkspace();
+  const searchParams = useSearchParams();
+
+  const incomingBank = useMemo(
+    () =>
+      findNumberAssessmentBankByPathwayContext({
+        openStep: searchParams.get("openStep"),
+        subjectKey: searchParams.get("subjectKey"),
+        strandKey: searchParams.get("strandKey"),
+        stageKey: searchParams.get("stageKey"),
+        pathwayStepId: searchParams.get("pathwayStepId"),
+        progressionBandKey: searchParams.get("progressionBandKey"),
+        stepKey: searchParams.get("stepKey"),
+        itemBankKey: searchParams.get("itemBankKey"),
+      }),
+    [searchParams],
+  );
+  const hasIncomingNumberContext =
+    searchParams.get("subjectKey") === "mathematics" &&
+    searchParams.get("strandKey") === "number-and-place-value";
+  const incomingLearnerId = String(searchParams.get("learnerId") || "").trim();
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
-    NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
+    incomingBank?.key || NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
   );
   const [sessionMode, setSessionMode] =
     useState<AssessmentSessionMode>("launcher");
@@ -2225,6 +2247,7 @@ function CleanNumberAssessmentPlayerBody() {
       getNumberAssessmentBankByKey(selectedBankKey) || NUMBER_ASSESSMENT_BANKS[0],
     [selectedBankKey],
   );
+
   const items = selectedBank.items;
   const totalItems = items.length;
 
@@ -2260,13 +2283,20 @@ function CleanNumberAssessmentPlayerBody() {
   const selectedLearnerId = useMemo(() => {
     if (!workspace.learners.length) return "";
 
+    if (
+      incomingLearnerId &&
+      workspace.learners.some((learner) => learner.id === incomingLearnerId)
+    ) {
+      return incomingLearnerId;
+    }
+
     const defaultLearnerId = workspace.profile?.defaultLearnerId;
     const defaultIsValid = defaultLearnerId
       ? workspace.learners.some((learner) => learner.id === defaultLearnerId)
       : false;
 
     return defaultIsValid ? defaultLearnerId || "" : workspace.learners[0]?.id || "";
-  }, [workspace.learners, workspace.profile?.defaultLearnerId]);
+  }, [incomingLearnerId, workspace.learners, workspace.profile?.defaultLearnerId]);
   const selectedLearner = useMemo(
     () => workspace.learners.find((learner) => learner.id === selectedLearnerId) ?? null,
     [selectedLearnerId, workspace.learners],
@@ -2917,6 +2947,20 @@ function CleanNumberAssessmentPlayerBody() {
             <div style={launcherBodyStyle}>
               <div style={{ display: "grid", gap: 8 }}>
                 <div style={eyebrowStyle}>Choose an assessment focus</div>
+                {hasIncomingNumberContext ? (
+                  <div style={helperCardStyle}>
+                    <strong style={{ color: "#0f172a" }}>
+                      {incomingBank
+                        ? `${incomingBank.shortTitle} selected from My Assessments`
+                        : "Choose a Number focus to start an automatically checked assessment."}
+                    </strong>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                      This assessment can save an automatically checked attempt. It does not update
+                      confidence, portfolio evidence, reports, curriculum coverage, or pathway
+                      progress automatically.
+                    </p>
+                  </div>
+                ) : null}
                 {assessmentBankGroups.map((group) => (
                   <div key={group.label} style={{ display: "grid", gap: 10 }}>
                     <div

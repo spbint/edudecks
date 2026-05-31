@@ -186,6 +186,17 @@ export type NumberAssessmentBankConfig = {
   items: NumberAssessmentBankItem[];
 };
 
+export type NumberAssessmentBankPathwayContext = {
+  openStep?: string | null;
+  subjectKey?: string | null;
+  strandKey?: string | null;
+  stageKey?: string | null;
+  pathwayStepId?: string | null;
+  progressionBandKey?: string | null;
+  stepKey?: string | null;
+  itemBankKey?: string | null;
+};
+
 const NUMBER_APPROXIMATION_ITEM_BANK_KEY =
   "number-approximation-assessment-items-v1";
 
@@ -484,4 +495,44 @@ export const NUMBER_ASSESSMENT_BANKS: NumberAssessmentBankConfig[] = [
 
 export function getNumberAssessmentBankByKey(key: NumberAssessmentBankKey) {
   return NUMBER_ASSESSMENT_BANKS.find((bank) => bank.key === key) || null;
+}
+
+function safeBankContextValue(value: string | null | undefined) {
+  return String(value ?? "").trim();
+}
+
+export function findNumberAssessmentBankByPathwayContext(
+  context: NumberAssessmentBankPathwayContext,
+) {
+  const progressionBandKey = safeBankContextValue(context.progressionBandKey);
+  const stepKey = safeBankContextValue(context.stepKey);
+  const pathwayStepId = safeBankContextValue(context.pathwayStepId);
+  const itemBankKey = safeBankContextValue(context.itemBankKey);
+  const openStep = safeBankContextValue(context.openStep);
+
+  const directMatch = NUMBER_ASSESSMENT_BANKS.find(
+    (bank) =>
+      (progressionBandKey && bank.progressionBandKey === progressionBandKey) ||
+      (stepKey && bank.stepKey === stepKey) ||
+      (pathwayStepId && bank.pathwayStepId === pathwayStepId) ||
+      (itemBankKey && bank.itemBankKey === itemBankKey) ||
+      (openStep &&
+        openStep !== "1" &&
+        [bank.key, bank.stepKey, bank.progressionBandKey, bank.pathwayStepId].includes(openStep)),
+  );
+
+  if (directMatch) {
+    return directMatch;
+  }
+
+  const subjectKey = safeBankContextValue(context.subjectKey);
+  const strandKey = safeBankContextValue(context.strandKey);
+  const stageKey = safeBankContextValue(context.stageKey);
+
+  if (subjectKey !== "mathematics" || strandKey !== "number-and-place-value") {
+    return null;
+  }
+
+  const stageBanks = NUMBER_ASSESSMENT_BANKS.filter((bank) => bank.stageKey === stageKey);
+  return stageBanks.length === 1 ? stageBanks[0] : null;
 }

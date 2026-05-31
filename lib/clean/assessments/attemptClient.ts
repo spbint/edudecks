@@ -511,15 +511,45 @@ export async function listAssessmentAttemptsForLearner(
     .order("created_at", { ascending: false });
 
   const pathwayStepId = safe(options.pathwayStepId);
+  const subjectKey = safe(options.subjectKey);
+  const strandKey = safe(options.strandKey);
+  const stageKey = safe(options.stageKey);
+  const stepKey = safe(options.stepKey);
+  const progressionBandKey = safe(options.progressionBandKey);
   const itemBankKey = safe(options.itemBankKey);
   const status = safe(options.status);
+  const sourceRoute = safe(options.sourceRoute);
+
+  if (subjectKey) {
+    query = query.eq("subject_key", normalizeSubjectKey(subjectKey));
+  }
+
+  if (strandKey) {
+    query = query.eq("strand_key", strandKey);
+  }
+
+  if (stageKey) {
+    query = query.eq("stage_key", normalizeStageKey(stageKey));
+  }
 
   if (pathwayStepId) {
     query = query.eq("pathway_step_id", pathwayStepId);
   }
 
+  if (stepKey) {
+    query = query.eq("step_key", stepKey);
+  }
+
+  if (progressionBandKey) {
+    query = query.eq("progression_band_key", progressionBandKey);
+  }
+
   if (itemBankKey) {
     query = query.eq("item_bank_key", itemBankKey);
+  }
+
+  if (sourceRoute) {
+    query = query.eq("source_route", sourceRoute);
   }
 
   if (status) {

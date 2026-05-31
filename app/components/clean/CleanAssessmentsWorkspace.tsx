@@ -15,6 +15,15 @@ import {
   upsertCleanAssessmentSkillStatus,
 } from "@/lib/clean/assessments/client";
 import {
+  listAssessmentAttemptsForLearner,
+} from "@/lib/clean/assessments/attemptClient";
+import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
+import {
+  NUMBER_ASSESSMENT_BANKS,
+  findNumberAssessmentBankByPathwayContext,
+  type NumberAssessmentBankConfig,
+} from "@/lib/clean/assessments/numberAssessmentBanks";
+import {
   CLEAN_ASSESSMENT_STAGE_KEYS,
   CLEAN_ASSESSMENT_STATUS_VALUES,
   getCleanAssessmentStageTitle,
@@ -341,6 +350,108 @@ const DEFAULT_ASSESSMENT_SUBJECT_KEY =
 
 function safe(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function isNumberPathwayContext(subjectKey: string, strandKey: string) {
+  return subjectKey === "mathematics" && strandKey === "number-and-place-value";
+}
+
+function getNumberBankForAssessmentStep(stepView: AssessmentStepView | null) {
+  if (!stepView) return null;
+
+  return findNumberAssessmentBankByPathwayContext({
+    subjectKey: stepView.registryItem.subjectKey,
+    strandKey: stepView.registryItem.strandKey,
+    stageKey: stepView.registryItem.stageKey,
+    pathwayStepId: stepView.registryItem.id,
+    stepKey: stepView.registryItem.stepKey,
+  });
+}
+
+function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
+  return (
+    NUMBER_ASSESSMENT_BANKS.find(
+      (bank) =>
+        bank.itemBankKey === attempt.itemBankKey ||
+        bank.progressionBandKey === attempt.progressionBandKey ||
+        bank.pathwayStepId === attempt.pathwayStepId ||
+        bank.stepKey === attempt.stepKey,
+    ) ?? null
+  );
+}
+
+function buildNumberAssessmentHref(
+  stepView: AssessmentStepView,
+  learnerId: string,
+  returnTo: string,
+) {
+  const bank = getNumberBankForAssessmentStep(stepView);
+  const params = new URLSearchParams();
+
+  params.set("source", "my-assessments");
+  params.set("subjectKey", stepView.registryItem.subjectKey);
+  params.set("strandKey", stepView.registryItem.strandKey);
+  params.set("stageKey", stepView.registryItem.stageKey);
+  params.set("pathwayStepId", bank?.pathwayStepId || stepView.registryItem.id);
+  params.set("stepKey", bank?.stepKey || stepView.registryItem.stepKey);
+  params.set("openStep", bank?.stepKey || stepView.registryItem.stepKey);
+  params.set("returnTo", returnTo);
+
+  if (learnerId) {
+    params.set("learnerId", learnerId);
+  }
+
+  if (bank) {
+    params.set("progressionBandKey", bank.progressionBandKey);
+    params.set("itemBankKey", bank.itemBankKey);
+  }
+
+  return `/assessments/number?${params.toString()}`;
+}
+
+function buildAssessmentWorkspaceStepReturnHref(
+  pathname: string,
+  stepView: AssessmentStepView,
+  learnerId: string,
+) {
+  const params = new URLSearchParams();
+  params.set("openStep", "1");
+  params.set("subjectKey", stepView.registryItem.subjectKey);
+  params.set("strandKey", stepView.registryItem.strandKey);
+  params.set("stageKey", stepView.registryItem.stageKey);
+  params.set("pathwayStepId", stepView.registryItem.id);
+
+  if (learnerId) {
+    params.set("learnerId", learnerId);
+  }
+
+  return `${pathname}?${params.toString()}`;
+}
+
+function attemptMatchesAssessmentStep(
+  attempt: CleanAssessmentAttempt,
+  stepView: AssessmentStepView,
+  bank: NumberAssessmentBankConfig | null,
+) {
+  if (
+    attempt.pathwayStepId === stepView.registryItem.id ||
+    attempt.stepKey === stepView.registryItem.stepKey
+  ) {
+    return true;
+  }
+
+  if (!bank) return false;
+
+  return (
+    attempt.pathwayStepId === bank.pathwayStepId ||
+    attempt.stepKey === bank.stepKey ||
+    attempt.progressionBandKey === bank.progressionBandKey ||
+    attempt.itemBankKey === bank.itemBankKey
+  );
+}
+
+function formatAssessmentAttemptTitle(attempt: CleanAssessmentAttempt) {
+  return getNumberBankForAttempt(attempt)?.shortTitle || formatLegacyAssessmentSkillLabel(attempt.stepKey);
 }
 
 function formatAssessmentSavedAt(value: string | null) {
@@ -726,8 +837,10 @@ function AssessmentsWorkspaceBody() {
   const [assessmentEvidenceEntries, setAssessmentEvidenceEntries] = useState<CleanEvidenceEntry[]>(
     [],
   );
+  const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
   const [assessmentStatusesLoading, setAssessmentStatusesLoading] = useState(false);
   const [assessmentStatusesError, setAssessmentStatusesError] = useState<string | null>(null);
+  const [assessmentAttemptsError, setAssessmentAttemptsError] = useState<string | null>(null);
   const [isSavingAssessmentStatus, setIsSavingAssessmentStatus] = useState(false);
   const [isCreatingAssessmentEvidence, setIsCreatingAssessmentEvidence] = useState(false);
   const [selectedTile, setSelectedTile] = useState<AssessmentTileSelection | null>(null);
@@ -872,6 +985,48 @@ function AssessmentsWorkspaceBody() {
     };
   }, [selectedFamilyId, selectedLearnerId]);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadAssessmentAttempts() {
+      if (!selectedFamilyId || !selectedLearnerId) {
+        if (!isCurrent) return;
+        setAssessmentAttempts([]);
+        setAssessmentAttemptsError(null);
+        return;
+      }
+
+      try {
+        const nextAttempts = await listAssessmentAttemptsForLearner(selectedFamilyId, {
+          learnerId: selectedLearnerId,
+          subjectKey: selectedSubjectKey,
+          strandKey: selectedStrandKey,
+          status: "completed",
+          limit: 100,
+        });
+
+        if (!isCurrent) return;
+        setAssessmentAttempts(nextAttempts);
+        setAssessmentAttemptsError(null);
+      } catch (error) {
+        if (!isCurrent) return;
+        setAssessmentAttempts([]);
+        setAssessmentAttemptsError(
+          String(
+            (error as { message?: unknown })?.message ??
+              "Saved assessment attempts could not be loaded right now.",
+          ).trim(),
+        );
+      }
+    }
+
+    void loadAssessmentAttempts();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [selectedFamilyId, selectedLearnerId, selectedStrandKey, selectedSubjectKey]);
+
   const savedAssessmentStatusMap = useMemo(() => {
     const next = new Map<string, CleanAssessmentSkillStatus>();
 
@@ -990,6 +1145,33 @@ function AssessmentsWorkspaceBody() {
 
   const currentStageView =
     selectedStageViews.find((stage) => stage.key === stageFocus) || selectedStageViews[0] || null;
+  const selectedStrandIsNumberContext = isNumberPathwayContext(
+    selectedSubjectKey,
+    selectedStrandKey,
+  );
+  const numberAssessmentSelectorHref = useMemo(() => {
+    if (!selectedStrandIsNumberContext) return "";
+
+    const params = new URLSearchParams();
+    params.set("source", "my-assessments");
+    params.set("subjectKey", selectedSubjectKey);
+    params.set("strandKey", selectedStrandKey);
+    params.set("stageKey", stageFocus);
+    params.set("returnTo", pathname);
+
+    if (selectedLearner?.id) {
+      params.set("learnerId", selectedLearner.id);
+    }
+
+    return `/assessments/number?${params.toString()}`;
+  }, [
+    pathname,
+    selectedLearner?.id,
+    selectedStrandIsNumberContext,
+    selectedStrandKey,
+    selectedSubjectKey,
+    stageFocus,
+  ]);
 
   useEffect(() => {
     if (!requestedAssessmentStep || !requestedAssessmentIdentity) {
@@ -1126,6 +1308,11 @@ function AssessmentsWorkspaceBody() {
       }),
     [currentStageView, savedAssessmentStatusMap],
   );
+  const currentStageAssessmentAttempts = useMemo(
+    () => assessmentAttempts.filter((attempt) => attempt.stageKey === stageFocus),
+    [assessmentAttempts, stageFocus],
+  );
+  const latestCurrentStageAssessmentAttempt = currentStageAssessmentAttempts[0] ?? null;
 
   const legacyAssessmentStatusesForSubject = useMemo(
     () =>
@@ -1245,6 +1432,39 @@ function AssessmentsWorkspaceBody() {
         ? `${selectedTileDetail.stageHelper} This is the learner's current assessment band, so the focus is on what they can now do with growing confidence and consistency.`
         : `${selectedTileDetail.stageHelper} This step stays visible so you can see what foundations sit underneath or what learning is building toward next.`
       : "";
+  const selectedTileIsNumberContext = selectedTileDetail
+    ? isNumberPathwayContext(
+        selectedTileDetail.registryItem.subjectKey,
+        selectedTileDetail.registryItem.strandKey,
+      )
+    : false;
+  const selectedTileNumberBank = selectedTileDetail
+    ? getNumberBankForAssessmentStep(selectedTileDetail)
+    : null;
+  const selectedTileNumberAssessmentHref =
+    selectedTileDetail && selectedTileIsNumberContext
+      ? buildNumberAssessmentHref(
+          selectedTileDetail,
+          selectedLearner?.id || "",
+          buildAssessmentWorkspaceStepReturnHref(
+            pathname,
+            selectedTileDetail,
+            selectedLearner?.id || "",
+          ),
+        )
+      : "";
+  const selectedTileAssessmentAttempts =
+    selectedTileDetail && selectedTileIsNumberContext
+      ? assessmentAttempts.filter((attempt) =>
+          attemptMatchesAssessmentStep(attempt, selectedTileDetail, selectedTileNumberBank),
+        )
+      : [];
+  const selectedTileLatestAssessmentAttempt = selectedTileAssessmentAttempts[0] ?? null;
+  const selectedTileLatestAssessmentAttemptLabel = formatAssessmentSavedAt(
+    selectedTileLatestAssessmentAttempt?.completedAt ||
+      selectedTileLatestAssessmentAttempt?.createdAt ||
+      null,
+  );
 
   function openAssessmentTile(stepView: AssessmentStepView) {
     const displayedStatus = getDisplayedAssessmentStatus(stepView);
@@ -1877,6 +2097,16 @@ function AssessmentsWorkspaceBody() {
                   Steps still waiting for a saved judgement.
                 </div>
               </div>
+
+              <div style={buildSnapshotCardStyle("#bae6fd", "#f0f9ff")}>
+                <div style={eyebrowStyle}>Auto-checked attempts</div>
+                <strong style={{ color: "#0369a1", fontSize: 24 }}>
+                  {currentStageAssessmentAttempts.length}
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                  Saved assessment attempts. These do not change confidence automatically.
+                </div>
+              </div>
             </div>
 
             {assessmentStatusesLoading ? (
@@ -1900,6 +2130,40 @@ function AssessmentsWorkspaceBody() {
                 }}
               >
                 {assessmentStatusesError}
+              </div>
+            ) : null}
+
+            {assessmentAttemptsError ? (
+              <div
+                style={{
+                  border: "1px solid #fecaca",
+                  background: "#fef2f2",
+                  color: "#b91c1c",
+                  borderRadius: 16,
+                  padding: 14,
+                  lineHeight: 1.6,
+                }}
+              >
+                {assessmentAttemptsError}
+              </div>
+            ) : null}
+
+            {latestCurrentStageAssessmentAttempt ? (
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>Latest auto-checked assessment</strong>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  {formatAssessmentAttemptTitle(latestCurrentStageAssessmentAttempt)} saved
+                  {formatAssessmentSavedAt(
+                    latestCurrentStageAssessmentAttempt.completedAt ||
+                      latestCurrentStageAssessmentAttempt.createdAt,
+                  )
+                    ? ` on ${formatAssessmentSavedAt(
+                        latestCurrentStageAssessmentAttempt.completedAt ||
+                          latestCurrentStageAssessmentAttempt.createdAt,
+                      )}`
+                    : ""}. Confidence, evidence, reports, curriculum coverage, and pathway
+                  progress remain separate.
+                </div>
               </div>
             ) : null}
           </div>
@@ -1935,6 +2199,37 @@ function AssessmentsWorkspaceBody() {
                 can judge confidence within the learner&apos;s wider progression, not in isolation.
               </div>
             </div>
+
+            {selectedStrandIsNumberContext ? (
+              <div style={helperCardStyle}>
+                <strong style={{ color: "#0f172a" }}>
+                  Automatically checked Number assessments
+                </strong>
+                <div style={{ color: "#475569", lineHeight: 1.7 }}>
+                  Open the Number adaptive engine from a pathway step or choose a Number focus
+                  directly. Saved attempts stay separate from parent confidence, portfolio
+                  evidence, reports, curriculum coverage, and pathway progress.
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <Link href={numberAssessmentSelectorHref} style={buttonStyle}>
+                    Open Number assessment
+                  </Link>
+                  <span
+                    style={{
+                      border: "1px solid #bae6fd",
+                      background: "#ffffff",
+                      color: "#0369a1",
+                      borderRadius: 999,
+                      padding: "8px 10px",
+                      fontSize: 12,
+                      fontWeight: 800,
+                    }}
+                  >
+                    Auto-checked attempts: {assessmentAttempts.length}
+                  </span>
+                </div>
+              </div>
+            ) : null}
 
             {legacyAssessmentStatusesForSubject.length ? (
               <div style={helperCardStyle}>
@@ -2100,6 +2395,16 @@ function AssessmentsWorkspaceBody() {
                             unifiedPathwayStepStateIndex,
                             stepView.registryItem.id,
                           )?.linkedEvidenceCount || 0;
+                        const stepIsNumberContext = isNumberPathwayContext(
+                          stepView.registryItem.subjectKey,
+                          stepView.registryItem.strandKey,
+                        );
+                        const stepNumberBank = getNumberBankForAssessmentStep(stepView);
+                        const stepAssessmentAttemptCount = stepIsNumberContext
+                          ? assessmentAttempts.filter((attempt) =>
+                              attemptMatchesAssessmentStep(attempt, stepView, stepNumberBank),
+                            ).length
+                          : 0;
                         const meta = STATUS_META[status];
 
                         return (
@@ -2179,6 +2484,14 @@ function AssessmentsWorkspaceBody() {
                                 Evidence linked:{" "}
                                 <strong style={{ color: "#0f172a" }}>{linkedEvidenceCount}</strong>
                               </div>
+                              {stepIsNumberContext ? (
+                                <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
+                                  Auto-checked attempts:{" "}
+                                  <strong style={{ color: "#0f172a" }}>
+                                    {stepAssessmentAttemptCount}
+                                  </strong>
+                                </div>
+                              ) : null}
                             </div>
 
                             <div style={{ color: "#1d4ed8", fontSize: 12, fontWeight: 700 }}>
@@ -2198,11 +2511,12 @@ function AssessmentsWorkspaceBody() {
         <section style={cardStyle}>
           <div style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "grid", gap: 8 }}>
-              <div style={eyebrowStyle}>Coming later</div>
-              <h2 style={{ margin: 0, color: "#0f172a" }}>Future assessment actions</h2>
+              <div style={eyebrowStyle}>Assessment boundaries</div>
+              <h2 style={{ margin: 0, color: "#0f172a" }}>Assessment actions and exports</h2>
               <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                The next layer will add structured checks, saved summaries, and clearer reporting
-                views while still using the same subject -&gt; strand -&gt; stage -&gt; step spine.
+                Number has automatically checked assessment attempts. Confidence, evidence,
+                curriculum coverage, pathway progress, and reports remain deliberate separate
+                actions.
               </p>
             </div>
 
@@ -2215,15 +2529,21 @@ function AssessmentsWorkspaceBody() {
             >
               <article style={compactCardStyle}>
                 <div style={eyebrowStyle}>Assessment checks</div>
-                <strong style={{ color: "#0f172a", fontSize: 18 }}>Structured checks</strong>
+                <strong style={{ color: "#0f172a", fontSize: 18 }}>Number structured checks</strong>
                 <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  Gentle checks will later help confirm whether a saved judgement is still
-                  developing, developing, secure, or strong.
+                  The Number engine can save automatically checked attempts. Use those attempts to
+                  inform, not replace, a parent confidence judgement.
                 </div>
                 <div>
-                  <button type="button" style={disabledButtonStyle} disabled>
-                    Coming later
-                  </button>
+                  {selectedStrandIsNumberContext ? (
+                    <Link href={numberAssessmentSelectorHref} style={secondaryButtonStyle}>
+                      Open Number assessment
+                    </Link>
+                  ) : (
+                    <button type="button" style={disabledButtonStyle} disabled>
+                      Choose Number strand to open
+                    </button>
+                  )}
                 </div>
               </article>
 
@@ -2507,11 +2827,71 @@ function AssessmentsWorkspaceBody() {
                 </section>
               ) : null}
 
+              {selectedTileIsNumberContext ? (
+                <section style={helperCardStyle}>
+                  <strong style={{ color: "#0f172a" }}>
+                    Automatically checked Number assessment
+                  </strong>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                    {selectedTileNumberBank
+                      ? `${selectedTileNumberBank.shortTitle} is connected to the Number adaptive engine.`
+                      : "This Number pathway context opens the Number selector so you can choose the closest focus."}{" "}
+                    Saved attempts are assessment records only; confidence, evidence, reports,
+                    curriculum coverage, and pathway progress are not changed automatically.
+                  </p>
+                  {selectedTileLatestAssessmentAttempt ? (
+                    <div
+                      style={{
+                        border: "1px solid #bae6fd",
+                        background: "#ffffff",
+                        borderRadius: 14,
+                        padding: 12,
+                        color: "#475569",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      Latest saved attempt:{" "}
+                      <strong style={{ color: "#0f172a" }}>
+                        {formatAssessmentAttemptTitle(selectedTileLatestAssessmentAttempt)}
+                      </strong>
+                      {selectedTileLatestAssessmentAttemptLabel
+                        ? ` on ${selectedTileLatestAssessmentAttemptLabel}`
+                        : ""}
+                      . Score: {selectedTileLatestAssessmentAttempt.autoCorrectCount}/
+                      {selectedTileLatestAssessmentAttempt.itemCount} automatically correct.
+                    </div>
+                  ) : (
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      No saved automatically checked attempt is linked to this focus yet.
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Link href={selectedTileNumberAssessmentHref} style={buttonStyle}>
+                      Open Number assessment
+                    </Link>
+                    <span
+                      style={{
+                        border: "1px solid #bae6fd",
+                        background: "#ffffff",
+                        color: "#0369a1",
+                        borderRadius: 999,
+                        padding: "8px 10px",
+                        fontSize: 12,
+                        fontWeight: 800,
+                      }}
+                    >
+                      Saved attempts: {selectedTileAssessmentAttempts.length}
+                    </span>
+                  </div>
+                </section>
+              ) : null}
+
               <section style={helperCardStyle}>
                 <strong style={{ color: "#0f172a" }}>Update assessment confidence</strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Use this to record your current judgement for this pathway step. Formal
-                  assessment checks can sit on top of this later.
+                  Use this to record your current judgement for this pathway step. Automatically
+                  checked assessment attempts can inform this judgement, but confidence is not
+                  changed automatically.
                 </p>
 
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -2685,16 +3065,26 @@ function AssessmentsWorkspaceBody() {
               </section>
 
               <section style={helperCardStyle}>
-                <strong style={{ color: "#0f172a" }}>Future assessment actions</strong>
+                <strong style={{ color: "#0f172a" }}>
+                  {selectedTileIsNumberContext
+                    ? "Assessment attempt boundary"
+                    : "Future assessment actions"}
+                </strong>
                 <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Manual confidence tracking and evidence links are now aligned to pathway step
-                  IDs. Next, MyLearna can add structured checks and step-level summaries on top of
-                  the same shared learning spine.
+                  {selectedTileIsNumberContext
+                    ? "Number assessments can be checked automatically and saved as assessment attempts. They do not update reports, portfolio evidence, curriculum coverage, pathway progress, or confidence unless a later deliberate integration writes those records."
+                    : "Manual confidence tracking and evidence links are aligned to pathway step IDs. Structured checks can be added on top of the same shared learning spine when a matching assessment engine exists."}
                 </p>
                 <div>
-                  <button type="button" style={disabledButtonStyle} disabled>
-                    Assessment checks coming later
-                  </button>
+                  {selectedTileIsNumberContext ? (
+                    <Link href={selectedTileNumberAssessmentHref} style={secondaryButtonStyle}>
+                      Open automatically checked assessment
+                    </Link>
+                  ) : (
+                    <button type="button" style={disabledButtonStyle} disabled>
+                      Assessment checks coming later
+                    </button>
+                  )}
                 </div>
               </section>
             </div>

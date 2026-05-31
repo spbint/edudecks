@@ -135,9 +135,15 @@ export type CompleteCleanAssessmentAttemptInput = {
 
 export type ListCleanAssessmentAttemptsOptions = {
   learnerId: string;
+  subjectKey?: CleanAssessmentSubjectKey | null;
+  strandKey?: string | null;
+  stageKey?: CleanAssessmentStageKey | null;
   pathwayStepId?: string | null;
+  stepKey?: string | null;
+  progressionBandKey?: string | null;
   itemBankKey?: string | null;
   status?: AssessmentAttemptStatus | null;
+  sourceRoute?: string | null;
   limit?: number;
 };
 

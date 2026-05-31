@@ -33,6 +33,8 @@ Legacy compatibility route:
 
 `/assessments/number` is the primary Number assessment entry point. `/assessments/number-approximation-prototype` is retained for old links and historical saved source routes for now. `/practice/number-targeted` remains the targeted practice route; a shorter practice alias has not been added yet.
 
+`/my-assessments` can route Number pathway contexts into `/assessments/number` with learner and pathway query parameters. Saved Number attempts are read back there as read-only assessment-attempt summaries, separate from parent confidence, evidence, reports, curriculum coverage and pathway progress.
+
 ## 4. Completed Number Adaptive Loops
 
 | Bank / focus | Progression band key | Assessment item file | Practice module file | Assessment item count | Sub-elements | Practice sections | Mini-check count | Status |
@@ -162,6 +164,7 @@ No parallel curriculum hierarchy should be introduced. Targeted practice remains
 Current boundaries:
 
 - Assessment attempts save, but do not update confidence.
+- My Assessments can show saved automatically checked Number attempts, but keeps them separate from confidence counts and evidence/report/curriculum claims.
 - Practice is local-only.
 - No evidence creation yet.
 - No My Curriculum updates yet.
