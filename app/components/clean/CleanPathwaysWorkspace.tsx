@@ -9,7 +9,12 @@ import CleanFamilyWorkspaceProvider, {
 import CleanPathwayStepActionRow from "@/app/components/clean/CleanPathwayStepActionRow";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import { listCleanAssessmentSkillStatuses } from "@/lib/clean/assessments/client";
-import { resolveCurriculumFrameworkMap } from "@/lib/clean/curriculum/frameworkMaps";
+import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemptClient";
+import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
+import {
+  NUMBER_ASSESSMENT_BANKS,
+  findNumberAssessmentBankByPathwayContext,
+} from "@/lib/clean/assessments/numberAssessmentBanks";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -136,12 +141,6 @@ const secondaryButtonStyle: React.CSSProperties = {
   color: "#0f172a",
 };
 
-const disabledButtonStyle: React.CSSProperties = {
-  ...secondaryButtonStyle,
-  opacity: 0.72,
-  cursor: "default",
-};
-
 const eyebrowStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 800,
@@ -200,38 +199,35 @@ type StageSummaryCounts = {
   notStarted: number;
 };
 
-function safe(value: string | null | undefined) {
-  return (value || "").trim();
-}
-
 function getLearnerLabel(learner: Learner | null) {
   if (!learner) return "No learner selected";
   return learner.preferredName || learner.firstName;
 }
 
-function splitCountryAndAuthorityLabels(countryAuthorityLabel: string, countryLabel: string) {
-  const normalizedCountry = safe(countryLabel);
-  const normalizedAuthority = safe(countryAuthorityLabel);
+function isNumberPathwayContext(subjectKey: string, strandKey: string) {
+  return subjectKey === "mathematics" && strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY;
+}
 
-  if (!normalizedAuthority) {
-    return {
-      countryLabel: normalizedCountry || "Not recorded in MyLearna yet.",
-      authorityLabel: "Not recorded in MyLearna yet.",
-    };
-  }
+function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
+  return (
+    NUMBER_ASSESSMENT_BANKS.find(
+      (bank) =>
+        bank.itemBankKey === attempt.itemBankKey ||
+        bank.progressionBandKey === attempt.progressionBandKey ||
+        bank.pathwayStepId === attempt.pathwayStepId ||
+        bank.stepKey === attempt.stepKey,
+    ) ?? null
+  );
+}
 
-  if (normalizedCountry && normalizedAuthority.startsWith(`${normalizedCountry} / `)) {
-    return {
-      countryLabel: normalizedCountry,
-      authorityLabel:
-        normalizedAuthority.slice(normalizedCountry.length + 3) || "Not recorded in MyLearna yet.",
-    };
-  }
+function formatAssessmentAttemptSavedAt(value: string | null) {
+  const parsed = Date.parse(value || "");
+  if (Number.isNaN(parsed)) return null;
 
-  return {
-    countryLabel: normalizedCountry || "Not recorded in MyLearna yet.",
-    authorityLabel: normalizedAuthority || "Not recorded in MyLearna yet.",
-  };
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+  }).format(parsed);
 }
 
 function getPathwayStageTone(stageIndex: number, currentStageIndex: number) {
@@ -411,6 +407,7 @@ function PathwaysWorkspaceBody() {
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
+  const [assessmentAttempts, setAssessmentAttempts] = useState<CleanAssessmentAttempt[]>([]);
   const pathwayDetailWorkspaceRef = useRef<HTMLDivElement | null>(null);
 
   const learnerOptions = useMemo(
@@ -449,34 +446,6 @@ function PathwaysWorkspaceBody() {
     [selectedLearner?.yearLevel],
   );
 
-  const resolvedFramework = useMemo(() => resolveCurriculumFrameworkMap(workspace.profile), [
-    workspace.profile,
-  ]);
-  const frameworkDetails = useMemo(() => {
-    if (!workspace.profile || workspace.schemaMissing || workspace.requiresFamilyCreation) {
-      return null;
-    }
-
-    const splitLabels = splitCountryAndAuthorityLabels(
-      resolvedFramework.countryAuthorityLabel,
-      resolvedFramework.map.countryLabel,
-    );
-
-    return {
-      countryLabel: splitLabels.countryLabel,
-      frameworkLabel: resolvedFramework.frameworkDisplayLabel,
-      authorityLabel: splitLabels.authorityLabel,
-      settingsHint:
-        !safe(workspace.profile.countryCode) || !safe(workspace.profile.curriculumFrameworkId)
-          ? "Framework details can be adjusted in My Settings."
-          : resolvedFramework.settingsHint,
-    };
-  }, [
-    resolvedFramework,
-    workspace.profile,
-    workspace.requiresFamilyCreation,
-    workspace.schemaMissing,
-  ]);
   const selectedSubject =
     PATHWAY_SUBJECTS.find((subject) => subject.key === selectedSubjectKey) || PATHWAY_SUBJECTS[0];
   const selectedDetailedSubjectConfig = DETAILED_SUBJECT_CONFIGS[selectedSubjectKey] || null;
@@ -544,6 +513,51 @@ function PathwaysWorkspaceBody() {
     workspace.schemaMissing,
   ]);
 
+  useEffect(() => {
+    let active = true;
+
+    async function loadAssessmentAttempts() {
+      if (
+        !workspace.profile ||
+        workspace.schemaMissing ||
+        workspace.requiresFamilyCreation ||
+        !selectedLearnerId
+      ) {
+        setAssessmentAttempts([]);
+        return;
+      }
+
+      try {
+        const nextAttempts = await listAssessmentAttemptsForLearner(workspace.profile.id, {
+          learnerId: selectedLearnerId,
+          subjectKey: selectedSubjectKey,
+          strandKey: selectedStrandKey,
+          status: "completed",
+          limit: 50,
+        });
+
+        if (!active) return;
+        setAssessmentAttempts(nextAttempts);
+      } catch {
+        if (!active) return;
+        setAssessmentAttempts([]);
+      }
+    }
+
+    void loadAssessmentAttempts();
+
+    return () => {
+      active = false;
+    };
+  }, [
+    selectedLearnerId,
+    selectedStrandKey,
+    selectedSubjectKey,
+    workspace.profile,
+    workspace.requiresFamilyCreation,
+    workspace.schemaMissing,
+  ]);
+
   const selectedWorkspaceStageIndex = useMemo(() => {
     if (!selectedSubjectWorkspace) return -1;
     return Math.max(
@@ -575,13 +589,22 @@ function PathwaysWorkspaceBody() {
     selectedWorkspaceStageIndex,
     unifiedPathwayStepStateIndex,
   ]);
+  const currentStageAssessmentAttempts = useMemo(
+    () => assessmentAttempts.filter((attempt) => attempt.stageKey === currentLearnerFocusStageKey),
+    [assessmentAttempts, currentLearnerFocusStageKey],
+  );
+  const latestAssessmentAttempt = currentStageAssessmentAttempts[0] ?? assessmentAttempts[0] ?? null;
+  const latestAssessmentBank = latestAssessmentAttempt
+    ? getNumberBankForAttempt(latestAssessmentAttempt)
+    : null;
+  const nextActionLabel = selectedWorkspaceSnapshot?.readyToAssess
+    ? "Check understanding"
+    : selectedWorkspaceSnapshot?.practising || selectedWorkspaceSnapshot?.evidenceStarted
+      ? "Practise"
+      : "Open the current focus";
   const selectedSubjectSummaryTitle = selectedSubjectSupportsDetailedPathways
     ? selectedSubjectWorkspace?.title || `${selectedSubject.title} pathways`
     : `${selectedSubject.title} pathways`;
-  const selectedSubjectSummaryDescription = selectedSubjectSupportsDetailedPathways
-    ? selectedSubjectWorkspace?.subtitle ||
-      "Choose a strand to explore the next pathway focus for this learner."
-    : selectedSubject.description;
   const selectedSubjectSummaryHelper = selectedSubjectSupportsDetailedPathways
     ? `Current stage focus: ${selectedWorkspaceCurrentStage?.title || "Choose a strand below"}`
     : selectedSubject.guidance;
@@ -631,12 +654,12 @@ function PathwaysWorkspaceBody() {
         <section
           style={{
             ...cardStyle,
-            padding: 24,
+            padding: 18,
             background:
               "linear-gradient(180deg, rgba(248,251,255,1) 0%, rgba(255,255,255,1) 100%)",
           }}
         >
-          <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 14 }}>
             <div
               style={{
                 display: "flex",
@@ -646,16 +669,11 @@ function PathwaysWorkspaceBody() {
                 flexWrap: "wrap",
               }}
             >
-              <div style={{ display: "grid", gap: 10, maxWidth: 760 }}>
-                <div style={eyebrowStyle}>Pathway dashboard</div>
+              <div style={{ display: "grid", gap: 8, maxWidth: 720 }}>
+                <div style={eyebrowStyle}>Where is this learner now?</div>
                 <h1 style={{ margin: 0, fontSize: 30, color: "#0f172a" }}>My Pathways</h1>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7, fontSize: 16 }}>
-                  Follow clear learning pathways that show what comes next, how to practise
-                  it, and how to capture evidence along the way.
-                </p>
-                <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                  Pathways help you see where a learner is, what comes next, and how
-                  learning can turn into evidence for reports.
+                <p style={{ margin: 0, color: "#475569", lineHeight: 1.6, fontSize: 15 }}>
+                  Pick a learner, check the current focus, then choose the next useful action.
                 </p>
               </div>
 
@@ -672,8 +690,7 @@ function PathwaysWorkspaceBody() {
                     lineHeight: 1.4,
                   }}
                 >
-                  Prototype view - saved pathway evidence can now update step badges, and
-                  broader assessment connections will keep developing.
+                  Parent pathway map
                 </span>
                 <Link href="/my-settings" style={secondaryButtonStyle}>
                   My Settings
@@ -684,8 +701,8 @@ function PathwaysWorkspaceBody() {
             <div
               style={{
                 display: "grid",
-                gap: 14,
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 10,
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
               }}
             >
               <div style={compactCardStyle}>
@@ -717,9 +734,7 @@ function PathwaysWorkspaceBody() {
                       <strong style={{ color: "#0f172a", fontSize: 16 }}>
                         {selectedLearnerLabel}
                       </strong>
-                      <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                        Pathway view for the current learner.
-                      </div>
+                      <div style={{ color: "#64748b", lineHeight: 1.5 }}>Current learner</div>
                     </>
                   )
                 ) : (
@@ -745,9 +760,6 @@ function PathwaysWorkspaceBody() {
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>
                   {selectedSubjectSummaryTitle}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {selectedSubjectSummaryDescription}
-                </div>
                 <div style={{ color: "#64748b", lineHeight: 1.6 }}>
                   {selectedSubjectSupportsDetailedPathways ? "Current stage focus: " : "Current status: "}
                   <strong style={{ color: "#0f172a" }}>
@@ -764,34 +776,26 @@ function PathwaysWorkspaceBody() {
               </div>
 
               <div style={compactCardStyle}>
-                <div style={eyebrowStyle}>Framework context</div>
+                <div style={eyebrowStyle}>Latest check</div>
                 <strong style={{ color: "#0f172a", fontSize: 16 }}>
-                  {frameworkDetails?.frameworkLabel ||
-                    "Framework details will connect to My Settings later."}
+                  {latestAssessmentAttempt
+                    ? latestAssessmentBank?.shortTitle || "Assessment saved"
+                    : "No check saved yet"}
                 </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  {frameworkDetails
-                    ? `${frameworkDetails.countryLabel}${
-                        frameworkDetails.authorityLabel !== "Not recorded in MyLearna yet."
-                          ? ` / ${frameworkDetails.authorityLabel}`
-                          : ""
-                      }`
-                    : "Selected framework context will connect to My Settings as this pathway layer develops."}
-                </div>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  {frameworkDetails?.settingsHint ||
-                    "Future pathway guidance can later align with the framework selected in My Settings."}
+                <div style={{ color: "#64748b", lineHeight: 1.5 }}>
+                  {latestAssessmentAttempt
+                    ? `Saved ${formatAssessmentAttemptSavedAt(
+                        latestAssessmentAttempt.completedAt || latestAssessmentAttempt.createdAt,
+                      ) || "recently"}`
+                    : "Use Check understanding when ready."}
                 </div>
               </div>
 
               <div style={helperCardStyle}>
-                <div style={eyebrowStyle}>Pathway loop</div>
-                <strong style={{ color: "#0f172a" }}>
-                  {"Pathway -> Practise -> Assess -> Evidence -> Curriculum coverage -> Reports / Outputs"}
-                </strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                  MyLearna is designed to guide the next step rather than only store the
-                  record after the fact.
+                <div style={eyebrowStyle}>Next action</div>
+                <strong style={{ color: "#0f172a" }}>{nextActionLabel}</strong>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                  Use the current step panel below.
                 </div>
               </div>
             </div>
@@ -803,11 +807,8 @@ function PathwaysWorkspaceBody() {
             <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
               <div style={eyebrowStyle}>Choose a subject</div>
               <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>Subject pathways</h2>
-              <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                Start with one subject, then move into strands, stages, and evidence.
-                Mathematics, English, Science, Humanities & Social Sciences, Technologies,
-                Arts, and Health / PE now use the detailed shared pathway engine across the
-                full core subject map.
+              <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                Choose one subject and strand. The pathway below keeps the current focus visible.
               </p>
             </div>
 
@@ -836,10 +837,6 @@ function PathwaysWorkspaceBody() {
                     </option>
                   ))}
                 </select>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>
-                  Choose a subject first. Detailed strand workspaces will expand from this same
-                  structure over time.
-                </div>
               </div>
 
               <div style={helperCardStyle}>
@@ -870,8 +867,9 @@ function PathwaysWorkspaceBody() {
                   </span>
                 </div>
                 <strong style={{ color: "#0f172a", fontSize: 18 }}>{selectedSubject.title}</strong>
-                <div style={{ color: "#475569", lineHeight: 1.6 }}>{selectedSubject.description}</div>
-                <div style={{ color: "#64748b", lineHeight: 1.6 }}>{selectedSubject.guidance}</div>
+                <div style={{ color: "#475569", lineHeight: 1.5 }}>
+                  {selectedSubject.description}
+                </div>
               </div>
             </div>
           </div>
@@ -880,25 +878,34 @@ function PathwaysWorkspaceBody() {
         {selectedSubjectSupportsDetailedPathways ? (
           <>
             <section style={cardStyle}>
-              <div style={{ display: "grid", gap: 16 }}>
-                <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
-                  <div style={eyebrowStyle}>{selectedDetailedSubjectConfig?.overviewEyebrow}</div>
-                  <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>
+              <div style={{ display: "grid", gap: 14 }}>
+                <details>
+                  <summary
+                    style={{
+                      cursor: "pointer",
+                      color: "#0f172a",
+                      fontWeight: 800,
+                      lineHeight: 1.5,
+                    }}
+                  >
                     {selectedDetailedSubjectConfig?.overviewTitle}
-                  </h2>
-                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                    {selectedDetailedSubjectConfig?.overviewDescription}
-                  </p>
-                  <p style={{ margin: 0, color: "#64748b", lineHeight: 1.6 }}>
-                    {selectedDetailedSubjectConfig?.overviewHelper}
-                  </p>
-                </div>
+                  </summary>
+                  <div style={{ display: "grid", gap: 8, marginTop: 10, maxWidth: 760 }}>
+                    <div style={eyebrowStyle}>{selectedDetailedSubjectConfig?.overviewEyebrow}</div>
+                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.6 }}>
+                      {selectedDetailedSubjectConfig?.overviewDescription}
+                    </p>
+                    <p style={{ margin: 0, color: "#64748b", lineHeight: 1.5 }}>
+                      {selectedDetailedSubjectConfig?.overviewHelper}
+                    </p>
+                  </div>
+                </details>
 
                 <div
                   style={{
                     display: "grid",
-                    gap: 14,
-                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                    gap: 10,
+                    gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
                   }}
                 >
                   {selectedSubjectDomainCards.map((domain) => {
@@ -920,9 +927,9 @@ function PathwaysWorkspaceBody() {
                               : "1px solid #e2e8f0",
                           borderRadius: 18,
                           background: selected ? "#eff6ff" : detailed ? "#f8fbff" : "#ffffff",
-                          padding: 18,
+                          padding: 14,
                           display: "grid",
-                          gap: 10,
+                          gap: 8,
                           width: "100%",
                           minWidth: 0,
                           textAlign: "left",
@@ -991,8 +998,7 @@ function PathwaysWorkspaceBody() {
                             ) : null}
                           </div>
                         </div>
-                        <div style={{ color: "#475569", lineHeight: 1.6 }}>{domain.description}</div>
-                        <div style={{ color: "#64748b", lineHeight: 1.6 }}>{domain.whyItMatters}</div>
+                        <div style={{ color: "#475569", lineHeight: 1.5 }}>{domain.description}</div>
                         <div style={{ color: "#1d4ed8", fontSize: 13, fontWeight: 700 }}>
                           {selected
                             ? "Showing this strand below"
@@ -1078,7 +1084,7 @@ function PathwaysWorkspaceBody() {
                     },
                   ]}
                 >
-                  <div style={{ display: "grid", gap: 16 }}>
+                  <div style={{ display: "grid", gap: 10 }}>
                     {selectedSubjectWorkspace.stages.map((stage, stageIndex) => (
                       <DetailedMathematicsStageCard
                         key={`${selectedSubjectWorkspace.key}-${stage.key}`}
@@ -1090,6 +1096,7 @@ function PathwaysWorkspaceBody() {
                         selectedSubjectKey={selectedSubject.key}
                         selectedSubjectTitle={selectedSubject.title}
                         selectedLearnerId={selectedLearner?.id || ""}
+                        returnPath={pathname}
                         isOpen={getStageOpenState(
                           selectedSubjectWorkspace.key,
                           stage.key,
@@ -1117,19 +1124,16 @@ function PathwaysWorkspaceBody() {
           <PathwaySubjectPlaceholderSection subject={selectedSubject} />
         )}
 
-        <section style={helperCardStyle}>
-          <strong style={{ color: "#0f172a" }}>Create a learning plan from a pathway</strong>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+        <details style={helperCardStyle}>
+          <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+            Future planning support
+          </summary>
+          <p style={{ margin: "10px 0 0", color: "#475569", lineHeight: 1.6 }}>
             {selectedSubjectSupportsDetailedPathways
               ? "Later, MyLearna will help turn selected pathway steps into a simple learning plan that can be placed into My Calendar and My Day."
               : `${selectedSubject.title} pathways will later use the same subject -> strand -> stage -> step structure to support planning in My Calendar and My Day.`}
           </p>
-          <div>
-            <button type="button" style={disabledButtonStyle} disabled>
-              Coming later
-            </button>
-          </div>
-        </section>
+        </details>
       </div>
     </div>
   );
@@ -1226,7 +1230,7 @@ function MathematicsStrandWorkspaceShell({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div style={{ display: "grid", gap: 14 }}>
       <div
         style={{
           display: "flex",
@@ -1236,16 +1240,20 @@ function MathematicsStrandWorkspaceShell({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+        <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
           <div style={eyebrowStyle}>{eyebrow}</div>
           <h2 style={{ margin: 0, color: "#0f172a", fontSize: 24 }}>{title}</h2>
-          <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>{subtitle}</p>
+          <p style={{ margin: 0, color: "#475569", lineHeight: 1.5 }}>{subtitle}</p>
         </div>
 
-        <div style={{ display: "grid", gap: 8, flex: "1 1 240px", minWidth: 0 }}>
-          <div style={eyebrowStyle}>{relationshipTitle}</div>
-          <div style={{ color: "#475569", lineHeight: 1.6 }}>{relationshipCopy}</div>
-        </div>
+        <details style={{ flex: "1 1 240px", minWidth: 0 }}>
+          <summary style={{ cursor: "pointer", color: "#334155", fontWeight: 800 }}>
+            {relationshipTitle}
+          </summary>
+          <div style={{ color: "#475569", lineHeight: 1.5, marginTop: 8 }}>
+            {relationshipCopy}
+          </div>
+        </details>
       </div>
 
       <div
@@ -1263,7 +1271,7 @@ function MathematicsStrandWorkspaceShell({
               border: `1px solid ${stage.tone.border}`,
               borderRadius: 999,
               background: stage.tone.background,
-              padding: "10px 14px",
+              padding: "8px 11px",
               display: "grid",
               gap: 4,
               boxShadow: stage.tone.shadow,
@@ -1288,23 +1296,23 @@ function MathematicsStrandWorkspaceShell({
       <div
         style={{
           display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 8,
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
         }}
       >
         {summaryCards.map((card, index) => (
-          <div key={`${card.label}-${index}`} style={summaryCardStyle}>
+          <div key={`${card.label}-${index}`} style={{ ...summaryCardStyle, padding: 12 }}>
             <div style={eyebrowStyle}>{card.label}</div>
             <strong
               style={{
                 color: card.valueColor || "#0f172a",
-                fontSize: card.valueColor ? 24 : 16,
+                fontSize: card.valueColor ? 22 : 15,
               }}
             >
               {card.value}
             </strong>
             {card.helper ? (
-              <div style={{ color: "#64748b", lineHeight: 1.6 }}>{card.helper}</div>
+              <div style={{ color: "#64748b", lineHeight: 1.4 }}>{card.helper}</div>
             ) : (
               <div style={{ color: "#475569" }}>{card.label}</div>
             )}
@@ -1312,33 +1320,39 @@ function MathematicsStrandWorkspaceShell({
         ))}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        }}
-      >
-        {supportCards.map((card) => (
-          <section key={card.title} style={helperCardStyle}>
-            <div style={eyebrowStyle}>{card.title}</div>
-            <ul
-              style={{
-                margin: 0,
-                paddingLeft: 18,
-                color: "#475569",
-                lineHeight: 1.7,
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              {card.items.map((item) => (
-                <li key={`${card.title}-${item}`}>{item}</li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
+      <details style={helperCardStyle}>
+        <summary style={{ cursor: "pointer", color: "#0f172a", fontWeight: 800 }}>
+          More pathway support
+        </summary>
+        <div
+          style={{
+            display: "grid",
+            gap: 10,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            marginTop: 12,
+          }}
+        >
+          {supportCards.map((card) => (
+            <section key={card.title} style={{ ...compactCardStyle, background: "#ffffff" }}>
+              <div style={eyebrowStyle}>{card.title}</div>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  color: "#475569",
+                  lineHeight: 1.5,
+                  display: "grid",
+                  gap: 5,
+                }}
+              >
+                {card.items.map((item) => (
+                  <li key={`${card.title}-${item}`}>{item}</li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </details>
 
       {children}
     </div>
@@ -1354,6 +1368,7 @@ function DetailedMathematicsStageCard({
   selectedSubjectKey,
   selectedSubjectTitle,
   selectedLearnerId,
+  returnPath,
   isOpen,
   onToggle,
   capturePathBase,
@@ -1367,6 +1382,7 @@ function DetailedMathematicsStageCard({
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   selectedLearnerId: string;
+  returnPath: string;
   isOpen: boolean;
   onToggle: () => void;
   capturePathBase: string;
@@ -1429,11 +1445,11 @@ function DetailedMathematicsStageCard({
     <section
       style={{
         border: `1px solid ${tone.border}`,
-        borderRadius: 20,
+        borderRadius: 16,
         background: tone.background,
-        padding: 18,
+        padding: 12,
         display: "grid",
-        gap: 14,
+        gap: 10,
         boxShadow: tone.shadow,
       }}
     >
@@ -1451,7 +1467,7 @@ function DetailedMathematicsStageCard({
           textAlign: "left",
           cursor: "pointer",
           display: "grid",
-          gap: 12,
+          gap: 8,
           outlineOffset: 3,
         }}
       >
@@ -1464,7 +1480,7 @@ function DetailedMathematicsStageCard({
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
+          <div style={{ display: "grid", gap: 4, maxWidth: 760 }}>
             <span
               style={{
                 color: tone.text,
@@ -1476,7 +1492,7 @@ function DetailedMathematicsStageCard({
             >
               {tone.badge}
             </span>
-            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 22 }}>{stage.title}</h3>
+            <h3 style={{ margin: 0, color: "#0f172a", fontSize: 18 }}>{stage.title}</h3>
           </div>
 
           <div
@@ -1496,8 +1512,8 @@ function DetailedMathematicsStageCard({
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 30,
-                height: 30,
+                width: 26,
+                height: 26,
                 borderRadius: 999,
                 border: `1px solid ${tone.border}`,
                 background: "#ffffff",
@@ -1511,9 +1527,9 @@ function DetailedMathematicsStageCard({
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "grid", gap: 8 }}>
           {isOpen ? (
-            <div style={{ color: "#475569", lineHeight: 1.6 }}>{stage.helper}</div>
+            <div style={{ color: "#475569", lineHeight: 1.5 }}>{stage.helper}</div>
           ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             {summaryChips.map((chip) => (
@@ -1524,7 +1540,7 @@ function DetailedMathematicsStageCard({
                   background: chip.background,
                   color: chip.color,
                   borderRadius: 999,
-                  padding: "7px 10px",
+                  padding: "5px 8px",
                   fontSize: 12,
                   fontWeight: 800,
                   lineHeight: 1.3,
@@ -1555,6 +1571,7 @@ function DetailedMathematicsStageCard({
             selectedSubjectKey={selectedSubjectKey}
             selectedSubjectTitle={selectedSubjectTitle}
             selectedLearnerId={selectedLearnerId}
+            returnPath={returnPath}
             capturePathBase={capturePathBase}
             assessPathBase={assessPathBase}
           />
@@ -1575,6 +1592,7 @@ function DetailedMathematicsStepCard({
   selectedSubjectKey,
   selectedSubjectTitle,
   selectedLearnerId,
+  returnPath,
   capturePathBase,
   assessPathBase,
 }: {
@@ -1588,6 +1606,7 @@ function DetailedMathematicsStepCard({
   selectedSubjectKey: PathwaySubjectKey;
   selectedSubjectTitle: string;
   selectedLearnerId: string;
+  returnPath: string;
   capturePathBase: string;
   assessPathBase: string;
 }) {
@@ -1615,6 +1634,19 @@ function DetailedMathematicsStepCard({
   const canonicalStepKey = useMemo(
     () => buildPathwayRegistryStepKey(step.title, step.id),
     [step.id, step.title],
+  );
+  const numberAssessmentBank = useMemo(
+    () =>
+      isNumberPathwayContext(selectedSubjectKey, strand.key)
+        ? findNumberAssessmentBankByPathwayContext({
+            subjectKey: selectedSubjectKey,
+            strandKey: strand.key,
+            stageKey: stage.key,
+            pathwayStepId: statusState.pathwayStepId,
+            stepKey: canonicalStepKey,
+          })
+        : null,
+    [canonicalStepKey, selectedSubjectKey, stage.key, statusState.pathwayStepId, strand.key],
   );
   const canonicalPathwayStepId = useMemo(
     () =>
@@ -1689,20 +1721,35 @@ function DetailedMathematicsStepCard({
     }
 
     const params = new URLSearchParams();
-    params.set("openStep", "1");
+    const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strand.key);
+    const assessmentPath = isNumberContext ? "/assessments/number" : assessPathBase;
+
+    params.set("source", "my-pathways");
+    params.set("openStep", numberAssessmentBank?.stepKey || "1");
     params.set("subjectKey", selectedSubjectKey);
     params.set("strandKey", strand.key);
     params.set("stageKey", stage.key);
-    params.set("pathwayStepId", canonicalPathwayStepId);
+    params.set("pathwayStepId", numberAssessmentBank?.pathwayStepId || canonicalPathwayStepId);
+    params.set("stepKey", numberAssessmentBank?.stepKey || canonicalStepKey);
+    params.set("returnTo", `${returnPath}#${detailPanelId}`);
+
+    if (numberAssessmentBank) {
+      params.set("progressionBandKey", numberAssessmentBank.progressionBandKey);
+      params.set("itemBankKey", numberAssessmentBank.itemBankKey);
+    }
 
     if (selectedLearnerId) {
       params.set("learnerId", selectedLearnerId);
     }
 
-    return `${assessPathBase}?${params.toString()}`;
+    return `${assessmentPath}?${params.toString()}`;
   }, [
     assessPathBase,
     canonicalPathwayStepId,
+    canonicalStepKey,
+    detailPanelId,
+    numberAssessmentBank,
+    returnPath,
     selectedLearnerId,
     selectedSubjectKey,
     stage.key,
@@ -1713,11 +1760,11 @@ function DetailedMathematicsStepCard({
     <article
       style={{
         border: `1px solid ${meta.border}`,
-        borderRadius: 16,
+        borderRadius: 14,
         background: "#ffffff",
-        padding: 16,
+        padding: 12,
         display: "grid",
-        gap: 12,
+        gap: 10,
       }}
     >
       <div
@@ -1729,7 +1776,7 @@ function DetailedMathematicsStepCard({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ display: "grid", gap: 8, maxWidth: 760 }}>
+        <div style={{ display: "grid", gap: 6, maxWidth: 760 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <span
               style={{
@@ -1737,16 +1784,18 @@ function DetailedMathematicsStepCard({
                 background: "#eff6ff",
                 color: "#1d4ed8",
                 borderRadius: 999,
-                padding: "4px 10px",
-                fontSize: 12,
+                padding: "3px 8px",
+                fontSize: 11,
                 fontWeight: 800,
               }}
             >
               Step {step.id}
             </span>
-            <strong style={{ color: "#0f172a", fontSize: 16 }}>{step.title}</strong>
+            <strong style={{ color: "#0f172a", fontSize: 15 }}>{step.title}</strong>
           </div>
-          <div style={{ color: "#475569", lineHeight: 1.7 }}>{step.meaning}</div>
+          {isOpen ? (
+            <div style={{ color: "#475569", lineHeight: 1.5 }}>{step.meaning}</div>
+          ) : null}
         </div>
 
         <div style={{ display: "grid", gap: 10, justifyItems: "end" }}>
@@ -1757,7 +1806,7 @@ function DetailedMathematicsStepCard({
                 border: `1px solid ${meta.border}`,
                 borderRadius: 999,
                 background: meta.fill,
-                padding: "8px 12px",
+                padding: "6px 10px",
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
@@ -1811,7 +1860,7 @@ function DetailedMathematicsStepCard({
               background: "#ffffff",
               color: "#1d4ed8",
               borderRadius: 999,
-              padding: "8px 12px",
+              padding: "6px 10px",
               fontSize: 12,
               fontWeight: 800,
               cursor: "pointer",
@@ -1856,11 +1905,11 @@ function DetailedMathematicsStepCard({
           isOpen
             ? {
                 border: "1px solid #dbeafe",
-                borderRadius: 16,
+                borderRadius: 14,
                 background: "#f8fbff",
-                padding: 16,
+                padding: 12,
                 display: "grid",
-                gap: 14,
+                gap: 10,
               }
             : { display: "none" }
         }
@@ -1950,7 +1999,7 @@ function PathwayStepGuidanceSection({
   return (
     <section style={{ display: "grid", gap: 6 }}>
       <div style={{ ...eyebrowStyle, color: "#1d4ed8" }}>{title}</div>
-      <div style={{ color: "#475569", lineHeight: 1.7 }}>{content}</div>
+      <div style={{ color: "#475569", lineHeight: 1.5 }}>{content}</div>
     </section>
   );
 }
@@ -1970,7 +2019,7 @@ function PathwayStepGuidanceListSection({
           margin: 0,
           paddingLeft: 18,
           color: "#475569",
-          lineHeight: 1.7,
+          lineHeight: 1.5,
           display: "grid",
           gap: 6,
         }}

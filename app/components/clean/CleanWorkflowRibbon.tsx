@@ -8,7 +8,6 @@ import CleanAppHeader from "@/app/components/clean/CleanAppHeader";
 type CleanWorkflowStepKey =
   | "calendar"
   | "pathways"
-  | "assessments"
   | "capture"
   | "portfolio"
   | "reports"
@@ -57,14 +56,6 @@ const steps: CleanWorkflowStep[] = [
     matches: ["/my-pathways", "/clean-my-pathways", "/pathways"],
   },
   {
-    key: "assessments",
-    label: "Assessments",
-    helper: "Check understanding",
-    href: "/my-assessments",
-    cleanHref: "/clean-my-assessments",
-    matches: ["/my-assessments", "/clean-my-assessments"],
-  },
-  {
     key: "capture",
     label: "Capture",
     helper: "Record what happened",
@@ -109,10 +100,6 @@ const workflowGuidance: Record<
   pathways: {
     title: "What to do next",
     copy: "Choose a pathway step, practise it, then capture evidence or check understanding.",
-  },
-  assessments: {
-    title: "What to do next",
-    copy: "Start with the current focus stage first, then use earlier and later stages as context when you need them.",
   },
   capture: {
     title: "What to do next",

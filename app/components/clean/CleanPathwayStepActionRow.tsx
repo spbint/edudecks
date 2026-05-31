@@ -23,9 +23,9 @@ const buttonStyle: React.CSSProperties = {
   border: "1px solid #0f172a",
   background: "#0f172a",
   color: "#ffffff",
-  borderRadius: 10,
-  padding: "10px 14px",
-  fontSize: 14,
+  borderRadius: 9,
+  padding: "8px 11px",
+  fontSize: 13,
   fontWeight: 700,
   textDecoration: "none",
   display: "inline-flex",
@@ -188,44 +188,55 @@ export default function CleanPathwayStepActionRow({
   return (
     <>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "stretch" }}>
+        <div
+          style={{
+            flex: "1 1 100%",
+            color: "#334155",
+            fontSize: 13,
+            fontWeight: 800,
+            lineHeight: 1.4,
+          }}
+        >
+          What would you like to do next?
+        </div>
         {activity ? (
           <>
             <button
               type="button"
               onClick={openPracticePlayer}
-              style={{ ...buttonStyle, flex: "1 1 140px" }}
+              style={{ ...buttonStyle, flex: "1 1 120px" }}
               aria-label="Open practice for this pathway step"
             >
-              {completedPracticeTaskCount ? "Resume practice" : "Practice"}
+              {completedPracticeTaskCount ? "Resume practise" : "Practise"}
             </button>
             <button
               type="button"
               onClick={openMiniCheckPlayer}
-              style={{ ...secondaryButtonStyle, flex: "1 1 140px" }}
+              style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
               aria-label="Open mini check for this pathway step"
             >
-              {completedMiniCheckCount ? "Resume mini check" : "Mini Check"}
+              {completedMiniCheckCount ? "Resume mini-check" : "Mini-check"}
             </button>
           </>
         ) : (
           <>
             <button
               type="button"
-              style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
+              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
               disabled
               title="CRA practice for this pathway step is coming later."
               aria-label="Practice for this pathway step is coming later"
             >
-              Practice
+              Practise
             </button>
             <button
               type="button"
-              style={{ ...disabledButtonStyle, flex: "1 1 140px" }}
+              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
               disabled
               title="Mini Check for this pathway step is coming later."
               aria-label="Mini Check for this pathway step is coming later"
             >
-              Mini Check
+              Mini-check
             </button>
           </>
         )}
@@ -233,14 +244,14 @@ export default function CleanPathwayStepActionRow({
         <Link
           href={assessHref}
           style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
-          title="Open My Assessments for this same canonical pathway step."
+          title="Check understanding for this pathway step."
           aria-label="Assess this pathway step"
         >
-          Assess
+          Check understanding
         </Link>
         <Link
           href={captureHref}
-          style={{ ...buttonStyle, flex: "1 1 160px" }}
+          style={{ ...buttonStyle, flex: "1 1 140px" }}
           title="Open My Capture with this pathway step already connected."
           aria-label="Capture evidence for this pathway step"
         >

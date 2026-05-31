@@ -35,6 +35,8 @@ Legacy compatibility route:
 
 `/my-assessments` can route Number pathway contexts into `/assessments/number` with learner and pathway query parameters. Saved Number attempts are read back there as read-only assessment-attempt summaries, separate from parent confidence, evidence, reports, curriculum coverage and pathway progress.
 
+`/my-assessments` is retained as a supporting/deep-link route, but it is no longer shown as a primary ribbon/header item. My Pathways is the primary parent journey for progress, next actions and check-understanding entry points.
+
 ## 4. Completed Number Adaptive Loops
 
 | Bank / focus | Progression band key | Assessment item file | Practice module file | Assessment item count | Sub-elements | Practice sections | Mini-check count | Status |
