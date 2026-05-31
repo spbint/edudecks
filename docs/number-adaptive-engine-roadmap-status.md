@@ -168,6 +168,7 @@ Current boundaries:
 - Assessment attempts save, but do not update confidence.
 - My Assessments can show saved automatically checked Number attempts, but keeps them separate from confidence counts and evidence/report/curriculum claims.
 - My Pathways is the primary parent journey. It routes Number check-understanding actions into `/assessments/number` with learner/pathway context and a return path.
+- My Pathways uses the central Number pathway assessment alignment helper to map curriculum step IDs to safe Number assessment banks. Unmatched Number steps should show that no auto-checked assessment is available yet rather than opening a misleading default bank.
 - Number assessment and targeted practice now preserve the My Pathways return path where supplied, so parents can come back to the pathway after checking understanding or practising.
 - Practice is local-only.
 - No evidence creation yet.

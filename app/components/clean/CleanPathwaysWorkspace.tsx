@@ -13,8 +13,12 @@ import { listAssessmentAttemptsForLearner } from "@/lib/clean/assessments/attemp
 import type { CleanAssessmentAttempt } from "@/lib/clean/assessments/attemptTypes";
 import {
   NUMBER_ASSESSMENT_BANKS,
-  findNumberAssessmentBankByPathwayContext,
 } from "@/lib/clean/assessments/numberAssessmentBanks";
+import {
+  getAutoCheckStatusForPathwayStep,
+  getNumberAssessmentAlignmentForPathwayStep,
+  getNumberAssessmentLinkForPathwayStep,
+} from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -1111,6 +1115,7 @@ function PathwaysWorkspaceBody() {
                         }
                         capturePathBase={capturePathBase}
                         assessPathBase={assessPathBase}
+                        assessmentAttempts={assessmentAttempts}
                       />
                     ))}
                   </div>
@@ -1373,6 +1378,7 @@ function DetailedMathematicsStageCard({
   onToggle,
   capturePathBase,
   assessPathBase,
+  assessmentAttempts,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -1387,6 +1393,7 @@ function DetailedMathematicsStageCard({
   onToggle: () => void;
   capturePathBase: string;
   assessPathBase: string;
+  assessmentAttempts: CleanAssessmentAttempt[];
 }) {
   const tone = getPathwayStageTone(stageIndex, currentStageIndex);
   const panelId = `${strand.key}-stage-${stage.key}`;
@@ -1574,6 +1581,7 @@ function DetailedMathematicsStageCard({
             returnPath={returnPath}
             capturePathBase={capturePathBase}
             assessPathBase={assessPathBase}
+            assessmentAttempts={assessmentAttempts}
           />
         ))}
       </div>
@@ -1595,6 +1603,7 @@ function DetailedMathematicsStepCard({
   returnPath,
   capturePathBase,
   assessPathBase,
+  assessmentAttempts,
 }: {
   strand: MathematicsDetailedStrandWorkspace;
   stage: MathematicsDetailedStrandStage;
@@ -1609,6 +1618,7 @@ function DetailedMathematicsStepCard({
   returnPath: string;
   capturePathBase: string;
   assessPathBase: string;
+  assessmentAttempts: CleanAssessmentAttempt[];
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const statusState = getWorkspaceDisplayedPathwayStatus(
@@ -1635,10 +1645,10 @@ function DetailedMathematicsStepCard({
     () => buildPathwayRegistryStepKey(step.title, step.id),
     [step.id, step.title],
   );
-  const numberAssessmentBank = useMemo(
+  const numberAssessmentAlignment = useMemo(
     () =>
       isNumberPathwayContext(selectedSubjectKey, strand.key)
-        ? findNumberAssessmentBankByPathwayContext({
+        ? getNumberAssessmentAlignmentForPathwayStep({
             subjectKey: selectedSubjectKey,
             strandKey: strand.key,
             stageKey: stage.key,
@@ -1648,6 +1658,7 @@ function DetailedMathematicsStepCard({
         : null,
     [canonicalStepKey, selectedSubjectKey, stage.key, statusState.pathwayStepId, strand.key],
   );
+  const numberAssessmentBank = numberAssessmentAlignment?.bank ?? null;
   const canonicalPathwayStepId = useMemo(
     () =>
       statusState.pathwayStepId ||
@@ -1720,41 +1731,57 @@ function DetailedMathematicsStepCard({
       return assessPathBase;
     }
 
-    const params = new URLSearchParams();
     const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strand.key);
-    const assessmentPath = isNumberContext ? "/assessments/number" : assessPathBase;
+    const returnTo = `${returnPath}#${detailPanelId}`;
 
+    if (isNumberContext) {
+      return (
+        getNumberAssessmentLinkForPathwayStep(
+          {
+            subjectKey: selectedSubjectKey,
+            strandKey: strand.key,
+            stageKey: stage.key,
+            pathwayStepId: canonicalPathwayStepId,
+            stepKey: canonicalStepKey,
+          },
+          {
+            learnerId: selectedLearnerId || null,
+            returnTo,
+          },
+        ) || ""
+      );
+    }
+
+    const params = new URLSearchParams();
     params.set("source", "my-pathways");
-    params.set("openStep", numberAssessmentBank?.stepKey || "1");
+    params.set("openStep", canonicalStepKey);
     params.set("subjectKey", selectedSubjectKey);
     params.set("strandKey", strand.key);
     params.set("stageKey", stage.key);
-    params.set("pathwayStepId", numberAssessmentBank?.pathwayStepId || canonicalPathwayStepId);
-    params.set("stepKey", numberAssessmentBank?.stepKey || canonicalStepKey);
-    params.set("returnTo", `${returnPath}#${detailPanelId}`);
-
-    if (numberAssessmentBank) {
-      params.set("progressionBandKey", numberAssessmentBank.progressionBandKey);
-      params.set("itemBankKey", numberAssessmentBank.itemBankKey);
-    }
+    params.set("pathwayStepId", canonicalPathwayStepId);
+    params.set("stepKey", canonicalStepKey);
+    params.set("returnTo", returnTo);
 
     if (selectedLearnerId) {
       params.set("learnerId", selectedLearnerId);
     }
 
-    return `${assessmentPath}?${params.toString()}`;
+    return `${assessPathBase}?${params.toString()}`;
   }, [
     assessPathBase,
     canonicalPathwayStepId,
     canonicalStepKey,
     detailPanelId,
-    numberAssessmentBank,
     returnPath,
     selectedLearnerId,
     selectedSubjectKey,
     stage.key,
     strand.key,
   ]);
+  const autoCheckStatus = useMemo(
+    () => getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment),
+    [assessmentAttempts, numberAssessmentAlignment],
+  );
 
   return (
     <article
@@ -1896,6 +1923,20 @@ function DetailedMathematicsStepCard({
         activity={practiceActivity}
         assessHref={assessHref}
         captureHref={captureHref}
+        assessmentBankTitle={numberAssessmentBank?.title ?? null}
+        autoCheckStatusLabel={
+          numberAssessmentBank ? autoCheckStatus.status : null
+        }
+        autoCheckStatusScope={
+          numberAssessmentBank && autoCheckStatus.scope !== "none"
+            ? autoCheckStatus.scope
+            : null
+        }
+        noAssessmentMessage={
+          isNumberPathwayContext(selectedSubjectKey, strand.key) && !numberAssessmentBank
+            ? "No auto-checked assessment is available for this step yet."
+            : null
+        }
       />
 
       <div

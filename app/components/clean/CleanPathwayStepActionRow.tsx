@@ -17,6 +17,10 @@ type CleanPathwayStepActionRowProps = {
   activity: PathwayPracticeActivity | null;
   assessHref: string;
   captureHref: string;
+  assessmentBankTitle?: string | null;
+  autoCheckStatusLabel?: string | null;
+  autoCheckStatusScope?: "bank" | "sub-element" | null;
+  noAssessmentMessage?: string | null;
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -90,6 +94,10 @@ export default function CleanPathwayStepActionRow({
   activity,
   assessHref,
   captureHref,
+  assessmentBankTitle,
+  autoCheckStatusLabel,
+  autoCheckStatusScope,
+  noAssessmentMessage,
 }: CleanPathwayStepActionRowProps) {
   const practiceItems = useMemo(
     () => (activity ? buildPracticePlayerItems(activity) : []),
@@ -199,6 +207,56 @@ export default function CleanPathwayStepActionRow({
         >
           What would you like to do next?
         </div>
+        {assessmentBankTitle ? (
+          <div
+            style={{
+              flex: "1 1 100%",
+              border: "1px solid #dbeafe",
+              borderRadius: 12,
+              background: "#f8fbff",
+              padding: "9px 11px",
+              display: "grid",
+              gap: 4,
+              color: "#334155",
+              fontSize: 13,
+              lineHeight: 1.45,
+            }}
+          >
+            <div>
+              Auto-checked assessment:{" "}
+              <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
+            </div>
+            <div>
+              Latest auto-check result:{" "}
+              <strong style={{ color: "#0f172a" }}>
+                {autoCheckStatusLabel || "Not checked yet"}
+              </strong>
+              {autoCheckStatusScope === "sub-element"
+                ? " for this focus"
+                : autoCheckStatusScope === "bank"
+                  ? " for this bank"
+                  : ""}
+            </div>
+            <div style={{ color: "#64748b" }}>
+              Confidence has not been changed automatically.
+            </div>
+          </div>
+        ) : noAssessmentMessage ? (
+          <div
+            style={{
+              flex: "1 1 100%",
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              background: "#ffffff",
+              padding: "9px 11px",
+              color: "#64748b",
+              fontSize: 13,
+              lineHeight: 1.45,
+            }}
+          >
+            {noAssessmentMessage}
+          </div>
+        ) : null}
         {activity ? (
           <>
             <button
@@ -241,14 +299,30 @@ export default function CleanPathwayStepActionRow({
           </>
         )}
 
-        <Link
-          href={assessHref}
-          style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
-          title="Check understanding for this pathway step."
-          aria-label="Assess this pathway step"
-        >
-          Check understanding
-        </Link>
+        {assessHref ? (
+          <Link
+            href={assessHref}
+            style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
+            title={
+              assessmentBankTitle
+                ? `Uses the ${assessmentBankTitle} assessment.`
+                : "Check understanding for this pathway step."
+            }
+            aria-label="Assess this pathway step"
+          >
+            Check understanding
+          </Link>
+        ) : (
+          <button
+            type="button"
+            style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+            disabled
+            title={noAssessmentMessage || "Assessment for this step is coming later."}
+            aria-label="No auto-checked assessment is available for this pathway step"
+          >
+            Check understanding
+          </button>
+        )}
         <Link
           href={captureHref}
           style={{ ...buttonStyle, flex: "1 1 140px" }}

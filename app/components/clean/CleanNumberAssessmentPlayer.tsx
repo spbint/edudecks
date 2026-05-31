@@ -13,11 +13,13 @@ import {
 } from "@/lib/clean/assessments/attemptClient";
 import {
   NUMBER_ASSESSMENT_BANKS,
-  findNumberAssessmentBankByPathwayContext,
   getNumberAssessmentBankByKey,
   type NumberAssessmentBankItem,
   type NumberAssessmentBankKey,
 } from "@/lib/clean/assessments/numberAssessmentBanks";
+import {
+  getNumberAssessmentAlignmentForPathwayStep,
+} from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
 import type {
   AssessmentAttemptLocalResult,
   CleanAssessmentAttemptSnapshot,
@@ -2221,7 +2223,7 @@ function CleanNumberAssessmentPlayerBody() {
 
   const incomingBank = useMemo(
     () =>
-      findNumberAssessmentBankByPathwayContext({
+      getNumberAssessmentAlignmentForPathwayStep({
         openStep: searchParams.get("openStep"),
         subjectKey: searchParams.get("subjectKey"),
         strandKey: searchParams.get("strandKey"),
@@ -2230,7 +2232,7 @@ function CleanNumberAssessmentPlayerBody() {
         progressionBandKey: searchParams.get("progressionBandKey"),
         stepKey: searchParams.get("stepKey"),
         itemBankKey: searchParams.get("itemBankKey"),
-      }),
+      })?.bank ?? null,
     [searchParams],
   );
   const hasIncomingNumberContext =
