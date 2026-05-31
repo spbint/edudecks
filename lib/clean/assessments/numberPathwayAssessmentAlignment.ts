@@ -31,6 +31,38 @@ export type NumberAutoCheckStatus =
   | "Needs support"
   | "Not checked yet";
 
+export type NumberPathwayRevealGroupKey =
+  | "needsPolish"
+  | "currentLearningZone"
+  | "secureHistory"
+  | "laterPathway";
+
+export type NumberPathwayRevealStepInput = {
+  id: number | string;
+  title: string;
+  stageKey: string;
+  stageTitle: string;
+  stepKey: string;
+  pathwayStepId: string;
+};
+
+export type NumberPathwayRevealStep = NumberPathwayRevealStepInput & {
+  order: number;
+  alignment: NumberPathwayAssessmentAlignment | null;
+  autoCheck: ReturnType<typeof getAutoCheckStatusForPathwayStep>;
+  group: NumberPathwayRevealGroupKey;
+};
+
+export type NumberPathwayRevealGroups = {
+  hasSavedAttempts: boolean;
+  highestSecureOrder: number;
+  currentLearningZoneStartOrder: number;
+  needsPolish: NumberPathwayRevealStep[];
+  currentLearningZone: NumberPathwayRevealStep[];
+  secureHistory: NumberPathwayRevealStep[];
+  laterPathway: NumberPathwayRevealStep[];
+};
+
 type BankAlignmentTarget = {
   bankKey: NumberAssessmentBankKey;
   subElementKeys?: string[];
@@ -412,5 +444,91 @@ export function getAutoCheckStatusForPathwayStep(
     status: getBankLevelStatus(attempt),
     attempt,
     scope: "bank" as const,
+  };
+}
+
+function isSecureEnough(status: NumberAutoCheckStatus) {
+  return status === "Secure" || status === "Consolidating";
+}
+
+function isWeakAutoCheck(status: NumberAutoCheckStatus) {
+  return status === "Developing" || status === "Needs support";
+}
+
+export function getNumberPathwayRevealGroups(
+  steps: NumberPathwayRevealStepInput[],
+  attempts: CleanAssessmentAttempt[],
+): NumberPathwayRevealGroups {
+  const revealSteps = steps.map((step, index) => {
+    const alignment = getNumberAssessmentAlignmentForPathwayStep({
+      subjectKey: "mathematics",
+      strandKey: NUMBER_STRAND_KEY,
+      stageKey: step.stageKey,
+      pathwayStepId: step.pathwayStepId,
+      stepKey: step.stepKey,
+    });
+    const autoCheck = getAutoCheckStatusForPathwayStep(attempts, alignment);
+
+    return {
+      ...step,
+      order: index,
+      alignment,
+      autoCheck,
+      group: "laterPathway" as NumberPathwayRevealGroupKey,
+    };
+  });
+
+  const hasSavedAttempts = revealSteps.some(
+    (step) => step.autoCheck.status !== "Not checked yet",
+  );
+
+  const highestSecureOrder = revealSteps.reduce((highest, step) => {
+    if (!isSecureEnough(step.autoCheck.status)) return highest;
+    return Math.max(highest, step.order);
+  }, -1);
+
+  const currentLearningZoneStartOrder = Math.max(0, highestSecureOrder + 1);
+  const currentLearningZoneEndOrder = currentLearningZoneStartOrder + 3;
+
+  const grouped = revealSteps.map((step) => {
+    let group: NumberPathwayRevealGroupKey = "laterPathway";
+
+    if (
+      hasSavedAttempts &&
+      highestSecureOrder >= 0 &&
+      step.order <= highestSecureOrder &&
+      isWeakAutoCheck(step.autoCheck.status)
+    ) {
+      group = "needsPolish";
+    } else if (
+      hasSavedAttempts &&
+      step.order >= currentLearningZoneStartOrder &&
+      step.order <= currentLearningZoneEndOrder
+    ) {
+      group = "currentLearningZone";
+    } else if (
+      hasSavedAttempts &&
+      step.order <= highestSecureOrder &&
+      isSecureEnough(step.autoCheck.status)
+    ) {
+      group = "secureHistory";
+    }
+
+    return {
+      ...step,
+      group,
+    };
+  });
+
+  return {
+    hasSavedAttempts,
+    highestSecureOrder,
+    currentLearningZoneStartOrder,
+    needsPolish: grouped.filter((step) => step.group === "needsPolish"),
+    currentLearningZone: grouped.filter(
+      (step) => step.group === "currentLearningZone",
+    ),
+    secureHistory: grouped.filter((step) => step.group === "secureHistory"),
+    laterPathway: grouped.filter((step) => step.group === "laterPathway"),
   };
 }
