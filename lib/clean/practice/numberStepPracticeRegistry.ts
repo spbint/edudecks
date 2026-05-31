@@ -1,5 +1,8 @@
 import { NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE } from "@/lib/clean/practice/numberPlaceValueOperationsPracticeModules";
 import {
+  NUMBER_FOUNDATION_STEP_PRACTICES,
+} from "@/lib/clean/practice/numberFoundationStepPracticeTasks";
+import {
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_KEY,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_METADATA,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS,
@@ -42,6 +45,23 @@ export const NUMBER_STEP_PRACTICES: NumberStepPractice[] = [
     depthOptions: NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
     tasks: NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS,
   },
+  ...NUMBER_FOUNDATION_STEP_PRACTICES.map((practice) => ({
+    key: practice.key,
+    stepNumber: practice.stepNumber,
+    stepKey: practice.stepKey,
+    pathwayStepId: practice.pathwayStepId,
+    title: practice.title,
+    shortTitle: practice.shortTitle,
+    description: practice.description,
+    subjectKey: "mathematics" as const,
+    strandKey: "number-and-place-value" as const,
+    stageKey: "foundation-kindergarten" as const,
+    parentModuleId: NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE.id,
+    parentModuleTitle: NUMBER_PLACE_VALUE_OPERATIONS_PRACTICE_MODULE.title,
+    relatedStepAssessmentKey: practice.relatedStepAssessmentKey,
+    depthOptions: NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
+    tasks: practice.tasks,
+  })),
 ];
 
 export function getNumberStepPracticeByStepKey(stepKey: string) {

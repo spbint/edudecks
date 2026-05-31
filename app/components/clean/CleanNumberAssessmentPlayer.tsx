@@ -1591,6 +1591,175 @@ function renderStep1Visual(itemId: string) {
   );
 }
 
+function dotsForCount(count: number): DotSpec[] {
+  if (count <= 0) return [];
+  if (count === 1) return [DOT_POSITIONS.centre];
+  if (count === 2) return [DOT_POSITIONS.left, DOT_POSITIONS.right];
+  if (count === 3) return triangleThree;
+  if (count === 4) return squareFour;
+  if (count === 5) return diceFive;
+
+  const columns: number = count > 10 ? 5 : count > 6 ? 4 : 3;
+  const rows = Math.ceil(count / columns);
+  return Array.from({ length: count }, (_, index) => {
+    const column = index % columns;
+    const row = Math.floor(index / columns);
+    return {
+      x: columns === 1 ? 50 : 18 + (64 / Math.max(1, columns - 1)) * column,
+      y: rows === 1 ? 50 : 24 + (52 / Math.max(1, rows - 1)) * row,
+      size: count > 12 ? 11 : count > 8 ? 13 : 16,
+    };
+  });
+}
+
+function parseEarlyNumberVisual(description: string | undefined) {
+  const raw = String(description || "");
+  if (!raw.startsWith("early-number|")) return null;
+
+  const parts = Object.fromEntries(
+    raw
+      .split("|")
+      .slice(1)
+      .map((part) => {
+        const [key, ...rest] = part.split("=");
+        return [key, rest.join("=")];
+      }),
+  );
+  const labels = String(parts.labels || "")
+    .split(",")
+    .map((label) => label.trim())
+    .filter(Boolean);
+  const groupCounts = String(parts.groups || "")
+    .split(",")
+    .map((entry) => Number(entry.trim()))
+    .filter((entry) => Number.isFinite(entry) && entry >= 0);
+  const numberCards = String(parts.numbers || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  return {
+    caption: String(parts.caption || "Use the visual card."),
+    labels,
+    groupCounts,
+    numberCards,
+  };
+}
+
+function renderEarlyNumberVisual(item: NumberAssessmentBankItem) {
+  const step1Visual = renderStep1Visual(item.id);
+  if (step1Visual) return step1Visual;
+
+  const visual = parseEarlyNumberVisual(item.visualSupport?.description);
+  if (!visual) return null;
+
+  const cards: Step1VisualCard[] = visual.groupCounts.map((count, index) => ({
+    label: visual.labels[index] || `${count}`,
+    dots: dotsForCount(count),
+    frame: count <= 10 && count > 5 ? "five" : "plain",
+  }));
+
+  return (
+    <div
+      style={{
+        border: "1px solid #bfdbfe",
+        borderRadius: 18,
+        background: "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
+        padding: 14,
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      <div style={{ color: "#1e3a8a", fontSize: 14, fontWeight: 800 }}>
+        {visual.caption}
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))",
+          gap: 10,
+        }}
+      >
+        {visual.numberCards.length
+          ? visual.numberCards.map((numberCard) => (
+              <div
+                key={numberCard}
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  minHeight: 94,
+                  display: "grid",
+                  placeItems: "center",
+                  color: "#1d4ed8",
+                  fontSize: 42,
+                  fontWeight: 900,
+                }}
+              >
+                {numberCard}
+              </div>
+            ))
+          : cards.map((card, cardIndex) => (
+              <div
+                key={`${item.id}-${cardIndex}`}
+                style={{
+                  border: "1px solid #dbeafe",
+                  borderRadius: 16,
+                  background: "#ffffff",
+                  padding: 10,
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div
+                  style={{
+                    color: "#475569",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    textAlign: "center",
+                  }}
+                >
+                  {card.label}
+                </div>
+                <div
+                  style={{
+                    position: "relative",
+                    height: 96,
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 14,
+                    background: "#f8fafc",
+                    overflow: "hidden",
+                  }}
+                >
+                  {card.dots.map((dot, dotIndex) => {
+                    const size = dot.size ?? 16;
+                    return (
+                      <span
+                        key={`${dot.x}-${dot.y}-${dotIndex}`}
+                        aria-hidden="true"
+                        style={{
+                          position: "absolute",
+                          left: `${dot.x}%`,
+                          top: `${dot.y}%`,
+                          width: size,
+                          height: size,
+                          borderRadius: 999,
+                          background: "#2563eb",
+                          border: "2px solid #1e40af",
+                          transform: "translate(-50%, -50%)",
+                          boxShadow: "0 5px 12px rgba(37,99,235,0.22)",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+      </div>
+    </div>
+  );
+}
+
 const FOCUS_LABELS: Record<string, string> = {
   "round-decimals-to-a-required-accuracy": "Rounding decimals",
   "estimate-sums-and-products-using-rounding": "Estimating with rounding",
@@ -4320,7 +4489,7 @@ function CleanNumberAssessmentPlayerBody() {
                       >
                         {currentItem.title}
                       </h2>
-                      {incomingStepAssessment ? renderStep1Visual(currentItem.id) : null}
+                      {incomingStepAssessment ? renderEarlyNumberVisual(currentItem) : null}
                       <p
                         style={{
                           margin: 0,

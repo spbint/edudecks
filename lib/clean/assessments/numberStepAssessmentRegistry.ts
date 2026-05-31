@@ -2,6 +2,9 @@ import {
   NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
 } from "@/lib/clean/assessments/numberPlaceValueOperationsAssessmentItems";
 import {
+  NUMBER_FOUNDATION_STEP_ASSESSMENTS,
+} from "@/lib/clean/assessments/numberFoundationStepAssessments";
+import {
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_KEY,
   NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PATHWAY_STEP_ID,
@@ -45,6 +48,25 @@ export const NUMBER_STEP_ASSESSMENTS: NumberStepAssessment[] = [
     depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
     items: NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS,
   },
+  ...NUMBER_FOUNDATION_STEP_ASSESSMENTS.map((assessment) => ({
+    key: assessment.key,
+    stepNumber: assessment.stepNumber,
+    stepKey: assessment.stepKey,
+    pathwayStepId: assessment.pathwayStepId,
+    title: assessment.title,
+    shortTitle: assessment.shortTitle,
+    description: assessment.description,
+    subjectKey: "mathematics" as const,
+    strandKey: "number-and-place-value" as const,
+    stageKey: "foundation-kindergarten" as const,
+    parentBankKey: "place-value-and-whole-number-operations" as const,
+    parentBankTitle: "Place value and operations",
+    parentItemBankKey: NUMBER_PLACE_VALUE_OPERATIONS_ITEM_BANK_KEY,
+    progressionBandKey: "place-value-and-whole-number-operations",
+    sourceRoute: "/assessments/number",
+    depthOptions: NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
+    items: assessment.items,
+  })),
 ];
 
 export function getNumberStepAssessmentByStepKey(stepKey: string) {
