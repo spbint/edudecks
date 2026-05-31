@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
@@ -2577,6 +2577,8 @@ function CleanNumberAssessmentPlayerBody() {
   );
   const [saveState, setSaveState] = useState<AssessmentAttemptSaveState>("idle");
   const [saveMessage, setSaveMessage] = useState("");
+  const exactStepAutoSaveStartedRef = useRef(false);
+  const saveAssessmentAttemptRef = useRef<(() => Promise<void>) | null>(null);
   const [responses, setResponses] = useState<
     Record<string, LocalAssessmentResponse>
   >({});
@@ -2688,6 +2690,7 @@ function CleanNumberAssessmentPlayerBody() {
     setParentJudgement(null);
     setSaveState("idle");
     setSaveMessage("");
+    exactStepAutoSaveStartedRef.current = false;
     setResponses({});
     setSessionStartedAtValue(new Date().toISOString());
   }
@@ -3250,10 +3253,15 @@ function CleanNumberAssessmentPlayerBody() {
           bankTitle: selectedBank.title,
           stepAssessmentKey: incomingStepAssessment?.key ?? null,
           stepAssessmentTitle: incomingStepAssessment?.title ?? null,
+          stepTitle: incomingStepAssessment?.title ?? null,
           assessmentDepth: incomingStepAssessment ? assessmentDepth : null,
+          itemCount: totalItems,
           autoCheckStatus: incomingStepAssessment
             ? getNumberStepAssessmentStatus(summary.correctCount, totalItems)
             : null,
+          parentFamilyTitle: incomingStepAssessment?.parentBankTitle ?? selectedBank.title,
+          parentItemBankKey:
+            incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
           sourceRoute: selectedBank.sourceRoute,
           pathwayStepIdMode: "temporary-stable-key",
           learnerLabel: getLearnerLabel(selectedLearner) || null,
@@ -3319,11 +3327,42 @@ function CleanNumberAssessmentPlayerBody() {
       setSaveState("failed");
       setSaveMessage(
         error instanceof Error
-          ? error.message
-          : "The assessment attempt could not be saved right now.",
+          ? `Assessment result could not be saved yet. ${error.message}`
+          : "Assessment result could not be saved yet. Please try again before leaving this page.",
       );
     }
   }
+
+  useEffect(() => {
+    saveAssessmentAttemptRef.current = saveAssessmentAttempt;
+  });
+
+  useEffect(() => {
+    if (!incomingStepAssessment || sessionMode !== "summary" || !showSummary) {
+      return;
+    }
+
+    if (!canSaveAttempt || saveState === "saving" || saveState === "saved") {
+      return;
+    }
+
+    if (exactStepAutoSaveStartedRef.current) {
+      return;
+    }
+
+    exactStepAutoSaveStartedRef.current = true;
+    const timerId = window.setTimeout(() => {
+      void saveAssessmentAttemptRef.current?.();
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [
+    canSaveAttempt,
+    incomingStepAssessment,
+    saveState,
+    sessionMode,
+    showSummary,
+  ]);
 
   return (
     <div style={shellStyle}>
@@ -4065,10 +4104,14 @@ function CleanNumberAssessmentPlayerBody() {
                   evidence if you want this learning included in the portfolio or reports.
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                  {returnTo ? (
+                  {returnTo && (!incomingStepAssessment || saveState === "saved") ? (
                     <Link href={returnTo} style={buttonStyle}>
                       Return to pathway step
                     </Link>
+                  ) : incomingStepAssessment && returnTo ? (
+                    <button type="button" disabled style={disabledButtonStyle}>
+                      Return available after save
+                    </button>
                   ) : null}
                   {exactStepPracticeHref ? (
                     <Link href={exactStepPracticeHref} style={secondaryButtonStyle}>
@@ -4082,7 +4125,11 @@ function CleanNumberAssessmentPlayerBody() {
               </div>
 
               <div style={highlightCardStyle}>
-                <div style={eyebrowStyle}>Save assessment attempt</div>
+                <div style={eyebrowStyle}>
+                  {incomingStepAssessment
+                    ? "Assessment save"
+                    : "Save assessment attempt"}
+                </div>
                 <div
                   style={{
                     display: "flex",
@@ -4105,17 +4152,21 @@ function CleanNumberAssessmentPlayerBody() {
                       }
                     >
                       {saveState === "saved"
-                        ? "Saved"
+                        ? "Assessment saved"
                         : saveState === "saving"
-                          ? "Saving..."
+                          ? "Saving assessment..."
                           : saveState === "failed"
                             ? "Save failed"
-                            : "Not saved yet"}
+                            : incomingStepAssessment
+                              ? "Waiting to save"
+                              : "Not saved yet"}
                     </span>
                     <div style={{ color: "#475569", lineHeight: 1.6 }}>
                       {saveMessage ||
                         saveBlockedMessage ||
-                        "Save the completed session so the assessment attempt history can be reviewed later."}
+                        (incomingStepAssessment
+                          ? "This exact step result will save automatically so My Pathways can show the latest auto-check signal."
+                          : "Save the completed session so the assessment attempt history can be reviewed later.")}
                     </div>
                     {!incomingStepAssessment && summary.enteredButUncheckedCount > 0 ? (
                       <div style={{ color: "#475569", lineHeight: 1.6 }}>
@@ -4179,9 +4230,17 @@ function CleanNumberAssessmentPlayerBody() {
                   <button
                     type="button"
                     onClick={() => void saveAssessmentAttempt()}
-                    disabled={!canSaveAttempt || saveState === "saving" || saveState === "saved"}
+                    disabled={Boolean(
+                      !canSaveAttempt ||
+                      saveState === "saving" ||
+                      saveState === "saved" ||
+                      (incomingStepAssessment && saveState !== "failed"),
+                    )}
                     style={
-                      !canSaveAttempt || saveState === "saving" || saveState === "saved"
+                      !canSaveAttempt ||
+                      saveState === "saving" ||
+                      saveState === "saved" ||
+                      (incomingStepAssessment && saveState !== "failed")
                         ? disabledButtonStyle
                         : buttonStyle
                     }
@@ -4190,7 +4249,11 @@ function CleanNumberAssessmentPlayerBody() {
                       ? "Attempt saved"
                       : saveState === "saving"
                         ? "Saving attempt..."
-                        : "Save assessment attempt"}
+                        : incomingStepAssessment && saveState === "failed"
+                          ? "Retry save"
+                          : incomingStepAssessment
+                            ? "Auto-save pending"
+                            : "Save assessment attempt"}
                   </button>
                 </div>
               </div>

@@ -22,6 +22,8 @@ export type NumberPathwayAssessmentAlignment = {
   subElementKeys: string[];
   matchType: "direct" | "explicit" | "keyword";
   matchedBy: string;
+  sourcePathwayStepId: string;
+  sourceStepKey: string;
 };
 
 export type NumberAutoCheckStatus =
@@ -214,6 +216,8 @@ function createAlignment(
   target: BankAlignmentTarget,
   matchType: NumberPathwayAssessmentAlignment["matchType"],
   matchedBy: string,
+  sourcePathwayStepId = "",
+  sourceStepKey = "",
 ) {
   const bank = getNumberAssessmentBankByKey(target.bankKey);
   if (!bank) return null;
@@ -228,6 +232,8 @@ function createAlignment(
     subElementKeys,
     matchType,
     matchedBy,
+    sourcePathwayStepId: safe(sourcePathwayStepId),
+    sourceStepKey: safe(sourceStepKey),
   };
 }
 
@@ -269,6 +275,8 @@ export function getNumberAssessmentAlignmentForPathwayStep(
       subElementKeys: [],
       matchType: "direct",
       matchedBy: "bank metadata",
+      sourcePathwayStepId: pathwayStepId,
+      sourceStepKey: stepKey,
     };
   }
 
@@ -283,7 +291,13 @@ export function getNumberAssessmentAlignmentForPathwayStep(
   for (const candidate of candidateStepKeys) {
     const explicitTarget = EXPLICIT_STEP_ALIGNMENT[candidate];
     if (explicitTarget) {
-      return createAlignment(explicitTarget, "explicit", candidate);
+      return createAlignment(
+        explicitTarget,
+        "explicit",
+        candidate,
+        pathwayStepId,
+        stepKey || candidate,
+      );
     }
   }
 
@@ -292,7 +306,7 @@ export function getNumberAssessmentAlignmentForPathwayStep(
 
   for (const rule of KEYWORD_ALIGNMENT_RULES) {
     if (rule.pattern.test(searchText)) {
-      return createAlignment(rule.target, "keyword", rule.matchedBy);
+      return createAlignment(rule.target, "keyword", rule.matchedBy, pathwayStepId, stepKey);
     }
   }
 
@@ -362,6 +376,14 @@ function getLatestRelevantAttempt(
     attempts
       .filter(
         (attempt) =>
+          (alignment.sourcePathwayStepId &&
+            attempt.pathwayStepId === alignment.sourcePathwayStepId) ||
+          (alignment.sourceStepKey && attempt.stepKey === alignment.sourceStepKey),
+      )
+      .sort((left, right) => getAttemptTime(right) - getAttemptTime(left))[0] ??
+    attempts
+      .filter(
+        (attempt) =>
           attempt.itemBankKey === alignment.bank.itemBankKey ||
           attempt.progressionBandKey === alignment.bank.progressionBandKey ||
           attempt.pathwayStepId === alignment.bank.pathwayStepId ||
@@ -405,6 +427,17 @@ function getWeakestStatus(statuses: NumberAutoCheckStatus[]) {
 }
 
 function getBankLevelStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckStatus {
+  const prototypeMetadata =
+    attempt.summarySnapshot.prototypeMetadata &&
+    typeof attempt.summarySnapshot.prototypeMetadata === "object" &&
+    !Array.isArray(attempt.summarySnapshot.prototypeMetadata)
+      ? (attempt.summarySnapshot.prototypeMetadata as Record<string, unknown>)
+      : null;
+  const autoCheckStatus = safe(prototypeMetadata?.autoCheckStatus);
+  if (autoCheckStatus in AUTO_CHECK_STATUS_RANK) {
+    return autoCheckStatus as NumberAutoCheckStatus;
+  }
+
   if (!attempt.itemCount) return "Not checked yet";
 
   const ratio = attempt.autoCorrectCount / attempt.itemCount;
