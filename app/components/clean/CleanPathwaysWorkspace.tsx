@@ -17,7 +17,6 @@ import {
 import {
   getAutoCheckStatusForPathwayStep,
   getNumberAssessmentAlignmentForPathwayStep,
-  getNumberAssessmentLinkForPathwayStep,
   getNumberPathwayRevealGroups,
   type NumberPathwayRevealGroups,
   type NumberPathwayRevealStep,
@@ -1499,19 +1498,7 @@ function NumberRevealStepCard({
         if (learnerId) params.set("learnerId", learnerId);
         return `/assessments/number?${params.toString()}`;
       })()
-    : getNumberAssessmentLinkForPathwayStep(
-    {
-      subjectKey: "mathematics",
-      strandKey: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-      stageKey: step.stageKey,
-      pathwayStepId: step.pathwayStepId,
-      stepKey: step.stepKey,
-    },
-    {
-      learnerId: learnerId || null,
-      returnTo: returnPath,
-    },
-  );
+    : "";
   const practiceHref = exactStepPractice
     ? (() => {
         const params = new URLSearchParams();
@@ -1606,9 +1593,19 @@ function NumberRevealStepCard({
         </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
-          No auto-checked assessment is available for this step yet.
+          Exact practice and assessment are coming next for this step.
         </div>
       )}
+      {!practiceHref && assessmentHref ? (
+        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+          Exact practice is coming next for this step.
+        </div>
+      ) : null}
+      {!assessmentHref && practiceHref ? (
+        <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
+          Exact assessment is coming next for this step.
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2187,21 +2184,7 @@ function DetailedMathematicsStepCard({
         return `/assessments/number?${params.toString()}`;
       }
 
-      return (
-        getNumberAssessmentLinkForPathwayStep(
-          {
-            subjectKey: selectedSubjectKey,
-            strandKey: strand.key,
-            stageKey: stage.key,
-            pathwayStepId: canonicalPathwayStepId,
-            stepKey: canonicalStepKey,
-          },
-          {
-            learnerId: selectedLearnerId || null,
-            returnTo,
-          },
-        ) || ""
-      );
+      return "";
     }
 
     const params = new URLSearchParams();
@@ -2402,12 +2385,16 @@ function DetailedMathematicsStepCard({
       </div>
 
       <CleanPathwayStepActionRow
-        activity={practiceActivity}
+        activity={
+          isNumberPathwayContext(selectedSubjectKey, strand.key) && !exactStepPractice
+            ? null
+            : practiceActivity
+        }
         assessHref={assessHref}
         captureHref={captureHref}
         practiceHref={exactPracticeHref}
         practiceTitle={exactStepPractice?.title ?? null}
-        assessmentBankTitle={numberAssessmentBank?.title ?? null}
+        assessmentBankTitle={exactStepAssessment ? numberAssessmentBank?.title ?? null : null}
         exactAssessmentTitle={exactStepAssessment?.title ?? null}
         autoCheckStatusLabel={
           numberAssessmentBank ? autoCheckStatus.status : null
@@ -2418,8 +2405,8 @@ function DetailedMathematicsStepCard({
             : null
         }
         noAssessmentMessage={
-          isNumberPathwayContext(selectedSubjectKey, strand.key) && !numberAssessmentBank
-            ? "No auto-checked assessment is available for this step yet."
+          isNumberPathwayContext(selectedSubjectKey, strand.key) && !exactStepAssessment
+            ? "Exact assessment is coming next for this step."
             : null
         }
       />

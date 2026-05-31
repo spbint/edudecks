@@ -366,6 +366,33 @@ function getAttemptTime(attempt: CleanAssessmentAttempt) {
   return Date.parse(attempt.completedAt || attempt.updatedAt || attempt.createdAt || "");
 }
 
+function getPrototypeMetadata(attempt: CleanAssessmentAttempt) {
+  return attempt.summarySnapshot.prototypeMetadata &&
+    typeof attempt.summarySnapshot.prototypeMetadata === "object" &&
+    !Array.isArray(attempt.summarySnapshot.prototypeMetadata)
+    ? (attempt.summarySnapshot.prototypeMetadata as Record<string, unknown>)
+    : null;
+}
+
+function hasExactStepAssessmentMetadata(attempt: CleanAssessmentAttempt) {
+  const prototypeMetadata = getPrototypeMetadata(attempt);
+  return Boolean(safe(prototypeMetadata?.stepAssessmentKey));
+}
+
+function isBroadFamilyAttemptForAlignment(
+  attempt: CleanAssessmentAttempt,
+  alignment: NumberPathwayAssessmentAlignment,
+) {
+  if (hasExactStepAssessmentMetadata(attempt)) return false;
+
+  return (
+    attempt.itemBankKey === alignment.bank.itemBankKey ||
+    attempt.progressionBandKey === alignment.bank.progressionBandKey ||
+    attempt.pathwayStepId === alignment.bank.pathwayStepId ||
+    attempt.stepKey === alignment.bank.stepKey
+  );
+}
+
 function getLatestRelevantAttempt(
   attempts: CleanAssessmentAttempt[],
   alignment: NumberPathwayAssessmentAlignment | null,
@@ -382,13 +409,7 @@ function getLatestRelevantAttempt(
       )
       .sort((left, right) => getAttemptTime(right) - getAttemptTime(left))[0] ??
     attempts
-      .filter(
-        (attempt) =>
-          attempt.itemBankKey === alignment.bank.itemBankKey ||
-          attempt.progressionBandKey === alignment.bank.progressionBandKey ||
-          attempt.pathwayStepId === alignment.bank.pathwayStepId ||
-          attempt.stepKey === alignment.bank.stepKey,
-      )
+      .filter((attempt) => isBroadFamilyAttemptForAlignment(attempt, alignment))
       .sort((left, right) => getAttemptTime(right) - getAttemptTime(left))[0] ?? null
   );
 }
@@ -427,12 +448,7 @@ function getWeakestStatus(statuses: NumberAutoCheckStatus[]) {
 }
 
 function getBankLevelStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckStatus {
-  const prototypeMetadata =
-    attempt.summarySnapshot.prototypeMetadata &&
-    typeof attempt.summarySnapshot.prototypeMetadata === "object" &&
-    !Array.isArray(attempt.summarySnapshot.prototypeMetadata)
-      ? (attempt.summarySnapshot.prototypeMetadata as Record<string, unknown>)
-      : null;
+  const prototypeMetadata = getPrototypeMetadata(attempt);
   const autoCheckStatus = safe(prototypeMetadata?.autoCheckStatus);
   if (autoCheckStatus in AUTO_CHECK_STATUS_RANK) {
     return autoCheckStatus as NumberAutoCheckStatus;

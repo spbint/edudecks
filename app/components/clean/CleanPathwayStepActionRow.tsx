@@ -338,8 +338,8 @@ export default function CleanPathwayStepActionRow({
               type="button"
               style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
               disabled
-              title="CRA practice for this pathway step is coming later."
-              aria-label="Practice for this pathway step is coming later"
+              title="Exact practice for this pathway step is coming later."
+              aria-label="Exact practice for this pathway step is coming later"
             >
               Practise
             </button>
