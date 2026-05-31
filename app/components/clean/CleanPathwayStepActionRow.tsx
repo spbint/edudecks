@@ -17,7 +17,10 @@ type CleanPathwayStepActionRowProps = {
   activity: PathwayPracticeActivity | null;
   assessHref: string;
   captureHref: string;
+  practiceHref?: string | null;
+  practiceTitle?: string | null;
   assessmentBankTitle?: string | null;
+  exactAssessmentTitle?: string | null;
   autoCheckStatusLabel?: string | null;
   autoCheckStatusScope?: "bank" | "sub-element" | null;
   noAssessmentMessage?: string | null;
@@ -94,7 +97,10 @@ export default function CleanPathwayStepActionRow({
   activity,
   assessHref,
   captureHref,
+  practiceHref,
+  practiceTitle,
   assessmentBankTitle,
+  exactAssessmentTitle,
   autoCheckStatusLabel,
   autoCheckStatusScope,
   noAssessmentMessage,
@@ -224,8 +230,21 @@ export default function CleanPathwayStepActionRow({
           >
             <div>
               Auto-checked assessment:{" "}
-              <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
+              <strong style={{ color: "#0f172a" }}>
+                {exactAssessmentTitle || assessmentBankTitle}
+              </strong>
             </div>
+            {practiceTitle ? (
+              <div>
+                Practice available:{" "}
+                <strong style={{ color: "#0f172a" }}>{practiceTitle}</strong>
+              </div>
+            ) : null}
+            {assessmentBankTitle && exactAssessmentTitle ? (
+              <div>
+                Part of: <strong style={{ color: "#0f172a" }}>{assessmentBankTitle}</strong>
+              </div>
+            ) : null}
             <div>
               Latest auto-check result:{" "}
               <strong style={{ color: "#0f172a" }}>
@@ -259,14 +278,28 @@ export default function CleanPathwayStepActionRow({
         ) : null}
         {activity ? (
           <>
-            <button
-              type="button"
-              onClick={openPracticePlayer}
-              style={{ ...buttonStyle, flex: "1 1 120px" }}
-              aria-label="Open practice for this pathway step"
-            >
-              {completedPracticeTaskCount ? "Resume practise" : "Practise"}
-            </button>
+            {practiceHref ? (
+              <Link
+                href={practiceHref}
+                style={{ ...buttonStyle, flex: "1 1 120px" }}
+                title={
+                  practiceTitle
+                    ? `Practise ${practiceTitle}.`
+                    : "Open exact practice for this pathway step."
+                }
+              >
+                Practise
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={openPracticePlayer}
+                style={{ ...buttonStyle, flex: "1 1 120px" }}
+                aria-label="Open practice for this pathway step"
+              >
+                {completedPracticeTaskCount ? "Resume practise" : "Practise"}
+              </button>
+            )}
             <button
               type="button"
               onClick={openMiniCheckPlayer}
@@ -274,6 +307,29 @@ export default function CleanPathwayStepActionRow({
               aria-label="Open mini check for this pathway step"
             >
               {completedMiniCheckCount ? "Resume mini-check" : "Mini-check"}
+            </button>
+          </>
+        ) : practiceHref ? (
+          <>
+            <Link
+              href={practiceHref}
+              style={{ ...buttonStyle, flex: "1 1 120px" }}
+              title={
+                practiceTitle
+                  ? `Practise ${practiceTitle}.`
+                  : "Open exact practice for this pathway step."
+              }
+            >
+              Practise
+            </Link>
+            <button
+              type="button"
+              style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
+              disabled
+              title="Mini Check for this pathway step is coming later."
+              aria-label="Mini Check for this pathway step is coming later"
+            >
+              Mini-check
             </button>
           </>
         ) : (
@@ -304,8 +360,10 @@ export default function CleanPathwayStepActionRow({
             href={assessHref}
             style={{ ...secondaryButtonStyle, flex: "1 1 120px" }}
             title={
-              assessmentBankTitle
-                ? `Uses the ${assessmentBankTitle} assessment.`
+              exactAssessmentTitle
+                ? `Uses the ${exactAssessmentTitle} step assessment.`
+                : assessmentBankTitle
+                ? `Uses the ${assessmentBankTitle} assessment family.`
                 : "Check understanding for this pathway step."
             }
             aria-label="Assess this pathway step"

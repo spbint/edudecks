@@ -22,6 +22,12 @@ import {
   type NumberPathwayRevealGroups,
   type NumberPathwayRevealStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
+import {
+  getNumberStepAssessmentForPathwayStep,
+} from "@/lib/clean/assessments/numberStepAssessmentRegistry";
+import {
+  getNumberStepPracticeForPathwayStep,
+} from "@/lib/clean/practice/numberStepPracticeRegistry";
 import { listCleanEvidenceEntries } from "@/lib/clean/evidence/client";
 import {
   buildPathwayCaptureSearchParams,
@@ -1469,7 +1475,27 @@ function NumberRevealStepCard({
   compact?: boolean;
 }) {
   const tone = getAutoCheckTone(step.autoCheck.status);
-  const assessmentHref = getNumberAssessmentLinkForPathwayStep(
+  const exactStepAssessment = getNumberStepAssessmentForPathwayStep({
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.stepKey,
+  });
+  const assessmentHref = exactStepAssessment
+    ? (() => {
+        const params = new URLSearchParams();
+        params.set("source", "my-pathways");
+        params.set("stepAssessmentKey", exactStepAssessment.key);
+        params.set("subjectKey", "mathematics");
+        params.set("strandKey", NUMBER_AND_PLACE_VALUE_STRAND_KEY);
+        params.set("stageKey", step.stageKey);
+        params.set("pathwayStepId", step.pathwayStepId);
+        params.set("stepKey", step.stepKey);
+        params.set("returnTo", returnPath);
+        params.set("progressionBandKey", exactStepAssessment.progressionBandKey);
+        params.set("itemBankKey", exactStepAssessment.parentItemBankKey);
+        if (learnerId) params.set("learnerId", learnerId);
+        return `/assessments/number?${params.toString()}`;
+      })()
+    : getNumberAssessmentLinkForPathwayStep(
     {
       subjectKey: "mathematics",
       strandKey: NUMBER_AND_PLACE_VALUE_STRAND_KEY,
@@ -2041,6 +2067,22 @@ function DetailedMathematicsStepCard({
         : null,
     [canonicalPathwayStepId],
   );
+  const exactStepAssessment = useMemo(
+    () =>
+      getNumberStepAssessmentForPathwayStep({
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
+      }),
+    [canonicalPathwayStepId, canonicalStepKey],
+  );
+  const exactStepPractice = useMemo(
+    () =>
+      getNumberStepPracticeForPathwayStep({
+        pathwayStepId: canonicalPathwayStepId,
+        stepKey: canonicalStepKey,
+      }),
+    [canonicalPathwayStepId, canonicalStepKey],
+  );
   const captureHref = useMemo(() => {
     const params = buildPathwayCaptureSearchParams(
       {
@@ -2091,6 +2133,25 @@ function DetailedMathematicsStepCard({
     const returnTo = `${returnPath}#${detailPanelId}`;
 
     if (isNumberContext) {
+      if (exactStepAssessment) {
+        const params = new URLSearchParams();
+        params.set("source", "my-pathways");
+        params.set("stepAssessmentKey", exactStepAssessment.key);
+        params.set("subjectKey", selectedSubjectKey);
+        params.set("strandKey", strand.key);
+        params.set("stageKey", stage.key);
+        params.set("pathwayStepId", canonicalPathwayStepId);
+        params.set("stepKey", canonicalStepKey);
+        params.set("returnTo", returnTo);
+        params.set("progressionBandKey", exactStepAssessment.progressionBandKey);
+        params.set("itemBankKey", exactStepAssessment.parentItemBankKey);
+        if (selectedLearnerId) {
+          params.set("learnerId", selectedLearnerId);
+        }
+
+        return `/assessments/number?${params.toString()}`;
+      }
+
       return (
         getNumberAssessmentLinkForPathwayStep(
           {
@@ -2128,6 +2189,36 @@ function DetailedMathematicsStepCard({
     canonicalPathwayStepId,
     canonicalStepKey,
     detailPanelId,
+    exactStepAssessment,
+    returnPath,
+    selectedLearnerId,
+    selectedSubjectKey,
+    stage.key,
+    strand.key,
+  ]);
+  const exactPracticeHref = useMemo(() => {
+    if (!exactStepPractice) return "";
+
+    const params = new URLSearchParams();
+    const pathwayStepId = canonicalPathwayStepId || exactStepPractice.pathwayStepId;
+    params.set("source", "my-pathways");
+    params.set("stepPracticeKey", exactStepPractice.key);
+    params.set("subjectKey", selectedSubjectKey);
+    params.set("strandKey", strand.key);
+    params.set("stageKey", stage.key);
+    params.set("pathwayStepId", pathwayStepId);
+    params.set("stepKey", canonicalStepKey);
+    params.set("returnTo", `${returnPath}#${detailPanelId}`);
+    if (selectedLearnerId) {
+      params.set("learnerId", selectedLearnerId);
+    }
+
+    return `/practice/number-targeted?${params.toString()}`;
+  }, [
+    canonicalPathwayStepId,
+    canonicalStepKey,
+    detailPanelId,
+    exactStepPractice,
     returnPath,
     selectedLearnerId,
     selectedSubjectKey,
@@ -2279,7 +2370,10 @@ function DetailedMathematicsStepCard({
         activity={practiceActivity}
         assessHref={assessHref}
         captureHref={captureHref}
+        practiceHref={exactPracticeHref}
+        practiceTitle={exactStepPractice?.title ?? null}
         assessmentBankTitle={numberAssessmentBank?.title ?? null}
+        exactAssessmentTitle={exactStepAssessment?.title ?? null}
         autoCheckStatusLabel={
           numberAssessmentBank ? autoCheckStatus.status : null
         }

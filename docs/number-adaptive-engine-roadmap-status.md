@@ -121,6 +121,20 @@ Each targeted practice module follows this pattern:
 
 Practice currently uses a lightweight local renderer. `visualSupport` metadata exists across the assessment and practice spine, but richer visual renderers such as clocks, timelines, tables, drag/drop classification, advanced matching, graphing, or canvas interactions are future work.
 
+## 8a. Step-Level Number Framework
+
+The broad Number banks remain as assessment families and fallback/browse mode.
+
+A step-level assessment and practice framework now exists alongside the broad bank system. The first exemplar is:
+
+- Step 1: Recognise small quantities without counting
+- Assessment key: `number-step-1-recognise-small-quantities-assessment-v1`
+- Practice key: `number-step-1-recognise-small-quantities-practice-v1`
+- Parent family/module: Place value and operations
+- Depth model: Basic 4, Standard 8, Comprehensive 12
+
+Step-level assessment results are auto-check signals only. They do not automatically update manual confidence, pathway progress, evidence, portfolio, reports, outputs or curriculum intelligence. Step-level practice remains local-only. All Step 1 assessment items and practice tasks include visualSupport metadata for future visual renderers.
+
 ## 9. Persistence Status
 
 Saved:

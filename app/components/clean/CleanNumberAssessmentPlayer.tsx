@@ -20,6 +20,15 @@ import {
 import {
   getNumberAssessmentAlignmentForPathwayStep,
 } from "@/lib/clean/assessments/numberPathwayAssessmentAlignment";
+import {
+  getNumberStepAssessmentForPathwayStep,
+  getNumberStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/numberStepAssessmentRegistry";
+import {
+  NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS,
+  getNumberStepAssessmentStatus,
+  type NumberStepAssessmentDepth,
+} from "@/lib/clean/assessments/numberStepAssessmentTypes";
 import type {
   AssessmentAttemptLocalResult,
   CleanAssessmentAttemptSnapshot,
@@ -2235,6 +2244,15 @@ function CleanNumberAssessmentPlayerBody() {
       })?.bank ?? null,
     [searchParams],
   );
+  const incomingStepAssessment = useMemo(
+    () =>
+      getNumberStepAssessmentForPathwayStep({
+        stepAssessmentKey: searchParams.get("stepAssessmentKey"),
+        pathwayStepId: searchParams.get("pathwayStepId"),
+        stepKey: searchParams.get("stepKey"),
+      }),
+    [searchParams],
+  );
   const hasIncomingNumberContext =
     searchParams.get("subjectKey") === "mathematics" &&
     searchParams.get("strandKey") === "number-and-place-value";
@@ -2242,8 +2260,13 @@ function CleanNumberAssessmentPlayerBody() {
   const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
 
   const [selectedBankKey, setSelectedBankKey] = useState<NumberAssessmentBankKey>(
-    incomingBank?.key || NUMBER_ASSESSMENT_BANKS[0]?.key || "powers-roots-exponent-notation",
+    incomingStepAssessment?.parentBankKey ||
+      incomingBank?.key ||
+      NUMBER_ASSESSMENT_BANKS[0]?.key ||
+      "powers-roots-exponent-notation",
   );
+  const [assessmentDepth, setAssessmentDepth] =
+    useState<NumberStepAssessmentDepth>("basic");
   const [sessionMode, setSessionMode] =
     useState<AssessmentSessionMode>("launcher");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -2266,7 +2289,10 @@ function CleanNumberAssessmentPlayerBody() {
     [selectedBankKey],
   );
 
-  const items = selectedBank.items;
+  const stepAssessmentItems = incomingStepAssessment
+    ? getNumberStepAssessmentItemsForDepth(incomingStepAssessment.key, assessmentDepth)
+    : [];
+  const items = incomingStepAssessment ? stepAssessmentItems : selectedBank.items;
   const totalItems = items.length;
 
   const currentItem = items[currentIndex] || items[0];
@@ -2277,10 +2303,7 @@ function CleanNumberAssessmentPlayerBody() {
   const currentProgress = ((currentIndex + 1) / totalItems) * 100;
   const sessionProgress = showSummary ? 100 : currentProgress;
 
-  const summary = useMemo(
-    () => buildAdaptiveInsightSummary(selectedBank.key, items, responses),
-    [items, responses, selectedBank.key],
-  );
+  const summary = buildAdaptiveInsightSummary(selectedBank.key, items, responses);
   const targetedPracticeHref = summary.targetedPracticeRecommendation
     ? buildTargetedPracticeHref(summary.targetedPracticeRecommendation, returnTo)
     : "";
@@ -2865,6 +2888,12 @@ function CleanNumberAssessmentPlayerBody() {
         prototypeMetadata: {
           bankKey: selectedBank.key,
           bankTitle: selectedBank.title,
+          stepAssessmentKey: incomingStepAssessment?.key ?? null,
+          stepAssessmentTitle: incomingStepAssessment?.title ?? null,
+          assessmentDepth: incomingStepAssessment ? assessmentDepth : null,
+          autoCheckStatus: incomingStepAssessment
+            ? getNumberStepAssessmentStatus(summary.correctCount, totalItems)
+            : null,
           sourceRoute: selectedBank.sourceRoute,
           pathwayStepIdMode: "temporary-stable-key",
           learnerLabel: getLearnerLabel(selectedLearner) || null,
@@ -2875,9 +2904,10 @@ function CleanNumberAssessmentPlayerBody() {
         learnerId,
         subjectKey: selectedBank.subjectKey,
         strandKey: selectedBank.strandKey,
-        stageKey: selectedBank.stageKey,
-        pathwayStepId: selectedBank.pathwayStepId,
-        stepKey: selectedBank.stepKey,
+        stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
+        pathwayStepId:
+          incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
+        stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
         progressionBandKey: selectedBank.progressionBandKey,
         itemBankKey: selectedBank.itemBankKey,
         mode: "diagnostic",
@@ -2960,19 +2990,68 @@ function CleanNumberAssessmentPlayerBody() {
                   maxWidth: 720,
                 }}
               >
-                Choose an assessment focus, then enter a focused session with
-                12 Number questions and a saveable attempt summary.
+                {incomingStepAssessment
+                  ? "Choose a check depth, then enter a focused step-level assessment."
+                  : "Choose an assessment focus, then enter a focused session with 12 Number questions and a saveable attempt summary."}
               </p>
             </div>
 
             <div style={launcherBodyStyle}>
               <div style={{ display: "grid", gap: 8 }}>
-                <div style={eyebrowStyle}>Choose an assessment focus</div>
+                <div style={eyebrowStyle}>
+                  {incomingStepAssessment
+                    ? "Exact pathway step assessment"
+                    : "Choose an assessment focus"}
+                </div>
+                {incomingStepAssessment ? (
+                  <div style={highlightCardStyle}>
+                    <div style={eyebrowStyle}>Selected focus</div>
+                    <h2 style={{ margin: 0, color: "#0f172a" }}>
+                      {incomingStepAssessment.title}
+                    </h2>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      Part of: <strong>{incomingStepAssessment.parentBankTitle}</strong>
+                    </div>
+                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                      {incomingStepAssessment.description}
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
+                        const selected = assessmentDepth === option.key;
+                        return (
+                          <button
+                            key={option.key}
+                            type="button"
+                            onClick={() => {
+                              setAssessmentDepth(option.key);
+                              resetAssessmentState();
+                            }}
+                            style={{
+                              border: selected
+                                ? "2px solid #1d4ed8"
+                                : "1px solid #cbd5e1",
+                              background: selected ? "#eff6ff" : "#ffffff",
+                              color: selected ? "#1d4ed8" : "#0f172a",
+                              borderRadius: 12,
+                              padding: "10px 12px",
+                              cursor: "pointer",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {option.label} - {option.description}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
                 {hasIncomingNumberContext ? (
                   <div style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>
-                      {incomingBank
-                        ? `${incomingBank.shortTitle} selected from My Assessments`
+                      {incomingStepAssessment
+                        ? `${incomingStepAssessment.shortTitle} selected from My Pathways`
+                        : incomingBank
+                        ? `No exact step assessment yet. Showing the closest Number assessment family: ${incomingBank.shortTitle}.`
                         : "Choose a Number focus to start an automatically checked assessment."}
                     </strong>
                     <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
@@ -2982,7 +3061,7 @@ function CleanNumberAssessmentPlayerBody() {
                     </p>
                   </div>
                 ) : null}
-                {assessmentBankGroups.map((group) => (
+                {!incomingStepAssessment ? assessmentBankGroups.map((group) => (
                   <div key={group.label} style={{ display: "grid", gap: 10 }}>
                     <div
                       style={{
@@ -3046,7 +3125,7 @@ function CleanNumberAssessmentPlayerBody() {
                       })}
                     </div>
                   </div>
-                ))}
+                )) : null}
               </div>
 
               <div
@@ -3068,17 +3147,17 @@ function CleanNumberAssessmentPlayerBody() {
                       lineHeight: 1.15,
                     }}
                   >
-                    {selectedBank.title}
+                    {incomingStepAssessment?.title ?? selectedBank.title}
                   </h2>
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
-                    {selectedBank.description}
+                    {incomingStepAssessment?.description ?? selectedBank.description}
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={getDifficultyTone("foundation")}>
-                      {selectedBank.yearBandLabel}
+                      {incomingStepAssessment ? "Step 1" : selectedBank.yearBandLabel}
                     </span>
                     <span style={getFormatTone("reasonableness")}>
-                      {totalItems} items
+                      {totalItems} {incomingStepAssessment ? "questions" : "items"}
                     </span>
                     <span style={getFormatTone("applied_context")}>
                       Diagnostic attempt
@@ -3114,7 +3193,7 @@ function CleanNumberAssessmentPlayerBody() {
                       lineHeight: 1.15,
                     }}
                   >
-                    {selectedBank.title}
+                    {incomingStepAssessment?.title ?? selectedBank.title}
                   </div>
                 </div>
 
@@ -3170,7 +3249,9 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   {showSummary
-                    ? `Assessment summary - ${selectedBank.shortTitle}`
+                    ? `Assessment summary - ${
+                        incomingStepAssessment?.shortTitle ?? selectedBank.shortTitle
+                      }`
                     : `Item ${currentIndex + 1} of ${totalItems}`}
                 </div>
 

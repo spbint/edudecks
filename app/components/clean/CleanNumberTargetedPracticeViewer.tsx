@@ -57,6 +57,14 @@ import {
   getNumberTerminatingRecurringRationalPracticeModuleById,
 } from "@/lib/clean/practice/numberTerminatingRecurringRationalPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
+import {
+  getNumberStepPracticeForPathwayStep,
+  getNumberStepPracticeTasksForDepth,
+} from "@/lib/clean/practice/numberStepPracticeRegistry";
+import {
+  NUMBER_STEP_PRACTICE_DEPTH_OPTIONS,
+  type NumberStepPracticeDepth,
+} from "@/lib/clean/practice/numberStepPracticeTypes";
 
 const shellStyle: React.CSSProperties = {
   minHeight: "100vh",
@@ -731,6 +739,8 @@ function MiniCheckSection({
 export default function CleanNumberTargetedPracticeViewer() {
   const searchParams = useSearchParams();
   const [responses, setResponses] = useState<LocalPracticeResponseMap>({});
+  const [stepPracticeDepth, setStepPracticeDepth] =
+    useState<NumberStepPracticeDepth>("basic");
   const requestedModuleId = safe(searchParams.get("moduleId"));
   const requestedSectionId = safe(searchParams.get("sectionId"));
   const subjectKey = safe(searchParams.get("subjectKey"));
@@ -744,6 +754,14 @@ export default function CleanNumberTargetedPracticeViewer() {
   );
   const sourceSubElement = safe(searchParams.get("sourceSubElement"));
   const returnTo = getSafeLocalHref(searchParams.get("returnTo"));
+  const exactStepPractice = getNumberStepPracticeForPathwayStep({
+    stepPracticeKey: searchParams.get("stepPracticeKey"),
+    pathwayStepId,
+    stepKey,
+  });
+  const exactStepPracticeTasks = exactStepPractice
+    ? getNumberStepPracticeTasksForDepth(exactStepPractice.key, stepPracticeDepth)
+    : [];
   const sourceContext: SourcePracticeContext = {
     subjectKey,
     strandKey,
@@ -811,6 +829,84 @@ export default function CleanNumberTargetedPracticeViewer() {
             </Link>
           ) : null}
         </div>
+
+        {exactStepPractice ? (
+          <>
+            <section style={cardStyle}>
+              <div style={eyebrowStyle}>Step-level Number practice</div>
+              <h1
+                style={{
+                  margin: "8px 0",
+                  color: "#0f172a",
+                  fontSize: "clamp(30px, 5vw, 44px)",
+                  lineHeight: 1.08,
+                  fontWeight: 800,
+                }}
+              >
+                {exactStepPractice.title}
+              </h1>
+              <div style={{ ...bodyTextStyle, fontSize: 16 }}>
+                Practice focus: <strong>{exactStepPractice.title}</strong>
+              </div>
+              <div style={quietTextStyle}>
+                Part of: <strong>{exactStepPractice.parentModuleTitle}</strong>
+              </div>
+              <div style={{ ...bodyTextStyle, fontSize: 16 }}>
+                {exactStepPractice.description}
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+                {NUMBER_STEP_PRACTICE_DEPTH_OPTIONS.map((option) => {
+                  const selected = stepPracticeDepth === option.key;
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => {
+                        setStepPracticeDepth(option.key);
+                        setResponses({});
+                      }}
+                      style={{
+                        border: selected ? "2px solid #1d4ed8" : "1px solid #cbd5e1",
+                        background: selected ? "#eff6ff" : "#ffffff",
+                        color: selected ? "#1d4ed8" : "#0f172a",
+                        borderRadius: 12,
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                      }}
+                    >
+                      {option.label} - {option.description}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section style={highlightCardStyle}>
+              <div style={eyebrowStyle}>Focused practice</div>
+              <PracticeProgressSummary
+                label="Practice progress"
+                summary={buildProgressSummary(exactStepPracticeTasks, responses)}
+              />
+              <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+                {exactStepPracticeTasks.map((task, index) => (
+                  <TaskCard
+                    key={task.id}
+                    task={task}
+                    index={index}
+                    response={responses[task.id] ?? createEmptyResponse()}
+                    onChange={(value) => updateTaskResponse(task.id, value)}
+                    onCheck={() => checkTask(task)}
+                  />
+                ))}
+              </div>
+              <div style={{ ...quietTextStyle, marginTop: 8 }}>
+                Practice stays local-only. No confidence, evidence, portfolio or reports are updated automatically.
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
 
         {unsupportedModule ? (
           <div style={cardStyle}>
@@ -957,6 +1053,8 @@ export default function CleanNumberTargetedPracticeViewer() {
             ) : null}
           </>
         ) : null}
+          </>
+        )}
       </div>
     </main>
   );

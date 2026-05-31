@@ -71,6 +71,9 @@ type BankAlignmentTarget = {
 const NUMBER_STRAND_KEY = "number-and-place-value";
 
 const EXPLICIT_STEP_ALIGNMENT: Record<string, BankAlignmentTarget> = {
+  "recognise-small-quantities-without-counting": {
+    bankKey: "place-value-and-whole-number-operations",
+  },
   "understand-negative-numbers-and-number-lines": {
     bankKey: "integers-coordinates-number-properties",
     subElementKeys: ["integer-ordering-and-operations"],
