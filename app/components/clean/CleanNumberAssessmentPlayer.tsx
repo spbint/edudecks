@@ -6,6 +6,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
 } from "@/app/components/clean/CleanFamilyWorkspaceProvider";
+import CleanContentIssueReportButton, {
+  type ContentIssueReportContext,
+} from "@/app/components/clean/CleanContentIssueReportButton";
 import CleanWorkflowRibbon from "@/app/components/clean/CleanWorkflowRibbon";
 import {
   createAssessmentAttempt,
@@ -2837,6 +2840,56 @@ function CleanNumberAssessmentPlayerBody() {
   );
   const familyId = workspace.profile?.id || "";
   const learnerId = selectedLearner?.id || "";
+
+  function buildAssessmentIssueContext(
+    mode: "assessment" | "summary",
+    item?: NumberAssessmentBankItem,
+    response?: LocalAssessmentResponse,
+  ): ContentIssueReportContext {
+    return {
+      mode,
+      learnerId,
+      subjectKey: selectedBank.subjectKey,
+      strandKey: selectedBank.strandKey,
+      stageKey: incomingStepAssessment?.stageKey ?? selectedBank.stageKey,
+      pathwayStepId:
+        incomingStepAssessment?.pathwayStepId ?? selectedBank.pathwayStepId,
+      stepKey: incomingStepAssessment?.stepKey ?? selectedBank.stepKey,
+      stepTitle: incomingStepAssessment?.title ?? selectedBank.title,
+      assessmentDepth: incomingStepAssessment ? assessmentDepth : null,
+      stepAssessmentKey: incomingStepAssessment?.key ?? null,
+      parentItemBankKey:
+        incomingStepAssessment?.parentItemBankKey ?? selectedBank.itemBankKey,
+      itemId: item?.id ?? null,
+      prompt: item?.prompt ?? null,
+      responseType: item?.answerType ?? null,
+      selectedAnswer: response?.response ?? null,
+      expectedAnswer: item?.expectedAnswer ?? null,
+      visualSupport: item?.visualSupport ?? {},
+      context: {
+        bankKey: selectedBank.key,
+        bankTitle: selectedBank.title,
+        itemTitle: item?.title ?? null,
+        itemFormat: item?.format ?? null,
+        currentIndex: item ? currentIndex + 1 : null,
+        totalItems,
+        summary:
+          mode === "summary"
+            ? {
+                attemptedCount: summary.attemptedCount,
+                correctCount: summary.correctCount,
+                incorrectCount: summary.incorrectCount,
+                notSureCount: summary.notSureCount,
+                reviewNeededCount: summary.reviewNeededCount,
+                unansweredCount: summary.unansweredCount,
+                autoCheckStatus: incomingStepAssessment
+                  ? getNumberStepAssessmentStatus(summary.correctCount, totalItems)
+                  : null,
+              }
+            : null,
+      },
+    };
+  }
   const canSaveAttempt = Boolean(!workspace.loading && familyId && learnerId);
 
   let saveBlockedMessage = "";
@@ -4290,6 +4343,10 @@ function CleanNumberAssessmentPlayerBody() {
                   <Link href="/my-pathways" style={secondaryButtonStyle}>
                     Open My Pathways
                   </Link>
+                  <CleanContentIssueReportButton
+                    label="Report an issue with this assessment"
+                    context={buildAssessmentIssueContext("summary")}
+                  />
                 </div>
               </div>
 
@@ -4749,16 +4806,27 @@ function CleanNumberAssessmentPlayerBody() {
               </div>
 
               <div style={actionBarStyle}>
-                <button
-                  type="button"
-                  onClick={goBack}
-                  disabled={currentIndex === 0}
-                  style={
-                    currentIndex === 0 ? disabledButtonStyle : secondaryButtonStyle
-                  }
-                >
-                  Back
-                </button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    disabled={currentIndex === 0}
+                    style={
+                      currentIndex === 0 ? disabledButtonStyle : secondaryButtonStyle
+                    }
+                  >
+                    Back
+                  </button>
+                  {currentItem ? (
+                    <CleanContentIssueReportButton
+                      context={buildAssessmentIssueContext(
+                        "assessment",
+                        currentItem,
+                        currentResponse,
+                      )}
+                    />
+                  ) : null}
+                </div>
 
                 <div
                   style={{

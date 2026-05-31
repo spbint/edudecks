@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type React from "react";
+import CleanContentIssueReportButton, {
+  type ContentIssueReportContext,
+} from "@/app/components/clean/CleanContentIssueReportButton";
 import {
   NUMBER_POWERS_ROOTS_PRACTICE_MODULE,
   getNumberPracticeModuleById,
@@ -829,12 +832,14 @@ function TaskCard({
   response,
   onChange,
   onCheck,
+  reportContext,
 }: {
   task: NumberPracticeTask;
   index: number;
   response: LocalPracticeResponse;
   onChange: (value: string) => void;
   onCheck: () => void;
+  reportContext: ContentIssueReportContext;
 }) {
   const resultTone = getResultTone(response.result);
   const showFeedback = response.checked;
@@ -932,6 +937,9 @@ function TaskCard({
         <button type="button" onClick={onCheck} style={buttonStyle}>
           {task.taskType === "worked_example" ? "Mark reviewed" : "Check response"}
         </button>
+      </div>
+      <div>
+        <CleanContentIssueReportButton context={reportContext} />
       </div>
       {showFeedback ? (
         <div
@@ -1033,11 +1041,19 @@ function SelectedSection({
   responses,
   onChange,
   onCheck,
+  buildReportContext,
+  summaryReportContext,
 }: {
   section: NumberPracticeSection;
   responses: LocalPracticeResponseMap;
   onChange: (taskId: string, value: string) => void;
   onCheck: (task: NumberPracticeTask) => void;
+  buildReportContext: (
+    task: NumberPracticeTask,
+    response: LocalPracticeResponse,
+    index: number,
+  ) => ContentIssueReportContext;
+  summaryReportContext: ContentIssueReportContext;
 }) {
   const progress = buildProgressSummary(section.tasks, responses);
 
@@ -1058,6 +1074,12 @@ function SelectedSection({
         {section.learnerGoal}
       </div>
       <PracticeProgressSummary label="Practice progress" summary={progress} />
+      <div>
+        <CleanContentIssueReportButton
+          label="Report an issue with this practice"
+          context={summaryReportContext}
+        />
+      </div>
       <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
         {section.tasks.map((task, index) => (
           <TaskCard
@@ -1067,6 +1089,11 @@ function SelectedSection({
             response={responses[task.id] ?? createEmptyResponse()}
             onChange={(value) => onChange(task.id, value)}
             onCheck={() => onCheck(task)}
+            reportContext={buildReportContext(
+              task,
+              responses[task.id] ?? createEmptyResponse(),
+              index,
+            )}
           />
         ))}
       </div>
@@ -1079,11 +1106,19 @@ function MiniCheckSection({
   responses,
   onChange,
   onCheck,
+  buildReportContext,
+  summaryReportContext,
 }: {
   tasks: NumberPracticeTask[];
   responses: LocalPracticeResponseMap;
   onChange: (taskId: string, value: string) => void;
   onCheck: (task: NumberPracticeTask) => void;
+  buildReportContext: (
+    task: NumberPracticeTask,
+    response: LocalPracticeResponse,
+    index: number,
+  ) => ContentIssueReportContext;
+  summaryReportContext: ContentIssueReportContext;
 }) {
   const progress = buildProgressSummary(tasks, responses);
 
@@ -1094,6 +1129,12 @@ function MiniCheckSection({
         Try these after practice to see whether the focus is ready for reassessment.
       </div>
       <PracticeProgressSummary label="Mini-check summary" summary={progress} />
+      <div style={{ marginTop: 10 }}>
+        <CleanContentIssueReportButton
+          label="Report an issue with this practice"
+          context={summaryReportContext}
+        />
+      </div>
       <div
         style={{
           display: "grid",
@@ -1110,6 +1151,11 @@ function MiniCheckSection({
             response={responses[task.id] ?? createEmptyResponse()}
             onChange={(value) => onChange(task.id, value)}
             onCheck={() => onCheck(task)}
+            reportContext={buildReportContext(
+              task,
+              responses[task.id] ?? createEmptyResponse(),
+              index,
+            )}
           />
         ))}
       </div>
@@ -1130,6 +1176,7 @@ export default function CleanNumberTargetedPracticeViewer() {
   const stageKey = safe(searchParams.get("stageKey"));
   const pathwayStepId = safe(searchParams.get("pathwayStepId"));
   const stepKey = safe(searchParams.get("stepKey"));
+  const learnerId = safe(searchParams.get("learnerId"));
   const sourceAssessmentBand = safe(searchParams.get("sourceAssessmentBand"));
   const sourceProgressionStep = safe(
     searchParams.get("sourceProgressionStep"),
@@ -1171,6 +1218,61 @@ export default function CleanNumberTargetedPracticeViewer() {
   const unsupportedModule = requestedModuleId && !practiceModule;
   const selectedSectionTasks = selectedSection?.tasks ?? [];
   const miniCheckTasks = practiceModule?.miniCheck ?? [];
+
+  function buildPracticeIssueContext(
+    mode: "practice" | "summary",
+    task?: NumberPracticeTask,
+    response?: LocalPracticeResponse,
+    index?: number,
+  ): ContentIssueReportContext {
+    const progressTasks = exactStepPractice ? exactStepPracticeTasks : selectedSectionTasks;
+    const progress = buildProgressSummary(progressTasks, responses);
+
+    return {
+      mode,
+      learnerId,
+      subjectKey:
+        exactStepPractice?.subjectKey ?? practiceModule?.subjectKey ?? subjectKey,
+      strandKey:
+        exactStepPractice?.strandKey ?? practiceModule?.strandKey ?? strandKey,
+      stageKey: exactStepPractice?.stageKey ?? practiceModule?.stageKey ?? stageKey,
+      pathwayStepId: exactStepPractice?.pathwayStepId ?? pathwayStepId,
+      stepKey: exactStepPractice?.stepKey ?? stepKey,
+      stepTitle: exactStepPractice?.title ?? practiceModule?.title ?? null,
+      practiceDepth: exactStepPractice ? stepPracticeDepth : null,
+      stepPracticeKey: exactStepPractice?.key ?? null,
+      parentPracticeModuleKey:
+        exactStepPractice?.parentModuleId ?? practiceModule?.id ?? requestedModuleId,
+      taskId: task?.id ?? null,
+      prompt: task?.prompt ?? null,
+      responseType: task?.taskType ?? null,
+      selectedAnswer: response?.value ?? null,
+      expectedAnswer: task?.expectedAnswer ?? null,
+      visualSupport: task?.visualSupport ?? {},
+      context: {
+        taskTitle: task?.title ?? null,
+        taskIndex: typeof index === "number" ? index + 1 : null,
+        selectedSectionId: selectedSection?.id ?? null,
+        selectedSectionTitle: selectedSection?.title ?? null,
+        sourceAssessmentBand,
+        sourceProgressionStep,
+        sourceSubElement,
+        returnTo,
+        result: response?.result ?? null,
+        checked: response?.checked ?? null,
+        summary:
+          mode === "summary"
+            ? {
+                completedCount: progress.completedCount,
+                checkedCount: progress.checkedCount,
+                correctCount: progress.correctCount,
+                needsReviewCount: progress.needsReviewCount,
+                totalCount: progress.totalCount,
+              }
+            : null,
+      },
+    };
+  }
 
   function updateTaskResponse(taskId: string, value: string) {
     setResponses((current) => ({
@@ -1286,6 +1388,12 @@ export default function CleanNumberTargetedPracticeViewer() {
                       updateTaskResponse(currentStepPracticeTask.id, value)
                     }
                     onCheck={() => checkTask(currentStepPracticeTask)}
+                    reportContext={buildPracticeIssueContext(
+                      "practice",
+                      currentStepPracticeTask,
+                      responses[currentStepPracticeTask.id] ?? createEmptyResponse(),
+                      stepPracticeIndex,
+                    )}
                   />
                 ) : null}
                 <div
@@ -1329,6 +1437,12 @@ export default function CleanNumberTargetedPracticeViewer() {
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>
                 Practice stays local-only. No confidence, evidence, portfolio or reports are updated automatically.
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <CleanContentIssueReportButton
+                  label="Report an issue with this practice"
+                  context={buildPracticeIssueContext("summary")}
+                />
               </div>
             </section>
           </>
@@ -1462,6 +1576,10 @@ export default function CleanNumberTargetedPracticeViewer() {
                 responses={responses}
                 onChange={updateTaskResponse}
                 onCheck={checkTask}
+                buildReportContext={(task, response, index) =>
+                  buildPracticeIssueContext("practice", task, response, index)
+                }
+                summaryReportContext={buildPracticeIssueContext("summary")}
               />
             ) : (
               <SectionOverview
@@ -1476,6 +1594,10 @@ export default function CleanNumberTargetedPracticeViewer() {
                 responses={responses}
                 onChange={updateTaskResponse}
                 onCheck={checkTask}
+                buildReportContext={(task, response, index) =>
+                  buildPracticeIssueContext("practice", task, response, index)
+                }
+                summaryReportContext={buildPracticeIssueContext("summary")}
               />
             ) : null}
           </>
