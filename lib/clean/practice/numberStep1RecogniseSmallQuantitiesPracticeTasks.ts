@@ -47,11 +47,11 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
   task(
     "number-step-1-practice-001",
     "Quick-look two",
-    "Look at the card without counting. It shows two counters. Which numeral matches?",
+    "Look at the card without counting. It shows two counters. Which number matches?",
     ["1", "2", "3"],
     "2",
     "Try saying the amount straight away, then check by looking again.",
-    "Two counters match the numeral 2.",
+    "Two counters match the number 2.",
     "Quick-look card with two counters close together.",
     ["small-quantity-recognition-gap", "numeral-quantity-match-gap"],
     ["number-step-1-assess-005"],
@@ -71,7 +71,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
   task(
     "number-step-1-practice-003",
     "Same three",
-    "Which card has the same amount as three counters in a row?",
+    "Which group shows the same number as three counters in a row?",
     ["Three counters in a triangle", "Two counters far apart", "Four counters close together"],
     "Three counters in a triangle",
     "The shape can change, but the number of counters can stay the same.",
@@ -98,7 +98,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
     "A quick-look card shows one counter. Which number should you choose?",
     ["0", "1", "2"],
     "1",
-    "One counter matches the numeral 1.",
+    "One counter matches the number 1.",
     "The card has one counter.",
     "Single counter centred on a quick-look card.",
     ["small-quantity-recognition-gap"],
@@ -119,7 +119,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
   task(
     "number-step-1-practice-007",
     "Find another four",
-    "A card shows four counters in a line. Which card shows the same amount?",
+    "A card shows four counters in a line. Which group shows the same number?",
     ["Four counters in a square", "Three counters in a row", "Five counters spread out"],
     "Four counters in a square",
     "Look for the same number of counters, not the same shape.",
@@ -143,7 +143,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
   task(
     "number-step-1-practice-009",
     "Three triangle",
-    "A quick-look card shows three counters in a triangle. Which numeral matches?",
+    "A quick-look card shows three counters in a triangle. Which number matches?",
     ["2", "3", "4"],
     "3",
     "A triangle pattern with three corners often shows three.",
@@ -167,7 +167,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PRACTICE_TASKS: NumberPrac
   task(
     "number-step-1-practice-011",
     "Same two, new places",
-    "Which card shows the same amount as two counters close together?",
+    "Which group shows the same number as two counters close together?",
     ["Two counters far apart", "Three counters close together", "One large counter"],
     "Two counters far apart",
     "The places can change. The number stays two.",

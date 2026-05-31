@@ -1325,6 +1325,16 @@ function getFormatLabel(format: string) {
   return format.replace(/_/g, " ");
 }
 
+function getStageLabel(stageKey: string) {
+  if (stageKey === "foundation-kindergarten") return "Foundation / Kindergarten";
+  if (stageKey === "lower-primary") return "Lower Primary";
+  if (stageKey === "middle-primary") return "Middle Primary";
+  if (stageKey === "upper-primary") return "Upper Primary";
+  if (stageKey === "lower-secondary") return "Lower Secondary";
+  if (stageKey === "years-9-10-consolidation") return "Years 9-10";
+  return stageKey.replace(/-/g, " ");
+}
+
 type DotSpec = {
   x: number;
   y: number;
@@ -3174,7 +3184,21 @@ function CleanNumberAssessmentPlayerBody() {
     }
 
     if (incomingStepAssessment && !currentResponse.submitted) {
-      return;
+      if (!hasEnteredResponse(currentResponse)) {
+        return;
+      }
+
+      const submittedAt = new Date().toISOString();
+      setResponses((current) => ({
+        ...current,
+        [currentItem.id]: {
+          itemId: currentItem.id,
+          response: currentResponse.response,
+          submitted: true,
+          result: getCheckResult(currentItem, currentResponse.response),
+          submittedAt,
+        },
+      }));
     }
 
     if (currentIndex >= totalItems - 1) {
@@ -3342,58 +3366,14 @@ function CleanNumberAssessmentPlayerBody() {
                     ? "Exact pathway step assessment"
                     : "Choose an assessment focus"}
                 </div>
-                {incomingStepAssessment ? (
-                  <div style={highlightCardStyle}>
-                    <div style={eyebrowStyle}>Selected focus</div>
-                    <h2 style={{ margin: 0, color: "#0f172a" }}>
-                      {incomingStepAssessment.title}
-                    </h2>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      Part of: <strong>{incomingStepAssessment.parentBankTitle}</strong>
-                    </div>
-                    <div style={{ color: "#475569", lineHeight: 1.6 }}>
-                      {incomingStepAssessment.description}
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
-                        const selected = assessmentDepth === option.key;
-                        return (
-                          <button
-                            key={option.key}
-                            type="button"
-                            onClick={() => {
-                              setAssessmentDepth(option.key);
-                              resetAssessmentState();
-                            }}
-                            style={{
-                              border: selected
-                                ? "2px solid #1d4ed8"
-                                : "1px solid #cbd5e1",
-                              background: selected ? "#eff6ff" : "#ffffff",
-                              color: selected ? "#1d4ed8" : "#0f172a",
-                              borderRadius: 12,
-                              padding: "10px 12px",
-                              cursor: "pointer",
-                              fontWeight: 800,
-                            }}
-                          >
-                            {option.label} - {option.description}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-                {hasIncomingNumberContext ? (
+                {hasIncomingNumberContext && !incomingStepAssessment ? (
                   <div style={helperCardStyle}>
                     <strong style={{ color: "#0f172a" }}>
-                      {incomingStepAssessment
-                        ? `${incomingStepAssessment.shortTitle} selected from My Pathways`
-                        : incomingBank
+                      {incomingBank
                         ? `No exact step assessment yet. Showing the closest Number assessment family: ${incomingBank.shortTitle}.`
                         : "Choose a Number focus to start an automatically checked assessment."}
                     </strong>
-                    <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
+                  <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                       This assessment can save an automatically checked attempt. It does not update
                       confidence, portfolio evidence, reports, curriculum coverage, or pathway
                       progress automatically.
@@ -3491,9 +3471,51 @@ function CleanNumberAssessmentPlayerBody() {
                   <p style={{ margin: 0, color: "#475569", lineHeight: 1.7 }}>
                     {incomingStepAssessment?.description ?? selectedBank.description}
                   </p>
+                  {incomingStepAssessment ? (
+                    <>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        Part of: <strong>{incomingStepAssessment.parentBankTitle}</strong>
+                      </div>
+                      <div style={{ color: "#475569", lineHeight: 1.6 }}>
+                        Stage:{" "}
+                        <strong>{getStageLabel(incomingStepAssessment.stageKey)}</strong>
+                      </div>
+                      <div style={eyebrowStyle}>Choose check depth</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {NUMBER_STEP_ASSESSMENT_DEPTH_OPTIONS.map((option) => {
+                          const selected = assessmentDepth === option.key;
+                          return (
+                            <button
+                              key={option.key}
+                              type="button"
+                              onClick={() => {
+                                setAssessmentDepth(option.key);
+                                resetAssessmentState();
+                              }}
+                              style={{
+                                border: selected
+                                  ? "2px solid #1d4ed8"
+                                  : "1px solid #cbd5e1",
+                                background: selected ? "#eff6ff" : "#ffffff",
+                                color: selected ? "#1d4ed8" : "#0f172a",
+                                borderRadius: 12,
+                                padding: "10px 12px",
+                                cursor: "pointer",
+                                fontWeight: 800,
+                              }}
+                            >
+                              {option.label} - {option.description}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : null}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                     <span style={getDifficultyTone("foundation")}>
-                      {incomingStepAssessment ? "Step 1" : selectedBank.yearBandLabel}
+                      {incomingStepAssessment
+                        ? getStageLabel(incomingStepAssessment.stageKey)
+                        : selectedBank.yearBandLabel}
                     </span>
                     <span style={getFormatTone("reasonableness")}>
                       {totalItems} {incomingStepAssessment ? "questions" : "items"}
@@ -3546,7 +3568,9 @@ function CleanNumberAssessmentPlayerBody() {
                   }}
                 >
                   <span style={getDifficultyTone("foundation")}>
-                    {selectedBank.yearBandLabel}
+                    {incomingStepAssessment
+                      ? getStageLabel(incomingStepAssessment.stageKey)
+                      : selectedBank.yearBandLabel}
                   </span>
                   <span
                     style={{
@@ -4512,20 +4536,15 @@ function CleanNumberAssessmentPlayerBody() {
                     justifyContent: "flex-end",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={submitCurrentItem}
-                    disabled={Boolean(
-                      incomingStepAssessment && !hasEnteredResponse(currentResponse),
-                    )}
-                    style={
-                      incomingStepAssessment && !hasEnteredResponse(currentResponse)
-                        ? disabledButtonStyle
-                        : secondaryButtonStyle
-                    }
-                  >
-                    {incomingStepAssessment ? "Save answer" : "Check response"}
-                  </button>
+                  {!incomingStepAssessment ? (
+                    <button
+                      type="button"
+                      onClick={submitCurrentItem}
+                      style={secondaryButtonStyle}
+                    >
+                      Check response
+                    </button>
+                  ) : null}
                   {incomingStepAssessment ? (
                     <button
                       type="button"
@@ -4539,10 +4558,10 @@ function CleanNumberAssessmentPlayerBody() {
                     type="button"
                     onClick={goNext}
                     disabled={Boolean(
-                      incomingStepAssessment && !currentResponse.submitted,
+                      incomingStepAssessment && !hasEnteredResponse(currentResponse),
                     )}
                     style={
-                      incomingStepAssessment && !currentResponse.submitted
+                      incomingStepAssessment && !hasEnteredResponse(currentResponse)
                         ? disabledButtonStyle
                         : buttonStyle
                     }

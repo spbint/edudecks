@@ -33,7 +33,7 @@ export const NUMBER_STEP_ASSESSMENTS: NumberStepAssessment[] = [
     title: "Recognise small quantities without counting",
     shortTitle: "Recognise small quantities",
     description:
-      "Checks subitising, quick quantity recognition, matching small quantities to numerals, and noticing that spacing or arrangement does not change quantity.",
+      "Checks quick-look number recognition, matching small groups to numbers, and noticing that spacing or size does not change how many there are.",
     subjectKey: "mathematics",
     strandKey: "number-and-place-value",
     stageKey: "foundation-kindergarten",

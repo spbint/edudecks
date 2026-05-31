@@ -10,7 +10,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_PATHWAY_STEP_ID =
   "mathematics::number-and-place-value::foundation-kindergarten::recognise-small-quantities-without-counting";
 
 const STEP_DESCRIPTION =
-  "Recognise small groups visually, match them to numerals, and notice that arrangement does not change quantity.";
+  "Recognise small groups visually, match them to numbers, and notice that moving dots around does not change how many there are.";
 
 function visual(description: string) {
   return {
@@ -52,7 +52,7 @@ function item(
       ifIncorrectGoToStepKey: NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_STEP_KEY,
       ifCorrectGoToStepKey: NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_STEP_KEY,
       practiceRecommendation:
-        "Practise quick-look dot cards and matching small quantities to numerals.",
+        "Practise quick-look dot cards and matching small groups to numbers.",
       diagnosticNote:
         "This checks whether the learner can recognise a small quantity visually without counting one by one.",
     },
@@ -66,7 +66,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "quick-recognition-1-to-3",
     "Quick recognition of 1-3",
     "Quick look: three dots",
-    "A quick-look card shows three dots close together. Which number does it show?",
+    "Look at the dots. How many?",
     ["1", "2", "3"],
     "3",
     "Quick-look dot card with three small dots in a triangle arrangement.",
@@ -77,7 +77,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "recognising-4-to-5",
     "Recognising 4-5 in familiar arrangements",
     "Dice pattern: four",
-    "A dice-like card shows four corner dots. Which number does it show?",
+    "Look at the dice-like dots. How many?",
     ["3", "4", "5"],
     "4",
     "Dice-style four-dot pattern, one dot near each corner.",
@@ -88,7 +88,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "same-quantity-different-arrangement",
     "Same quantity, different arrangement",
     "Same amount as three",
-    "Which card shows the same number of counters as a card with three counters?",
+    "Which group shows the same number as three counters?",
     ["A card with 2 counters", "A card with 3 counters spread out", "A card with 4 counters"],
     "A card with 3 counters spread out",
     "Three comparison cards: two counters close, three counters spread out, four counters in a line.",
@@ -110,7 +110,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "quick-recognition-1-to-3",
     "Quick recognition of 1-3",
     "Quick look: two counters",
-    "A quick-look card flashes two counters. Which numeral matches?",
+    "Look at the two counters. Which number matches?",
     ["1", "2", "3"],
     "2",
     "Two counters side by side on a quick-look card.",
@@ -132,7 +132,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "same-quantity-different-arrangement",
     "Same quantity, different arrangement",
     "Find another four",
-    "Card A shows four counters in a square. Which card shows the same amount?",
+    "Card A has four counters. Which group shows the same number?",
     ["Four counters in a line", "Three counters in a triangle", "Five counters on a dice card"],
     "Four counters in a line",
     "Card A with four counters in a square, compared with line, triangle and dice-card options.",
@@ -143,7 +143,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "quantity-not-spacing-or-size",
     "Quantity is not spacing or size",
     "Bigger counters",
-    "Card A has three large counters. Card B has three small counters. Which statement is true?",
+    "Card A has three big counters. Card B has three small counters. Which one is right?",
     ["Card A has more", "Card B has more", "They show the same number"],
     "They show the same number",
     "Two cards each with three counters; one card uses larger counters and the other smaller counters.",
@@ -154,7 +154,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "quick-recognition-1-to-3",
     "Quick recognition of 1-3",
     "One dot",
-    "A card shows one dot. Which number should be touched?",
+    "Look at the dot. Which number matches?",
     ["0", "1", "2"],
     "1",
     "Single dot centred on a quick-look card.",
@@ -165,7 +165,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "recognising-4-to-5",
     "Recognising 4-5 in familiar arrangements",
     "Five on a dice card",
-    "A dice-like card shows four corner dots and one middle dot. Which number is this?",
+    "Look at the dice-like dots. How many?",
     ["4", "5", "6"],
     "5",
     "Dice-style five-dot pattern with four corner dots and one centre dot.",
@@ -176,7 +176,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "same-quantity-different-arrangement",
     "Same quantity, different arrangement",
     "Two different threes",
-    "A card shows three counters in a row. Which card has the same number?",
+    "A card shows three counters in a row. Which group shows the same number?",
     ["Three counters in a triangle", "Two counters far apart", "Four counters close together"],
     "Three counters in a triangle",
     "Three comparison cards using row, triangle, spaced pair and close group arrangements.",
@@ -187,7 +187,7 @@ export const NUMBER_STEP_1_RECOGNISE_SMALL_QUANTITIES_ASSESSMENT_ITEMS: NumberAs
     "quantity-not-spacing-or-size",
     "Quantity is not spacing or size",
     "Close group or spread group",
-    "Card A has four counters close together. Card B has four counters spread out. Which card has more?",
+    "Card A has four close counters. Card B has four spread-out counters. Which one has more?",
     ["Card A", "Card B", "Neither, they are the same"],
     "Neither, they are the same",
     "Two four-counter cards: one compact group and one spread-out group.",

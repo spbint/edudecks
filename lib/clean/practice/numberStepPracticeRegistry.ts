@@ -31,7 +31,7 @@ export const NUMBER_STEP_PRACTICES: NumberStepPractice[] = [
     title: "Recognise small quantities without counting",
     shortTitle: "Recognise small quantities",
     description:
-      "Practise subitising, matching small groups to numerals, and noticing that arrangement or spacing does not change quantity.",
+      "Practise quick-look number recognition, matching small groups to numbers, and noticing that spacing or size does not change how many there are.",
     subjectKey: "mathematics",
     strandKey: "number-and-place-value",
     stageKey: "foundation-kindergarten",

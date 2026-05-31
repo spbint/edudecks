@@ -368,7 +368,7 @@ export default function CleanPathwayStepActionRow({
             }
             aria-label="Assess this pathway step"
           >
-            Check understanding
+            {exactAssessmentTitle ? "Assess" : "Check understanding"}
           </Link>
         ) : (
           <button
@@ -376,9 +376,9 @@ export default function CleanPathwayStepActionRow({
             style={{ ...disabledButtonStyle, flex: "1 1 120px" }}
             disabled
             title={noAssessmentMessage || "Assessment for this step is coming later."}
-            aria-label="No auto-checked assessment is available for this pathway step"
-          >
-            Check understanding
+          aria-label="No auto-checked assessment is available for this pathway step"
+        >
+            Assess
           </button>
         )}
         <Link

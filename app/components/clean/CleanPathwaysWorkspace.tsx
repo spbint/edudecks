@@ -1479,6 +1479,10 @@ function NumberRevealStepCard({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
   });
+  const exactStepPractice = getNumberStepPracticeForPathwayStep({
+    pathwayStepId: step.pathwayStepId,
+    stepKey: step.stepKey,
+  });
   const assessmentHref = exactStepAssessment
     ? (() => {
         const params = new URLSearchParams();
@@ -1508,6 +1512,20 @@ function NumberRevealStepCard({
       returnTo: returnPath,
     },
   );
+  const practiceHref = exactStepPractice
+    ? (() => {
+        const params = new URLSearchParams();
+        params.set("stepPracticeKey", exactStepPractice.key);
+        params.set("subjectKey", "mathematics");
+        params.set("strandKey", NUMBER_AND_PLACE_VALUE_STRAND_KEY);
+        params.set("stageKey", step.stageKey);
+        params.set("pathwayStepId", step.pathwayStepId);
+        params.set("stepKey", step.stepKey);
+        params.set("returnTo", returnPath);
+        if (learnerId) params.set("learnerId", learnerId);
+        return `/practice/number-targeted?${params.toString()}`;
+      })()
+    : "";
 
   return (
     <div
@@ -1557,18 +1575,35 @@ function NumberRevealStepCard({
         {step.alignment ? ` / ${step.alignment.bank.shortTitle}` : ""}
         {step.autoCheck.scope === "sub-element" ? " / focus-level signal" : ""}
       </div>
-      {assessmentHref ? (
-        <Link
-          href={assessmentHref}
-          style={{
-            ...secondaryButtonStyle,
-            width: "fit-content",
-            padding: "7px 10px",
-            fontSize: 12,
-          }}
-        >
-          Check understanding
-        </Link>
+      {assessmentHref || practiceHref ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {practiceHref ? (
+            <Link
+              href={practiceHref}
+              style={{
+                ...secondaryButtonStyle,
+                width: "fit-content",
+                padding: "7px 10px",
+                fontSize: 12,
+              }}
+            >
+              Practise
+            </Link>
+          ) : null}
+          {assessmentHref ? (
+            <Link
+              href={assessmentHref}
+              style={{
+                ...secondaryButtonStyle,
+                width: "fit-content",
+                padding: "7px 10px",
+                fontSize: 12,
+              }}
+            >
+              {exactStepAssessment ? "Assess" : "Check understanding"}
+            </Link>
+          ) : null}
+        </div>
       ) : (
         <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.45 }}>
           No auto-checked assessment is available for this step yet.
