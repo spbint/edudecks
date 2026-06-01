@@ -11,6 +11,10 @@ import {
   getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
   getFractionsDecimalsPercentagesStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/fractionsDecimalsPercentagesStepAssessmentRegistry";
+import {
+  getRatioProportionalReasoningStepAssessmentForPathwayStep,
+  getRatioProportionalReasoningStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/ratioProportionalReasoningStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -62,6 +66,18 @@ function preferFractionsDecimalsPercentages(context: StepAssessmentContext) {
   );
 }
 
+function preferRatioProportionalReasoning(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "ratio-and-proportional-reasoning" ||
+    pathwayStepId.includes("::ratio-and-proportional-reasoning::") ||
+    stepAssessmentKey.startsWith("ratio-proportional-reasoning-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
@@ -70,18 +86,28 @@ export function getStepAssessmentForPathwayStep(
         getOperationsStepAssessmentForPathwayStep,
         getNumberStepAssessmentForPathwayStep,
         getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+        getRatioProportionalReasoningStepAssessmentForPathwayStep,
       ]
     : preferFractionsDecimalsPercentages(context)
       ? [
           getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
           getNumberStepAssessmentForPathwayStep,
           getOperationsStepAssessmentForPathwayStep,
+          getRatioProportionalReasoningStepAssessmentForPathwayStep,
         ]
-      : [
-          getNumberStepAssessmentForPathwayStep,
-          getOperationsStepAssessmentForPathwayStep,
-          getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
-        ];
+      : preferRatioProportionalReasoning(context)
+        ? [
+            getRatioProportionalReasoningStepAssessmentForPathwayStep,
+            getNumberStepAssessmentForPathwayStep,
+            getOperationsStepAssessmentForPathwayStep,
+            getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+          ]
+        : [
+            getNumberStepAssessmentForPathwayStep,
+            getOperationsStepAssessmentForPathwayStep,
+            getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+            getRatioProportionalReasoningStepAssessmentForPathwayStep,
+          ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -101,6 +127,13 @@ export function getStepAssessmentItemsForDepth(
 
   if (assessment.strandKey === "fractions-decimals-percentages") {
     return getFractionsDecimalsPercentagesStepAssessmentItemsForDepth(
+      assessment.key,
+      depth,
+    );
+  }
+
+  if (assessment.strandKey === "ratio-and-proportional-reasoning") {
+    return getRatioProportionalReasoningStepAssessmentItemsForDepth(
       assessment.key,
       depth,
     );

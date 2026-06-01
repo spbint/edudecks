@@ -226,7 +226,8 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
     subjectKey === "mathematics" &&
     (strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ||
       strandKey === "operations-and-calculation" ||
-      strandKey === "fractions-decimals-percentages")
+      strandKey === "fractions-decimals-percentages" ||
+      strandKey === "ratio-and-proportional-reasoning")
   );
 }
 
