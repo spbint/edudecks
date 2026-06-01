@@ -225,8 +225,13 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
   return (
     subjectKey === "mathematics" &&
     (strandKey === NUMBER_AND_PLACE_VALUE_STRAND_KEY ||
-      strandKey === "operations-and-calculation")
+      strandKey === "operations-and-calculation" ||
+      strandKey === "fractions-decimals-percentages")
   );
+}
+
+function getStrandKeyFromPathwayStepId(pathwayStepId: string) {
+  return pathwayStepId.split("::")[1] || NUMBER_AND_PLACE_VALUE_STRAND_KEY;
 }
 
 function buildPathwayStepReturnHref({
@@ -1549,25 +1554,20 @@ function NumberRevealStepCard({
   compact?: boolean;
 }) {
   const tone = getAutoCheckTone(step.autoCheck.status);
+  const pathwayStepStrandKey = getStrandKeyFromPathwayStepId(step.pathwayStepId);
   const exactStepAssessment = getStepAssessmentForPathwayStep({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
-    strandKey: step.pathwayStepId.includes("::operations-and-calculation::")
-      ? "operations-and-calculation"
-      : NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+    strandKey: pathwayStepStrandKey,
   });
   const exactStepPractice = getStepPracticeForPathwayStep({
     pathwayStepId: step.pathwayStepId,
     stepKey: step.stepKey,
-    strandKey: step.pathwayStepId.includes("::operations-and-calculation::")
-      ? "operations-and-calculation"
-      : NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+    strandKey: pathwayStepStrandKey,
   });
   const stepStrandKey = exactStepAssessment?.strandKey ??
     exactStepPractice?.strandKey ??
-    (step.pathwayStepId.includes("::operations-and-calculation::")
-      ? "operations-and-calculation"
-      : NUMBER_AND_PLACE_VALUE_STRAND_KEY);
+    pathwayStepStrandKey;
   const stepReturnHref = buildPathwayStepReturnHref({
     pathname: returnPath,
     subjectKey: "mathematics",

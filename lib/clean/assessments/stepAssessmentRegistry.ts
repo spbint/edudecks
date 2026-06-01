@@ -7,6 +7,10 @@ import {
   getOperationsStepAssessmentForPathwayStep,
   getOperationsStepAssessmentItemsForDepth,
 } from "@/lib/clean/assessments/operationsStepAssessmentRegistry";
+import {
+  getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+  getFractionsDecimalsPercentagesStepAssessmentItemsForDepth,
+} from "@/lib/clean/assessments/fractionsDecimalsPercentagesStepAssessmentRegistry";
 import type {
   NumberStepAssessment,
   NumberStepAssessmentDepth,
@@ -46,12 +50,38 @@ function preferOperations(context: StepAssessmentContext) {
   );
 }
 
+function preferFractionsDecimalsPercentages(context: StepAssessmentContext) {
+  const strandKey = safe(context.strandKey);
+  const pathwayStepId = safe(context.pathwayStepId);
+  const stepAssessmentKey = safe(context.stepAssessmentKey);
+
+  return (
+    strandKey === "fractions-decimals-percentages" ||
+    pathwayStepId.includes("::fractions-decimals-percentages::") ||
+    stepAssessmentKey.startsWith("fractions-decimals-percentages-step-")
+  );
+}
+
 export function getStepAssessmentForPathwayStep(
   context: StepAssessmentContext,
 ): CleanStepAssessment | null {
   const registries = preferOperations(context)
-    ? [getOperationsStepAssessmentForPathwayStep, getNumberStepAssessmentForPathwayStep]
-    : [getNumberStepAssessmentForPathwayStep, getOperationsStepAssessmentForPathwayStep];
+    ? [
+        getOperationsStepAssessmentForPathwayStep,
+        getNumberStepAssessmentForPathwayStep,
+        getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+      ]
+    : preferFractionsDecimalsPercentages(context)
+      ? [
+          getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+          getNumberStepAssessmentForPathwayStep,
+          getOperationsStepAssessmentForPathwayStep,
+        ]
+      : [
+          getNumberStepAssessmentForPathwayStep,
+          getOperationsStepAssessmentForPathwayStep,
+          getFractionsDecimalsPercentagesStepAssessmentForPathwayStep,
+        ];
 
   for (const getAssessment of registries) {
     const assessment = getAssessment(context);
@@ -67,6 +97,13 @@ export function getStepAssessmentItemsForDepth(
 ) {
   if (assessment.strandKey === "operations-and-calculation") {
     return getOperationsStepAssessmentItemsForDepth(assessment.key, depth);
+  }
+
+  if (assessment.strandKey === "fractions-decimals-percentages") {
+    return getFractionsDecimalsPercentagesStepAssessmentItemsForDepth(
+      assessment.key,
+      depth,
+    );
   }
 
   return getNumberStepAssessmentItemsForDepth(assessment.key, depth);
