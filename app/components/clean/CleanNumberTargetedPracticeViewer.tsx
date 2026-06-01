@@ -61,6 +61,9 @@ import {
 } from "@/lib/clean/practice/numberTerminatingRecurringRationalPracticeModules";
 import { getNumberAssessmentBankByKey } from "@/lib/clean/assessments/numberAssessmentBanks";
 import {
+  getStepAssessmentForPathwayStep,
+} from "@/lib/clean/assessments/stepAssessmentRegistry";
+import {
   getStepPracticeForPathwayStep,
   getStepPracticeTasksForDepth,
 } from "@/lib/clean/practice/stepPracticeRegistry";
@@ -1192,8 +1195,33 @@ export default function CleanNumberTargetedPracticeViewer() {
   const exactStepPracticeTasks = exactStepPractice
     ? getStepPracticeTasksForDepth(exactStepPractice, stepPracticeDepth)
     : [];
+  const exactStepAssessment = exactStepPractice
+    ? getStepAssessmentForPathwayStep({
+        pathwayStepId: exactStepPractice.pathwayStepId,
+        stepKey: exactStepPractice.stepKey,
+        strandKey: exactStepPractice.strandKey,
+      })
+    : null;
+  const exactStepAssessmentHref = exactStepAssessment
+    ? `/assessments/number?${new URLSearchParams({
+        source: "my-pathways",
+        stepAssessmentKey: exactStepAssessment.key,
+        subjectKey: exactStepAssessment.subjectKey,
+        strandKey: exactStepAssessment.strandKey,
+        stageKey: exactStepAssessment.stageKey,
+        pathwayStepId: exactStepAssessment.pathwayStepId,
+        stepKey: exactStepAssessment.stepKey,
+        progressionBandKey: exactStepAssessment.progressionBandKey,
+        itemBankKey: exactStepAssessment.parentItemBankKey,
+        returnTo: returnTo || "/my-pathways",
+        ...(learnerId ? { learnerId } : {}),
+      }).toString()}`
+    : "";
   const currentStepPracticeTask =
     exactStepPracticeTasks[Math.min(stepPracticeIndex, exactStepPracticeTasks.length - 1)];
+  const isLastExactStepPracticeTask =
+    exactStepPracticeTasks.length > 0 &&
+    stepPracticeIndex >= exactStepPracticeTasks.length - 1;
   const sourceContext: SourcePracticeContext = {
     subjectKey,
     strandKey,
@@ -1307,12 +1335,15 @@ export default function CleanNumberTargetedPracticeViewer() {
     <main style={shellStyle}>
       <div style={wrapStyle}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-          <Link href={buildAssessmentHref(sourceContext)} style={secondaryButtonStyle}>
+          <Link
+            href={exactStepAssessmentHref || buildAssessmentHref(sourceContext)}
+            style={secondaryButtonStyle}
+          >
             Return to assessment
           </Link>
           {returnTo ? (
             <Link href={returnTo} style={secondaryButtonStyle}>
-              Return to pathway
+              Return to pathway step
             </Link>
           ) : null}
         </div>
@@ -1418,22 +1449,32 @@ export default function CleanNumberTargetedPracticeViewer() {
                   <div style={quietTextStyle}>
                     Task {stepPracticeIndex + 1} of {exactStepPracticeTasks.length}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setStepPracticeIndex((value) =>
-                        Math.min(exactStepPracticeTasks.length - 1, value + 1),
-                      )
-                    }
-                    disabled={stepPracticeIndex >= exactStepPracticeTasks.length - 1}
-                    style={
-                      stepPracticeIndex >= exactStepPracticeTasks.length - 1
-                        ? secondaryButtonStyle
-                        : buttonStyle
-                    }
-                  >
-                    Next task
-                  </button>
+                  {isLastExactStepPracticeTask ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {returnTo ? (
+                        <Link href={returnTo} style={buttonStyle}>
+                          Return to pathway step
+                        </Link>
+                      ) : null}
+                      {exactStepAssessmentHref ? (
+                        <Link href={exactStepAssessmentHref} style={secondaryButtonStyle}>
+                          Assess this skill
+                        </Link>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStepPracticeIndex((value) =>
+                          Math.min(exactStepPracticeTasks.length - 1, value + 1),
+                        )
+                      }
+                      style={buttonStyle}
+                    >
+                      Next task
+                    </button>
+                  )}
                 </div>
               </div>
               <div style={{ ...quietTextStyle, marginTop: 8 }}>

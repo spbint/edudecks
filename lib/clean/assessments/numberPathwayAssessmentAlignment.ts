@@ -467,12 +467,14 @@ function getBankLevelStatus(attempt: CleanAssessmentAttempt): NumberAutoCheckSta
 function attemptMatchesExactPathwayStep(
   attempt: CleanAssessmentAttempt,
   context: {
+    subjectKey?: string | null;
     pathwayStepId?: string | null;
     stepKey?: string | null;
     stepAssessmentKey?: string | null;
     strandKey?: string | null;
   },
 ) {
+  const subjectKey = safe(context.subjectKey);
   const pathwayStepId = safe(context.pathwayStepId);
   const stepKey = safe(context.stepKey);
   const stepAssessmentKey = safe(context.stepAssessmentKey);
@@ -480,6 +482,7 @@ function attemptMatchesExactPathwayStep(
   const prototypeMetadata = getPrototypeMetadata(attempt);
   const attemptStepAssessmentKey = safe(prototypeMetadata?.stepAssessmentKey);
 
+  if (subjectKey && attempt.subjectKey !== subjectKey) return false;
   if (strandKey && attempt.strandKey !== strandKey) return false;
   if (stepAssessmentKey && attemptStepAssessmentKey === stepAssessmentKey) return true;
   if (!attemptStepAssessmentKey) return false;
@@ -493,6 +496,7 @@ function attemptMatchesExactPathwayStep(
 export function getExactStepAutoCheckStatusForPathwayStep(
   attempts: CleanAssessmentAttempt[],
   context: {
+    subjectKey?: string | null;
     pathwayStepId?: string | null;
     stepKey?: string | null;
     stepAssessmentKey?: string | null;
@@ -589,6 +593,7 @@ export function getNumberPathwayRevealGroups(
     const autoCheck =
       exactStepAssessment && strandKey !== NUMBER_STRAND_KEY
         ? getExactStepAutoCheckStatusForPathwayStep(attempts, {
+            subjectKey,
             strandKey,
             pathwayStepId: step.pathwayStepId,
             stepKey: step.stepKey,

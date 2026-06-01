@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CleanFamilyWorkspaceProvider, {
   useCleanFamilyWorkspace,
@@ -229,6 +229,29 @@ function supportsExactStepPathwayContext(subjectKey: string, strandKey: string) 
   );
 }
 
+function buildPathwayStepReturnHref({
+  pathname,
+  subjectKey,
+  strandKey,
+  learnerId,
+  detailPanelId,
+}: {
+  pathname: string;
+  subjectKey: string;
+  strandKey: string;
+  learnerId?: string | null;
+  detailPanelId: string;
+}) {
+  const params = new URLSearchParams();
+  params.set("subjectKey", subjectKey);
+  params.set("strandKey", strandKey);
+  if (learnerId) {
+    params.set("learnerId", learnerId);
+  }
+
+  return `${pathname}?${params.toString()}#${detailPanelId}`;
+}
+
 function getNumberBankForAttempt(attempt: CleanAssessmentAttempt) {
   return (
     NUMBER_ASSESSMENT_BANKS.find(
@@ -406,25 +429,64 @@ function buildWorkspaceStageSummaryCounts(
 function PathwaysWorkspaceBody() {
   const workspace = useCleanFamilyWorkspace();
   const pathname = usePathname();
-  const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState("");
+  const searchParams = useSearchParams();
+  const initialSubjectKey = useMemo(() => {
+    const subjectParam = searchParams.get("subjectKey");
+    return (
+      PATHWAY_SUBJECTS.find((subject) => subject.key === subjectParam)?.key ||
+      DEFAULT_PATHWAY_SUBJECT_KEY
+    );
+  }, [searchParams]);
+  const initialStrandKeyBySubject = useMemo(() => {
+    const strandParam = searchParams.get("strandKey");
+    const subjectConfig = DETAILED_SUBJECT_CONFIGS[initialSubjectKey];
+    const queryStrandIsValid = Boolean(
+      strandParam && subjectConfig?.domainCards.some((domain) => domain.key === strandParam),
+    );
+
+    return {
+      mathematics:
+        initialSubjectKey === "mathematics" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.mathematics?.defaultStrandKey ||
+            NUMBER_AND_PLACE_VALUE_STRAND_KEY,
+      english:
+        initialSubjectKey === "english" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.english?.defaultStrandKey || "",
+      science:
+        initialSubjectKey === "science" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
+      humanities:
+        initialSubjectKey === "humanities" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.humanities?.defaultStrandKey || "",
+      technologies:
+        initialSubjectKey === "technologies" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.technologies?.defaultStrandKey || "",
+      arts:
+        initialSubjectKey === "arts" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS.arts?.defaultStrandKey || "",
+      "health-pe":
+        initialSubjectKey === "health-pe" && queryStrandIsValid
+          ? strandParam || ""
+          : DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
+    } satisfies Partial<Record<PathwaySubjectKey, string>>;
+  }, [initialSubjectKey, searchParams]);
+  const [selectedLearnerIdOverride, setSelectedLearnerIdOverride] = useState(
+    () => searchParams.get("learnerId") || "",
+  );
   // Keep subject and strand selection explicit so later planning, capture, calendar,
   // and reporting can point back to a stable subject -> strand -> stage -> step path.
   const [selectedSubjectKey, setSelectedSubjectKey] = useState<PathwaySubjectKey>(
-    DEFAULT_PATHWAY_SUBJECT_KEY,
+    initialSubjectKey,
   );
   const [selectedStrandKeyBySubject, setSelectedStrandKeyBySubject] = useState<
     Partial<Record<PathwaySubjectKey, string>>
-  >({
-    mathematics:
-      DETAILED_SUBJECT_CONFIGS.mathematics?.defaultStrandKey ||
-      NUMBER_AND_PLACE_VALUE_STRAND_KEY,
-    english: DETAILED_SUBJECT_CONFIGS.english?.defaultStrandKey || "",
-    science: DETAILED_SUBJECT_CONFIGS.science?.defaultStrandKey || "",
-    humanities: DETAILED_SUBJECT_CONFIGS.humanities?.defaultStrandKey || "",
-    technologies: DETAILED_SUBJECT_CONFIGS.technologies?.defaultStrandKey || "",
-    arts: DETAILED_SUBJECT_CONFIGS.arts?.defaultStrandKey || "",
-    "health-pe": DETAILED_SUBJECT_CONFIGS["health-pe"]?.defaultStrandKey || "",
-  });
+  >(() => initialStrandKeyBySubject);
   const [stageOpenOverrides, setStageOpenOverrides] = useState<Record<string, boolean>>({});
   const [unifiedPathwayStepStateIndex, setUnifiedPathwayStepStateIndex] =
     useState<UnifiedPathwayStepStateIndex>(new Map());
@@ -1151,6 +1213,7 @@ function PathwaysWorkspaceBody() {
                       learnerLabel={selectedLearnerLabel}
                       learnerId={selectedLearner?.id || ""}
                       returnPath={pathname}
+                      strandTitle={selectedSubjectWorkspace.title}
                     />
                   ) : null}
 
@@ -1500,6 +1563,18 @@ function NumberRevealStepCard({
       ? "operations-and-calculation"
       : NUMBER_AND_PLACE_VALUE_STRAND_KEY,
   });
+  const stepStrandKey = exactStepAssessment?.strandKey ??
+    exactStepPractice?.strandKey ??
+    (step.pathwayStepId.includes("::operations-and-calculation::")
+      ? "operations-and-calculation"
+      : NUMBER_AND_PLACE_VALUE_STRAND_KEY);
+  const stepReturnHref = buildPathwayStepReturnHref({
+    pathname: returnPath,
+    subjectKey: "mathematics",
+    strandKey: stepStrandKey,
+    learnerId,
+    detailPanelId: `pathway-step-${stepStrandKey}-${step.stageKey}-${step.id}`,
+  });
   const assessmentHref = exactStepAssessment
     ? (() => {
         const params = new URLSearchParams();
@@ -1510,7 +1585,7 @@ function NumberRevealStepCard({
         params.set("stageKey", exactStepAssessment.stageKey);
         params.set("pathwayStepId", step.pathwayStepId);
         params.set("stepKey", step.stepKey);
-        params.set("returnTo", returnPath);
+        params.set("returnTo", stepReturnHref);
         params.set("progressionBandKey", exactStepAssessment.progressionBandKey);
         params.set("itemBankKey", exactStepAssessment.parentItemBankKey);
         if (learnerId) params.set("learnerId", learnerId);
@@ -1526,7 +1601,7 @@ function NumberRevealStepCard({
         params.set("stageKey", exactStepPractice.stageKey);
         params.set("pathwayStepId", step.pathwayStepId);
         params.set("stepKey", step.stepKey);
-        params.set("returnTo", returnPath);
+        params.set("returnTo", stepReturnHref);
         if (learnerId) params.set("learnerId", learnerId);
         return `/practice/number-targeted?${params.toString()}`;
       })()
@@ -1673,11 +1748,13 @@ function NumberPathwayRevealPanel({
   learnerLabel,
   learnerId,
   returnPath,
+  strandTitle,
 }: {
   groups: NumberPathwayRevealGroups;
   learnerLabel: string;
   learnerId: string;
   returnPath: string;
+  strandTitle: string;
 }) {
   const starterSteps = groups.laterPathway.slice(0, 4);
   const currentStartStep = groups.currentLearningZone[0] ?? starterSteps[0] ?? null;
@@ -1695,15 +1772,15 @@ function NumberPathwayRevealPanel({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 5, maxWidth: 720 }}>
-          <div style={eyebrowStyle}>Individualised Number pathway</div>
+          <div style={eyebrowStyle}>Individualised pathway</div>
           <h3 style={{ margin: 0, color: "#0f172a", fontSize: 20 }}>
             {groups.hasSavedAttempts
               ? `${learnerLabel}'s current learning zone`
-              : "Start with a Number check"}
+              : `Start with a ${strandTitle} check`}
           </h3>
           <div style={{ color: "#475569", lineHeight: 1.55 }}>
             {groups.hasSavedAttempts
-              ? "Based on saved auto-checked Number attempts. Confidence, evidence, portfolio and reports have not been changed automatically."
+              ? `Based on saved auto-checked ${strandTitle} attempts. Confidence, evidence, portfolio and reports have not been changed automatically.`
               : "Start with a pre-test or choose a pathway step to check understanding. Results will reveal what is secure, what needs polish and where to work next."}
           </div>
         </div>
@@ -1782,7 +1859,7 @@ function NumberPathwayRevealPanel({
         <div style={compactCardStyle}>
           <div style={eyebrowStyle}>Starter guidance</div>
           <div style={{ color: "#475569", lineHeight: 1.5 }}>
-            No saved auto-checked Number attempt is available for this learner yet.
+            No saved auto-checked {strandTitle} attempt is available for this learner yet.
             Choose one of these early pathway checks or open the full pathway below.
           </div>
           <NumberRevealStepList
@@ -2182,7 +2259,13 @@ function DetailedMathematicsStepCard({
     }
 
     const isNumberContext = isNumberPathwayContext(selectedSubjectKey, strand.key);
-    const returnTo = `${returnPath}#${detailPanelId}`;
+    const returnTo = buildPathwayStepReturnHref({
+      pathname: returnPath,
+      subjectKey: selectedSubjectKey,
+      strandKey: strand.key,
+      learnerId: selectedLearnerId,
+      detailPanelId,
+    });
 
     if (exactStepAssessment) {
         const params = new URLSearchParams();
@@ -2246,7 +2329,16 @@ function DetailedMathematicsStepCard({
     params.set("stageKey", exactStepPractice.stageKey);
     params.set("pathwayStepId", pathwayStepId);
     params.set("stepKey", canonicalStepKey);
-    params.set("returnTo", `${returnPath}#${detailPanelId}`);
+    params.set(
+      "returnTo",
+      buildPathwayStepReturnHref({
+        pathname: returnPath,
+        subjectKey: exactStepPractice.subjectKey,
+        strandKey: exactStepPractice.strandKey,
+        learnerId: selectedLearnerId,
+        detailPanelId,
+      }),
+    );
     if (selectedLearnerId) {
       params.set("learnerId", selectedLearnerId);
     }
@@ -2266,6 +2358,7 @@ function DetailedMathematicsStepCard({
         ? getAutoCheckStatusForPathwayStep(assessmentAttempts, numberAssessmentAlignment)
         : exactStepAssessment
           ? getExactStepAutoCheckStatusForPathwayStep(assessmentAttempts, {
+              subjectKey: exactStepAssessment.subjectKey,
               strandKey: exactStepAssessment.strandKey,
               pathwayStepId: exactStepAssessment.pathwayStepId,
               stepKey: exactStepAssessment.stepKey,
